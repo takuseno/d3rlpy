@@ -88,8 +88,11 @@ class DQNImpl:
 
     def save_policy(self, fname):
         dummy_x = torch.rand(1, *self.observation_shape)
+
+        # dummy function to select best actions
         def _func(x):
             return self.q_func(x).argmax(dim=1)
+
         traced_script = torch.jit.trace(_func, dummy_x)
         traced_script.save(fname)
 

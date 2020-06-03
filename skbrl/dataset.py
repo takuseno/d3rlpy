@@ -62,7 +62,7 @@ def read_csv(path,
     elif reward_func is not None:
         rewards = _compute_rewards(reward_func, observations, actions,
                                    terminals)
-    else: # binary reward
+    else:  # binary reward
         rewards = np.zeros_like(terminals)
         rewards[terminals == 1.0] = 1.0
 

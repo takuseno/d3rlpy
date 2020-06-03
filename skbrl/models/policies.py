@@ -7,7 +7,7 @@ from torch.distributions import Normal, Categorical
 
 def _squash_action(dist, raw_action):
     squashed_action = torch.relu(raw_action)
-    jacob = 2.0 * (math.log(2.0) - raw_action - torch.softplus(-2.0 * raw_action))
+    jacob = 2 * (math.log(2) - raw_action - torch.softplus(-2 * raw_action))
     log_prob = (dist.log_prob(raw_action) - jacob).sum(dim=1, keepdims=True)
     return squashed_action, log_prob
 
