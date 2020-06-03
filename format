@@ -1,0 +1,3 @@
+#!/bin/bash -eux
+
+black -l 80 -t py36 --verbose $* skbrl
