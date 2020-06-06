@@ -81,14 +81,14 @@ class MDPDataset:
                  actions,
                  rewards,
                  terminals,
-                 discrete=False):
+                 discrete_action=False):
         """
         """
         self._observations = np.array(observations)
         self._actions = np.array(actions)
         self._rewards = np.array(rewards)
         self._terminals = np.array(terminals)
-        self.discrete = discrete
+        self.discrete_action = discrete_action
 
     @property
     def observations(self):
@@ -106,7 +106,7 @@ class MDPDataset:
     def terminals(self):
         return self._terminals
 
-    def get_episodes(self):
+    def to_episodes(self):
         """
         """
         rets = []
@@ -119,8 +119,9 @@ class MDPDataset:
             rewards.append(self._rewards[i])
             if self._terminals[i]:
                 episode = Episode(self.get_observation_shape(),
-                                  self.get_action_size(), observations,
-                                  actions, rewards)
+                                  self.get_action_size(),
+                                  np.array(observations),
+                                  np.array(actions), np.array(rewards))
                 rets.append(episode)
                 observations = []
                 actions = []
@@ -135,7 +136,7 @@ class MDPDataset:
     def get_action_size(self):
         """
         """
-        if self.discrete:
+        if self.discrete_action:
             return np.max(self._actions) + 1
         return self._actions.shape[1]
 
@@ -143,6 +144,9 @@ class MDPDataset:
         """
         """
         return self._observations.shape[1:]
+
+    def is_action_discrete(self):
+        return self.discrete_action
 
 
 class Episode:
@@ -170,7 +174,7 @@ class Episode:
     def rewards(self):
         return self._rewards
 
-    def get_transitions(self):
+    def to_transitions(self):
         """
         """
         rets = []
@@ -181,7 +185,7 @@ class Episode:
             obs_tp1 = self._observations[i + 1]
             act_tp1 = self._actions[i + 1]
             rew_tp1 = self._rewards[i + 1]
-            ter_tp1 = i == self.size() - 2
+            ter_tp1 = 1.0 if i == self.size() - 2 else 0.0
             transition = Transition(self.observation_shape, self.action_size,
                                     obs_t, act_t, rew_t, obs_tp1, act_tp1,
                                     rew_tp1, ter_tp1)
