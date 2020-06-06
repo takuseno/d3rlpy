@@ -7,12 +7,15 @@ from PIL import Image
 def _compute_rewards(reward_func, observations, actions, terminals):
     rewards = []
     for i in range(observations.shape[0]):
-        if terminals[i]:
-            continue
-        obs_t = observations[i]
-        obs_tp1 = observations[i + 1]
-        act_t = actions[i]
-        reward = reward_func(obs_t, act_t, obs_tp1)
+        if i == 0 or terminals[i - 1]:
+            # reward will be zero at the beginning of each episode
+            reward = 0.0
+        else:
+            obs_t = observations[i]
+            obs_tm1 = observations[i - 1]
+            act_t = actions[i]
+            ter_t = terminals[i]
+            reward = reward_func(obs_tm1, obs_t, act_t, ter_t)
         rewards.append(reward)
     return np.array(rewards)
 

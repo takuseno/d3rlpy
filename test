@@ -1,0 +1,3 @@
+#!/bin/bash -eux
+
+pytest skbrl/tests -p no:warnings -v
