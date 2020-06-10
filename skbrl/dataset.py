@@ -184,16 +184,17 @@ class Episode:
         rets = []
         num_data = self._observations.shape[0]
         for i in range(num_data - 1):
-            obs_t = self._observations[i]
-            act_t = self._actions[i]
-            rew_t = self._rewards[i]
-            obs_tp1 = self._observations[i + 1]
-            act_tp1 = self._actions[i + 1]
-            rew_tp1 = self._rewards[i + 1]
-            ter_tp1 = 1.0 if i == num_data - 2 else 0.0
+            observation = self._observations[i]
+            action = self._actions[i]
+            reward = self._rewards[i]
+            next_observation = self._observations[i + 1]
+            next_action = self._actions[i + 1]
+            next_reward = self._rewards[i + 1]
+            terminal = 1.0 if i == num_data - 2 else 0.0
             transition = Transition(self.observation_shape, self.action_size,
-                                    obs_t, act_t, rew_t, obs_tp1, act_tp1,
-                                    rew_tp1, ter_tp1)
+                                    observation, action, reward,
+                                    next_observation, next_action, next_reward,
+                                    terminal)
             rets.append(transition)
         return rets
 
@@ -217,17 +218,17 @@ class Episode:
 
 
 class Transition:
-    def __init__(self, observation_shape, action_size, obs_t, act_t, rew_t,
-                 obs_tp1, act_tp1, rew_tp1, ter_tp1):
+    def __init__(self, observation_shape, action_size, observation, action,
+                 reward, next_observation, next_action, next_reward, terminal):
         self.observation_shape = observation_shape
         self.action_size = action_size
-        self._obs_t = obs_t
-        self._act_t = act_t
-        self._rew_t = rew_t
-        self._obs_tp1 = obs_tp1
-        self._act_tp1 = act_tp1
-        self._rew_tp1 = rew_tp1
-        self._ter_tp1 = ter_tp1
+        self._observation = observation
+        self._action = action
+        self._reward = reward
+        self._next_observation = next_observation
+        self._next_action = next_action
+        self._next_reward = next_reward
+        self._terminal = terminal
 
     def get_observation_shape(self):
         return self.observation_shape
@@ -236,90 +237,90 @@ class Transition:
         return self.action_size
 
     @property
-    def obs_t(self):
-        return self._obs_t
+    def observation(self):
+        return self._observation
 
     @property
-    def act_t(self):
-        return self._act_t
+    def action(self):
+        return self._action
 
     @property
-    def rew_t(self):
-        return self._rew_t
+    def reward(self):
+        return self._reward
 
     @property
-    def obs_tp1(self):
-        return self._obs_tp1
+    def next_observation(self):
+        return self._next_observation
 
     @property
-    def act_tp1(self):
-        return self._act_tp1
+    def next_action(self):
+        return self._next_action
 
     @property
-    def rew_tp1(self):
-        return self._rew_tp1
+    def next_reward(self):
+        return self._next_reward
 
     @property
-    def ter_tp1(self):
-        return self._ter_tp1
+    def terminal(self):
+        return self._terminal
 
 
 class TransitionMiniBatch:
     def __init__(self, transitions):
         self._transitions = transitions
 
-        obs_ts = []
-        act_ts = []
-        rew_ts = []
-        obs_tp1s = []
-        act_tp1s = []
-        rew_tp1s = []
-        ter_tp1s = []
+        observations = []
+        actions = []
+        rewards = []
+        next_observations = []
+        next_actions = []
+        next_rewards = []
+        terminals = []
         for transition in transitions:
-            obs_ts.append(transition.obs_t)
-            act_ts.append(transition.act_t)
-            rew_ts.append(transition.rew_t)
-            obs_tp1s.append(transition.obs_tp1)
-            act_tp1s.append(transition.act_tp1)
-            rew_tp1s.append(transition.rew_tp1)
-            ter_tp1s.append(transition.ter_tp1)
+            observations.append(transition.observation)
+            actions.append(transition.action)
+            rewards.append(transition.reward)
+            next_observations.append(transition.next_observation)
+            next_actions.append(transition.next_action)
+            next_rewards.append(transition.next_reward)
+            terminals.append(transition.terminal)
 
         # convert list to ndarray and fix shapes
-        self._obs_ts = np.array(obs_ts)
-        self._act_ts = np.array(act_ts).reshape((self.size(), -1))
-        self._rew_ts = np.array(rew_ts).reshape((self.size(), 1))
-        self._obs_tp1s = np.array(obs_tp1s)
-        self._rew_tp1s = np.array(rew_tp1s).reshape((self.size(), 1))
-        self._act_tp1s = np.array(act_tp1s).reshape((self.size(), -1))
-        self._ter_tp1s = np.array(ter_tp1s).reshape((self.size(), 1))
+        self._observations = np.array(observations)
+        self._actions = np.array(actions).reshape((self.size(), -1))
+        self._rewards = np.array(rewards).reshape((self.size(), 1))
+        self._next_observations = np.array(next_observations)
+        self._next_rewards = np.array(next_rewards).reshape((self.size(), 1))
+        self._next_actions = np.array(next_actions).reshape((self.size(), -1))
+        self._terminals = np.array(terminals).reshape((self.size(), 1))
 
     @property
-    def obs_t(self):
-        return self._obs_ts
+    def observations(self):
+        return self._observations
 
     @property
-    def act_t(self):
-        return self._act_ts
+    def actions(self):
+        return self._actions
 
     @property
-    def rew_t(self):
-        return self._rew_ts
+    def rewards(self):
+        return self._rewards
 
     @property
-    def obs_tp1(self):
-        return self._obs_tp1s
+    def next_observations(self):
+        return self._next_observations
 
     @property
-    def act_tp1(self):
-        return self._act_tp1s
+    def next_actions(self):
+        return self._next_actions
 
     @property
-    def rew_tp1(self):
-        return self._rew_tp1s
+    def next_rewards(self):
+        return self._next_rewards
 
     @property
-    def ter_tp1(self):
-        return self._ter_tp1s
+    def terminals(self):
+        return self._terminals
 
     @property
     def transitions(self):

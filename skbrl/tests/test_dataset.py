@@ -71,16 +71,16 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
     # check episodes exported from dataset
     episodes = dataset.episodes
     assert len(episodes) == n_episodes
-    for i, episode in enumerate(dataset.episodes):
-        assert isinstance(episode, Episode)
-        assert episode.size() == n_steps - 1
+    for i, e in enumerate(dataset.episodes):
+        assert isinstance(e, Episode)
+        assert e.size() == n_steps - 1
         head = i * n_steps
         tail = head + n_steps
-        assert np.all(episode.observations == observations[head:tail])
-        assert np.all(episode.actions == actions[head:tail])
-        assert np.all(episode.rewards == rewards[head:tail])
-        assert episode.get_observation_shape() == (observation_size,)
-        assert episode.get_action_size() == ref_action_size
+        assert np.all(e.observations == observations[head:tail])
+        assert np.all(e.actions == actions[head:tail])
+        assert np.all(e.rewards == rewards[head:tail])
+        assert e.get_observation_shape() == (observation_size,)
+        assert e.get_action_size() == ref_action_size
 
     # check list-like behaviors
     assert len(dataset) == n_episodes
@@ -111,17 +111,17 @@ def test_episode(data_size, observation_size, action_size):
 
     # check transitions exported from episode
     assert len(episode.transitions) == data_size - 1
-    for i, transition in enumerate(episode.transitions):
-        assert isinstance(transition, Transition)
-        assert transition.observation_shape == (observation_size,)
-        assert transition.action_size == action_size
-        assert np.all(transition.obs_t == observations[i])
-        assert np.all(transition.act_t == actions[i])
-        assert transition.rew_t == rewards[i]
-        assert np.all(transition.obs_tp1 == observations[i + 1])
-        assert np.all(transition.act_tp1 == actions[i + 1])
-        assert transition.rew_tp1 == rewards[i + 1]
-        assert transition.ter_tp1 == (1.0 if (i == data_size - 2) else 0.0)
+    for i, t in enumerate(episode.transitions):
+        assert isinstance(t, Transition)
+        assert t.observation_shape == (observation_size,)
+        assert t.action_size == action_size
+        assert np.all(t.observation == observations[i])
+        assert np.all(t.action == actions[i])
+        assert t.reward == rewards[i]
+        assert np.all(t.next_observation == observations[i + 1])
+        assert np.all(t.next_action == actions[i + 1])
+        assert t.next_reward == rewards[i + 1]
+        assert t.terminal == (1.0 if (i == data_size - 2) else 0.0)
 
     # check list-like bahaviors
     assert len(episode) == data_size - 1
@@ -143,14 +143,14 @@ def test_transition_minibatch(data_size, observation_size, action_size):
                       rewards)
 
     batch = TransitionMiniBatch(episode.transitions)
-    for i, transition in enumerate(episode.transitions):
-        assert np.all(batch.obs_t[i] == transition.obs_t)
-        assert np.all(batch.act_t[i] == transition.act_t)
-        assert np.all(batch.rew_t[i] == transition.rew_t)
-        assert np.all(batch.obs_tp1[i] == transition.obs_tp1)
-        assert np.all(batch.act_tp1[i] == transition.act_tp1)
-        assert np.all(batch.rew_tp1[i] == transition.rew_tp1)
-        assert np.all(batch.ter_tp1[i] == transition.ter_tp1)
+    for i, t in enumerate(episode.transitions):
+        assert np.all(batch.observations[i] == t.observation)
+        assert np.all(batch.actions[i] == t.action)
+        assert np.all(batch.rewards[i] == t.reward)
+        assert np.all(batch.next_observations[i] == t.next_observation)
+        assert np.all(batch.next_actions[i] == t.next_action)
+        assert np.all(batch.next_rewards[i] == t.next_reward)
+        assert np.all(batch.terminals[i] == t.terminal)
 
     # check list-like behavior
     assert len(batch) == data_size - 1
