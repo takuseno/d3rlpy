@@ -1,5 +1,7 @@
 import numpy as np
 
+from skbrl.dataset import TransitionMiniBatch
+
 
 class AlgoBase:
     def __init__(self, n_epochs, batch_size):
@@ -25,7 +27,7 @@ class AlgoBase:
     def fit(self, episodes):
         transitions = []
         for episode in episodes:
-            transitions += episode.get_transitions()
+            transitions += episode.transitions
 
         # instantiate implementation
         if self.impl is None:
@@ -34,29 +36,43 @@ class AlgoBase:
             self.create_impl(observation_shape, action_size)
 
         # training loop
-        for epoch in self.n_epochs:
-            indices = np.permutation(np.arange(len(transitions)))
+        for epoch in range(self.n_epochs):
+            indices = np.random.permutation(np.arange(len(transitions)))
             for itr in range(len(transitions) // self.batch_size):
-                obs_ts = []
-                act_ts = []
-                rew_tp1s = []
-                obs_tp1s = []
-                ter_tp1s = []
+
+                # pick transitions
+                batch = []
                 head_index = itr * self.batch_size
                 for index in indices[head_index:head_index + self.batch_size]:
-                    obs_ts.append(transitions[index].obs_t)
-                    act_ts.append(transitions[index].act_t)
-                    rew_tp1s.append(transitions[index].rew_tp1)
-                    obs_tp1s.append(transitions[index].obs_tp1)
-                    ter_tp1s.append(transitions[index].ter_tp1)
-                loss = self.update(epoch, itr, obs_ts, act_ts, rew_tp1s,
-                                   obs_tp1s, ter_tp1s)
+                    batch.append(transitions[index])
+
+                loss = self.update(epoch, itr, TransitionMiniBatch(batch))
 
     def predict(self, x):
         return self.impl.predict_best_action(x)
 
+    def predict_value(self, x, action):
+        return self.impl.predict_value(x, action)
+
     def create_impl(self, observation_shape, action_size):
         raise NotImplementedError
 
-    def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
+    def update(self, epoch, itr, batch):
+        raise NotImplementedError
+
+
+class ImplBase:
+    def save_model(self, fname):
+        raise NotImplementedError
+
+    def load_model(self, fname):
+        raise NotImplementedError
+
+    def save_policy(self, fname):
+        raise NotImplementedError
+
+    def predict_best_action(self, x):
+        raise NotImplementedError
+
+    def predict_value(self, x, action):
         raise NotImplementedError

@@ -120,8 +120,8 @@ class MDPDataset:
             if self._terminals[i]:
                 episode = Episode(self.get_observation_shape(),
                                   self.get_action_size(),
-                                  np.array(observations),
-                                  np.array(actions), np.array(rewards))
+                                  np.array(observations), np.array(actions),
+                                  np.array(rewards))
                 rets.append(episode)
                 observations = []
                 actions = []
