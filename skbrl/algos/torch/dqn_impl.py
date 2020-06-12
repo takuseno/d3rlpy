@@ -3,20 +3,14 @@ import copy
 import torch.nn.functional as F
 
 from torch.optim import RMSprop
-from ..models.heads import PixelHead, VectorHead
-from ..models.q_functions import DiscreteQFunction
+from skbrl.models.torch.heads import PixelHead, VectorHead
+from skbrl.models.torch.q_functions import DiscreteQFunction
+from skbrl.algos.base import ImplBase
 
 
-class DQNImpl:
-    def __init__(self,
-                 observation_shape,
-                 action_size,
-                 learning_rate,
-                 gamma,
-                 alpha,
-                 eps,
-                 use_batch_norm,
-                 use_gpu):
+class DQNImpl(ImplBase):
+    def __init__(self, observation_shape, action_size, learning_rate, gamma,
+                 alpha, eps, use_batch_norm, use_gpu):
         self.observation_shape = observation_shape
         self.action_size = self.action_size
         self.learning_rate = learning_rate
@@ -31,12 +25,13 @@ class DQNImpl:
         self.targ_q_func = copy.deepcopy(self.q_func)
 
         # optimizer
-        self.optim = RMSprop(self.q_func.parameters(), lr=learning_rate,
-                             alpha=alpha, eps=eps)
+        self.optim = RMSprop(self.q_func.parameters(),
+                             lr=learning_rate,
+                             alpha=alpha,
+                             eps=eps)
 
         if use_gpu:
-            self.q_func.cuda()
-            self.targ_q_func.cuda()
+            self.to_gpu()
 
     def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
         self.q_func.train()
@@ -63,7 +58,7 @@ class DQNImpl:
         self.q_func.eval()
         return self.q_func(x).argmax(dim=1).cpu().detach().numpy()
 
-    def predict_values(self, x):
+    def predict_values(self, x, action):
         self.q_func.eval()
         return self.q_func(x).cpu().detach().numpy()
 
@@ -75,10 +70,11 @@ class DQNImpl:
                 p_targ.data.copy_(p.data)
 
     def save_model(self, fname):
-        torch.save({
-            'q_func': self.q_func.state_dict(),
-            'optim': self.optim.state_dict(),
-        }, fname)
+        torch.save(
+            {
+                'q_func': self.q_func.state_dict(),
+                'optim': self.optim.state_dict(),
+            }, fname)
 
     def load_model(self, fname):
         chkpt = torch.load(fname)
@@ -95,6 +91,16 @@ class DQNImpl:
 
         traced_script = torch.jit.trace(_func, dummy_x)
         traced_script.save(fname)
+
+    def to_gpu(self):
+        self.q_func.cuda()
+        self.targ_q_func.cuda()
+        self.device = 'cuda:0'
+
+    def to_cpu(self):
+        self.q_func.cpu()
+        self.targ_q_func.cpu()
+        self.device = 'cpu:0'
 
 
 class DoubleDQNImpl(DQNImpl):
