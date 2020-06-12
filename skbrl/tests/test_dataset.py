@@ -55,8 +55,8 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
         actions = np.random.random((data_size, action_size))
         ref_action_size = action_size
 
-    dataset = MDPDataset(
-        observations, actions, rewards, terminals, discrete_action)
+    dataset = MDPDataset(observations, actions, rewards, terminals,
+                         discrete_action)
 
     # check MDPDataset methods
     assert np.all(dataset.observations == observations)
@@ -65,7 +65,7 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
     assert np.all(dataset.terminals == terminals)
     assert dataset.size() == n_episodes
     assert dataset.get_action_size() == ref_action_size
-    assert dataset.get_observation_shape() == (observation_size,)
+    assert dataset.get_observation_shape() == (observation_size, )
     assert dataset.is_action_discrete() == discrete_action
 
     # check episodes exported from dataset
@@ -79,7 +79,7 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
         assert np.all(e.observations == observations[head:tail])
         assert np.all(e.actions == actions[head:tail])
         assert np.all(e.rewards == rewards[head:tail])
-        assert e.get_observation_shape() == (observation_size,)
+        assert e.get_observation_shape() == (observation_size, )
         assert e.get_action_size() == ref_action_size
 
     # check list-like behaviors
@@ -98,7 +98,7 @@ def test_episode(data_size, observation_size, action_size):
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random((data_size, 1))
 
-    episode = Episode((observation_size,), action_size, observations, actions,
+    episode = Episode((observation_size, ), action_size, observations, actions,
                       rewards)
 
     # check Episode methods
@@ -106,14 +106,14 @@ def test_episode(data_size, observation_size, action_size):
     assert np.all(episode.actions == actions)
     assert np.all(episode.rewards == rewards)
     assert episode.size() == data_size - 1
-    assert episode.get_observation_shape() == (observation_size,)
+    assert episode.get_observation_shape() == (observation_size, )
     assert episode.get_action_size() == action_size
 
     # check transitions exported from episode
     assert len(episode.transitions) == data_size - 1
     for i, t in enumerate(episode.transitions):
         assert isinstance(t, Transition)
-        assert t.observation_shape == (observation_size,)
+        assert t.observation_shape == (observation_size, )
         assert t.action_size == action_size
         assert np.all(t.observation == observations[i])
         assert np.all(t.action == actions[i])
@@ -139,7 +139,7 @@ def test_transition_minibatch(data_size, observation_size, action_size):
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random((data_size, 1))
 
-    episode = Episode((observation_size,), action_size, observations, actions,
+    episode = Episode((observation_size, ), action_size, observations, actions,
                       rewards)
 
     batch = TransitionMiniBatch(episode.transitions)
@@ -176,9 +176,7 @@ def test_dataset_with_sklearn(data_size, observation_size, action_size,
     dataset = MDPDataset(observations, actions, rewards, terminals)
 
     # check compatibility with train_test_split
-    train_episodes, test_episodes = train_test_split(
-        dataset,
-        test_size=test_size
-    )
+    train_episodes, test_episodes = train_test_split(dataset,
+                                                     test_size=test_size)
     assert len(train_episodes) == int(n_episodes * (1.0 - test_size))
     assert len(test_episodes) == int(n_episodes * test_size)
