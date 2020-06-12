@@ -1,3 +1,9 @@
 #!/bin/bash -eux
 
-yapf -i -r -vv $* skbrl
+if [ $# = 0 ]; then
+  YAPF_ARG="-i"
+else
+  YAPF_ARG=$*
+fi
+
+yapf -r -vv $YAPF_ARG skbrl
