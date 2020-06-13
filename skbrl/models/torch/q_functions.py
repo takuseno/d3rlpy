@@ -5,6 +5,7 @@ import torch.nn.functional as F
 
 class DiscreteQFunction(nn.Module):
     def __init__(self, head, act_size):
+        super().__init__()
         self.act_size = act_size
         self.head = head
         self.fc = nn.Linear(head.feature_size(), act_size)
@@ -23,6 +24,7 @@ class DiscreteQFunction(nn.Module):
 
 class EnsembleDiscreteQFunction(nn.Module):
     def __init__(self, heads, act_size):
+        super().__init__()
         self.act_size = act_size
         _q_functions = []
         for head in heads:
@@ -55,6 +57,7 @@ class EnsembleDiscreteQFunction(nn.Module):
 
 class ContinuousQFunction(nn.Module):
     def __init__(self, head):
+        super().__init__()
         self.head = head
         self.fc = nn.Linear(head.feature_size(), 1)
 
@@ -71,6 +74,7 @@ class ContinuousQFunction(nn.Module):
 
 class EnsembleContinuousQFunction(nn.Module):
     def __init__(self, heads):
+        super().__init__()
         _q_functions = []
         for head in heads:
             _q_functions.append(ContinuousQFunction(head))

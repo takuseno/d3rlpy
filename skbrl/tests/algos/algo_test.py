@@ -1,4 +1,6 @@
 import numpy as np
+import os
+import torch
 
 from unittest.mock import Mock
 from skbrl.algos.base import ImplBase
@@ -80,3 +82,34 @@ def algo_tester(algo):
         assert call[0][1] == itr
         assert isinstance(call[0][2], TransitionMiniBatch)
         assert len(call[0][2]) == n_batch
+
+
+def impl_tester(impl, discrete):
+    observations = np.random.random((100, ) + impl.observation_shape)
+    if discrete:
+        actions = np.random.randint(impl.action_size, size=100)
+    else:
+        actions = np.random.random((100, ) + impl.action_size)
+
+    # check predict_best_action
+    y = impl.predict_best_action(observations)
+    assert y.shape == (100, )
+
+    # check predict_values
+    value = impl.predict_value(observations, actions)
+    assert value.shape == (100, )
+
+
+def torch_impl_tester(impl, discrete):
+    impl_tester(impl, discrete)
+
+    # check save_model and load_model
+    impl.save_model(os.path.join('test_data', 'model.pt'))
+    impl.load_model(os.path.join('test_data', 'model.pt'))
+
+    # check save_policy
+    impl.save_policy(os.path.join('test_data', 'model.pt'))
+    policy = torch.jit.load(os.path.join('test_data', 'model.pt'))
+    observations = torch.rand(100, *impl.observation_shape)
+    action = policy(observations)
+    assert action.shape == (100, )

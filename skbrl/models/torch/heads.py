@@ -3,12 +3,15 @@ import torch.nn as nn
 
 
 class PixelHead(nn.Module):
-    def __init__(self, linear_input_size=3136, use_batch_norm=True):
+    def __init__(self,
+                 n_channels=4,
+                 linear_input_size=3136,
+                 use_batch_norm=True):
         super().__init__()
 
         self.use_batch_norm = use_batch_norm
 
-        self.conv1 = nn.Conv2d(4, 32, kernel_size=8, stride=4)
+        self.conv1 = nn.Conv2d(n_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
         self.fc = nn.Linear(linear_input_size, 512)
@@ -52,8 +55,13 @@ class PixelHead(nn.Module):
 
 
 class PixelHeadWithAction(PixelHead):
-    def __init__(self, act_size, linear_input_size=3136, use_batch_norm=True):
-        super().__init__(linear_input_size + act_size, use_batch_norm)
+    def __init__(self,
+                 act_size,
+                 n_channels=4,
+                 linear_input_size=3136,
+                 use_batch_norm=True):
+        super().__init__(n_channels, linear_input_size + act_size,
+                         use_batch_norm)
 
     def forward(self, x, action):
         h = self.conv_encode(x)

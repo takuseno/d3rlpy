@@ -1,6 +1,7 @@
+import numpy as np
+import torch.nn.functional as F
 import torch
 import copy
-import torch.nn.functional as F
 
 from torch.optim import RMSprop
 from skbrl.models.torch.heads import PixelHead, VectorHead
@@ -12,7 +13,7 @@ class DQNImpl(ImplBase):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
                  alpha, eps, use_batch_norm, use_gpu):
         self.observation_shape = observation_shape
-        self.action_size = self.action_size
+        self.action_size = action_size
         self.learning_rate = learning_rate
         self.gamma = gamma
 
@@ -20,7 +21,8 @@ class DQNImpl(ImplBase):
         if len(observation_shape) == 1:
             self.head = VectorHead(observation_shape[0], use_batch_norm)
         else:
-            self.head = PixelHead(action_size, use_batch_norm)
+            self.head = PixelHead(observation_shape[0], action_size,
+                                  use_batch_norm)
         self.q_func = DiscreteQFunction(self.head, action_size)
         self.targ_q_func = copy.deepcopy(self.q_func)
 
@@ -30,6 +32,7 @@ class DQNImpl(ImplBase):
                              alpha=alpha,
                              eps=eps)
 
+        self.device = 'cpu:0'
         if use_gpu:
             self.to_gpu()
 
@@ -56,11 +59,22 @@ class DQNImpl(ImplBase):
 
     def predict_best_action(self, x):
         self.q_func.eval()
-        return self.q_func(x).argmax(dim=1).cpu().detach().numpy()
+        x = torch.tensor(x, dtype=torch.float32, device=self.device)
+        with torch.no_grad():
+            return self.q_func(x).argmax(dim=1).cpu().detach().numpy()
 
-    def predict_values(self, x, action):
+    def predict_value(self, x, action):
+        assert x.shape[0] == action.shape[0]
+
         self.q_func.eval()
-        return self.q_func(x).cpu().detach().numpy()
+        x = torch.tensor(x, dtype=torch.float32, device=self.device)
+        with torch.no_grad():
+            values = self.q_func(x).cpu().detach().numpy()
+
+        rets = []
+        for v, a in zip(values, action.reshape(-1)):
+            rets.append(v[a])
+        return np.array(rets)
 
     def update_target(self):
         with torch.no_grad():
@@ -85,12 +99,20 @@ class DQNImpl(ImplBase):
     def save_policy(self, fname):
         dummy_x = torch.rand(1, *self.observation_shape)
 
+        # workaround until version 1.6
+        self.q_func.eval()
+        for p in self.q_func.parameters():
+            p.requires_grad = False
+
         # dummy function to select best actions
         def _func(x):
             return self.q_func(x).argmax(dim=1)
 
         traced_script = torch.jit.trace(_func, dummy_x)
         traced_script.save(fname)
+
+        for p in self.q_func.parameters():
+            p.requires_grad = True
 
     def to_gpu(self):
         self.q_func.cuda()
