@@ -4,6 +4,7 @@ import torch
 import copy
 
 from torch.optim import RMSprop
+from torch.nn.utils import clip_grad_norm_
 from skbrl.models.torch.heads import PixelHead, VectorHead
 from skbrl.models.torch.q_functions import DiscreteQFunction
 from skbrl.algos.base import ImplBase
@@ -11,11 +12,12 @@ from skbrl.algos.base import ImplBase
 
 class DQNImpl(ImplBase):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
-                 alpha, eps, use_batch_norm, use_gpu):
+                 alpha, eps, grad_clip, use_batch_norm, use_gpu):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.learning_rate = learning_rate
         self.gamma = gamma
+        self.grad_clip = grad_clip
 
         # parametric functions
         if len(observation_shape) == 1:
@@ -50,6 +52,7 @@ class DQNImpl(ImplBase):
 
         self.optim.zero_grad()
         loss.backward()
+        clip_grad_norm_(self.q_func.parameters(), self.grad_clip)
         self.optim.step()
 
         return loss.cpu().detach().numpy()

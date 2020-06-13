@@ -13,6 +13,7 @@ class DQN(AlgoBase):
                  gamma=0.99,
                  alpha=0.95,
                  eps=1e-2,
+                 grad_clip=10.0,
                  use_batch_norm=True,
                  n_epochs=1000,
                  use_gpu=False,
@@ -23,6 +24,7 @@ class DQN(AlgoBase):
         self.gamma = gamma
         self.alpha = alpha
         self.eps = eps
+        self.grad_clip = grad_clip
         self.use_batch_norm = use_batch_norm
         self.use_gpu = use_gpu
         self.impl = impl
@@ -34,6 +36,7 @@ class DQN(AlgoBase):
                             gamma=self.gamma,
                             alpha=self.alpha,
                             eps=self.eps,
+                            grad_clip=self.grad_clip,
                             use_batch_norm=self.use_batch_norm,
                             use_gpu=self.use_gpu)
 
@@ -81,5 +84,6 @@ class DoubleDQN(DQN):
                                   gamma=self.gamma,
                                   alpha=self.alpha,
                                   eps=self.eps,
+                                  grad_clip=self.grad_clip,
                                   use_batch_norm=self.use_batch_norm,
                                   use_gpu=self.use_gpu)
