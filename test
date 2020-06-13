@@ -1,3 +1,9 @@
 #!/bin/bash -eux
 
+# create temporary directory for tests
+mkdir -p test_data
+
 pytest skbrl/tests -p no:warnings -v
+
+# clean up
+rm -r test_data
