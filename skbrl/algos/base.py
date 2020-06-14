@@ -10,7 +10,9 @@ class AlgoBase:
         self.impl = None
 
     def set_params(self, **params):
-        raise NotImplementedError
+        for key, val in params.items():
+            assert hasattr(self, key)
+            setattr(self, key, val)
 
     def get_params(self, deep=True):
         raise NotImplementedError

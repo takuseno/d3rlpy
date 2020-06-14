@@ -64,17 +64,6 @@ class DQN(AlgoBase):
             'impl': impl
         }
 
-    def set_params(self, **params):
-        self.learning_rate = params['learning_rate']
-        self.batch_size = params['batch_size']
-        self.gamma = params['gamma']
-        self.alpha = params['alpha']
-        self.eps = params['eps']
-        self.use_batch_norm = params['use_batch_norm']
-        self.n_epochs = params['n_epochs']
-        self.use_gpu = params['use_gpu']
-        self.impl = params['impl']
-
 
 class DoubleDQN(DQN):
     def create_impl(self, observation_shape, action_size):
