@@ -39,9 +39,9 @@ class DQNImpl(ImplBase):
 
     def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
         self.q_func.train()
-        device = self.q_func.device
+        device = self.device
         obs_t = torch.tensor(obs_t, dtype=torch.float32, device=device)
-        act_t = torch.tensor(act_t, dtype=torch.int32, device=device)
+        act_t = torch.tensor(act_t, dtype=torch.int64, device=device)
         rew_tp1 = torch.tensor(rew_tp1, dtype=torch.float32, device=device)
         obs_tp1 = torch.tensor(obs_tp1, dtype=torch.float32, device=device)
         ter_tp1 = torch.tensor(ter_tp1, dtype=torch.float32, device=device)
@@ -57,7 +57,7 @@ class DQNImpl(ImplBase):
         return loss.cpu().detach().numpy()
 
     def compute_target(self, x):
-        return self.targ_q_func(x).max(dim=1, keepdim=True).detach()
+        return self.targ_q_func(x).max(dim=1, keepdim=True).values.detach()
 
     def predict_best_action(self, x):
         self.q_func.eval()
@@ -131,5 +131,5 @@ class DoubleDQNImpl(DQNImpl):
     def compute_target(self, x):
         act = self.q_func(x).argmax(dim=1, keepdim=True)
         one_hot = F.one_hot(act.view(-1), num_classes=self.action_size)
-        q_tp1 = (self.targ_q_func(x) * one_hot).max(dim=1, keepdims=True)
-        return q_tp1.detach()
+        q_tp1 = (self.targ_q_func(x) * one_hot)
+        return q_tp1.max(dim=1, keepdims=True).values.detach()

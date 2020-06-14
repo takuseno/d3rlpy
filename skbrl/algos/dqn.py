@@ -14,6 +14,7 @@ class DQN(AlgoBase):
                  alpha=0.95,
                  eps=1e-2,
                  grad_clip=10.0,
+                 target_update_interval=100,
                  use_batch_norm=True,
                  n_epochs=1000,
                  use_gpu=False,
@@ -25,6 +26,7 @@ class DQN(AlgoBase):
         self.alpha = alpha
         self.eps = eps
         self.grad_clip = grad_clip
+        self.target_update_interval = target_update_interval
         self.use_batch_norm = use_batch_norm
         self.use_gpu = use_gpu
         self.impl = impl
@@ -44,7 +46,8 @@ class DQN(AlgoBase):
         loss = self.impl.update(batch.observations, batch.actions,
                                 batch.next_rewards, batch.next_observations,
                                 batch.terminals)
-        self.impl.update_target()
+        if (itr + 1) * (epoch + 1) % self.target_update_interval == 0:
+            self.impl.update_target()
         return loss
 
     def get_params(self, deep=True):
@@ -58,6 +61,8 @@ class DQN(AlgoBase):
             'gamma': self.gamma,
             'alpha': self.alpha,
             'eps': self.eps,
+            'grad_clip': self.grad_clip,
+            'target_update_interval': self.target_update_interval,
             'use_batch_norm': self.use_batch_norm,
             'n_epochs': self.n_epochs,
             'use_gpu': self.use_gpu,

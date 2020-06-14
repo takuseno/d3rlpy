@@ -16,7 +16,7 @@ class DiscreteQFunction(nn.Module):
 
     def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         one_hot = F.one_hot(act_t.view(-1), num_classes=self.act_size)
-        q_t = (self.forward(obs_t) * one_hot).max(dim=1, keepdims=True)
+        q_t = (self.forward(obs_t) * one_hot).max(dim=1, keepdims=True).values
         y = rew_tp1 + gamma * q_tp1
         td = F.smooth_l1_loss(q_t, y)
         return td

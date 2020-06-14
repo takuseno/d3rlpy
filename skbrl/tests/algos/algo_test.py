@@ -1,6 +1,8 @@
 import numpy as np
 import os
 import torch
+import pickle
+import gym
 
 from unittest.mock import Mock
 from skbrl.algos.base import ImplBase
@@ -82,6 +84,49 @@ def algo_tester(algo):
         assert call[0][1] == itr
         assert isinstance(call[0][2], TransitionMiniBatch)
         assert len(call[0][2]) == n_batch
+
+
+def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
+    # load dataset
+    with open('skbrl_data/cartpole.pkl', 'rb') as f:
+        observations, actions, rewards, terminals = pickle.load(f)
+
+    dataset = MDPDataset(observations, actions, rewards, terminals, True)
+
+    # try multiple trials to reduce failures due to random seeds
+    trial_count = 0
+    for _ in range(n_trials):
+        # reset parameters
+        algo.impl = None
+
+        # train
+        algo.fit(dataset.episodes[:n_episodes])
+
+        # environment
+        env = gym.make('CartPole-v0')
+
+        # evaluation loop
+        success_count = 0
+        evaluation_count = 0
+        while evaluation_count < 100:
+            observation = env.reset()
+            episode_rew = 0.0
+            while True:
+                action = algo.predict([observation])[0]
+                observation, reward, done, _ = env.step(action)
+                episode_rew += reward
+                if done:
+                    break
+            evaluation_count += 1
+            if episode_rew >= 160:
+                success_count += 1
+
+        if success_count >= n_evaluations * 0.8:
+            break
+
+        trial_count += 1
+        if trial_count == n_trials:
+            assert False, 'performance is not good enough.'
 
 
 def impl_tester(impl, discrete):

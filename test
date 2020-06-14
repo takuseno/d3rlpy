@@ -3,6 +3,12 @@
 # create temporary directory for tests
 mkdir -p test_data
 
+# download performance test dataset
+mkdir -p skbrl_data
+if [ ! -f skbrl_data/cartpole.pkl ]; then
+  wget -O skbrl_data/cartpole.pkl https://www.dropbox.com/s/2tmo7ul00268l3e/cartpole.pkl?dl=1
+fi
+
 pytest skbrl/tests -p no:warnings -v
 
 # clean up
