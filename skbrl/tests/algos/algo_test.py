@@ -108,7 +108,7 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
         # evaluation loop
         success_count = 0
         evaluation_count = 0
-        while evaluation_count < 100:
+        while evaluation_count < n_evaluations:
             observation = env.reset()
             episode_rew = 0.0
             while True:
