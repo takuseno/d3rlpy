@@ -117,5 +117,5 @@ class VectorHeadWithAction(VectorHead):
         super().__init__(concat_shape, use_batch_norm)
 
     def forward(self, x, action):
-        x = torch.cat([x, action], dim=0)
+        x = torch.cat([x, action], dim=1)
         return super().forward(x)
