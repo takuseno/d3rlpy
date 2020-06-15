@@ -134,11 +134,14 @@ def impl_tester(impl, discrete):
     if discrete:
         actions = np.random.randint(impl.action_size, size=100)
     else:
-        actions = np.random.random((100, ) + impl.action_size)
+        actions = np.random.random((100, impl.action_size))
 
     # check predict_best_action
     y = impl.predict_best_action(observations)
-    assert y.shape == (100, )
+    if discrete:
+        assert y.shape == (100, )
+    else:
+        assert y.shape == (100, impl.action_size)
 
     # check predict_values
     value = impl.predict_value(observations, actions)
@@ -157,4 +160,7 @@ def torch_impl_tester(impl, discrete):
     policy = torch.jit.load(os.path.join('test_data', 'model.pt'))
     observations = torch.rand(100, *impl.observation_shape)
     action = policy(observations)
-    assert action.shape == (100, )
+    if discrete:
+        assert action.shape == (100, )
+    else:
+        assert action.shape == (100, impl.action_size)
