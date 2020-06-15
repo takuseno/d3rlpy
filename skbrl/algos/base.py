@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 from skbrl.dataset import TransitionMiniBatch
 
@@ -15,7 +16,19 @@ class AlgoBase:
             setattr(self, key, val)
 
     def get_params(self, deep=True):
-        raise NotImplementedError
+        rets = {}
+        for key in dir(self):
+            # remove magic properties
+            if key == '__module__':
+                continue
+            # pick scalar parameters
+            if isinstance(getattr(self, key), (str, int, float, bool)):
+                rets[key] = getattr(self, key)
+        if deep:
+            rets['impl'] = copy.deepcopy(self.impl)
+        else:
+            rets['impl'] = self.impl
+        return rets
 
     def save_model(self, fname):
         self.impl.save_model(fname)

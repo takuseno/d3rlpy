@@ -1,5 +1,3 @@
-import numpy as np
-import random
 import copy
 
 from .base import AlgoBase
@@ -49,25 +47,6 @@ class DQN(AlgoBase):
         if (itr + 1) * (epoch + 1) % self.target_update_interval == 0:
             self.impl.update_target()
         return loss
-
-    def get_params(self, deep=True):
-        impl = self.impl
-        if deep:
-            impl = copy.deepcopy(impl)
-
-        return {
-            'learning_rate': self.learning_rate,
-            'batch_size': self.batch_size,
-            'gamma': self.gamma,
-            'alpha': self.alpha,
-            'eps': self.eps,
-            'grad_clip': self.grad_clip,
-            'target_update_interval': self.target_update_interval,
-            'use_batch_norm': self.use_batch_norm,
-            'n_epochs': self.n_epochs,
-            'use_gpu': self.use_gpu,
-            'impl': impl
-        }
 
 
 class DoubleDQN(DQN):
