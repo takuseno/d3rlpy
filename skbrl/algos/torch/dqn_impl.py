@@ -15,7 +15,6 @@ class DQNImpl(ImplBase):
                  alpha, eps, grad_clip, use_batch_norm, use_gpu):
         self.observation_shape = observation_shape
         self.action_size = action_size
-        self.learning_rate = learning_rate
         self.gamma = gamma
         self.grad_clip = grad_clip
 
