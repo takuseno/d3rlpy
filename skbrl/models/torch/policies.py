@@ -13,11 +13,12 @@ def _squash_action(dist, raw_action):
 
 
 class DeterministicPolicy(nn.Module):
-    def __init__(self, head, act_size):
+    def __init__(self, head, action_size):
+        super().__init__()
         self.head = head
-        self.fc = nn.Linear(head.feature_size(), act_size)
+        self.fc = nn.Linear(head.feature_size(), action_size)
 
-    def forward(self, x):
+    def forward(self, x, without_tanh=False):
         h = self.head(x)
         h = self.fc(h)
 
@@ -26,12 +27,16 @@ class DeterministicPolicy(nn.Module):
 
         return torch.tanh(h)
 
+    def best_action(self, x):
+        return self.forward(x)
+
 
 class NormalPolicy(nn.Module):
-    def __init__(self, head, act_size):
+    def __init__(self, head, action_size):
+        super().__init__()
         self.head = head
-        self.mu = nn.Linear(head.feature_size(), act_size)
-        self.logstd = nn.Linear(head.feature_size(), act_size)
+        self.mu = nn.Linear(head.feature_size(), action_size)
+        self.logstd = nn.Linear(head.feature_size(), action_size)
 
     def dist(self, x):
         h = self.head(x)
@@ -64,9 +69,10 @@ class NormalPolicy(nn.Module):
 
 
 class CategoricalPolicy(nn.Module):
-    def __init__(self, head, act_size):
+    def __init__(self, head, action_size):
+        super().__init__()
         self.head = head
-        self.fc = nn.Linear(head.feature_size(), act_size)
+        self.fc = nn.Linear(head.feature_size(), action_size)
 
     def dist(self, x):
         h = self.head(x)

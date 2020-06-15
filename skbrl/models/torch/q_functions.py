@@ -4,18 +4,18 @@ import torch.nn.functional as F
 
 
 class DiscreteQFunction(nn.Module):
-    def __init__(self, head, act_size):
+    def __init__(self, head, action_size):
         super().__init__()
-        self.act_size = act_size
+        self.action_size = action_size
         self.head = head
-        self.fc = nn.Linear(head.feature_size(), act_size)
+        self.fc = nn.Linear(head.feature_size(), action_size)
 
     def forward(self, x):
         h = self.head(x)
         return self.fc(h)
 
     def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
-        one_hot = F.one_hot(act_t.view(-1), num_classes=self.act_size)
+        one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
         q_t = (self.forward(obs_t) * one_hot).max(dim=1, keepdims=True).values
         y = rew_tp1 + gamma * q_tp1
         td = F.smooth_l1_loss(q_t, y)
@@ -23,12 +23,12 @@ class DiscreteQFunction(nn.Module):
 
 
 class EnsembleDiscreteQFunction(nn.Module):
-    def __init__(self, heads, act_size):
+    def __init__(self, heads, action_size):
         super().__init__()
-        self.act_size = act_size
+        self.action_size = action_size
         _q_functions = []
         for head in heads:
-            _q_functions.append(DiscreteQFunction(head, act_size))
+            _q_functions.append(DiscreteQFunction(head, action_size))
         self.q_functions = nn.ModuleList(_q_functions)
 
     def forward(self, x, reduction='min'):
