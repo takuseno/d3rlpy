@@ -19,19 +19,20 @@ def check_parameter_updates(head, inputs):
 
 
 @pytest.mark.parametrize('shapes', [((4, 84, 84), 3136)])
+@pytest.mark.parametrize('filters', [[(32, 8, 4), (64, 4, 2), (64, 3, 1)]])
+@pytest.mark.parametrize('feature_size', [512])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
-def test_pixel_head(shapes, batch_size, use_batch_norm):
+def test_pixel_head(shapes, filters, feature_size, batch_size, use_batch_norm):
     observation_shape, linear_input_size = shapes
 
-    head = PixelHead(observation_shape, use_batch_norm)
+    head = PixelHead(observation_shape, filters, feature_size, use_batch_norm)
     x = torch.rand((batch_size, ) + observation_shape)
     y = head(x)
 
     # check output shape
     assert head._get_linear_input_size() == linear_input_size
-    assert head.feature_size() == 512
-    assert y.shape == (batch_size, 512)
+    assert y.shape == (batch_size, feature_size)
 
     # check use of batch norm
     head.eval()
@@ -43,21 +44,23 @@ def test_pixel_head(shapes, batch_size, use_batch_norm):
 
 @pytest.mark.parametrize('shapes', [((4, 84, 84), 3136)])
 @pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('filters', [[(32, 8, 4), (64, 4, 2), (64, 3, 1)]])
+@pytest.mark.parametrize('feature_size', [512])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
-def test_pixel_head_with_action(shapes, action_size, batch_size,
-                                use_batch_norm):
+def test_pixel_head_with_action(shapes, action_size, filters, feature_size,
+                                batch_size, use_batch_norm):
     observation_shape, linear_input_size = shapes
 
-    head = PixelHeadWithAction(observation_shape, action_size, use_batch_norm)
+    head = PixelHeadWithAction(observation_shape, action_size, filters,
+                               feature_size, use_batch_norm)
     x = torch.rand((batch_size, ) + observation_shape)
     action = torch.rand((batch_size, action_size))
     y = head(x, action)
 
     # check output shape
     assert head._get_linear_input_size() == linear_input_size + action_size
-    assert head.feature_size() == 512
-    assert y.shape == (batch_size, 512)
+    assert y.shape == (batch_size, feature_size)
 
     # check use of batch norm
     head.eval()
@@ -68,17 +71,19 @@ def test_pixel_head_with_action(shapes, action_size, batch_size,
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('hidden_units', [[256, 256]])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
-def test_vector_head(observation_shape, batch_size, use_batch_norm):
-    head = VectorHead(observation_shape, use_batch_norm)
+def test_vector_head(observation_shape, hidden_units, batch_size,
+                     use_batch_norm):
+    head = VectorHead(observation_shape, hidden_units, use_batch_norm)
 
     x = torch.rand((batch_size, ) + observation_shape)
     y = head(x)
 
     # check output shape
-    assert head.feature_size() == 256
-    assert y.shape == (batch_size, 256)
+    assert head.feature_size == hidden_units[-1]
+    assert y.shape == (batch_size, hidden_units[-1])
 
     # check use of batch norm
     head.eval()
@@ -90,19 +95,21 @@ def test_vector_head(observation_shape, batch_size, use_batch_norm):
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
 @pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('hidden_units', [[256, 256]])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
-def test_vector_head(observation_shape, action_size, batch_size,
+def test_vector_head(observation_shape, action_size, hidden_units, batch_size,
                      use_batch_norm):
-    head = VectorHeadWithAction(observation_shape, action_size, use_batch_norm)
+    head = VectorHeadWithAction(observation_shape, action_size, hidden_units,
+                                use_batch_norm)
 
     x = torch.rand((batch_size, ) + observation_shape)
     action = torch.rand((batch_size, action_size))
     y = head(x, action)
 
     # check output shape
-    assert head.feature_size() == 256
-    assert y.shape == (batch_size, 256)
+    assert head.feature_size == hidden_units[-1]
+    assert y.shape == (batch_size, hidden_units[-1])
 
     # check use of batch norm
     head.eval()

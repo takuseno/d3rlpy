@@ -8,7 +8,7 @@ class DiscreteQFunction(nn.Module):
         super().__init__()
         self.action_size = action_size
         self.head = head
-        self.fc = nn.Linear(head.feature_size(), action_size)
+        self.fc = nn.Linear(head.feature_size, action_size)
 
     def forward(self, x):
         h = self.head(x)
@@ -59,7 +59,7 @@ class ContinuousQFunction(nn.Module):
     def __init__(self, head):
         super().__init__()
         self.head = head
-        self.fc = nn.Linear(head.feature_size(), 1)
+        self.fc = nn.Linear(head.feature_size, 1)
 
     def forward(self, x, action):
         h = self.head(x, action)

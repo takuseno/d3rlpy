@@ -21,9 +21,11 @@ class DQNImpl(ImplBase):
 
         # parametric functions
         if len(observation_shape) == 1:
-            self.head = VectorHead(observation_shape, use_batch_norm)
+            self.head = VectorHead(observation_shape,
+                                   use_batch_norm=use_batch_norm)
         else:
-            self.head = PixelHead(observation_shape, use_batch_norm)
+            self.head = PixelHead(observation_shape,
+                                  use_batch_norm=use_batch_norm)
         self.q_func = DiscreteQFunction(self.head, action_size)
         self.targ_q_func = copy.deepcopy(self.q_func)
 

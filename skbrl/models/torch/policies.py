@@ -16,7 +16,7 @@ class DeterministicPolicy(nn.Module):
     def __init__(self, head, action_size):
         super().__init__()
         self.head = head
-        self.fc = nn.Linear(head.feature_size(), action_size)
+        self.fc = nn.Linear(head.feature_size, action_size)
 
     def forward(self, x, without_tanh=False):
         h = self.head(x)
@@ -35,8 +35,8 @@ class NormalPolicy(nn.Module):
     def __init__(self, head, action_size):
         super().__init__()
         self.head = head
-        self.mu = nn.Linear(head.feature_size(), action_size)
-        self.logstd = nn.Linear(head.feature_size(), action_size)
+        self.mu = nn.Linear(head.feature_size, action_size)
+        self.logstd = nn.Linear(head.feature_size, action_size)
 
     def dist(self, x):
         h = self.head(x)
@@ -72,7 +72,7 @@ class CategoricalPolicy(nn.Module):
     def __init__(self, head, action_size):
         super().__init__()
         self.head = head
-        self.fc = nn.Linear(head.feature_size(), action_size)
+        self.fc = nn.Linear(head.feature_size, action_size)
 
     def dist(self, x):
         h = self.head(x)

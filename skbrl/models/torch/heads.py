@@ -3,23 +3,42 @@ import torch.nn as nn
 
 
 class PixelHead(nn.Module):
-    def __init__(self, observation_shape, use_batch_norm=True):
+    def __init__(self,
+                 observation_shape,
+                 filters=None,
+                 feature_size=None,
+                 use_batch_norm=True):
         super().__init__()
+
+        # default architecture is based on Nature DQN paper.
+        if filters is None:
+            filters = [(32, 8, 4), (64, 4, 2), (64, 3, 1)]
+        if feature_size is None:
+            feature_size = 512
+
         self.observation_shape = observation_shape
         self.use_batch_norm = use_batch_norm
+        self.feature_size = feature_size
 
-        n_channels = observation_shape[0]
-        self.conv1 = nn.Conv2d(n_channels, 32, kernel_size=8, stride=4)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        # convolutional layers
+        in_channels = [observation_shape[0]] + [f[0] for f in filters[:-1]]
+        self.convs = nn.ModuleList()
+        self.conv_bns = nn.ModuleList()
+        for in_channel, f in zip(in_channels, filters):
+            out_channel, kernel_size, stride = f
+            conv = nn.Conv2d(in_channel,
+                             out_channel,
+                             kernel_size=kernel_size,
+                             stride=stride)
+            self.convs.append(conv)
 
+            if use_batch_norm:
+                self.conv_bns.append(nn.BatchNorm2d(out_channel))
+
+        # last dense layer
+        self.fc = nn.Linear(self._get_linear_input_size(), feature_size)
         if use_batch_norm:
-            self.bn1 = nn.BatchNorm2d(32)
-            self.bn2 = nn.BatchNorm2d(64)
-            self.bn3 = nn.BatchNorm2d(64)
-            self.bn4 = nn.BatchNorm1d(512)
-
-        self.fc = nn.Linear(self._get_linear_input_size(), 512)
+            self.fc_bn = nn.BatchNorm1d(feature_size)
 
     def _get_linear_input_size(self):
         x = torch.rand((1, ) + self.observation_shape)
@@ -27,18 +46,11 @@ class PixelHead(nn.Module):
             return self._conv_encode(x).view(1, -1).shape[1]
 
     def _conv_encode(self, x):
-        h = torch.relu(self.conv1(x))
-        if self.use_batch_norm:
-            h = self.bn1(h)
-
-        h = torch.relu(self.conv2(h))
-        if self.use_batch_norm:
-            h = self.bn2(h)
-
-        h = torch.relu(self.conv3(h))
-        if self.use_batch_norm:
-            h = self.bn3(h)
-
+        h = x
+        for i in range(len(self.convs)):
+            h = torch.relu(self.convs[i](h))
+            if self.use_batch_norm:
+                h = self.conv_bns[i](h)
         return h
 
     def forward(self, x):
@@ -46,18 +58,21 @@ class PixelHead(nn.Module):
 
         h = torch.relu(self.fc(h.view(h.shape[0], -1)))
         if self.use_batch_norm:
-            h = self.bn4(h)
+            h = self.fc_bn(h)
 
         return h
 
-    def feature_size(self):
-        return 512
-
 
 class PixelHeadWithAction(PixelHead):
-    def __init__(self, observation_shape, action_size, use_batch_norm=True):
+    def __init__(self,
+                 observation_shape,
+                 action_size,
+                 filters=None,
+                 feature_size=None,
+                 use_batch_norm=True):
         self.action_size = action_size
-        super().__init__(observation_shape, use_batch_norm)
+        super().__init__(observation_shape, filters, feature_size,
+                         use_batch_norm)
 
     def _get_linear_input_size(self):
         size = super()._get_linear_input_size()
@@ -70,43 +85,49 @@ class PixelHeadWithAction(PixelHead):
         h = torch.cat([h.view(h.shape[0], -1), action], dim=1)
         h = torch.relu(self.fc(h))
         if self.use_batch_norm:
-            h = self.bn4(h)
+            h = self.fc_bn(h)
 
         return h
 
 
 class VectorHead(nn.Module):
-    def __init__(self, observation_shape, use_batch_norm=True):
+    def __init__(self,
+                 observation_shape,
+                 hidden_units=None,
+                 use_batch_norm=True):
         super().__init__()
 
+        if hidden_units is None:
+            hidden_units = [256, 256]
+
         self.use_batch_norm = use_batch_norm
+        self.feature_size = hidden_units[-1]
 
-        self.fc1 = nn.Linear(observation_shape[0], 256)
-        self.fc2 = nn.Linear(256, 256)
-
-        if use_batch_norm:
-            self.bn1 = nn.BatchNorm1d(256)
-            self.bn2 = nn.BatchNorm1d(256)
+        in_units = [observation_shape[0]] + hidden_units[:-1]
+        self.fcs = nn.ModuleList()
+        self.bns = nn.ModuleList()
+        for in_unit, out_unit in zip(in_units, hidden_units):
+            self.fcs.append(nn.Linear(in_unit, out_unit))
+            if use_batch_norm:
+                self.bns.append(nn.BatchNorm1d(out_unit))
 
     def forward(self, x):
-        h = torch.relu(self.fc1(x))
-        if self.use_batch_norm:
-            h = self.bn1(h)
-
-        h = torch.relu(self.fc2(h))
-        if self.use_batch_norm:
-            h = self.bn2(h)
-
+        h = x
+        for i in range(len(self.fcs)):
+            h = torch.relu(self.fcs[i](h))
+            if self.use_batch_norm:
+                h = self.bns[i](h)
         return h
-
-    def feature_size(self):
-        return 256
 
 
 class VectorHeadWithAction(VectorHead):
-    def __init__(self, observation_shape, action_size, use_batch_norm=True):
+    def __init__(self,
+                 observation_shape,
+                 action_size,
+                 hidden_units=None,
+                 use_batch_norm=True):
         concat_shape = (observation_shape[0] + action_size, )
-        super().__init__(concat_shape, use_batch_norm)
+        super().__init__(concat_shape, hidden_units, use_batch_norm)
 
     def forward(self, x, action):
         x = torch.cat([x, action], dim=1)

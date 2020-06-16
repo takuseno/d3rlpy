@@ -23,20 +23,21 @@ class DDPGImpl(ImplBase):
 
         # critic
         if len(observation_shape) == 1:
-            self.critic_head = VectorHeadWithAction(observation_shape,
-                                                    action_size,
-                                                    use_batch_norm)
+            self.critic_head = VectorHeadWithAction(
+                observation_shape, action_size, use_batch_norm=use_batch_norm)
         else:
-            self.critic_head = PixelHeadWithAction(observation_shape,
-                                                   action_size, use_batch_norm)
+            self.critic_head = PixelHeadWithAction(
+                observation_shape, action_size, use_batch_norm=use_batch_norm)
         self.q_func = ContinuousQFunction(self.critic_head)
         self.targ_q_func = copy.deepcopy(self.q_func)
 
         # actor
         if len(observation_shape) == 1:
-            self.actor_head = VectorHead(observation_shape, use_batch_norm)
+            self.actor_head = VectorHead(observation_shape,
+                                         use_batch_norm=use_batch_norm)
         else:
-            self.actor_head = PixelHead(observation_shape, use_batch_norm)
+            self.actor_head = PixelHead(observation_shape,
+                                        use_batch_norm=use_batch_norm)
         self.policy = DeterministicPolicy(self.actor_head, action_size)
         self.targ_policy = copy.deepcopy(self.policy)
 
