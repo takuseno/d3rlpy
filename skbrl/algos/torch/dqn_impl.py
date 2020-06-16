@@ -8,6 +8,7 @@ from torch.nn.utils import clip_grad_norm_
 from skbrl.models.torch.heads import PixelHead, VectorHead
 from skbrl.models.torch.q_functions import DiscreteQFunction
 from skbrl.algos.base import ImplBase
+from skbrl.algos.torch.utility import hard_sync
 
 
 class DQNImpl(ImplBase):
@@ -78,11 +79,7 @@ class DQNImpl(ImplBase):
         return np.array(rets)
 
     def update_target(self):
-        with torch.no_grad():
-            params = self.q_func.parameters()
-            targ_params = self.targ_q_func.parameters()
-            for p, p_targ in zip(params, targ_params):
-                p_targ.data.copy_(p.data)
+        hard_sync(self.targ_q_func, self.q_func)
 
     def save_model(self, fname):
         torch.save(

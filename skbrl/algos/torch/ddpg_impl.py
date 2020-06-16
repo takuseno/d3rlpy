@@ -9,6 +9,7 @@ from skbrl.models.torch.heads import PixelHeadWithAction, VectorHeadWithAction
 from skbrl.models.torch.q_functions import ContinuousQFunction
 from skbrl.models.torch.policies import DeterministicPolicy
 from skbrl.algos.base import ImplBase
+from skbrl.algos.torch.utility import soft_sync
 
 
 class DDPGImpl(ImplBase):
@@ -105,20 +106,10 @@ class DDPGImpl(ImplBase):
             return self.q_func(x, action).view(-1).cpu().detach().numpy()
 
     def update_critic_target(self):
-        with torch.no_grad():
-            params = self.q_func.parameters()
-            targ_params = self.targ_q_func.parameters()
-            for p, p_targ in zip(params, targ_params):
-                p_targ.data.mul_(1 - self.tau)
-                p_targ.data.add_(self.tau * p.data)
+        soft_sync(self.targ_q_func, self.q_func, self.tau)
 
     def update_actor_target(self):
-        with torch.no_grad():
-            params = self.policy.parameters()
-            targ_params = self.targ_policy.parameters()
-            for p, p_targ in zip(params, targ_params):
-                p_targ.data.mul_(1 - self.tau)
-                p_targ.data.add_(self.tau * p.data)
+        soft_sync(self.targ_policy, self.policy, self.tau)
 
     def save_model(self, fname):
         torch.save(
