@@ -6,6 +6,7 @@ from skbrl.models.torch.q_functions import DiscreteQFunction, EnsembleDiscreteQF
 from skbrl.models.torch.q_functions import EnsembleDiscreteQFunction
 from skbrl.models.torch.q_functions import ContinuousQFunction
 from skbrl.models.torch.q_functions import EnsembleContinuousQFunction
+from skbrl.tests.models.torch.model_test import check_parameter_updates
 
 
 class DummyHead:
@@ -61,6 +62,9 @@ def test_discrete_q_function(feature_size, action_size, batch_size, gamma):
 
     assert np.allclose(loss.detach().numpy(), ref_loss)
 
+    # check layer connection
+    check_parameter_updates(q_func, (x, ))
+
 
 @pytest.mark.parametrize('feature_size', [100])
 @pytest.mark.parametrize('action_size', [2])
@@ -91,3 +95,6 @@ def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
                              torch.tensor(q_tp1, dtype=torch.float32), gamma)
 
     assert np.allclose(loss.detach().numpy(), ref_loss)
+
+    # check layer connection
+    check_parameter_updates(q_func, (x, action))
