@@ -28,17 +28,14 @@ class PixelHead(nn.Module):
 
     def _conv_encode(self, x):
         h = torch.relu(self.conv1(x))
-
         if self.use_batch_norm:
             h = self.bn1(h)
 
         h = torch.relu(self.conv2(h))
-
         if self.use_batch_norm:
             h = self.bn2(h)
 
         h = torch.relu(self.conv3(h))
-
         if self.use_batch_norm:
             h = self.bn3(h)
 
@@ -48,7 +45,6 @@ class PixelHead(nn.Module):
         h = self._conv_encode(x)
 
         h = torch.relu(self.fc(h.view(h.shape[0], -1)))
-
         if self.use_batch_norm:
             h = self.bn4(h)
 
@@ -72,9 +68,7 @@ class PixelHeadWithAction(PixelHead):
 
         # cocat feature and action
         h = torch.cat([h.view(h.shape[0], -1), action], dim=1)
-
         h = torch.relu(self.fc(h))
-
         if self.use_batch_norm:
             h = self.bn4(h)
 
@@ -96,12 +90,10 @@ class VectorHead(nn.Module):
 
     def forward(self, x):
         h = torch.relu(self.fc1(x))
-
         if self.use_batch_norm:
             h = self.bn1(h)
 
         h = torch.relu(self.fc2(h))
-
         if self.use_batch_norm:
             h = self.bn2(h)
 
