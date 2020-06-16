@@ -16,20 +16,18 @@ class DiscreteQFunction(nn.Module):
 
     def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
-        q_t = (self.forward(obs_t) * one_hot).max(dim=1, keepdims=True).values
+        q_t = (self.forward(obs_t) * one_hot).sum(dim=1, keepdims=True)
         y = rew_tp1 + gamma * q_tp1
-        td = F.smooth_l1_loss(q_t, y)
-        return td
+        return F.smooth_l1_loss(q_t, y)
 
 
 class EnsembleDiscreteQFunction(nn.Module):
     def __init__(self, heads, action_size):
         super().__init__()
         self.action_size = action_size
-        _q_functions = []
+        self.q_functions = nn.ModuleList()
         for head in heads:
-            _q_functions.append(DiscreteQFunction(head, action_size))
-        self.q_functions = nn.ModuleList(_q_functions)
+            self.q_functions.append(DiscreteQFunction(head, action_size))
 
     def forward(self, x, reduction='min'):
         values = []
@@ -43,6 +41,8 @@ class EnsembleDiscreteQFunction(nn.Module):
             return values.max(dim=0)
         elif reduction == 'mean':
             return values.mean(dim=0)
+        elif reduction == 'none':
+            return values
         else:
             raise ValueError
 
@@ -68,17 +68,15 @@ class ContinuousQFunction(nn.Module):
     def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         q_t = self.forward(obs_t, act_t)
         y = rew_tp1 + gamma * q_tp1
-        td = (q_t - y).norm()
-        return td
+        return F.mse_loss(q_t, y)
 
 
 class EnsembleContinuousQFunction(nn.Module):
     def __init__(self, heads):
         super().__init__()
-        _q_functions = []
+        self.q_functions = nn.ModuleList()
         for head in heads:
-            _q_functions.append(ContinuousQFunction(head))
-        self.q_functions = nn.ModuleList(_q_functions)
+            self.q_functions.append(ContinuousQFunction(head))
 
     def forward(self, x, action, reduction='min'):
         values = []
