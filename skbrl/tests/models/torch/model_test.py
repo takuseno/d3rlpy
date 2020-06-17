@@ -13,3 +13,11 @@ def check_parameter_updates(model, inputs):
     optim.step()
     for before, after in zip(params_before, model.parameters()):
         assert not torch.allclose(before, after)
+
+
+class DummyHead:
+    def __init__(self, feature_size):
+        self.feature_size = feature_size
+
+    def __call__(self, *args):
+        return torch.cat(args, dim=1)

@@ -2,19 +2,12 @@ import numpy as np
 import pytest
 import torch
 
-from skbrl.models.torch.q_functions import DiscreteQFunction, EnsembleDiscreteQFunction
+from skbrl.models.torch.q_functions import DiscreteQFunction
 from skbrl.models.torch.q_functions import EnsembleDiscreteQFunction
 from skbrl.models.torch.q_functions import ContinuousQFunction
 from skbrl.models.torch.q_functions import EnsembleContinuousQFunction
 from skbrl.tests.models.torch.model_test import check_parameter_updates
-
-
-class DummyHead:
-    def __init__(self, feature_size):
-        self.feature_size = feature_size
-
-    def __call__(self, *args):
-        return torch.cat(args, dim=1)
+from skbrl.tests.models.torch.model_test import DummyHead
 
 
 def ref_huber_loss(a, b):

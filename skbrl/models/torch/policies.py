@@ -1,13 +1,14 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import math
 
 from torch.distributions import Normal, Categorical
 
 
 def _squash_action(dist, raw_action):
-    squashed_action = torch.relu(raw_action)
-    jacob = 2 * (math.log(2) - raw_action - torch.softplus(-2 * raw_action))
+    squashed_action = torch.tanh(raw_action)
+    jacob = 2 * (math.log(2) - raw_action - F.softplus(-2 * raw_action))
     log_prob = (dist.log_prob(raw_action) - jacob).sum(dim=1, keepdims=True)
     return squashed_action, log_prob
 
@@ -18,13 +19,9 @@ class DeterministicPolicy(nn.Module):
         self.head = head
         self.fc = nn.Linear(head.feature_size, action_size)
 
-    def forward(self, x, without_tanh=False):
+    def forward(self, x):
         h = self.head(x)
         h = self.fc(h)
-
-        if without_tanh:
-            return h
-
         return torch.tanh(h)
 
     def best_action(self, x):
@@ -42,7 +39,7 @@ class NormalPolicy(nn.Module):
         h = self.head(x)
         mu = self.mu(h)
         logstd = self.logstd(h)
-        clipped_logstd = logstd.clamp(-20.0, 2)
+        clipped_logstd = logstd.clamp(-20.0, 2.0)
         return Normal(mu, clipped_logstd.exp())
 
     def forward(self, x, deterministic=False, with_log_prob=False):
@@ -50,7 +47,6 @@ class NormalPolicy(nn.Module):
 
         if deterministic:
             action = dist.mean
-
         else:
             action = dist.rsample()
 
@@ -61,11 +57,11 @@ class NormalPolicy(nn.Module):
 
         return squashed_action
 
-    def sample(self, x):
-        return self.forward(x)
+    def sample(self, x, with_log_prob=False):
+        return self.forward(x, with_log_prob=with_log_prob)
 
-    def best_action(self, x):
-        return self.forward(x, deterministic=True)
+    def best_action(self, x, with_log_prob=False):
+        return self.forward(x, deterministic=True, with_log_prob=with_log_prob)
 
 
 class CategoricalPolicy(nn.Module):
