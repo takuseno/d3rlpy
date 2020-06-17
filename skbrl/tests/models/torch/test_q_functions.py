@@ -63,6 +63,45 @@ def test_discrete_q_function(feature_size, action_size, batch_size, gamma):
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('gamma', [0.99])
+@pytest.mark.parametrize('ensemble_size', [5])
+def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
+                                      gamma, ensemble_size):
+    heads = [DummyHead(feature_size) for _ in range(ensemble_size)]
+    q_func = EnsembleDiscreteQFunction(heads, action_size)
+
+    # check output shape
+    x = torch.rand(batch_size, feature_size)
+    values = q_func(x, 'none')
+    assert values.shape == (ensemble_size, batch_size, action_size)
+
+    # check reductions
+    assert torch.allclose(values.min(dim=0).values, q_func(x, 'min'))
+    assert torch.allclose(values.max(dim=0).values, q_func(x, 'max'))
+    assert torch.allclose(values.mean(dim=0), q_func(x, 'mean'))
+
+    # check td computation
+    obs_t = torch.rand(batch_size, feature_size)
+    act_t = torch.randint(0,
+                          action_size,
+                          size=(batch_size, 1),
+                          dtype=torch.int64)
+    rew_tp1 = torch.rand(batch_size, 1)
+    q_tp1 = torch.rand(batch_size, 1)
+    ref_td_sum = 0.0
+    for i in range(ensemble_size):
+        f = q_func.q_funcs[i]
+        ref_td_sum += f.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
+    loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
+    assert torch.allclose(ref_td_sum, loss)
+
+    # check layer connection
+    check_parameter_updates(q_func, (x, 'mean'))
+
+
+@pytest.mark.parametrize('feature_size', [100])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('gamma', [0.99])
 def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
     head = DummyHead(feature_size + action_size)
     q_func = ContinuousQFunction(head)
@@ -91,3 +130,41 @@ def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
 
     # check layer connection
     check_parameter_updates(q_func, (x, action))
+
+
+@pytest.mark.parametrize('feature_size', [100])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('gamma', [0.99])
+@pytest.mark.parametrize('ensemble_size', [5])
+def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
+                                        gamma, ensemble_size):
+    concat_size = feature_size + action_size
+    heads = [DummyHead(concat_size) for _ in range(ensemble_size)]
+    q_func = EnsembleContinuousQFunction(heads)
+
+    # check output shape
+    x = torch.rand(batch_size, feature_size)
+    action = torch.rand(batch_size, action_size)
+    values = q_func(x, action, 'none')
+    assert values.shape == (ensemble_size, batch_size, 1)
+
+    # check reductions
+    assert torch.allclose(values.min(dim=0).values, q_func(x, action, 'min'))
+    assert torch.allclose(values.max(dim=0).values, q_func(x, action, 'max'))
+    assert torch.allclose(values.mean(dim=0), q_func(x, action, 'mean'))
+
+    # check td computation
+    obs_t = torch.rand(batch_size, feature_size)
+    act_t = torch.rand(batch_size, action_size)
+    rew_tp1 = torch.rand(batch_size, 1)
+    q_tp1 = torch.rand(batch_size, 1)
+    ref_td_sum = 0.0
+    for i in range(ensemble_size):
+        f = q_func.q_funcs[i]
+        ref_td_sum += f.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
+    loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
+    assert torch.allclose(ref_td_sum, loss)
+
+    # check layer connection
+    check_parameter_updates(q_func, (x, action, 'mean'))
