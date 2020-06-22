@@ -129,6 +129,50 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
             assert False, 'performance is not good enough.'
 
 
+def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
+    # load dataset
+    with open('skbrl_data/pendulum.pkl', 'rb') as f:
+        observations, actions, rewards, terminals = pickle.load(f)
+
+    dataset = MDPDataset(observations, actions, rewards, terminals)
+
+    # try multiple trials to reduce failures due to random seeds
+    trial_count = 0
+    for _ in range(n_trials):
+        # reset parameters
+        algo.impl = None
+
+        # train
+        algo.fit(dataset.episodes[:n_episodes])
+
+        # environment
+        env = gym.make('Pendulum-v0')
+        upper_bound = env.action_space.high
+
+        # evaluation loop
+        success_count = 0
+        evaluation_count = 0
+        while evaluation_count < n_evaluations:
+            observation = env.reset()
+            episode_rew = 0.0
+            while True:
+                action = algo.predict([observation])[0]
+                observation, reward, done, _ = env.step(upper_bound * action)
+                episode_rew += reward
+                if done:
+                    break
+            evaluation_count += 1
+            if episode_rew >= -400:
+                success_count += 1
+
+        if success_count >= n_evaluations * 0.8:
+            break
+
+        trial_count += 1
+        if trial_count == n_trials:
+            assert False, 'performance is not good enough.'
+
+
 def impl_tester(impl, discrete):
     observations = np.random.random((100, ) + impl.observation_shape)
     if discrete:
