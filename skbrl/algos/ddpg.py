@@ -1,5 +1,3 @@
-import copy
-
 from .base import AlgoBase
 from .torch.ddpg_impl import DDPGImpl
 

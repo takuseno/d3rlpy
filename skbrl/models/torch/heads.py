@@ -2,6 +2,34 @@ import torch
 import torch.nn as nn
 
 
+def create_head(observation_shape,
+                action_size=None,
+                use_batch_norm=True,
+                **kwargs):
+    if len(observation_shape) == 3:
+        # pixel input
+        if action_size is not None:
+            return PixelHeadWithAction(observation_shape,
+                                       action_size,
+                                       use_batch_norm=use_batch_norm,
+                                       **kwargs)
+        return PixelHead(observation_shape,
+                         use_batch_norm=use_batch_norm,
+                         **kwargs)
+    elif len(observation_shape) == 1:
+        # vector input
+        if action_size is not None:
+            return VectorHeadWithAction(observation_shape,
+                                        action_size,
+                                        use_batch_norm=use_batch_norm,
+                                        **kwargs)
+        return VectorHead(observation_shape,
+                          use_batch_norm=use_batch_norm,
+                          **kwargs)
+    else:
+        raise ValueError('observation_shape must be 1d or 3d.')
+
+
 class PixelHead(nn.Module):
     def __init__(self,
                  observation_shape,

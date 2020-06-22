@@ -1,11 +1,8 @@
-import numpy as np
-import torch.nn.functional as F
 import torch
 import copy
 
 from torch.optim import Adam, RMSprop
-from skbrl.models.torch.heads import PixelHead, VectorHead
-from skbrl.models.torch.heads import PixelHeadWithAction, VectorHeadWithAction
+from skbrl.models.torch.heads import create_head
 from skbrl.models.torch.q_functions import ContinuousQFunction
 from skbrl.models.torch.policies import DeterministicPolicy
 from skbrl.algos.base import ImplBase
@@ -18,41 +15,46 @@ class DDPGImpl(ImplBase):
                  use_batch_norm, use_gpu):
         self.observation_shape = observation_shape
         self.action_size = action_size
+        self.actor_learning_rate = actor_learning_rate
+        self.critic_learning_rate = critic_learning_rate
         self.gamma = gamma
         self.tau = tau
         self.reguralizing_rate = reguralizing_rate
+        self.eps = eps
+        self.use_batch_norm = use_batch_norm
 
-        # critic
-        if len(observation_shape) == 1:
-            self.critic_head = VectorHeadWithAction(
-                observation_shape, action_size, use_batch_norm=use_batch_norm)
-        else:
-            self.critic_head = PixelHeadWithAction(
-                observation_shape, action_size, use_batch_norm=use_batch_norm)
-        self.q_func = ContinuousQFunction(self.critic_head)
-        self.targ_q_func = copy.deepcopy(self.q_func)
-
-        # actor
-        if len(observation_shape) == 1:
-            self.actor_head = VectorHead(observation_shape,
-                                         use_batch_norm=use_batch_norm)
-        else:
-            self.actor_head = PixelHead(observation_shape,
-                                        use_batch_norm=use_batch_norm)
-        self.policy = DeterministicPolicy(self.actor_head, action_size)
-        self.targ_policy = copy.deepcopy(self.policy)
-
-        # optimizer
-        self.critic_optim = Adam(self.q_func.parameters(),
-                                 lr=critic_learning_rate,
-                                 eps=eps)
-        self.actor_optim = Adam(self.policy.parameters(),
-                                lr=actor_learning_rate,
-                                eps=eps)
+        # setup torch models
+        self._build_critic()
+        self._build_actor()
+        self._build_critic_optim()
+        self._build_actor_optim()
 
         self.device = 'cpu:0'
         if use_gpu:
             self.to_gpu()
+
+    def _build_critic(self):
+        critic_head = create_head(self.observation_shape,
+                                  self.action_size,
+                                  use_batch_norm=self.use_batch_norm)
+        self.q_func = ContinuousQFunction(critic_head)
+        self.targ_q_func = copy.deepcopy(self.q_func)
+
+    def _build_critic_optim(self):
+        self.critic_optim = Adam(self.q_func.parameters(),
+                                 lr=self.critic_learning_rate,
+                                 eps=self.eps)
+
+    def _build_actor(self):
+        actor_head = create_head(self.observation_shape,
+                                 use_batch_norm=self.use_batch_norm)
+        self.policy = DeterministicPolicy(actor_head, self.action_size)
+        self.targ_policy = copy.deepcopy(self.policy)
+
+    def _build_actor_optim(self):
+        self.actor_optim = Adam(self.policy.parameters(),
+                                lr=self.actor_learning_rate,
+                                eps=self.eps)
 
     def update_critic(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
         self.q_func.train()

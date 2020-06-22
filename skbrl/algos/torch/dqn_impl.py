@@ -5,7 +5,7 @@ import copy
 
 from torch.optim import RMSprop
 from torch.nn.utils import clip_grad_norm_
-from skbrl.models.torch.heads import PixelHead, VectorHead
+from skbrl.models.torch.heads import create_head
 from skbrl.models.torch.q_functions import DiscreteQFunction
 from skbrl.algos.base import ImplBase
 from skbrl.algos.torch.utility import hard_sync
@@ -16,28 +16,32 @@ class DQNImpl(ImplBase):
                  alpha, eps, grad_clip, use_batch_norm, use_gpu):
         self.observation_shape = observation_shape
         self.action_size = action_size
+        self.learning_rate = learning_rate
         self.gamma = gamma
+        self.alpha = alpha
+        self.eps = eps
         self.grad_clip = grad_clip
+        self.use_batch_norm = use_batch_norm
 
-        # parametric functions
-        if len(observation_shape) == 1:
-            self.head = VectorHead(observation_shape,
-                                   use_batch_norm=use_batch_norm)
-        else:
-            self.head = PixelHead(observation_shape,
-                                  use_batch_norm=use_batch_norm)
-        self.q_func = DiscreteQFunction(self.head, action_size)
-        self.targ_q_func = copy.deepcopy(self.q_func)
-
-        # optimizer
-        self.optim = RMSprop(self.q_func.parameters(),
-                             lr=learning_rate,
-                             alpha=alpha,
-                             eps=eps)
+        # setup torch models
+        self._build_network()
+        self._build_optim()
 
         self.device = 'cpu:0'
         if use_gpu:
             self.to_gpu()
+
+    def _build_network(self):
+        head = create_head(self.observation_shape,
+                           use_batch_norm=self.use_batch_norm)
+        self.q_func = DiscreteQFunction(head, self.action_size)
+        self.targ_q_func = copy.deepcopy(self.q_func)
+
+    def _build_optim(self):
+        self.optim = RMSprop(self.q_func.parameters(),
+                             lr=self.learning_rate,
+                             alpha=self.alpha,
+                             eps=self.eps)
 
     def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
         self.q_func.train()
