@@ -8,7 +8,7 @@ def test_dqn():
 
 
 def test_dqn_performance():
-    dqn = DQN(n_epochs=1, learning_rate=1e-4, gamma=0.99)
+    dqn = DQN(n_epochs=1)
     algo_cartpole_tester(dqn)
 
 
@@ -18,5 +18,5 @@ def test_double_dqn():
 
 
 def test_double_dqn_performance():
-    double_dqn = DoubleDQN(n_epochs=1, learning_rate=1e-4, gamma=0.99)
+    double_dqn = DoubleDQN(n_epochs=1)
     algo_cartpole_tester(double_dqn)
