@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import torch
 import copy
 
-from torch.optim import Adam
+from torch.optim import Adam, RMSprop
 from skbrl.models.torch.heads import PixelHead, VectorHead
 from skbrl.models.torch.heads import PixelHeadWithAction, VectorHeadWithAction
 from skbrl.models.torch.q_functions import ContinuousQFunction
@@ -14,12 +14,13 @@ from skbrl.algos.torch.utility import soft_sync
 
 class DDPGImpl(ImplBase):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, gamma, tau, eps, use_batch_norm,
-                 use_gpu):
+                 critic_learning_rate, gamma, tau, reguralizing_rate, eps,
+                 use_batch_norm, use_gpu):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.gamma = gamma
         self.tau = tau
+        self.reguralizing_rate = reguralizing_rate
 
         # critic
         if len(observation_shape) == 1:
@@ -57,7 +58,7 @@ class DDPGImpl(ImplBase):
         self.q_func.train()
         device = self.device
         obs_t = torch.tensor(obs_t, dtype=torch.float32, device=device)
-        act_t = torch.tensor(act_t, dtype=torch.int64, device=device)
+        act_t = torch.tensor(act_t, dtype=torch.float32, device=device)
         rew_tp1 = torch.tensor(rew_tp1, dtype=torch.float32, device=device)
         obs_tp1 = torch.tensor(obs_tp1, dtype=torch.float32, device=device)
         ter_tp1 = torch.tensor(ter_tp1, dtype=torch.float32, device=device)
@@ -73,11 +74,13 @@ class DDPGImpl(ImplBase):
 
     def update_actor(self, obs_t):
         self.policy.train()
+        self.q_func.train()
         device = self.device
         obs_t = torch.tensor(obs_t, dtype=torch.float32, device=device)
 
-        q_t = self.q_func(obs_t, self.policy(obs_t))
-        loss = -q_t.mean()
+        action, raw_action = self.policy(obs_t, with_raw=True)
+        q_t = self.q_func(obs_t, action)
+        loss = -q_t.mean() + self.reguralizing_rate * (raw_action**2).mean()
 
         self.actor_optim.zero_grad()
         loss.backward()

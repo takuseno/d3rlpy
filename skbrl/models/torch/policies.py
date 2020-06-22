@@ -19,10 +19,12 @@ class DeterministicPolicy(nn.Module):
         self.head = head
         self.fc = nn.Linear(head.feature_size, action_size)
 
-    def forward(self, x):
+    def forward(self, x, with_raw=False):
         h = self.head(x)
-        h = self.fc(h)
-        return torch.tanh(h)
+        raw_action = self.fc(h)
+        if with_raw:
+            return torch.tanh(raw_action), raw_action
+        return torch.tanh(raw_action)
 
     def best_action(self, x):
         return self.forward(x)

@@ -8,11 +8,12 @@ class DDPG(AlgoBase):
     def __init__(self,
                  actor_learning_rate=1e-3,
                  critic_learning_rate=1e-3,
-                 batch_size=64,
+                 batch_size=100,
                  gamma=0.99,
-                 tau=0.05,
+                 tau=0.005,
+                 reguralizing_rate=1e-10,
                  eps=1e-8,
-                 use_batch_norm=False,
+                 use_batch_norm=True,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,
@@ -22,6 +23,7 @@ class DDPG(AlgoBase):
         self.critic_learning_rate = critic_learning_rate
         self.gamma = gamma
         self.tau = tau
+        self.reguralizing_rate = reguralizing_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.use_gpu = use_gpu
@@ -34,6 +36,7 @@ class DDPG(AlgoBase):
                              critic_learning_rate=self.critic_learning_rate,
                              gamma=self.gamma,
                              tau=self.tau,
+                             reguralizing_rate=self.reguralizing_rate,
                              eps=self.eps,
                              use_batch_norm=self.use_batch_norm,
                              use_gpu=self.use_gpu)
