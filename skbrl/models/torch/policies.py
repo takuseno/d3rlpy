@@ -4,6 +4,19 @@ import torch.nn.functional as F
 import math
 
 from torch.distributions import Normal, Categorical
+from .heads import create_head
+
+
+def create_deterministic_policy(observation_shape,
+                                action_size,
+                                use_batch_norm=True):
+    head = create_head(observation_shape, use_batch_norm=use_batch_norm)
+    return DeterministicPolicy(head, action_size)
+
+
+def create_normal_policy(observation_shape, action_size, use_batch_norm=True):
+    head = create_head(observation_shape, use_batch_norm=use_batch_norm)
+    return NormalPolicy(head, action_size)
 
 
 def _squash_action(dist, raw_action):

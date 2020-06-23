@@ -5,7 +5,7 @@ import copy
 
 from torch.optim import RMSprop
 from torch.nn.utils import clip_grad_norm_
-from skbrl.models.torch.heads import create_head
+from skbrl.models.torch.q_functions import create_discrete_q_function
 from skbrl.models.torch.q_functions import DiscreteQFunction
 from skbrl.algos.base import ImplBase
 from skbrl.algos.torch.utility import hard_sync
@@ -27,15 +27,17 @@ class DQNImpl(ImplBase):
         self._build_network()
         self._build_optim()
 
+        # setup target network
+        self.targ_q_func = copy.deepcopy(self.q_func)
+
         self.device = 'cpu:0'
         if use_gpu:
             self.to_gpu()
 
     def _build_network(self):
-        head = create_head(self.observation_shape,
-                           use_batch_norm=self.use_batch_norm)
-        self.q_func = DiscreteQFunction(head, self.action_size)
-        self.targ_q_func = copy.deepcopy(self.q_func)
+        self.q_func = create_discrete_q_function(self.observation_shape,
+                                                 self.action_size, 1,
+                                                 self.use_batch_norm)
 
     def _build_optim(self):
         self.optim = RMSprop(self.q_func.parameters(),

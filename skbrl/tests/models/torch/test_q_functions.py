@@ -2,12 +2,61 @@ import numpy as np
 import pytest
 import torch
 
+from skbrl.models.torch.q_functions import create_discrete_q_function
+from skbrl.models.torch.q_functions import create_continuous_q_function
 from skbrl.models.torch.q_functions import DiscreteQFunction
 from skbrl.models.torch.q_functions import EnsembleDiscreteQFunction
 from skbrl.models.torch.q_functions import ContinuousQFunction
 from skbrl.models.torch.q_functions import EnsembleContinuousQFunction
 from skbrl.tests.models.torch.model_test import check_parameter_updates
 from skbrl.tests.models.torch.model_test import DummyHead
+
+
+@pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('n_ensembles', [1, 2])
+@pytest.mark.parametrize('use_batch_norm', [False, True])
+def test_create_discrete_q_function(observation_shape, action_size, batch_size,
+                                    n_ensembles, use_batch_norm):
+    q_func = create_discrete_q_function(observation_shape, action_size,
+                                        n_ensembles, use_batch_norm)
+
+    if n_ensembles == 1:
+        assert isinstance(q_func, DiscreteQFunction)
+        assert q_func.head.use_batch_norm == use_batch_norm
+    else:
+        assert isinstance(q_func, EnsembleDiscreteQFunction)
+        for f in q_func.q_funcs:
+            assert f.head.use_batch_norm == use_batch_norm
+
+    x = torch.rand((batch_size, ) + observation_shape)
+    y = q_func(x)
+    assert y.shape == (batch_size, action_size)
+
+
+@pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('n_ensembles', [1, 2])
+@pytest.mark.parametrize('use_batch_norm', [False, True])
+def test_create_continuous_q_function(observation_shape, action_size,
+                                      batch_size, n_ensembles, use_batch_norm):
+    q_func = create_continuous_q_function(observation_shape, action_size,
+                                          n_ensembles, use_batch_norm)
+
+    if n_ensembles == 1:
+        assert isinstance(q_func, ContinuousQFunction)
+        assert q_func.head.use_batch_norm == use_batch_norm
+    else:
+        assert isinstance(q_func, EnsembleContinuousQFunction)
+        for f in q_func.q_funcs:
+            assert f.head.use_batch_norm == use_batch_norm
+
+    x = torch.rand((batch_size, ) + observation_shape)
+    action = torch.rand(batch_size, action_size)
+    y = q_func(x, action)
+    assert y.shape == (batch_size, 1)
 
 
 def ref_huber_loss(a, b):

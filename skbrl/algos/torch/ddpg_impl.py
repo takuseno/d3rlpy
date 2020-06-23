@@ -2,9 +2,8 @@ import torch
 import copy
 
 from torch.optim import Adam
-from skbrl.models.torch.heads import create_head
-from skbrl.models.torch.q_functions import ContinuousQFunction
-from skbrl.models.torch.policies import DeterministicPolicy
+from skbrl.models.torch.q_functions import create_continuous_q_function
+from skbrl.models.torch.policies import create_deterministic_policy
 from skbrl.algos.base import ImplBase
 from skbrl.algos.torch.utility import soft_sync
 
@@ -29,16 +28,18 @@ class DDPGImpl(ImplBase):
         self._build_critic_optim()
         self._build_actor_optim()
 
+        # setup target networks
+        self.targ_q_func = copy.deepcopy(self.q_func)
+        self.targ_policy = copy.deepcopy(self.policy)
+
         self.device = 'cpu:0'
         if use_gpu:
             self.to_gpu()
 
     def _build_critic(self):
-        critic_head = create_head(self.observation_shape,
-                                  self.action_size,
-                                  use_batch_norm=self.use_batch_norm)
-        self.q_func = ContinuousQFunction(critic_head)
-        self.targ_q_func = copy.deepcopy(self.q_func)
+        self.q_func = create_continuous_q_function(self.observation_shape,
+                                                   self.action_size, 1,
+                                                   self.use_batch_norm)
 
     def _build_critic_optim(self):
         self.critic_optim = Adam(self.q_func.parameters(),
@@ -46,10 +47,9 @@ class DDPGImpl(ImplBase):
                                  eps=self.eps)
 
     def _build_actor(self):
-        actor_head = create_head(self.observation_shape,
-                                 use_batch_norm=self.use_batch_norm)
-        self.policy = DeterministicPolicy(actor_head, self.action_size)
-        self.targ_policy = copy.deepcopy(self.policy)
+        self.policy = create_deterministic_policy(self.observation_shape,
+                                                  self.action_size,
+                                                  self.use_batch_norm)
 
     def _build_actor_optim(self):
         self.actor_optim = Adam(self.policy.parameters(),

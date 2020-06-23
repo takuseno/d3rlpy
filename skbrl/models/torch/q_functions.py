@@ -2,6 +2,40 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .heads import create_head
+
+
+def create_discrete_q_function(observation_shape,
+                               action_size,
+                               n_ensembles=1,
+                               use_batch_norm=True):
+    heads = []
+    for _ in range(n_ensembles):
+        head = create_head(observation_shape, use_batch_norm=use_batch_norm)
+        heads.append(head)
+
+    if n_ensembles == 1:
+        return DiscreteQFunction(heads[0], action_size)
+
+    return EnsembleDiscreteQFunction(heads, action_size)
+
+
+def create_continuous_q_function(observation_shape,
+                                 action_size,
+                                 n_ensembles=1,
+                                 use_batch_norm=True):
+    heads = []
+    for _ in range(n_ensembles):
+        head = create_head(observation_shape,
+                           action_size,
+                           use_batch_norm=use_batch_norm)
+        heads.append(head)
+
+    if n_ensembles == 1:
+        return ContinuousQFunction(heads[0])
+
+    return EnsembleContinuousQFunction(heads)
+
 
 class DiscreteQFunction(nn.Module):
     def __init__(self, head, action_size):

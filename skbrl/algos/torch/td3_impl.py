@@ -1,8 +1,6 @@
 import torch
-import copy
 
-from skbrl.models.torch.heads import create_head
-from skbrl.models.torch.q_functions import EnsembleContinuousQFunction
+from skbrl.models.torch.q_functions import create_continuous_q_function
 from .ddpg_impl import DDPGImpl
 
 
@@ -20,14 +18,10 @@ class TD3Impl(DDPGImpl):
                          eps, use_batch_norm, use_gpu)
 
     def _build_critic(self):
-        critic_heads = []
-        for _ in range(self.n_critics):
-            head = create_head(self.observation_shape,
-                               self.action_size,
-                               use_batch_norm=self.use_batch_norm)
-            critic_heads.append(head)
-        self.q_func = EnsembleContinuousQFunction(critic_heads)
-        self.targ_q_func = copy.deepcopy(self.q_func)
+        self.q_func = create_continuous_q_function(self.observation_shape,
+                                                   self.action_size,
+                                                   self.n_critics,
+                                                   self.use_batch_norm)
 
     def compute_target(self, x):
         with torch.no_grad():
