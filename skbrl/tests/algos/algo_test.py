@@ -129,7 +129,7 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
             assert False, 'performance is not good enough.'
 
 
-def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
+def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
     # load dataset
     with open('skbrl_data/pendulum.pkl', 'rb') as f:
         observations, actions, rewards, terminals = pickle.load(f)
@@ -162,7 +162,7 @@ def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
                 if done:
                     break
             evaluation_count += 1
-            if episode_rew >= -400:
+            if episode_rew >= -600:
                 success_count += 1
 
         if success_count >= n_evaluations * 0.8:

@@ -1,7 +1,7 @@
 import torch
 import copy
 
-from torch.optim import Adam, RMSprop
+from torch.optim import Adam
 from skbrl.models.torch.heads import create_head
 from skbrl.models.torch.q_functions import ContinuousQFunction
 from skbrl.models.torch.policies import DeterministicPolicy
@@ -93,7 +93,7 @@ class DDPGImpl(ImplBase):
     def compute_target(self, x):
         with torch.no_grad():
             action = self.targ_policy(x)
-            return self.targ_q_func(x, action)
+            return self.targ_q_func(x, action.clamp(-1.0, 1.0))
 
     def predict_best_action(self, x):
         self.policy.eval()
