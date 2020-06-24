@@ -16,3 +16,15 @@ def hard_sync(targ_model, model):
         targ_params = targ_model.parameters()
         for p, p_targ in zip(params, targ_params):
             p_targ.data.copy_(p.data)
+
+
+def torch_api(f):
+    def wrapper(self, *args, **kwargs):
+        # convert all args to torch.Tensor
+        tensors = []
+        for val in args:
+            tensor = torch.tensor(val, dtype=torch.float32, device=self.device)
+            tensors.append(tensor)
+        return f(self, *tensors, **kwargs)
+
+    return wrapper

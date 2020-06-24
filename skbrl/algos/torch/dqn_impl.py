@@ -8,7 +8,7 @@ from torch.nn.utils import clip_grad_norm_
 from skbrl.models.torch.q_functions import create_discrete_q_function
 from skbrl.models.torch.q_functions import DiscreteQFunction
 from skbrl.algos.base import ImplBase
-from skbrl.algos.torch.utility import hard_sync
+from skbrl.algos.torch.utility import hard_sync, torch_api
 
 
 class DQNImpl(ImplBase):
@@ -45,17 +45,13 @@ class DQNImpl(ImplBase):
                              alpha=self.alpha,
                              eps=self.eps)
 
+    @torch_api
     def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
         self.q_func.train()
-        device = self.device
-        obs_t = torch.tensor(obs_t, dtype=torch.float32, device=device)
-        act_t = torch.tensor(act_t, dtype=torch.int64, device=device)
-        rew_tp1 = torch.tensor(rew_tp1, dtype=torch.float32, device=device)
-        obs_tp1 = torch.tensor(obs_tp1, dtype=torch.float32, device=device)
-        ter_tp1 = torch.tensor(ter_tp1, dtype=torch.float32, device=device)
 
         q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
-        loss = self.q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1, self.gamma)
+        loss = self.q_func.compute_td(obs_t, act_t.long(), rew_tp1, q_tp1,
+                                      self.gamma)
 
         self.optim.zero_grad()
         loss.backward()
@@ -67,23 +63,24 @@ class DQNImpl(ImplBase):
     def compute_target(self, x):
         return self.targ_q_func(x).max(dim=1, keepdim=True).values.detach()
 
+    @torch_api
     def predict_best_action(self, x):
         self.q_func.eval()
-        x = torch.tensor(x, dtype=torch.float32, device=self.device)
         with torch.no_grad():
             return self.q_func(x).argmax(dim=1).cpu().detach().numpy()
 
+    @torch_api
     def predict_value(self, x, action):
         assert x.shape[0] == action.shape[0]
 
         self.q_func.eval()
-        x = torch.tensor(x, dtype=torch.float32, device=self.device)
         with torch.no_grad():
             values = self.q_func(x).cpu().detach().numpy()
 
         rets = []
-        for v, a in zip(values, action.reshape(-1)):
+        for v, a in zip(values, action.view(-1).long().cpu().detach().numpy()):
             rets.append(v[a])
+
         return np.array(rets)
 
     def update_target(self):

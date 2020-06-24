@@ -5,7 +5,7 @@ from torch.optim import Adam
 from skbrl.models.torch.q_functions import create_continuous_q_function
 from skbrl.models.torch.policies import create_deterministic_policy
 from skbrl.algos.base import ImplBase
-from skbrl.algos.torch.utility import soft_sync
+from skbrl.algos.torch.utility import soft_sync, torch_api
 
 
 class DDPGImpl(ImplBase):
@@ -56,14 +56,9 @@ class DDPGImpl(ImplBase):
                                 lr=self.actor_learning_rate,
                                 eps=self.eps)
 
+    @torch_api
     def update_critic(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
         self.q_func.train()
-        device = self.device
-        obs_t = torch.tensor(obs_t, dtype=torch.float32, device=device)
-        act_t = torch.tensor(act_t, dtype=torch.float32, device=device)
-        rew_tp1 = torch.tensor(rew_tp1, dtype=torch.float32, device=device)
-        obs_tp1 = torch.tensor(obs_tp1, dtype=torch.float32, device=device)
-        ter_tp1 = torch.tensor(ter_tp1, dtype=torch.float32, device=device)
 
         q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
         loss = self.q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1, self.gamma)
@@ -74,11 +69,10 @@ class DDPGImpl(ImplBase):
 
         return loss.cpu().detach().numpy()
 
+    @torch_api
     def update_actor(self, obs_t):
         self.policy.train()
         self.q_func.train()
-        device = self.device
-        obs_t = torch.tensor(obs_t, dtype=torch.float32, device=device)
 
         action, raw_action = self.policy(obs_t, with_raw=True)
         q_t = self.q_func(obs_t, action)
@@ -95,19 +89,17 @@ class DDPGImpl(ImplBase):
             action = self.targ_policy(x)
             return self.targ_q_func(x, action.clamp(-1.0, 1.0))
 
+    @torch_api
     def predict_best_action(self, x):
         self.policy.eval()
-        x = torch.tensor(x, dtype=torch.float32, device=self.device)
         with torch.no_grad():
             return self.policy.best_action(x).cpu().detach().numpy()
 
+    @torch_api
     def predict_value(self, x, action):
         assert x.shape[0] == action.shape[0]
-
         self.q_func.eval()
         self.policy.eval()
-        x = torch.tensor(x, dtype=torch.float32, device=self.device)
-        action = torch.tensor(action, dtype=torch.float32, device=self.device)
         with torch.no_grad():
             return self.q_func(x, action).view(-1).cpu().detach().numpy()
 

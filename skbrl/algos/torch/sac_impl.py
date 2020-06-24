@@ -6,6 +6,7 @@ import math
 from torch.optim import Adam
 from skbrl.models.torch.policies import create_normal_policy
 from skbrl.models.torch.q_functions import create_continuous_q_function
+from skbrl.algos.torch.utility import torch_api
 from .ddpg_impl import DDPGImpl
 
 
@@ -44,11 +45,10 @@ class SACImpl(DDPGImpl):
     def _build_temperature_optim(self):
         self.temp_optim = Adam([self.log_temp], self.temp_learning_rate)
 
+    @torch_api
     def update_actor(self, obs_t):
         self.policy.train()
         self.q_func.train()
-        device = self.device
-        obs_t = torch.tensor(obs_t, dtype=torch.float32, device=device)
 
         action, log_prob = self.policy(obs_t, with_log_prob=True)
         entropy = self.log_temp.exp() * log_prob
@@ -61,10 +61,9 @@ class SACImpl(DDPGImpl):
 
         return loss.cpu().detach().numpy()
 
+    @torch_api
     def update_temperature(self, obs_t):
         self.policy.train()
-        device = self.device
-        obs_t = torch.tensor(obs_t, dtype=torch.float32, device=device)
 
         with torch.no_grad():
             _, log_prob = self.policy.sample(obs_t, with_log_prob=True)
