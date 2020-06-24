@@ -88,16 +88,11 @@ class AlgoBase:
 
                 total_step += 1
 
-            if scorers:
+            if scorers and eval_episodes:
                 for name, scorer in scorers.items():
-                    # evaluation with training data
-                    train_score = scorer(self, episodes)
-                    logger.add_metric(name, train_score)
-
                     # evaluation with test data
-                    if eval_episodes:
-                        test_score = scorer(self, eval_episodes)
-                        logger.add_metric('eval_' + name, test_score)
+                    test_score = scorer(self, eval_episodes)
+                    logger.add_metric(name, test_score)
 
             # save metrics
             logger.commit(epoch, total_step)

@@ -3,6 +3,7 @@ import pytest
 
 from skbrl.metrics.scorer import td_error_scorer
 from skbrl.metrics.scorer import discounted_sum_of_advantage_scorer
+from skbrl.metrics.scorer import evaluate_on_environment
 from skbrl.dataset import Episode, TransitionMiniBatch
 
 
@@ -109,3 +110,43 @@ def test_discounted_sum_of_advantage_scorer(observation_shape, action_size,
 
     sums = discounted_sum_of_advantage_scorer(algo, episodes)
     assert np.allclose(sums, np.mean(ref_sums))
+
+
+@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('episode_length', [10])
+@pytest.mark.parametrize('n_trials', [10])
+def test_evaluate_on_environment(observation_shape, action_size,
+                                 episode_length, n_trials):
+    shape = (n_trials, episode_length + 1) + observation_shape
+    observations = np.random.random(shape)
+
+    class DummyEnv:
+        def __init__(self):
+            self.episode = 0
+
+        def step(self, action):
+            self.t += 1
+            observation = observations[self.episode - 1, self.t]
+            reward = np.mean(observation) + np.mean(action)
+            done = self.t == episode_length
+            return observation, reward, done, {}
+
+        def reset(self):
+            self.t = 0
+            self.episode += 1
+            return observations[self.episode - 1, 0]
+
+    # projection matrix for deterministic action
+    A = np.random.random(observation_shape + (action_size, ))
+    algo = DummyAlgo(A, 0.0)
+
+    ref_rewards = []
+    for i in range(n_trials):
+        episode_obs = observations[i, :, :]
+        actions = algo.predict(episode_obs[:-1])
+        rewards = np.mean(episode_obs[1:], axis=1) + np.mean(actions, axis=1)
+        ref_rewards.append(np.sum(rewards))
+
+    mean_reward = evaluate_on_environment(DummyEnv(), n_trials)(algo)
+    assert np.allclose(mean_reward, np.mean(ref_rewards))

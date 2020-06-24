@@ -48,3 +48,21 @@ def discounted_sum_of_advantage_scorer(algo, episodes):
         total_sums += sum_advantages
 
     return np.mean(total_sums)
+
+
+def evaluate_on_environment(env, n_trials=10):
+    def scorer(algo, *args):
+        episode_rewards = []
+        for _ in range(n_trials):
+            observation = env.reset()
+            episode_reward = 0.0
+            while True:
+                action = algo.predict([observation])[0]
+                observation, reward, done, _ = env.step(action)
+                episode_reward += reward
+                if done:
+                    break
+            episode_rewards.append(episode_reward)
+        return np.mean(episode_rewards)
+
+    return scorer
