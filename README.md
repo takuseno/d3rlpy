@@ -79,10 +79,34 @@ try {
 - [ ] random network augmentation
 
 ## supported evaluation metrics
+scikit-learn style scoring functions are provided.
+```py
+from skrbl.metrics.scorer import td_error_scorer
+
+train_episodes, test_episodes = train_test_split(dataset)
+
+bear.fit(train_episodes,
+         eval_episodes=test_episodes,
+         scorers={'td_error': td_error_scorer})
+```
+
+If you have an access to the target environments, you can also evaluate
+algorithms on them.
+```py
+from skbrl.metics.scorer import evaluate_on_environment
+
+env_scorer = evaluate_on_environment(gym.make('Pendulum-v0'))
+
+bear.fit(train_episodes,
+         eval_episodes=test_episodes,
+         scorers={'td_error': td_error_scorer,
+                  'environment': env_scorer})
+```
+
 - [ ] Off-policy Classification (requires success flags)
 - [x] Temporal-difference Error
 - [x] Discounted Sum of Advantages
-- [ ] Evaluation with environment
+- [x] Evaluation with gym-like environments
 
 ## contributions
 ### coding style
