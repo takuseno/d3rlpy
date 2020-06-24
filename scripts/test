@@ -1,0 +1,31 @@
+#!/bin/bash -eux
+
+FLAG_P="FALSE"
+
+while getopts p OPT
+do
+  case $OPT in
+    "p" ) FLAG_P="TRUE" ;; # do performance test
+      * ) echo "Usage: ./scripts/test [-p]" 1>&2
+          exit 1 ;;
+  esac
+done
+
+# create temporary directory for tests
+mkdir -p test_data
+
+# download performance test dataset
+./scripts/download_datasets
+
+# run tests
+echo "Run unit tests"
+pytest skbrl/tests -p no:warnings -v -k "not performance"
+
+# run performance tests
+if [ "$FLAG_P" = "TRUE" ]; then
+  echo "Run performance tests"
+  pytest skbrl/tests -p no:warnings -v -k "performance"
+fi
+
+# clean up
+rm -r test_data

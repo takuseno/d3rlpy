@@ -26,4 +26,4 @@ jobs:
           pip install yapf
       - name: Check format
         run: |
-          ./format -d
+          ./scripts/format -d
