@@ -19,7 +19,8 @@ class SkbrlLogger:
         self.logdir = os.path.join(root_dir, self.experiment_name)
         self.metrics_buffer = {}
 
-        os.makedirs(self.logdir)
+        if not os.path.exists(self.logdir):
+            os.makedirs(self.logdir)
 
         if tensorboard:
             from tensorboardX import SummaryWriter
