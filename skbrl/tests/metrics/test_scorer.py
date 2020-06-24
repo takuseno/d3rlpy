@@ -1,0 +1,111 @@
+import numpy as np
+import pytest
+
+from skbrl.metrics.scorer import td_error_scorer
+from skbrl.metrics.scorer import discounted_sum_of_advantage_scorer
+from skbrl.dataset import Episode, TransitionMiniBatch
+
+
+# dummy algorithm with deterministic outputs
+class DummyAlgo:
+    def __init__(self, A, gamma):
+        self.A = A
+        self.gamma = gamma
+
+    def predict(self, x):
+        return np.matmul(x, self.A)
+
+    def predict_value(self, x, action):
+        values = np.mean(x, axis=1) + np.mean(action, axis=1)
+        return values.reshape(-1, 1)
+
+
+def ref_td_error_score(predict_value, observations, actions, rewards,
+                       next_observations, next_actions, terminals, gamma):
+    values = predict_value(observations, actions)
+    next_values = predict_value(next_observations, next_actions)
+    y = rewards + gamma * next_values * (1.0 - terminals)
+    return ((y - values)**2).reshape(-1).tolist()
+
+
+@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_episodes', [100])
+@pytest.mark.parametrize('episode_length', [10])
+@pytest.mark.parametrize('gamma', [0.99])
+def test_td_error_scorer(observation_shape, action_size, n_episodes,
+                         episode_length, gamma):
+    # projection matrix for deterministic action
+    A = np.random.random(observation_shape + (action_size, ))
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length, ) + observation_shape)
+        actions = np.matmul(observations, A)
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(observation_shape, action_size, observations,
+                          actions, rewards)
+        episodes.append(episode)
+
+    algo = DummyAlgo(A, gamma)
+
+    ref_errors = []
+    for episode in episodes:
+        batch = TransitionMiniBatch(episode.transitions)
+        ref_error = ref_td_error_score(algo.predict_value, batch.observations,
+                                       batch.actions, batch.next_rewards,
+                                       batch.next_observations,
+                                       batch.next_actions, batch.terminals,
+                                       gamma)
+        ref_errors += ref_error
+
+    assert np.allclose(td_error_scorer(algo, episodes), np.mean(ref_errors))
+
+
+def ref_discounted_sum_of_advantage_score(predict_value, observations,
+                                          dataset_actions, policy_actions,
+                                          gamma):
+    dataset_values = predict_value(observations, dataset_actions)
+    policy_values = predict_value(observations, policy_actions)
+    advantages = (dataset_values - policy_values).reshape(-1).tolist()
+    rets = []
+    for i in range(len(advantages)):
+        sum_advangage = 0.0
+        for j, advantage in enumerate(advantages[i:]):
+            sum_advangage += (gamma**j) * advantage
+        rets.append(sum_advangage)
+    return rets
+
+
+@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_episodes', [100])
+@pytest.mark.parametrize('episode_length', [10])
+@pytest.mark.parametrize('gamma', [0.99])
+def test_discounted_sum_of_advantage_scorer(observation_shape, action_size,
+                                            n_episodes, episode_length, gamma):
+    # projection matrix for deterministic action
+    A = np.random.random(observation_shape + (action_size, ))
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length, ) + observation_shape)
+        # make difference between algorithm outputs and dataset
+        noise = 100 * np.random.random((episode_length, action_size))
+        actions = np.matmul(observations, A) + noise
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(observation_shape, action_size, observations,
+                          actions, rewards)
+        episodes.append(episode)
+
+    algo = DummyAlgo(A, gamma)
+
+    ref_sums = []
+    for episode in episodes:
+        batch = TransitionMiniBatch(episode.transitions)
+        policy_actions = algo.predict(batch.observations)
+        ref_sum = ref_discounted_sum_of_advantage_score(
+            algo.predict_value, batch.observations, batch.actions,
+            policy_actions, gamma)
+        ref_sums += ref_sum
+
+    sums = discounted_sum_of_advantage_scorer(algo, episodes)
+    assert np.allclose(sums, np.mean(ref_sums))

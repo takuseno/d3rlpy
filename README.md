@@ -25,10 +25,13 @@ This library is designed as if born from scikit-learn.
 You can fully utilize scikit-learn's utilities to increase your productivity.
 ```py
 from sklearn.model_selection import train_test_split
+from skbrl.metrics.scorer import td_error_scorer
 
 train_episodes, test_episodes = train_test_split(dataset)
 
-bear.fit(train_episodes)
+bear.fit(train_episodes,
+         eval_episodes=test_episodes,
+         scorers={'td_error': td_error_scorer})
 ```
 
 ## deploy
@@ -76,9 +79,10 @@ try {
 - [ ] random network augmentation
 
 ## supported evaluation metrics
-- [ ] Off-policy Classification
-- [ ] Temporal-difference Error
-- [ ] Discounted Sum of Advantages
+- [ ] Off-policy Classification (requires success flags)
+- [x] Temporal-difference Error
+- [x] Discounted Sum of Advantages
+- [ ] Evaluation with environment
 
 ## contributions
 ### coding style

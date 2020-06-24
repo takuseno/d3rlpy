@@ -45,7 +45,9 @@ class AlgoBase:
             experiment_name=None,
             logdir='logs',
             verbose=True,
-            tensorboard=True):
+            tensorboard=True,
+            eval_episodes=None,
+            scorers=None):
 
         transitions = []
         for episode in episodes:
@@ -85,6 +87,17 @@ class AlgoBase:
                         logger.add_metric(name, val)
 
                 total_step += 1
+
+            if scorers:
+                for name, scorer in scorers.items():
+                    # evaluation with training data
+                    train_score = scorer(self, episodes)
+                    logger.add_metric(name, train_score)
+
+                    # evaluation with test data
+                    if eval_episodes:
+                        test_score = scorer(self, eval_episodes)
+                        logger.add_metric('eval_' + name, test_score)
 
             # save metrics
             logger.commit(epoch, total_step)
