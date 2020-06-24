@@ -46,7 +46,10 @@ class DQN(AlgoBase):
                                 batch.terminals)
         if (itr + 1) * (epoch + 1) % self.target_update_interval == 0:
             self.impl.update_target()
-        return loss
+        return (loss, )
+
+    def _get_loss_labels(self):
+        return ['value_loss']
 
 
 class DoubleDQN(DQN):

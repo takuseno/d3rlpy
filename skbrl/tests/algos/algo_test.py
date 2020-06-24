@@ -61,7 +61,7 @@ def algo_tester(algo):
     n_batch = 32
     n_epochs = 3
     data_size = n_episodes * episode_length
-    algo.update = Mock()
+    algo.update = Mock(return_value=range(len(algo._get_loss_labels())))
     algo.batch_size = n_batch
     algo.n_epochs = n_epochs
     observations = np.random.random((data_size, 3))
@@ -71,7 +71,11 @@ def algo_tester(algo):
     for i in range(n_episodes):
         terminals[(i + 1) * episode_length - 1] = 1.0
     dataset = MDPDataset(observations, actions, rewards, terminals)
-    algo.fit(dataset.episodes)
+
+    algo.fit(dataset.episodes,
+             logdir='test_data',
+             verbose=False,
+             tensorboard=False)
 
     # check if the correct number of iterations are performed
     assert len(algo.update.call_args_list) == data_size // n_batch * n_epochs
@@ -100,7 +104,10 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
         algo.impl = None
 
         # train
-        algo.fit(dataset.episodes[:n_episodes])
+        algo.fit(dataset.episodes[:n_episodes],
+                 logdir='test_data',
+                 verbose=False,
+                 tensorboard=False)
 
         # environment
         env = gym.make('CartPole-v0')
@@ -143,7 +150,10 @@ def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
         algo.impl = None
 
         # train
-        algo.fit(dataset.episodes[:n_episodes])
+        algo.fit(dataset.episodes[:n_episodes],
+                 logdir='test_data',
+                 verbose=False,
+                 tensorboard=False)
 
         # environment
         env = gym.make('Pendulum-v0')

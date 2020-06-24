@@ -2,6 +2,7 @@ import numpy as np
 import copy
 
 from skbrl.dataset import TransitionMiniBatch
+from skbrl.logger import SkbrlLogger
 
 
 class AlgoBase:
@@ -22,7 +23,7 @@ class AlgoBase:
             if key == '__module__':
                 continue
             # pick scalar parameters
-            if isinstance(getattr(self, key), (str, int, float, bool)):
+            if np.isscalar(getattr(self, key)):
                 rets[key] = getattr(self, key)
         if deep:
             rets['impl'] = copy.deepcopy(self.impl)
@@ -39,7 +40,13 @@ class AlgoBase:
     def save_policy(self, fname):
         self.impl.save_policy(fname)
 
-    def fit(self, episodes):
+    def fit(self,
+            episodes,
+            experiment_name=None,
+            logdir='logs',
+            verbose=True,
+            tensorboard=True):
+
         transitions = []
         for episode in episodes:
             transitions += episode.transitions
@@ -49,6 +56,13 @@ class AlgoBase:
             observation_shape = transitions[0].get_observation_shape()
             action_size = transitions[0].get_action_size()
             self.create_impl(observation_shape, action_size)
+
+        # setup logger
+        logger = self._prepare_logger(experiment_name, logdir, verbose,
+                                      tensorboard)
+
+        # save hyperparameters
+        logger.add_params(self.get_params(deep=False))
 
         # training loop
         for epoch in range(self.n_epochs):
@@ -63,6 +77,14 @@ class AlgoBase:
 
                 loss = self.update(epoch, itr, TransitionMiniBatch(batch))
 
+                # record metrics
+                for name, val in zip(self._get_loss_labels(), loss):
+                    if val is not None:
+                        logger.add_metric(name, val)
+
+            # save metrics
+            logger.commit(epoch)
+
     def predict(self, x):
         return self.impl.predict_best_action(x)
 
@@ -74,6 +96,20 @@ class AlgoBase:
 
     def update(self, epoch, itr, batch):
         raise NotImplementedError
+
+    def _get_loss_labels(self):
+        raise NotImplementedError
+
+    def _prepare_logger(self, experiment_name, logdir, verbose, tensorboard):
+        if experiment_name is None:
+            experiment_name = self.__class__.__name__
+
+        logger = SkbrlLogger(experiment_name,
+                             root_dir=logdir,
+                             verbose=verbose,
+                             tensorboard=tensorboard)
+
+        return logger
 
 
 class ImplBase:

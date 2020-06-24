@@ -64,3 +64,6 @@ class TD3(AlgoBase):
         else:
             actor_loss = None
         return critic_loss, actor_loss
+
+    def _get_loss_labels(self):
+        return ['critic_loss', 'actor_loss']

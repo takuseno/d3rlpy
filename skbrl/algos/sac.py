@@ -63,3 +63,6 @@ class SAC(AlgoBase):
             actor_loss = None
             temp_loss = None
         return critic_loss, actor_loss, temp_loss
+
+    def _get_loss_labels(self):
+        return ['critic_loss', 'actor_loss', 'temp_loss']

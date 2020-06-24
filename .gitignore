@@ -2,3 +2,6 @@
 *__pycache__
 .python-version
 skbrl_data
+test_data
+runs
+logs
