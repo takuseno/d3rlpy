@@ -83,9 +83,9 @@ def algo_tester(algo):
     # check arguments at each iteration
     for i, call in enumerate(algo.update.call_args_list):
         epoch = i // (data_size // n_batch)
-        itr = i % (data_size // n_batch)
+        total_step = i
         assert call[0][0] == epoch
-        assert call[0][1] == itr
+        assert call[0][1] == total_step
         assert isinstance(call[0][2], TransitionMiniBatch)
         assert len(call[0][2]) == n_batch
 

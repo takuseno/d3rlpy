@@ -65,6 +65,7 @@ class AlgoBase:
         logger.add_params(self.get_params(deep=False))
 
         # training loop
+        total_step = 0
         for epoch in range(self.n_epochs):
             indices = np.random.permutation(np.arange(len(transitions)))
             for itr in range(len(transitions) // self.batch_size):
@@ -75,15 +76,18 @@ class AlgoBase:
                 for index in indices[head_index:head_index + self.batch_size]:
                     batch.append(transitions[index])
 
-                loss = self.update(epoch, itr, TransitionMiniBatch(batch))
+                loss = self.update(epoch, total_step,
+                                   TransitionMiniBatch(batch))
 
                 # record metrics
                 for name, val in zip(self._get_loss_labels(), loss):
                     if val is not None:
                         logger.add_metric(name, val)
 
+                total_step += 1
+
             # save metrics
-            logger.commit(epoch)
+            logger.commit(epoch, total_step)
 
     def predict(self, x):
         return self.impl.predict_best_action(x)
@@ -94,7 +98,7 @@ class AlgoBase:
     def create_impl(self, observation_shape, action_size):
         raise NotImplementedError
 
-    def update(self, epoch, itr, batch):
+    def update(self, epoch, total_step, batch):
         raise NotImplementedError
 
     def _get_loss_labels(self):

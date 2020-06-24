@@ -40,11 +40,11 @@ class DQN(AlgoBase):
                             use_batch_norm=self.use_batch_norm,
                             use_gpu=self.use_gpu)
 
-    def update(self, epoch, itr, batch):
+    def update(self, epoch, total_step, batch):
         loss = self.impl.update(batch.observations, batch.actions,
                                 batch.next_rewards, batch.next_observations,
                                 batch.terminals)
-        if (itr + 1) * (epoch + 1) % self.target_update_interval == 0:
+        if total_step % self.target_update_interval == 0:
             self.impl.update_target()
         return (loss, )
 

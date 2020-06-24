@@ -51,16 +51,16 @@ class SkbrlLogger:
             self.metrics_buffer[name] = []
         self.metrics_buffer[name].append(value)
 
-    def commit(self, epoch):
+    def commit(self, epoch, step):
         metrics = {}
         for name, buffer in self.metrics_buffer.items():
             metric = sum(buffer) / len(buffer)
 
             with open(os.path.join(self.logdir, name + '.csv'), 'a') as f:
-                print('{},{}'.format(epoch, metric), file=f)
+                print('%d,%d,%f' % (epoch, step, metric), file=f)
 
             if self.verbose:
-                print('epoch={} {}={}'.format(epoch, name, metric))
+                print('epoch=%d step=%d %s=%f' % (epoch, step, name, metric))
 
             if self.writer:
                 self.writer.add_scalar('metrics/' + name, metric, epoch)

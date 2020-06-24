@@ -47,14 +47,14 @@ class SAC(AlgoBase):
                             use_batch_norm=self.use_batch_norm,
                             use_gpu=self.use_gpu)
 
-    def update(self, epoch, itr, batch):
+    def update(self, epoch, total_step, batch):
         critic_loss = self.impl.update_critic(batch.observations,
                                               batch.actions,
                                               batch.next_rewards,
                                               batch.next_observations,
                                               batch.terminals)
         # delayed policy update
-        if itr % self.update_actor_interval == 0:
+        if total_step % self.update_actor_interval == 0:
             actor_loss = self.impl.update_actor(batch.observations)
             temp_loss = self.impl.update_temperature(batch.observations)
             self.impl.update_critic_target()
