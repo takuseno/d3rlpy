@@ -99,7 +99,6 @@ class DDPGImpl(ImplBase):
     def predict_value(self, x, action):
         assert x.shape[0] == action.shape[0]
         self.q_func.eval()
-        self.policy.eval()
         with torch.no_grad():
             return self.q_func(x, action).view(-1).cpu().detach().numpy()
 
