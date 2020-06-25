@@ -36,8 +36,19 @@ def algo_tester(algo):
     for key, val in clone.get_params(deep=False).items():
         assert params[key] is val
 
+    # check deep flag
     deep_params = algo.get_params(deep=True)
     assert deep_params['impl'] is not impl
+
+    # check set_params
+    clone = algo.__class__()
+    for key, val in params.items():
+        if np.isscalar(val):
+            params[key] = val + np.random.random()
+    # set_params returns itself
+    assert clone.set_params(**params) is clone
+    for key, val in clone.get_params(deep=False).items():
+        assert params[key] is val
 
     # check predict
     x = np.random.random((2, 3)).tolist()

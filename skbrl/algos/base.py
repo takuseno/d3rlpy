@@ -15,6 +15,7 @@ class AlgoBase:
         for key, val in params.items():
             assert hasattr(self, key)
             setattr(self, key, val)
+        return self
 
     def get_params(self, deep=True):
         rets = {}
