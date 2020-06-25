@@ -154,6 +154,7 @@ class VectorHeadWithAction(VectorHead):
                  action_size,
                  hidden_units=None,
                  use_batch_norm=True):
+        self.action_size = action_size
         concat_shape = (observation_shape[0] + action_size, )
         super().__init__(concat_shape, hidden_units, use_batch_norm)
 

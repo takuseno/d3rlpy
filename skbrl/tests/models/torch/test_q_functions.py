@@ -152,7 +152,7 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('gamma', [0.99])
 def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
-    head = DummyHead(feature_size + action_size)
+    head = DummyHead(feature_size, action_size, concat=True)
     q_func = ContinuousQFunction(head)
 
     # check output shape
@@ -188,8 +188,9 @@ def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
 @pytest.mark.parametrize('ensemble_size', [5])
 def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
                                         gamma, ensemble_size):
-    concat_size = feature_size + action_size
-    heads = [DummyHead(concat_size) for _ in range(ensemble_size)]
+    heads = []
+    for _ in range(ensemble_size):
+        heads.append(DummyHead(feature_size, action_size, concat=True))
     q_func = EnsembleContinuousQFunction(heads)
 
     # check output shape

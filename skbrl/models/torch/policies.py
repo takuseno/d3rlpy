@@ -14,6 +14,16 @@ def create_deterministic_policy(observation_shape,
     return DeterministicPolicy(head, action_size)
 
 
+def create_deterministic_residual_policy(observation_shape,
+                                         action_size,
+                                         scale,
+                                         use_batch_norm=True):
+    head = create_head(observation_shape,
+                       action_size,
+                       use_batch_norm=use_batch_norm)
+    return DeterministicResidualPolicy(head, scale)
+
+
 def create_normal_policy(observation_shape, action_size, use_batch_norm=True):
     head = create_head(observation_shape, use_batch_norm=use_batch_norm)
     return NormalPolicy(head, action_size)
@@ -41,6 +51,22 @@ class DeterministicPolicy(nn.Module):
 
     def best_action(self, x):
         return self.forward(x)
+
+
+class DeterministicResidualPolicy(nn.Module):
+    def __init__(self, head, scale):
+        super().__init__()
+        self.scale = scale
+        self.head = head
+        self.fc = nn.Linear(head.feature_size, head.action_size)
+
+    def forward(self, x, action):
+        h = self.head(x, action)
+        residual_action = self.scale * torch.tanh(self.fc(h))
+        return (action + residual_action).clamp(-1.0, 1.0)
+
+    def best_action(self, x, action):
+        return self.forward(x, action)
 
 
 class NormalPolicy(nn.Module):
