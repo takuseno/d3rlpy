@@ -36,7 +36,7 @@ bear.fit(train_episodes,
 
 You can naturally perform cross-validation.
 ```py
-from sklarn.model_selection import cross_validate
+from sklearn.model_selection import cross_validate
 
 scores = cross_validate(bear, dataset, scoring={'td_error': td_error_scorer})
 ```
@@ -47,9 +47,7 @@ from sklearn.model_selection import GridSearchCV
 
 gscv = GridSearchCV(estimator=bear,
                     param_grid={'actor_learning_rate': np.arange(1, 10) * 1e-3},
-                    scoring={
-                        'td_error': td_error_scorer,
-                        'advanatge': discounted_sum_of_advantage_scorer},
+                    scoring={'td_error': td_error_scorer},
                     refit=False)
 gscv.fit(train_episodes)
 ```
