@@ -82,12 +82,14 @@ try {
 - [x] DQN
 - [x] Double DQN
 - [ ] REM
+- [ ] BCQ
+- [ ] BEAR
 
 ### continuous control
 - [x] DDPG
 - [x] TD3
 - [x] SAC
-- [ ] BCQ
+- [x] BCQ
 - [ ] BEAR
 - [ ] MOPO
 
