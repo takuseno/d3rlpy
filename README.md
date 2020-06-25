@@ -34,6 +34,26 @@ bear.fit(train_episodes,
          scorers={'td_error': td_error_scorer})
 ```
 
+You can naturally perform cross-validation.
+```py
+from sklarn.model_selection import cross_validate
+
+scores = cross_validate(bear, dataset, scoring={'td_error': td_error_scorer})
+```
+
+And more.
+```py
+from sklearn.model_selection import GridSearchCV
+
+gscv = GridSearchCV(estimator=bear,
+                    param_grid={'actor_learning_rate': np.arange(1, 10) * 1e-3},
+                    scoring={
+                        'td_error': td_error_scorer,
+                        'advanatge': discounted_sum_of_advantage_scorer},
+                    refit=False)
+gscv.fit(train_episodes)
+```
+
 ## deploy
 Machine learning models often require dependencies even after deployment.
 scikit-batch-rl provides more flexible options to solve this problem via torch
