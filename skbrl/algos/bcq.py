@@ -14,6 +14,7 @@ class BCQ(AlgoBase):
                  lam=0.75,
                  n_action_samples=100,
                  action_flexibility=0.05,
+                 rl_start_epoch=0,
                  latent_size=32,
                  eps=1e-8,
                  use_batch_norm=True,
@@ -31,6 +32,7 @@ class BCQ(AlgoBase):
         self.lam = lam
         self.n_action_samples = n_action_samples
         self.action_flexibility = action_flexibility
+        self.rl_start_epoch = rl_start_epoch
         self.latent_size = latent_size
         self.eps = eps
         self.use_batch_norm = use_batch_norm
@@ -58,14 +60,18 @@ class BCQ(AlgoBase):
     def update(self, epoch, total_step, batch):
         generator_loss = self.impl.update_generator(batch.observations,
                                                     batch.actions)
-        critic_loss = self.impl.update_critic(batch.observations,
-                                              batch.actions,
-                                              batch.next_rewards,
-                                              batch.next_observations,
-                                              batch.terminals)
-        actor_loss = self.impl.update_actor(batch.observations)
-        self.impl.update_actor_target()
-        self.impl.update_critic_target()
+        if epoch >= self.rl_start_epoch:
+            critic_loss = self.impl.update_critic(batch.observations,
+                                                  batch.actions,
+                                                  batch.next_rewards,
+                                                  batch.next_observations,
+                                                  batch.terminals)
+            actor_loss = self.impl.update_actor(batch.observations)
+            self.impl.update_actor_target()
+            self.impl.update_critic_target()
+        else:
+            critic_loss = None
+            actor_loss = None
         return critic_loss, actor_loss, generator_loss
 
     def _get_loss_labels(self):
