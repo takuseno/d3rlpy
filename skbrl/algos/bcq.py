@@ -6,7 +6,7 @@ class BCQ(AlgoBase):
     def __init__(self,
                  actor_learning_rate=1e-3,
                  critic_learning_rate=1e-3,
-                 generator_learning_rate=1e-3,
+                 imitator_learning_rate=1e-3,
                  batch_size=100,
                  gamma=0.99,
                  tau=0.005,
@@ -26,7 +26,7 @@ class BCQ(AlgoBase):
         super().__init__(n_epochs, batch_size)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
-        self.generator_learning_rate = generator_learning_rate
+        self.imitator_learning_rate = imitator_learning_rate
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
@@ -47,7 +47,7 @@ class BCQ(AlgoBase):
             action_size=action_size,
             actor_learning_rate=self.actor_learning_rate,
             critic_learning_rate=self.critic_learning_rate,
-            generator_learning_rate=self.generator_learning_rate,
+            imitator_learning_rate=self.imitator_learning_rate,
             gamma=self.gamma,
             tau=self.tau,
             n_critics=self.n_critics,
@@ -61,8 +61,8 @@ class BCQ(AlgoBase):
             use_gpu=self.use_gpu)
 
     def update(self, epoch, total_step, batch):
-        generator_loss = self.impl.update_generator(batch.observations,
-                                                    batch.actions)
+        imitator_loss = self.impl.update_imitator(batch.observations,
+                                                  batch.actions)
         if epoch >= self.rl_start_epoch:
             critic_loss = self.impl.update_critic(batch.observations,
                                                   batch.actions,
@@ -75,7 +75,7 @@ class BCQ(AlgoBase):
         else:
             critic_loss = None
             actor_loss = None
-        return critic_loss, actor_loss, generator_loss
+        return critic_loss, actor_loss, imitator_loss
 
     def _get_loss_labels(self):
-        return ['critic_loss', 'actor_loss', 'generator_loss']
+        return ['critic_loss', 'actor_loss', 'imitator_loss']

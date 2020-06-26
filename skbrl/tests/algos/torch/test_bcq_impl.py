@@ -9,7 +9,7 @@ from skbrl.tests.algos.algo_test import torch_impl_tester
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('actor_learning_rate', [1e-3])
 @pytest.mark.parametrize('critic_learning_rate', [1e-3])
-@pytest.mark.parametrize('generator_learning_rate', [1e-3])
+@pytest.mark.parametrize('imitator_learning_rate', [1e-3])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('tau', [0.05])
 @pytest.mark.parametrize('n_critics', [2])
@@ -21,14 +21,14 @@ from skbrl.tests.algos.algo_test import torch_impl_tester
 @pytest.mark.parametrize('eps', [1e-8])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
 def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
-                  critic_learning_rate, generator_learning_rate, gamma, tau,
+                  critic_learning_rate, imitator_learning_rate, gamma, tau,
                   n_critics, lam, n_action_samples, action_flexibility,
                   latent_size, beta, eps, use_batch_norm):
     impl = BCQImpl(observation_shape,
                    action_size,
                    actor_learning_rate,
                    critic_learning_rate,
-                   generator_learning_rate,
+                   imitator_learning_rate,
                    gamma,
                    tau,
                    n_critics,
