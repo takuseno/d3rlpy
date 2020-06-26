@@ -2,8 +2,8 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from skbrl.models.torch.vae import create_conditional_vae
-from skbrl.models.torch.vae import ConditionalVAE
+from skbrl.models.torch.generators import create_conditional_vae
+from skbrl.models.torch.generators import ConditionalVAE
 from skbrl.tests.models.torch.model_test import check_parameter_updates
 from skbrl.tests.models.torch.model_test import DummyHead
 

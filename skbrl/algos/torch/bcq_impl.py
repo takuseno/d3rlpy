@@ -5,7 +5,7 @@ import copy
 from torch.optim import Adam
 from skbrl.models.torch.policies import create_deterministic_residual_policy
 from skbrl.models.torch.q_functions import create_continuous_q_function
-from skbrl.models.torch.vae import create_conditional_vae
+from skbrl.models.torch.generators import create_conditional_vae
 from skbrl.algos.torch.utility import torch_api
 from .ddpg_impl import DDPGImpl
 
