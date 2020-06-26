@@ -148,3 +148,8 @@ If you give `-p` option, the performance tests with toy tasks are also run
 ```
 $ ./scripts/test -p
 ```
+
+## acknowledgement
+This work is supported by Information-technology Promotion Agency, Japan
+(IPA), Exploratory IT Human Resources Project (MITOU Program) in the fiscal
+year 2020.
