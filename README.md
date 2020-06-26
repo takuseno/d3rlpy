@@ -3,7 +3,6 @@
 
 # scikit-batch-rl
 Data-driven Deep Reinforcement Learning library in scikit-learn style.
-Unlike the other RL libraries, scikit-batch-rl is designed for practical projects.
 
 ```py
 from skbrl.dataset import MDPDataset
@@ -19,6 +18,11 @@ bear.fit(dataset.episodes)
 # ready to control
 actions = bear.predict(x)
 ```
+
+These are the design principles of scikit-batch-rl:
+- This library is designed for practical projects unlike the many other RL libraries.
+- This library is not focusing on reproducing RL papers.
+- This library is adding more techniques than the original implementations.
 
 ## scikit-learn compatibility
 This library is designed as if born from scikit-learn.
