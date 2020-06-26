@@ -17,15 +17,16 @@ mkdir -p test_data
 # download performance test dataset
 ./scripts/download_datasets
 
+# set flag
+if [ "$FLAG_P" = "TRUE" ]; then
+  TEST_PERFORMANCE="TRUE"
+else
+  TEST_PERFORMANCE="FALSE"
+fi
+
 # run tests
 echo "Run unit tests"
-pytest skbrl/tests -p no:warnings -v -k "not performance"
-
-# run performance tests
-if [ "$FLAG_P" = "TRUE" ]; then
-  echo "Run performance tests"
-  pytest skbrl/tests -p no:warnings -v -k "performance"
-fi
+TEST_PERFORMANCE=$TEST_PERFORMANCE pytest skbrl/tests -p no:warnings -v
 
 # clean up
 rm -r test_data

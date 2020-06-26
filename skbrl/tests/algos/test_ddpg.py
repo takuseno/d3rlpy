@@ -1,4 +1,5 @@
 from skbrl.algos.ddpg import DDPG
+from skbrl.tests import performance_test
 from .algo_test import algo_tester, algo_pendulum_tester
 
 
@@ -7,6 +8,7 @@ def test_ddpg():
     algo_tester(ddpg)
 
 
+@performance_test
 def test_ddpg_performance():
     # not good enough for batch RL, but check if it works without errors.
     try:
