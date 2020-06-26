@@ -14,7 +14,7 @@ class BCQImpl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, generator_learning_rate, gamma, tau,
                  n_critics, lam, n_action_samples, action_flexibility,
-                 latent_size, eps, use_batch_norm, use_gpu):
+                 latent_size, beta, eps, use_batch_norm, use_gpu):
         # generator requires these parameters
         self.observation_shape = observation_shape
         self.action_size = action_size
@@ -27,6 +27,7 @@ class BCQImpl(DDPGImpl):
         self.n_action_samples = n_action_samples
         self.action_flexibility = action_flexibility
         self.latent_size = latent_size
+        self.beta = beta
 
         self._build_generator()
 
@@ -51,7 +52,7 @@ class BCQImpl(DDPGImpl):
     def _build_generator(self):
         self.generator = create_conditional_vae(self.observation_shape,
                                                 self.action_size,
-                                                self.latent_size,
+                                                self.latent_size, self.beta,
                                                 self.use_batch_norm)
 
     def _build_generator_optim(self):

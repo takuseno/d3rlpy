@@ -10,6 +10,7 @@ from .heads import create_head
 def create_conditional_vae(observation_shape,
                            action_size,
                            latent_size,
+                           beta,
                            use_batch_norm=True):
     encoder_head = create_head(observation_shape,
                                action_size,
@@ -17,14 +18,15 @@ def create_conditional_vae(observation_shape,
     decoder_head = create_head(observation_shape,
                                latent_size,
                                use_batch_norm=use_batch_norm)
-    return ConditionalVAE(encoder_head, decoder_head)
+    return ConditionalVAE(encoder_head, decoder_head, beta)
 
 
 class ConditionalVAE(nn.Module):
-    def __init__(self, encoder_head, decoder_head):
+    def __init__(self, encoder_head, decoder_head, beta):
         super().__init__()
         self.encoder_head = encoder_head
         self.decoder_head = decoder_head
+        self.beta = beta
 
         self.action_size = encoder_head.action_size
         self.latent_size = decoder_head.action_size
@@ -54,4 +56,4 @@ class ConditionalVAE(nn.Module):
         dist = self.encode(x, action)
         kl_loss = kl_divergence(dist, Normal(0.0, 1.0)).mean()
         y = self.decode(x, dist.rsample())
-        return F.mse_loss(y, action) + 0.5 * kl_loss
+        return F.mse_loss(y, action) + self.beta * kl_loss

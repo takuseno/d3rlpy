@@ -17,12 +17,13 @@ from skbrl.tests.algos.algo_test import torch_impl_tester
 @pytest.mark.parametrize('n_action_samples', [100])
 @pytest.mark.parametrize('action_flexibility', [0.05])
 @pytest.mark.parametrize('latent_size', [32])
+@pytest.mark.parametrize('beta', [0.5])
 @pytest.mark.parametrize('eps', [1e-8])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
 def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, generator_learning_rate, gamma, tau,
                   n_critics, lam, n_action_samples, action_flexibility,
-                  latent_size, eps, use_batch_norm):
+                  latent_size, beta, eps, use_batch_norm):
     impl = BCQImpl(observation_shape,
                    action_size,
                    actor_learning_rate,
@@ -35,6 +36,7 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                    n_action_samples,
                    action_flexibility,
                    latent_size,
+                   beta,
                    eps,
                    use_batch_norm,
                    use_gpu=False)

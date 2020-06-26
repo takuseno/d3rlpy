@@ -16,6 +16,7 @@ class BCQ(AlgoBase):
                  action_flexibility=0.05,
                  rl_start_epoch=0,
                  latent_size=32,
+                 beta=0.5,
                  eps=1e-8,
                  use_batch_norm=True,
                  n_epochs=1000,
@@ -34,6 +35,7 @@ class BCQ(AlgoBase):
         self.action_flexibility = action_flexibility
         self.rl_start_epoch = rl_start_epoch
         self.latent_size = latent_size
+        self.beta = beta
         self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.use_gpu = use_gpu
@@ -53,6 +55,7 @@ class BCQ(AlgoBase):
             n_action_samples=self.n_action_samples,
             action_flexibility=self.action_flexibility,
             latent_size=self.latent_size,
+            beta=self.beta,
             eps=self.eps,
             use_batch_norm=self.use_batch_norm,
             use_gpu=self.use_gpu)

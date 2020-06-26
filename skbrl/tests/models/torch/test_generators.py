@@ -29,11 +29,13 @@ def test_create_conditional_vae(observation_shape, action_size, latent_size,
 @pytest.mark.parametrize('feature_size', [100])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('latent_size', [32])
+@pytest.mark.parametrize('beta', [0.5])
 @pytest.mark.parametrize('batch_size', [32])
-def test_conditional_vae(feature_size, action_size, latent_size, batch_size):
+def test_conditional_vae(feature_size, action_size, latent_size, beta,
+                         batch_size):
     encoder_head = DummyHead(feature_size, action_size, True)
     decoder_head = DummyHead(feature_size, latent_size, True)
-    vae = ConditionalVAE(encoder_head, decoder_head)
+    vae = ConditionalVAE(encoder_head, decoder_head, beta)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
