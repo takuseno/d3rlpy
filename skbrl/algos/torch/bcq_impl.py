@@ -29,11 +29,13 @@ class BCQImpl(DDPGImpl):
         self.latent_size = latent_size
 
         self._build_generator()
-        self._build_generator_optim()
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, 0.0, eps,
                          use_batch_norm, use_gpu)
+
+        # setup optimizer after the parameters move to GPU
+        self._build_generator_optim()
 
     def _build_critic(self):
         self.q_func = create_continuous_q_function(self.observation_shape,

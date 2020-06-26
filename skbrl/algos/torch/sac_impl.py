@@ -21,11 +21,13 @@ class SACImpl(DDPGImpl):
         # setup temperature parameter
         # TODO: save and load temperature parameter
         self._build_temperature()
-        self._build_temperature_optim()
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, 0.0, eps,
                          use_batch_norm, use_gpu)
+
+        # setup optimizer after the parameters move to GPU
+        self._build_temperature_optim()
 
     def _build_critic(self):
         self.q_func = create_continuous_q_function(self.observation_shape,

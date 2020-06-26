@@ -25,8 +25,6 @@ class DDPGImpl(ImplBase):
         # setup torch models
         self._build_critic()
         self._build_actor()
-        self._build_critic_optim()
-        self._build_actor_optim()
 
         # setup target networks
         self.targ_q_func = copy.deepcopy(self.q_func)
@@ -35,6 +33,10 @@ class DDPGImpl(ImplBase):
         self.device = 'cpu:0'
         if use_gpu:
             self.to_gpu()
+
+        # setup optimizer after the parameters move to GPU
+        self._build_critic_optim()
+        self._build_actor_optim()
 
     def _build_critic(self):
         self.q_func = create_continuous_q_function(self.observation_shape,

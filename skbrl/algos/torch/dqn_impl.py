@@ -25,7 +25,6 @@ class DQNImpl(ImplBase):
 
         # setup torch models
         self._build_network()
-        self._build_optim()
 
         # setup target network
         self.targ_q_func = copy.deepcopy(self.q_func)
@@ -33,6 +32,9 @@ class DQNImpl(ImplBase):
         self.device = 'cpu:0'
         if use_gpu:
             self.to_gpu()
+
+        # setup optimizer after the parameters move to GPU
+        self._build_optim()
 
     def _build_network(self):
         self.q_func = create_discrete_q_function(self.observation_shape,
