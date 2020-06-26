@@ -21,6 +21,13 @@ def create_conditional_vae(observation_shape,
     return ConditionalVAE(encoder_head, decoder_head, beta)
 
 
+def create_discrete_classifier(observation_shape,
+                               action_size,
+                               use_batch_norm=True):
+    head = create_head(observation_shape, use_batch_norm=use_batch_norm)
+    return DiscreteClassifier(head, action_size)
+
+
 class ConditionalVAE(nn.Module):
     def __init__(self, encoder_head, decoder_head, beta):
         super().__init__()
@@ -57,3 +64,22 @@ class ConditionalVAE(nn.Module):
         kl_loss = kl_divergence(dist, Normal(0.0, 1.0)).mean()
         y = self.decode(x, dist.rsample())
         return F.mse_loss(y, action) + self.beta * kl_loss
+
+
+class DiscreteClassifier(nn.Module):
+    def __init__(self, head, action_size):
+        super().__init__()
+        self.head = head
+        self.fc = nn.Linear(head.feature_size, action_size)
+
+    def forward(self, x, with_logits=False):
+        h = self.head(x)
+        logits = self.fc(h)
+        log_probs = F.log_softmax(logits, dim=1)
+        if with_logits:
+            return log_probs, logits
+        return log_probs
+
+    def compute_cross_entropy(self, x, action):
+        log_probs = self.forward(x)
+        return F.nll_loss(log_probs, action.view(-1))
