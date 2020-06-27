@@ -18,15 +18,13 @@ class SACImpl(DDPGImpl):
         self.temp_learning_rate = temp_learning_rate
         self.initial_temperature = initial_temperature
 
-        # setup temperature parameter
-        # TODO: save and load temperature parameter
-        self._build_temperature()
-
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, 0.0, eps,
                          use_batch_norm, use_gpu)
 
-        # setup optimizer after the parameters move to GPU
+        # TODO: save and load temperature parameter
+        # setup temeprature after device property is set.
+        self._build_temperature()
         self._build_temperature_optim()
 
     def _build_critic(self):
@@ -42,7 +40,8 @@ class SACImpl(DDPGImpl):
 
     def _build_temperature(self):
         initial_val = math.log(self.initial_temperature)
-        self.log_temp = nn.Parameter(torch.full((1, 1), initial_val))
+        data = torch.full((1, 1), initial_val, device=self.device)
+        self.log_temp = nn.Parameter(data)
 
     def _build_temperature_optim(self):
         self.temp_optim = Adam([self.log_temp], self.temp_learning_rate)
