@@ -6,13 +6,12 @@ from .torch.dqn_impl import DQNImpl, DoubleDQNImpl
 
 class DQN(AlgoBase):
     def __init__(self,
-                 learning_rate=2.5e-4,
+                 learning_rate=6.25e-5,
                  batch_size=32,
                  gamma=0.99,
-                 alpha=0.95,
-                 eps=1e-2,
+                 eps=1.5e-4,
                  grad_clip=10.0,
-                 target_update_interval=100,
+                 target_update_interval=8e3,
                  use_batch_norm=True,
                  n_epochs=1000,
                  use_gpu=False,
@@ -21,7 +20,6 @@ class DQN(AlgoBase):
         super().__init__(n_epochs, batch_size)
         self.learning_rate = learning_rate
         self.gamma = gamma
-        self.alpha = alpha
         self.eps = eps
         self.grad_clip = grad_clip
         self.target_update_interval = target_update_interval
@@ -34,7 +32,6 @@ class DQN(AlgoBase):
                             action_size=action_size,
                             learning_rate=self.learning_rate,
                             gamma=self.gamma,
-                            alpha=self.alpha,
                             eps=self.eps,
                             grad_clip=self.grad_clip,
                             use_batch_norm=self.use_batch_norm,
@@ -58,7 +55,6 @@ class DoubleDQN(DQN):
                                   action_size=action_size,
                                   learning_rate=self.learning_rate,
                                   gamma=self.gamma,
-                                  alpha=self.alpha,
                                   eps=self.eps,
                                   grad_clip=self.grad_clip,
                                   use_batch_norm=self.use_batch_norm,

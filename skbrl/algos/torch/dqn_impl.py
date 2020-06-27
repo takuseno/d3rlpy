@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import torch
 import copy
 
-from torch.optim import RMSprop
+from torch.optim import Adam
 from torch.nn.utils import clip_grad_norm_
 from skbrl.models.torch.q_functions import create_discrete_q_function
 from skbrl.models.torch.q_functions import DiscreteQFunction
@@ -13,12 +13,11 @@ from skbrl.algos.torch.utility import hard_sync, torch_api
 
 class DQNImpl(ImplBase):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
-                 alpha, eps, grad_clip, use_batch_norm, use_gpu):
+                 eps, grad_clip, use_batch_norm, use_gpu):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.learning_rate = learning_rate
         self.gamma = gamma
-        self.alpha = alpha
         self.eps = eps
         self.grad_clip = grad_clip
         self.use_batch_norm = use_batch_norm
@@ -42,10 +41,9 @@ class DQNImpl(ImplBase):
                                                  self.use_batch_norm)
 
     def _build_optim(self):
-        self.optim = RMSprop(self.q_func.parameters(),
-                             lr=self.learning_rate,
-                             alpha=self.alpha,
-                             eps=self.eps)
+        self.optim = Adam(self.q_func.parameters(),
+                          lr=self.learning_rate,
+                          eps=self.eps)
 
     @torch_api
     def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
