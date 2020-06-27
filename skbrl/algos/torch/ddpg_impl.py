@@ -6,6 +6,9 @@ from skbrl.models.torch.q_functions import create_continuous_q_function
 from skbrl.models.torch.policies import create_deterministic_policy
 from skbrl.algos.base import ImplBase
 from skbrl.algos.torch.utility import soft_sync, torch_api
+from skbrl.algos.torch.utility import train_api, eval_api
+from skbrl.algos.torch.utility import to_cuda, to_cpu
+from skbrl.algos.torch.utility import freeze, unfreeze
 
 
 class DDPGImpl(ImplBase):
@@ -58,10 +61,9 @@ class DDPGImpl(ImplBase):
                                 lr=self.actor_learning_rate,
                                 eps=self.eps)
 
+    @train_api
     @torch_api
     def update_critic(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        self.q_func.train()
-
         q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
         loss = self.q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1, self.gamma)
 
@@ -71,11 +73,9 @@ class DDPGImpl(ImplBase):
 
         return loss.cpu().detach().numpy()
 
+    @train_api
     @torch_api
     def update_actor(self, obs_t):
-        self.policy.train()
-        self.q_func.train()
-
         action, raw_action = self.policy(obs_t, with_raw=True)
         q_t = self.q_func(obs_t, action)
         loss = -q_t.mean() + self.reguralizing_rate * (raw_action**2).mean()
@@ -91,16 +91,19 @@ class DDPGImpl(ImplBase):
             action = self.targ_policy(x)
             return self.targ_q_func(x, action.clamp(-1.0, 1.0))
 
+    def _predict_best_action(self, x):
+        return self.policy.best_action(x)
+
+    @eval_api
     @torch_api
     def predict_best_action(self, x):
-        self.policy.eval()
         with torch.no_grad():
-            return self.policy.best_action(x).cpu().detach().numpy()
+            return self._predict_best_action(x).cpu().detach().numpy()
 
+    @eval_api
     @torch_api
     def predict_value(self, x, action):
         assert x.shape[0] == action.shape[0]
-        self.q_func.eval()
         with torch.no_grad():
             return self.q_func(x, action).view(-1).cpu().detach().numpy()
 
@@ -128,34 +131,27 @@ class DDPGImpl(ImplBase):
         self.targ_q_func = copy.deepcopy(self.q_func)
         self.targ_policy = copy.deepcopy(self.policy)
 
+    @eval_api
     def save_policy(self, fname):
         dummy_x = torch.rand(1, *self.observation_shape)
 
         # workaround until version 1.6
-        self.policy.eval()
-        for p in self.policy.parameters():
-            p.requires_grad = False
+        freeze(self)
 
         # dummy function to select best actions
         def _func(x):
-            return self.policy.best_action(x)
+            return self._predict_best_action(x)
 
         traced_script = torch.jit.trace(_func, dummy_x)
         traced_script.save(fname)
 
-        for p in self.policy.parameters():
-            p.requires_grad = True
+        # workaround until version 1.6
+        unfreeze(self)
 
     def to_gpu(self):
-        self.q_func.cuda()
-        self.targ_q_func.cuda()
-        self.policy.cuda()
-        self.targ_policy.cuda()
+        to_cuda(self)
         self.device = 'cuda:0'
 
     def to_cpu(self):
-        self.q_func.cpu()
-        self.targ_q_func.cpu()
-        self.policy.cpu()
-        self.targ_policy.cpu()
+        to_cpu(self)
         self.device = 'cpu:0'

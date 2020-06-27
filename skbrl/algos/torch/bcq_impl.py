@@ -6,7 +6,7 @@ from torch.optim import Adam
 from skbrl.models.torch.policies import create_deterministic_residual_policy
 from skbrl.models.torch.q_functions import create_continuous_q_function
 from skbrl.models.torch.imitators import create_conditional_vae
-from skbrl.algos.torch.utility import torch_api
+from skbrl.algos.torch.utility import torch_api, train_api, eval_api
 from .ddpg_impl import DDPGImpl
 
 
@@ -60,12 +60,9 @@ class BCQImpl(DDPGImpl):
                                    self.imitator_learning_rate,
                                    eps=self.eps)
 
+    @train_api
     @torch_api
     def update_actor(self, obs_t):
-        self.policy.train()
-        self.q_func.train()
-        self.imitator.train()
-
         latent = torch.randn(obs_t.shape[0],
                              self.latent_size,
                              device=self.device)
@@ -80,10 +77,9 @@ class BCQImpl(DDPGImpl):
 
         return loss.cpu().detach().numpy()
 
+    @train_api
     @torch_api
     def update_imitator(self, obs_t, act_t):
-        self.imitator.train()
-
         loss = self.imitator.compute_likelihood_loss(obs_t, act_t)
 
         self.imitator_optim.zero_grad()
@@ -148,6 +144,7 @@ class BCQImpl(DDPGImpl):
             #(batch_size, n) -> (batch_size, 1)
             return mix_values.max(dim=1, keepdim=True).values
 
+    @eval_api
     @torch_api
     def predict_best_action(self, x):
         with torch.no_grad():
@@ -176,38 +173,3 @@ class BCQImpl(DDPGImpl):
         self.targ_q_func = copy.deepcopy(self.q_func)
         self.targ_policy = copy.deepcopy(self.policy)
 
-    def save_policy(self, fname):
-        dummy_x = torch.rand(1, *self.observation_shape)
-
-        # workaround until version 1.6
-        self.policy.eval()
-        for p in self.policy.parameters():
-            p.requires_grad = False
-        self.q_func.eval()
-        for p in self.q_func.parameters():
-            p.requires_grad = False
-        self.imitator.eval()
-        for p in self.imitator.parameters():
-            p.requires_grad = False
-
-        # dummy function to select best actions
-        def _func(x):
-            return self._predict_best_action(x)
-
-        traced_script = torch.jit.trace(_func, dummy_x)
-        traced_script.save(fname)
-
-        for p in self.policy.parameters():
-            p.requires_grad = True
-        for p in self.q_func.parameters():
-            p.requires_grad = True
-        for p in self.imitator.parameters():
-            p.requires_grad = True
-
-    def to_gpu(self):
-        super().to_gpu()
-        self.imitator.cuda()
-
-    def to_cpu(self):
-        super().to_cpu()
-        self.imitator.cpu()
