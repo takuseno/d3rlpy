@@ -213,7 +213,7 @@ def impl_tester(impl, discrete):
     assert value.shape == (100, )
 
 
-def torch_impl_tester(impl, discrete):
+def torch_impl_tester(impl, discrete, deterministic_best_action=True):
     impl_tester(impl, discrete)
 
     # check save_model and load_model
@@ -229,3 +229,8 @@ def torch_impl_tester(impl, discrete):
         assert action.shape == (100, )
     else:
         assert action.shape == (100, impl.action_size)
+
+    # TODO: check probablistic policy
+    # https://github.com/pytorch/pytorch/pull/25753
+    if deterministic_best_action:
+        assert np.allclose(action, impl.predict_best_action(observations))

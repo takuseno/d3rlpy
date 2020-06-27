@@ -56,7 +56,7 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
     best_action = impl._predict_best_action(x)
     assert best_action.shape == (32, action_size)
 
-    torch_impl_tester(impl, discrete=False)
+    torch_impl_tester(impl, discrete=False, deterministic_best_action=False)
 
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
