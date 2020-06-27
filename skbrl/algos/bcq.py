@@ -42,23 +42,22 @@ class BCQ(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        self.impl = BCQImpl(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            actor_learning_rate=self.actor_learning_rate,
-            critic_learning_rate=self.critic_learning_rate,
-            imitator_learning_rate=self.imitator_learning_rate,
-            gamma=self.gamma,
-            tau=self.tau,
-            n_critics=self.n_critics,
-            lam=self.lam,
-            n_action_samples=self.n_action_samples,
-            action_flexibility=self.action_flexibility,
-            latent_size=self.latent_size,
-            beta=self.beta,
-            eps=self.eps,
-            use_batch_norm=self.use_batch_norm,
-            use_gpu=self.use_gpu)
+        self.impl = BCQImpl(observation_shape=observation_shape,
+                            action_size=action_size,
+                            actor_learning_rate=self.actor_learning_rate,
+                            critic_learning_rate=self.critic_learning_rate,
+                            imitator_learning_rate=self.imitator_learning_rate,
+                            gamma=self.gamma,
+                            tau=self.tau,
+                            n_critics=self.n_critics,
+                            lam=self.lam,
+                            n_action_samples=self.n_action_samples,
+                            action_flexibility=self.action_flexibility,
+                            latent_size=self.latent_size,
+                            beta=self.beta,
+                            eps=self.eps,
+                            use_batch_norm=self.use_batch_norm,
+                            use_gpu=self.use_gpu)
 
     def update(self, epoch, total_step, batch):
         imitator_loss = self.impl.update_imitator(batch.observations,

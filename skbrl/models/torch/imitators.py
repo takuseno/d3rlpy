@@ -84,5 +84,5 @@ class DiscreteImitator(nn.Module):
 
     def compute_likelihood_loss(self, x, action):
         log_probs, logits = self.forward(x, with_logits=True)
-        penalty = (logits ** 2).mean()
+        penalty = (logits**2).mean()
         return F.nll_loss(log_probs, action.view(-1)) + self.beta * penalty

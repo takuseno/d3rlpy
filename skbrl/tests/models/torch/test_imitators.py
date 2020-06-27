@@ -35,8 +35,8 @@ def test_create_conditional_vae(observation_shape, action_size, latent_size,
 @pytest.mark.parametrize('use_batch_norm', [False, True])
 def test_create_discrete_imitator(observation_shape, action_size, beta,
                                   batch_size, use_batch_norm):
-    imitator = create_discrete_imitator(observation_shape, action_size,
-                                        beta, use_batch_norm)
+    imitator = create_discrete_imitator(observation_shape, action_size, beta,
+                                        use_batch_norm)
 
     assert isinstance(imitator, DiscreteImitator)
 
@@ -95,5 +95,5 @@ def test_discrete_imitator(feature_size, action_size, beta, batch_size):
 
     action = torch.randint(low=0, high=action_size - 1, size=(batch_size, ))
     loss = imitator.compute_likelihood_loss(x, action)
-    penalty = (logits ** 2).mean()
+    penalty = (logits**2).mean()
     assert torch.allclose(loss, F.nll_loss(y, action) + beta * penalty)
