@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from skbrl.algos.torch.bcq_impl import BCQImpl
+from skbrl.algos.torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 from skbrl.tests.algos.algo_test import torch_impl_tester
 
 
@@ -57,3 +57,26 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
     assert best_action.shape == (32, action_size)
 
     torch_impl_tester(impl, discrete=False)
+
+
+@pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('learning_rate', [2.5e-4])
+@pytest.mark.parametrize('gamma', [0.99])
+@pytest.mark.parametrize('action_flexibility', [0.3])
+@pytest.mark.parametrize('beta', [1e-2])
+@pytest.mark.parametrize('eps', [0.95])
+@pytest.mark.parametrize('use_batch_norm', [True, False])
+def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
+                           gamma, action_flexibility, beta, eps,
+                           use_batch_norm):
+    impl = DiscreteBCQImpl(observation_shape,
+                           action_size,
+                           learning_rate,
+                           gamma,
+                           action_flexibility,
+                           beta,
+                           eps,
+                           use_batch_norm,
+                           use_gpu=False)
+    torch_impl_tester(impl, discrete=True)

@@ -1,13 +1,19 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import copy
+import math
 
 from torch.optim import Adam
+from skbrl.models.torch.heads import PixelHead
 from skbrl.models.torch.policies import create_deterministic_residual_policy
 from skbrl.models.torch.q_functions import create_continuous_q_function
 from skbrl.models.torch.imitators import create_conditional_vae
+from skbrl.models.torch.imitators import create_discrete_imitator
+from skbrl.models.torch.imitators import DiscreteImitator
 from skbrl.algos.torch.utility import torch_api, train_api, eval_api
 from .ddpg_impl import DDPGImpl
+from .dqn_impl import DoubleDQNImpl
 
 
 class BCQImpl(DDPGImpl):
@@ -173,3 +179,87 @@ class BCQImpl(DDPGImpl):
         self.targ_q_func = copy.deepcopy(self.q_func)
         self.targ_policy = copy.deepcopy(self.policy)
 
+
+class DiscreteBCQImpl(DoubleDQNImpl):
+    def __init__(self, observation_shape, action_size, learning_rate, gamma,
+                 action_flexibility, beta, eps, use_batch_norm, use_gpu):
+
+        self.action_flexibility = action_flexibility
+        self.beta = beta
+
+        super().__init__(observation_shape, action_size, learning_rate, gamma,
+                         eps, use_batch_norm, use_gpu)
+
+    def _build_network(self):
+        super()._build_network()
+        # share convolutional layers if observation is pixel
+        if isinstance(self.q_func.head, PixelHead):
+            self.imitator = DiscreteImitator(self.q_func.head,
+                                             self.action_size, self.beta)
+        else:
+            self.imitator = create_discrete_imitator(self.observation_shape,
+                                                     self.action_size,
+                                                     self.beta,
+                                                     self.use_batch_norm)
+
+    def _build_optim(self):
+        q_func_params = list(self.q_func.parameters())
+        imitator_params = list(self.imitator.parameters())
+        # retrieve unique elements
+        unique_params = list(set(q_func_params + imitator_params))
+        self.optim = Adam(unique_params, lr=self.learning_rate, eps=self.eps)
+
+    @train_api
+    @torch_api
+    def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
+        # convert float to long
+        act_t = act_t.long()
+
+        # loss for Q function
+        q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
+        value_loss = self.q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1,
+                                            self.gamma)
+
+        # loss for imitator
+        imitator_loss = self.imitator.compute_likelihood_loss(obs_t, act_t)
+
+        loss = value_loss + imitator_loss
+
+        self.optim.zero_grad()
+        loss.backward()
+        self.optim.step()
+
+        value_loss = value_loss.cpu().detach().numpy()
+        imitator_loss = imitator_loss.cpu().detach().numpy()
+
+        return value_loss, imitator_loss
+
+    def _predict_best_action(self, x):
+        log_probs = self.imitator(x)
+        ratio = log_probs - log_probs.max(dim=1, keepdim=True).values
+        mask = (ratio > math.log(self.action_flexibility)).float()
+        value = self.q_func(x)
+        normalized_value = value - value.min(dim=1, keepdim=True).values
+        action = (normalized_value * mask).argmax(dim=1)
+        return action
+
+    @eval_api
+    @torch_api
+    def predict_best_action(self, x):
+        with torch.no_grad():
+            return self._predict_best_action(x).cpu().detach().numpy()
+
+    def save_model(self, fname):
+        torch.save(
+            {
+                'q_func': self.q_func.state_dict(),
+                'imitator': self.imitator.state_dict(),
+                'optim': self.optim.state_dict(),
+            }, fname)
+
+    def load_model(self, fname):
+        chkpt = torch.load(fname)
+        self.q_func.load_state_dict(chkpt['q_func'])
+        self.imitator.load_state_dict(chkpt['imitator'])
+        self.optim.load_state_dict(chkpt['optim'])
+        self.update_target()

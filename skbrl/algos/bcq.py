@@ -1,5 +1,5 @@
 from .base import AlgoBase
-from skbrl.algos.torch.bcq_impl import BCQImpl
+from skbrl.algos.torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 
 
 class BCQ(AlgoBase):
@@ -78,3 +78,53 @@ class BCQ(AlgoBase):
 
     def _get_loss_labels(self):
         return ['critic_loss', 'actor_loss', 'imitator_loss']
+
+
+class DiscreteBCQ(AlgoBase):
+    def __init__(self,
+                 learning_rate=6.25e-5,
+                 batch_size=32,
+                 gamma=0.99,
+                 action_flexibility=0.3,
+                 beta=0.5,
+                 eps=1.5e-4,
+                 target_update_interval=8e3,
+                 use_batch_norm=True,
+                 n_epochs=1000,
+                 use_gpu=False,
+                 impl=None,
+                 **kwargs):
+        super().__init__(n_epochs, batch_size)
+        self.learning_rate = learning_rate
+        self.gamma = gamma
+        self.action_flexibility = action_flexibility
+        self.beta = beta
+        self.eps = eps
+        self.target_update_interval = target_update_interval
+        self.use_batch_norm = use_batch_norm
+        self.use_gpu = use_gpu
+        self.impl = impl
+
+    def create_impl(self, observation_shape, action_size):
+        self.impl = DiscreteBCQImpl(observation_shape=observation_shape,
+                                    action_size=action_size,
+                                    learning_rate=self.learning_rate,
+                                    gamma=self.gamma,
+                                    action_flexibility=self.action_flexibility,
+                                    beta=self.beta,
+                                    eps=self.eps,
+                                    use_batch_norm=self.use_batch_norm,
+                                    use_gpu=self.use_gpu)
+
+    def update(self, epoch, total_step, batch):
+        value_loss, imitator_loss = self.impl.update(batch.observations,
+                                                     batch.actions,
+                                                     batch.next_rewards,
+                                                     batch.next_observations,
+                                                     batch.terminals)
+        if total_step % self.target_update_interval == 0:
+            self.impl.update_target()
+        return value_loss, imitator_loss
+
+    def _get_loss_labels(self):
+        return ['value_loss', 'imitator_loss']
