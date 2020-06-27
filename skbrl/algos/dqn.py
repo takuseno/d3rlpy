@@ -10,7 +10,6 @@ class DQN(AlgoBase):
                  batch_size=32,
                  gamma=0.99,
                  eps=1.5e-4,
-                 grad_clip=10.0,
                  target_update_interval=8e3,
                  use_batch_norm=True,
                  n_epochs=1000,
@@ -21,7 +20,6 @@ class DQN(AlgoBase):
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.eps = eps
-        self.grad_clip = grad_clip
         self.target_update_interval = target_update_interval
         self.use_batch_norm = use_batch_norm
         self.use_gpu = use_gpu
@@ -33,7 +31,6 @@ class DQN(AlgoBase):
                             learning_rate=self.learning_rate,
                             gamma=self.gamma,
                             eps=self.eps,
-                            grad_clip=self.grad_clip,
                             use_batch_norm=self.use_batch_norm,
                             use_gpu=self.use_gpu)
 
@@ -56,6 +53,5 @@ class DoubleDQN(DQN):
                                   learning_rate=self.learning_rate,
                                   gamma=self.gamma,
                                   eps=self.eps,
-                                  grad_clip=self.grad_clip,
                                   use_batch_norm=self.use_batch_norm,
                                   use_gpu=self.use_gpu)

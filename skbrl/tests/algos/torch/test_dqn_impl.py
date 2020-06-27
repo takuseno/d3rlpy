@@ -9,16 +9,14 @@ from skbrl.tests.algos.algo_test import torch_impl_tester
 @pytest.mark.parametrize('learning_rate', [2.5e-4])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('eps', [0.95])
-@pytest.mark.parametrize('grad_clip', [10.0])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
 def test_dqn_impl(observation_shape, action_size, learning_rate, gamma, eps,
-                  grad_clip, use_batch_norm):
+                  use_batch_norm):
     impl = DQNImpl(observation_shape,
                    action_size,
                    learning_rate,
                    gamma,
                    eps,
-                   grad_clip,
                    use_batch_norm,
                    use_gpu=False)
     torch_impl_tester(impl, discrete=True)
@@ -29,16 +27,14 @@ def test_dqn_impl(observation_shape, action_size, learning_rate, gamma, eps,
 @pytest.mark.parametrize('learning_rate', [2.5e-4])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('eps', [0.95])
-@pytest.mark.parametrize('grad_clip', [10.0])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
 def test_double_dqn_impl(observation_shape, action_size, learning_rate, gamma,
-                         eps, grad_clip, use_batch_norm):
+                         eps, use_batch_norm):
     impl = DoubleDQNImpl(observation_shape,
                          action_size,
                          learning_rate,
                          gamma,
                          eps,
-                         grad_clip,
                          use_batch_norm,
                          use_gpu=False)
     torch_impl_tester(impl, discrete=True)

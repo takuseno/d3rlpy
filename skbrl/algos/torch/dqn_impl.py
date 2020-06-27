@@ -13,13 +13,12 @@ from skbrl.algos.torch.utility import hard_sync, torch_api
 
 class DQNImpl(ImplBase):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
-                 eps, grad_clip, use_batch_norm, use_gpu):
+                 eps, use_batch_norm, use_gpu):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.eps = eps
-        self.grad_clip = grad_clip
         self.use_batch_norm = use_batch_norm
 
         # setup torch models
@@ -55,7 +54,6 @@ class DQNImpl(ImplBase):
 
         self.optim.zero_grad()
         loss.backward()
-        clip_grad_norm_(self.q_func.parameters(), self.grad_clip)
         self.optim.step()
 
         return loss.cpu().detach().numpy()
