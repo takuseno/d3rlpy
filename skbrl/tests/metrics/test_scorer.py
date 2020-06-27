@@ -59,7 +59,8 @@ def test_td_error_scorer(observation_shape, action_size, n_episodes,
                                        gamma)
         ref_errors += ref_error
 
-    assert np.allclose(td_error_scorer(algo, episodes), np.mean(ref_errors))
+    score = td_error_scorer(algo, episodes)
+    assert np.allclose(score, -np.mean(ref_errors))
 
 
 def ref_discounted_sum_of_advantage_score(predict_value, observations,
@@ -108,8 +109,8 @@ def test_discounted_sum_of_advantage_scorer(observation_shape, action_size,
             policy_actions, gamma)
         ref_sums += ref_sum
 
-    sums = discounted_sum_of_advantage_scorer(algo, episodes)
-    assert np.allclose(sums, np.mean(ref_sums))
+    score = discounted_sum_of_advantage_scorer(algo, episodes)
+    assert np.allclose(score, -np.mean(ref_sums))
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])

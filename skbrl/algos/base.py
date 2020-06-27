@@ -3,6 +3,7 @@ import copy
 
 from skbrl.dataset import TransitionMiniBatch
 from skbrl.logger import SkbrlLogger
+from skbrl.metrics.scorer import NEGATED_SCORER
 
 
 class AlgoBase:
@@ -44,7 +45,7 @@ class AlgoBase:
     def fit(self,
             episodes,
             experiment_name=None,
-            logdir='logs',
+            logdir='skbrl_logs',
             verbose=True,
             tensorboard=True,
             eval_episodes=None,
@@ -90,10 +91,7 @@ class AlgoBase:
                 total_step += 1
 
             if scorers and eval_episodes:
-                for name, scorer in scorers.items():
-                    # evaluation with test data
-                    test_score = scorer(self, eval_episodes)
-                    logger.add_metric(name, test_score)
+                self._evaluate(eval_episodes, scorers, logger)
 
             # save metrics
             logger.commit(epoch, total_step)
@@ -123,6 +121,18 @@ class AlgoBase:
                              tensorboard=tensorboard)
 
         return logger
+
+    def _evaluate(self, episodes, scorers, logger):
+        for name, scorer in scorers.items():
+            # evaluation with test data
+            test_score = scorer(self, episodes)
+
+            # higher scorer's scores are better in scikit-learn.
+            # make it back to its original sign here.
+            if scorer in NEGATED_SCORER:
+                test_score *= -1
+
+            logger.add_metric(name, test_score)
 
 
 class ImplBase:

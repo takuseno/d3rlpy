@@ -20,7 +20,8 @@ def td_error_scorer(algo, episodes):
         y = batch.next_rewards + algo.gamma * next_values * mask
         total_errors += ((values - y)**2).reshape(-1).tolist()
 
-    return np.mean(total_errors)
+    # smaller is better
+    return -np.mean(total_errors)
 
 
 def discounted_sum_of_advantage_scorer(algo, episodes):
@@ -47,7 +48,8 @@ def discounted_sum_of_advantage_scorer(algo, episodes):
 
         total_sums += sum_advantages
 
-    return np.mean(total_sums)
+    # smaller is better
+    return -np.mean(total_sums)
 
 
 def evaluate_on_environment(env, n_trials=10):
@@ -66,3 +68,4 @@ def evaluate_on_environment(env, n_trials=10):
         return np.mean(episode_rewards)
 
     return scorer
+NEGATED_SCORER = [td_error_scorer, discounted_sum_of_advantage_scorer]
