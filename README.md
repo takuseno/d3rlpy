@@ -86,7 +86,7 @@ try {
 - [x] DQN
 - [x] Double DQN
 - [ ] REM
-- [ ] BCQ
+- [x] BCQ
 - [ ] BEAR
 
 ### continuous control
