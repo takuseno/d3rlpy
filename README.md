@@ -130,6 +130,7 @@ bear.fit(train_episodes,
 - [ ] Off-policy Classification (requires success flags)
 - [x] Temporal-difference Error
 - [x] Discounted Sum of Advantages
+- [x] Average value estimation
 - [x] Evaluation with gym-like environments
 
 ## contributions
