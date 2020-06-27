@@ -3,6 +3,7 @@ import pytest
 
 from skbrl.metrics.scorer import td_error_scorer
 from skbrl.metrics.scorer import discounted_sum_of_advantage_scorer
+from skbrl.metrics.scorer import average_value_estimation_scorer
 from skbrl.metrics.scorer import evaluate_on_environment
 from skbrl.dataset import Episode, TransitionMiniBatch
 
@@ -111,6 +112,36 @@ def test_discounted_sum_of_advantage_scorer(observation_shape, action_size,
 
     score = discounted_sum_of_advantage_scorer(algo, episodes)
     assert np.allclose(score, -np.mean(ref_sums))
+
+
+@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_episodes', [100])
+@pytest.mark.parametrize('episode_length', [10])
+def test_average_value_estimation_scorer(observation_shape, action_size,
+                                         n_episodes, episode_length):
+    # projection matrix for deterministic action
+    A = np.random.random(observation_shape + (action_size, ))
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length, ) + observation_shape)
+        actions = np.matmul(observations, A)
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(observation_shape, action_size, observations,
+                          actions, rewards)
+        episodes.append(episode)
+
+    algo = DummyAlgo(A, 0.0)
+
+    total_values = []
+    for episode in episodes:
+        batch = TransitionMiniBatch(episode.transitions)
+        policy_actions = algo.predict(batch.observations)
+        values = algo.predict_value(batch.observations, policy_actions)
+        total_values += values.tolist()
+
+    score = average_value_estimation_scorer(algo, episodes)
+    assert np.allclose(score, np.mean(total_values))
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])

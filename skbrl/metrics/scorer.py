@@ -52,6 +52,16 @@ def discounted_sum_of_advantage_scorer(algo, episodes):
     return -np.mean(total_sums)
 
 
+def average_value_estimation_scorer(algo, episodes):
+    total_values = []
+    for episode in episodes:
+        batch = TransitionMiniBatch(episode.transitions)
+        actions = algo.predict(batch.observations)
+        values = algo.predict_value(batch.observations, actions)
+        total_values += values.tolist()
+    return np.mean(total_values)
+
+
 def evaluate_on_environment(env, n_trials=10):
     def scorer(algo, *args):
         episode_rewards = []
@@ -68,4 +78,6 @@ def evaluate_on_environment(env, n_trials=10):
         return np.mean(episode_rewards)
 
     return scorer
+
+
 NEGATED_SCORER = [td_error_scorer, discounted_sum_of_advantage_scorer]
