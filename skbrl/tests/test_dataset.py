@@ -68,6 +68,24 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
     assert dataset.get_observation_shape() == (observation_size, )
     assert dataset.is_action_discrete() == discrete_action
 
+    # check stats
+    ref_returns = []
+    for i in range(n_episodes):
+        episode_return = 0.0
+        for j in range(1, n_steps):
+            episode_return += rewards[j + i * n_steps]
+        ref_returns.append(episode_return)
+
+    stats = dataset.compute_stats()
+    return_stats = stats['return']
+    assert return_stats['mean'] == np.mean(ref_returns)
+    assert return_stats['std'] == np.std(ref_returns)
+    assert return_stats['min'] == np.min(ref_returns)
+    assert return_stats['max'] == np.max(ref_returns)
+    observation_stats = stats['observation']
+    assert np.all(observation_stats['mean'] == np.mean(observations, axis=0))
+    assert np.all(observation_stats['std'] == np.std(observations, axis=0))
+
     # check episodes exported from dataset
     episodes = dataset.episodes
     assert len(episodes) == n_episodes

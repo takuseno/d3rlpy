@@ -142,6 +142,29 @@ class MDPDataset:
     def is_action_discrete(self):
         return self.discrete_action
 
+    def compute_stats(self):
+        episode_returns = []
+        for episode in self.episodes:
+            episode_return = 0.0
+            for transition in episode:
+                episode_return += transition.next_reward
+            episode_returns.append(episode_return)
+
+        stats = {
+            'return': {
+                'mean': np.mean(episode_returns),
+                'std': np.std(episode_returns),
+                'min': np.min(episode_returns),
+                'max': np.max(episode_returns),
+            },
+            'observation': {
+                'mean': np.mean(self.observations, axis=0),
+                'std': np.std(self.observations, axis=0)
+            }
+        }
+
+        return stats
+
     def __len__(self):
         return self.size()
 
