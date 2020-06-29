@@ -49,6 +49,7 @@ class AlgoBase:
             verbose=True,
             tensorboard=True,
             eval_episodes=None,
+            save_interval=1,
             scorers=None):
 
         transitions = []
@@ -95,6 +96,10 @@ class AlgoBase:
 
             # save metrics
             logger.commit(epoch, total_step)
+
+            # save model parameters and greedy policy
+            if epoch % save_interval == 0:
+                logger.save_model(epoch, self)
 
     def predict(self, x):
         return self.impl.predict_best_action(x)

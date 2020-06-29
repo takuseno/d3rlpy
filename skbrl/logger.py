@@ -74,3 +74,12 @@ class SkbrlLogger:
                                     metrics,
                                     name=self.experiment_name,
                                     global_step=epoch)
+
+    def save_model(self, epoch, algo):
+        # save entire model
+        model_path = os.path.join(self.logdir, 'model_%d.pt' % epoch)
+        algo.save_model(model_path)
+
+        # save greedy policy
+        policy_path = os.path.join(self.logdir, 'policy_%d.pt' % epoch)
+        algo.save_policy(policy_path)
