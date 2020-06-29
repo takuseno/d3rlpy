@@ -9,7 +9,7 @@ from skbrl.algos.base import ImplBase
 from skbrl.dataset import MDPDataset, TransitionMiniBatch
 
 
-def algo_tester(algo):
+def algo_tester(algo, imitator=False):
     # dummy impl object
     impl = ImplBase()
 
@@ -59,12 +59,13 @@ def algo_tester(algo):
     impl.predict_best_action.assert_called_with(x)
 
     # check predict_value
-    action = np.random.random((2, 3)).tolist()
-    ref_value = np.random.random((2, 3)).tolist()
-    impl.predict_value = Mock(return_value=ref_value)
-    value = algo.predict_value(x, action)
-    assert value == ref_value
-    impl.predict_value.assert_called_with(x, action)
+    if not imitator:
+        action = np.random.random((2, 3)).tolist()
+        ref_value = np.random.random((2, 3)).tolist()
+        impl.predict_value = Mock(return_value=ref_value)
+        value = algo.predict_value(x, action)
+        assert value == ref_value
+        impl.predict_value.assert_called_with(x, action)
 
     # check fit
     n_episodes = 4
@@ -194,7 +195,7 @@ def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
             assert False, 'performance is not good enough.'
 
 
-def impl_tester(impl, discrete):
+def impl_tester(impl, discrete, imitator):
     observations = np.random.random((100, ) + impl.observation_shape)
     if discrete:
         actions = np.random.randint(impl.action_size, size=100)
@@ -209,12 +210,16 @@ def impl_tester(impl, discrete):
         assert y.shape == (100, impl.action_size)
 
     # check predict_values
-    value = impl.predict_value(observations, actions)
-    assert value.shape == (100, )
+    if not imitator:
+        value = impl.predict_value(observations, actions)
+        assert value.shape == (100, )
 
 
-def torch_impl_tester(impl, discrete, deterministic_best_action=True):
-    impl_tester(impl, discrete)
+def torch_impl_tester(impl,
+                      discrete,
+                      deterministic_best_action=True,
+                      imitator=False):
+    impl_tester(impl, discrete, imitator)
 
     # check save_model and load_model
     impl.save_model(os.path.join('test_data', 'model.pt'))
