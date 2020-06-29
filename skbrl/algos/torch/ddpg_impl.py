@@ -133,7 +133,7 @@ class DDPGImpl(ImplBase):
 
     @eval_api
     def save_policy(self, fname):
-        dummy_x = torch.rand(1, *self.observation_shape)
+        dummy_x = torch.rand(1, *self.observation_shape, device=self.device)
 
         # workaround until version 1.6
         freeze(self)
