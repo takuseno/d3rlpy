@@ -3,10 +3,12 @@ import torch
 import pytest
 import copy
 
+from unittest.mock import Mock
 from skbrl.algos.torch.utility import soft_sync, hard_sync
 from skbrl.algos.torch.utility import set_eval_mode, set_train_mode
 from skbrl.algos.torch.utility import freeze, unfreeze
 from skbrl.algos.torch.utility import torch_api, train_api, eval_api
+from skbrl.algos.torch.utility import map_location
 
 
 @pytest.mark.parametrize('tau', [0.05])
@@ -36,6 +38,20 @@ def test_hard_sync(input_size, output_size):
 
     for p, targ_p in zip(module.parameters(), targ_module.parameters()):
         assert torch.allclose(targ_p, p)
+
+
+def test_map_location_with_cpu():
+    assert map_location('cpu:0') == 'cpu'
+
+
+def test_map_location_with_cuda():
+    fn = map_location('cuda:0')
+    dummy = Mock()
+    dummy.cuda = Mock()
+
+    fn(dummy, '')
+
+    dummy.cuda.assert_called_with('cuda:0')
 
 
 class DummyImpl:

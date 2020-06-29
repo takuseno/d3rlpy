@@ -9,6 +9,7 @@ from skbrl.algos.torch.utility import soft_sync, torch_api
 from skbrl.algos.torch.utility import train_api, eval_api
 from skbrl.algos.torch.utility import to_cuda, to_cpu
 from skbrl.algos.torch.utility import freeze, unfreeze
+from skbrl.algos.torch.utility import map_location
 
 
 class DDPGImpl(ImplBase):
@@ -123,7 +124,7 @@ class DDPGImpl(ImplBase):
             }, fname)
 
     def load_model(self, fname):
-        chkpt = torch.load(fname)
+        chkpt = torch.load(fname, map_location=map_location(self.device))
         self.q_func.load_state_dict(chkpt['q_func'])
         self.policy.load_state_dict(chkpt['policy'])
         self.critic_optim.load_state_dict(chkpt['critic_optim'])

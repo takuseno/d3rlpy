@@ -12,6 +12,7 @@ from skbrl.models.torch.imitators import create_conditional_vae
 from skbrl.models.torch.imitators import create_discrete_imitator
 from skbrl.models.torch.imitators import DiscreteImitator
 from skbrl.algos.torch.utility import torch_api, train_api, eval_api
+from skbrl.algos.torch.utility import map_location
 from .ddpg_impl import DDPGImpl
 from .dqn_impl import DoubleDQNImpl
 
@@ -169,7 +170,7 @@ class BCQImpl(DDPGImpl):
             }, fname)
 
     def load_model(self, fname):
-        chkpt = torch.load(fname)
+        chkpt = torch.load(fname, map_location=map_location(self.device))
         self.q_func.load_state_dict(chkpt['q_func'])
         self.policy.load_state_dict(chkpt['policy'])
         self.imitator.load_state_dict(chkpt['imitator'])
@@ -258,7 +259,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             }, fname)
 
     def load_model(self, fname):
-        chkpt = torch.load(fname)
+        chkpt = torch.load(fname, map_location=map_location(self.device))
         self.q_func.load_state_dict(chkpt['q_func'])
         self.imitator.load_state_dict(chkpt['imitator'])
         self.optim.load_state_dict(chkpt['optim'])

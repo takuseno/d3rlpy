@@ -10,6 +10,7 @@ from skbrl.algos.torch.utility import hard_sync, torch_api
 from skbrl.algos.torch.utility import train_api, eval_api
 from skbrl.algos.torch.utility import to_cuda, to_cpu
 from skbrl.algos.torch.utility import freeze, unfreeze
+from skbrl.algos.torch.utility import map_location
 
 
 class DQNImpl(ImplBase):
@@ -97,7 +98,7 @@ class DQNImpl(ImplBase):
             }, fname)
 
     def load_model(self, fname):
-        chkpt = torch.load(fname)
+        chkpt = torch.load(fname, map_location=map_location(self.device))
         self.q_func.load_state_dict(chkpt['q_func'])
         self.optim.load_state_dict(chkpt['optim'])
         self.update_target()

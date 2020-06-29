@@ -62,6 +62,14 @@ def unfreeze(impl):
                 p.requires_grad = True
 
 
+def map_location(device):
+    if 'cuda' in device:
+        return lambda storage, loc: storage.cuda(device)
+    if 'cpu' in device:
+        return 'cpu'
+    raise ValueError('invalid device={}'.format(device))
+
+
 def torch_api(f):
     def wrapper(self, *args, **kwargs):
         # convert all args to torch.Tensor
