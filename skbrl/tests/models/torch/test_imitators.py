@@ -4,8 +4,10 @@ import torch.nn.functional as F
 
 from skbrl.models.torch.imitators import create_conditional_vae
 from skbrl.models.torch.imitators import create_discrete_imitator
+from skbrl.models.torch.imitators import create_deterministic_regressor
 from skbrl.models.torch.imitators import ConditionalVAE
 from skbrl.models.torch.imitators import DiscreteImitator
+from skbrl.models.torch.imitators import DeterministicRegressor
 from skbrl.tests.models.torch.model_test import check_parameter_updates
 from skbrl.tests.models.torch.model_test import DummyHead
 
@@ -39,6 +41,22 @@ def test_create_discrete_imitator(observation_shape, action_size, beta,
                                         use_batch_norm)
 
     assert isinstance(imitator, DiscreteImitator)
+
+    x = torch.rand((batch_size, ) + observation_shape)
+    y = imitator(x)
+    assert y.shape == (batch_size, action_size)
+
+
+@pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('use_batch_norm', [False, True])
+def test_create_deterministic_regressor(observation_shape, action_size,
+                                        batch_size, use_batch_norm):
+    imitator = create_deterministic_regressor(observation_shape, action_size,
+                                              use_batch_norm)
+
+    assert isinstance(imitator, DeterministicRegressor)
 
     x = torch.rand((batch_size, ) + observation_shape)
     y = imitator(x)
@@ -97,3 +115,19 @@ def test_discrete_imitator(feature_size, action_size, beta, batch_size):
     loss = imitator.compute_likelihood_loss(x, action)
     penalty = (logits**2).mean()
     assert torch.allclose(loss, F.nll_loss(y, action) + beta * penalty)
+
+
+@pytest.mark.parametrize('feature_size', [100])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('batch_size', [32])
+def test_deterministic_regressor(feature_size, action_size, batch_size):
+    head = DummyHead(feature_size)
+    imitator = DeterministicRegressor(head, action_size)
+
+    x = torch.rand(batch_size, feature_size)
+    y = imitator(x)
+    assert y.shape == (batch_size, action_size)
+
+    action = torch.rand(batch_size, action_size)
+    loss = imitator.compute_l2_loss(x, action)
+    assert torch.allclose(F.mse_loss(y, action), loss)

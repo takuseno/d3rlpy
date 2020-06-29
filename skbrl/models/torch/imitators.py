@@ -29,6 +29,13 @@ def create_discrete_imitator(observation_shape,
     return DiscreteImitator(head, action_size, beta)
 
 
+def create_deterministic_regressor(observation_shape,
+                                   action_size,
+                                   use_batch_norm=True):
+    head = create_head(observation_shape, use_batch_norm=use_batch_norm)
+    return DeterministicRegressor(head, action_size)
+
+
 class ConditionalVAE(nn.Module):
     def __init__(self, encoder_head, decoder_head, beta):
         super().__init__()
@@ -86,3 +93,18 @@ class DiscreteImitator(nn.Module):
         log_probs, logits = self.forward(x, with_logits=True)
         penalty = (logits**2).mean()
         return F.nll_loss(log_probs, action.view(-1)) + self.beta * penalty
+
+
+class DeterministicRegressor(nn.Module):
+    def __init__(self, head, action_size):
+        super().__init__()
+        self.head = head
+        self.fc = nn.Linear(head.feature_size, action_size)
+
+    def forward(self, x):
+        h = self.head(x)
+        h = self.fc(h)
+        return torch.tanh(h)
+
+    def compute_l2_loss(self, x, action):
+        return F.mse_loss(self.forward(x), action)
