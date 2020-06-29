@@ -138,20 +138,3 @@ class AlgoBase:
                 test_score *= -1
 
             logger.add_metric(name, test_score)
-
-
-class ImplBase:
-    def save_model(self, fname):
-        raise NotImplementedError
-
-    def load_model(self, fname):
-        raise NotImplementedError
-
-    def save_policy(self, fname):
-        raise NotImplementedError
-
-    def predict_best_action(self, x):
-        raise NotImplementedError
-
-    def predict_value(self, x, action):
-        raise NotImplementedError

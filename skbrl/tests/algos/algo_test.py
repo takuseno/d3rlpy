@@ -5,7 +5,7 @@ import pickle
 import gym
 
 from unittest.mock import Mock
-from skbrl.algos.base import ImplBase
+from skbrl.algos.torch.base import ImplBase
 from skbrl.dataset import MDPDataset, TransitionMiniBatch
 
 

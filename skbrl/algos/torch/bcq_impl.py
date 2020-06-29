@@ -11,7 +11,7 @@ from skbrl.models.torch.q_functions import create_continuous_q_function
 from skbrl.models.torch.imitators import create_conditional_vae
 from skbrl.models.torch.imitators import create_discrete_imitator
 from skbrl.models.torch.imitators import DiscreteImitator
-from skbrl.algos.torch.utility import torch_api, train_api, eval_api
+from skbrl.algos.torch.utility import torch_api, train_api
 from skbrl.algos.torch.utility import map_location
 from .ddpg_impl import DDPGImpl
 from .dqn_impl import DoubleDQNImpl
@@ -151,13 +151,6 @@ class BCQImpl(DDPGImpl):
             #(batch_size, n) -> (batch_size, 1)
             return mix_values.max(dim=1, keepdim=True).values
 
-    @eval_api
-    @torch_api
-    def predict_best_action(self, x):
-        with torch.no_grad():
-            action = self._predict_best_action(x)
-            return action.cpu().detach().numpy()
-
     def save_model(self, fname):
         torch.save(
             {
@@ -243,12 +236,6 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         normalized_value = value - value.min(dim=1, keepdim=True).values
         action = (normalized_value * mask).argmax(dim=1)
         return action
-
-    @eval_api
-    @torch_api
-    def predict_best_action(self, x):
-        with torch.no_grad():
-            return self._predict_best_action(x).cpu().detach().numpy()
 
     def save_model(self, fname):
         torch.save(
