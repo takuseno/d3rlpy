@@ -3,15 +3,11 @@ import torch
 from skbrl.algos.torch.utility import freeze, unfreeze
 from skbrl.algos.torch.utility import to_cuda, to_cpu
 from skbrl.algos.torch.utility import torch_api, eval_api
+from skbrl.algos.torch.utility import map_location
+from skbrl.algos.torch.utility import get_state_dict, set_state_dict
 
 
 class ImplBase:
-    def save_model(self, fname):
-        raise NotImplementedError
-
-    def load_model(self, fname):
-        raise NotImplementedError
-
     def predict_value(self, x, action):
         raise NotImplementedError
 
@@ -48,3 +44,10 @@ class ImplBase:
     def to_cpu(self):
         to_cpu(self)
         self.device = 'cpu:0'
+
+    def save_model(self, fname):
+        torch.save(get_state_dict(self), fname)
+
+    def load_model(self, fname):
+        chkpt = torch.load(fname, map_location=map_location(self.device))
+        set_state_dict(self, chkpt)

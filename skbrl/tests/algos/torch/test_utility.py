@@ -9,6 +9,7 @@ from skbrl.algos.torch.utility import set_eval_mode, set_train_mode
 from skbrl.algos.torch.utility import freeze, unfreeze
 from skbrl.algos.torch.utility import torch_api, train_api, eval_api
 from skbrl.algos.torch.utility import map_location
+from skbrl.algos.torch.utility import get_state_dict, set_state_dict
 
 
 @pytest.mark.parametrize('tau', [0.05])
@@ -58,6 +59,7 @@ class DummyImpl:
     def __init__(self):
         self.fc1 = torch.nn.Linear(100, 100)
         self.fc2 = torch.nn.Linear(100, 100)
+        self.optim = torch.optim.Adam(self.fc1.parameters())
         self.device = 'cpu:0'
 
     @torch_api
@@ -73,6 +75,45 @@ class DummyImpl:
     def eval_api_func(self):
         assert not self.fc1.training
         assert not self.fc2.training
+
+
+def check_if_same_dict(a, b):
+    for k, v in a.items():
+        if isinstance(v, torch.Tensor):
+            assert (b[k] == v).all()
+        else:
+            assert b[k] == v
+
+
+def test_get_state_dict():
+    impl = DummyImpl()
+
+    state_dict = get_state_dict(impl)
+
+    check_if_same_dict(state_dict['fc1'], impl.fc1.state_dict())
+    check_if_same_dict(state_dict['fc2'], impl.fc2.state_dict())
+    check_if_same_dict(state_dict['optim'], impl.optim.state_dict())
+
+
+def test_set_state_dict():
+    impl1 = DummyImpl()
+    impl2 = DummyImpl()
+
+    impl1.optim.step()
+
+    assert not (impl1.fc1.weight == impl2.fc1.weight).all()
+    assert not (impl1.fc1.bias == impl2.fc1.bias).all()
+    assert not (impl1.fc2.weight == impl2.fc2.weight).all()
+    assert not (impl1.fc2.bias == impl2.fc2.bias).all()
+
+    chkpt = get_state_dict(impl1)
+
+    set_state_dict(impl2, chkpt)
+
+    assert (impl1.fc1.weight == impl2.fc1.weight).all()
+    assert (impl1.fc1.bias == impl2.fc1.bias).all()
+    assert (impl1.fc2.weight == impl2.fc2.weight).all()
+    assert (impl1.fc2.bias == impl2.fc2.bias).all()
 
 
 def test_eval_mode():

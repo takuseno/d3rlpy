@@ -8,7 +8,6 @@ from skbrl.models.torch.q_functions import create_discrete_q_function
 from skbrl.algos.torch.base import ImplBase
 from skbrl.algos.torch.utility import hard_sync
 from skbrl.algos.torch.utility import torch_api, train_api, eval_api
-from skbrl.algos.torch.utility import map_location
 
 
 class DQNImpl(ImplBase):
@@ -81,19 +80,6 @@ class DQNImpl(ImplBase):
 
     def update_target(self):
         hard_sync(self.targ_q_func, self.q_func)
-
-    def save_model(self, fname):
-        torch.save(
-            {
-                'q_func': self.q_func.state_dict(),
-                'optim': self.optim.state_dict(),
-            }, fname)
-
-    def load_model(self, fname):
-        chkpt = torch.load(fname, map_location=map_location(self.device))
-        self.q_func.load_state_dict(chkpt['q_func'])
-        self.optim.load_state_dict(chkpt['optim'])
-        self.update_target()
 
 
 class DoubleDQNImpl(DQNImpl):

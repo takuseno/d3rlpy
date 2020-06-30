@@ -12,7 +12,6 @@ from skbrl.models.torch.imitators import create_conditional_vae
 from skbrl.models.torch.imitators import create_discrete_imitator
 from skbrl.models.torch.imitators import DiscreteImitator
 from skbrl.algos.torch.utility import torch_api, train_api
-from skbrl.algos.torch.utility import map_location
 from .ddpg_impl import DDPGImpl
 from .dqn_impl import DoubleDQNImpl
 
@@ -151,28 +150,6 @@ class BCQImpl(DDPGImpl):
             #(batch_size, n) -> (batch_size, 1)
             return mix_values.max(dim=1, keepdim=True).values
 
-    def save_model(self, fname):
-        torch.save(
-            {
-                'q_func': self.q_func.state_dict(),
-                'policy': self.policy.state_dict(),
-                'imitator': self.imitator.state_dict(),
-                'critic_optim': self.critic_optim.state_dict(),
-                'actor_optim': self.actor_optim.state_dict(),
-                'imitator_optim': self.imitator_optim.state_dict(),
-            }, fname)
-
-    def load_model(self, fname):
-        chkpt = torch.load(fname, map_location=map_location(self.device))
-        self.q_func.load_state_dict(chkpt['q_func'])
-        self.policy.load_state_dict(chkpt['policy'])
-        self.imitator.load_state_dict(chkpt['imitator'])
-        self.critic_optim.load_state_dict(chkpt['critic_optim'])
-        self.actor_optim.load_state_dict(chkpt['actor_optim'])
-        self.imitator_optim.load_state_dict(chkpt['imitator_optim'])
-        self.targ_q_func = copy.deepcopy(self.q_func)
-        self.targ_policy = copy.deepcopy(self.policy)
-
 
 class DiscreteBCQImpl(DoubleDQNImpl):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
@@ -236,18 +213,3 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         normalized_value = value - value.min(dim=1, keepdim=True).values
         action = (normalized_value * mask).argmax(dim=1)
         return action
-
-    def save_model(self, fname):
-        torch.save(
-            {
-                'q_func': self.q_func.state_dict(),
-                'imitator': self.imitator.state_dict(),
-                'optim': self.optim.state_dict(),
-            }, fname)
-
-    def load_model(self, fname):
-        chkpt = torch.load(fname, map_location=map_location(self.device))
-        self.q_func.load_state_dict(chkpt['q_func'])
-        self.imitator.load_state_dict(chkpt['imitator'])
-        self.optim.load_state_dict(chkpt['optim'])
-        self.update_target()

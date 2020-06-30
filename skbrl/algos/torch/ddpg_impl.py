@@ -7,7 +7,6 @@ from skbrl.models.torch.policies import create_deterministic_policy
 from skbrl.algos.torch.base import ImplBase
 from skbrl.algos.torch.utility import soft_sync, torch_api
 from skbrl.algos.torch.utility import train_api, eval_api
-from skbrl.algos.torch.utility import map_location
 
 
 class DDPGImpl(ImplBase):
@@ -105,21 +104,3 @@ class DDPGImpl(ImplBase):
 
     def update_actor_target(self):
         soft_sync(self.targ_policy, self.policy, self.tau)
-
-    def save_model(self, fname):
-        torch.save(
-            {
-                'q_func': self.q_func.state_dict(),
-                'policy': self.policy.state_dict(),
-                'critic_optim': self.critic_optim.state_dict(),
-                'actor_optim': self.actor_optim.state_dict(),
-            }, fname)
-
-    def load_model(self, fname):
-        chkpt = torch.load(fname, map_location=map_location(self.device))
-        self.q_func.load_state_dict(chkpt['q_func'])
-        self.policy.load_state_dict(chkpt['policy'])
-        self.critic_optim.load_state_dict(chkpt['critic_optim'])
-        self.actor_optim.load_state_dict(chkpt['actor_optim'])
-        self.targ_q_func = copy.deepcopy(self.q_func)
-        self.targ_policy = copy.deepcopy(self.policy)

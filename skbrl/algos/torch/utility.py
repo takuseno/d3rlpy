@@ -62,6 +62,22 @@ def unfreeze(impl):
                 p.requires_grad = True
 
 
+def get_state_dict(impl):
+    rets = {}
+    for key in dir(impl):
+        obj = getattr(impl, key)
+        if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
+            rets[key] = obj.state_dict()
+    return rets
+
+
+def set_state_dict(impl, chkpt):
+    for key in dir(impl):
+        obj = getattr(impl, key)
+        if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
+            obj.load_state_dict(chkpt[key])
+
+
 def map_location(device):
     if 'cuda' in device:
         return lambda storage, loc: storage.cuda(device)

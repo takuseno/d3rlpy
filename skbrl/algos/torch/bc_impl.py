@@ -5,9 +5,6 @@ from torch.optim import Adam
 from skbrl.models.torch.imitators import create_deterministic_regressor
 from skbrl.algos.torch.base import ImplBase
 from skbrl.algos.torch.utility import torch_api, train_api
-from skbrl.algos.torch.utility import to_cuda, to_cpu
-from skbrl.algos.torch.utility import freeze, unfreeze
-from skbrl.algos.torch.utility import map_location
 
 
 class BCImpl(ImplBase):
@@ -49,15 +46,3 @@ class BCImpl(ImplBase):
 
     def _predict_best_action(self, x):
         return self.imitator(x)
-
-    def save_model(self, fname):
-        torch.save(
-            {
-                'imitator': self.imitator.state_dict(),
-                'optim': self.optim.state_dict()
-            }, fname)
-
-    def load_model(self, fname):
-        chkpt = torch.load(fname, map_location=map_location(self.device))
-        self.imitator.load_state_dict(chkpt['imitator'])
-        self.optim.load_state_dict(chkpt['optim'])
