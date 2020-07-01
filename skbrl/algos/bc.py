@@ -41,7 +41,7 @@ class DiscreteBC(BC):
                  batch_size=100,
                  eps=1e-8,
                  beta=0.5,
-                 use_batch_norm=False,
+                 use_batch_norm=True,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,

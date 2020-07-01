@@ -11,7 +11,7 @@ class DQN(AlgoBase):
                  gamma=0.99,
                  eps=1.5e-4,
                  target_update_interval=8e3,
-                 use_batch_norm=False,
+                 use_batch_norm=True,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,
