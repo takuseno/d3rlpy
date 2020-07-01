@@ -62,7 +62,7 @@ def average_value_estimation_scorer(algo, episodes):
     return np.mean(total_values)
 
 
-def evaluate_on_environment(env, n_trials=10):
+def evaluate_on_environment(env, n_trials=10, render=False):
     def scorer(algo, *args):
         episode_rewards = []
         for _ in range(n_trials):
@@ -72,6 +72,10 @@ def evaluate_on_environment(env, n_trials=10):
                 action = algo.predict([observation])[0]
                 observation, reward, done, _ = env.step(action)
                 episode_reward += reward
+
+                if render:
+                    env.render()
+
                 if done:
                     break
             episode_rewards.append(episode_reward)
