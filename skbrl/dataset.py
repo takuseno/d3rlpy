@@ -80,13 +80,11 @@ class MDPDataset:
                  terminals,
                  discrete_action=False):
         self._observations = np.array(observations)
-        self._actions = np.array(actions)
-        self._rewards = np.array(rewards)
-        self._terminals = np.array(terminals)
+        self._actions = np.asarray(actions)
+        self._rewards = np.asarray(rewards)
+        self._terminals = np.asarray(terminals)
         self.discrete_action = discrete_action
-
-        # array of Episode
-        self._episodes = self._to_episodes()
+        self._episodes = None
 
     @property
     def observations(self):
@@ -106,30 +104,26 @@ class MDPDataset:
 
     @property
     def episodes(self):
+        if self._episodes is None:
+            self._episodes = self._to_episodes()
         return self._episodes
 
     def _to_episodes(self):
         rets = []
-        observations = []
-        actions = []
-        rewards = []
+        head_index = 0
         for i in range(self.observations.shape[0]):
-            observations.append(self._observations[i])
-            actions.append(self._actions[i])
-            rewards.append(self._rewards[i])
             if self._terminals[i]:
                 episode = Episode(self.get_observation_shape(),
                                   self.get_action_size(),
-                                  np.array(observations), np.array(actions),
-                                  np.array(rewards))
+                                  self._observations[head_index:i + 1],
+                                  self._actions[head_index:i + 1],
+                                  self._rewards[head_index:i + 1])
                 rets.append(episode)
-                observations = []
-                actions = []
-                rewards = []
+                head_index = i + 1
         return rets
 
     def size(self):
-        return len(self._episodes)
+        return len(self.episodes)
 
     def get_action_size(self):
         if self.discrete_action:
@@ -145,10 +139,7 @@ class MDPDataset:
     def compute_stats(self):
         episode_returns = []
         for episode in self.episodes:
-            episode_return = 0.0
-            for transition in episode:
-                episode_return += transition.next_reward
-            episode_returns.append(episode_return)
+            episode_returns.append(episode.compute_return())
 
         stats = {
             'return': {
@@ -169,10 +160,10 @@ class MDPDataset:
         return self.size()
 
     def __getitem__(self, index):
-        return self._episodes[index]
+        return self.episodes[index]
 
     def __iter__(self):
-        return iter(self._episodes)
+        return iter(self.episodes)
 
 
 class Episode:
@@ -183,9 +174,7 @@ class Episode:
         self._observations = observations
         self._actions = actions
         self._rewards = rewards
-
-        # array of Transition
-        self._transitions = self._to_transitions()
+        self._transitions = None
 
     @property
     def observations(self):
@@ -201,6 +190,8 @@ class Episode:
 
     @property
     def transitions(self):
+        if self._transitions is None:
+            self._transitions = self._to_transitions()
         return self._transitions
 
     def _to_transitions(self):
@@ -222,7 +213,7 @@ class Episode:
         return rets
 
     def size(self):
-        return len(self._transitions)
+        return len(self.transitions)
 
     def get_observation_shape(self):
         return self.observation_shape
@@ -230,14 +221,17 @@ class Episode:
     def get_action_size(self):
         return self.action_size
 
+    def compute_return(self):
+        return np.sum(self._rewards[1:])
+
     def __len__(self):
         return self.size()
 
     def __getitem__(self, index):
-        return self._transitions[index]
+        return self.transitions[index]
 
     def __iter__(self):
-        return iter(self._transitions)
+        return iter(self.transitions)
 
 
 class Transition:
