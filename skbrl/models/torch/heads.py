@@ -4,7 +4,7 @@ import torch.nn as nn
 
 def create_head(observation_shape,
                 action_size=None,
-                use_batch_norm=True,
+                use_batch_norm=False,
                 **kwargs):
     if len(observation_shape) == 3:
         # pixel input
@@ -35,7 +35,7 @@ class PixelHead(nn.Module):
                  observation_shape,
                  filters=None,
                  feature_size=None,
-                 use_batch_norm=True):
+                 use_batch_norm=False):
         super().__init__()
 
         # default architecture is based on Nature DQN paper.
@@ -97,7 +97,7 @@ class PixelHeadWithAction(PixelHead):
                  action_size,
                  filters=None,
                  feature_size=None,
-                 use_batch_norm=True):
+                 use_batch_norm=False):
         self.action_size = action_size
         super().__init__(observation_shape, filters, feature_size,
                          use_batch_norm)
@@ -122,7 +122,7 @@ class VectorHead(nn.Module):
     def __init__(self,
                  observation_shape,
                  hidden_units=None,
-                 use_batch_norm=True):
+                 use_batch_norm=False):
         super().__init__()
 
         if hidden_units is None:
@@ -153,7 +153,7 @@ class VectorHeadWithAction(VectorHead):
                  observation_shape,
                  action_size,
                  hidden_units=None,
-                 use_batch_norm=True):
+                 use_batch_norm=False):
         self.action_size = action_size
         concat_shape = (observation_shape[0] + action_size, )
         super().__init__(concat_shape, hidden_units, use_batch_norm)

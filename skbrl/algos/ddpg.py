@@ -11,7 +11,7 @@ class DDPG(AlgoBase):
                  tau=0.005,
                  reguralizing_rate=1e-10,
                  eps=1e-8,
-                 use_batch_norm=True,
+                 use_batch_norm=False,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,

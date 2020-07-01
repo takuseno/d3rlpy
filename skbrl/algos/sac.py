@@ -14,7 +14,7 @@ class SAC(AlgoBase):
                  update_actor_interval=2,
                  initial_temperature=1.0,
                  eps=1e-8,
-                 use_batch_norm=True,
+                 use_batch_norm=False,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,

@@ -18,7 +18,7 @@ class BCQ(AlgoBase):
                  latent_size=32,
                  beta=0.5,
                  eps=1e-8,
-                 use_batch_norm=True,
+                 use_batch_norm=False,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,

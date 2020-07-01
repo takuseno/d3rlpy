@@ -15,7 +15,7 @@ class TD3(AlgoBase):
                  target_smoothing_clip=0.5,
                  update_actor_interval=2,
                  eps=1e-8,
-                 use_batch_norm=True,
+                 use_batch_norm=False,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,

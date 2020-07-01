@@ -11,7 +11,7 @@ def create_conditional_vae(observation_shape,
                            action_size,
                            latent_size,
                            beta,
-                           use_batch_norm=True):
+                           use_batch_norm=False):
     encoder_head = create_head(observation_shape,
                                action_size,
                                use_batch_norm=use_batch_norm)
@@ -24,14 +24,14 @@ def create_conditional_vae(observation_shape,
 def create_discrete_imitator(observation_shape,
                              action_size,
                              beta,
-                             use_batch_norm=True):
+                             use_batch_norm=False):
     head = create_head(observation_shape, use_batch_norm=use_batch_norm)
     return DiscreteImitator(head, action_size, beta)
 
 
 def create_deterministic_regressor(observation_shape,
                                    action_size,
-                                   use_batch_norm=True):
+                                   use_batch_norm=False):
     head = create_head(observation_shape, use_batch_norm=use_batch_norm)
     return DeterministicRegressor(head, action_size)
 

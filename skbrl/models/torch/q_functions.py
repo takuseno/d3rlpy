@@ -8,7 +8,7 @@ from .heads import create_head
 def create_discrete_q_function(observation_shape,
                                action_size,
                                n_ensembles=1,
-                               use_batch_norm=True):
+                               use_batch_norm=False):
     heads = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape, use_batch_norm=use_batch_norm)
@@ -23,7 +23,7 @@ def create_discrete_q_function(observation_shape,
 def create_continuous_q_function(observation_shape,
                                  action_size,
                                  n_ensembles=1,
-                                 use_batch_norm=True):
+                                 use_batch_norm=False):
     heads = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape,
