@@ -3,6 +3,7 @@ import copy
 
 from torch.optim import Adam
 from skbrl.models.torch.imitators import create_deterministic_regressor
+from skbrl.models.torch.imitators import create_discrete_imitator
 from skbrl.algos.torch.base import ImplBase
 from skbrl.algos.torch.utility import torch_api, train_api
 
@@ -46,3 +47,32 @@ class BCImpl(ImplBase):
 
     def _predict_best_action(self, x):
         return self.imitator(x)
+
+    def predict_value(self, x, action):
+        raise NotImplementedError('BC does not support value estimation')
+
+
+class DiscreteBCImpl(BCImpl):
+    def __init__(self, observation_shape, action_size, learning_rate, eps,
+                 beta, use_batch_norm, use_gpu):
+        self.beta = beta
+        super().__init__(observation_shape, action_size, learning_rate, eps,
+                         use_batch_norm, use_gpu)
+
+    def _build_network(self):
+        self.imitator = create_discrete_imitator(self.observation_shape,
+                                                 self.action_size, self.beta)
+
+    def _predict_best_action(self, x):
+        return self.imitator(x).argmax(dim=1)
+
+    @train_api
+    @torch_api
+    def update_imitator(self, obs_t, act_t):
+        loss = self.imitator.compute_likelihood_loss(obs_t, act_t.long())
+
+        self.optim.zero_grad()
+        loss.backward()
+        self.optim.step()
+
+        return loss.cpu().detach().numpy()

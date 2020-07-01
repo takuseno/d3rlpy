@@ -83,6 +83,7 @@ try {
 
 ## supported algorithms
 ### discrete control
+- [x] Behavior Cloning (supervised learning)
 - [x] DQN
 - [x] Double DQN
 - [ ] REM
@@ -90,6 +91,7 @@ try {
 - [ ] BEAR
 
 ### continuous control
+- [x] Behavior Cloning (supervised learning)
 - [x] DDPG
 - [x] TD3
 - [x] SAC
