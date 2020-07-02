@@ -88,4 +88,4 @@ class DoubleDQNImpl(DQNImpl):
             action = self._predict_best_action(x)
             one_hot = F.one_hot(action.view(-1), num_classes=self.action_size)
             q_tp1 = (self.targ_q_func(x) * one_hot)
-            return q_tp1.max(dim=1, keepdims=True).values
+            return q_tp1.sum(dim=1, keepdims=True)
