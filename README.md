@@ -97,6 +97,7 @@ try {
 - [x] DDPG
 - [x] TD3
 - [x] SAC
+- [ ] REM
 - [x] BCQ
 - [ ] BEAR
 - [ ] CQL
