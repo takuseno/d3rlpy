@@ -89,6 +89,8 @@ try {
 - [ ] REM
 - [x] BCQ
 - [ ] BEAR
+- [ ] CQL
+- [ ] MOPO
 
 ### continuous control
 - [x] Behavior Cloning (supervised learning)
@@ -97,12 +99,14 @@ try {
 - [x] SAC
 - [x] BCQ
 - [ ] BEAR
+- [ ] CQL
 - [ ] MOPO
 
 ## supported techniques
-- [ ] Quantile Regression
+- [x] Quantile Regression
 - [ ] Implicit Quantile Network
 - [ ] random network augmentation
+- [ ] image dataset augmentation
 
 ## supported evaluation metrics
 scikit-learn style scoring functions are provided.
