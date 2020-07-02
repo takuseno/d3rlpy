@@ -67,9 +67,10 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('beta', [1e-2])
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
+@pytest.mark.parametrize('use_quantile_regression', [True, False])
 def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
                            gamma, action_flexibility, beta, eps,
-                           use_batch_norm):
+                           use_batch_norm, use_quantile_regression):
     impl = DiscreteBCQImpl(observation_shape,
                            action_size,
                            learning_rate,
@@ -78,5 +79,6 @@ def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
                            beta,
                            eps,
                            use_batch_norm,
+                           use_quantile_regression,
                            use_gpu=False)
     torch_impl_tester(impl, discrete=True)

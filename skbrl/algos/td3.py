@@ -16,6 +16,7 @@ class TD3(AlgoBase):
                  update_actor_interval=2,
                  eps=1e-8,
                  use_batch_norm=False,
+                 use_quantile_regression=False,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,
@@ -32,23 +33,26 @@ class TD3(AlgoBase):
         self.update_actor_interval = update_actor_interval
         self.eps = eps
         self.use_batch_norm = use_batch_norm
+        self.use_quantile_regression = use_quantile_regression
         self.use_gpu = use_gpu
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        self.impl = TD3Impl(observation_shape=observation_shape,
-                            action_size=action_size,
-                            actor_learning_rate=self.actor_learning_rate,
-                            critic_learning_rate=self.critic_learning_rate,
-                            gamma=self.gamma,
-                            tau=self.tau,
-                            reguralizing_rate=self.reguralizing_rate,
-                            n_critics=self.n_critics,
-                            target_smoothing_sigma=self.target_smoothing_sigma,
-                            target_smoothing_clip=self.target_smoothing_clip,
-                            eps=self.eps,
-                            use_batch_norm=self.use_batch_norm,
-                            use_gpu=self.use_gpu)
+        self.impl = TD3Impl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            actor_learning_rate=self.actor_learning_rate,
+            critic_learning_rate=self.critic_learning_rate,
+            gamma=self.gamma,
+            tau=self.tau,
+            reguralizing_rate=self.reguralizing_rate,
+            n_critics=self.n_critics,
+            target_smoothing_sigma=self.target_smoothing_sigma,
+            target_smoothing_clip=self.target_smoothing_clip,
+            eps=self.eps,
+            use_batch_norm=self.use_batch_norm,
+            use_quantile_regression=self.use_quantile_regression,
+            use_gpu=self.use_gpu)
 
     def update(self, epoch, total_step, batch):
         critic_loss = self.impl.update_critic(batch.observations,

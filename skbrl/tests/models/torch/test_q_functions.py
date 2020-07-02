@@ -147,6 +147,8 @@ def test_qrq_function(feature_size, action_size, n_quantiles, batch_size,
     assert target.shape == (batch_size, n_quantiles)
     assert (quantiles[torch.arange(batch_size), action] == target).all()
 
+    # TODO: check quantile huber loss
+
     # check layer connection
     check_parameter_updates(q_func, (x, ))
 
@@ -171,6 +173,8 @@ def test_continuous_qrq_function(feature_size, action_size, n_quantiles,
     quantiles = q_func(x, action, as_quantiles=True)
     assert target.shape == (batch_size, n_quantiles)
     assert (target == quantiles).all()
+
+    # TODO: check quantile huber loss
 
     # check layer connection
     check_parameter_updates(q_func, (x, action))
@@ -203,6 +207,7 @@ def test_discrete_q_function(feature_size, action_size, batch_size, gamma):
     y = q_func(x)
     assert y.shape == (batch_size, action_size)
 
+    # check compute_target
     action = torch.randint(high=action_size, size=(batch_size, ))
     target = q_func.compute_target(x, action)
     assert target.shape == (batch_size, 1)
@@ -235,11 +240,19 @@ def test_discrete_q_function(feature_size, action_size, batch_size, gamma):
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('ensemble_size', [5])
+@pytest.mark.parametrize('use_quantile_regression', [True, False])
+@pytest.mark.parametrize('n_quantiles', [200])
 def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
-                                      gamma, ensemble_size):
+                                      gamma, ensemble_size,
+                                      use_quantile_regression, n_quantiles):
     q_funcs = []
     for _ in range(ensemble_size):
-        q_funcs.append(DiscreteQFunction(DummyHead(feature_size), action_size))
+        head = DummyHead(feature_size)
+        if use_quantile_regression:
+            q_func = QRQFunction(head, action_size, n_quantiles)
+        else:
+            q_func = DiscreteQFunction(head, action_size)
+        q_funcs.append(q_func)
     q_func = EnsembleDiscreteQFunction(q_funcs)
 
     # check output shape
@@ -247,12 +260,16 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
     values = q_func(x, 'none')
     assert values.shape == (ensemble_size, batch_size, action_size)
 
+    # check compute_target
     action = torch.randint(high=action_size, size=(batch_size, ))
     target = q_func.compute_target(x, action)
-    min_values = values.min(dim=0).values
-    assert target.shape == (batch_size, 1)
-    assert torch.allclose(min_values[torch.arange(batch_size), action],
-                          target.view(-1))
+    if use_quantile_regression:
+        assert target.shape == (batch_size, n_quantiles)
+    else:
+        assert target.shape == (batch_size, 1)
+        min_values = values.min(dim=0).values
+        assert torch.allclose(min_values[torch.arange(batch_size), action],
+                              target.view(-1))
 
     # check reductions
     assert torch.allclose(values.min(dim=0).values, q_func(x, 'min'))
@@ -266,7 +283,10 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
                           size=(batch_size, 1),
                           dtype=torch.int64)
     rew_tp1 = torch.rand(batch_size, 1)
-    q_tp1 = torch.rand(batch_size, 1)
+    if use_quantile_regression:
+        q_tp1 = torch.rand(batch_size, n_quantiles)
+    else:
+        q_tp1 = torch.rand(batch_size, 1)
     ref_td_sum = 0.0
     for i in range(ensemble_size):
         f = q_func.q_funcs[i]
@@ -292,6 +312,7 @@ def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
     y = q_func(x, action)
     assert y.shape == (batch_size, 1)
 
+    # check compute_target
     target = q_func.compute_target(x, action)
     assert target.shape == (batch_size, 1)
     assert (target == y).all()
@@ -321,12 +342,19 @@ def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('ensemble_size', [5])
+@pytest.mark.parametrize('use_quantile_regression', [True, False])
+@pytest.mark.parametrize('n_quantiles', [200])
 def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
-                                        gamma, ensemble_size):
+                                        gamma, ensemble_size,
+                                        use_quantile_regression, n_quantiles):
     q_funcs = []
     for _ in range(ensemble_size):
         head = DummyHead(feature_size, action_size, concat=True)
-        q_funcs.append(ContinuousQFunction(head))
+        if use_quantile_regression:
+            q_func = ContinuousQRQFunction(head, n_quantiles)
+        else:
+            q_func = ContinuousQFunction(head)
+        q_funcs.append(q_func)
 
     q_func = EnsembleContinuousQFunction(q_funcs)
 
@@ -336,10 +364,14 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
     values = q_func(x, action, 'none')
     assert values.shape == (ensemble_size, batch_size, 1)
 
-    target = q_func(x, action)
-    min_values = values.min(dim=0).values
-    assert target.shape == (batch_size, 1)
-    assert (target == min_values).all()
+    # check compute_target
+    target = q_func.compute_target(x, action)
+    if use_quantile_regression:
+        assert target.shape == (batch_size, n_quantiles)
+    else:
+        assert target.shape == (batch_size, 1)
+        min_values = values.min(dim=0).values
+        assert (target == min_values).all()
 
     # check reductions
     assert torch.allclose(values.min(dim=0).values, q_func(x, action, 'min'))
@@ -350,7 +382,10 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
     obs_t = torch.rand(batch_size, feature_size)
     act_t = torch.rand(batch_size, action_size)
     rew_tp1 = torch.rand(batch_size, 1)
-    q_tp1 = torch.rand(batch_size, 1)
+    if use_quantile_regression:
+        q_tp1 = torch.rand(batch_size, n_quantiles)
+    else:
+        q_tp1 = torch.rand(batch_size, 1)
     ref_td_sum = 0.0
     for i in range(ensemble_size):
         f = q_func.q_funcs[i]

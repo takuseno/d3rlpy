@@ -22,6 +22,8 @@ def test_discrete_bcq():
 
 
 @performance_test
-def test_discrete_bcq_performance():
-    bcq = DiscreteBCQ(n_epochs=1)
+@pytest.mark.parametrize('use_quantile_regression', [True, False])
+def test_discrete_bcq_performance(use_quantile_regression):
+    bcq = DiscreteBCQ(n_epochs=1,
+                      use_quantile_regression=use_quantile_regression)
     algo_cartpole_tester(bcq)

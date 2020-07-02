@@ -12,13 +12,14 @@ from skbrl.algos.torch.utility import torch_api, train_api, eval_api
 
 class DQNImpl(ImplBase):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
-                 eps, use_batch_norm, use_gpu):
+                 eps, use_batch_norm, use_quantile_regression, use_gpu):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.eps = eps
         self.use_batch_norm = use_batch_norm
+        self.use_quantile_regression = use_quantile_regression
 
         # setup torch models
         self._build_network()
@@ -38,7 +39,8 @@ class DQNImpl(ImplBase):
             self.observation_shape,
             self.action_size,
             n_ensembles=1,
-            use_batch_norm=self.use_batch_norm)
+            use_batch_norm=self.use_batch_norm,
+            use_quantile_regression=self.use_quantile_regression)
 
     def _build_optim(self):
         self.optim = Adam(self.q_func.parameters(),
@@ -60,7 +62,8 @@ class DQNImpl(ImplBase):
 
     def compute_target(self, x):
         with torch.no_grad():
-            return self.targ_q_func(x).max(dim=1, keepdim=True).values
+            max_action = self.targ_q_func(x).argmax(dim=1)
+            return self.targ_q_func.compute_target(x, max_action)
 
     def _predict_best_action(self, x):
         return self.q_func(x).argmax(dim=1)
@@ -88,6 +91,4 @@ class DoubleDQNImpl(DQNImpl):
     def compute_target(self, x):
         with torch.no_grad():
             action = self._predict_best_action(x)
-            one_hot = F.one_hot(action.view(-1), num_classes=self.action_size)
-            q_tp1 = (self.targ_q_func(x) * one_hot)
-            return q_tp1.sum(dim=1, keepdims=True)
+            return self.targ_q_func.compute_target(x, action)

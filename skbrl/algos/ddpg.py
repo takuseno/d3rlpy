@@ -12,6 +12,7 @@ class DDPG(AlgoBase):
                  reguralizing_rate=1e-10,
                  eps=1e-8,
                  use_batch_norm=False,
+                 use_quantile_regression=False,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,
@@ -24,20 +25,23 @@ class DDPG(AlgoBase):
         self.reguralizing_rate = reguralizing_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
+        self.use_quantile_regression = use_quantile_regression
         self.use_gpu = use_gpu
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        self.impl = DDPGImpl(observation_shape=observation_shape,
-                             action_size=action_size,
-                             actor_learning_rate=self.actor_learning_rate,
-                             critic_learning_rate=self.critic_learning_rate,
-                             gamma=self.gamma,
-                             tau=self.tau,
-                             reguralizing_rate=self.reguralizing_rate,
-                             eps=self.eps,
-                             use_batch_norm=self.use_batch_norm,
-                             use_gpu=self.use_gpu)
+        self.impl = DDPGImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            actor_learning_rate=self.actor_learning_rate,
+            critic_learning_rate=self.critic_learning_rate,
+            gamma=self.gamma,
+            tau=self.tau,
+            reguralizing_rate=self.reguralizing_rate,
+            eps=self.eps,
+            use_batch_norm=self.use_batch_norm,
+            use_quantile_regression=self.use_quantile_regression,
+            use_gpu=self.use_gpu)
 
     def update(self, epoch, itr, batch):
         critic_loss = self.impl.update_critic(batch.observations,

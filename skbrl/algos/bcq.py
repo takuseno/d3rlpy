@@ -90,6 +90,7 @@ class DiscreteBCQ(AlgoBase):
                  eps=1.5e-4,
                  target_update_interval=8e3,
                  use_batch_norm=True,
+                 use_quantile_regression=False,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,
@@ -102,19 +103,22 @@ class DiscreteBCQ(AlgoBase):
         self.eps = eps
         self.target_update_interval = target_update_interval
         self.use_batch_norm = use_batch_norm
+        self.use_quantile_regression = use_quantile_regression
         self.use_gpu = use_gpu
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        self.impl = DiscreteBCQImpl(observation_shape=observation_shape,
-                                    action_size=action_size,
-                                    learning_rate=self.learning_rate,
-                                    gamma=self.gamma,
-                                    action_flexibility=self.action_flexibility,
-                                    beta=self.beta,
-                                    eps=self.eps,
-                                    use_batch_norm=self.use_batch_norm,
-                                    use_gpu=self.use_gpu)
+        self.impl = DiscreteBCQImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            learning_rate=self.learning_rate,
+            gamma=self.gamma,
+            action_flexibility=self.action_flexibility,
+            beta=self.beta,
+            eps=self.eps,
+            use_batch_norm=self.use_batch_norm,
+            use_quantile_regression=self.use_quantile_regression,
+            use_gpu=self.use_gpu)
 
     def update(self, epoch, total_step, batch):
         value_loss, imitator_loss = self.impl.update(batch.observations,

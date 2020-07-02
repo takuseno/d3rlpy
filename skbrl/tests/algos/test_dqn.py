@@ -1,3 +1,5 @@
+import pytest
+
 from skbrl.algos.dqn import DQN, DoubleDQN
 from skbrl.tests import performance_test
 from .algo_test import algo_tester, algo_cartpole_tester
@@ -9,8 +11,9 @@ def test_dqn():
 
 
 @performance_test
-def test_dqn_performance():
-    dqn = DQN(n_epochs=1)
+@pytest.mark.parametrize('use_quantile_regression', [True, False])
+def test_dqn_performance(use_quantile_regression):
+    dqn = DQN(n_epochs=1, use_quantile_regression=use_quantile_regression)
     algo_cartpole_tester(dqn)
 
 
@@ -20,6 +23,8 @@ def test_double_dqn():
 
 
 @performance_test
-def test_double_dqn_performance():
-    double_dqn = DoubleDQN(n_epochs=1)
+@pytest.mark.parametrize('use_quantile_regression', [True, False])
+def test_double_dqn_performance(use_quantile_regression):
+    double_dqn = DoubleDQN(n_epochs=1,
+                           use_quantile_regression=use_quantile_regression)
     algo_cartpole_tester(double_dqn)

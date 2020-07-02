@@ -39,7 +39,7 @@ class BCQImpl(DDPGImpl):
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, 0.0, eps,
-                         use_batch_norm, use_gpu)
+                         use_batch_norm, False, use_gpu)
 
         # setup optimizer after the parameters move to GPU
         self._build_imitator_optim()
@@ -154,13 +154,14 @@ class BCQImpl(DDPGImpl):
 
 class DiscreteBCQImpl(DoubleDQNImpl):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
-                 action_flexibility, beta, eps, use_batch_norm, use_gpu):
+                 action_flexibility, beta, eps, use_batch_norm,
+                 use_quantile_regression, use_gpu):
 
         self.action_flexibility = action_flexibility
         self.beta = beta
 
         super().__init__(observation_shape, action_size, learning_rate, gamma,
-                         eps, use_batch_norm, use_gpu)
+                         eps, use_batch_norm, use_quantile_regression, use_gpu)
 
     def _build_network(self):
         super()._build_network()

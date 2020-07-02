@@ -13,14 +13,15 @@ from .ddpg_impl import DDPGImpl
 class SACImpl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, temp_learning_rate, gamma, tau,
-                 n_critics, initial_temperature, eps, use_batch_norm, use_gpu):
+                 n_critics, initial_temperature, eps, use_batch_norm,
+                 use_quantile_regression, use_gpu):
         self.n_critics = n_critics
         self.temp_learning_rate = temp_learning_rate
         self.initial_temperature = initial_temperature
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, 0.0, eps,
-                         use_batch_norm, use_gpu)
+                         use_batch_norm, use_quantile_regression, use_gpu)
 
         # TODO: save and load temperature parameter
         # setup temeprature after device property is set.
@@ -32,7 +33,8 @@ class SACImpl(DDPGImpl):
             self.observation_shape,
             self.action_size,
             n_ensembles=self.n_critics,
-            use_batch_norm=self.use_batch_norm)
+            use_batch_norm=self.use_batch_norm,
+            use_quantile_regression=self.use_quantile_regression)
 
     def _build_actor(self):
         self.policy = create_normal_policy(self.observation_shape,
@@ -80,4 +82,4 @@ class SACImpl(DDPGImpl):
         with torch.no_grad():
             action, log_prob = self.policy.sample(x, with_log_prob=True)
             entropy = self.log_temp.exp() * log_prob
-            return self.targ_q_func(x, action) - entropy
+            return self.targ_q_func.compute_target(x, action) - entropy
