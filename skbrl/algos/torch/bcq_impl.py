@@ -45,10 +45,11 @@ class BCQImpl(DDPGImpl):
         self._build_imitator_optim()
 
     def _build_critic(self):
-        self.q_func = create_continuous_q_function(self.observation_shape,
-                                                   self.action_size,
-                                                   self.n_critics,
-                                                   self.use_batch_norm)
+        self.q_func = create_continuous_q_function(
+            self.observation_shape,
+            self.action_size,
+            n_ensembles=self.n_critics,
+            use_batch_norm=self.use_batch_norm)
 
     def _build_actor(self):
         self.policy = create_deterministic_residual_policy(

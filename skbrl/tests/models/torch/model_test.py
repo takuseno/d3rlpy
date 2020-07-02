@@ -17,8 +17,9 @@ def check_parameter_updates(model, inputs):
                 after.shape)
 
 
-class DummyHead:
+class DummyHead(torch.nn.Module):
     def __init__(self, feature_size, action_size=None, concat=False):
+        super().__init__()
         self.feature_size = feature_size
         self.action_size = action_size
         self.concat = concat

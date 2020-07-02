@@ -40,9 +40,11 @@ class DDPGImpl(ImplBase):
         self._build_actor_optim()
 
     def _build_critic(self):
-        self.q_func = create_continuous_q_function(self.observation_shape,
-                                                   self.action_size, 1,
-                                                   self.use_batch_norm)
+        self.q_func = create_continuous_q_function(
+            self.observation_shape,
+            self.action_size,
+            n_ensembles=1,
+            use_batch_norm=self.use_batch_norm)
 
     def _build_critic_optim(self):
         self.critic_optim = Adam(self.q_func.parameters(),

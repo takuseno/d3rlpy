@@ -34,9 +34,11 @@ class DQNImpl(ImplBase):
         self._build_optim()
 
     def _build_network(self):
-        self.q_func = create_discrete_q_function(self.observation_shape,
-                                                 self.action_size, 1,
-                                                 self.use_batch_norm)
+        self.q_func = create_discrete_q_function(
+            self.observation_shape,
+            self.action_size,
+            n_ensembles=1,
+            use_batch_norm=self.use_batch_norm)
 
     def _build_optim(self):
         self.optim = Adam(self.q_func.parameters(),

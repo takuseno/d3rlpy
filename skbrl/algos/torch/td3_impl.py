@@ -18,10 +18,11 @@ class TD3Impl(DDPGImpl):
                          eps, use_batch_norm, use_gpu)
 
     def _build_critic(self):
-        self.q_func = create_continuous_q_function(self.observation_shape,
-                                                   self.action_size,
-                                                   self.n_critics,
-                                                   self.use_batch_norm)
+        self.q_func = create_continuous_q_function(
+            self.observation_shape,
+            self.action_size,
+            n_ensembles=self.n_critics,
+            use_batch_norm=self.use_batch_norm)
 
     def compute_target(self, x):
         with torch.no_grad():
