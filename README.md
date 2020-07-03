@@ -85,25 +85,23 @@ try {
 | algorithm | discrete control | continuous control | data-driven RL? |
 |:-|:-:|:-:|:-:|
 | Behavior Cloning (supervised learning) | :white_check_mark: | :white_check_mark: | |
-| Deep Q-Network (DQN) | :white_check_mark: | :no_entry: | |
-| Double DQN | :white_check_mark: | :no_entry: | |
-| Deep Deterministic Policy Gradients (DDPG) | :no_entry: | :white_check_mark: | |
-| Twin Delayed Deep Deterministic Policy Gradients (TD3) | :no_entry: | :white_check_mark: | |
-| Soft Actor-Critic (SAC) | :no_entry: | :white_check_mark: | |
-| Random Ensemble Mixture (REM) | :construction: | :no_entry: | :white_check_mark: |
-| Batch Constrained Q-learning (BCQ) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| Bootstrapping Error Accumulation Reduction (BEAR) | :construction: | :construction: | :white_check_mark: |
-| Conservative Q-Learning (CQL) | :construction: | :construction: | :white_check_mark: |
-| Advantage-Weighted Regression (AWR) | :construction: | :construction: | :white_check_mark: |
+| [Deep Q-Network (DQN)](https://www.nature.com/articles/nature14236) | :white_check_mark: | :no_entry: | |
+| [Double DQN](https://arxiv.org/abs/1509.06461) | :white_check_mark: | :no_entry: | |
+| [Deep Deterministic Policy Gradients (DDPG)](https://arxiv.org/abs/1509.02971) | :no_entry: | :white_check_mark: | |
+| [Twin Delayed Deep Deterministic Policy Gradients (TD3)](https://arxiv.org/abs/1802.09477) | :no_entry: | :white_check_mark: | |
+| [Soft Actor-Critic (SAC)](https://arxiv.org/abs/1812.05905) | :no_entry: | :white_check_mark: | |
+| [Random Ensemble Mixture (REM)](https://arxiv.org/abs/1907.04543) | :construction: | :no_entry: | :white_check_mark: |
+| [Batch Constrained Q-learning (BCQ)](https://arxiv.org/abs/1812.02900) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| [Bootstrapping Error Accumulation Reduction (BEAR)](https://arxiv.org/abs/1906.00949) | :construction: | :construction: | :white_check_mark: |
+| [Advantage-Weighted Regression (AWR)](https://arxiv.org/abs/1910.00177) | :construction: | :construction: | :white_check_mark: |
+| [Conservative Q-Learning (CQL)](https://arxiv.org/abs/2006.04779) | :construction: | :construction: | :white_check_mark: |
 
 ## supported techniques
-- [ ] Dueling Architecture
-- [x] Quantile Regression
-- [ ] Implicit Quantile Network
-- [ ] random network augmentation
-- [ ] image dataset augmentation
-- [ ] Model-based Offline Policy Optimization
-- [ ] Online Fine-tuning
+- [x] [Quantile Regression](https://arxiv.org/abs/1710.10044)
+- [ ] [Implicit Quantile Network](https://arxiv.org/abs/1806.06923)
+- [ ] [Image Augmentation is All You Need](https://arxiv.org/abs/2004.13649)
+- [ ] [Model-based Offline Policy Optimization](https://arxiv.org/abs/2005.13239)
+- [ ] [Online Fine-tuning](https://arxiv.org/abs/2006.09359)
 
 ## supported evaluation metrics
 scikit-learn style scoring functions are provided.
