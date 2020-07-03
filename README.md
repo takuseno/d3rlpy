@@ -89,7 +89,7 @@ try {
 | Double DQN | :white_check_mark: | |
 | Deep Deterministic Policy Gradients (DDPG) | | :white_check_mark: |
 | Twin Delayed Deep Deterministic Policy Gradients (TD3) | | :white_check_mark: |
-| Soft Actor-Critic | | :white_check_mark: |
+| Soft Actor-Critic (SAC) | | :white_check_mark: |
 | Random Ensemble Mixture (REM) | | |
 | Batch Constrained Q-learning (BCQ) | :white_check_mark: | :white_check_mark: |
 | Bootstrapping Error Accumulation Reduction (BEAR) | | |
