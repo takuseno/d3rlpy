@@ -82,28 +82,21 @@ try {
 ```
 
 ## supported algorithms
-### discrete control
-- [x] Behavior Cloning (supervised learning)
-- [x] DQN
-- [x] Double DQN
-- [ ] REM
-- [x] BCQ
-- [ ] BEAR
-- [ ] CQL
-- [ ] MOPO
-
-### continuous control
-- [x] Behavior Cloning (supervised learning)
-- [x] DDPG
-- [x] TD3
-- [x] SAC
-- [ ] REM
-- [x] BCQ
-- [ ] BEAR
-- [ ] CQL
-- [ ] MOPO
+| algorithm | discrete control | continuous control |
+|:-|:-:|:-:|
+| Behavior Cloning (supervised learning) | :white_check_mark: | :white_check_mark: |
+| Deep Q-Network (DQN) | :white_check_mark: | |
+| Double DQN | :white_check_mark: | |
+| Deep Deterministic Policy Gradients (DDPG) | | :white_check_mark: |
+| Twin Delayed Deep Deterministic Policy Gradients (TD3) | | :white_check_mark: |
+| Soft Actor-Critic | | :white_check_mark: |
+| Random Ensemble Mixture (REM) | | |
+| Batch Constrained Q-learning (BCQ) | :white_check_mark: | :white_check_mark: |
+| Bootstrapping Error Accumulation Reduction (BEAR) | | |
+| Conservative Q-Learning (CQL) | | |
 
 ## supported techniques
+- [ ] Model-based Offline Policy Optimization
 - [x] Quantile Regression
 - [ ] Implicit Quantile Network
 - [ ] random network augmentation
