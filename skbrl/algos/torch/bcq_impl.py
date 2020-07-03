@@ -20,7 +20,8 @@ class BCQImpl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, imitator_learning_rate, gamma, tau,
                  n_critics, lam, n_action_samples, action_flexibility,
-                 latent_size, beta, eps, use_batch_norm, use_gpu):
+                 latent_size, beta, eps, use_batch_norm,
+                 use_quantile_regression, use_gpu):
         # imitator requires these parameters
         self.observation_shape = observation_shape
         self.action_size = action_size
@@ -39,7 +40,7 @@ class BCQImpl(DDPGImpl):
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, 0.0, eps,
-                         use_batch_norm, False, use_gpu)
+                         use_batch_norm, use_quantile_regression, use_gpu)
 
         # setup optimizer after the parameters move to GPU
         self._build_imitator_optim()
@@ -49,7 +50,8 @@ class BCQImpl(DDPGImpl):
             self.observation_shape,
             self.action_size,
             n_ensembles=self.n_critics,
-            use_batch_norm=self.use_batch_norm)
+            use_batch_norm=self.use_batch_norm,
+            use_quantile_regression=self.use_quantile_regression)
 
     def _build_actor(self):
         self.policy = create_deterministic_residual_policy(
@@ -116,21 +118,23 @@ class BCQImpl(DDPGImpl):
         action = policy(flattened_x, sampled_action)
         return action.view(-1, self.n_action_samples, self.action_size)
 
-    def _predict_value(self, repeated_x, action, reduction, target=False):
+    def _predict_value(self, repeated_x, action, target=False):
         # TODO: this seems to be slow with image observation
         # (batch_size, n, *obs_shape) -> (batch_size * n, *obs_shape)
         flattened_x = repeated_x.reshape(-1, *self.observation_shape)
         # (batch_size, n, action_size) -> (batch_size * n, action_size)
         flattend_action = action.view(-1, self.action_size)
         # estimate values
-        q_func = self.targ_q_func if target else self.q_func
-        return q_func(flattened_x, flattend_action, reduction)
+        if target:
+            return self.targ_q_func.compute_target(flattened_x,
+                                                   flattend_action, 'none')
+        return self.q_func(flattened_x, flattend_action, 'none')
 
     def _predict_best_action(self, x):
         # TODO: this seems to be slow with image observation
         repeated_x = self._repeat_observation(x)
         action = self._sample_action(repeated_x)
-        values = self._predict_value(repeated_x, action, 'none')[0]
+        values = self._predict_value(repeated_x, action)[0]
         # pick the best (batch_size * n) -> (batch_size,)
         index = values.view(-1, self.n_action_samples).argmax(dim=1)
         return action[torch.arange(action.shape[0]), index]
@@ -140,16 +144,39 @@ class BCQImpl(DDPGImpl):
         with torch.no_grad():
             repeated_x = self._repeat_observation(x)
             action = self._sample_action(repeated_x, True)
-            # estimate values (n_ensembles, batch_size * n, 1)
-            values = self._predict_value(repeated_x, action, 'none', True)
-            # (n_ensembles, batch_size * n, 1) -> (n_ensembles, batch_size, n)
-            values = values.view(self.n_critics, -1, self.n_action_samples)
-            #(n_ensembles, batch_size, n) -> (batch_size, n)
-            max_values = (1.0 - self.lam) * values.max(dim=0).values
-            min_values = self.lam * values.min(dim=0).values
-            mix_values = max_values + min_values
-            #(batch_size, n) -> (batch_size, 1)
-            return mix_values.max(dim=1, keepdim=True).values
+            # estimate values (n_ensembles, batch_size * n, -1)
+            # take care of quantile regression
+            values = self._predict_value(repeated_x, action, target=True)
+            # reshape to (n_ensembles, batch_size, n, -1)
+            reshaped_values = values.view(self.n_critics, x.shape[0],
+                                          self.n_action_samples, -1)
+
+            # get combination indices
+            # (n_ensembles, batch_size, n, -1) -> (batch_size, n_ensembles, n)
+            mean_values = reshaped_values.mean(dim=3).transpose(0, 1)
+            #(batch_size, n_ensembles, n) -> (batch_size, n)
+            max_values, max_indices = mean_values.max(dim=1)
+            min_values, min_indices = mean_values.min(dim=1)
+            mix_values = (1.0 - self.lam) * max_values + self.lam * min_values
+            #(batch_size, n) -> (batch_size,)
+            mix_indices = mix_values.argmax(dim=1)
+
+            # fuse maximum values and minimum values
+            # (n_ensembles, batch, n, -1) -> (batch, n, n_ensembels, -1)
+            transposed_values = reshaped_values.permute(1, 2, 0, 3)
+            # (batch, n, n_ensembles, -1) -> (batch * n, n_ensembles, -1)
+            bn = x.shape[0] * self.n_action_samples
+            flatten_values = transposed_values.view(bn, self.n_critics, -1)
+            # (batch * n, n_ensembles, -1) -> (batch * n, -1)
+            bn_indices = torch.arange(bn)
+            max_values = flatten_values[bn_indices, max_indices.view(-1)]
+            min_values = flatten_values[bn_indices, min_indices.view(-1)]
+            # (batch * n, -1) -> (batch, n, -1)
+            max_values = max_values.view(x.shape[0], self.n_action_samples, -1)
+            min_values = min_values.view(x.shape[0], self.n_action_samples, -1)
+            mix_values = (1.0 - self.lam) * max_values + self.lam * min_values
+            # (batch, n, -1) -> (batch, -1)
+            return mix_values[torch.arange(x.shape[0]), mix_indices]
 
 
 class DiscreteBCQImpl(DoubleDQNImpl):

@@ -83,6 +83,8 @@ def reduce_quantile_ensemble(y, reduction='min'):
         indices = mean.min(dim=0).indices
     elif reduction == 'max':
         indices = mean.max(dim=0).indices
+    elif reduction == 'none':
+        return y
     else:
         raise ValueError
     return y.transpose(0, 1)[torch.arange(y.shape[1]), indices]
