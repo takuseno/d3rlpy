@@ -82,19 +82,19 @@ try {
 ```
 
 ## supported algorithms
-| algorithm | discrete control | continuous control |
-|:-|:-:|:-:|
-| Behavior Cloning (supervised learning) | :white_check_mark: | :white_check_mark: |
-| Deep Q-Network (DQN) | :white_check_mark: | :no_entry: |
-| Double DQN | :white_check_mark: | :no_entry: |
-| Deep Deterministic Policy Gradients (DDPG) | :no_entry: | :white_check_mark: |
-| Twin Delayed Deep Deterministic Policy Gradients (TD3) | :no_entry: | :white_check_mark: |
-| Soft Actor-Critic (SAC) | :no_entry: | :white_check_mark: |
-| Random Ensemble Mixture (REM) | :construction: | :no_entry: |
-| Batch Constrained Q-learning (BCQ) | :white_check_mark: | :white_check_mark: |
-| Bootstrapping Error Accumulation Reduction (BEAR) | :construction: | :construction: |
-| Conservative Q-Learning (CQL) | :construction: | :construction: |
-| Advantage-Weighted Regression (AWR) | :construction: | :construction: |
+| algorithm | discrete control | continuous control | data-driven RL? |
+|:-|:-:|:-:|:-:|
+| Behavior Cloning (supervised learning) | :white_check_mark: | :white_check_mark: | |
+| Deep Q-Network (DQN) | :white_check_mark: | :no_entry: | |
+| Double DQN | :white_check_mark: | :no_entry: | |
+| Deep Deterministic Policy Gradients (DDPG) | :no_entry: | :white_check_mark: | |
+| Twin Delayed Deep Deterministic Policy Gradients (TD3) | :no_entry: | :white_check_mark: | |
+| Soft Actor-Critic (SAC) | :no_entry: | :white_check_mark: | |
+| Random Ensemble Mixture (REM) | :construction: | :no_entry: | :white_check_mark: |
+| Batch Constrained Q-learning (BCQ) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| Bootstrapping Error Accumulation Reduction (BEAR) | :construction: | :construction: | :white_check_mark: |
+| Conservative Q-Learning (CQL) | :construction: | :construction: | :white_check_mark: |
+| Advantage-Weighted Regression (AWR) | :construction: | :construction: | :white_check_mark: |
 
 ## supported techniques
 - [ ] Dueling Architecture
