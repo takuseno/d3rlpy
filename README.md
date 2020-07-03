@@ -85,22 +85,25 @@ try {
 | algorithm | discrete control | continuous control |
 |:-|:-:|:-:|
 | Behavior Cloning (supervised learning) | :white_check_mark: | :white_check_mark: |
-| Deep Q-Network (DQN) | :white_check_mark: | |
-| Double DQN | :white_check_mark: | |
-| Deep Deterministic Policy Gradients (DDPG) | | :white_check_mark: |
-| Twin Delayed Deep Deterministic Policy Gradients (TD3) | | :white_check_mark: |
-| Soft Actor-Critic (SAC) | | :white_check_mark: |
-| Random Ensemble Mixture (REM) | | |
+| Deep Q-Network (DQN) | :white_check_mark: | :no_entry: |
+| Double DQN | :white_check_mark: | :no_entry: |
+| Deep Deterministic Policy Gradients (DDPG) | :no_entry: | :white_check_mark: |
+| Twin Delayed Deep Deterministic Policy Gradients (TD3) | :no_entry: | :white_check_mark: |
+| Soft Actor-Critic (SAC) | :no_entry: | :white_check_mark: |
+| Random Ensemble Mixture (REM) | :construction: | :no_entry: |
 | Batch Constrained Q-learning (BCQ) | :white_check_mark: | :white_check_mark: |
-| Bootstrapping Error Accumulation Reduction (BEAR) | | |
-| Conservative Q-Learning (CQL) | | |
+| Bootstrapping Error Accumulation Reduction (BEAR) | :construction: | :construction: |
+| Conservative Q-Learning (CQL) | :construction: | :construction: |
+| Advantage-Weighted Regression (AWR) | :construction: | :construction: |
 
 ## supported techniques
-- [ ] Model-based Offline Policy Optimization
+- [ ] Dueling Architecture
 - [x] Quantile Regression
 - [ ] Implicit Quantile Network
 - [ ] random network augmentation
 - [ ] image dataset augmentation
+- [ ] Model-based Offline Policy Optimization
+- [ ] Online Fine-tuning
 
 ## supported evaluation metrics
 scikit-learn style scoring functions are provided.
