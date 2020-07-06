@@ -6,7 +6,7 @@ import gym
 
 from unittest.mock import Mock
 from skbrl.algos.torch.base import ImplBase
-from skbrl.dataset import MDPDataset, TransitionMiniBatch
+from skbrl.dataset import MDPDataset, Transition, TransitionMiniBatch
 
 
 def algo_tester(algo, imitator=False):
@@ -43,7 +43,7 @@ def algo_tester(algo, imitator=False):
     # check set_params
     clone = algo.__class__()
     for key, val in params.items():
-        if np.isscalar(val):
+        if np.isscalar(val) and not isinstance(val, str):
             params[key] = val + np.random.random()
     # set_params returns itself
     assert clone.set_params(**params) is clone
@@ -68,12 +68,13 @@ def algo_tester(algo, imitator=False):
         impl.predict_value.assert_called_with(x, action)
 
     # check fit
+    update_backup = algo.update
+    algo.update = Mock(return_value=range(len(algo._get_loss_labels())))
     n_episodes = 4
     episode_length = 25
     n_batch = 32
     n_epochs = 3
     data_size = n_episodes * episode_length
-    algo.update = Mock(return_value=range(len(algo._get_loss_labels())))
     algo.batch_size = n_batch
     algo.n_epochs = n_epochs
     observations = np.random.random((data_size, 3))
@@ -100,6 +101,38 @@ def algo_tester(algo, imitator=False):
         assert call[0][1] == total_step
         assert isinstance(call[0][2], TransitionMiniBatch)
         assert len(call[0][2]) == n_batch
+
+    # set backed up methods
+    algo.update = update_backup
+
+
+def algo_update_tester(algo, observation_shape, action_size, discrete=False):
+    # make mini-batch
+    transitions = []
+    for _ in range(algo.batch_size):
+        observation = np.random.random(observation_shape)
+        next_observation = np.random.random(observation_shape)
+        reward = np.random.random()
+        next_reward = np.random.random()
+        terminal = np.random.randint(2)
+        if discrete:
+            action = np.random.randint(action_size)
+            next_action = np.random.randint(action_size)
+        else:
+            action = np.random.random(action_size)
+            next_action = np.random.random(action_size)
+        transition = Transition(observation_shape, action_size, observation,
+                                action, reward, next_observation, next_action,
+                                next_reward, terminal)
+        transitions.append(transition)
+
+    batch = TransitionMiniBatch(transitions)
+
+    # check if update runs without errors
+    algo.create_impl(observation_shape, action_size)
+    loss = algo.update(0, 0, batch)
+
+    assert len(loss) == len(algo._get_loss_labels())
 
 
 def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
