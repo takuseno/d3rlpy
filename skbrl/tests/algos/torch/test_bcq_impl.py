@@ -14,13 +14,13 @@ from skbrl.tests.algos.algo_test import torch_impl_tester
 @pytest.mark.parametrize('tau', [0.05])
 @pytest.mark.parametrize('n_critics', [2])
 @pytest.mark.parametrize('lam', [0.75])
-@pytest.mark.parametrize('n_action_samples', [100])
+@pytest.mark.parametrize('n_action_samples', [10])  # small for test
 @pytest.mark.parametrize('action_flexibility', [0.05])
 @pytest.mark.parametrize('latent_size', [32])
 @pytest.mark.parametrize('beta', [0.5])
 @pytest.mark.parametrize('eps', [1e-8])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('use_quantile_regression', [True, False])
+@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
 def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, imitator_learning_rate, gamma, tau,
                   n_critics, lam, n_action_samples, action_flexibility,
@@ -82,7 +82,7 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('beta', [1e-2])
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('use_quantile_regression', [True, False])
+@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
 def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
                            gamma, action_flexibility, beta, eps,
                            use_batch_norm, use_quantile_regression):
@@ -96,4 +96,7 @@ def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
                            use_batch_norm,
                            use_quantile_regression,
                            use_gpu=False)
-    torch_impl_tester(impl, discrete=True)
+    torch_impl_tester(
+        impl,
+        discrete=True,
+        deterministic_best_action=use_quantile_regression != 'iqn')

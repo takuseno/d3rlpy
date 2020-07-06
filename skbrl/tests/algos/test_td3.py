@@ -11,7 +11,7 @@ def test_td3():
 
 
 @performance_test
-@pytest.mark.parametrize('use_quantile_regression', [True, False])
+@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
 def test_td3_performance(use_quantile_regression):
     td3 = TD3(n_epochs=5, use_quantile_regression=use_quantile_regression)
     # TD3 works well, but it's still unstable.

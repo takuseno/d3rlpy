@@ -11,7 +11,7 @@ def test_sac():
 
 
 @performance_test
-@pytest.mark.parametrize('use_quantile_regression', [True, False])
+@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
 def test_sac_performance(use_quantile_regression):
     sac = SAC(n_epochs=5, use_quantile_regression=use_quantile_regression)
     algo_pendulum_tester(sac, n_trials=5)

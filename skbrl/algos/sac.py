@@ -15,7 +15,7 @@ class SAC(AlgoBase):
                  initial_temperature=1.0,
                  eps=1e-8,
                  use_batch_norm=False,
-                 use_quantile_regression=False,
+                 use_quantile_regression=None,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,

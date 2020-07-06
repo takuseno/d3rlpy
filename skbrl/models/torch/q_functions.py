@@ -9,14 +9,21 @@ from .heads import create_head
 def create_discrete_q_function(observation_shape,
                                action_size,
                                n_ensembles=1,
-                               n_quantiles=200,
+                               n_quantiles=32,
+                               embed_size=64,
                                use_batch_norm=False,
-                               use_quantile_regression=False):
+                               use_quantile_regression=None):
     q_funcs = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape, use_batch_norm=use_batch_norm)
         if use_quantile_regression:
-            q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
+            if use_quantile_regression == 'qr':
+                q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
+            elif use_quantile_regression == 'iqn':
+                q_func = DiscreteIQNQFunction(head, action_size, n_quantiles,
+                                              embed_size)
+            else:
+                raise ValueError('invalid quantile regression type')
         else:
             q_func = DiscreteQFunction(head, action_size)
         q_funcs.append(q_func)
@@ -31,15 +38,21 @@ def create_continuous_q_function(observation_shape,
                                  action_size,
                                  n_ensembles=1,
                                  n_quantiles=200,
+                                 embed_size=64,
                                  use_batch_norm=False,
-                                 use_quantile_regression=False):
+                                 use_quantile_regression=None):
     q_funcs = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape,
                            action_size,
                            use_batch_norm=use_batch_norm)
         if use_quantile_regression:
-            q_func = ContinuousQRQFunction(head, n_quantiles)
+            if use_quantile_regression == 'qr':
+                q_func = ContinuousQRQFunction(head, n_quantiles)
+            elif use_quantile_regression == 'iqn':
+                q_func = ContinuousIQNQFunction(head, n_quantiles, embed_size)
+            else:
+                raise ValueError('invalid quantile regression type')
         else:
             q_func = ContinuousQFunction(head)
         q_funcs.append(q_func)
@@ -60,9 +73,15 @@ def _pick_value_by_action(values, action, keepdims=False):
     return masked_values.sum(dim=1, keepdims=keepdims)
 
 
+def _huber_loss(y, target, beta=1.0):
+    diff = target - y
+    cond = diff.detach().abs() < beta
+    return torch.where(cond, 0.5 * diff**2, beta * (diff.abs() - 0.5 * beta))
+
+
 def _quantile_huber_loss(y, target, taus):
     # compute huber loss
-    huber_loss = F.smooth_l1_loss(y, target, reduction='none')
+    huber_loss = _huber_loss(y, target)
     delta = ((target - y).detach() < 0.0).float()
     element_wise_loss = ((taus - delta).abs() * huber_loss)
     if element_wise_loss.ndim == 3:  # for implicit quantile network
@@ -144,6 +163,120 @@ class ContinuousQRQFunction(nn.Module):
         return self.forward(x, action, as_quantiles=True)
 
 
+class DiscreteIQNQFunction(nn.Module):
+    def __init__(self, head, action_size, n_quantiles, embed_size):
+        super().__init__()
+        self.head = head
+        self.action_size = action_size
+        self.embed_size = embed_size
+        self.n_quantiles = n_quantiles
+        self.embed = nn.Linear(embed_size, self.head.feature_size)
+        self.fc = nn.Linear(head.feature_size, action_size)
+
+    def forward(self, x, as_quantiles=False, with_taus=False):
+        taus = torch.rand(x.shape[0], self.n_quantiles, 1, device=x.device)
+        steps = torch.arange(self.embed_size, device=x.device) + 1
+        # (batch, quantile, embedding)
+        prior = torch.cos(math.pi * steps.view(1, 1, -1) * taus)
+        # (batch, quantile, embedding) -> (batch, quantile, feature)
+        phi = torch.relu(self.embed(prior))
+
+        h = self.head(x)
+        # (batch, 1, feature) -> (batch, quantile, feature)
+        prod = h.view(x.shape[0], 1, -1) * phi
+
+        # (batch, quantile, feature) -> (batch, action, quantile)
+        quantiles = self.fc(prod).transpose(1, 2)
+
+        rets = []
+
+        if as_quantiles:
+            rets.append(quantiles)
+        else:
+            rets.append(quantiles.mean(dim=2))
+
+        if with_taus:
+            rets.append(taus)
+
+        if len(rets) == 1:
+            return rets[0]
+        return rets
+
+    def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+
+        # extraect quantiles corresponding to act_t
+        values, taus = self.forward(obs_t, as_quantiles=True, with_taus=True)
+        quantiles_t = _pick_value_by_action(values, act_t)
+
+        # compute errors with all combination
+        y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
+        quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
+
+        return _quantile_huber_loss(quantiles_t, y, taus)
+
+    def compute_target(self, x, action):
+        quantiles = self.forward(x, as_quantiles=True)
+        return _pick_value_by_action(quantiles, action)
+
+
+class ContinuousIQNQFunction(nn.Module):
+    def __init__(self, head, n_quantiles, embed_size):
+        super().__init__()
+        self.head = head
+        self.action_size = head.action_size
+        self.embed_size = embed_size
+        self.n_quantiles = n_quantiles
+        self.embed = nn.Linear(embed_size, self.head.feature_size)
+        self.fc = nn.Linear(head.feature_size, 1)
+
+    def forward(self, x, action, as_quantiles=False, with_taus=False):
+        taus = torch.rand(x.shape[0], self.n_quantiles, 1, device=x.device)
+        steps = torch.arange(self.embed_size, device=x.device) + 1
+        # (batch, quantile, embedding)
+        prior = torch.cos(math.pi * steps.view(1, 1, -1) * taus)
+        # (batch, quantile, embedding) -> (batch, quantile, feature)
+        phi = torch.relu(self.embed(prior))
+
+        h = self.head(x, action)
+        # (batch, 1, feature) -> (batch, quantile, feature)
+        prod = h.view(x.shape[0], 1, -1) * phi
+
+        # (batch, quantile, feature) -> (batch, quantile)
+        quantiles = self.fc(prod).view(x.shape[0], self.n_quantiles)
+
+        rets = []
+
+        if as_quantiles:
+            rets.append(quantiles)
+        else:
+            rets.append(quantiles.mean(dim=1, keepdims=True))
+
+        if with_taus:
+            rets.append(taus)
+
+        if len(rets) == 1:
+            return rets[0]
+        return rets
+
+    def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+
+        quantiles_t, taus = self.forward(obs_t,
+                                         act_t,
+                                         as_quantiles=True,
+                                         with_taus=True)
+
+        # compute errors with all combination
+        y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
+        quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
+
+        return _quantile_huber_loss(quantiles_t, y, taus)
+
+    def compute_target(self, x, action):
+        return self.forward(x, action, as_quantiles=True)
+
+
 class DiscreteQFunction(nn.Module):
     def __init__(self, head, action_size):
         super().__init__()
@@ -159,7 +292,7 @@ class DiscreteQFunction(nn.Module):
         one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
         q_t = (self.forward(obs_t) * one_hot).sum(dim=1, keepdims=True)
         y = rew_tp1 + gamma * q_tp1
-        return F.smooth_l1_loss(q_t, y)
+        return _huber_loss(q_t, y).mean()
 
     def compute_target(self, x, action):
         return _pick_value_by_action(self.forward(x), action, keepdims=True)

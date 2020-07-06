@@ -11,7 +11,7 @@ def test_ddpg():
 
 
 @performance_test
-@pytest.mark.parametrize('use_quantile_regression', [True, False])
+@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
 def test_ddpg_performance(use_quantile_regression):
     # not good enough for batch RL, but check if it works without errors.
     try:

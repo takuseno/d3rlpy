@@ -12,7 +12,7 @@ class DQN(AlgoBase):
                  eps=1.5e-4,
                  target_update_interval=8e3,
                  use_batch_norm=True,
-                 use_quantile_regression=False,
+                 use_quantile_regression=None,
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,

@@ -22,7 +22,7 @@ def test_discrete_bcq():
 
 
 @performance_test
-@pytest.mark.parametrize('use_quantile_regression', [True, False])
+@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
 def test_discrete_bcq_performance(use_quantile_regression):
     bcq = DiscreteBCQ(n_epochs=1,
                       use_quantile_regression=use_quantile_regression)
