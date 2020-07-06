@@ -5,3 +5,5 @@ skbrl_data
 test_data
 runs
 skbrl_logs
+docs/_build
+docs/skbrl*.rst

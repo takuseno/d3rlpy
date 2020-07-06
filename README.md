@@ -99,6 +99,7 @@ try {
 ## supported techniques
 - [x] [Quantile Regression](https://arxiv.org/abs/1710.10044)
 - [x] [Implicit Quantile Network](https://arxiv.org/abs/1806.06923)
+- [x] [Fully parametrized Quantile Function](https://arxiv.org/abs/1911.02140)
 - [ ] [Image Augmentation is All You Need](https://arxiv.org/abs/2004.13649)
 - [ ] [Model-based Offline Policy Optimization](https://arxiv.org/abs/2005.13239)
 - [ ] [Online Fine-tuning](https://arxiv.org/abs/2006.09359)
@@ -106,7 +107,7 @@ try {
 ## supported evaluation metrics
 scikit-learn style scoring functions are provided.
 ```py
-from skrbl.metrics.scorer import td_error_scorer
+from skbrl.metrics.scorer import td_error_scorer
 
 train_episodes, test_episodes = train_test_split(dataset)
 

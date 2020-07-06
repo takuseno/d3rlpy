@@ -1,0 +1,5 @@
+#!/bin/bash
+
+sphinx-apidoc -f -o ./docs skbrl *tests
+
+sphinx-build -b html ./docs ./docs/_build
