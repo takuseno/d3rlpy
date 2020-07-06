@@ -98,7 +98,7 @@ try {
 
 ## supported techniques
 - [x] [Quantile Regression](https://arxiv.org/abs/1710.10044)
-- [ ] [Implicit Quantile Network](https://arxiv.org/abs/1806.06923)
+- [x] [Implicit Quantile Network](https://arxiv.org/abs/1806.06923)
 - [ ] [Image Augmentation is All You Need](https://arxiv.org/abs/2004.13649)
 - [ ] [Model-based Offline Policy Optimization](https://arxiv.org/abs/2005.13239)
 - [ ] [Online Fine-tuning](https://arxiv.org/abs/2006.09359)
