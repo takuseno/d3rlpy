@@ -4,10 +4,14 @@ import torch
 
 from skbrl.models.torch.q_functions import create_discrete_q_function
 from skbrl.models.torch.q_functions import create_continuous_q_function
-from skbrl.models.torch.q_functions import reduce_ensemble
-from skbrl.models.torch.q_functions import reduce_quantile_ensemble
-from skbrl.models.torch.q_functions import QRQFunction
+from skbrl.models.torch.q_functions import _pick_value_by_action
+from skbrl.models.torch.q_functions import _make_taus_prime
+from skbrl.models.torch.q_functions import _quantile_huber_loss
+from skbrl.models.torch.q_functions import _reduce_ensemble
+from skbrl.models.torch.q_functions import _reduce_quantile_ensemble
+from skbrl.models.torch.q_functions import DiscreteQRQFunction
 from skbrl.models.torch.q_functions import ContinuousQRQFunction
+from skbrl.models.torch.q_functions import DiscreteIQNQFunction
 from skbrl.models.torch.q_functions import DiscreteQFunction
 from skbrl.models.torch.q_functions import EnsembleDiscreteQFunction
 from skbrl.models.torch.q_functions import ContinuousQFunction
@@ -33,7 +37,7 @@ def test_create_discrete_q_function(observation_shape, action_size, batch_size,
 
     if n_ensembles == 1:
         if use_quantile_regression:
-            assert isinstance(q_func, QRQFunction)
+            assert isinstance(q_func, DiscreteQRQFunction)
         else:
             assert isinstance(q_func, DiscreteQFunction)
         assert q_func.head.use_batch_norm == use_batch_norm
@@ -42,7 +46,7 @@ def test_create_discrete_q_function(observation_shape, action_size, batch_size,
         for f in q_func.q_funcs:
             assert f.head.use_batch_norm == use_batch_norm
             if use_quantile_regression:
-                assert isinstance(f, QRQFunction)
+                assert isinstance(f, DiscreteQRQFunction)
             else:
                 assert isinstance(f, DiscreteQFunction)
 
@@ -87,12 +91,80 @@ def test_create_continuous_q_function(observation_shape, action_size,
     assert y.shape == (batch_size, 1)
 
 
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_quantiles', [0, 200])
+@pytest.mark.parametrize('keepdims', [True, False])
+def test_pick_value_by_action(batch_size, action_size, n_quantiles, keepdims):
+    if n_quantiles == 0:
+        values = torch.rand(batch_size, action_size)
+    else:
+        values = torch.rand(batch_size, action_size, n_quantiles)
+
+    action = torch.randint(action_size, size=(batch_size, ))
+
+    rets = _pick_value_by_action(values, action, keepdims)
+
+    if n_quantiles == 0:
+        if keepdims:
+            assert rets.shape == (batch_size, 1)
+        else:
+            assert rets.shape == (batch_size, )
+    else:
+        if keepdims:
+            assert rets.shape == (batch_size, 1, n_quantiles)
+        else:
+            assert rets.shape == (batch_size, n_quantiles)
+
+    rets = rets.view(batch_size, -1)
+
+    for i in range(batch_size):
+        assert (rets[i] == values[i][action[i]]).all()
+
+
+def ref_quantile_huber_loss(a, b, taus):
+    abs_diff = np.abs(a - b).reshape((-1, ))
+    l2_diff = ((a - b)**2).reshape((-1, ))
+    huber_diff = np.zeros_like(abs_diff)
+    huber_diff[abs_diff < 1.0] = 0.5 * l2_diff[abs_diff < 1.0]
+    huber_diff[abs_diff >= 1.0] = abs_diff[abs_diff >= 1.0] - 0.5
+    delta = np.array((b - a) < 0.0, dtype=np.float32)
+    alpha = np.abs((taus - delta).reshape((-1, )))
+    element_wise_loss = alpha * huber_diff
+    return np.mean(element_wise_loss)
+
+
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('n_quantiles', [200])
+def test_quantile_huber_loss(batch_size, n_quantiles):
+    y = np.random.random((batch_size, n_quantiles))
+    target = np.random.random((batch_size, n_quantiles))
+    taus = np.random.random((1, n_quantiles))
+
+    ref_loss = ref_quantile_huber_loss(y, target, taus)
+    loss = _quantile_huber_loss(torch.tensor(y), torch.tensor(target),
+                                torch.tensor(taus))
+
+    assert np.allclose(loss.cpu().detach().numpy(), ref_loss)
+
+
+@pytest.mark.parametrize('n_quantiles', [200])
+def test_make_taus_prime(n_quantiles):
+    taus = _make_taus_prime(n_quantiles, 'cpu:0')
+
+    assert taus.shape == (1, n_quantiles)
+
+    step = 1 / n_quantiles
+    for i in range(n_quantiles):
+        assert np.allclose(taus[0][i].numpy(), i * step + step / 2.0)
+
+
 @pytest.mark.parametrize('n_ensembles', [2])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('reduction', ['min', 'max', 'mean', 'none'])
 def test_reduce_ensemble(n_ensembles, batch_size, reduction):
     y = torch.rand(n_ensembles, batch_size, 1)
-    ret = reduce_ensemble(y, reduction)
+    ret = _reduce_ensemble(y, reduction)
     if reduction == 'min':
         assert ret.shape == (batch_size, 1)
         assert torch.allclose(ret, y.min(dim=0).values)
@@ -114,7 +186,7 @@ def test_reduce_ensemble(n_ensembles, batch_size, reduction):
 def test_reduce_quantile_ensemble(n_ensembles, n_quantiles, batch_size,
                                   reduction):
     y = torch.rand(n_ensembles, batch_size, n_quantiles)
-    ret = reduce_quantile_ensemble(y, reduction)
+    ret = _reduce_quantile_ensemble(y, reduction)
     mean = y.mean(dim=2)
     if reduction == 'min':
         assert ret.shape == (batch_size, n_quantiles)
@@ -131,10 +203,10 @@ def test_reduce_quantile_ensemble(n_ensembles, n_quantiles, batch_size,
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('gamma', [0.99])
-def test_qrq_function(feature_size, action_size, n_quantiles, batch_size,
-                      gamma):
+def test_discrete_qr_q_function(feature_size, action_size, n_quantiles,
+                                batch_size, gamma):
     head = DummyHead(feature_size)
-    q_func = QRQFunction(head, action_size, n_quantiles)
+    q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -147,7 +219,18 @@ def test_qrq_function(feature_size, action_size, n_quantiles, batch_size,
     assert target.shape == (batch_size, n_quantiles)
     assert (quantiles[torch.arange(batch_size), action] == target).all()
 
-    # TODO: check quantile huber loss
+    # check quantile huber loss
+    obs_t = torch.rand(batch_size, feature_size)
+    act_t = torch.randint(action_size, size=(batch_size, ))
+    rew_tp1 = torch.rand(batch_size, 1)
+    q_tp1 = torch.rand(batch_size, n_quantiles)
+    loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1)
+
+    target = rew_tp1.numpy() + gamma * q_tp1.numpy()
+    y = _pick_value_by_action(q_func(obs_t, as_quantiles=True), act_t)
+    taus = _make_taus_prime(n_quantiles, 'cpu:0').numpy()
+    ref_loss = ref_quantile_huber_loss(y.detach().numpy(), target, taus)
+    assert np.allclose(loss.cpu().detach(), ref_loss)
 
     # check layer connection
     check_parameter_updates(q_func, (x, ))
@@ -158,8 +241,8 @@ def test_qrq_function(feature_size, action_size, n_quantiles, batch_size,
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('gamma', [0.99])
-def test_continuous_qrq_function(feature_size, action_size, n_quantiles,
-                                 batch_size, gamma):
+def test_continuous_qr_q_function(feature_size, action_size, n_quantiles,
+                                  batch_size, gamma):
     head = DummyHead(feature_size, action_size, concat=True)
     q_func = ContinuousQRQFunction(head, n_quantiles)
 
@@ -174,10 +257,52 @@ def test_continuous_qrq_function(feature_size, action_size, n_quantiles,
     assert target.shape == (batch_size, n_quantiles)
     assert (target == quantiles).all()
 
-    # TODO: check quantile huber loss
+    # check quantile huber loss
+    obs_t = torch.rand(batch_size, feature_size)
+    act_t = torch.rand(batch_size, action_size)
+    rew_tp1 = torch.rand(batch_size, 1)
+    q_tp1 = torch.rand(batch_size, n_quantiles)
+    loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1)
+
+    target = rew_tp1.numpy() + gamma * q_tp1.numpy()
+    y = q_func(obs_t, act_t, as_quantiles=True)
+    taus = _make_taus_prime(n_quantiles, 'cpu:0').numpy()
+    ref_loss = ref_quantile_huber_loss(y.detach().numpy(), target, taus)
+    assert np.allclose(loss.cpu().detach(), ref_loss)
 
     # check layer connection
     check_parameter_updates(q_func, (x, action))
+
+
+@pytest.mark.parametrize('feature_size', [100])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_quantiles', [200])
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('embed_size', [64])
+@pytest.mark.parametrize('gamma', [0.99])
+def test_discrete_iqn_q_function(feature_size, action_size, n_quantiles,
+                                 batch_size, embed_size, gamma):
+    head = DummyHead(feature_size)
+    q_func = DiscreteIQNQFunction(head, action_size, n_quantiles, embed_size)
+
+    # check output shape
+    x = torch.rand(batch_size, feature_size)
+    y = q_func(x)
+    assert y.shape == (batch_size, action_size)
+
+    action = torch.randint(high=action_size, size=(batch_size, ))
+    target = q_func.compute_target(x, action)
+    assert target.shape == (batch_size, n_quantiles)
+
+    # TODO: check quantile huber loss
+    obs_t = torch.rand(batch_size, feature_size)
+    act_t = torch.randint(action_size, size=(batch_size, ))
+    rew_tp1 = torch.rand(batch_size, 1)
+    q_tp1 = torch.rand(batch_size, n_quantiles)
+    q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1)
+
+    # check layer connection
+    check_parameter_updates(q_func, (x, ))
 
 
 def ref_huber_loss(a, b):
@@ -249,7 +374,7 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
     for _ in range(ensemble_size):
         head = DummyHead(feature_size)
         if use_quantile_regression:
-            q_func = QRQFunction(head, action_size, n_quantiles)
+            q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
         else:
             q_func = DiscreteQFunction(head, action_size)
         q_funcs.append(q_func)
