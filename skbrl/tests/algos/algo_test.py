@@ -9,9 +9,26 @@ from skbrl.algos.torch.base import ImplBase
 from skbrl.dataset import MDPDataset, Transition, TransitionMiniBatch
 
 
+class DummyImpl(ImplBase):
+    def save_model(self, fname):
+        pass
+
+    def load_model(self, fname):
+        pass
+
+    def save_policy(self, fname):
+        pass
+
+    def predict_best_action(self, x):
+        pass
+
+    def predict_value(self, x, action):
+        pass
+
+
 def algo_tester(algo, imitator=False):
     # dummy impl object
-    impl = ImplBase()
+    impl = DummyImpl()
 
     algo.impl = impl
 

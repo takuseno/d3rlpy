@@ -1,5 +1,11 @@
+from abc import ABCMeta, abstractmethod
 from .base import AlgoBase
-from .torch.bc_impl import BCImpl, DiscreteBCImpl
+
+
+class IBCImpl(metaclass=ABCMeta):
+    @abstractmethod
+    def update_imitator(self, obs_t, act_t):
+        pass
 
 
 class BC(AlgoBase):
@@ -20,6 +26,7 @@ class BC(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
+        from .torch.bc_impl import BCImpl
         self.impl = BCImpl(observation_shape=observation_shape,
                            action_size=action_size,
                            learning_rate=self.learning_rate,
@@ -51,6 +58,7 @@ class DiscreteBC(BC):
         self.beta = beta
 
     def create_impl(self, observation_shape, action_size):
+        from .torch.bc_impl import DiscreteBCImpl
         self.impl = DiscreteBCImpl(observation_shape=observation_shape,
                                    action_size=action_size,
                                    learning_rate=self.learning_rate,

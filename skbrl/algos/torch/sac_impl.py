@@ -6,11 +6,12 @@ import math
 from torch.optim import Adam
 from skbrl.models.torch.policies import create_normal_policy
 from skbrl.models.torch.q_functions import create_continuous_q_function
+from skbrl.algos.sac import ISACImpl
 from skbrl.algos.torch.utility import torch_api, train_api
 from .ddpg_impl import DDPGImpl
 
 
-class SACImpl(DDPGImpl):
+class SACImpl(DDPGImpl, ISACImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, temp_learning_rate, gamma, tau,
                  n_critics, initial_temperature, eps, use_batch_norm,

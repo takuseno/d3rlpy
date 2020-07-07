@@ -4,12 +4,13 @@ import copy
 from torch.optim import Adam
 from skbrl.models.torch.q_functions import create_continuous_q_function
 from skbrl.models.torch.policies import create_deterministic_policy
-from skbrl.algos.torch.base import ImplBase
+from skbrl.algos.torch.base import TorchImplBase
+from skbrl.algos.ddpg import IDDPGImpl
 from skbrl.algos.torch.utility import soft_sync, torch_api
 from skbrl.algos.torch.utility import train_api, eval_api
 
 
-class DDPGImpl(ImplBase):
+class DDPGImpl(TorchImplBase, IDDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, gamma, tau, reguralizing_rate, eps,
                  use_batch_norm, use_quantile_regression, use_gpu):

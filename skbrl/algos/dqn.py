@@ -1,7 +1,17 @@
 import copy
 
+from abc import ABCMeta, abstractmethod
 from .base import AlgoBase
-from .torch.dqn_impl import DQNImpl, DoubleDQNImpl
+
+
+class IDQNImpl(metaclass=ABCMeta):
+    @abstractmethod
+    def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
+        pass
+
+    @abstractmethod
+    def update_target(self):
+        pass
 
 
 class DQN(AlgoBase):
@@ -28,6 +38,7 @@ class DQN(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
+        from .torch.dqn_impl import DQNImpl
         self.impl = DQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -52,6 +63,7 @@ class DQN(AlgoBase):
 
 class DoubleDQN(DQN):
     def create_impl(self, observation_shape, action_size):
+        from .torch.dqn_impl import DoubleDQNImpl
         self.impl = DoubleDQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,

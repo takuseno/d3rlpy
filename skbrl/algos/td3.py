@@ -1,5 +1,5 @@
 from .base import AlgoBase
-from skbrl.algos.torch.td3_impl import TD3Impl
+from .ddpg import IDDPGImpl
 
 
 class TD3(AlgoBase):
@@ -38,6 +38,7 @@ class TD3(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
+        from skbrl.algos.torch.td3_impl import TD3Impl
         self.impl = TD3Impl(
             observation_shape=observation_shape,
             action_size=action_size,

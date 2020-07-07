@@ -1,5 +1,13 @@
+from abc import abstractmethod
 from .base import AlgoBase
-from skbrl.algos.torch.bcq_impl import BCQImpl, DiscreteBCQImpl
+from .dqn import IDQNImpl
+from .ddpg import IDDPGImpl
+
+
+class IBCQImpl(IDDPGImpl):
+    @abstractmethod
+    def update_imitator(self, obs_t, act_t):
+        pass
 
 
 class BCQ(AlgoBase):
@@ -44,6 +52,7 @@ class BCQ(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
+        from skbrl.algos.torch.bcq_impl import BCQImpl
         self.impl = BCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -112,6 +121,7 @@ class DiscreteBCQ(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
+        from skbrl.algos.torch.bcq_impl import DiscreteBCQImpl
         self.impl = DiscreteBCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,

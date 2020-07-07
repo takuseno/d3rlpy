@@ -1,9 +1,32 @@
 import numpy as np
 import copy
 
+from abc import ABCMeta, abstractmethod
 from skbrl.dataset import TransitionMiniBatch
 from skbrl.logger import SkbrlLogger
 from skbrl.metrics.scorer import NEGATED_SCORER
+
+
+class ImplBase(metaclass=ABCMeta):
+    @abstractmethod
+    def save_model(self, fname):
+        pass
+
+    @abstractmethod
+    def load_model(self, fname):
+        pass
+
+    @abstractmethod
+    def save_policy(self, fname):
+        pass
+
+    @abstractmethod
+    def predict_best_action(self, x):
+        pass
+
+    @abstractmethod
+    def predict_value(self, x, action):
+        pass
 
 
 class AlgoBase:
@@ -14,7 +37,7 @@ class AlgoBase:
     Attributes:
         n_epochs (int): the number of epochs to train.
         batch_size (int): the batch size of training.
-        impl (skbrl.algos.torch.base.ImplBase):
+        impl (skbrl.algos.base.ImplBase):
             torch implementation of the algorithm.
 
     """

@@ -1,5 +1,6 @@
 import torch
 
+from skbrl.algos.base import ImplBase
 from skbrl.algos.torch.utility import freeze, unfreeze
 from skbrl.algos.torch.utility import to_cuda, to_cpu
 from skbrl.algos.torch.utility import torch_api, eval_api
@@ -7,10 +8,7 @@ from skbrl.algos.torch.utility import map_location
 from skbrl.algos.torch.utility import get_state_dict, set_state_dict
 
 
-class ImplBase:
-    def predict_value(self, x, action):
-        raise NotImplementedError
-
+class TorchImplBase(ImplBase):
     @eval_api
     @torch_api
     def predict_best_action(self, x):

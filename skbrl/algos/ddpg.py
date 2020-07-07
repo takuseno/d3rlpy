@@ -1,5 +1,23 @@
+from abc import ABCMeta, abstractmethod
 from .base import AlgoBase
-from .torch.ddpg_impl import DDPGImpl
+
+
+class IDDPGImpl(metaclass=ABCMeta):
+    @abstractmethod
+    def update_critic(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
+        pass
+
+    @abstractmethod
+    def update_actor(self, obs_t):
+        pass
+
+    @abstractmethod
+    def update_actor_target(self):
+        pass
+
+    @abstractmethod
+    def update_critic_target(self):
+        pass
 
 
 class DDPG(AlgoBase):
@@ -30,6 +48,7 @@ class DDPG(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
+        from .torch.ddpg_impl import DDPGImpl
         self.impl = DDPGImpl(
             observation_shape=observation_shape,
             action_size=action_size,

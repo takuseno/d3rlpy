@@ -1,5 +1,12 @@
+from abc import ABCMeta, abstractmethod
 from .base import AlgoBase
-from skbrl.algos.torch.sac_impl import SACImpl
+from .ddpg import IDDPGImpl
+
+
+class ISACImpl(IDDPGImpl):
+    @abstractmethod
+    def update_temperature(self, obs_t):
+        pass
 
 
 class SAC(AlgoBase):
@@ -36,6 +43,7 @@ class SAC(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
+        from skbrl.algos.torch.sac_impl import SACImpl
         self.impl = SACImpl(
             observation_shape=observation_shape,
             action_size=action_size,

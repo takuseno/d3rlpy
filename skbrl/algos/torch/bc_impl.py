@@ -4,11 +4,12 @@ import copy
 from torch.optim import Adam
 from skbrl.models.torch.imitators import create_deterministic_regressor
 from skbrl.models.torch.imitators import create_discrete_imitator
-from skbrl.algos.torch.base import ImplBase
+from skbrl.algos.torch.base import TorchImplBase
+from skbrl.algos.bc import IBCImpl
 from skbrl.algos.torch.utility import torch_api, train_api
 
 
-class BCImpl(ImplBase):
+class BCImpl(TorchImplBase, IBCImpl):
     def __init__(self, observation_shape, action_size, learning_rate, eps,
                  use_batch_norm, use_gpu):
         self.observation_shape = observation_shape

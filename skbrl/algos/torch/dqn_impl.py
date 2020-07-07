@@ -5,12 +5,13 @@ import copy
 
 from torch.optim import Adam
 from skbrl.models.torch.q_functions import create_discrete_q_function
-from skbrl.algos.torch.base import ImplBase
+from skbrl.algos.torch.base import TorchImplBase
+from skbrl.algos.dqn import IDQNImpl
 from skbrl.algos.torch.utility import hard_sync
 from skbrl.algos.torch.utility import torch_api, train_api, eval_api
 
 
-class DQNImpl(ImplBase):
+class DQNImpl(TorchImplBase, IDQNImpl):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
                  eps, use_batch_norm, use_quantile_regression, use_gpu):
         self.observation_shape = observation_shape

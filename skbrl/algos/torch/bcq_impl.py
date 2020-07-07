@@ -12,11 +12,12 @@ from skbrl.models.torch.imitators import create_conditional_vae
 from skbrl.models.torch.imitators import create_discrete_imitator
 from skbrl.models.torch.imitators import DiscreteImitator
 from skbrl.algos.torch.utility import torch_api, train_api
+from skbrl.algos.bcq import IBCQImpl
 from .ddpg_impl import DDPGImpl
 from .dqn_impl import DoubleDQNImpl
 
 
-class BCQImpl(DDPGImpl):
+class BCQImpl(DDPGImpl, IBCQImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, imitator_learning_rate, gamma, tau,
                  n_critics, lam, n_action_samples, action_flexibility,
