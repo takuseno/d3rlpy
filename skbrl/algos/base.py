@@ -37,8 +37,7 @@ class AlgoBase:
     Attributes:
         n_epochs (int): the number of epochs to train.
         batch_size (int): the batch size of training.
-        impl (skbrl.algos.base.ImplBase):
-            torch implementation of the algorithm.
+        impl (skbrl.algos.base.ImplBase): implementation of the algorithm.
 
     """
     def __init__(self, n_epochs, batch_size):
@@ -46,7 +45,7 @@ class AlgoBase:
 
         Args:
             n_epochs (int): the number of epochs to train.
-            batch_size (int): the batch size of training.
+            batch_size (int): mini-batch size.
 
         """
         self.n_epochs = n_epochs
