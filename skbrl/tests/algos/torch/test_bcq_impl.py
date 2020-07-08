@@ -20,12 +20,11 @@ from skbrl.tests.algos.algo_test import torch_impl_tester
 @pytest.mark.parametrize('beta', [0.5])
 @pytest.mark.parametrize('eps', [1e-8])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
+@pytest.mark.parametrize('distribution_type', [None, 'qr', 'iqn'])
 def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, imitator_learning_rate, gamma, tau,
                   n_critics, lam, n_action_samples, action_flexibility,
-                  latent_size, beta, eps, use_batch_norm,
-                  use_quantile_regression):
+                  latent_size, beta, eps, use_batch_norm, distribution_type):
     impl = BCQImpl(observation_shape,
                    action_size,
                    actor_learning_rate,
@@ -41,7 +40,7 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                    beta,
                    eps,
                    use_batch_norm,
-                   use_quantile_regression,
+                   distribution_type,
                    use_gpu=False)
 
     # test internal methods
@@ -57,13 +56,13 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
     assert value.shape == (n_critics, 32 * n_action_samples, 1)
 
     target_values = impl._predict_value(repeated_x, action, target=True)
-    if use_quantile_regression:
+    if distribution_type:
         assert target_values.shape == (n_critics, 32 * n_action_samples, 200)
     else:
         assert target_values.shape == (n_critics, 32 * n_action_samples, 1)
 
     target = impl.compute_target(x)
-    if use_quantile_regression:
+    if distribution_type:
         assert target.shape == (32, 200)
     else:
         assert target.shape == (32, 1)
@@ -82,10 +81,10 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('beta', [1e-2])
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
+@pytest.mark.parametrize('distribution_type', [None, 'qr', 'iqn'])
 def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
                            gamma, action_flexibility, beta, eps,
-                           use_batch_norm, use_quantile_regression):
+                           use_batch_norm, distribution_type):
     impl = DiscreteBCQImpl(observation_shape,
                            action_size,
                            learning_rate,
@@ -94,9 +93,8 @@ def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
                            beta,
                            eps,
                            use_batch_norm,
-                           use_quantile_regression,
+                           distribution_type,
                            use_gpu=False)
-    torch_impl_tester(
-        impl,
-        discrete=True,
-        deterministic_best_action=use_quantile_regression != 'iqn')
+    torch_impl_tester(impl,
+                      discrete=True,
+                      deterministic_best_action=distribution_type != 'iqn')

@@ -19,16 +19,24 @@ class BC(AlgoBase):
 
     .. math::
 
-        L(\\theta) = \mathbb{E}_{a_t, s_t \sim D} [(a_t - \pi(s_t|\\theta))^2]
+        L(\\theta) = \mathbb{E}_{a_t, s_t \sim D} [(a_t - \pi_\\theta(s_t))^2]
+
+    Args:
+        learning_rate (float): learing rate.
+        batch_size (int): mini-batch size.
+        eps (float): :math:`\epsilon` for Adam optimizer.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+        n_epochs (int): the number of epochs to train.
+        use_gpu (bool): flag to use GPU.
+        impl (skbrl.algos.bc.IBCImpl): implemenation of the algorithm.
 
     Attributes:
         n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
         learning_rate (float): learing rate.
         eps (float): :math:`\epsilon` for Adam optimizer.
-        use_batch_norm (bool): flag to insert batch normalization layers to
-            the neural network.
-        use_gpu (bool): flag to enable GPU.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+        use_gpu (bool): flag to use GPU.
         impl (skbrl.algos.bc.IBCImpl): implemenation of the algorithm.
 
     """
@@ -82,9 +90,19 @@ class DiscreteBC(BC):
     .. math::
 
         L(\\theta) = \mathbb{E}_{a_t, s_t \sim D}
-                                [-\sum_a p(a|s_t) \log \pi(a|s_t, \\theta)]
+            [-\sum_a p(a|s_t) \log \pi_\\theta(a|s_t)]
 
     where :math:`p(a|s_t)` is implemented as a one-hot vector.
+
+    Args:
+        n_epochs (int): the number of epochs to train.
+        batch_size (int): mini-batch size.
+        learning_rate (float): learing rate.
+        eps (float): :math:`\epsilon` for Adam optimizer.
+        beta (float): reguralization factor.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+        use_gpu (bool): flag to use GPU.
+        impl (skbrl.algos.bc.IBCImpl): implemenation of the algorithm.
 
     Attributes:
         n_epochs (int): the number of epochs to train.
@@ -92,9 +110,8 @@ class DiscreteBC(BC):
         learning_rate (float): learing rate.
         eps (float): :math:`\epsilon` for Adam optimizer.
         beta (float): reguralization factor.
-        use_batch_norm (bool): flag to insert batch normalization layers to
-            the neural network.
-        use_gpu (bool): flag to enable GPU.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+        use_gpu (bool): flag to use GPU.
         impl (skbrl.algos.bc.IBCImpl): implemenation of the algorithm.
 
     """

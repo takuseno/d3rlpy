@@ -8,9 +8,9 @@ from .algo_test import algo_pendulum_tester, algo_cartpole_tester
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
-def test_bcq(observation_shape, action_size, use_quantile_regression):
-    bcq = BCQ(use_quantile_regression=use_quantile_regression)
+@pytest.mark.parametrize('distribution_type', [None, 'qr', 'iqn'])
+def test_bcq(observation_shape, action_size, distribution_type):
+    bcq = BCQ(distribution_type=distribution_type)
     algo_tester(bcq)
     algo_update_tester(bcq, observation_shape, action_size)
 
@@ -23,16 +23,15 @@ def test_bcq_performance():
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
-def test_discrete_bcq(observation_shape, action_size, use_quantile_regression):
-    bcq = DiscreteBCQ(use_quantile_regression=use_quantile_regression)
+@pytest.mark.parametrize('distribution_type', [None, 'qr', 'iqn'])
+def test_discrete_bcq(observation_shape, action_size, distribution_type):
+    bcq = DiscreteBCQ(distribution_type=distribution_type)
     algo_tester(bcq)
     algo_update_tester(bcq, observation_shape, action_size, discrete=True)
 
 
 @performance_test
-@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
-def test_discrete_bcq_performance(use_quantile_regression):
-    bcq = DiscreteBCQ(n_epochs=1,
-                      use_quantile_regression=use_quantile_regression)
+@pytest.mark.parametrize('distribution_type', [None, 'qr', 'iqn'])
+def test_discrete_bcq_performance(distribution_type):
+    bcq = DiscreteBCQ(n_epochs=1, distribution_type=distribution_type)
     algo_cartpole_tester(bcq)

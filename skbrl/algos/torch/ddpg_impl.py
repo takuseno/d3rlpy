@@ -13,7 +13,7 @@ from skbrl.algos.torch.utility import train_api, eval_api
 class DDPGImpl(TorchImplBase, IDDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, gamma, tau, reguralizing_rate, eps,
-                 use_batch_norm, use_quantile_regression, use_gpu):
+                 use_batch_norm, distribution_type, use_gpu):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.actor_learning_rate = actor_learning_rate
@@ -23,7 +23,7 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
         self.reguralizing_rate = reguralizing_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
-        self.use_quantile_regression = use_quantile_regression
+        self.distribution_type = distribution_type
 
         # setup torch models
         self._build_critic()
@@ -47,7 +47,7 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
             self.action_size,
             n_ensembles=1,
             use_batch_norm=self.use_batch_norm,
-            use_quantile_regression=self.use_quantile_regression)
+            distribution_type=self.distribution_type)
 
     def _build_critic_optim(self):
         self.critic_optim = Adam(self.q_func.parameters(),

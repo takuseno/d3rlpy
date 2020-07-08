@@ -21,8 +21,8 @@ class BCQImpl(DDPGImpl, IBCQImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, imitator_learning_rate, gamma, tau,
                  n_critics, lam, n_action_samples, action_flexibility,
-                 latent_size, beta, eps, use_batch_norm,
-                 use_quantile_regression, use_gpu):
+                 latent_size, beta, eps, use_batch_norm, distribution_type,
+                 use_gpu):
         # imitator requires these parameters
         self.observation_shape = observation_shape
         self.action_size = action_size
@@ -41,7 +41,7 @@ class BCQImpl(DDPGImpl, IBCQImpl):
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, 0.0, eps,
-                         use_batch_norm, use_quantile_regression, use_gpu)
+                         use_batch_norm, distribution_type, use_gpu)
 
         # setup optimizer after the parameters move to GPU
         self._build_imitator_optim()
@@ -52,7 +52,7 @@ class BCQImpl(DDPGImpl, IBCQImpl):
             self.action_size,
             n_ensembles=self.n_critics,
             use_batch_norm=self.use_batch_norm,
-            use_quantile_regression=self.use_quantile_regression)
+            distribution_type=self.distribution_type)
 
     def _build_actor(self):
         self.policy = create_deterministic_residual_policy(
@@ -79,7 +79,7 @@ class BCQImpl(DDPGImpl, IBCQImpl):
         clipped_latent = latent.clamp(-0.5, 0.5)
         sampled_action = self.imitator.decode(obs_t, clipped_latent)
         action = self.policy(obs_t, sampled_action)
-        loss = -self.q_func(obs_t, action, 'min').mean()
+        loss = -self.q_func(obs_t, action, 'none')[0].mean()
 
         self.actor_optim.zero_grad()
         loss.backward()
@@ -183,13 +183,13 @@ class BCQImpl(DDPGImpl, IBCQImpl):
 class DiscreteBCQImpl(DoubleDQNImpl):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
                  action_flexibility, beta, eps, use_batch_norm,
-                 use_quantile_regression, use_gpu):
+                 distribution_type, use_gpu):
 
         self.action_flexibility = action_flexibility
         self.beta = beta
 
         super().__init__(observation_shape, action_size, learning_rate, gamma,
-                         eps, use_batch_norm, use_quantile_regression, use_gpu)
+                         eps, use_batch_norm, distribution_type, use_gpu)
 
     def _build_network(self):
         super()._build_network()

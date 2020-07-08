@@ -12,14 +12,14 @@ def create_discrete_q_function(observation_shape,
                                n_quantiles=32,
                                embed_size=64,
                                use_batch_norm=False,
-                               use_quantile_regression=None):
+                               distribution_type=None):
     q_funcs = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape, use_batch_norm=use_batch_norm)
-        if use_quantile_regression:
-            if use_quantile_regression == 'qr':
+        if distribution_type:
+            if distribution_type == 'qr':
                 q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
-            elif use_quantile_regression == 'iqn':
+            elif distribution_type == 'iqn':
                 q_func = DiscreteIQNQFunction(head, action_size, n_quantiles,
                                               embed_size)
             else:
@@ -40,16 +40,16 @@ def create_continuous_q_function(observation_shape,
                                  n_quantiles=200,
                                  embed_size=64,
                                  use_batch_norm=False,
-                                 use_quantile_regression=None):
+                                 distribution_type=None):
     q_funcs = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape,
                            action_size,
                            use_batch_norm=use_batch_norm)
-        if use_quantile_regression:
-            if use_quantile_regression == 'qr':
+        if distribution_type:
+            if distribution_type == 'qr':
                 q_func = ContinuousQRQFunction(head, n_quantiles)
-            elif use_quantile_regression == 'iqn':
+            elif distribution_type == 'iqn':
                 q_func = ContinuousIQNQFunction(head, n_quantiles, embed_size)
             else:
                 raise ValueError('invalid quantile regression type')

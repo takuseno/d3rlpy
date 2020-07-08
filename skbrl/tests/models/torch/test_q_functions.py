@@ -28,32 +28,31 @@ from skbrl.tests.models.torch.model_test import DummyHead
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('embed_size', [64])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
-@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
+@pytest.mark.parametrize('distribution_type', [None, 'qr', 'iqn'])
 def test_create_discrete_q_function(observation_shape, action_size, batch_size,
                                     n_ensembles, n_quantiles, embed_size,
-                                    use_batch_norm, use_quantile_regression):
+                                    use_batch_norm, distribution_type):
     q_func = create_discrete_q_function(observation_shape, action_size,
                                         n_ensembles, n_quantiles, embed_size,
-                                        use_batch_norm,
-                                        use_quantile_regression)
+                                        use_batch_norm, distribution_type)
 
     if n_ensembles == 1:
-        if not use_quantile_regression:
+        if not distribution_type:
             assert isinstance(q_func, DiscreteQFunction)
-        elif use_quantile_regression == 'qr':
+        elif distribution_type == 'qr':
             assert isinstance(q_func, DiscreteQRQFunction)
-        elif use_quantile_regression == 'iqn':
+        elif distribution_type == 'iqn':
             assert isinstance(q_func, DiscreteIQNQFunction)
         assert q_func.head.use_batch_norm == use_batch_norm
     else:
         assert isinstance(q_func, EnsembleDiscreteQFunction)
         for f in q_func.q_funcs:
             assert f.head.use_batch_norm == use_batch_norm
-            if not use_quantile_regression:
+            if not distribution_type:
                 assert isinstance(f, DiscreteQFunction)
-            elif use_quantile_regression == 'qr':
+            elif distribution_type == 'qr':
                 assert isinstance(f, DiscreteQRQFunction)
-            elif use_quantile_regression == 'iqn':
+            elif distribution_type == 'iqn':
                 assert isinstance(f, DiscreteIQNQFunction)
 
     x = torch.rand((batch_size, ) + observation_shape)
@@ -68,32 +67,31 @@ def test_create_discrete_q_function(observation_shape, action_size, batch_size,
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('embed_size', [64])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
-@pytest.mark.parametrize('use_quantile_regression', [None, 'qr', 'iqn'])
+@pytest.mark.parametrize('distribution_type', [None, 'qr', 'iqn'])
 def test_create_continuous_q_function(observation_shape, action_size,
                                       batch_size, n_ensembles, n_quantiles,
                                       embed_size, use_batch_norm,
-                                      use_quantile_regression):
+                                      distribution_type):
     q_func = create_continuous_q_function(observation_shape, action_size,
                                           n_ensembles, n_quantiles, embed_size,
-                                          use_batch_norm,
-                                          use_quantile_regression)
+                                          use_batch_norm, distribution_type)
 
     if n_ensembles == 1:
-        if not use_quantile_regression:
+        if not distribution_type:
             assert isinstance(q_func, ContinuousQFunction)
-        elif use_quantile_regression == 'qr':
+        elif distribution_type == 'qr':
             assert isinstance(q_func, ContinuousQRQFunction)
-        elif use_quantile_regression == 'iqn':
+        elif distribution_type == 'iqn':
             assert isinstance(q_func, ContinuousIQNQFunction)
         assert q_func.head.use_batch_norm == use_batch_norm
     else:
         assert isinstance(q_func, EnsembleContinuousQFunction)
         for f in q_func.q_funcs:
-            if not use_quantile_regression:
+            if not distribution_type:
                 assert isinstance(f, ContinuousQFunction)
-            elif use_quantile_regression == 'qr':
+            elif distribution_type == 'qr':
                 assert isinstance(f, ContinuousQRQFunction)
-            elif use_quantile_regression == 'iqn':
+            elif distribution_type == 'iqn':
                 assert isinstance(f, ContinuousIQNQFunction)
             assert f.head.use_batch_norm == use_batch_norm
 
@@ -408,18 +406,22 @@ def test_discrete_q_function(feature_size, action_size, batch_size, gamma):
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('ensemble_size', [5])
-@pytest.mark.parametrize('use_quantile_regression', [True, False])
+@pytest.mark.parametrize('distribution_type', [None, 'qr', 'iqn'])
 @pytest.mark.parametrize('n_quantiles', [200])
+@pytest.mark.parametrize('embed_size', [64])
 def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
-                                      gamma, ensemble_size,
-                                      use_quantile_regression, n_quantiles):
+                                      gamma, ensemble_size, distribution_type,
+                                      n_quantiles, embed_size):
     q_funcs = []
     for _ in range(ensemble_size):
         head = DummyHead(feature_size)
-        if use_quantile_regression:
-            q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
-        else:
+        if not distribution_type:
             q_func = DiscreteQFunction(head, action_size)
+        elif distribution_type == 'qr':
+            q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
+        elif distribution_type == 'iqn':
+            q_func = DiscreteIQNQFunction(head, action_size, n_quantiles,
+                                          embed_size)
         q_funcs.append(q_func)
     q_func = EnsembleDiscreteQFunction(q_funcs)
 
@@ -431,18 +433,19 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
     # check compute_target
     action = torch.randint(high=action_size, size=(batch_size, ))
     target = q_func.compute_target(x, action)
-    if use_quantile_regression:
-        assert target.shape == (batch_size, n_quantiles)
-    else:
+    if not distribution_type:
         assert target.shape == (batch_size, 1)
         min_values = values.min(dim=0).values
         assert torch.allclose(min_values[torch.arange(batch_size), action],
                               target.view(-1))
+    else:
+        assert target.shape == (batch_size, n_quantiles)
 
     # check reductions
-    assert torch.allclose(values.min(dim=0).values, q_func(x, 'min'))
-    assert torch.allclose(values.max(dim=0).values, q_func(x, 'max'))
-    assert torch.allclose(values.mean(dim=0), q_func(x, 'mean'))
+    if distribution_type != 'iqn':
+        assert torch.allclose(values.min(dim=0).values, q_func(x, 'min'))
+        assert torch.allclose(values.max(dim=0).values, q_func(x, 'max'))
+        assert torch.allclose(values.mean(dim=0), q_func(x, 'mean'))
 
     # check td computation
     obs_t = torch.rand(batch_size, feature_size)
@@ -451,16 +454,17 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
                           size=(batch_size, 1),
                           dtype=torch.int64)
     rew_tp1 = torch.rand(batch_size, 1)
-    if use_quantile_regression:
-        q_tp1 = torch.rand(batch_size, n_quantiles)
-    else:
+    if not distribution_type:
         q_tp1 = torch.rand(batch_size, 1)
+    else:
+        q_tp1 = torch.rand(batch_size, n_quantiles)
     ref_td_sum = 0.0
     for i in range(ensemble_size):
         f = q_func.q_funcs[i]
         ref_td_sum += f.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
     loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
-    assert torch.allclose(ref_td_sum, loss)
+    if distribution_type != 'iqn':
+        assert torch.allclose(ref_td_sum, loss)
 
     # check layer connection
     check_parameter_updates(q_func, (x, 'mean'))
@@ -510,18 +514,22 @@ def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('ensemble_size', [5])
-@pytest.mark.parametrize('use_quantile_regression', [True, False])
 @pytest.mark.parametrize('n_quantiles', [200])
+@pytest.mark.parametrize('distribution_type', [None, 'qr', 'iqn'])
+@pytest.mark.parametrize('embed_size', [64])
 def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
                                         gamma, ensemble_size,
-                                        use_quantile_regression, n_quantiles):
+                                        distribution_type, n_quantiles,
+                                        embed_size):
     q_funcs = []
     for _ in range(ensemble_size):
         head = DummyHead(feature_size, action_size, concat=True)
-        if use_quantile_regression:
-            q_func = ContinuousQRQFunction(head, n_quantiles)
-        else:
+        if not distribution_type:
             q_func = ContinuousQFunction(head)
+        elif distribution_type == 'qr':
+            q_func = ContinuousQRQFunction(head, n_quantiles)
+        elif distribution_type == 'iqn':
+            q_func = ContinuousIQNQFunction(head, n_quantiles, embed_size)
         q_funcs.append(q_func)
 
     q_func = EnsembleContinuousQFunction(q_funcs)
@@ -534,32 +542,34 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
 
     # check compute_target
     target = q_func.compute_target(x, action)
-    if use_quantile_regression:
-        assert target.shape == (batch_size, n_quantiles)
-    else:
+    if not distribution_type:
         assert target.shape == (batch_size, 1)
         min_values = values.min(dim=0).values
         assert (target == min_values).all()
+    else:
+        assert target.shape == (batch_size, n_quantiles)
 
     # check reductions
-    assert torch.allclose(values.min(dim=0).values, q_func(x, action, 'min'))
-    assert torch.allclose(values.max(dim=0).values, q_func(x, action, 'max'))
-    assert torch.allclose(values.mean(dim=0), q_func(x, action, 'mean'))
+    if distribution_type != 'iqn':
+        assert torch.allclose(values.min(dim=0)[0], q_func(x, action, 'min'))
+        assert torch.allclose(values.max(dim=0)[0], q_func(x, action, 'max'))
+        assert torch.allclose(values.mean(dim=0), q_func(x, action, 'mean'))
 
     # check td computation
     obs_t = torch.rand(batch_size, feature_size)
     act_t = torch.rand(batch_size, action_size)
     rew_tp1 = torch.rand(batch_size, 1)
-    if use_quantile_regression:
-        q_tp1 = torch.rand(batch_size, n_quantiles)
-    else:
+    if not distribution_type:
         q_tp1 = torch.rand(batch_size, 1)
+    else:
+        q_tp1 = torch.rand(batch_size, n_quantiles)
     ref_td_sum = 0.0
     for i in range(ensemble_size):
         f = q_func.q_funcs[i]
         ref_td_sum += f.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
     loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
-    assert torch.allclose(ref_td_sum, loss)
+    if distribution_type != 'iqn':
+        assert torch.allclose(ref_td_sum, loss)
 
     # check layer connection
     check_parameter_updates(q_func, (x, action, 'mean'))
