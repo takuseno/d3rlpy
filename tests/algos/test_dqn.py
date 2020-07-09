@@ -1,7 +1,7 @@
 import pytest
 
 from skbrl.algos.dqn import DQN, DoubleDQN
-from skbrl.tests import performance_test
+from tests import performance_test
 from .algo_test import algo_tester, algo_update_tester, algo_cartpole_tester
 
 

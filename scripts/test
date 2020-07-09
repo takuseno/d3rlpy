@@ -26,7 +26,7 @@ fi
 
 # run tests
 echo "Run unit tests"
-TEST_PERFORMANCE=$TEST_PERFORMANCE pytest skbrl/tests -p no:warnings -v
+TEST_PERFORMANCE=$TEST_PERFORMANCE pytest tests -p no:warnings -v
 
 # clean up
 rm -r test_data

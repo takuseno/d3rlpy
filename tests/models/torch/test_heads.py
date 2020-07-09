@@ -4,7 +4,7 @@ import torch
 from skbrl.models.torch.heads import create_head
 from skbrl.models.torch.heads import PixelHead, PixelHeadWithAction
 from skbrl.models.torch.heads import VectorHead, VectorHeadWithAction
-from skbrl.tests.models.torch.model_test import check_parameter_updates
+from .model_test import check_parameter_updates
 
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84)])

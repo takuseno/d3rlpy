@@ -1,7 +1,7 @@
 import pytest
 
 from skbrl.algos.bc import BC, DiscreteBC
-from skbrl.tests import performance_test
+from tests import performance_test
 from .algo_test import algo_tester, algo_update_tester
 from .algo_test import algo_pendulum_tester, algo_cartpole_tester
 

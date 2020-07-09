@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from skbrl.algos.torch.bcq_impl import BCQImpl, DiscreteBCQImpl
-from skbrl.tests.algos.algo_test import torch_impl_tester
+from tests.algos.algo_test import torch_impl_tester
 
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (1, 48, 48)])

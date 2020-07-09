@@ -1,7 +1,7 @@
 import pytest
 
 from skbrl.algos.torch.sac_impl import SACImpl
-from skbrl.tests.algos.algo_test import torch_impl_tester
+from tests.algos.algo_test import torch_impl_tester
 
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])

@@ -8,8 +8,7 @@ from skbrl.models.torch.imitators import create_deterministic_regressor
 from skbrl.models.torch.imitators import ConditionalVAE
 from skbrl.models.torch.imitators import DiscreteImitator
 from skbrl.models.torch.imitators import DeterministicRegressor
-from skbrl.tests.models.torch.model_test import check_parameter_updates
-from skbrl.tests.models.torch.model_test import DummyHead
+from .model_test import check_parameter_updates, DummyHead
 
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])

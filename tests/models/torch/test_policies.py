@@ -7,8 +7,7 @@ from skbrl.models.torch.policies import create_normal_policy
 from skbrl.models.torch.policies import DeterministicPolicy
 from skbrl.models.torch.policies import DeterministicResidualPolicy
 from skbrl.models.torch.policies import NormalPolicy
-from skbrl.tests.models.torch.model_test import check_parameter_updates
-from skbrl.tests.models.torch.model_test import DummyHead
+from .model_test import check_parameter_updates, DummyHead
 
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])

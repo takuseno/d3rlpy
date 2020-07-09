@@ -17,8 +17,7 @@ from skbrl.models.torch.q_functions import DiscreteQFunction
 from skbrl.models.torch.q_functions import EnsembleDiscreteQFunction
 from skbrl.models.torch.q_functions import ContinuousQFunction
 from skbrl.models.torch.q_functions import EnsembleContinuousQFunction
-from skbrl.tests.models.torch.model_test import check_parameter_updates
-from skbrl.tests.models.torch.model_test import DummyHead
+from .model_test import check_parameter_updates, DummyHead
 
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
