@@ -10,20 +10,20 @@ from skbrl.tests.algos.algo_test import torch_impl_tester
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('distribution_type', [None, 'qr', 'iqn'])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn'])
 def test_dqn_impl(observation_shape, action_size, learning_rate, gamma, eps,
-                  use_batch_norm, distribution_type):
+                  use_batch_norm, q_func_type):
     impl = DQNImpl(observation_shape,
                    action_size,
                    learning_rate,
                    gamma,
                    eps,
                    use_batch_norm,
-                   distribution_type,
+                   q_func_type,
                    use_gpu=False)
     torch_impl_tester(impl,
                       discrete=True,
-                      deterministic_best_action=distribution_type != 'iqn')
+                      deterministic_best_action=q_func_type != 'iqn')
 
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
@@ -32,17 +32,17 @@ def test_dqn_impl(observation_shape, action_size, learning_rate, gamma, eps,
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('distribution_type', [None, 'qr', 'iqn'])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn'])
 def test_double_dqn_impl(observation_shape, action_size, learning_rate, gamma,
-                         eps, use_batch_norm, distribution_type):
+                         eps, use_batch_norm, q_func_type):
     impl = DoubleDQNImpl(observation_shape,
                          action_size,
                          learning_rate,
                          gamma,
                          eps,
                          use_batch_norm,
-                         distribution_type=distribution_type,
+                         q_func_type=q_func_type,
                          use_gpu=False)
     torch_impl_tester(impl,
                       discrete=True,
-                      deterministic_best_action=distribution_type != 'iqn')
+                      deterministic_best_action=q_func_type != 'iqn')

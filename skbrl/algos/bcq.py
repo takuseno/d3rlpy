@@ -104,9 +104,8 @@ class BCQ(AlgoBase):
         beta (float): KL reguralization term for Conditional VAE.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        distribution_type (str): type of distributional Q function.
-            If None, the normal Q function will be used. Available options are
-            `['qr', 'iqn']`.
+        q_func_type (str): type of Q function. Available options are
+            `['mean', 'qr', 'iqn']`.
         n_epochs (int): the number of eopchs to train.
         use_gpu (bool): flag to use GPU.
         impl (skbrl.algos.bcq.IBCQImpl): algorithm implementation.
@@ -129,7 +128,7 @@ class BCQ(AlgoBase):
         beta (float): KL reguralization term for Conditional VAE.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        distribution_type (str): type of distributional Q function.
+        q_func_type (str): type of Q function.
         n_epochs (int): the number of eopchs to train.
         use_gpu (bool): flag to use GPU.
         impl (skbrl.algos.bcq.IBCQImpl): algorithm implementation.
@@ -151,7 +150,7 @@ class BCQ(AlgoBase):
                  beta=0.5,
                  eps=1e-8,
                  use_batch_norm=False,
-                 distribution_type=None,
+                 q_func_type='mean',
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,
@@ -171,7 +170,7 @@ class BCQ(AlgoBase):
         self.beta = beta
         self.eps = eps
         self.use_batch_norm = use_batch_norm
-        self.distribution_type = distribution_type
+        self.q_func_type = q_func_type
         self.use_gpu = use_gpu
         self.impl = impl
 
@@ -192,7 +191,7 @@ class BCQ(AlgoBase):
                             beta=self.beta,
                             eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
-                            distribution_type=self.distribution_type,
+                            q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu)
 
     def update(self, epoch, total_step, batch):
@@ -265,9 +264,8 @@ class DiscreteBCQ(AlgoBase):
         eps (float): :math:`\\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        distribution_type (str): type of distributional Q function.
-            If None, the normal Q function will be used. Available options are
-            `['qr', 'iqn']`.
+        q_func_type (str): type of Q function. Available options are
+            `['mean', 'qr', 'iqn']`.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
         impl (torch.algos.dqn.IDQNImpl): algorithm implementation.
@@ -282,7 +280,7 @@ class DiscreteBCQ(AlgoBase):
         eps (float): :math:`\\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        distribution_type (str): type of distributional Q function.
+        q_func_type (str): type of Q function.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
         impl (torch.algos.dqn.IDQNImpl): algorithm implementation.
@@ -297,7 +295,7 @@ class DiscreteBCQ(AlgoBase):
                  eps=1.5e-4,
                  target_update_interval=8e3,
                  use_batch_norm=True,
-                 distribution_type=None,
+                 q_func_type='mean',
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,
@@ -310,7 +308,7 @@ class DiscreteBCQ(AlgoBase):
         self.eps = eps
         self.target_update_interval = target_update_interval
         self.use_batch_norm = use_batch_norm
-        self.distribution_type = distribution_type
+        self.q_func_type = q_func_type
         self.use_gpu = use_gpu
         self.impl = impl
 
@@ -324,7 +322,7 @@ class DiscreteBCQ(AlgoBase):
                                     beta=self.beta,
                                     eps=self.eps,
                                     use_batch_norm=self.use_batch_norm,
-                                    distribution_type=self.distribution_type,
+                                    q_func_type=self.q_func_type,
                                     use_gpu=self.use_gpu)
 
     def update(self, epoch, total_step, batch):

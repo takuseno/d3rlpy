@@ -36,9 +36,8 @@ class DQN(AlgoBase):
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers
-        distribution_type (str): type of distributional Q function.
-            If None, the normal Q function will be used. Available options are
-            `['qr', 'iqn']`.
+        q_func_type (str): type of Q function. Available options are
+            `['mean', 'qr', 'iqn']`.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
         impl (skbrl.algos.dqn.IDQNImpl): algorithm implementation.
@@ -50,7 +49,7 @@ class DQN(AlgoBase):
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers
-        distribution_type (str): type of distributional Q function.
+        q_func_type (str): type of Q function.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
         impl (skbrl.algos.dqn.IDQNImpl): algorithm implementation.
@@ -63,7 +62,7 @@ class DQN(AlgoBase):
                  eps=1.5e-4,
                  target_update_interval=8e3,
                  use_batch_norm=True,
-                 distribution_type=None,
+                 q_func_type='mean',
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,
@@ -74,7 +73,7 @@ class DQN(AlgoBase):
         self.eps = eps
         self.target_update_interval = target_update_interval
         self.use_batch_norm = use_batch_norm
-        self.distribution_type = distribution_type
+        self.q_func_type = q_func_type
         self.use_gpu = use_gpu
         self.impl = impl
 
@@ -86,7 +85,7 @@ class DQN(AlgoBase):
                             gamma=self.gamma,
                             eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
-                            distribution_type=self.distribution_type,
+                            q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu)
 
     def update(self, epoch, total_step, batch):
@@ -130,9 +129,8 @@ class DoubleDQN(DQN):
         target_update_interval (int): interval to synchronize the target
             network.
         use_batch_norm (bool): flag to insert batch normalization layers
-        distribution_type (str): type of distributional Q function.
-            If None, the normal Q function will be used. Available options are
-            `['qr', 'iqn']`.
+        q_func_type (str): type of Q function. Available options are
+            `['mean', 'qr', 'iqn']`.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
         impl (skbrl.algos.dqn.IDQNImpl): algorithm implementation.
@@ -145,7 +143,7 @@ class DoubleDQN(DQN):
         target_update_interval (int): interval to synchronize the target
             network.
         use_batch_norm (bool): flag to insert batch normalization layers
-        distribution_type (str): type of distributional Q function.
+        q_func_type (str): type of Q function.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
         impl (skbrl.algos.dqn.IDQNImpl): algorithm implementation.
@@ -159,5 +157,5 @@ class DoubleDQN(DQN):
                                   gamma=self.gamma,
                                   eps=self.eps,
                                   use_batch_norm=self.use_batch_norm,
-                                  distribution_type=self.distribution_type,
+                                  q_func_type=self.q_func_type,
                                   use_gpu=self.use_gpu)

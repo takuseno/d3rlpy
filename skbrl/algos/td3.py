@@ -47,9 +47,8 @@ class TD3(AlgoBase):
             described as `delayed policy update` in the paper.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        distribution_type (str): type of distributional Q function.
-            If None, the normal Q function will be used. Available options are
-            `['qr', 'iqn']`.
+        q_func_type (str): type of Q function. Available options are
+            `['mean', 'qr', 'iqn']`.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
         impl (skbrl.algos.ddpg.IDDPGImpl): algorithm implementation.
@@ -68,7 +67,7 @@ class TD3(AlgoBase):
             described as `delayed policy update` in the paper.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        distribution_type (str): type of distributional Q function..
+        q_func_type (str): type of Q function..
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
         impl (skbrl.algos.ddpg.IDDPGImpl): algorithm implementation.
@@ -87,7 +86,7 @@ class TD3(AlgoBase):
                  update_actor_interval=2,
                  eps=1e-8,
                  use_batch_norm=False,
-                 distribution_type=None,
+                 q_func_type='mean',
                  n_epochs=1000,
                  use_gpu=False,
                  impl=None,
@@ -104,7 +103,7 @@ class TD3(AlgoBase):
         self.update_actor_interval = update_actor_interval
         self.eps = eps
         self.use_batch_norm = use_batch_norm
-        self.distribution_type = distribution_type
+        self.q_func_type = q_func_type
         self.use_gpu = use_gpu
         self.impl = impl
 
@@ -122,7 +121,7 @@ class TD3(AlgoBase):
                             target_smoothing_clip=self.target_smoothing_clip,
                             eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
-                            distribution_type=self.distribution_type,
+                            q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu)
 
     def update(self, epoch, total_step, batch):

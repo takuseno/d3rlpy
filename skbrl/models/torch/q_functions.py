@@ -12,20 +12,19 @@ def create_discrete_q_function(observation_shape,
                                n_quantiles=32,
                                embed_size=64,
                                use_batch_norm=False,
-                               distribution_type=None):
+                               q_func_type='mean'):
     q_funcs = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape, use_batch_norm=use_batch_norm)
-        if distribution_type:
-            if distribution_type == 'qr':
-                q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
-            elif distribution_type == 'iqn':
-                q_func = DiscreteIQNQFunction(head, action_size, n_quantiles,
-                                              embed_size)
-            else:
-                raise ValueError('invalid quantile regression type')
-        else:
+        if q_func_type == 'mean':
             q_func = DiscreteQFunction(head, action_size)
+        elif q_func_type == 'qr':
+            q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
+        elif q_func_type == 'iqn':
+            q_func = DiscreteIQNQFunction(head, action_size, n_quantiles,
+                                          embed_size)
+        else:
+            raise ValueError('invalid quantile regression type')
         q_funcs.append(q_func)
 
     if n_ensembles == 1:
@@ -40,21 +39,20 @@ def create_continuous_q_function(observation_shape,
                                  n_quantiles=200,
                                  embed_size=64,
                                  use_batch_norm=False,
-                                 distribution_type=None):
+                                 q_func_type='mean'):
     q_funcs = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape,
                            action_size,
                            use_batch_norm=use_batch_norm)
-        if distribution_type:
-            if distribution_type == 'qr':
-                q_func = ContinuousQRQFunction(head, n_quantiles)
-            elif distribution_type == 'iqn':
-                q_func = ContinuousIQNQFunction(head, n_quantiles, embed_size)
-            else:
-                raise ValueError('invalid quantile regression type')
-        else:
+        if q_func_type == 'mean':
             q_func = ContinuousQFunction(head)
+        elif q_func_type == 'qr':
+            q_func = ContinuousQRQFunction(head, n_quantiles)
+        elif q_func_type == 'iqn':
+            q_func = ContinuousIQNQFunction(head, n_quantiles, embed_size)
+        else:
+            raise ValueError('invalid quantile regression type')
         q_funcs.append(q_func)
 
     if n_ensembles == 1:
