@@ -26,4 +26,4 @@ jobs:
           pip install pytest gym
       - name: Unit tests
         run: |
-          ./scripts/test -p
+          ./scripts/test
