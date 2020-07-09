@@ -1,12 +1,12 @@
-![format check](https://github.com/takuseno/scikit-batch-rl/workflows/format%20check/badge.svg)
-![test](https://github.com/takuseno/scikit-batch-rl/workflows/test/badge.svg)
+![format check](https://github.com/takuseno/d3rlpy/workflows/format%20check/badge.svg)
+![test](https://github.com/takuseno/d3rlpy/workflows/test/badge.svg)
 
-# scikit-batch-rl
+# d3rlpy
 Data-driven Deep Reinforcement Learning library in scikit-learn style.
 
 ```py
-from skbrl.dataset import MDPDataset
-from skbrl.algos import BEAR
+from d3rlpy.dataset import MDPDataset
+from d3rlpy.algos import BEAR
 
 # MDPDataset takes arrays of state transitions
 dataset = MDPDataset(observations, actions, rewards, terminals)
@@ -19,7 +19,7 @@ bear.fit(dataset.episodes)
 actions = bear.predict(x)
 ```
 
-These are the design principles of scikit-batch-rl:
+These are the design principles of d3rlpy:
 - This library is designed for practical projects unlike the many other RL libraries.
 - This library is not focusing on reproducing RL papers.
 - This library is adding more techniques than the original implementations.
@@ -29,7 +29,7 @@ This library is designed as if born from scikit-learn.
 You can fully utilize scikit-learn's utilities to increase your productivity.
 ```py
 from sklearn.model_selection import train_test_split
-from skbrl.metrics.scorer import td_error_scorer
+from d3rlpy.metrics.scorer import td_error_scorer
 
 train_episodes, test_episodes = train_test_split(dataset)
 
@@ -58,7 +58,7 @@ gscv.fit(train_episodes)
 
 ## deploy
 Machine learning models often require dependencies even after deployment.
-scikit-batch-rl provides more flexible options to solve this problem via torch
+d3rlpy provides more flexible options to solve this problem via torch
 script so that the production environment never cares about which algorithms
 and hyperparameters are used to train.
 
@@ -107,7 +107,7 @@ try {
 ## supported evaluation metrics
 scikit-learn style scoring functions are provided.
 ```py
-from skbrl.metrics.scorer import td_error_scorer
+from d3rlpy.metrics.scorer import td_error_scorer
 
 train_episodes, test_episodes = train_test_split(dataset)
 
@@ -119,7 +119,7 @@ bear.fit(train_episodes,
 If you have an access to the target environments, you can also evaluate
 algorithms on them.
 ```py
-from skbrl.metics.scorer import evaluate_on_environment
+from d3rlpy.metics.scorer import evaluate_on_environment
 
 env_scorer = evaluate_on_environment(gym.make('Pendulum-v0'))
 

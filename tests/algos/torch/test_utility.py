@@ -4,12 +4,12 @@ import pytest
 import copy
 
 from unittest.mock import Mock
-from skbrl.algos.torch.utility import soft_sync, hard_sync
-from skbrl.algos.torch.utility import set_eval_mode, set_train_mode
-from skbrl.algos.torch.utility import freeze, unfreeze
-from skbrl.algos.torch.utility import torch_api, train_api, eval_api
-from skbrl.algos.torch.utility import map_location
-from skbrl.algos.torch.utility import get_state_dict, set_state_dict
+from d3rlpy.algos.torch.utility import soft_sync, hard_sync
+from d3rlpy.algos.torch.utility import set_eval_mode, set_train_mode
+from d3rlpy.algos.torch.utility import freeze, unfreeze
+from d3rlpy.algos.torch.utility import torch_api, train_api, eval_api
+from d3rlpy.algos.torch.utility import map_location
+from d3rlpy.algos.torch.utility import get_state_dict, set_state_dict
 
 
 @pytest.mark.parametrize('tau', [0.05])

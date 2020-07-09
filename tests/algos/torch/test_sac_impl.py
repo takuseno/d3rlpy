@@ -1,6 +1,6 @@
 import pytest
 
-from skbrl.algos.torch.sac_impl import SACImpl
+from d3rlpy.algos.torch.sac_impl import SACImpl
 from tests.algos.algo_test import torch_impl_tester
 
 

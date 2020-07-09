@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 
-from skbrl.metrics.scorer import td_error_scorer
-from skbrl.metrics.scorer import discounted_sum_of_advantage_scorer
-from skbrl.metrics.scorer import average_value_estimation_scorer
-from skbrl.metrics.scorer import evaluate_on_environment
-from skbrl.dataset import Episode, TransitionMiniBatch
+from d3rlpy.metrics.scorer import td_error_scorer
+from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
+from d3rlpy.metrics.scorer import average_value_estimation_scorer
+from d3rlpy.metrics.scorer import evaluate_on_environment
+from d3rlpy.dataset import Episode, TransitionMiniBatch
 
 
 # dummy algorithm with deterministic outputs

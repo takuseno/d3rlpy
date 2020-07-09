@@ -2,12 +2,12 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from skbrl.models.torch.imitators import create_conditional_vae
-from skbrl.models.torch.imitators import create_discrete_imitator
-from skbrl.models.torch.imitators import create_deterministic_regressor
-from skbrl.models.torch.imitators import ConditionalVAE
-from skbrl.models.torch.imitators import DiscreteImitator
-from skbrl.models.torch.imitators import DeterministicRegressor
+from d3rlpy.models.torch.imitators import create_conditional_vae
+from d3rlpy.models.torch.imitators import create_discrete_imitator
+from d3rlpy.models.torch.imitators import create_deterministic_regressor
+from d3rlpy.models.torch.imitators import ConditionalVAE
+from d3rlpy.models.torch.imitators import DiscreteImitator
+from d3rlpy.models.torch.imitators import DeterministicRegressor
 from .model_test import check_parameter_updates, DummyHead
 
 

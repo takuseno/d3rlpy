@@ -1,6 +1,6 @@
 import pytest
 
-from skbrl.algos.torch.bc_impl import BCImpl, DiscreteBCImpl
+from d3rlpy.algos.torch.bc_impl import BCImpl, DiscreteBCImpl
 from tests.algos.algo_test import torch_impl_tester
 
 

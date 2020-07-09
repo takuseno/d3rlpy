@@ -1,6 +1,6 @@
 import pytest
 
-from skbrl.algos.torch.dqn_impl import DQNImpl, DoubleDQNImpl
+from d3rlpy.algos.torch.dqn_impl import DQNImpl, DoubleDQNImpl
 from tests.algos.algo_test import torch_impl_tester
 
 

@@ -1,6 +1,6 @@
 import pytest
 
-from skbrl.algos.bcq import BCQ, DiscreteBCQ
+from d3rlpy.algos.bcq import BCQ, DiscreteBCQ
 from tests import performance_test
 from .algo_test import algo_tester, algo_update_tester
 from .algo_test import algo_pendulum_tester, algo_cartpole_tester

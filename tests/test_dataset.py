@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from sklearn.model_selection import train_test_split
-from skbrl.dataset import _compute_rewards, _load_images, read_csv
-from skbrl.dataset import MDPDataset, Episode, Transition, TransitionMiniBatch
+from d3rlpy.dataset import _compute_rewards, _load_images, read_csv
+from d3rlpy.dataset import MDPDataset, Episode, Transition, TransitionMiniBatch
 
 
 @pytest.mark.parametrize('data_size', [100])

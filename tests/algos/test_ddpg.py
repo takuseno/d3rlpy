@@ -1,6 +1,6 @@
 import pytest
 
-from skbrl.algos.ddpg import DDPG
+from d3rlpy.algos.ddpg import DDPG
 from tests import performance_test
 from .algo_test import algo_tester, algo_update_tester, algo_pendulum_tester
 

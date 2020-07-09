@@ -1,12 +1,12 @@
 import pytest
 import torch
 
-from skbrl.models.torch.policies import create_deterministic_policy
-from skbrl.models.torch.policies import create_deterministic_residual_policy
-from skbrl.models.torch.policies import create_normal_policy
-from skbrl.models.torch.policies import DeterministicPolicy
-from skbrl.models.torch.policies import DeterministicResidualPolicy
-from skbrl.models.torch.policies import NormalPolicy
+from d3rlpy.models.torch.policies import create_deterministic_policy
+from d3rlpy.models.torch.policies import create_deterministic_residual_policy
+from d3rlpy.models.torch.policies import create_normal_policy
+from d3rlpy.models.torch.policies import DeterministicPolicy
+from d3rlpy.models.torch.policies import DeterministicResidualPolicy
+from d3rlpy.models.torch.policies import NormalPolicy
 from .model_test import check_parameter_updates, DummyHead
 
 

@@ -6,4 +6,4 @@ else
   YAPF_ARG=$*
 fi
 
-yapf -r -vv $YAPF_ARG skbrl tests
+yapf -r -vv $YAPF_ARG d3rlpy tests

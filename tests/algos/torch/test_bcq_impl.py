@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from skbrl.algos.torch.bcq_impl import BCQImpl, DiscreteBCQImpl
+from d3rlpy.algos.torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 from tests.algos.algo_test import torch_impl_tester
 
 

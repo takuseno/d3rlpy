@@ -1,9 +1,9 @@
 import pytest
 import torch
 
-from skbrl.models.torch.heads import create_head
-from skbrl.models.torch.heads import PixelHead, PixelHeadWithAction
-from skbrl.models.torch.heads import VectorHead, VectorHeadWithAction
+from d3rlpy.models.torch.heads import create_head
+from d3rlpy.models.torch.heads import PixelHead, PixelHeadWithAction
+from d3rlpy.models.torch.heads import VectorHead, VectorHeadWithAction
 from .model_test import check_parameter_updates
 
 

@@ -1,9 +1,9 @@
 #!/bin/bash -eux
 
-mkdir -p skbrl_data
-if [ ! -f skbrl_data/cartpole.pkl ]; then
-  wget -O skbrl_data/cartpole.pkl https://www.dropbox.com/s/2tmo7ul00268l3e/cartpole.pkl?dl=1
+mkdir -p d3rlpy_data
+if [ ! -f d3rlpy_data/cartpole.pkl ]; then
+  wget -O d3rlpy_data/cartpole.pkl https://www.dropbox.com/s/2tmo7ul00268l3e/cartpole.pkl?dl=1
 fi
-if [ ! -f skbrl_data/pendulum.pkl ]; then
-  wget -O skbrl_data/pendulum.pkl https://www.dropbox.com/s/90z7a84ngndrqt4/pendulum.pkl?dl=1
+if [ ! -f d3rlpy_data/pendulum.pkl ]; then
+  wget -O d3rlpy_data/pendulum.pkl https://www.dropbox.com/s/90z7a84ngndrqt4/pendulum.pkl?dl=1
 fi

@@ -2,7 +2,7 @@
 API Reference
 *************
 
-.. module:: skbrl
+.. module:: d3rlpy
 
 .. toctree::
    :maxdepth: 2

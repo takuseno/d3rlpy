@@ -2,21 +2,21 @@ import numpy as np
 import pytest
 import torch
 
-from skbrl.models.torch.q_functions import create_discrete_q_function
-from skbrl.models.torch.q_functions import create_continuous_q_function
-from skbrl.models.torch.q_functions import _pick_value_by_action
-from skbrl.models.torch.q_functions import _make_taus_prime
-from skbrl.models.torch.q_functions import _quantile_huber_loss
-from skbrl.models.torch.q_functions import _reduce_ensemble
-from skbrl.models.torch.q_functions import _reduce_quantile_ensemble
-from skbrl.models.torch.q_functions import DiscreteQRQFunction
-from skbrl.models.torch.q_functions import ContinuousQRQFunction
-from skbrl.models.torch.q_functions import DiscreteIQNQFunction
-from skbrl.models.torch.q_functions import ContinuousIQNQFunction
-from skbrl.models.torch.q_functions import DiscreteQFunction
-from skbrl.models.torch.q_functions import EnsembleDiscreteQFunction
-from skbrl.models.torch.q_functions import ContinuousQFunction
-from skbrl.models.torch.q_functions import EnsembleContinuousQFunction
+from d3rlpy.models.torch.q_functions import create_discrete_q_function
+from d3rlpy.models.torch.q_functions import create_continuous_q_function
+from d3rlpy.models.torch.q_functions import _pick_value_by_action
+from d3rlpy.models.torch.q_functions import _make_taus_prime
+from d3rlpy.models.torch.q_functions import _quantile_huber_loss
+from d3rlpy.models.torch.q_functions import _reduce_ensemble
+from d3rlpy.models.torch.q_functions import _reduce_quantile_ensemble
+from d3rlpy.models.torch.q_functions import DiscreteQRQFunction
+from d3rlpy.models.torch.q_functions import ContinuousQRQFunction
+from d3rlpy.models.torch.q_functions import DiscreteIQNQFunction
+from d3rlpy.models.torch.q_functions import ContinuousIQNQFunction
+from d3rlpy.models.torch.q_functions import DiscreteQFunction
+from d3rlpy.models.torch.q_functions import EnsembleDiscreteQFunction
+from d3rlpy.models.torch.q_functions import ContinuousQFunction
+from d3rlpy.models.torch.q_functions import EnsembleContinuousQFunction
 from .model_test import check_parameter_updates, DummyHead
 
 

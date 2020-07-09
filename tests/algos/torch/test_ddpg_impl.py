@@ -1,6 +1,6 @@
 import pytest
 
-from skbrl.algos.torch.ddpg_impl import DDPGImpl
+from d3rlpy.algos.torch.ddpg_impl import DDPGImpl
 from tests.algos.algo_test import torch_impl_tester
 
 

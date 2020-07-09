@@ -1,6 +1,6 @@
 import pytest
 
-from skbrl.algos.torch.td3_impl import TD3Impl
+from d3rlpy.algos.torch.td3_impl import TD3Impl
 from tests.algos.algo_test import torch_impl_tester
 
 

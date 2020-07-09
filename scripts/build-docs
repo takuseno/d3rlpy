@@ -1,5 +1,5 @@
 #!/bin/bash
 
-sphinx-apidoc -f -o ./docs skbrl *tests
+sphinx-apidoc -f -o ./docs d3rlpy *tests
 
 sphinx-build -b html ./docs ./docs/_build

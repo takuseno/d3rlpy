@@ -5,8 +5,8 @@ import pickle
 import gym
 
 from unittest.mock import Mock
-from skbrl.algos.torch.base import ImplBase
-from skbrl.dataset import MDPDataset, Transition, TransitionMiniBatch
+from d3rlpy.algos.torch.base import ImplBase
+from d3rlpy.dataset import MDPDataset, Transition, TransitionMiniBatch
 
 
 class DummyImpl(ImplBase):
@@ -154,7 +154,7 @@ def algo_update_tester(algo, observation_shape, action_size, discrete=False):
 
 def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
     # load dataset
-    with open('skbrl_data/cartpole.pkl', 'rb') as f:
+    with open('d3rlpy_data/cartpole.pkl', 'rb') as f:
         observations, actions, rewards, terminals = pickle.load(f)
 
     dataset = MDPDataset(observations, actions, rewards, terminals, True)
@@ -200,7 +200,7 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
 
 def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
     # load dataset
-    with open('skbrl_data/pendulum.pkl', 'rb') as f:
+    with open('d3rlpy_data/pendulum.pkl', 'rb') as f:
         observations, actions, rewards, terminals = pickle.load(f)
 
     dataset = MDPDataset(observations, actions, rewards, terminals)

@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'scikit-batch-rl'
+project = 'd3rlpy'
 copyright = '2020, Takuma Seno'
 author = 'Takuma Seno'
 
