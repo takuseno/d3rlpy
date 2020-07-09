@@ -78,13 +78,14 @@ def _huber_loss(y, target, beta=1.0):
 
 
 def _quantile_huber_loss(y, target, taus):
+    assert y.ndim == 3
+    assert target.ndim == 3
+    assert taus.ndim == 3
     # compute huber loss
     huber_loss = _huber_loss(y, target)
     delta = ((target - y).detach() < 0.0).float()
     element_wise_loss = ((taus - delta).abs() * huber_loss)
-    if element_wise_loss.ndim == 3:  # for implicit quantile network
-        element_wise_loss = element_wise_loss.sum(dim=2)
-    return element_wise_loss.mean()
+    return element_wise_loss.sum(dim=2).mean()
 
 
 def _make_taus_prime(n_quantiles, device):
@@ -121,7 +122,9 @@ class DiscreteQRQFunction(nn.Module):
         taus = _make_taus_prime(self.n_quantiles, obs_t.device)
 
         # compute quantile huber loss
-        y = rew_tp1 + gamma * q_tp1
+        y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
+        quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
+        taus = taus.view(1, 1, -1)
         return _quantile_huber_loss(quantiles_t, y, taus)
 
     def compute_target(self, x, action):
@@ -154,7 +157,9 @@ class ContinuousQRQFunction(nn.Module):
         taus = _make_taus_prime(self.n_quantiles, obs_t.device)
 
         # compute quantile huber loss
-        y = rew_tp1 + gamma * q_tp1
+        y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
+        quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
+        taus = taus.view(1, 1, -1)
         return _quantile_huber_loss(quantiles_t, y, taus)
 
     def compute_target(self, x, action):

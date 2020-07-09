@@ -130,26 +130,26 @@ def test_pick_value_by_action(batch_size, action_size, n_quantiles, keepdims):
         assert (rets[i] == values[i][action[i]]).all()
 
 
-def ref_quantile_huber_loss(a, b, taus):
+def ref_quantile_huber_loss(a, b, taus, n_quantiles):
     abs_diff = np.abs(a - b).reshape((-1, ))
     l2_diff = ((a - b)**2).reshape((-1, ))
     huber_diff = np.zeros_like(abs_diff)
     huber_diff[abs_diff < 1.0] = 0.5 * l2_diff[abs_diff < 1.0]
     huber_diff[abs_diff >= 1.0] = abs_diff[abs_diff >= 1.0] - 0.5
+    huber_diff = huber_diff.reshape(-1, n_quantiles, n_quantiles)
     delta = np.array((b - a) < 0.0, dtype=np.float32)
-    alpha = np.abs((taus - delta).reshape((-1, )))
-    element_wise_loss = alpha * huber_diff
-    return np.mean(element_wise_loss)
+    element_wise_loss = np.abs(taus - delta) * huber_diff
+    return element_wise_loss.sum(axis=2).mean()
 
 
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('n_quantiles', [200])
 def test_quantile_huber_loss(batch_size, n_quantiles):
-    y = np.random.random((batch_size, n_quantiles))
-    target = np.random.random((batch_size, n_quantiles))
-    taus = np.random.random((1, n_quantiles))
+    y = np.random.random((batch_size, n_quantiles, 1))
+    target = np.random.random((batch_size, 1, n_quantiles))
+    taus = np.random.random((1, 1, n_quantiles))
 
-    ref_loss = ref_quantile_huber_loss(y, target, taus)
+    ref_loss = ref_quantile_huber_loss(y, target, taus, n_quantiles)
     loss = _quantile_huber_loss(torch.tensor(y), torch.tensor(target),
                                 torch.tensor(taus))
 
@@ -234,10 +234,16 @@ def test_discrete_qr_q_function(feature_size, action_size, n_quantiles,
     q_tp1 = torch.rand(batch_size, n_quantiles)
     loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1)
 
-    target = rew_tp1.numpy() + gamma * q_tp1.numpy()
+    target = (rew_tp1.numpy() + gamma * q_tp1.numpy())
     y = _pick_value_by_action(q_func(obs_t, as_quantiles=True), act_t)
     taus = _make_taus_prime(n_quantiles, 'cpu:0').numpy()
-    ref_loss = ref_quantile_huber_loss(y.detach().numpy(), target, taus)
+
+    reshaped_target = np.reshape(target, (batch_size, -1, 1))
+    reshaped_y = np.reshape(y.detach().numpy(), (batch_size, 1, -1))
+    reshaped_taus = np.reshape(taus, (1, 1, -1))
+
+    ref_loss = ref_quantile_huber_loss(reshaped_y, reshaped_target,
+                                       reshaped_taus, n_quantiles)
     assert np.allclose(loss.cpu().detach(), ref_loss)
 
     # check layer connection
@@ -273,9 +279,15 @@ def test_continuous_qr_q_function(feature_size, action_size, n_quantiles,
     loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1)
 
     target = rew_tp1.numpy() + gamma * q_tp1.numpy()
-    y = q_func(obs_t, act_t, as_quantiles=True)
+    y = q_func(obs_t, act_t, as_quantiles=True).detach().numpy()
     taus = _make_taus_prime(n_quantiles, 'cpu:0').numpy()
-    ref_loss = ref_quantile_huber_loss(y.detach().numpy(), target, taus)
+
+    reshaped_target = target.reshape((batch_size, -1, 1))
+    reshaped_y = y.reshape((batch_size, 1, -1))
+    reshaped_taus = taus.reshape((1, 1, -1))
+
+    ref_loss = ref_quantile_huber_loss(reshaped_y, reshaped_target,
+                                       reshaped_taus, n_quantiles)
     assert np.allclose(loss.cpu().detach(), ref_loss)
 
     # check layer connection
