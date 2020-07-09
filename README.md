@@ -146,6 +146,7 @@ $ ./scripts/format
 
 ### test
 The unit tests are provided as much as possible.
+This repository is using `pytest-cov` instead of `pytest`.
 You can run the entire tests as follows:
 ```
 $ ./scripts/test
