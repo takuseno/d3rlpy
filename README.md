@@ -1,5 +1,6 @@
 ![format check](https://github.com/takuseno/d3rlpy/workflows/format%20check/badge.svg)
 ![test](https://github.com/takuseno/d3rlpy/workflows/test/badge.svg)
+![MIT](https://img.shields.io/badge/license-MIT-blue)
 
 # d3rlpy
 Data-driven Deep Reinforcement Learning library in scikit-learn style.
