@@ -1,5 +1,6 @@
 ![format check](https://github.com/takuseno/d3rlpy/workflows/format%20check/badge.svg)
 ![test](https://github.com/takuseno/d3rlpy/workflows/test/badge.svg)
+[![codecov](https://codecov.io/gh/takuseno/d3rlpy/branch/master/graph/badge.svg?token=AQ02USKN6Y)](https://codecov.io/gh/takuseno/d3rlpy)
 ![MIT](https://img.shields.io/badge/license-MIT-blue)
 
 # d3rlpy
