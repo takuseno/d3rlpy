@@ -14,9 +14,6 @@ done
 # create temporary directory for tests
 mkdir -p test_data
 
-# download performance test dataset
-./scripts/download_datasets
-
 # set flag
 if [ "$FLAG_P" = "TRUE" ]; then
   TEST_PERFORMANCE="TRUE"

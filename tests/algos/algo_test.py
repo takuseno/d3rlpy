@@ -7,6 +7,7 @@ import gym
 from unittest.mock import Mock
 from d3rlpy.algos.torch.base import ImplBase
 from d3rlpy.dataset import MDPDataset, Transition, TransitionMiniBatch
+from d3rlpy.datasets import get_cartpole, get_pendulum
 
 
 class DummyImpl(ImplBase):
@@ -154,10 +155,7 @@ def algo_update_tester(algo, observation_shape, action_size, discrete=False):
 
 def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
     # load dataset
-    with open('d3rlpy_data/cartpole.pkl', 'rb') as f:
-        observations, actions, rewards, terminals = pickle.load(f)
-
-    dataset = MDPDataset(observations, actions, rewards, terminals, True)
+    dataset, env = get_cartpole()
 
     # try multiple trials to reduce failures due to random seeds
     trial_count = 0
@@ -170,9 +168,6 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
                  logdir='test_data',
                  verbose=False,
                  tensorboard=False)
-
-        # environment
-        env = gym.make('CartPole-v0')
 
         # evaluation loop
         success_count = 0
@@ -200,10 +195,8 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
 
 def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
     # load dataset
-    with open('d3rlpy_data/pendulum.pkl', 'rb') as f:
-        observations, actions, rewards, terminals = pickle.load(f)
-
-    dataset = MDPDataset(observations, actions, rewards, terminals)
+    dataset, env = get_pendulum()
+    upper_bound = env.action_space.high
 
     # try multiple trials to reduce failures due to random seeds
     trial_count = 0
@@ -216,10 +209,6 @@ def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
                  logdir='test_data',
                  verbose=False,
                  tensorboard=False)
-
-        # environment
-        env = gym.make('Pendulum-v0')
-        upper_bound = env.action_space.high
 
         # evaluation loop
         success_count = 0
