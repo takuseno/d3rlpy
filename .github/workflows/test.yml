@@ -25,6 +25,8 @@ jobs:
           pip install -r requirements.txt
           pip install pytest-cov gym
       - name: Unit tests
+        env:
+          SECRET_SETTING: ${{ secrets.SecretSetting }}
         run: |
           ./scripts/test
-          bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
+          bash <(curl -s https://codecov.io/bash)
