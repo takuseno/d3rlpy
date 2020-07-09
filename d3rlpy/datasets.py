@@ -131,7 +131,7 @@ def get_atari(env_name):
     try:
         import d4rl_atari
         env = gym.make(env_name)
-        dataset = MDPDataset(**env.get_dataset(), discrete=True)
+        dataset = MDPDataset(**env.get_dataset(), discrete_action=True)
         return dataset, env
     except ImportError:
         print('d4rl-atari is not installed.')
