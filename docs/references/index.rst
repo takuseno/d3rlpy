@@ -8,4 +8,5 @@ API Reference
    :maxdepth: 2
 
    algos
+   dataset
    datasets
