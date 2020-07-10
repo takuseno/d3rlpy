@@ -232,7 +232,7 @@ def test_discrete_qr_q_function(feature_size, action_size, n_quantiles,
     act_t = torch.randint(action_size, size=(batch_size, ))
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
-    loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1)
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
 
     target = (rew_tp1.numpy() + gamma * q_tp1.numpy())
     y = _pick_value_by_action(q_func(obs_t, as_quantiles=True), act_t)
@@ -276,7 +276,7 @@ def test_continuous_qr_q_function(feature_size, action_size, n_quantiles,
     act_t = torch.rand(batch_size, action_size)
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
-    loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1)
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
 
     target = rew_tp1.numpy() + gamma * q_tp1.numpy()
     y = q_func(obs_t, act_t, as_quantiles=True).detach().numpy()
@@ -319,7 +319,7 @@ def test_discrete_iqn_q_function(feature_size, action_size, n_quantiles,
     act_t = torch.randint(action_size, size=(batch_size, ))
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
-    loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1)
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
 
     # check layer connection
     check_parameter_updates(q_func, (x, ))
@@ -350,7 +350,7 @@ def test_continuous_iqn_q_function(feature_size, action_size, n_quantiles,
     act_t = torch.randint(action_size, size=(batch_size, ))
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
-    loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1)
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
 
     # check layer connection
     check_parameter_updates(q_func, (x, action))
@@ -399,11 +399,11 @@ def test_discrete_q_function(feature_size, action_size, batch_size, gamma):
     q_t = filter_by_action(q_func(obs_t).detach().numpy(), act_t, action_size)
     ref_loss = ref_huber_loss(q_t.reshape((-1, 1)), target)
 
-    loss = q_func.compute_td(obs_t,
-                             torch.tensor(act_t, dtype=torch.int64),
-                             torch.tensor(rew_tp1, dtype=torch.float32),
-                             torch.tensor(q_tp1, dtype=torch.float32),
-                             gamma=gamma)
+    loss = q_func.compute_error(obs_t,
+                                torch.tensor(act_t, dtype=torch.int64),
+                                torch.tensor(rew_tp1, dtype=torch.float32),
+                                torch.tensor(q_tp1, dtype=torch.float32),
+                                gamma=gamma)
 
     assert np.allclose(loss.detach().numpy(), ref_loss)
 
@@ -471,8 +471,8 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
     ref_td_sum = 0.0
     for i in range(ensemble_size):
         f = q_func.q_funcs[i]
-        ref_td_sum += f.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
-    loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
+        ref_td_sum += f.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
     if q_func_type != 'iqn':
         assert torch.allclose(ref_td_sum, loss)
 
@@ -509,9 +509,10 @@ def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
     q_t = q_func(obs_t, act_t).detach().numpy()
     ref_loss = ((q_t - target)**2).mean()
 
-    loss = q_func.compute_td(obs_t, act_t,
-                             torch.tensor(rew_tp1, dtype=torch.float32),
-                             torch.tensor(q_tp1, dtype=torch.float32), gamma)
+    loss = q_func.compute_error(obs_t, act_t,
+                                torch.tensor(rew_tp1, dtype=torch.float32),
+                                torch.tensor(q_tp1, dtype=torch.float32),
+                                gamma)
 
     assert np.allclose(loss.detach().numpy(), ref_loss)
 
@@ -575,8 +576,8 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
     ref_td_sum = 0.0
     for i in range(ensemble_size):
         f = q_func.q_funcs[i]
-        ref_td_sum += f.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
-    loss = q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
+        ref_td_sum += f.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
     if q_func_type != 'iqn':
         assert torch.allclose(ref_td_sum, loss)
 

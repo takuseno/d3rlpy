@@ -38,7 +38,7 @@ class BCImpl(TorchImplBase, IBCImpl):
     @train_api
     @torch_api
     def update_imitator(self, obs_t, act_t):
-        loss = self.imitator.compute_l2_loss(obs_t, act_t)
+        loss = self.imitator.compute_error(obs_t, act_t)
 
         self.optim.zero_grad()
         loss.backward()
@@ -70,7 +70,7 @@ class DiscreteBCImpl(BCImpl):
     @train_api
     @torch_api
     def update_imitator(self, obs_t, act_t):
-        loss = self.imitator.compute_likelihood_loss(obs_t, act_t.long())
+        loss = self.imitator.compute_error(obs_t, act_t.long())
 
         self.optim.zero_grad()
         loss.backward()

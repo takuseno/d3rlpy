@@ -67,7 +67,7 @@ class ConditionalVAE(nn.Module):
         h = self.decoder_head(x, latent)
         return torch.tanh(self.fc(h))
 
-    def compute_likelihood_loss(self, x, action):
+    def compute_error(self, x, action):
         dist = self.encode(x, action)
         kl_loss = kl_divergence(dist, Normal(0.0, 1.0)).mean()
         y = self.decode(x, dist.rsample())
@@ -89,7 +89,7 @@ class DiscreteImitator(nn.Module):
             return log_probs, logits
         return log_probs
 
-    def compute_likelihood_loss(self, x, action):
+    def compute_error(self, x, action):
         log_probs, logits = self.forward(x, with_logits=True)
         penalty = (logits**2).mean()
         return F.nll_loss(log_probs, action.view(-1)) + self.beta * penalty
@@ -106,5 +106,5 @@ class DeterministicRegressor(nn.Module):
         h = self.fc(h)
         return torch.tanh(h)
 
-    def compute_l2_loss(self, x, action):
+    def compute_error(self, x, action):
         return F.mse_loss(self.forward(x), action)

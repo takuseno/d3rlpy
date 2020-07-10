@@ -112,7 +112,7 @@ class DiscreteQRQFunction(nn.Module):
 
         return quantiles.mean(dim=2)
 
-    def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
 
         # extraect quantiles corresponding to act_t
@@ -148,7 +148,7 @@ class ContinuousQRQFunction(nn.Module):
 
         return quantiles.mean(dim=1, keepdims=True)
 
-    def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
 
         quantiles_t = self.forward(obs_t, act_t, as_quantiles=True)
@@ -205,7 +205,7 @@ class DiscreteIQNQFunction(nn.Module):
             return rets[0]
         return rets
 
-    def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
 
         # extraect quantiles corresponding to act_t
@@ -262,7 +262,7 @@ class ContinuousIQNQFunction(nn.Module):
             return rets[0]
         return rets
 
-    def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
 
         quantiles_t, taus = self.forward(obs_t,
@@ -291,7 +291,7 @@ class DiscreteQFunction(nn.Module):
         h = self.head(x)
         return self.fc(h)
 
-    def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
         q_t = (self.forward(obs_t) * one_hot).sum(dim=1, keepdims=True)
         y = rew_tp1 + gamma * q_tp1
@@ -312,7 +312,7 @@ class ContinuousQFunction(nn.Module):
         h = self.head(x, action)
         return self.fc(h)
 
-    def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         q_t = self.forward(obs_t, act_t)
         y = rew_tp1 + gamma * q_tp1
         return F.mse_loss(q_t, y)
@@ -354,10 +354,10 @@ class EnsembleQFunction(nn.Module):
         self.action_size = q_funcs[0].action_size
         self.q_funcs = nn.ModuleList(q_funcs)
 
-    def compute_td(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         td_sum = 0.0
         for q_func in self.q_funcs:
-            td_sum += q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1, gamma)
+            td_sum += q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
         return td_sum
 
     def compute_target(self, x, action, reduction='min'):

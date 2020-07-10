@@ -111,7 +111,7 @@ def test_discrete_imitator(feature_size, action_size, beta, batch_size):
     assert torch.allclose(y, F.log_softmax(logits, dim=1))
 
     action = torch.randint(low=0, high=action_size - 1, size=(batch_size, ))
-    loss = imitator.compute_likelihood_loss(x, action)
+    loss = imitator.compute_error(x, action)
     penalty = (logits**2).mean()
     assert torch.allclose(loss, F.nll_loss(y, action) + beta * penalty)
 
@@ -128,5 +128,5 @@ def test_deterministic_regressor(feature_size, action_size, batch_size):
     assert y.shape == (batch_size, action_size)
 
     action = torch.rand(batch_size, action_size)
-    loss = imitator.compute_l2_loss(x, action)
+    loss = imitator.compute_error(x, action)
     assert torch.allclose(F.mse_loss(y, action), loss)

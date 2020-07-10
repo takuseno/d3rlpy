@@ -89,7 +89,7 @@ class BCQImpl(DDPGImpl, IBCQImpl):
     @train_api
     @torch_api
     def update_imitator(self, obs_t, act_t):
-        loss = self.imitator.compute_likelihood_loss(obs_t, act_t)
+        loss = self.imitator.compute_error(obs_t, act_t)
 
         self.imitator_optim.zero_grad()
         loss.backward()
@@ -217,11 +217,11 @@ class DiscreteBCQImpl(DoubleDQNImpl):
 
         # loss for Q function
         q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
-        value_loss = self.q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1,
-                                            self.gamma)
+        value_loss = self.q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1,
+                                               self.gamma)
 
         # loss for imitator
-        imitator_loss = self.imitator.compute_likelihood_loss(obs_t, act_t)
+        imitator_loss = self.imitator.compute_error(obs_t, act_t)
 
         loss = value_loss + imitator_loss
 

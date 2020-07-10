@@ -68,7 +68,8 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
     @torch_api
     def update_critic(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
         q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
-        loss = self.q_func.compute_td(obs_t, act_t, rew_tp1, q_tp1, self.gamma)
+        loss = self.q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1,
+                                         self.gamma)
 
         self.critic_optim.zero_grad()
         loss.backward()
