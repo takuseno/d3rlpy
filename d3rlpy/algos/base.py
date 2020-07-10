@@ -99,7 +99,7 @@ class AlgoBase:
         rets = {}
         for key in dir(self):
             # remove magic properties
-            if key == '__module__':
+            if key == '__module__' or key == '__doc__':
                 continue
             # pick scalar parameters
             if np.isscalar(getattr(self, key)):
