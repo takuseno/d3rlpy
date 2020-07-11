@@ -20,6 +20,12 @@ library.
 
    references/index
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Other
+
+   license
+
 
 Indices and tables
 ==================
