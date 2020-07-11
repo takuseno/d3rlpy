@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 d3rlpy - A data-driven deep reinforcement learning library in scikit-learn style.
-==============================================================================
+=================================================================================
 
 d3rlpy is a easy-to-use data-driven deep reinforcement learning
 library.

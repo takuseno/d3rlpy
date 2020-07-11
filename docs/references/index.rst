@@ -8,5 +8,6 @@ API Reference
    :maxdepth: 2
 
    algos
+   q_functions
    dataset
    datasets

@@ -1,5 +1,5 @@
 MDPDataset
-========
+==========
 
 .. module:: d3rlpy.dataset
 
