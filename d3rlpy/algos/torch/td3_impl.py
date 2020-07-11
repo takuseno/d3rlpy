@@ -29,9 +29,10 @@ class TD3Impl(DDPGImpl):
         with torch.no_grad():
             action = self.targ_policy(x)
             # smoothing target
-            noise = self.target_smoothing_sigma * torch.randn(action.shape)
-            clipped_noise = noise.clamp(-self.target_smoothing_clip,
-                                        self.target_smoothing_clip)
+            noise = torch.randn(action.shape, device=x.device)
+            scaled_noise = self.target_smoothing_sigma * noise
+            clipped_noise = scaled_noise.clamp(-self.target_smoothing_clip,
+                                               self.target_smoothing_clip)
             smoothed_action = action + clipped_noise
             clipped_action = smoothed_action.clamp(-1.0, 1.0)
             return self.targ_q_func.compute_target(x, clipped_action)
