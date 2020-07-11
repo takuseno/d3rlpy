@@ -48,7 +48,7 @@ class TD3(AlgoBase):
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
-            `['mean', 'qr', 'iqn']`.
+            `['mean', 'qr', 'iqn', 'fqf']`.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
         impl (d3rlpy.algos.ddpg.IDDPGImpl): algorithm implementation.

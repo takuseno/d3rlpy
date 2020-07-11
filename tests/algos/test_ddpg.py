@@ -7,7 +7,7 @@ from .algo_test import algo_tester, algo_update_tester, algo_pendulum_tester
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn'])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_ddpg(observation_shape, action_size, q_func_type):
     ddpg = DDPG(q_func_type=q_func_type)
     algo_tester(ddpg)
@@ -15,7 +15,7 @@ def test_ddpg(observation_shape, action_size, q_func_type):
 
 
 @performance_test
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn'])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_ddpg_performance(q_func_type):
     # not good enough for batch RL, but check if it works without errors.
     try:

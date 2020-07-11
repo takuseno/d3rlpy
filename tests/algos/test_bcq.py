@@ -8,7 +8,7 @@ from .algo_test import algo_pendulum_tester, algo_cartpole_tester
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn'])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_bcq(observation_shape, action_size, q_func_type):
     bcq = BCQ(q_func_type=q_func_type)
     algo_tester(bcq)
@@ -23,7 +23,7 @@ def test_bcq_performance():
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn'])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_discrete_bcq(observation_shape, action_size, q_func_type):
     bcq = DiscreteBCQ(q_func_type=q_func_type)
     algo_tester(bcq)
@@ -31,7 +31,7 @@ def test_discrete_bcq(observation_shape, action_size, q_func_type):
 
 
 @performance_test
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn'])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_discrete_bcq_performance(q_func_type):
     bcq = DiscreteBCQ(n_epochs=1, q_func_type=q_func_type)
     algo_cartpole_tester(bcq)

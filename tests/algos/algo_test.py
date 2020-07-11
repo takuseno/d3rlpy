@@ -190,7 +190,7 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
 
         trial_count += 1
         if trial_count == n_trials:
-            assert False, 'performance is not good enough.'
+            assert False, 'performance is not good enough: %d.' % success_count
 
 
 def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
@@ -231,7 +231,7 @@ def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
 
         trial_count += 1
         if trial_count == n_trials:
-            assert False, 'performance is not good enough.'
+            assert False, 'performance is not good enough: %d.' % success_count
 
 
 def impl_tester(impl, discrete, imitator):

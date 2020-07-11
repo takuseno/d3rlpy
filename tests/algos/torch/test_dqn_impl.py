@@ -10,7 +10,7 @@ from tests.algos.algo_test import torch_impl_tester
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn'])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_dqn_impl(observation_shape, action_size, learning_rate, gamma, eps,
                   use_batch_norm, q_func_type):
     impl = DQNImpl(observation_shape,
@@ -32,7 +32,7 @@ def test_dqn_impl(observation_shape, action_size, learning_rate, gamma, eps,
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn'])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_double_dqn_impl(observation_shape, action_size, learning_rate, gamma,
                          eps, use_batch_norm, q_func_type):
     impl = DoubleDQNImpl(observation_shape,

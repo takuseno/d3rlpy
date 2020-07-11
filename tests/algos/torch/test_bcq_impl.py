@@ -20,7 +20,7 @@ from tests.algos.algo_test import torch_impl_tester
 @pytest.mark.parametrize('beta', [0.5])
 @pytest.mark.parametrize('eps', [1e-8])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn'])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, imitator_learning_rate, gamma, tau,
                   n_critics, lam, n_action_samples, action_flexibility,
@@ -59,13 +59,15 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
     if q_func_type == 'mean':
         assert target_values.shape == (n_critics, 32 * n_action_samples, 1)
     else:
-        assert target_values.shape == (n_critics, 32 * n_action_samples, 200)
+        n_quantiles = impl.q_func.q_funcs[0].n_quantiles
+        assert target_values.shape == (n_critics, 32 * n_action_samples,
+                                       n_quantiles)
 
     target = impl.compute_target(x)
     if q_func_type == 'mean':
         assert target.shape == (32, 1)
     else:
-        assert target.shape == (32, 200)
+        assert target.shape == (32, n_quantiles)
 
     best_action = impl._predict_best_action(x)
     assert best_action.shape == (32, action_size)
@@ -81,7 +83,7 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('beta', [1e-2])
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn'])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
                            gamma, action_flexibility, beta, eps,
                            use_batch_norm, q_func_type):
