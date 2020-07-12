@@ -285,7 +285,9 @@ class MDPDataset:
         if isinstance(self._observations, np.ndarray):
             stats['observation'] = {
                 'mean': np.mean(self.observations, axis=0),
-                'std': np.std(self.observations, axis=0)
+                'std': np.std(self.observations, axis=0),
+                'min': np.min(self.observations, axis=0),
+                'max': np.max(self.observations, axis=0),
             }
 
         return stats
@@ -433,7 +435,7 @@ class Episode:
 
         .. math::
 
-            R = \sum_{i=1} r_i
+            R = \\sum_{i=1} r_i
 
         Returns:
             float: episode return.

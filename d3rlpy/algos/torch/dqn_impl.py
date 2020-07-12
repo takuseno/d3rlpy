@@ -13,7 +13,7 @@ from .base import TorchImplBase
 
 class DQNImpl(TorchImplBase, IDQNImpl):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
-                 eps, use_batch_norm, q_func_type, use_gpu):
+                 eps, use_batch_norm, q_func_type, use_gpu, scaler):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.learning_rate = learning_rate
@@ -21,6 +21,7 @@ class DQNImpl(TorchImplBase, IDQNImpl):
         self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
+        self.scaler = scaler
 
         # setup torch models
         self._build_network()
@@ -51,6 +52,10 @@ class DQNImpl(TorchImplBase, IDQNImpl):
     @train_api
     @torch_api
     def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
+        if self.scaler:
+            obs_t = self.scaler.transform(obs_t)
+            obs_tp1 = self.scaler.transform(obs_tp1)
+
         q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
         loss = self.q_func.compute_error(obs_t, act_t.long(), rew_tp1, q_tp1,
                                          self.gamma)
@@ -73,6 +78,9 @@ class DQNImpl(TorchImplBase, IDQNImpl):
     @torch_api
     def predict_value(self, x, action):
         assert x.shape[0] == action.shape[0]
+
+        if self.scaler:
+            x = self.scaler.transform(x)
 
         self.q_func.eval()
         with torch.no_grad():

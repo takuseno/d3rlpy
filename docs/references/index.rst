@@ -11,3 +11,4 @@ API Reference
    q_functions
    dataset
    datasets
+   preprocessing

@@ -28,6 +28,7 @@ class BC(AlgoBase):
         use_batch_norm (bool): flag to insert batch normalization layers.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 
     Attributes:
@@ -37,6 +38,7 @@ class BC(AlgoBase):
         eps (float): :math:`\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 
     """
@@ -47,9 +49,10 @@ class BC(AlgoBase):
                  use_batch_norm=False,
                  n_epochs=1000,
                  use_gpu=False,
+                 scaler=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size)
+        super().__init__(n_epochs, batch_size, scaler)
         self.learning_rate = learning_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
@@ -63,7 +66,8 @@ class BC(AlgoBase):
                            learning_rate=self.learning_rate,
                            eps=self.eps,
                            use_batch_norm=self.use_batch_norm,
-                           use_gpu=self.use_gpu)
+                           use_gpu=self.use_gpu,
+                           scaler=self.scaler)
 
     def update(self, epoch, itr, batch):
         loss = self.impl.update_imitator(batch.observations, batch.actions)
@@ -102,6 +106,7 @@ class DiscreteBC(BC):
         beta (float): reguralization factor.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 
     Attributes:
@@ -112,6 +117,7 @@ class DiscreteBC(BC):
         beta (float): reguralization factor.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 
     """
@@ -123,10 +129,11 @@ class DiscreteBC(BC):
                  use_batch_norm=True,
                  n_epochs=1000,
                  use_gpu=False,
+                 scaler=None,
                  impl=None,
                  **kwargs):
         super().__init__(learning_rate, batch_size, eps, use_batch_norm,
-                         n_epochs, use_gpu, impl, **kwargs)
+                         n_epochs, use_gpu, scaler, impl, **kwargs)
         self.beta = beta
 
     def create_impl(self, observation_shape, action_size):
@@ -137,4 +144,5 @@ class DiscreteBC(BC):
                                    eps=self.eps,
                                    beta=self.beta,
                                    use_batch_norm=self.use_batch_norm,
-                                   use_gpu=self.use_gpu)
+                                   use_gpu=self.use_gpu,
+                                   scaler=self.scaler)

@@ -13,7 +13,7 @@ from .base import TorchImplBase
 class DDPGImpl(TorchImplBase, IDDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, gamma, tau, reguralizing_rate, eps,
-                 use_batch_norm, q_func_type, use_gpu):
+                 use_batch_norm, q_func_type, use_gpu, scaler):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.actor_learning_rate = actor_learning_rate
@@ -24,6 +24,7 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
         self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
+        self.scaler = scaler
 
         # setup torch models
         self._build_critic()
@@ -67,6 +68,10 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
     @train_api
     @torch_api
     def update_critic(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
+        if self.scaler:
+            obs_t = self.scaler.transform(obs_t)
+            obs_tp1 = self.scaler.transform(obs_tp1)
+
         q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
         loss = self.q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1,
                                          self.gamma)
@@ -80,6 +85,9 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
     @train_api
     @torch_api
     def update_actor(self, obs_t):
+        if self.scaler:
+            obs_t = self.scaler.transform(obs_t)
+
         action, raw_action = self.policy(obs_t, with_raw=True)
         q_t = self.q_func(obs_t, action)
         loss = -q_t.mean() + self.reguralizing_rate * (raw_action**2).mean()
@@ -102,6 +110,10 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
     @torch_api
     def predict_value(self, x, action):
         assert x.shape[0] == action.shape[0]
+
+        if self.scaler:
+            x = self.scaler.transform(x)
+
         with torch.no_grad():
             return self.q_func(x, action).view(-1).cpu().detach().numpy()
 

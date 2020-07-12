@@ -108,6 +108,7 @@ class BCQ(AlgoBase):
             `['mean', 'qr', 'iqn', 'fqf']`.
         n_epochs (int): the number of eopchs to train.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.bcq.IBCQImpl): algorithm implementation.
 
     Attributes:
@@ -131,6 +132,7 @@ class BCQ(AlgoBase):
         q_func_type (str): type of Q function.
         n_epochs (int): the number of eopchs to train.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.bcq.IBCQImpl): algorithm implementation.
 
     """
@@ -153,9 +155,10 @@ class BCQ(AlgoBase):
                  q_func_type='mean',
                  n_epochs=1000,
                  use_gpu=False,
+                 scaler=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size)
+        super().__init__(n_epochs, batch_size, scaler)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.imitator_learning_rate = imitator_learning_rate
@@ -192,7 +195,8 @@ class BCQ(AlgoBase):
                             eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
-                            use_gpu=self.use_gpu)
+                            use_gpu=self.use_gpu,
+                            scaler=self.scaler)
 
     def update(self, epoch, total_step, batch):
         imitator_loss = self.impl.update_imitator(batch.observations,
@@ -268,6 +272,7 @@ class DiscreteBCQ(AlgoBase):
             `['mean', 'qr', 'iqn', 'fqf']`.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (torch.algos.dqn.IDQNImpl): algorithm implementation.
 
     Attributes:
@@ -283,6 +288,7 @@ class DiscreteBCQ(AlgoBase):
         q_func_type (str): type of Q function.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (torch.algos.dqn.IDQNImpl): algorithm implementation.
 
     """
@@ -298,9 +304,10 @@ class DiscreteBCQ(AlgoBase):
                  q_func_type='mean',
                  n_epochs=1000,
                  use_gpu=False,
+                 scaler=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size)
+        super().__init__(n_epochs, batch_size, scaler)
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.action_flexibility = action_flexibility
@@ -323,7 +330,8 @@ class DiscreteBCQ(AlgoBase):
                                     eps=self.eps,
                                     use_batch_norm=self.use_batch_norm,
                                     q_func_type=self.q_func_type,
-                                    use_gpu=self.use_gpu)
+                                    use_gpu=self.use_gpu,
+                                    scaler=self.scaler)
 
     def update(self, epoch, total_step, batch):
         value_loss, imitator_loss = self.impl.update(batch.observations,

@@ -51,6 +51,7 @@ class TD3(AlgoBase):
             `['mean', 'qr', 'iqn', 'fqf']`.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.ddpg.IDDPGImpl): algorithm implementation.
 
     Attributes:
@@ -70,6 +71,7 @@ class TD3(AlgoBase):
         q_func_type (str): type of Q function..
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.ddpg.IDDPGImpl): algorithm implementation.
 
     """
@@ -89,9 +91,10 @@ class TD3(AlgoBase):
                  q_func_type='mean',
                  n_epochs=1000,
                  use_gpu=False,
+                 scaler=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size)
+        super().__init__(n_epochs, batch_size, scaler)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.gamma = gamma
@@ -122,7 +125,8 @@ class TD3(AlgoBase):
                             eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
-                            use_gpu=self.use_gpu)
+                            use_gpu=self.use_gpu,
+                            scaler=self.scaler)
 
     def update(self, epoch, total_step, batch):
         critic_loss = self.impl.update_critic(batch.observations,

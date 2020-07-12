@@ -21,7 +21,8 @@ class BCQImpl(DDPGImpl, IBCQImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, imitator_learning_rate, gamma, tau,
                  n_critics, lam, n_action_samples, action_flexibility,
-                 latent_size, beta, eps, use_batch_norm, q_func_type, use_gpu):
+                 latent_size, beta, eps, use_batch_norm, q_func_type, use_gpu,
+                 scaler):
         # imitator requires these parameters
         self.observation_shape = observation_shape
         self.action_size = action_size
@@ -40,7 +41,7 @@ class BCQImpl(DDPGImpl, IBCQImpl):
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, 0.0, eps,
-                         use_batch_norm, q_func_type, use_gpu)
+                         use_batch_norm, q_func_type, use_gpu, scaler)
 
         # setup optimizer after the parameters move to GPU
         self._build_imitator_optim()
@@ -72,6 +73,9 @@ class BCQImpl(DDPGImpl, IBCQImpl):
     @train_api
     @torch_api
     def update_actor(self, obs_t):
+        if self.scaler:
+            obs_t = self.scaler.transform(obs_t)
+
         latent = torch.randn(obs_t.shape[0],
                              self.latent_size,
                              device=self.device)
@@ -89,6 +93,9 @@ class BCQImpl(DDPGImpl, IBCQImpl):
     @train_api
     @torch_api
     def update_imitator(self, obs_t, act_t):
+        if self.scaler:
+            obs_t = self.scaler.transform(obs_t)
+
         loss = self.imitator.compute_error(obs_t, act_t)
 
         self.imitator_optim.zero_grad()
@@ -182,13 +189,13 @@ class BCQImpl(DDPGImpl, IBCQImpl):
 class DiscreteBCQImpl(DoubleDQNImpl):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
                  action_flexibility, beta, eps, use_batch_norm, q_func_type,
-                 use_gpu):
+                 use_gpu, scaler):
 
         self.action_flexibility = action_flexibility
         self.beta = beta
 
         super().__init__(observation_shape, action_size, learning_rate, gamma,
-                         eps, use_batch_norm, q_func_type, use_gpu)
+                         eps, use_batch_norm, q_func_type, use_gpu, scaler)
 
     def _build_network(self):
         super()._build_network()
@@ -212,6 +219,10 @@ class DiscreteBCQImpl(DoubleDQNImpl):
     @train_api
     @torch_api
     def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
+        if self.scaler:
+            obs_t = self.scaler.transform(obs_t)
+            obs_tp1 = self.scaler.transform(obs_tp1)
+
         # convert float to long
         act_t = act_t.long()
 

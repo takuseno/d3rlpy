@@ -8,14 +8,14 @@ class TD3Impl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, gamma, tau, reguralizing_rate,
                  n_critics, target_smoothing_sigma, target_smoothing_clip, eps,
-                 use_batch_norm, q_func_type, use_gpu):
+                 use_batch_norm, q_func_type, use_gpu, scaler):
         self.n_critics = n_critics
         self.target_smoothing_sigma = target_smoothing_sigma
         self.target_smoothing_clip = target_smoothing_clip
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, reguralizing_rate,
-                         eps, use_batch_norm, q_func_type, use_gpu)
+                         eps, use_batch_norm, q_func_type, use_gpu, scaler)
 
     def _build_critic(self):
         self.q_func = create_continuous_q_function(

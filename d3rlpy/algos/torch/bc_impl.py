@@ -11,12 +11,13 @@ from .utility import torch_api, train_api
 
 class BCImpl(TorchImplBase, IBCImpl):
     def __init__(self, observation_shape, action_size, learning_rate, eps,
-                 use_batch_norm, use_gpu):
+                 use_batch_norm, use_gpu, scaler):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.learning_rate = learning_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
+        self.scaler = scaler
 
         self._build_network()
 
@@ -38,6 +39,9 @@ class BCImpl(TorchImplBase, IBCImpl):
     @train_api
     @torch_api
     def update_imitator(self, obs_t, act_t):
+        if self.scaler:
+            obs_t = self.scaler.transform(obs_t)
+
         loss = self.imitator.compute_error(obs_t, act_t)
 
         self.optim.zero_grad()
@@ -55,10 +59,10 @@ class BCImpl(TorchImplBase, IBCImpl):
 
 class DiscreteBCImpl(BCImpl):
     def __init__(self, observation_shape, action_size, learning_rate, eps,
-                 beta, use_batch_norm, use_gpu):
+                 beta, use_batch_norm, use_gpu, scaler):
         self.beta = beta
         super().__init__(observation_shape, action_size, learning_rate, eps,
-                         use_batch_norm, use_gpu)
+                         use_batch_norm, use_gpu, scaler)
 
     def _build_network(self):
         self.imitator = create_discrete_imitator(self.observation_shape,
@@ -70,6 +74,9 @@ class DiscreteBCImpl(BCImpl):
     @train_api
     @torch_api
     def update_imitator(self, obs_t, act_t):
+        if self.scaler:
+            obs_t = self.scaler.transform(obs_t)
+
         loss = self.imitator.compute_error(obs_t, act_t.long())
 
         self.optim.zero_grad()

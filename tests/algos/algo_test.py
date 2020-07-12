@@ -8,6 +8,7 @@ from unittest.mock import Mock
 from d3rlpy.algos.torch.base import ImplBase
 from d3rlpy.dataset import MDPDataset, Transition, TransitionMiniBatch
 from d3rlpy.datasets import get_cartpole, get_pendulum
+from d3rlpy.preprocessing import Scaler
 
 
 class DummyImpl(ImplBase):
@@ -25,6 +26,14 @@ class DummyImpl(ImplBase):
 
     def predict_value(self, x, action):
         pass
+
+
+class DummyScaler(Scaler):
+    def fit(self, episodes):
+        pass
+
+    def transform(self, x):
+        return x
 
 
 def algo_tester(algo, imitator=False):

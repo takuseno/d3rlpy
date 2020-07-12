@@ -68,6 +68,7 @@ class SAC(AlgoBase):
             `['mean', 'qr', 'iqn', 'fqf']`.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.sac.ISACImpl): algorithm implementation.
 
     Attributes:
@@ -85,6 +86,7 @@ class SAC(AlgoBase):
         q_func_type (str): type of Q function.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.sac.ISACImpl): algorithm implementation.
 
     """
@@ -103,9 +105,10 @@ class SAC(AlgoBase):
                  q_func_type='mean',
                  n_epochs=1000,
                  use_gpu=False,
+                 scaler=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size)
+        super().__init__(n_epochs, batch_size, scaler)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.temp_learning_rate = temp_learning_rate
@@ -134,7 +137,8 @@ class SAC(AlgoBase):
                             eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
-                            use_gpu=self.use_gpu)
+                            use_gpu=self.use_gpu,
+                            scaler=self.scaler)
 
     def update(self, epoch, total_step, batch):
         critic_loss = self.impl.update_critic(batch.observations,

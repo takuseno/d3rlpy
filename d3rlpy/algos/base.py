@@ -40,16 +40,18 @@ class AlgoBase:
         impl (d3rlpy.algos.base.ImplBase): implementation of the algorithm.
 
     """
-    def __init__(self, n_epochs, batch_size):
+    def __init__(self, n_epochs, batch_size, scaler):
         """ __init__ method.
 
         Args:
             n_epochs (int): the number of epochs to train.
             batch_size (int): mini-batch size.
+            scaler (d3rlpy.preprocessing.Scaler): preprocessor.
 
         """
         self.n_epochs = n_epochs
         self.batch_size = batch_size
+        self.scaler = scaler
         self.impl = None
 
     def set_params(self, **params):
@@ -193,6 +195,10 @@ class AlgoBase:
         transitions = []
         for episode in episodes:
             transitions += episode.transitions
+
+        # initialize scaler
+        if self.scaler:
+            self.scaler.fit(episodes)
 
         # instantiate implementation
         if self.impl is None:

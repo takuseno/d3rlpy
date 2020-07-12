@@ -12,6 +12,9 @@ class TorchImplBase(ImplBase):
     @eval_api
     @torch_api
     def predict_best_action(self, x):
+        if self.scaler:
+            x = self.scaler.transform(x)
+
         with torch.no_grad():
             return self._predict_best_action(x).cpu().detach().numpy()
 

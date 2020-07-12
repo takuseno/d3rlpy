@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from d3rlpy.algos.torch.bcq_impl import BCQImpl, DiscreteBCQImpl
-from tests.algos.algo_test import torch_impl_tester
+from tests.algos.algo_test import torch_impl_tester, DummyScaler
 
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (1, 48, 48)])
@@ -21,10 +21,11 @@ from tests.algos.algo_test import torch_impl_tester
 @pytest.mark.parametrize('eps', [1e-8])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
+@pytest.mark.parametrize('scaler', [None, DummyScaler()])
 def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, imitator_learning_rate, gamma, tau,
                   n_critics, lam, n_action_samples, action_flexibility,
-                  latent_size, beta, eps, use_batch_norm, q_func_type):
+                  latent_size, beta, eps, use_batch_norm, q_func_type, scaler):
     impl = BCQImpl(observation_shape,
                    action_size,
                    actor_learning_rate,
@@ -41,7 +42,8 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                    eps,
                    use_batch_norm,
                    q_func_type,
-                   use_gpu=False)
+                   use_gpu=False,
+                   scaler=scaler)
 
     # test internal methods
     x = torch.rand(32, *observation_shape)
@@ -84,9 +86,10 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
+@pytest.mark.parametrize('scaler', [None])
 def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
                            gamma, action_flexibility, beta, eps,
-                           use_batch_norm, q_func_type):
+                           use_batch_norm, q_func_type, scaler):
     impl = DiscreteBCQImpl(observation_shape,
                            action_size,
                            learning_rate,
@@ -96,7 +99,8 @@ def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
                            eps,
                            use_batch_norm,
                            q_func_type,
-                           use_gpu=False)
+                           use_gpu=False,
+                           scaler=scaler)
     torch_impl_tester(impl,
                       discrete=True,
                       deterministic_best_action=q_func_type != 'iqn')
