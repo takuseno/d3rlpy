@@ -101,9 +101,9 @@ def get_pybullet(env_name):
         dataset = MDPDataset(**env.get_dataset())
         return dataset, env
     except ImportError:
-        print('d4rl-pybullet is not installed.')
-        print('pip install git+https://github.com/takuseno/d4rl-pybullet')
-        raise ImportError
+        raise ImportError(
+            'd4rl-pybullet is not installed.\n' \
+            'pip install git+https://github.com/takuseno/d4rl-pybullet')
 
 
 def get_atari(env_name):
@@ -134,6 +134,6 @@ def get_atari(env_name):
         dataset = MDPDataset(**env.get_dataset(), discrete_action=True)
         return dataset, env
     except ImportError:
-        print('d4rl-atari is not installed.')
-        print('pip install git+https://github.com/takuseno/d4rl-atari')
-        raise ImportError
+        raise ImportError(
+            'd4rl-atari is not installed.\n' \
+            'pip install git+https://github.com/takuseno/d4rl-atari')
