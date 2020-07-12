@@ -30,6 +30,8 @@ class TorchImplBase(ImplBase):
 
         # dummy function to select best actions
         def _func(x):
+            if self.scaler:
+                x = self.scaler.transform(x)
             return self._predict_best_action(x)
 
         traced_script = torch.jit.trace(_func, dummy_x)

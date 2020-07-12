@@ -33,7 +33,7 @@ class DummyScaler(Scaler):
         pass
 
     def transform(self, x):
-        return x
+        return 0.1 * x
 
 
 def algo_tester(algo, imitator=False):
