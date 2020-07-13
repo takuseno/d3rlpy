@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from .base import AlgoBase
 from .sac import ISACImpl
+from .dqn import DoubleDQN
 
 
 class ICQLImpl(ISACImpl):
@@ -182,3 +183,68 @@ class CQL(AlgoBase):
             'critic_loss', 'actor_loss', 'temp_loss', 'temp', 'alpha_loss',
             'alpha'
         ]
+
+
+class DiscreteCQL(DoubleDQN):
+    """ Discrete version of Conservative Q-Learning algorithm.
+
+    Discrete version of CQL is a DoubleDQN-based data-driven deep reinforcement
+    learning algorithm (the original paper uses DQN), which achieves
+    state-of-the-art performance in offline RL problems.
+
+    CQL mitigates overestimation error by minimizing action-values under the
+    current policy and maximizing values under data distribution for
+    underestimation issue.
+
+    .. math::
+
+        L(\\theta) = \\mathbb{E}_{s_t \sim D}
+            [\\log{\\sum_a \exp{Q_{\\theta}(s_t, a)}}
+             - \mathbb{E}_{a \sim D} [Q_{\\theta}(s, a)]]
+            + L_{DoubleDQN}(\\theta)
+
+    References:
+        * `Kumar et al., Conservative Q-Learning for Offline Reinforcement
+          Learning. <https://arxiv.org/abs/2006.04779>`_
+
+    Args:
+        learning_rate (float): learning rate.
+        batch_size (int): mini-batch size.
+        gamma (float): discount factor.
+        eps (float): :math:`\epsilon` for Adam optimizer.
+        target_update_interval (int): interval to synchronize the target
+            network.
+        use_batch_norm (bool): flag to insert batch normalization layers
+        q_func_type (str): type of Q function. Available options are
+            `['mean', 'qr', 'iqn', 'fqf']`.
+        n_epochs (int): the number of epochs to train.
+        use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
+
+    Attributes:
+        learning_rate (float): learning rate.
+        batch_size (int): mini-batch size.
+        gamma (float): discount factor.
+        eps (float): :math:`\epsilon` for Adam optimizer.
+        target_update_interval (int): interval to synchronize the target
+            network.
+        use_batch_norm (bool): flag to insert batch normalization layers
+        q_func_type (str): type of Q function.
+        n_epochs (int): the number of epochs to train.
+        use_gpu (bool): flag to use GPU.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
+
+    """
+    def create_impl(self, observation_shape, action_size):
+        from .torch.cql_impl import DiscreteCQLImpl
+        self.impl = DiscreteCQLImpl(observation_shape=observation_shape,
+                                    action_size=action_size,
+                                    learning_rate=self.learning_rate,
+                                    gamma=self.gamma,
+                                    eps=self.eps,
+                                    use_batch_norm=self.use_batch_norm,
+                                    q_func_type=self.q_func_type,
+                                    use_gpu=self.use_gpu,
+                                    scaler=self.scaler)

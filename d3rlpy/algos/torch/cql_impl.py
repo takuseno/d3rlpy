@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import copy
 import math
 
@@ -9,6 +10,7 @@ from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from d3rlpy.algos.cql import ICQLImpl
 from .utility import torch_api, train_api
 from .sac_impl import SACImpl
+from .dqn_impl import DoubleDQNImpl
 
 
 class CQLImpl(SACImpl, ICQLImpl):
@@ -121,3 +123,40 @@ class CQLImpl(SACImpl, ICQLImpl):
         element_wise_loss = logsumexp - data_values - self.alpha_threshold
 
         return (self.log_alpha.exp() * element_wise_loss).sum(dim=0).mean()
+
+
+class DiscreteCQLImpl(DoubleDQNImpl):
+    @train_api
+    @torch_api
+    def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
+        if self.scaler:
+            obs_t = self.scaler.transform(obs_t)
+            obs_tp1 = self.scaler.transform(obs_tp1)
+
+        # convert float to long
+        act_t = act_t.long()
+
+        q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
+        td_loss = self.q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1,
+                                            self.gamma)
+
+        conservative_loss = self._compute_conservative_loss(obs_t, act_t)
+
+        loss = conservative_loss + td_loss
+
+        self.optim.zero_grad()
+        loss.backward()
+        self.optim.step()
+
+        return loss.cpu().detach().numpy()
+
+    def _compute_conservative_loss(self, obs_t, act_t):
+        # compute logsumexp
+        policy_values = self.q_func(obs_t)
+        logsumexp = torch.logsumexp(policy_values, dim=1, keepdims=True)
+
+        # estimate action-values under data distribution
+        one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
+        data_values = (self.q_func(obs_t) * one_hot).sum(dim=1, keepdims=True)
+
+        return (logsumexp - data_values).mean()
