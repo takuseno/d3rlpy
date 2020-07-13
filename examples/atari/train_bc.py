@@ -3,6 +3,7 @@ import d3rlpy
 
 from d3rlpy.algos import BC
 from d3rlpy.datasets import get_atari
+from d3rlpy.preprocessing import PixelScaler
 from d3rlpy.metrics.scorer import evaluate_on_environment
 from sklearn.model_selection import train_test_split
 
@@ -14,7 +15,7 @@ def main(args):
 
     train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
-    bc = DiscreteBC(n_epochs=100, use_gpu=args.gpu)
+    bc = DiscreteBC(n_epochs=100, scaler=PixelScaler(), use_gpu=args.gpu)
 
     bc.fit(train_episodes,
            eval_episodes=test_episodes,
