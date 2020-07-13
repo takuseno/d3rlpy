@@ -149,13 +149,14 @@ class SAC(AlgoBase):
         # delayed policy update
         if total_step % self.update_actor_interval == 0:
             actor_loss = self.impl.update_actor(batch.observations)
-            temp_loss = self.impl.update_temperature(batch.observations)
+            temp_loss, temp = self.impl.update_temperature(batch.observations)
             self.impl.update_critic_target()
             self.impl.update_actor_target()
         else:
             actor_loss = None
             temp_loss = None
-        return critic_loss, actor_loss, temp_loss
+            temp = None
+        return critic_loss, actor_loss, temp_loss, temp
 
     def _get_loss_labels(self):
-        return ['critic_loss', 'actor_loss', 'temp_loss']
+        return ['critic_loss', 'actor_loss', 'temp_loss', 'temp']

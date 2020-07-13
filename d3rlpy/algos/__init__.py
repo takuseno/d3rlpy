@@ -5,3 +5,4 @@ from .ddpg import DDPG
 from .dqn import DQN, DoubleDQN
 from .sac import SAC
 from .td3 import TD3
+from .cql import CQL

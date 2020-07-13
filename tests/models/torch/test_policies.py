@@ -112,7 +112,8 @@ def test_deterministic_residual_policy(feature_size, action_size, scale,
 @pytest.mark.parametrize('feature_size', [100])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-def test_normal_policy(feature_size, action_size, batch_size):
+@pytest.mark.parametrize('n', [10])
+def test_normal_policy(feature_size, action_size, batch_size, n):
     head = DummyHead(feature_size)
     policy = NormalPolicy(head, action_size)
 
@@ -126,6 +127,11 @@ def test_normal_policy(feature_size, action_size, batch_size):
 
     # check if sampled action is not identical to the best action
     assert not torch.allclose(policy.sample(x), policy.best_action(x))
+
+    # check sample_n
+    y_n, log_prob_n = policy.sample_n(x, n, True)
+    assert y_n.shape == (batch_size, n, action_size)
+    assert log_prob_n.shape == (batch_size, n, 1)
 
     # check layer connection
     check_parameter_updates(policy, (x, ))

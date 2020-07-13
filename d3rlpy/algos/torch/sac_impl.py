@@ -83,7 +83,10 @@ class SACImpl(DDPGImpl, ISACImpl):
         loss.backward()
         self.temp_optim.step()
 
-        return loss.cpu().detach().numpy()
+        # current temperature value
+        cur_temp = self.log_temp.exp().cpu().detach().numpy()[0][0]
+
+        return loss.cpu().detach().numpy(), cur_temp
 
     def compute_target(self, x):
         with torch.no_grad():

@@ -32,7 +32,7 @@ def create_normal_policy(observation_shape, action_size, use_batch_norm=False):
 def _squash_action(dist, raw_action):
     squashed_action = torch.tanh(raw_action)
     jacob = 2 * (math.log(2) - raw_action - F.softplus(-2 * raw_action))
-    log_prob = (dist.log_prob(raw_action) - jacob).sum(dim=1, keepdims=True)
+    log_prob = (dist.log_prob(raw_action) - jacob).sum(dim=-1, keepdims=True)
     return squashed_action, log_prob
 
 
@@ -72,6 +72,7 @@ class DeterministicResidualPolicy(nn.Module):
 class NormalPolicy(nn.Module):
     def __init__(self, head, action_size):
         super().__init__()
+        self.action_size = action_size
         self.head = head
         self.mu = nn.Linear(head.feature_size, action_size)
         self.logstd = nn.Linear(head.feature_size, action_size)
@@ -100,6 +101,23 @@ class NormalPolicy(nn.Module):
 
     def sample(self, x, with_log_prob=False):
         return self.forward(x, with_log_prob=with_log_prob)
+
+    def sample_n(self, x, n, with_log_prob=False):
+        dist = self.dist(x)
+
+        action = dist.rsample((n, ))
+
+        squashed_action_T, log_prob_T = _squash_action(dist, action)
+
+        # (n, batch, action) -> (batch, n, action)
+        squashed_action = squashed_action_T.transpose(0, 1)
+        # (n, batch, 1) -> (batch, n, 1)
+        log_prob = log_prob_T.transpose(0, 1)
+
+        if with_log_prob:
+            return squashed_action, log_prob
+
+        return squashed_action
 
     def best_action(self, x, with_log_prob=False):
         return self.forward(x, deterministic=True, with_log_prob=with_log_prob)
