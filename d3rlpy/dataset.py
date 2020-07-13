@@ -232,7 +232,7 @@ class MDPDataset:
 
         """
         if self.discrete_action:
-            return np.max(self._actions) + 1
+            return int(np.max(self._actions) + 1)
         return self._actions.shape[1]
 
     def get_observation_shape(self):
