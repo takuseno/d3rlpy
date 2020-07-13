@@ -115,6 +115,7 @@ def algo_tester(algo, imitator=False):
     algo.fit(dataset.episodes,
              logdir='test_data',
              verbose=False,
+             show_progress=False,
              tensorboard=False)
 
     # check if the correct number of iterations are performed

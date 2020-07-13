@@ -2,6 +2,7 @@ import numpy as np
 import copy
 
 from abc import ABCMeta, abstractmethod
+from tqdm import trange
 from ..dataset import TransitionMiniBatch
 from ..logger import D3RLPyLogger
 from ..metrics.scorer import NEGATED_SCORER
@@ -166,6 +167,7 @@ class AlgoBase:
             experiment_name=None,
             logdir='d3rlpy_logs',
             verbose=True,
+            show_progress=True,
             tensorboard=True,
             eval_episodes=None,
             save_interval=1,
@@ -182,6 +184,7 @@ class AlgoBase:
                 the directory name will be `{class name}_{timestamp}`.
             logdir (str): root directory name to save logs.
             verbose (bool): flag to show logged information on stdout.
+            show_progress (bool): flag to show progress bar for iterations.
             tensorboard (bool): flag to save logged information in tensorboard
                 (additional to the csv data)
             eval_episodes (list(d3rlpy.dataset.Episode)):
@@ -217,8 +220,9 @@ class AlgoBase:
         total_step = 0
         for epoch in range(self.n_epochs):
             indices = np.random.permutation(np.arange(len(transitions)))
-            for itr in range(len(transitions) // self.batch_size):
-
+            n_iters = len(transitions) // self.batch_size
+            range_gen = trange(n_iters) if show_progress else range(n_iters)
+            for itr in range_gen:
                 # pick transitions
                 batch = []
                 head_index = itr * self.batch_size
