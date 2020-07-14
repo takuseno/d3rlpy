@@ -88,7 +88,3 @@ class D3RLPyLogger:
         # save entire model
         model_path = os.path.join(self.logdir, 'model_%d.pt' % epoch)
         algo.save_model(model_path)
-
-        # save greedy policy
-        policy_path = os.path.join(self.logdir, 'policy_%d.pt' % epoch)
-        algo.save_policy(policy_path)
