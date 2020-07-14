@@ -5,6 +5,17 @@ import json
 from datetime import datetime
 
 
+# default json encoder for numpy objects
+def default_json_encoder(obj):
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError
+
+
 class D3RLPyLogger:
     def __init__(self,
                  experiment_name,
@@ -34,18 +45,16 @@ class D3RLPyLogger:
     def add_params(self, params):
         assert self.params is None, 'add_params can be called only once.'
 
-        # remove non-scalar objects
-        params = {k: v for k, v in params.items() if np.isscalar(v)}
-
         # save dictionary as json file
         with open(os.path.join(self.logdir, 'params.json'), 'w') as f:
-            f.write(json.dumps(params))
+            f.write(json.dumps(params, default=default_json_encoder))
 
         if self.verbose:
             for key, val in params.items():
                 print('{}={}'.format(key, val))
 
-        self.params = params
+        # remove non-scaler values for HParams
+        self.params = {k: v for k, v in params.items() if np.isscalar(v)}
 
     def add_metric(self, name, value):
         if name not in self.metrics_buffer:
