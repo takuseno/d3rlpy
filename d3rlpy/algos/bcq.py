@@ -108,7 +108,8 @@ class BCQ(AlgoBase):
             `['mean', 'qr', 'iqn', 'fqf']`.
         n_epochs (int): the number of eopchs to train.
         use_gpu (bool): flag to use GPU.
-        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+            The available options are `['pixel', 'min_max', 'standard']`
         impl (d3rlpy.algos.bcq.IBCQImpl): algorithm implementation.
 
     Attributes:
@@ -272,7 +273,8 @@ class DiscreteBCQ(AlgoBase):
             `['mean', 'qr', 'iqn', 'fqf']`.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
-        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+            The available options are `['pixel', 'min_max', 'standard']`
         impl (torch.algos.dqn.IDQNImpl): algorithm implementation.
 
     Attributes:

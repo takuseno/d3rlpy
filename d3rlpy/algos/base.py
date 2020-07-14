@@ -3,6 +3,7 @@ import copy
 
 from abc import ABCMeta, abstractmethod
 from tqdm import trange
+from ..preprocessing import create_scaler
 from ..dataset import TransitionMiniBatch
 from ..logger import D3RLPyLogger
 from ..metrics.scorer import NEGATED_SCORER
@@ -47,12 +48,18 @@ class AlgoBase:
         Args:
             n_epochs (int): the number of epochs to train.
             batch_size (int): mini-batch size.
-            scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+            scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+                The available options are `['pixel', 'min_max', 'standard']`
 
         """
         self.n_epochs = n_epochs
         self.batch_size = batch_size
-        self.scaler = scaler
+
+        if isinstance(scaler, str):
+            self.scaler = create_scaler(scaler)
+        else:
+            self.scaler = scaler
+
         self.impl = None
 
     def set_params(self, **params):

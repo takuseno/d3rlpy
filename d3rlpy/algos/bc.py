@@ -28,7 +28,8 @@ class BC(AlgoBase):
         use_batch_norm (bool): flag to insert batch normalization layers.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool): flag to use GPU.
-        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+            The available options are `['pixel', 'min_max', 'standard']`
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 
     Attributes:
@@ -106,7 +107,8 @@ class DiscreteBC(BC):
         beta (float): reguralization factor.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool): flag to use GPU.
-        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+            The available options are `['pixel', 'min_max', 'standard']`
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 
     Attributes:

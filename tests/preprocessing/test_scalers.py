@@ -3,9 +3,21 @@ import torch
 import numpy as np
 
 from d3rlpy.dataset import MDPDataset, Episode
+from d3rlpy.preprocessing import create_scaler
 from d3rlpy.preprocessing import PixelScaler
 from d3rlpy.preprocessing import MinMaxScaler
 from d3rlpy.preprocessing import StandardScaler
+
+
+@pytest.mark.parametrize('scaler_type', ['pixel', 'min_max', 'standard'])
+def test_create_scaler(scaler_type):
+    scaler = create_scaler(scaler_type)
+    if scaler_type == 'pixel':
+        assert isinstance(scaler, PixelScaler)
+    elif scaler_type == 'min_max':
+        assert isinstance(scaler, MinMaxScaler)
+    elif scaler_type == 'standard':
+        assert isinstance(scaler, StandardScaler)
 
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84)])
@@ -17,6 +29,9 @@ def test_pixel_scaler(observation_shape):
     y = scaler.transform(x)
 
     assert torch.all(y == x.float() / 255.0)
+
+    assert scaler.get_type() == 'pixel'
+    assert scaler.get_params() == {}
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
@@ -36,6 +51,11 @@ def test_min_max_scaler(observation_shape, batch_size):
     ref_y = (x.numpy() - min.reshape((1, -1))) / (max - min).reshape((1, -1))
 
     assert np.allclose(y.numpy(), ref_y)
+
+    assert scaler.get_type() == 'min_max'
+    params = scaler.get_params()
+    assert np.all(params['minimum'] == min)
+    assert np.all(params['maximum'] == max)
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
@@ -91,7 +111,8 @@ def test_min_max_scaler_with_episode(observation_shape, batch_size):
 @pytest.mark.parametrize('observation_shape', [(100, )])
 @pytest.mark.parametrize('batch_size', [32])
 def test_standard_scaler(observation_shape, batch_size):
-    observations = np.random.random((batch_size, ) + observation_shape)
+    shape = (batch_size, ) + observation_shape
+    observations = np.random.random(shape).astype('f')
 
     mean = observations.mean(axis=0)
     std = observations.std(axis=0)
@@ -106,13 +127,19 @@ def test_standard_scaler(observation_shape, batch_size):
 
     assert np.allclose(y.numpy(), ref_y)
 
+    assert scaler.get_type() == 'standard'
+    params = scaler.get_params()
+    assert np.all(params['mean'] == mean)
+    assert np.all(params['std'] == std)
+
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
 @pytest.mark.parametrize('batch_size', [32])
 def test_standard_scaler_with_dataset(observation_shape, batch_size):
-    observations = np.random.random((batch_size, ) + observation_shape)
-    actions = np.random.random((batch_size, 1))
-    rewards = np.random.random(batch_size)
+    shape = (batch_size, ) + observation_shape
+    observations = np.random.random(shape).astype('f')
+    actions = np.random.random((batch_size, 1)).astype('f')
+    rewards = np.random.random(batch_size).astype('f')
     terminals = np.random.randint(2, size=batch_size)
 
     dataset = MDPDataset(observations, actions, rewards, terminals)
@@ -134,9 +161,10 @@ def test_standard_scaler_with_dataset(observation_shape, batch_size):
 @pytest.mark.parametrize('observation_shape', [(100, )])
 @pytest.mark.parametrize('batch_size', [32])
 def test_standard_scaler_with_episode(observation_shape, batch_size):
-    observations = np.random.random((batch_size, ) + observation_shape)
-    actions = np.random.random((batch_size, 1))
-    rewards = np.random.random(batch_size)
+    shape = (batch_size, ) + observation_shape
+    observations = np.random.random(shape).astype('f')
+    actions = np.random.random((batch_size, 1)).astype('f')
+    rewards = np.random.random(batch_size).astype('f')
     terminals = np.random.randint(2, size=batch_size)
     terminals[-1] = 1.0
 
@@ -154,4 +182,4 @@ def test_standard_scaler_with_episode(observation_shape, batch_size):
 
     ref_y = (x.numpy() - mean.reshape((1, -1))) / std.reshape((1, -1))
 
-    assert np.allclose(y.numpy(), ref_y)
+    assert np.allclose(y.numpy(), ref_y, atol=1e-6)

@@ -35,6 +35,12 @@ class DummyScaler(Scaler):
     def transform(self, x):
         return 0.1 * x
 
+    def get_type(self):
+        return 'dummy'
+
+    def get_params(self):
+        return {}
+
 
 def algo_tester(algo, imitator=False):
     # dummy impl object

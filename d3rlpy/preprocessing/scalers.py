@@ -13,6 +13,24 @@ class Scaler(metaclass=ABCMeta):
     def transform(self, x):
         pass
 
+    @abstractmethod
+    def get_type(self):
+        pass
+
+    @abstractmethod
+    def get_params(self):
+        pass
+
+
+def create_scaler(scaler_type, **kwargs):
+    if scaler_type == 'pixel':
+        return PixelScaler()
+    elif scaler_type == 'min_max':
+        return MinMaxScaler(**kwargs)
+    elif scaler_type == 'standard':
+        return StandardScaler(**kwargs)
+    raise ValueError
+
 
 class PixelScaler(Scaler):
     """ Pixel normalization preprocessing.
@@ -23,13 +41,13 @@ class PixelScaler(Scaler):
 
     .. code-block:: python
 
-        from d3rlpy.preprocessing import PixelScaler
         from d3rlpy.dataset import MDPDataset
         from d3rlpy.algos import CQL
 
         dataset = MDPDataset(observations, actions, rewards, terminals)
 
-        cql = CQL(scaler=PixelScaler())
+        # initialize algorithm with PixelScaler
+        cql = CQL(scaler='pixel')
 
         cql.fit(dataset.episodes)
 
@@ -49,6 +67,26 @@ class PixelScaler(Scaler):
         """
         return x.float() / 255.0
 
+    def get_params(self):
+        """ Returns scaling parameters.
+
+        PixelScaler returns empty dictiornary.
+
+        Returns:
+            dict: empty dictionary.
+
+        """
+        return {}
+
+    def get_type(self):
+        """ Returns scaler type.
+
+        Returns:
+            str: `pixel`.
+
+        """
+        return 'pixel'
+
 
 class MinMaxScaler(Scaler):
     """ Min-Max normalization preprocessing.
@@ -59,13 +97,13 @@ class MinMaxScaler(Scaler):
 
     .. code-block:: python
 
-        from d3rlpy.preprocessing import MinMaxScaler
         from d3rlpy.dataset import MDPDataset
         from d3rlpy.algos import CQL
 
         dataset = MDPDataset(observations, actions, rewards, terminals)
 
-        cql = CQL(scaler=MinMaxScaler())
+        # initialize algorithm with MinMaxScaler
+        cql = CQL(scaler='min_max')
 
         # scaler is initialized from the given episodes
         cql.fit(dataset.episodes)
@@ -75,6 +113,8 @@ class MinMaxScaler(Scaler):
 
     .. code-block:: python
 
+        from d3rlpy.preprocessing import MinMaxScaler
+
         # initialize with dataset
         scaler = MinMaxScaler(dataset)
 
@@ -82,6 +122,8 @@ class MinMaxScaler(Scaler):
         minimum = observations.min(axis=0)
         maximum = observations.max(axis=0)
         scaler = MinMaxScaler(minimum=minimum, maximum=maximum)
+
+        cql = CQL(scaler=scaler)
 
     Args:
         dataset (d3rlpy.dataset.MDPDataset): dataset object.
@@ -99,8 +141,8 @@ class MinMaxScaler(Scaler):
             self.minimum = stats['observation']['min']
             self.maximum = stats['observation']['max']
         elif maximum is not None and minimum is not None:
-            self.minimum = minimum
-            self.maximum = maximum
+            self.minimum = np.asarray(minimum)
+            self.maximum = np.asarray(maximum)
         else:
             self.minimum = None
             self.maximum = None
@@ -115,11 +157,14 @@ class MinMaxScaler(Scaler):
         if self.minimum is not None and self.maximum is not None:
             return
 
-        self.minimum = episodes[0].observations.min(axis=0)
-        self.maximum = episodes[0].observations.max(axis=0)
-        for e in episodes[1:]:
-            self.minimum = np.minimum(self.minimum, e.observations.min(axis=0))
-            self.maximum = np.maximum(self.maximum, e.observations.max(axis=0))
+        for i, e in enumerate(episodes):
+            observations = np.asarray(e.observations)
+            if i == 0:
+                self.minimum = observations.min(axis=0)
+                self.maximum = observations.max(axis=0)
+                continue
+            self.minimum = np.minimum(self.minimum, observations.min(axis=0))
+            self.maximum = np.maximum(self.maximum, observations.max(axis=0))
 
     def transform(self, x):
         """ Returns normalized observation tensor.
@@ -131,9 +176,31 @@ class MinMaxScaler(Scaler):
             torch.Tensor: normalized observation tensor.
 
         """
-        minimum = torch.tensor(self.minimum, device=x.device).view(1, -1)
-        maximum = torch.tensor(self.maximum, device=x.device).view(1, -1)
-        return (x - minimum) / (maximum - minimum)
+        minimum = torch.tensor(self.minimum,
+                               dtype=torch.float32,
+                               device=x.device)
+        maximum = torch.tensor(self.maximum,
+                               dtype=torch.float32,
+                               device=x.device)
+        return (x - minimum.view(1, -1)) / (maximum - minimum).view(1, -1)
+
+    def get_params(self):
+        """ Returns scaling parameters.
+
+        Returns:
+            dict: `maximum` and `minimum`.
+
+        """
+        return {'maximum': self.maximum, 'minimum': self.minimum}
+
+    def get_type(self):
+        """ Returns scaler type.
+
+        Returns:
+            str: `min_max`.
+
+        """
+        return 'min_max'
 
 
 class StandardScaler(Scaler):
@@ -145,13 +212,13 @@ class StandardScaler(Scaler):
 
     .. code-block:: python
 
-        from d3rlpy.preprocessing import StandardScaler
         from d3rlpy.dataset import MDPDataset
         from d3rlpy.algos import CQL
 
         dataset = MDPDataset(observations, actions, rewards, terminals)
 
-        cql = CQL(scaler=StandardScaler())
+        # initialize algorithm with StandardScaler
+        cql = CQL(scaler='standard')
 
         # scaler is initialized from the given episodes
         cql.fit(dataset.episodes)
@@ -161,6 +228,8 @@ class StandardScaler(Scaler):
 
     .. code-block:: python
 
+        from d3rlpy.preprocessing import StandardScaler
+
         # initialize with dataset
         scaler = StandardScaler(dataset)
 
@@ -168,6 +237,8 @@ class StandardScaler(Scaler):
         mean = observations.mean(axis=0)
         std = observations.std(axis=0)
         scaler = StandardScaler(mean=mean, std=std)
+
+        cql = CQL(scaler=scaler)
 
     Args:
         dataset (d3rlpy.dataset.MDPDataset): dataset object.
@@ -185,8 +256,8 @@ class StandardScaler(Scaler):
             self.mean = stats['observation']['mean']
             self.std = stats['observation']['std']
         elif mean is not None and std is not None:
-            self.mean = mean
-            self.std = std
+            self.mean = np.asarray(mean)
+            self.std = np.asarray(std)
         else:
             self.mean = None
             self.std = None
@@ -205,15 +276,17 @@ class StandardScaler(Scaler):
         total_sum = np.zeros(episodes[0].observation_shape)
         total_count = 0
         for e in episodes:
-            total_sum += e.observations.sum(axis=0)
-            total_count += e.observations.shape[0]
+            observations = np.asarray(e.observations)
+            total_sum += observations.sum(axis=0)
+            total_count += observations.shape[0]
         self.mean = total_sum / total_count
 
         # compute stdandard deviation
         total_sqsum = np.zeros(episodes[0].observation_shape)
         expanded_mean = self.mean.reshape((1, -1))
         for e in episodes:
-            total_sqsum += ((e.observations - expanded_mean)**2).sum(axis=0)
+            observations = np.asarray(e.observations)
+            total_sqsum += ((observations - expanded_mean)**2).sum(axis=0)
         self.std = np.sqrt(total_sqsum / total_count)
 
     def transform(self, x):
@@ -226,6 +299,24 @@ class StandardScaler(Scaler):
             torch.Tensor: standardized observation tensor.
 
         """
-        mean = torch.tensor(self.mean, device=x.device).view(1, -1)
-        std = torch.tensor(self.std, device=x.device).view(1, -1)
-        return (x - mean) / std
+        mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
+        std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
+        return (x - mean.view(1, -1)) / std.view(1, -1)
+
+    def get_params(self):
+        """ Returns scaling parameters.
+
+        Returns:
+            dict: `mean` and `std`.
+
+        """
+        return {'mean': self.mean, 'std': self.std}
+
+    def get_type(self):
+        """ Returns scaler type.
+
+        Returns:
+            str: `standard`.
+
+        """
+        return 'standard'

@@ -12,15 +12,11 @@ in the model exported by `save_policy` method.
 
     from d3rlpy.algos import CQL
     from d3rlpy.dataset import MDPDataset
-    from d3rlpy.preprocessing import StandardScaler
 
     dataset = MDPDataset(...)
 
-    # initialize scaler
-    scaler = StandardScaler()
-
-    # pass scaler to algorithm
-    cql = CQL(scaler=scaler)
+    # choose from ['pixel', 'min_max', 'standard'] or None
+    cql = CQL(scaler='standard')
 
     # scaler is fitted from the given episodes
     cql.fit(dataset.episodes)
@@ -32,18 +28,15 @@ in the model exported by `save_policy` method.
     policy = torch.jit.load('policy.pt')
     action = policy(unpreprocessed_x)
 
-You can also make your own preprocessors.
+You can also initialize scalers by yourself.
 
 .. code-block:: python
 
-    from d3rlpy.preprocessing import Scaler
+    from d3rlpy.preprocessing import StandardScaler
 
-    class LogScaler(Scaler):
-        def fit(self, episodes):
-            pass
+    scaler = StandardScaler(mean=..., std=...)
 
-        def transform(self, x):
-            return x.log()
+    cql = CQL(scaler=scaler)
 
 .. autosummary::
    :toctree: generated/
