@@ -211,9 +211,9 @@ class AlgoBase:
             self.scaler.fit(episodes)
 
         # instantiate implementation
+        observation_shape = transitions[0].get_observation_shape()
+        action_size = transitions[0].get_action_size()
         if self.impl is None:
-            observation_shape = transitions[0].get_observation_shape()
-            action_size = transitions[0].get_action_size()
             self.create_impl(observation_shape, action_size)
 
         # setup logger
@@ -221,7 +221,7 @@ class AlgoBase:
                                       tensorboard)
 
         # save hyperparameters
-        logger.add_params(self.get_params(deep=False))
+        self._save_params(logger, observation_shape, action_size)
 
         # training loop
         total_step = 0
@@ -357,3 +357,21 @@ class AlgoBase:
                 test_score *= -1
 
             logger.add_metric(name, test_score)
+
+    def _save_params(self, logger, observation_shape, action_size):
+        # get hyperparameters without impl
+        params = self.get_params(deep=False)
+        params = {k: v for k, v in params.items() if k != 'impl'}
+
+        # save shapes
+        params['observation_shape'] = observation_shape
+        params['action_size'] = action_size
+
+        # save scaler
+        if self.scaler:
+            params['scaler'] = {
+                'type': self.scaler.get_type(),
+                'params': self.scaler.get_params()
+            }
+
+        logger.add_params(params)
