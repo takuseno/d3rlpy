@@ -19,6 +19,7 @@ from d3rlpy.models.torch.q_functions import DiscreteQFunction
 from d3rlpy.models.torch.q_functions import EnsembleDiscreteQFunction
 from d3rlpy.models.torch.q_functions import ContinuousQFunction
 from d3rlpy.models.torch.q_functions import EnsembleContinuousQFunction
+from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
 from .model_test import check_parameter_updates, DummyHead
 
 
@@ -660,3 +661,30 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
 
     # check layer connection
     check_parameter_updates(q_func, (x, action, 'mean'))
+
+
+@pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
+@pytest.mark.parametrize('action_size', [3])
+@pytest.mark.parametrize('n_ensembles', [2])
+@pytest.mark.parametrize('batch_size', [100])
+@pytest.mark.parametrize('n_quantiles', [32])
+@pytest.mark.parametrize('n_actions', [10])
+@pytest.mark.parametrize('lam', [0.75])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr'])
+def test_compute_max_with_n_actions(observation_shape, action_size,
+                                    n_ensembles, batch_size, n_quantiles,
+                                    n_actions, lam, q_func_type):
+    q_func = create_continuous_q_function(observation_shape,
+                                          action_size,
+                                          n_ensembles,
+                                          n_quantiles,
+                                          q_func_type=q_func_type)
+    x = torch.rand(batch_size, *observation_shape)
+    actions = torch.rand(batch_size, n_actions, action_size)
+
+    y = compute_max_with_n_actions(x, actions, q_func, lam)
+
+    if q_func_type == 'mean':
+        assert y.shape == (batch_size, 1)
+    else:
+        assert y.shape == (batch_size, n_quantiles)

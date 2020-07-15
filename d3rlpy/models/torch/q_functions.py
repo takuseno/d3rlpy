@@ -573,31 +573,42 @@ class ContinuousQFunction(nn.Module):
         return self.forward(x, action)
 
 
-def _reduce_ensemble(y, reduction='min'):
+def _reduce_ensemble(y, reduction='min', dim=0, lam=0.75):
     if reduction == 'min':
-        return y.min(dim=0).values
+        return y.min(dim=dim).values
     elif reduction == 'max':
-        return y.max(dim=0).values
+        return y.max(dim=dim).values
     elif reduction == 'mean':
-        return y.mean(dim=0)
+        return y.mean(dim=dim)
     elif reduction == 'none':
         return y
+    elif reduction == 'mix':
+        max_values = y.max(dim=dim).values
+        min_values = y.min(dim=dim).values
+        return lam * min_values + (1.0 - lam) * max_values
     else:
         raise ValueError
 
 
-def _reduce_quantile_ensemble(y, reduction='min'):
+def _reduce_quantile_ensemble(y, reduction='min', dim=0, lam=0.75):
     # reduction beased on expectation
     mean = y.mean(dim=2)
     if reduction == 'min':
-        indices = mean.min(dim=0).indices
+        indices = mean.min(dim=dim).indices
+        return y.transpose(0, 1)[torch.arange(y.shape[1]), indices]
     elif reduction == 'max':
-        indices = mean.max(dim=0).indices
+        indices = mean.max(dim=dim).indices
+        return y.transpose(0, 1)[torch.arange(y.shape[1]), indices]
     elif reduction == 'none':
         return y
+    elif reduction == 'mix':
+        min_indices = mean.min(dim=dim).indices
+        max_indices = mean.max(dim=dim).indices
+        min_values = y.transpose(0, 1)[torch.arange(y.shape[1]), min_indices]
+        max_values = y.transpose(0, 1)[torch.arange(y.shape[1]), max_indices]
+        return lam * min_values + (1.0 - lam) * max_values
     else:
         raise ValueError
-    return y.transpose(0, 1)[torch.arange(y.shape[1]), indices]
 
 
 class EnsembleQFunction(nn.Module):
@@ -640,3 +651,57 @@ class EnsembleContinuousQFunction(EnsembleQFunction):
         for q_func in self.q_funcs:
             values.append(q_func(x, action).view(1, x.shape[0], 1))
         return _reduce_ensemble(torch.cat(values, dim=0), reduction)
+
+
+def compute_max_with_n_actions(x, actions, q_func, lam):
+    """ Returns weighted target value from sampled actions.
+
+    This calculation is proposed in BCQ paper for the first time.
+
+    `x` should be shaped with `(batch, dim_obs)`.
+    `actions` should be shaped with `(batch, N, dim_action)`.
+
+    """
+    batch_size = actions.shape[0]
+    n_critics = len(q_func.q_funcs)
+    n_actions = actions.shape[1]
+
+    # (batch, observation) -> (batch, n, observation)
+    expanded_x = x.expand(n_actions, *x.shape).transpose(0, 1)
+    # (batch * n, observation)
+    flat_x = expanded_x.reshape(-1, *x.shape[1:])
+    # (batch, n, action) -> (batch * n, action)
+    flat_actions = actions.reshape(batch_size * n_actions, -1)
+
+    # estimate values while taking care of quantiles
+    flat_values = q_func.compute_target(flat_x, flat_actions, 'none')
+    # reshape to (n_ensembles, batch_size, n, -1)
+    transposed_values = flat_values.view(n_critics, batch_size, n_actions, -1)
+    # (n_ensembles, batch_size, n, -1) -> (batch_size, n_ensembles, n, -1)
+    values = transposed_values.transpose(0, 1)
+
+    # get combination indices
+    # (batch_size, n_ensembles, n, -1) -> (batch_size, n_ensembles, n)
+    mean_values = values.mean(dim=3)
+    #(batch_size, n_ensembles, n) -> (batch_size, n)
+    max_values, max_indices = mean_values.max(dim=1)
+    min_values, min_indices = mean_values.min(dim=1)
+    mix_values = (1.0 - lam) * max_values + lam * min_values
+    #(batch_size, n) -> (batch_size,)
+    action_indices = mix_values.argmax(dim=1)
+
+    # fuse maximum values and minimum values
+    # (batch_size, n_ensembles, n, -1) -> (batch_size, n, n_ensembles, -1)
+    values_T = values.transpose(1, 2)
+    # (batch, n, n_ensembles, -1) -> (batch * n, n_ensembles, -1)
+    flat_values = values_T.reshape(batch_size * n_actions, n_critics, -1)
+    # (batch * n, n_ensembles, -1) -> (batch * n, -1)
+    bn_indices = torch.arange(batch_size * n_actions)
+    max_values = flat_values[bn_indices, max_indices.view(-1)]
+    min_values = flat_values[bn_indices, min_indices.view(-1)]
+    # (batch * n, -1) -> (batch, n, -1)
+    max_values = max_values.view(batch_size, n_actions, -1)
+    min_values = min_values.view(batch_size, n_actions, -1)
+    mix_values = (1.0 - lam) * max_values + lam * min_values
+    # (batch, n, -1) -> (batch, -1)
+    return mix_values[torch.arange(x.shape[0]), action_indices]

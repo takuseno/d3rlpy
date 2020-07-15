@@ -8,6 +8,7 @@ from torch.optim import Adam
 from d3rlpy.models.torch.heads import PixelHead
 from d3rlpy.models.torch.policies import create_deterministic_residual_policy
 from d3rlpy.models.torch.q_functions import create_continuous_q_function
+from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
 from d3rlpy.models.torch.imitators import create_conditional_vae
 from d3rlpy.models.torch.imitators import create_discrete_imitator
 from d3rlpy.models.torch.imitators import DiscreteImitator
@@ -150,40 +151,12 @@ class BCQImpl(DDPGImpl, IBCQImpl):
         # TODO: this seems to be slow with image observation
         with torch.no_grad():
             repeated_x = self._repeat_observation(x)
-            action = self._sample_action(repeated_x, True)
-            # estimate values (n_ensembles, batch_size * n, -1)
-            # take care of quantile regression
-            values = self._predict_value(repeated_x, action, target=True)
-            # reshape to (n_ensembles, batch_size, n, -1)
-            reshaped_values = values.view(self.n_critics, x.shape[0],
-                                          self.n_action_samples, -1)
+            actions = self._sample_action(repeated_x, True)
 
-            # get combination indices
-            # (n_ensembles, batch_size, n, -1) -> (batch_size, n_ensembles, n)
-            mean_values = reshaped_values.mean(dim=3).transpose(0, 1)
-            #(batch_size, n_ensembles, n) -> (batch_size, n)
-            max_values, max_indices = mean_values.max(dim=1)
-            min_values, min_indices = mean_values.min(dim=1)
-            mix_values = (1.0 - self.lam) * max_values + self.lam * min_values
-            #(batch_size, n) -> (batch_size,)
-            mix_indices = mix_values.argmax(dim=1)
+            values = compute_max_with_n_actions(x, actions, self.targ_q_func,
+                                                self.lam)
 
-            # fuse maximum values and minimum values
-            # (n_ensembles, batch, n, -1) -> (batch, n, n_ensembels, -1)
-            transposed_values = reshaped_values.permute(1, 2, 0, 3)
-            # (batch, n, n_ensembles, -1) -> (batch * n, n_ensembles, -1)
-            bn = x.shape[0] * self.n_action_samples
-            flatten_values = transposed_values.view(bn, self.n_critics, -1)
-            # (batch * n, n_ensembles, -1) -> (batch * n, -1)
-            bn_indices = torch.arange(bn)
-            max_values = flatten_values[bn_indices, max_indices.view(-1)]
-            min_values = flatten_values[bn_indices, min_indices.view(-1)]
-            # (batch * n, -1) -> (batch, n, -1)
-            max_values = max_values.view(x.shape[0], self.n_action_samples, -1)
-            min_values = min_values.view(x.shape[0], self.n_action_samples, -1)
-            mix_values = (1.0 - self.lam) * max_values + self.lam * min_values
-            # (batch, n, -1) -> (batch, -1)
-            return mix_values[torch.arange(x.shape[0]), mix_indices]
+            return values
 
 
 class DiscreteBCQImpl(DoubleDQNImpl):
