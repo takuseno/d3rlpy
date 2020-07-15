@@ -5,9 +5,11 @@ import torch.nn.functional as F
 from d3rlpy.models.torch.imitators import create_conditional_vae
 from d3rlpy.models.torch.imitators import create_discrete_imitator
 from d3rlpy.models.torch.imitators import create_deterministic_regressor
+from d3rlpy.models.torch.imitators import create_probablistic_regressor
 from d3rlpy.models.torch.imitators import ConditionalVAE
 from d3rlpy.models.torch.imitators import DiscreteImitator
 from d3rlpy.models.torch.imitators import DeterministicRegressor
+from d3rlpy.models.torch.imitators import ProbablisticRegressor
 from .model_test import check_parameter_updates, DummyHead
 
 
@@ -56,6 +58,22 @@ def test_create_deterministic_regressor(observation_shape, action_size,
                                               use_batch_norm)
 
     assert isinstance(imitator, DeterministicRegressor)
+
+    x = torch.rand((batch_size, ) + observation_shape)
+    y = imitator(x)
+    assert y.shape == (batch_size, action_size)
+
+
+@pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('use_batch_norm', [False, True])
+def test_create_probablistic_regressor(observation_shape, action_size,
+                                       batch_size, use_batch_norm):
+    imitator = create_probablistic_regressor(observation_shape, action_size,
+                                             use_batch_norm)
+
+    assert isinstance(imitator, ProbablisticRegressor)
 
     x = torch.rand((batch_size, ) + observation_shape)
     y = imitator(x)
@@ -130,3 +148,22 @@ def test_deterministic_regressor(feature_size, action_size, batch_size):
     action = torch.rand(batch_size, action_size)
     loss = imitator.compute_error(x, action)
     assert torch.allclose(F.mse_loss(y, action), loss)
+
+
+@pytest.mark.parametrize('feature_size', [100])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('n', [10])
+def test_probablistic_regressor(feature_size, action_size, batch_size, n):
+    head = DummyHead(feature_size)
+    imitator = ProbablisticRegressor(head, action_size)
+
+    x = torch.rand(batch_size, feature_size)
+    y = imitator(x)
+    assert y.shape == (batch_size, action_size)
+
+    action = torch.rand(batch_size, action_size)
+    loss = imitator.compute_error(x, action)
+
+    y = imitator.sample_n(x, n)
+    assert y.shape == (batch_size, n, action_size)

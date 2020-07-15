@@ -36,6 +36,13 @@ def create_deterministic_regressor(observation_shape,
     return DeterministicRegressor(head, action_size)
 
 
+def create_probablistic_regressor(observation_shape,
+                                  action_size,
+                                  use_batch_norm=False):
+    head = create_head(observation_shape, use_batch_norm=use_batch_norm)
+    return ProbablisticRegressor(head, action_size)
+
+
 class ConditionalVAE(nn.Module):
     def __init__(self, encoder_head, decoder_head, beta):
         super().__init__()
@@ -105,6 +112,34 @@ class DeterministicRegressor(nn.Module):
         h = self.head(x)
         h = self.fc(h)
         return torch.tanh(h)
+
+    def compute_error(self, x, action):
+        return F.mse_loss(self.forward(x), action)
+
+
+class ProbablisticRegressor(nn.Module):
+    def __init__(self, head, action_size):
+        super().__init__()
+        self.head = head
+        self.mu = nn.Linear(head.feature_size, action_size)
+        self.logstd = nn.Linear(head.feature_size, action_size)
+
+    def dist(self, x):
+        h = self.head(x)
+        mu = self.mu(h)
+        logstd = self.logstd(h)
+        clipped_logstd = logstd.clamp(-20.0, 2.0)
+        return Normal(mu, clipped_logstd)
+
+    def forward(self, x):
+        dist = self.dist(x)
+        return dist.rsample()
+
+    def sample_n(self, x, n):
+        dist = self.dist(x)
+        actions = dist.rsample((n, ))
+        # (n, batch, action) -> (batch, n, action)
+        return actions.transpose(0, 1)
 
     def compute_error(self, x, action):
         return F.mse_loss(self.forward(x), action)
