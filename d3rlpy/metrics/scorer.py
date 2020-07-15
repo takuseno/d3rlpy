@@ -69,7 +69,10 @@ def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
             observation = env.reset()
             episode_reward = 0.0
             while True:
-                action = algo.predict([observation])[0]
+                if np.random.random() < epsilon:
+                    action = env.action_space.sample()
+                else:
+                    action = algo.predict([observation])[0]
                 observation, reward, done, _ = env.step(action)
                 episode_reward += reward
 
