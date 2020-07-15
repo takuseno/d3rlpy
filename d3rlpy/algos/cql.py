@@ -140,7 +140,6 @@ class CQL(AlgoBase):
         self.q_func_type = q_func_type
         self.n_epochs = n_epochs
         self.use_gpu = use_gpu
-        self.scaler = scaler
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):

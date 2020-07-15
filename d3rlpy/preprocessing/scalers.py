@@ -160,11 +160,14 @@ class MinMaxScaler(Scaler):
         for i, e in enumerate(episodes):
             observations = np.asarray(e.observations)
             if i == 0:
-                self.minimum = observations.min(axis=0)
-                self.maximum = observations.max(axis=0)
+                minimum = observations.min(axis=0)
+                maximum = observations.max(axis=0)
                 continue
-            self.minimum = np.minimum(self.minimum, observations.min(axis=0))
-            self.maximum = np.maximum(self.maximum, observations.max(axis=0))
+            minimum = np.minimum(minimum, observations.min(axis=0))
+            maximum = np.maximum(maximum, observations.max(axis=0))
+
+        self.minimum = minimum.reshape((1, ) + minimum.shape)
+        self.maximum = maximum.reshape((1, ) + maximum.shape)
 
     def transform(self, x):
         """ Returns normalized observation tensor.
@@ -176,13 +179,14 @@ class MinMaxScaler(Scaler):
             torch.Tensor: normalized observation tensor.
 
         """
+        assert self.minimum is not None and self.maximum is not None
         minimum = torch.tensor(self.minimum,
                                dtype=torch.float32,
                                device=x.device)
         maximum = torch.tensor(self.maximum,
                                dtype=torch.float32,
                                device=x.device)
-        return (x - minimum.view(1, -1)) / (maximum - minimum).view(1, -1)
+        return (x - minimum) / (maximum - minimum)
 
     def get_params(self):
         """ Returns scaling parameters.
@@ -279,15 +283,18 @@ class StandardScaler(Scaler):
             observations = np.asarray(e.observations)
             total_sum += observations.sum(axis=0)
             total_count += observations.shape[0]
-        self.mean = total_sum / total_count
+        mean = total_sum / total_count
 
         # compute stdandard deviation
         total_sqsum = np.zeros(episodes[0].observation_shape)
-        expanded_mean = self.mean.reshape((1, -1))
+        expanded_mean = mean.reshape((1, ) + mean.shape)
         for e in episodes:
             observations = np.asarray(e.observations)
             total_sqsum += ((observations - expanded_mean)**2).sum(axis=0)
-        self.std = np.sqrt(total_sqsum / total_count)
+        std = np.sqrt(total_sqsum / total_count)
+
+        self.mean = mean.reshape((1, ) + mean.shape)
+        self.std = std.reshape((1, ) + std.shape)
 
     def transform(self, x):
         """ Returns standardized observation tensor.
@@ -299,9 +306,10 @@ class StandardScaler(Scaler):
             torch.Tensor: standardized observation tensor.
 
         """
+        assert self.mean is not None and self.std is not None
         mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
         std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
-        return (x - mean.view(1, -1)) / std.view(1, -1)
+        return (x - mean) / std
 
     def get_params(self):
         """ Returns scaling parameters.

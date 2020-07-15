@@ -8,6 +8,7 @@ from unittest.mock import Mock
 from d3rlpy.algos.torch.base import ImplBase
 from d3rlpy.dataset import MDPDataset, Transition, TransitionMiniBatch
 from d3rlpy.datasets import get_cartpole, get_pendulum
+from d3rlpy.logger import D3RLPyLogger
 from d3rlpy.preprocessing import Scaler
 
 
@@ -42,7 +43,7 @@ class DummyScaler(Scaler):
         return {}
 
 
-def algo_tester(algo, imitator=False):
+def algo_tester(algo, observation_shape, imitator=False):
     # dummy impl object
     impl = DummyImpl()
 
@@ -110,7 +111,7 @@ def algo_tester(algo, imitator=False):
     data_size = n_episodes * episode_length
     algo.batch_size = n_batch
     algo.n_epochs = n_epochs
-    observations = np.random.random((data_size, 3))
+    observations = np.random.random((data_size, ) + observation_shape)
     actions = np.random.random((data_size, 3))
     rewards = np.random.random(data_size)
     terminals = np.zeros(data_size)
@@ -136,7 +137,24 @@ def algo_tester(algo, imitator=False):
         assert isinstance(call[0][2], TransitionMiniBatch)
         assert len(call[0][2]) == n_batch
 
+    # save params.json
+    logger = D3RLPyLogger('test',
+                          root_dir='test_data',
+                          verbose=False,
+                          tensorboard=False,
+                          with_timestamp=False)
+    # save parameters to test_data/test/params.json
+    algo._save_params(logger, observation_shape, 3)
+    # load params.json
+    json_path = os.path.join('test_data', 'test', 'params.json')
+    new_algo = algo.__class__.from_json(json_path)
+    assert new_algo.impl is not None
+    assert new_algo.impl.observation_shape == observation_shape
+    assert new_algo.impl.action_size == 3
+    assert type(algo.scaler) == type(new_algo.scaler)
+
     # set backed up methods
+    algo.impl = None
     algo.update = update_backup
 
 

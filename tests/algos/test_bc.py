@@ -8,9 +8,10 @@ from .algo_test import algo_pendulum_tester, algo_cartpole_tester
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
-def test_bc(observation_shape, action_size):
-    bc = BC()
-    algo_tester(bc, imitator=True)
+@pytest.mark.parametrize('scaler', [None, 'pixel', 'min_max', 'standard'])
+def test_bc(observation_shape, action_size, scaler):
+    bc = BC(scaler=scaler)
+    algo_tester(bc, observation_shape, imitator=True)
     algo_update_tester(bc, observation_shape, action_size)
 
 
@@ -22,9 +23,10 @@ def test_bc_performance():
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
-def test_discrete_bc(observation_shape, action_size):
-    bc = DiscreteBC()
-    algo_tester(bc, imitator=True)
+@pytest.mark.parametrize('scaler', [None, 'pixel', 'min_max', 'standard'])
+def test_discrete_bc(observation_shape, action_size, scaler):
+    bc = DiscreteBC(scaler=scaler)
+    algo_tester(bc, observation_shape, imitator=True)
     algo_update_tester(bc, observation_shape, action_size, discrete=True)
 
 

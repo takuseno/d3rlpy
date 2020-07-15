@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+import json
 
 from abc import ABCMeta, abstractmethod
 from tqdm import trange
@@ -62,6 +63,50 @@ class AlgoBase:
 
         self.impl = None
 
+    @classmethod
+    def from_json(cls, fname):
+        """ Returns algorithm configured with json file.
+
+        The Json file should be the one saved during fitting.
+
+        .. code-block:: python
+
+            from d3rlpy.algos import Algo
+
+            # create algorithm with saved configuration
+            algo = Algo.from_json('d3rlpy_logs/<path-to-json>/params.json')
+
+            # ready to load
+            algo.load_model('d3rlpy_logs/<path-to-model>/model_100.pt')
+
+            # ready to predict
+            algo.predict(...)
+
+        Args:
+            fname (str): file path to `params.json`.
+
+        Returns:
+            d3rlpy.algos.base.AlgoBase: algorithm.
+
+        """
+        with open(fname, 'r') as f:
+            params = json.load(f)
+
+        observation_shape = tuple(params['observation_shape'])
+        action_size = params['action_size']
+        del params['observation_shape']
+        del params['action_size']
+
+        if params['scaler']:
+            scaler_type = params['scaler']['type']
+            scaler_params = params['scaler']['params']
+            scaler = create_scaler(scaler_type, **scaler_params)
+            params['scaler'] = scaler
+
+        algo = cls(**params)
+        algo.create_impl(observation_shape, action_size)
+        return algo
+
     def set_params(self, **params):
         """ Sets the given arguments to the attributes if they exist.
 
@@ -109,15 +154,17 @@ class AlgoBase:
         rets = {}
         for key in dir(self):
             # remove magic properties
-            if key == '__module__' or key == '__doc__':
+            if key[:2] == '__':
                 continue
             # pick scalar parameters
-            if np.isscalar(getattr(self, key)):
-                rets[key] = getattr(self, key)
-        if deep:
-            rets['impl'] = copy.deepcopy(self.impl)
-        else:
-            rets['impl'] = self.impl
+            value = getattr(self, key)
+            if np.isscalar(value):
+                rets[key] = value
+            elif isinstance(value, object) and not callable(value):
+                if deep:
+                    rets[key] = copy.deepcopy(value)
+                else:
+                    rets[key] = value
         return rets
 
     def save_model(self, fname):

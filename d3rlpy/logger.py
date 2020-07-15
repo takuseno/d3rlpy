@@ -21,12 +21,16 @@ class D3RLPyLogger:
                  experiment_name,
                  root_dir='logs',
                  verbose=True,
-                 tensorboard=True):
+                 tensorboard=True,
+                 with_timestamp=True):
         self.verbose = verbose
 
         # add timestamp to prevent unintentional overwrites
-        date = datetime.now().strftime('%Y%m%d%H%M%S')
-        self.experiment_name = experiment_name + '_' + date
+        if with_timestamp:
+            date = datetime.now().strftime('%Y%m%d%H%M%S')
+            self.experiment_name = experiment_name + '_' + date
+        else:
+            self.experiment_name = experiment_name
         self.logdir = os.path.join(root_dir, self.experiment_name)
         self.metrics_buffer = {}
 
