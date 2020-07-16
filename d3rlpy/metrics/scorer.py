@@ -30,7 +30,7 @@ def td_error_scorer(algo, episodes, window_size=100):
             # calculate td errors
             mask = (1.0 - batch.terminals)
             y = batch.next_rewards + algo.gamma * next_values * mask
-            total_errors += ((values - y)**2)[:, 0].tolist()
+            total_errors += ((values - y)**2).tolist()
 
     # smaller is better
     return -np.mean(total_errors)
@@ -49,7 +49,7 @@ def discounted_sum_of_advantage_scorer(algo, episodes, window_size=100):
             on_policy_values = algo.predict_value(batch.observations, actions)
 
             # calculate advantages
-            advantages = (dataset_values - on_policy_values)[:, 0].tolist()
+            advantages = (dataset_values - on_policy_values).tolist()
 
             # calculate discounted sum of advantages
             A = advantages[-1]
@@ -70,7 +70,7 @@ def average_value_estimation_scorer(algo, episodes, window_size=100):
         for batch in _make_batches_from_episode(episode, window_size):
             actions = algo.predict(batch.observations)
             values = algo.predict_value(batch.observations, actions)
-            total_values += values[:, 0].tolist()
+            total_values += values.tolist()
     return np.mean(total_values)
 
 

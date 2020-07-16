@@ -19,7 +19,7 @@ class DummyAlgo:
 
     def predict_value(self, x, action):
         values = np.mean(x, axis=1) + np.mean(action, axis=1)
-        return values.reshape(-1, 1)
+        return values.reshape(-1)
 
 
 def ref_td_error_score(predict_value, observations, actions, rewards,
