@@ -653,7 +653,11 @@ class EnsembleContinuousQFunction(EnsembleQFunction):
         return _reduce_ensemble(torch.cat(values, dim=0), reduction)
 
 
-def compute_max_with_n_actions(x, actions, q_func, lam):
+def compute_max_with_n_actions(x,
+                               actions,
+                               q_func,
+                               lam,
+                               with_action_indices=False):
     """ Returns weighted target value from sampled actions.
 
     This calculation is proposed in BCQ paper for the first time.
@@ -704,4 +708,9 @@ def compute_max_with_n_actions(x, actions, q_func, lam):
     min_values = min_values.view(batch_size, n_actions, -1)
     mix_values = (1.0 - lam) * max_values + lam * min_values
     # (batch, n, -1) -> (batch, -1)
-    return mix_values[torch.arange(x.shape[0]), action_indices]
+    result_values = mix_values[torch.arange(x.shape[0]), action_indices]
+
+    if with_action_indices:
+        return result_values, action_indices
+
+    return result_values
