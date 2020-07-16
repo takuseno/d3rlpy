@@ -82,7 +82,7 @@ def continuous_action_diff_scorer(algo, episodes, window_size=1024):
             actions = algo.predict(batch.observations)
             diff = ((batch.actions - actions)**2).sum(axis=1).tolist()
             total_diffs += diff
-    # smaller is better, maybe?
+    # smaller is better, sometimes?
     return -np.mean(total_diffs)
 
 
