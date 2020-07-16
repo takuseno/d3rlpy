@@ -470,9 +470,10 @@ def test_discrete_q_function(feature_size, action_size, batch_size, gamma):
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('embed_size', [64])
+@pytest.mark.parametrize('bootstrap', [False, True])
 def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
                                       gamma, ensemble_size, q_func_type,
-                                      n_quantiles, embed_size):
+                                      n_quantiles, embed_size, bootstrap):
     q_funcs = []
     for _ in range(ensemble_size):
         head = DummyHead(feature_size)
@@ -487,7 +488,7 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
             q_func = DiscreteFQFQFunction(head, action_size, n_quantiles,
                                           embed_size)
         q_funcs.append(q_func)
-    q_func = EnsembleDiscreteQFunction(q_funcs)
+    q_func = EnsembleDiscreteQFunction(q_funcs, bootstrap)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -527,7 +528,9 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
         f = q_func.q_funcs[i]
         ref_td_sum += f.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
-    if q_func_type != 'iqn':
+    if bootstrap:
+        assert not torch.allclose(ref_td_sum, loss)
+    elif q_func_type != 'iqn':
         assert torch.allclose(ref_td_sum, loss)
 
     # check layer connection
@@ -582,9 +585,10 @@ def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('embed_size', [64])
+@pytest.mark.parametrize('bootstrap', [False, True])
 def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
                                         gamma, ensemble_size, q_func_type,
-                                        n_quantiles, embed_size):
+                                        n_quantiles, embed_size, bootstrap):
     q_funcs = []
     for _ in range(ensemble_size):
         head = DummyHead(feature_size, action_size, concat=True)
@@ -598,7 +602,7 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
             q_func = ContinuousFQFQFunction(head, n_quantiles, embed_size)
         q_funcs.append(q_func)
 
-    q_func = EnsembleContinuousQFunction(q_funcs)
+    q_func = EnsembleContinuousQFunction(q_funcs, bootstrap)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -634,7 +638,9 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
         f = q_func.q_funcs[i]
         ref_td_sum += f.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
-    if q_func_type != 'iqn':
+    if bootstrap:
+        assert not torch.allclose(ref_td_sum, loss)
+    elif q_func_type != 'iqn':
         assert torch.allclose(ref_td_sum, loss)
 
     # check layer connection

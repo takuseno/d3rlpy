@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 import math
 
 from .heads import create_head
@@ -12,7 +13,8 @@ def create_discrete_q_function(observation_shape,
                                n_quantiles=32,
                                embed_size=64,
                                use_batch_norm=False,
-                               q_func_type='mean'):
+                               q_func_type='mean',
+                               bootstrap=False):
     q_funcs = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape, use_batch_norm=use_batch_norm)
@@ -29,7 +31,7 @@ def create_discrete_q_function(observation_shape,
         else:
             raise ValueError('invalid quantile regression type')
         q_funcs.append(q_func)
-    return EnsembleDiscreteQFunction(q_funcs)
+    return EnsembleDiscreteQFunction(q_funcs, bootstrap)
 
 
 def create_continuous_q_function(observation_shape,
@@ -38,7 +40,8 @@ def create_continuous_q_function(observation_shape,
                                  n_quantiles=32,
                                  embed_size=64,
                                  use_batch_norm=False,
-                                 q_func_type='mean'):
+                                 q_func_type='mean',
+                                 bootstrap=False):
     q_funcs = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape,
@@ -55,7 +58,7 @@ def create_continuous_q_function(observation_shape,
         else:
             raise ValueError('invalid quantile regression type')
         q_funcs.append(q_func)
-    return EnsembleContinuousQFunction(q_funcs)
+    return EnsembleContinuousQFunction(q_funcs, bootstrap)
 
 
 def _pick_value_by_action(values, action, keepdims=False):
@@ -604,15 +607,25 @@ def _reduce_quantile_ensemble(y, reduction='min', dim=0, lam=0.75):
 
 
 class EnsembleQFunction(nn.Module):
-    def __init__(self, q_funcs):
+    def __init__(self, q_funcs, bootstrap=False):
         super().__init__()
         self.action_size = q_funcs[0].action_size
         self.q_funcs = nn.ModuleList(q_funcs)
+        self.bootstrap = bootstrap and len(q_funcs) > 1
 
     def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+        if self.bootstrap:
+            n_q_funcs = len(self.q_funcs)
+            masks = [0 for _ in range(n_q_funcs // 2)]
+            masks += [1 for _ in range(n_q_funcs - len(masks))]
+            masks = np.random.permutation(masks)
+
         td_sum = 0.0
-        for q_func in self.q_funcs:
+        for i, q_func in enumerate(self.q_funcs):
+            if self.bootstrap and masks[i] == 0:
+                continue
             td_sum += q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
+
         return td_sum
 
     def compute_target(self, x, action, reduction='min'):
