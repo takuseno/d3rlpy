@@ -54,10 +54,11 @@ def test_td_error_scorer(observation_shape, action_size, n_episodes,
     for episode in episodes:
         batch = TransitionMiniBatch(episode.transitions)
         ref_error = ref_td_error_score(algo.predict_value, batch.observations,
-                                       batch.actions, batch.next_rewards,
+                                       batch.actions,
+                                       batch.next_rewards.reshape(-1),
                                        batch.next_observations,
-                                       batch.next_actions, batch.terminals,
-                                       gamma)
+                                       batch.next_actions,
+                                       batch.terminals.reshape(-1), gamma)
         ref_errors += ref_error
 
     score = td_error_scorer(algo, episodes)
