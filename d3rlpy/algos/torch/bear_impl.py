@@ -6,6 +6,7 @@ import math
 from torch.optim import Adam
 from d3rlpy.models.torch.imitators import create_probablistic_regressor
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
+from d3rlpy.algos.bear import IBEARImpl
 from .utility import torch_api, train_api
 from .sac_impl import SACImpl
 
@@ -14,7 +15,7 @@ def _gaussian_kernel(x, y, sigma):
     return (-((x - y)**2) / (2 * sigma**2)).exp()
 
 
-class BEARImpl(SACImpl):
+class BEARImpl(SACImpl, IBEARImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, imitator_learning_rate,
                  temp_learning_rate, alpha_learning_rate, gamma, tau,
@@ -121,17 +122,15 @@ class BEARImpl(SACImpl):
         policy_actions = self.policy.sample_n(x, self.n_action_samples)
 
         # (batch, n, action) -> (batch, n, 1, action)
-        behavior_actions = behavior_actions.reshape(x.shape[0],
-                                                    self.n_action_samples, 1,
-                                                    -1)
-        policy_actions = policy_actions.reshape(x.shape[0],
-                                                self.n_action_samples, 1, -1)
+        behavior_actions = behavior_actions.reshape(x.shape[0], -1, 1,
+                                                    self.action_size)
+        policy_actions = policy_actions.reshape(x.shape[0], -1, 1,
+                                                self.action_size)
         # (batch, n, action) -> (batch, 1, n, action)
-        behavior_actions_T = behavior_actions.reshape(x.shape[0], 1,
-                                                      self.n_action_samples,
-                                                      -1)
-        policy_actions_T = policy_actions.reshape(x.shape[0], 1,
-                                                  self.n_action_samples, -1)
+        behavior_actions_T = behavior_actions.reshape(x.shape[0], 1, -1,
+                                                      self.action_size)
+        policy_actions_T = policy_actions.reshape(x.shape[0], 1, -1,
+                                                  self.action_size)
 
         # 1 / N^2 \sum k(a_\pi, a_\pi)
         inter_policy = _gaussian_kernel(policy_actions, policy_actions_T,
@@ -148,7 +147,9 @@ class BEARImpl(SACImpl):
                                     self.mmd_sigma)
         mmd -= 2 * distance.sum(dim=1).sum(dim=1) / self.n_action_samples**2
 
-        return (self.log_alpha.exp() * (mmd - self.alpha_threshold)).mean()
+        clipped_alpha = self.log_alpha.clamp(-5.0, 10.0).exp()
+
+        return (clipped_alpha * (mmd - self.alpha_threshold)).sum(dim=1).mean()
 
     def compute_target(self, x):
         with torch.no_grad():
