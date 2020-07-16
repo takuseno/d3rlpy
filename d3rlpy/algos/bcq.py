@@ -93,6 +93,7 @@ class BCQ(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
+        update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
         n_action_samples (int): the number of action samples to estimate
             action-values.
@@ -120,6 +121,7 @@ class BCQ(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
+        update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
         n_action_samples (int): the number of action samples to estimate
             action-values.
@@ -145,6 +147,7 @@ class BCQ(AlgoBase):
                  gamma=0.99,
                  tau=0.005,
                  n_critics=2,
+                 update_actor_interval=1,
                  lam=0.75,
                  n_action_samples=100,
                  action_flexibility=0.05,
@@ -166,6 +169,7 @@ class BCQ(AlgoBase):
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
+        self.update_actor_interval = update_actor_interval
         self.lam = lam
         self.n_action_samples = n_action_samples
         self.action_flexibility = action_flexibility
@@ -208,9 +212,12 @@ class BCQ(AlgoBase):
                                                   batch.next_rewards,
                                                   batch.next_observations,
                                                   batch.terminals)
-            actor_loss = self.impl.update_actor(batch.observations)
-            self.impl.update_actor_target()
-            self.impl.update_critic_target()
+            if total_step % self.update_actor_interval == 0:
+                actor_loss = self.impl.update_actor(batch.observations)
+                self.impl.update_actor_target()
+                self.impl.update_critic_target()
+            else:
+                actor_loss = None
         else:
             critic_loss = None
             actor_loss = None

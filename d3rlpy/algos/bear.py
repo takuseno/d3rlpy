@@ -62,6 +62,7 @@ class BEAR(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
+        update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\\alpha` value.
         alpha_threshold (float): threshold value described as
@@ -94,6 +95,7 @@ class BEAR(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
+        update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\\alpha` value.
         alpha_threshold (float): threshold value described as
@@ -124,6 +126,7 @@ class BEAR(AlgoBase):
                  gamma=0.99,
                  tau=0.005,
                  n_critics=2,
+                 update_actor_interval=1,
                  initial_temperature=1.0,
                  initial_alpha=1.0,
                  alpha_threshold=0.05,
@@ -148,6 +151,7 @@ class BEAR(AlgoBase):
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
+        self.update_actor_interval = update_actor_interval
         self.initial_temperature = initial_temperature
         self.initial_alpha = initial_alpha
         self.alpha_threshold = alpha_threshold
@@ -195,11 +199,18 @@ class BEAR(AlgoBase):
                                                   batch.next_rewards,
                                                   batch.next_observations,
                                                   batch.terminals)
-            actor_loss = self.impl.update_actor(batch.observations)
-            temp_loss, temp = self.impl.update_temperature(batch.observations)
-            alpha_loss, alpha = self.impl.update_alpha(batch.observations)
-            self.impl.update_actor_target()
-            self.impl.update_critic_target()
+            if total_step % self.update_actor_interval == 0:
+                actor_loss = self.impl.update_actor(batch.observations)
+                temp_loss, temp = self.impl.update_temp(batch.observations)
+                alpha_loss, alpha = self.impl.update_alpha(batch.observations)
+                self.impl.update_actor_target()
+                self.impl.update_critic_target()
+            else:
+                actor_loss = None
+                temp_loss = None
+                temp = None
+                alpha_loss = None
+                alpha = None
         else:
             critic_loss = None
             actor_loss = None
