@@ -91,7 +91,7 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
             obs_t = self.scaler.transform(obs_t)
 
         action, raw_action = self.policy(obs_t, with_raw=True)
-        q_t = self.q_func(obs_t, action)
+        q_t = self.q_func(obs_t, action, 'min')
         loss = -q_t.mean() + self.reguralizing_rate * (raw_action**2).mean()
 
         self.actor_optim.zero_grad()

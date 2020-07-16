@@ -49,7 +49,7 @@ class SACImpl(DDPGImpl, ISACImpl):
 
         action, log_prob = self.policy(obs_t, with_log_prob=True)
         entropy = self.log_temp.exp() * log_prob
-        q_t = self.q_func(obs_t, action)
+        q_t = self.q_func(obs_t, action, 'min')
         loss = (entropy - q_t).mean()
 
         self.actor_optim.zero_grad()
