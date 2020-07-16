@@ -33,6 +33,7 @@ class DQN(AlgoBase):
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
+        n_critics (int): the number of Q functions for ensemble.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers
@@ -48,6 +49,7 @@ class DQN(AlgoBase):
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
+        n_critics (int): the number of Q functions for ensemble.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers
@@ -62,6 +64,7 @@ class DQN(AlgoBase):
                  learning_rate=6.25e-5,
                  batch_size=32,
                  gamma=0.99,
+                 n_critics=1,
                  eps=1.5e-4,
                  target_update_interval=8e3,
                  use_batch_norm=True,
@@ -74,6 +77,7 @@ class DQN(AlgoBase):
         super().__init__(n_epochs, batch_size, scaler)
         self.learning_rate = learning_rate
         self.gamma = gamma
+        self.n_critics = n_critics
         self.eps = eps
         self.target_update_interval = target_update_interval
         self.use_batch_norm = use_batch_norm
@@ -87,6 +91,7 @@ class DQN(AlgoBase):
                             action_size=action_size,
                             learning_rate=self.learning_rate,
                             gamma=self.gamma,
+                            n_critics=self.n_critics,
                             eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
@@ -130,6 +135,7 @@ class DoubleDQN(DQN):
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
+        n_critics (int): the number of Q functions.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
@@ -146,6 +152,7 @@ class DoubleDQN(DQN):
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
+        n_critics (int): the number of Q functions.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
@@ -163,6 +170,7 @@ class DoubleDQN(DQN):
                                   action_size=action_size,
                                   learning_rate=self.learning_rate,
                                   gamma=self.gamma,
+                                  n_critics=self.n_critics,
                                   eps=self.eps,
                                   use_batch_norm=self.use_batch_norm,
                                   q_func_type=self.q_func_type,

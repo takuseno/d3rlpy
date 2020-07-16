@@ -29,10 +29,6 @@ def create_discrete_q_function(observation_shape,
         else:
             raise ValueError('invalid quantile regression type')
         q_funcs.append(q_func)
-
-    if n_ensembles == 1:
-        return q_funcs[0]
-
     return EnsembleDiscreteQFunction(q_funcs)
 
 
@@ -59,10 +55,6 @@ def create_continuous_q_function(observation_shape,
         else:
             raise ValueError('invalid quantile regression type')
         q_funcs.append(q_func)
-
-    if n_ensembles == 1:
-        return q_funcs[0]
-
     return EnsembleContinuousQFunction(q_funcs)
 
 
@@ -638,7 +630,7 @@ class EnsembleQFunction(nn.Module):
 
 
 class EnsembleDiscreteQFunction(EnsembleQFunction):
-    def forward(self, x, reduction='min'):
+    def forward(self, x, reduction='mean'):
         values = []
         for q_func in self.q_funcs:
             values.append(q_func(x).view(1, x.shape[0], self.action_size))
@@ -646,7 +638,7 @@ class EnsembleDiscreteQFunction(EnsembleQFunction):
 
 
 class EnsembleContinuousQFunction(EnsembleQFunction):
-    def forward(self, x, action, reduction='min'):
+    def forward(self, x, action, reduction='mean'):
         values = []
         for q_func in self.q_funcs:
             values.append(q_func(x, action).view(1, x.shape[0], 1))

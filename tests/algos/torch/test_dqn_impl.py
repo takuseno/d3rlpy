@@ -8,16 +8,18 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [2.5e-4])
 @pytest.mark.parametrize('gamma', [0.99])
+@pytest.mark.parametrize('n_critics', [1])
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
-def test_dqn_impl(observation_shape, action_size, learning_rate, gamma, eps,
-                  use_batch_norm, q_func_type, scaler):
+def test_dqn_impl(observation_shape, action_size, learning_rate, gamma,
+                  n_critics, eps, use_batch_norm, q_func_type, scaler):
     impl = DQNImpl(observation_shape,
                    action_size,
                    learning_rate,
                    gamma,
+                   n_critics,
                    eps,
                    use_batch_norm,
                    q_func_type,
@@ -32,16 +34,18 @@ def test_dqn_impl(observation_shape, action_size, learning_rate, gamma, eps,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [2.5e-4])
 @pytest.mark.parametrize('gamma', [0.99])
+@pytest.mark.parametrize('n_critics', [1])
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 def test_double_dqn_impl(observation_shape, action_size, learning_rate, gamma,
-                         eps, use_batch_norm, q_func_type, scaler):
+                         n_critics, eps, use_batch_norm, q_func_type, scaler):
     impl = DoubleDQNImpl(observation_shape,
                          action_size,
                          learning_rate,
                          gamma,
+                         n_critics,
                          eps,
                          use_batch_norm,
                          q_func_type=q_func_type,

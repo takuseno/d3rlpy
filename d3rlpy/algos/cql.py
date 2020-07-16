@@ -211,6 +211,7 @@ class DiscreteCQL(DoubleDQN):
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
+        n_critics (int): the number of Q functions for ensemble.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
@@ -227,6 +228,7 @@ class DiscreteCQL(DoubleDQN):
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
+        n_critics (int): the number of Q functions for ensemble.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
@@ -244,6 +246,7 @@ class DiscreteCQL(DoubleDQN):
                                     action_size=action_size,
                                     learning_rate=self.learning_rate,
                                     gamma=self.gamma,
+                                    n_critics=self.n_critics,
                                     eps=self.eps,
                                     use_batch_norm=self.use_batch_norm,
                                     q_func_type=self.q_func_type,

@@ -38,28 +38,17 @@ def test_create_discrete_q_function(observation_shape, action_size, batch_size,
                                         n_ensembles, n_quantiles, embed_size,
                                         use_batch_norm, q_func_type)
 
-    if n_ensembles == 1:
+    assert isinstance(q_func, EnsembleDiscreteQFunction)
+    for f in q_func.q_funcs:
+        assert f.head.use_batch_norm == use_batch_norm
         if q_func_type == 'mean':
-            assert isinstance(q_func, DiscreteQFunction)
+            assert isinstance(f, DiscreteQFunction)
         elif q_func_type == 'qr':
-            assert isinstance(q_func, DiscreteQRQFunction)
+            assert isinstance(f, DiscreteQRQFunction)
         elif q_func_type == 'iqn':
-            assert isinstance(q_func, DiscreteIQNQFunction)
+            assert isinstance(f, DiscreteIQNQFunction)
         elif q_func_type == 'fqf':
-            assert isinstance(q_func, DiscreteFQFQFunction)
-        assert q_func.head.use_batch_norm == use_batch_norm
-    else:
-        assert isinstance(q_func, EnsembleDiscreteQFunction)
-        for f in q_func.q_funcs:
-            assert f.head.use_batch_norm == use_batch_norm
-            if q_func_type == 'mean':
-                assert isinstance(f, DiscreteQFunction)
-            elif q_func_type == 'qr':
-                assert isinstance(f, DiscreteQRQFunction)
-            elif q_func_type == 'iqn':
-                assert isinstance(f, DiscreteIQNQFunction)
-            elif q_func_type == 'fqf':
-                assert isinstance(f, DiscreteFQFQFunction)
+            assert isinstance(f, DiscreteFQFQFunction)
 
     x = torch.rand((batch_size, ) + observation_shape)
     y = q_func(x)
@@ -81,28 +70,17 @@ def test_create_continuous_q_function(observation_shape, action_size,
                                           n_ensembles, n_quantiles, embed_size,
                                           use_batch_norm, q_func_type)
 
-    if n_ensembles == 1:
+    assert isinstance(q_func, EnsembleContinuousQFunction)
+    for f in q_func.q_funcs:
         if q_func_type == 'mean':
-            assert isinstance(q_func, ContinuousQFunction)
+            assert isinstance(f, ContinuousQFunction)
         elif q_func_type == 'qr':
-            assert isinstance(q_func, ContinuousQRQFunction)
+            assert isinstance(f, ContinuousQRQFunction)
         elif q_func_type == 'iqn':
-            assert isinstance(q_func, ContinuousIQNQFunction)
+            assert isinstance(f, ContinuousIQNQFunction)
         elif q_func_type == 'fqf':
-            assert isinstance(q_func, ContinuousFQFQFunction)
-        assert q_func.head.use_batch_norm == use_batch_norm
-    else:
-        assert isinstance(q_func, EnsembleContinuousQFunction)
-        for f in q_func.q_funcs:
-            if q_func_type == 'mean':
-                assert isinstance(f, ContinuousQFunction)
-            elif q_func_type == 'qr':
-                assert isinstance(f, ContinuousQRQFunction)
-            elif q_func_type == 'iqn':
-                assert isinstance(f, ContinuousIQNQFunction)
-            elif q_func_type == 'fqf':
-                assert isinstance(f, ContinuousFQFQFunction)
-            assert f.head.use_batch_norm == use_batch_norm
+            assert isinstance(f, ContinuousFQFQFunction)
+        assert f.head.use_batch_norm == use_batch_norm
 
     x = torch.rand((batch_size, ) + observation_shape)
     action = torch.rand(batch_size, action_size)

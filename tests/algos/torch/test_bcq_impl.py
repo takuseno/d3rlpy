@@ -81,6 +81,7 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [2.5e-4])
 @pytest.mark.parametrize('gamma', [0.99])
+@pytest.mark.parametrize('n_critics', [1])
 @pytest.mark.parametrize('action_flexibility', [0.3])
 @pytest.mark.parametrize('beta', [1e-2])
 @pytest.mark.parametrize('eps', [0.95])
@@ -88,12 +89,13 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None])
 def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
-                           gamma, action_flexibility, beta, eps,
+                           gamma, n_critics, action_flexibility, beta, eps,
                            use_batch_norm, q_func_type, scaler):
     impl = DiscreteBCQImpl(observation_shape,
                            action_size,
                            learning_rate,
                            gamma,
+                           n_critics,
                            action_flexibility,
                            beta,
                            eps,

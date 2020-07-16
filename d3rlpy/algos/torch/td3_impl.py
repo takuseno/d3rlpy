@@ -9,21 +9,13 @@ class TD3Impl(DDPGImpl):
                  critic_learning_rate, gamma, tau, reguralizing_rate,
                  n_critics, target_smoothing_sigma, target_smoothing_clip, eps,
                  use_batch_norm, q_func_type, use_gpu, scaler):
-        self.n_critics = n_critics
         self.target_smoothing_sigma = target_smoothing_sigma
         self.target_smoothing_clip = target_smoothing_clip
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
-                         critic_learning_rate, gamma, tau, reguralizing_rate,
-                         eps, use_batch_norm, q_func_type, use_gpu, scaler)
-
-    def _build_critic(self):
-        self.q_func = create_continuous_q_function(
-            self.observation_shape,
-            self.action_size,
-            n_ensembles=self.n_critics,
-            use_batch_norm=self.use_batch_norm,
-            q_func_type=self.q_func_type)
+                         critic_learning_rate, gamma, tau, n_critics,
+                         reguralizing_rate, eps, use_batch_norm, q_func_type,
+                         use_gpu, scaler)
 
     def compute_target(self, x):
         with torch.no_grad():

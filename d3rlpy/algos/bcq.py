@@ -263,6 +263,7 @@ class DiscreteBCQ(AlgoBase):
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
+        n_critics (int): the number of Q functions for ensemble.
         action_flexibility (float): probability threshold represented as
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
@@ -281,6 +282,7 @@ class DiscreteBCQ(AlgoBase):
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
+        n_critics (int): the number of Q functions for ensemble.
         action_flexibility (float): probability threshold represented as
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
@@ -298,6 +300,7 @@ class DiscreteBCQ(AlgoBase):
                  learning_rate=6.25e-5,
                  batch_size=32,
                  gamma=0.99,
+                 n_critics=1,
                  action_flexibility=0.3,
                  beta=0.5,
                  eps=1.5e-4,
@@ -312,6 +315,7 @@ class DiscreteBCQ(AlgoBase):
         super().__init__(n_epochs, batch_size, scaler)
         self.learning_rate = learning_rate
         self.gamma = gamma
+        self.n_critics = n_critics
         self.action_flexibility = action_flexibility
         self.beta = beta
         self.eps = eps
@@ -327,6 +331,7 @@ class DiscreteBCQ(AlgoBase):
                                     action_size=action_size,
                                     learning_rate=self.learning_rate,
                                     gamma=self.gamma,
+                                    n_critics=self.n_critics,
                                     action_flexibility=self.action_flexibility,
                                     beta=self.beta,
                                     eps=self.eps,

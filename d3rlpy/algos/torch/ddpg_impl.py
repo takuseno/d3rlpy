@@ -12,14 +12,16 @@ from .base import TorchImplBase
 
 class DDPGImpl(TorchImplBase, IDDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, gamma, tau, reguralizing_rate, eps,
-                 use_batch_norm, q_func_type, use_gpu, scaler):
+                 critic_learning_rate, gamma, tau, n_critics,
+                 reguralizing_rate, eps, use_batch_norm, q_func_type, use_gpu,
+                 scaler):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.gamma = gamma
         self.tau = tau
+        self.n_critics = n_critics
         self.reguralizing_rate = reguralizing_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
@@ -46,7 +48,7 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
         self.q_func = create_continuous_q_function(
             self.observation_shape,
             self.action_size,
-            n_ensembles=1,
+            n_ensembles=self.n_critics,
             use_batch_norm=self.use_batch_norm,
             q_func_type=self.q_func_type)
 

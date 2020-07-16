@@ -16,26 +16,17 @@ class SACImpl(DDPGImpl, ISACImpl):
                  critic_learning_rate, temp_learning_rate, gamma, tau,
                  n_critics, initial_temperature, eps, use_batch_norm,
                  q_func_type, use_gpu, scaler):
-        self.n_critics = n_critics
         self.temp_learning_rate = temp_learning_rate
         self.initial_temperature = initial_temperature
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
-                         critic_learning_rate, gamma, tau, 0.0, eps,
+                         critic_learning_rate, gamma, tau, n_critics, 0.0, eps,
                          use_batch_norm, q_func_type, use_gpu, scaler)
 
         # TODO: save and load temperature parameter
         # setup temeprature after device property is set.
         self._build_temperature()
         self._build_temperature_optim()
-
-    def _build_critic(self):
-        self.q_func = create_continuous_q_function(
-            self.observation_shape,
-            self.action_size,
-            n_ensembles=self.n_critics,
-            use_batch_norm=self.use_batch_norm,
-            q_func_type=self.q_func_type)
 
     def _build_actor(self):
         self.policy = create_normal_policy(self.observation_shape,
