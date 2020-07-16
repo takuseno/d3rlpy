@@ -5,7 +5,7 @@ from .ddpg import IDDPGImpl
 
 class ISACImpl(IDDPGImpl):
     @abstractmethod
-    def update_temperature(self, obs_t):
+    def update_temp(self, obs_t):
         pass
 
 
@@ -150,7 +150,7 @@ class SAC(AlgoBase):
         # delayed policy update
         if total_step % self.update_actor_interval == 0:
             actor_loss = self.impl.update_actor(batch.observations)
-            temp_loss, temp = self.impl.update_temperature(batch.observations)
+            temp_loss, temp = self.impl.update_temp(batch.observations)
             self.impl.update_critic_target()
             self.impl.update_actor_target()
         else:

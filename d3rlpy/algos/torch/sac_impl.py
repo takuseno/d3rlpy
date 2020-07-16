@@ -60,7 +60,7 @@ class SACImpl(DDPGImpl, ISACImpl):
 
     @train_api
     @torch_api
-    def update_temperature(self, obs_t):
+    def update_temp(self, obs_t):
         if self.scaler:
             obs_t = self.scaler.transform(obs_t)
 
