@@ -75,6 +75,27 @@ def average_value_estimation_scorer(algo, episodes, window_size=1024):
     return np.mean(total_values)
 
 
+def continuous_action_diff_scorer(algo, episodes, window_size=1024):
+    total_diffs = []
+    for episode in episodes:
+        for batch in _make_batches_from_episode(episode, window_size):
+            actions = algo.predict(batch.observations)
+            diff = ((batch.actions - actions)**2).sum(axis=1).tolist()
+            total_diffs += diff
+    # smaller is better, maybe?
+    return -np.mean(total_diffs)
+
+
+def discrete_action_match_scorer(algo, episodes, window_size=1024):
+    total_matches = []
+    for episode in episodes:
+        for batch in _make_batches_from_episode(episode, window_size):
+            actions = algo.predict(batch.observations)
+            match = (batch.actions.reshape(-1) == actions).tolist()
+            total_matches += match
+    return np.mean(total_matches)
+
+
 def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
     def scorer(algo, *args):
         episode_rewards = []
@@ -100,4 +121,7 @@ def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
     return scorer
 
 
-NEGATED_SCORER = [td_error_scorer, discounted_sum_of_advantage_scorer]
+NEGATED_SCORER = [
+    td_error_scorer, discounted_sum_of_advantage_scorer,
+    continuous_action_diff_scorer
+]

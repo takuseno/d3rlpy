@@ -4,18 +4,24 @@ import pytest
 from d3rlpy.metrics.scorer import td_error_scorer
 from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
 from d3rlpy.metrics.scorer import average_value_estimation_scorer
+from d3rlpy.metrics.scorer import continuous_action_diff_scorer
+from d3rlpy.metrics.scorer import discrete_action_match_scorer
 from d3rlpy.metrics.scorer import evaluate_on_environment
 from d3rlpy.dataset import Episode, TransitionMiniBatch
 
 
 # dummy algorithm with deterministic outputs
 class DummyAlgo:
-    def __init__(self, A, gamma):
+    def __init__(self, A, gamma, discrete=False):
         self.A = A
         self.gamma = gamma
+        self.discrete = discrete
 
     def predict(self, x):
-        return np.matmul(x, self.A)
+        y = np.matmul(x, self.A)
+        if self.discrete:
+            return y.argmax(axis=1)
+        return y
 
     def predict_value(self, x, action):
         values = np.mean(x, axis=1) + np.mean(action, axis=1)
@@ -143,6 +149,65 @@ def test_average_value_estimation_scorer(observation_shape, action_size,
 
     score = average_value_estimation_scorer(algo, episodes)
     assert np.allclose(score, np.mean(total_values))
+
+
+@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_episodes', [100])
+@pytest.mark.parametrize('episode_length', [10])
+def test_continuous_action_diff_scorer(observation_shape, action_size,
+                                       n_episodes, episode_length):
+    # projection matrix for deterministic action
+    A = np.random.random(observation_shape + (action_size, ))
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length, ) + observation_shape)
+        actions = np.matmul(observations, A)
+        actions = np.random.random((episode_length, action_size))
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(observation_shape, action_size, observations,
+                          actions, rewards)
+        episodes.append(episode)
+
+    algo = DummyAlgo(A, 0.0)
+
+    total_diffs = []
+    for episode in episodes:
+        batch = TransitionMiniBatch(episode.transitions)
+        policy_actions = algo.predict(batch.observations)
+        diff = ((batch.actions - policy_actions)**2).sum(axis=1).tolist()
+        total_diffs += diff
+    score = continuous_action_diff_scorer(algo, episodes)
+    assert np.allclose(score, -np.mean(total_diffs))
+
+
+@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_episodes', [100])
+@pytest.mark.parametrize('episode_length', [10])
+def test_discrete_action_math_scorer(observation_shape, action_size,
+                                     n_episodes, episode_length):
+    # projection matrix for deterministic action
+    A = np.random.random(observation_shape + (action_size, ))
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length, ) + observation_shape)
+        actions = np.random.randint(action_size, size=episode_length)
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(observation_shape, action_size, observations,
+                          actions, rewards)
+        episodes.append(episode)
+
+    algo = DummyAlgo(A, 0.0, discrete=True)
+
+    total_matches = []
+    for episode in episodes:
+        batch = TransitionMiniBatch(episode.transitions)
+        policy_actions = algo.predict(batch.observations)
+        match = (batch.actions.reshape(-1) == policy_actions).tolist()
+        total_matches += match
+    score = discrete_action_match_scorer(algo, episodes)
+    assert np.allclose(score, np.mean(total_matches))
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
