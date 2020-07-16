@@ -15,7 +15,7 @@ def _make_batches_from_episode(episode, window_size):
         yield batch
 
 
-def td_error_scorer(algo, episodes, window_size=100):
+def td_error_scorer(algo, episodes, window_size=1024):
     total_errors = []
     for episode in episodes:
         for batch in _make_batches_from_episode(episode, window_size):
@@ -36,7 +36,7 @@ def td_error_scorer(algo, episodes, window_size=100):
     return -np.mean(total_errors)
 
 
-def discounted_sum_of_advantage_scorer(algo, episodes, window_size=100):
+def discounted_sum_of_advantage_scorer(algo, episodes, window_size=1024):
     total_sums = []
     for episode in episodes:
         for batch in _make_batches_from_episode(episode, window_size):
@@ -64,7 +64,7 @@ def discounted_sum_of_advantage_scorer(algo, episodes, window_size=100):
     return -np.mean(total_sums)
 
 
-def average_value_estimation_scorer(algo, episodes, window_size=100):
+def average_value_estimation_scorer(algo, episodes, window_size=1024):
     total_values = []
     for episode in episodes:
         for batch in _make_batches_from_episode(episode, window_size):
