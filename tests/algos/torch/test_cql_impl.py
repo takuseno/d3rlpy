@@ -13,6 +13,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('tau', [0.05])
 @pytest.mark.parametrize('n_critics', [2])
+@pytest.mark.parametrize('bootstrap', [False])
 @pytest.mark.parametrize('initial_temperature', [1.0])
 @pytest.mark.parametrize('initial_alpha', [5.0])
 @pytest.mark.parametrize('alpha_threshold', [10.0])
@@ -23,7 +24,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 def test_cql_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, temp_learning_rate,
-                  alpha_learning_rate, gamma, tau, n_critics,
+                  alpha_learning_rate, gamma, tau, n_critics, bootstrap,
                   initial_temperature, initial_alpha, alpha_threshold,
                   n_action_samples, eps, use_batch_norm, q_func_type, scaler):
     impl = CQLImpl(observation_shape,
@@ -35,6 +36,7 @@ def test_cql_impl(observation_shape, action_size, actor_learning_rate,
                    gamma,
                    tau,
                    n_critics,
+                   bootstrap,
                    initial_temperature,
                    initial_alpha,
                    alpha_threshold,
@@ -54,17 +56,20 @@ def test_cql_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('learning_rate', [2.5e-4])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('n_critics', [1])
+@pytest.mark.parametrize('bootstrap', [False])
 @pytest.mark.parametrize('eps', [0.95])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 def test_double_dqn_impl(observation_shape, action_size, learning_rate, gamma,
-                         n_critics, eps, use_batch_norm, q_func_type, scaler):
+                         n_critics, bootstrap, eps, use_batch_norm,
+                         q_func_type, scaler):
     impl = DiscreteCQLImpl(observation_shape,
                            action_size,
                            learning_rate,
                            gamma,
                            n_critics,
+                           bootstrap,
                            eps,
                            use_batch_norm,
                            q_func_type=q_func_type,

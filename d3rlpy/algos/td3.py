@@ -41,6 +41,7 @@ class TD3(AlgoBase):
         tau (float): target network synchronization coefficiency.
         reguralizing_rate (float): reguralizing term for policy function.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
         target_smoothing_sigma (float): standard deviation for target noise.
         target_smoothing_clip (float): clipping range for target noise.
         update_actor_interval (int): interval to update policy function
@@ -63,6 +64,7 @@ class TD3(AlgoBase):
         tau (float): target network synchronization coefficiency.
         reguralizing_rate (float): reguralizing term for policy function.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
         target_smoothing_sigma (float): standard deviation for target noise.
         target_smoothing_clip (float): clipping range for target noise.
         update_actor_interval (int): interval to update policy function
@@ -84,6 +86,7 @@ class TD3(AlgoBase):
                  tau=0.005,
                  reguralizing_rate=0.0,
                  n_critics=2,
+                 bootstrap=False,
                  target_smoothing_sigma=0.2,
                  target_smoothing_clip=0.5,
                  update_actor_interval=2,
@@ -102,6 +105,7 @@ class TD3(AlgoBase):
         self.tau = tau
         self.reguralizing_rate = reguralizing_rate
         self.n_critics = n_critics
+        self.bootstrap = bootstrap
         self.target_smoothing_sigma = target_smoothing_sigma
         self.target_smoothing_clip = target_smoothing_clip
         self.update_actor_interval = update_actor_interval
@@ -121,6 +125,7 @@ class TD3(AlgoBase):
                             tau=self.tau,
                             reguralizing_rate=self.reguralizing_rate,
                             n_critics=self.n_critics,
+                            bootstrap=self.bootstrap,
                             target_smoothing_sigma=self.target_smoothing_sigma,
                             target_smoothing_clip=self.target_smoothing_clip,
                             eps=self.eps,

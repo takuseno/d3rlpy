@@ -93,6 +93,7 @@ class BCQ(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
         update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
         n_action_samples (int): the number of action samples to estimate
@@ -121,6 +122,7 @@ class BCQ(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
         update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
         n_action_samples (int): the number of action samples to estimate
@@ -147,6 +149,7 @@ class BCQ(AlgoBase):
                  gamma=0.99,
                  tau=0.005,
                  n_critics=2,
+                 bootstrap=False,
                  update_actor_interval=1,
                  lam=0.75,
                  n_action_samples=100,
@@ -169,6 +172,7 @@ class BCQ(AlgoBase):
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
+        self.bootstrap = bootstrap
         self.update_actor_interval = update_actor_interval
         self.lam = lam
         self.n_action_samples = n_action_samples
@@ -192,6 +196,7 @@ class BCQ(AlgoBase):
                             gamma=self.gamma,
                             tau=self.tau,
                             n_critics=self.n_critics,
+                            bootstrap=self.bootstrap,
                             lam=self.lam,
                             n_action_samples=self.n_action_samples,
                             action_flexibility=self.action_flexibility,
@@ -271,6 +276,7 @@ class DiscreteBCQ(AlgoBase):
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
         action_flexibility (float): probability threshold represented as
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
@@ -290,6 +296,7 @@ class DiscreteBCQ(AlgoBase):
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
         action_flexibility (float): probability threshold represented as
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
@@ -308,6 +315,7 @@ class DiscreteBCQ(AlgoBase):
                  batch_size=32,
                  gamma=0.99,
                  n_critics=1,
+                 bootstrap=False,
                  action_flexibility=0.3,
                  beta=0.5,
                  eps=1.5e-4,
@@ -323,6 +331,7 @@ class DiscreteBCQ(AlgoBase):
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.n_critics = n_critics
+        self.bootstrap = bootstrap
         self.action_flexibility = action_flexibility
         self.beta = beta
         self.eps = eps
@@ -339,6 +348,7 @@ class DiscreteBCQ(AlgoBase):
                                     learning_rate=self.learning_rate,
                                     gamma=self.gamma,
                                     n_critics=self.n_critics,
+                                    bootstrap=self.bootstrap,
                                     action_flexibility=self.action_flexibility,
                                     beta=self.beta,
                                     eps=self.eps,

@@ -7,15 +7,16 @@ from .ddpg_impl import DDPGImpl
 class TD3Impl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, gamma, tau, reguralizing_rate,
-                 n_critics, target_smoothing_sigma, target_smoothing_clip, eps,
-                 use_batch_norm, q_func_type, use_gpu, scaler):
+                 n_critics, bootstrap, target_smoothing_sigma,
+                 target_smoothing_clip, eps, use_batch_norm, q_func_type,
+                 use_gpu, scaler):
         self.target_smoothing_sigma = target_smoothing_sigma
         self.target_smoothing_clip = target_smoothing_clip
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, n_critics,
-                         reguralizing_rate, eps, use_batch_norm, q_func_type,
-                         use_gpu, scaler)
+                         bootstrap, reguralizing_rate, eps, use_batch_norm,
+                         q_func_type, use_gpu, scaler)
 
     def compute_target(self, x):
         with torch.no_grad():

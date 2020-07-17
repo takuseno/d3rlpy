@@ -58,6 +58,7 @@ class DDPG(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
         reguralizing_rate (float): reguralizing term for policy function.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
@@ -76,6 +77,7 @@ class DDPG(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstraep Q functions.
         reguralizing_rate (float): reguralizing term for policy function.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
@@ -93,6 +95,7 @@ class DDPG(AlgoBase):
                  gamma=0.99,
                  tau=0.005,
                  n_critics=1,
+                 bootstrap=False,
                  reguralizing_rate=1e-10,
                  eps=1e-8,
                  use_batch_norm=False,
@@ -108,6 +111,7 @@ class DDPG(AlgoBase):
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
+        self.bootstrap = bootstrap
         self.reguralizing_rate = reguralizing_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
@@ -124,6 +128,7 @@ class DDPG(AlgoBase):
                              gamma=self.gamma,
                              tau=self.tau,
                              n_critics=self.n_critics,
+                             bootstrap=self.bootstrap,
                              reguralizing_rate=self.reguralizing_rate,
                              eps=self.eps,
                              use_batch_norm=self.use_batch_norm,

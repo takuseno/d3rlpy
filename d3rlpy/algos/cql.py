@@ -63,6 +63,7 @@ class CQL(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\\alpha` value.
@@ -89,6 +90,7 @@ class CQL(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\\alpha` value.
@@ -113,6 +115,7 @@ class CQL(AlgoBase):
                  gamma=0.99,
                  tau=0.005,
                  n_critics=2,
+                 bootstrap=False,
                  update_actor_interval=1,
                  initial_temperature=1.0,
                  initial_alpha=5.0,
@@ -134,6 +137,7 @@ class CQL(AlgoBase):
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
+        self.bootstrap = bootstrap
         self.update_actor_interval = update_actor_interval
         self.initial_temperature = initial_temperature
         self.initial_alpha = initial_alpha
@@ -157,6 +161,7 @@ class CQL(AlgoBase):
                             gamma=self.gamma,
                             tau=self.tau,
                             n_critics=self.n_critics,
+                            bootstrap=self.bootstrap,
                             initial_temperature=self.initial_temperature,
                             initial_alpha=self.initial_alpha,
                             alpha_threshold=self.alpha_threshold,
@@ -223,6 +228,7 @@ class DiscreteCQL(DoubleDQN):
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
@@ -240,6 +246,7 @@ class DiscreteCQL(DoubleDQN):
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
@@ -258,6 +265,7 @@ class DiscreteCQL(DoubleDQN):
                                     learning_rate=self.learning_rate,
                                     gamma=self.gamma,
                                     n_critics=self.n_critics,
+                                    bootstrap=self.bootstrap,
                                     eps=self.eps,
                                     use_batch_norm=self.use_batch_norm,
                                     q_func_type=self.q_func_type,
