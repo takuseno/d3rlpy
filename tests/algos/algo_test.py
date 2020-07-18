@@ -25,7 +25,7 @@ class DummyImpl(ImplBase):
     def predict_best_action(self, x):
         pass
 
-    def predict_value(self, x, action):
+    def predict_value(self, x, action, with_std):
         pass
 
 
@@ -99,7 +99,7 @@ def algo_tester(algo, observation_shape, imitator=False):
         impl.predict_value = Mock(return_value=ref_value)
         value = algo.predict_value(x, action)
         assert value == ref_value
-        impl.predict_value.assert_called_with(x, action)
+        impl.predict_value.assert_called_with(x, action, False)
 
     # check fit
     update_backup = algo.update
@@ -283,8 +283,12 @@ def impl_tester(impl, discrete, imitator):
 
     # check predict_values
     if not imitator:
-        value = impl.predict_value(observations, actions)
+        value = impl.predict_value(observations, actions, with_std=False)
         assert value.shape == (100, )
+
+        value, std = impl.predict_value(observations, actions, with_std=True)
+        assert value.shape == (100,)
+        assert std.shape == (100,)
 
 
 def torch_impl_tester(impl,

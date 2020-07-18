@@ -30,7 +30,7 @@ class ImplBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def predict_value(self, x, action):
+    def predict_value(self, x, action, with_std):
         pass
 
 
@@ -341,7 +341,7 @@ class AlgoBase:
         """
         return self.impl.predict_best_action(x)
 
-    def predict_value(self, x, action):
+    def predict_value(self, x, action, with_std=False):
         """ Returns predicted action-values.
 
         .. code-block:: python
@@ -360,15 +360,22 @@ class AlgoBase:
             values = algo.predict_value(x, actions)
             # values.shape == (100,)
 
+            values, stds = algo.predict_value(x, actions, with_std=True)
+            # stds.shape  == (100,)
+
         Args:
             x (numpy.ndarray): observations
             action (numpy.ndarray): actions
+            with_std (bool): flag to return standard deviation of ensemble
+                estimation. This deviation reflects uncertainty for the given
+                observations. This uncertainty will be more accurate if you
+                enable `bootstrap` flag and increase `n_critics` value.
 
         Returns:
             numpy.ndarray: predicted action-values
 
         """
-        return self.impl.predict_value(x, action)
+        return self.impl.predict_value(x, action, with_std)
 
     def create_impl(self, observation_shape, action_size):
         """ Instantiate implementation objects with the dataset shapes.

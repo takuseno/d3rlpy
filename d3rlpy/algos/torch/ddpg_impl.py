@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import copy
 
@@ -113,14 +114,23 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
 
     @eval_api
     @torch_api
-    def predict_value(self, x, action):
+    def predict_value(self, x, action, with_std):
         assert x.shape[0] == action.shape[0]
 
         if self.scaler:
             x = self.scaler.transform(x)
 
         with torch.no_grad():
-            return self.q_func(x, action).view(-1).cpu().detach().numpy()
+            values = self.q_func(x, action, 'none').cpu().detach().numpy()
+            values = np.transpose(values, [1, 0, 2])
+
+        mean_values = values.mean(axis=1).reshape(-1)
+        stds = np.std(values, axis=1).reshape(-1)
+
+        if with_std:
+            return mean_values, stds
+
+        return mean_values
 
     def update_critic_target(self):
         soft_sync(self.targ_q_func, self.q_func, self.tau)

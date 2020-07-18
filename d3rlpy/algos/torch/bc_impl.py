@@ -54,7 +54,7 @@ class BCImpl(TorchImplBase, IBCImpl):
     def _predict_best_action(self, x):
         return self.imitator(x)
 
-    def predict_value(self, x, action):
+    def predict_value(self, x, action, with_std):
         raise NotImplementedError('BC does not support value estimation')
 
 

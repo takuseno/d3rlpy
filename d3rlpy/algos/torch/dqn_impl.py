@@ -81,21 +81,30 @@ class DQNImpl(TorchImplBase, IDQNImpl):
 
     @eval_api
     @torch_api
-    def predict_value(self, x, action):
+    def predict_value(self, x, action, with_std):
         assert x.shape[0] == action.shape[0]
 
         if self.scaler:
             x = self.scaler.transform(x)
 
-        self.q_func.eval()
+        action = action.view(-1).long().cpu().detach().numpy()
         with torch.no_grad():
-            values = self.q_func(x).cpu().detach().numpy()
+            values = self.q_func(x, reduction='none').cpu().detach().numpy()
+            values = np.transpose(values, [1, 0, 2])
 
-        rets = []
-        for v, a in zip(values, action.view(-1).long().cpu().detach().numpy()):
-            rets.append(v[a])
+        mean_values = values.mean(axis=1)
+        stds = np.std(values, axis=1)
 
-        return np.array(rets)
+        ret_values = []
+        ret_stds = []
+        for v, std, a in zip(mean_values, stds, action):
+            ret_values.append(v[a])
+            ret_stds.append(std[a])
+
+        if with_std:
+            return np.array(ret_values), np.array(ret_stds)
+
+        return np.array(ret_values)
 
     def update_target(self):
         hard_sync(self.targ_q_func, self.q_func)
