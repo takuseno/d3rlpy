@@ -12,3 +12,4 @@ API Reference
    dataset
    datasets
    preprocessing
+   metrics

@@ -151,7 +151,7 @@ def test_average_value_estimation_scorer(observation_shape, action_size,
         total_values += values.tolist()
 
     score = average_value_estimation_scorer(algo, episodes)
-    assert np.allclose(score, np.mean(total_values))
+    assert np.allclose(score, -np.mean(total_values))
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])

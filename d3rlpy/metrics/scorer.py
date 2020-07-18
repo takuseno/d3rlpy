@@ -16,6 +16,26 @@ def _make_batches_from_episode(episode, window_size):
 
 
 def td_error_scorer(algo, episodes, window_size=1024):
+    """ Returns average TD error (in negative scale).
+
+    This metics suggests how Q functions overfit to training sets.
+    If the TD error is large, the Q functions are overfitting.
+
+    .. math::
+
+        \\mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \\sim D}
+            [Q_\\theta (s_t, a_t)
+             - (r_t + \\gamma \\max_a Q_\\theta (s_{t+1}, a))^2]
+
+    Args:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm.
+        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        window_size (int): mini-batch size to compute.
+
+    Returns:
+        float: negative average TD error.
+
+    """
     total_errors = []
     for episode in episodes:
         for batch in _make_batches_from_episode(episode, window_size):
@@ -38,6 +58,34 @@ def td_error_scorer(algo, episodes, window_size=1024):
 
 
 def discounted_sum_of_advantage_scorer(algo, episodes, window_size=1024):
+    """ Returns average of discounted sum of advantage (in negative scale).
+
+    This metrics suggests how the greedy-policy selects different actions in
+    action-value space.
+    If the sum of advantage is small, the policy selects actions with larger
+    estimated action-values.
+
+    .. math::
+
+        \\mathbb{E}_{s_t, a_t \\sim D}
+            [\\sum_{t' = t} \\gamma^{t' - t} A(s_{t'}, a_{t'})]
+
+    where :math:`A(s_t, a_t) = Q_\\theta (s_t, a_t)
+    - \\max_a Q_\\theta (s_t, a)`.
+
+    References:
+        * `Murphy., A generalization error for Q-Learning.
+          <http://www.jmlr.org/papers/volume6/murphy05a/murphy05a.pdf>`_
+
+    Args:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm.
+        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        window_size (int): mini-batch size to compute.
+
+    Returns:
+        float: negative average of discounted sum of advantage.
+
+    """
     total_sums = []
     for episode in episodes:
         for batch in _make_batches_from_episode(episode, window_size):
@@ -66,26 +114,90 @@ def discounted_sum_of_advantage_scorer(algo, episodes, window_size=1024):
 
 
 def average_value_estimation_scorer(algo, episodes, window_size=1024):
+    """ Returns average value estimation (in negative scale).
+
+    This metrics suggests the scale for estimation of Q functions.
+    If average value estimation is too large, the Q functions overestimate
+    action-values, which possibly makes training failed.
+
+    .. math::
+
+        \\mathbb{E}_{s_t \\sim D} [ \\max_a Q_\\theta (s_t, a)]
+
+    Args:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm.
+        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        window_size (int): mini-batch size to compute.
+
+    Returns:
+        float: negative average value estimation.
+
+    """
     total_values = []
     for episode in episodes:
         for batch in _make_batches_from_episode(episode, window_size):
             actions = algo.predict(batch.observations)
             values = algo.predict_value(batch.observations, actions)
             total_values += values.tolist()
-    return np.mean(total_values)
+    # smaller is better, maybe?
+    return -np.mean(total_values)
 
 
 def value_estimation_std_scorer(algo, episodes, window_size=1024):
+    """ Returns standard deviation of value estimation (in negative scale).
+
+    This metrics suggests how confident Q functions are for the given
+    episodes.
+    This metrics will be more accurate with `boostrap` enabled and the larger
+    `n_critics` at algorithm.
+    If standard deviation of value estimation is large, the Q functions are
+    overfitting to the training set.
+
+    .. math::
+
+        \\mathbb{E}_{s_t \\sim D, a \\sim \\text{argmax}_a Q_\\theta(s_t, a)}
+            [Q_{\\text{std}}(s_t, a)]
+
+    where :math:`Q_{\\text{std}}(s, a)` is a standard deviation of action-value
+    estimation over ensemble functions.
+
+    Args:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm.
+        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        window_size (int): mini-batch size to compute.
+
+    """
     total_stds = []
     for episode in episodes:
         for batch in _make_batches_from_episode(episode, window_size):
             actions = algo.predict(batch.observations)
             _, stds = algo.predict_value(batch.observations, actions, True)
             total_stds += stds.tolist()
+    # smaller is better
     return -np.mean(total_stds)
 
 
 def continuous_action_diff_scorer(algo, episodes, window_size=1024):
+    """ Returns squared difference of actions between algorithm and dataset.
+
+    This metrics suggests how different the greedy-policy is from the given
+    episodes in continuous action-space.
+    If the given episodes are near-optimal, the small action difference would
+    be better.
+
+    .. math::
+
+        \\mathbb{E}_{s_t, a_t \\sim D} [(a_t - \\pi_\\phi (s_t))^2]
+
+    Args:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm.
+        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        window_size (int): mini-batch size to compute.
+
+    Returns:
+        float: negative squared action difference.
+
+    """
     total_diffs = []
     for episode in episodes:
         for batch in _make_batches_from_episode(episode, window_size):
@@ -97,6 +209,27 @@ def continuous_action_diff_scorer(algo, episodes, window_size=1024):
 
 
 def discrete_action_match_scorer(algo, episodes, window_size=1024):
+    """ Returns percentage of identical actions between algorithm and dataset.
+
+    This metrics suggests how different the greedy-policy is from the given
+    episodes in discrete action-space.
+    If the given episdoes are near-optimal, the large percentage would be
+    better.
+
+    .. math::
+
+        \\frac{1}{N} \\sum^N \\parallel
+            \\{a_t = \\text{argmax}_a Q_\\theta (s_t, a)\\}
+
+    Args:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm.
+        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        window_size (int): mini-batch size to compute.
+
+    Returns:
+        float: percentage of identical actions.
+
+    """
     total_matches = []
     for episode in episodes:
         for batch in _make_batches_from_episode(episode, window_size):
@@ -107,6 +240,41 @@ def discrete_action_match_scorer(algo, episodes, window_size=1024):
 
 
 def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
+    """ Returns scorer function of evaluation on environment.
+
+    This function returns scorer function, which is suitable to the standard
+    scikit-learn scorer function style.
+    The metrics of the scorer function is ideal metrics to evaluate the
+    resulted policies.
+
+    .. code-block:: python
+
+        import gym
+
+        from d3rlpy.algos import DQN
+        from d3rlpy.metrics.scorer import evaluate_on_environment
+
+
+        env = gym.make('CartPole-v0')
+
+        scorer = evaluate_on_environment(env)
+
+        cql = CQL()
+
+        mean_episode_return = scorer(cql)
+
+
+    Args:
+        env (gym.Env): gym-styled environment.
+        n_trials (int): the number of trials.
+        epsilon (float): noise factor for epsilon-greedy policy.
+        render (bool): flag to render environment.
+
+    Returns:
+        callable: scoerer function.
+
+
+    """
     def scorer(algo, *args):
         episode_rewards = []
         for _ in range(n_trials):
@@ -133,5 +301,6 @@ def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
 
 NEGATED_SCORER = [
     td_error_scorer, value_estimation_std_scorer,
-    discounted_sum_of_advantage_scorer, continuous_action_diff_scorer
+    average_value_estimation_scorer, discounted_sum_of_advantage_scorer,
+    continuous_action_diff_scorer
 ]
