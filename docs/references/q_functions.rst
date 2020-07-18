@@ -41,5 +41,5 @@ the higher performance requires the more expensive computational costs.
      - `Quantile Regression <https://arxiv.org/abs/1710.10044>`_
    * - iqn
      - `Implicit Quantile Network <https://arxiv.org/abs/1806.06923>`_
-   * - fqf
+   * - fqf (experimental)
      - `Fully-parametrized Quantile Function <https://arxiv.org/abs/1911.02140>`_
