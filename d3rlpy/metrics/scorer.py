@@ -75,6 +75,16 @@ def average_value_estimation_scorer(algo, episodes, window_size=1024):
     return np.mean(total_values)
 
 
+def value_estimation_std_scorer(algo, episodes, window_size=1024):
+    total_stds = []
+    for episode in episodes:
+        for batch in _make_batches_from_episode(episode, window_size):
+            actions = algo.predict(batch.observations)
+            _, stds = algo.predict_value(batch.observations, actions, True)
+            total_stds += stds.tolist()
+    return -np.mean(total_stds)
+
+
 def continuous_action_diff_scorer(algo, episodes, window_size=1024):
     total_diffs = []
     for episode in episodes:
@@ -122,6 +132,6 @@ def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
 
 
 NEGATED_SCORER = [
-    td_error_scorer, discounted_sum_of_advantage_scorer,
-    continuous_action_diff_scorer
+    td_error_scorer, value_estimation_std_scorer,
+    discounted_sum_of_advantage_scorer, continuous_action_diff_scorer
 ]

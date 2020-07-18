@@ -4,6 +4,7 @@ import pytest
 from d3rlpy.metrics.scorer import td_error_scorer
 from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
 from d3rlpy.metrics.scorer import average_value_estimation_scorer
+from d3rlpy.metrics.scorer import value_estimation_std_scorer
 from d3rlpy.metrics.scorer import continuous_action_diff_scorer
 from d3rlpy.metrics.scorer import discrete_action_match_scorer
 from d3rlpy.metrics.scorer import evaluate_on_environment
@@ -23,8 +24,10 @@ class DummyAlgo:
             return y.argmax(axis=1)
         return y
 
-    def predict_value(self, x, action):
+    def predict_value(self, x, action, with_std=False):
         values = np.mean(x, axis=1) + np.mean(action, axis=1)
+        if with_std:
+            return values.reshape(-1), values.reshape(-1) + 0.1
         return values.reshape(-1)
 
 
@@ -149,6 +152,36 @@ def test_average_value_estimation_scorer(observation_shape, action_size,
 
     score = average_value_estimation_scorer(algo, episodes)
     assert np.allclose(score, np.mean(total_values))
+
+
+@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_episodes', [100])
+@pytest.mark.parametrize('episode_length', [10])
+def test_value_estimation_std_scorer(observation_shape, action_size,
+                                         n_episodes, episode_length):
+    # projection matrix for deterministic action
+    A = np.random.random(observation_shape + (action_size, ))
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length, ) + observation_shape)
+        actions = np.matmul(observations, A)
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(observation_shape, action_size, observations,
+                          actions, rewards)
+        episodes.append(episode)
+
+    algo = DummyAlgo(A, 0.0)
+
+    total_stds = []
+    for episode in episodes:
+        batch = TransitionMiniBatch(episode.transitions)
+        policy_actions = algo.predict(batch.observations)
+        _, stds = algo.predict_value(batch.observations, policy_actions, True)
+        total_stds += stds.tolist()
+
+    score = value_estimation_std_scorer(algo, episodes)
+    assert np.allclose(score, -np.mean(total_stds))
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
