@@ -19,15 +19,16 @@ class BC(AlgoBase):
 
     .. math::
 
-        L(\\theta) = \mathbb{E}_{a_t, s_t \sim D} [(a_t - \pi_\\theta(s_t))^2]
+        L(\\theta) = \\mathbb{E}_{a_t, s_t \\sim D}
+            [(a_t - \\pi_\\theta(s_t))^2]
 
     Args:
         learning_rate (float): learing rate.
         batch_size (int): mini-batch size.
-        eps (float): :math:`\epsilon` for Adam optimizer.
+        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         n_epochs (int): the number of epochs to train.
-        use_gpu (bool): flag to use GPU.
+        use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
@@ -36,9 +37,9 @@ class BC(AlgoBase):
         n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
         learning_rate (float): learing rate.
-        eps (float): :math:`\epsilon` for Adam optimizer.
+        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        use_gpu (bool): flag to use GPU.
+        use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 
@@ -53,11 +54,10 @@ class BC(AlgoBase):
                  scaler=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler)
+        super().__init__(n_epochs, batch_size, scaler, use_gpu)
         self.learning_rate = learning_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
-        self.use_gpu = use_gpu
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -94,8 +94,8 @@ class DiscreteBC(BC):
 
     .. math::
 
-        L(\\theta) = \mathbb{E}_{a_t, s_t \sim D}
-            [-\sum_a p(a|s_t) \log \pi_\\theta(a|s_t)]
+        L(\\theta) = \\mathbb{E}_{a_t, s_t \\sim D}
+            [-\\sum_a p(a|s_t) \\log \\pi_\\theta(a|s_t)]
 
     where :math:`p(a|s_t)` is implemented as a one-hot vector.
 
@@ -103,10 +103,10 @@ class DiscreteBC(BC):
         n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
         learning_rate (float): learing rate.
-        eps (float): :math:`\epsilon` for Adam optimizer.
+        eps (float): :math:`\\epsilon` for Adam optimizer.
         beta (float): reguralization factor.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        use_gpu (bool): flag to use GPU.
+        use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
@@ -115,10 +115,10 @@ class DiscreteBC(BC):
         n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
         learning_rate (float): learing rate.
-        eps (float): :math:`\epsilon` for Adam optimizer.
+        eps (float): :math:`\\epsilon` for Adam optimizer.
         beta (float): reguralization factor.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        use_gpu (bool): flag to use GPU.
+        use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 

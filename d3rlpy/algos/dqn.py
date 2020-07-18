@@ -41,7 +41,7 @@ class DQN(AlgoBase):
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
         n_epochs (int): the number of epochs to train.
-        use_gpu (bool): flag to use GPU.
+        use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
         impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
@@ -57,7 +57,7 @@ class DQN(AlgoBase):
         use_batch_norm (bool): flag to insert batch normalization layers
         q_func_type (str): type of Q function.
         n_epochs (int): the number of epochs to train.
-        use_gpu (bool): flag to use GPU.
+        use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
 
@@ -77,7 +77,7 @@ class DQN(AlgoBase):
                  scaler=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler)
+        super().__init__(n_epochs, batch_size, scaler, use_gpu)
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.n_critics = n_critics
@@ -86,7 +86,6 @@ class DQN(AlgoBase):
         self.target_update_interval = target_update_interval
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
-        self.use_gpu = use_gpu
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -149,7 +148,7 @@ class DoubleDQN(DQN):
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
         n_epochs (int): the number of epochs to train.
-        use_gpu (bool): flag to use GPU.
+        use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
         impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
@@ -166,7 +165,7 @@ class DoubleDQN(DQN):
         use_batch_norm (bool): flag to insert batch normalization layers
         q_func_type (str): type of Q function.
         n_epochs (int): the number of epochs to train.
-        use_gpu (bool): flag to use GPU.
+        use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
 

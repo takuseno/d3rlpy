@@ -32,11 +32,11 @@ def set_train_mode(impl):
             module.train()
 
 
-def to_cuda(impl):
+def to_cuda(impl, device):
     for key in dir(impl):
         module = getattr(impl, key)
         if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
-            module.cuda()
+            module.cuda(device)
 
 
 def to_cpu(impl):

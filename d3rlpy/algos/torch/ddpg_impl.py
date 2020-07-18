@@ -37,9 +37,10 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
         self.targ_q_func = copy.deepcopy(self.q_func)
         self.targ_policy = copy.deepcopy(self.policy)
 
-        self.device = 'cpu:0'
         if use_gpu:
-            self.to_gpu()
+            self.to_gpu(use_gpu)
+        else:
+            self.to_cpu()
 
         # setup optimizer after the parameters move to GPU
         self._build_critic_optim()

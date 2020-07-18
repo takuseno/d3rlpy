@@ -1,6 +1,7 @@
 import torch
 
 from d3rlpy.algos.base import ImplBase
+from d3rlpy.gpu import Device
 from .utility import freeze, unfreeze
 from .utility import to_cuda, to_cpu
 from .utility import torch_api, eval_api
@@ -40,13 +41,13 @@ class TorchImplBase(ImplBase):
         # workaround until version 1.6
         unfreeze(self)
 
-    def to_gpu(self):
-        to_cuda(self)
-        self.device = 'cuda:0'
+    def to_gpu(self, device=Device()):
+        self.device = 'cuda:%d' % device.get_id()
+        to_cuda(self, self.device)
 
     def to_cpu(self):
-        to_cpu(self)
         self.device = 'cpu:0'
+        to_cpu(self)
 
     def save_model(self, fname):
         torch.save(get_state_dict(self), fname)

@@ -8,6 +8,8 @@ from ..preprocessing import create_scaler
 from ..dataset import TransitionMiniBatch
 from ..logger import D3RLPyLogger
 from ..metrics.scorer import NEGATED_SCORER
+from ..context import disable_parallel
+from ..gpu import Device
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -40,10 +42,12 @@ class AlgoBase:
     Attributes:
         n_epochs (int): the number of epochs to train.
         batch_size (int): the batch size of training.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor
+        use_gpu (d3rlpy.gpu.Device): GPU device.
         impl (d3rlpy.algos.base.ImplBase): implementation of the algorithm.
 
     """
-    def __init__(self, n_epochs, batch_size, scaler):
+    def __init__(self, n_epochs, batch_size, scaler, use_gpu):
         """ __init__ method.
 
         Args:
@@ -51,6 +55,7 @@ class AlgoBase:
             batch_size (int): mini-batch size.
             scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
                 The available options are `['pixel', 'min_max', 'standard']`
+            use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
 
         """
         self.n_epochs = n_epochs
@@ -61,10 +66,17 @@ class AlgoBase:
         else:
             self.scaler = scaler
 
+        if isinstance(use_gpu, bool) and use_gpu:
+            self.use_gpu = Device(0)
+        elif isinstance(use_gpu, Device):
+            self.use_gpu = use_gpu
+        else:
+            self.use_gpu = None
+
         self.impl = None
 
     @classmethod
-    def from_json(cls, fname):
+    def from_json(cls, fname, use_gpu=False):
         """ Returns algorithm configured with json file.
 
         The Json file should be the one saved during fitting.
@@ -84,6 +96,7 @@ class AlgoBase:
 
         Args:
             fname (str): file path to `params.json`.
+            use_gpu (bool or str): flag to use GPU or device name.
 
         Returns:
             d3rlpy.algos.base.AlgoBase: algorithm.
@@ -97,11 +110,15 @@ class AlgoBase:
         del params['observation_shape']
         del params['action_size']
 
+        # remove create scaler object
         if params['scaler']:
             scaler_type = params['scaler']['type']
             scaler_params = params['scaler']['params']
             scaler = create_scaler(scaler_type, **scaler_params)
             params['scaler'] = scaler
+
+        # overwrite use_gpu flag
+        params['use_gpu'] = use_gpu
 
         algo = cls(**params)
         algo.create_impl(observation_shape, action_size)
@@ -406,8 +423,10 @@ class AlgoBase:
             logger.add_metric(name, test_score)
 
     def _save_params(self, logger, observation_shape, action_size):
+        with disable_parallel():
+            params = self.get_params(deep=False)
+
         # get hyperparameters without impl
-        params = self.get_params(deep=False)
         params = {k: v for k, v in params.items() if k != 'impl'}
 
         # save shapes
@@ -420,5 +439,9 @@ class AlgoBase:
                 'type': self.scaler.get_type(),
                 'params': self.scaler.get_params()
             }
+
+        # save GPU device id
+        if self.use_gpu:
+            params['use_gpu'] = self.use_gpu.get_id()
 
         logger.add_params(params)

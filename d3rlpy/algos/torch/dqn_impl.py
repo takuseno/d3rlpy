@@ -32,9 +32,10 @@ class DQNImpl(TorchImplBase, IDQNImpl):
         # setup target network
         self.targ_q_func = copy.deepcopy(self.q_func)
 
-        self.device = 'cpu:0'
         if use_gpu:
-            self.to_gpu()
+            self.to_gpu(use_gpu)
+        else:
+            self.to_cpu()
 
         # setup optimizer after the parameters move to GPU
         self._build_optim()

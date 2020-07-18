@@ -21,9 +21,10 @@ class BCImpl(TorchImplBase, IBCImpl):
 
         self._build_network()
 
-        self.device = 'cpu:0'
         if use_gpu:
-            self.to_gpu()
+            self.to_gpu(use_gpu)
+        else:
+            self.to_cpu()
 
         self._build_optim()
 
