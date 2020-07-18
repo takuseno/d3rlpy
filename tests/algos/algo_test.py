@@ -141,12 +141,11 @@ def algo_tester(algo, observation_shape, imitator=False):
     logger = D3RLPyLogger('test',
                           root_dir='test_data',
                           verbose=False,
-                          tensorboard=False,
-                          with_timestamp=False)
+                          tensorboard=False)
     # save parameters to test_data/test/params.json
     algo._save_params(logger, observation_shape, 3)
     # load params.json
-    json_path = os.path.join('test_data', 'test', 'params.json')
+    json_path = os.path.join(logger.logdir, 'params.json')
     new_algo = algo.__class__.from_json(json_path)
     assert new_algo.impl is not None
     assert new_algo.impl.observation_shape == observation_shape

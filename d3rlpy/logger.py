@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import json
+import time
 
 from datetime import datetime
 
@@ -26,16 +27,25 @@ class D3RLPyLogger:
         self.verbose = verbose
 
         # add timestamp to prevent unintentional overwrites
-        if with_timestamp:
-            date = datetime.now().strftime('%Y%m%d%H%M%S')
-            self.experiment_name = experiment_name + '_' + date
-        else:
-            self.experiment_name = experiment_name
-        self.logdir = os.path.join(root_dir, self.experiment_name)
-        self.metrics_buffer = {}
+        while True:
+            if with_timestamp:
+                date = datetime.now().strftime('%Y%m%d%H%M%S')
+                self.experiment_name = experiment_name + '_' + date
+            else:
+                self.experiment_name = experiment_name
 
-        if not os.path.exists(self.logdir):
-            os.makedirs(self.logdir)
+            self.logdir = os.path.join(root_dir, self.experiment_name)
+
+            if not os.path.exists(self.logdir):
+                os.makedirs(self.logdir)
+                break
+            else:
+                if with_timestamp:
+                    time.sleep(1.0)
+                else:
+                    raise ValueError('%s already exists.' % self.logdir)
+
+        self.metrics_buffer = {}
 
         if tensorboard:
             from tensorboardX import SummaryWriter
