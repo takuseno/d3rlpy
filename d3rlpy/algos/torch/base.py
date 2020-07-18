@@ -35,7 +35,7 @@ class TorchImplBase(ImplBase):
                 x = self.scaler.transform(x)
             return self._predict_best_action(x)
 
-        traced_script = torch.jit.trace(_func, dummy_x)
+        traced_script = torch.jit.trace(_func, dummy_x, check_trace=False)
         traced_script.save(fname)
 
         # workaround until version 1.6
