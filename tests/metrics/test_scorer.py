@@ -159,7 +159,7 @@ def test_average_value_estimation_scorer(observation_shape, action_size,
 @pytest.mark.parametrize('n_episodes', [100])
 @pytest.mark.parametrize('episode_length', [10])
 def test_value_estimation_std_scorer(observation_shape, action_size,
-                                         n_episodes, episode_length):
+                                     n_episodes, episode_length):
     # projection matrix for deterministic action
     A = np.random.random(observation_shape + (action_size, ))
     episodes = []

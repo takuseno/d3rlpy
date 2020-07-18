@@ -287,8 +287,8 @@ def impl_tester(impl, discrete, imitator):
         assert value.shape == (100, )
 
         value, std = impl.predict_value(observations, actions, with_std=True)
-        assert value.shape == (100,)
-        assert std.shape == (100,)
+        assert value.shape == (100, )
+        assert std.shape == (100, )
 
 
 def torch_impl_tester(impl,
