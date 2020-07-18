@@ -73,7 +73,8 @@ class BEARImpl(SACImpl, IBEARImpl):
 
         action, log_prob = self.policy(obs_t, with_log_prob=True)
         entropy = self.log_temp.exp() * log_prob
-        q_t = self.q_func(obs_t, action, 'min')
+        # mean is empirically better
+        q_t = self.q_func(obs_t, action, 'mean')
         td_loss = (entropy - q_t).mean()
 
         mmd_loss = self._compute_mmd(obs_t)
