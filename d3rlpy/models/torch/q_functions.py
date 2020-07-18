@@ -67,7 +67,7 @@ def _pick_value_by_action(values, action, keepdims=False):
     # take care of 3 dimensional vectors
     if values.ndim == 3:
         one_hot = one_hot.view(-1, action_size, 1)
-    masked_values = values * one_hot
+    masked_values = values * one_hot.float()
     return masked_values.sum(dim=1, keepdims=keepdims)
 
 
@@ -540,7 +540,7 @@ class DiscreteQFunction(nn.Module):
 
     def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
-        q_t = (self.forward(obs_t) * one_hot).sum(dim=1, keepdims=True)
+        q_t = (self.forward(obs_t) * one_hot.float()).sum(dim=1, keepdims=True)
         y = rew_tp1 + gamma * q_tp1
         return _huber_loss(q_t, y).mean()
 
