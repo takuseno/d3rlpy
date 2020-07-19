@@ -15,3 +15,4 @@ API Reference
    metrics
    save_and_load
    logging
+   sklearn
