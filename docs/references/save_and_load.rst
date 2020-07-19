@@ -1,8 +1,6 @@
 Save and Load
 =============
 
-d3rlpy provides two options to save model parameters.
-
 save_model and load_model
 -------------------------
 
@@ -24,6 +22,25 @@ save_model and load_model
 
 `save_model` method saves all parameters including optimizer states, which is
 useful when checking all the outputs or re-training from snapshots.
+
+
+from_json
+---------
+
+It is very boring to set the same hyperparameters to initialize algorithms when
+loading model parameters.
+In d3rlpy, `params.json` is saved at the beggining of `fit` method, which
+includes all hyperparameters within the algorithm object.
+You can recreate algorithm objects from `params.json` via `from_json` method.
+
+.. code-block:: python
+
+    from d3rlpy.algos import DQN
+
+    dqn = DQN.from_json('d3rlpy_logs/<path-to-json>/params.json')
+
+    # ready to load
+    dqn.load_model('model.pt')
 
 
 save_policy
