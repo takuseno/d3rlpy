@@ -616,8 +616,7 @@ class EnsembleQFunction(nn.Module):
     def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
         if self.bootstrap:
             n_q_funcs = len(self.q_funcs)
-            masks = [0 for _ in range(n_q_funcs // 2)]
-            masks += [1 for _ in range(n_q_funcs - len(masks))]
+            masks = [1] + np.random.randint(2, size=n_q_funcs - 1).tolist()
             masks = np.random.permutation(masks)
 
         td_sum = 0.0
