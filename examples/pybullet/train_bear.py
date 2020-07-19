@@ -20,7 +20,7 @@ def main(args):
 
     train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
-    device = Device(args.gpu) if args.gpu else None
+    device = None if args.gpu is None else Device(args.gpu)
 
     bear = BEAR(n_epochs=100, q_func_type=args.q_func_type, use_gpu=device)
 
