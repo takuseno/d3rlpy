@@ -14,3 +14,4 @@ API Reference
    preprocessing
    metrics
    save_and_load
+   logging
