@@ -4,6 +4,7 @@ import d3rlpy
 from d3rlpy.algos import BC
 from d3rlpy.datasets import get_pybullet
 from d3rlpy.metrics.scorer import evaluate_on_environment
+from d3rlpy.metrics.scorer import continuous_action_diff_scorer
 from d3rlpy.gpu import Device
 from sklearn.model_selection import train_test_split
 
@@ -21,7 +22,10 @@ def main(args):
 
     bc.fit(train_episodes,
            eval_episodes=test_episodes,
-           scorers={'environment': evaluate_on_environment(env)})
+           scorers={
+               'environment': evaluate_on_environment(env),
+               'action_diff': continuous_action_diff_scorer
+           })
 
 
 if __name__ == '__main__':
