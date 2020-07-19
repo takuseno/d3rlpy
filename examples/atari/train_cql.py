@@ -41,6 +41,6 @@ if __name__ == '__main__':
                         type=str,
                         default='mean',
                         choices=['mean', 'qr', 'iqn', 'fqf'])
-    parser.add_argument('--gpu', action='store_true')
+    parser.add_argument('--gpu', type=int)
     args = parser.parse_args()
     main(args)

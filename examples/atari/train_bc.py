@@ -28,6 +28,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='breakout-mixed-v0')
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--gpu', action='store_true')
+    parser.add_argument('--gpu', type=int)
     args = parser.parse_args()
     main(args)
