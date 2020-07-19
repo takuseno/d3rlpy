@@ -90,8 +90,8 @@ def _quantile_huber_loss(y, target, taus):
 
 def _make_taus_prime(n_quantiles, device):
     steps = torch.arange(n_quantiles, dtype=torch.float32, device=device)
-    taus = ((steps + 1) / n_quantiles).view(1, -1)
-    taus_dot = (steps / n_quantiles).view(1, -1)
+    taus = ((steps + 1).float() / n_quantiles).view(1, -1)
+    taus_dot = (steps.float() / n_quantiles).view(1, -1)
     return (taus + taus_dot) / 2.0
 
 
@@ -182,7 +182,7 @@ class DiscreteIQNQFunction(nn.Module):
 
     def _compute_quantiles(self, h, taus):
         # compute embedding
-        steps = torch.arange(self.embed_size, device=h.device) + 1
+        steps = torch.arange(self.embed_size, device=h.device).float() + 1
         # (batch, quantile, embedding)
         expanded_taus = taus.view(h.shape[0], self.n_quantiles, 1)
         prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
@@ -261,7 +261,7 @@ class ContinuousIQNQFunction(nn.Module):
             fc_b = self.fc.bias
 
         # compute embedding
-        steps = torch.arange(self.embed_size, device=h.device) + 1
+        steps = torch.arange(self.embed_size, device=h.device).float() + 1
         # (batch, quantile, embedding)
         expanded_taus = taus.view(h.shape[0], -1, 1)
         prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
@@ -367,7 +367,7 @@ class DiscreteFQFQFunction(nn.Module):
                 fc_bs.append(fc.bias)
 
         # compute embedding
-        steps = torch.arange(self.embed_size, device=h.device) + 1
+        steps = torch.arange(self.embed_size, device=h.device).float() + 1
         # (batch, action, quantile, embedding)
         expanded_taus = taus.view(h.shape[0], self.action_size, -1, 1)
         prior = torch.cos(math.pi * steps.view(1, 1, 1, -1) * expanded_taus)
