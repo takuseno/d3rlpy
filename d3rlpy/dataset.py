@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import h5py
 
 from PIL import Image
 
@@ -80,6 +81,22 @@ def _safe_size(array):
     raise ValueError
 
 
+def _to_episodes(observation_shape, action_size, observations, actions,
+                 rewards, terminals):
+    rets = []
+    head_index = 0
+    for i in range(_safe_size(observations)):
+        if terminals[i]:
+            episode = Episode(observation_shape=observation_shape,
+                              action_size=action_size,
+                              observations=observations[head_index:i + 1],
+                              actions=actions[head_index:i + 1],
+                              rewards=rewards[head_index:i + 1])
+            rets.append(episode)
+            head_index = i + 1
+    return rets
+
+
 class MDPDataset:
     """ Markov-Decision Process Dataset class.
 
@@ -139,10 +156,13 @@ class MDPDataset:
                  terminals,
                  discrete_action=False):
         self._observations = observations
-        self._actions = np.asarray(actions)
-        self._rewards = np.asarray(rewards)
-        self._terminals = np.asarray(terminals)
+        self._rewards = np.asarray(rewards).reshape(-1)
+        self._terminals = np.asarray(terminals).reshape(-1)
         self.discrete_action = discrete_action
+        if discrete_action:
+            self._actions = np.asarray(actions).reshape(-1)
+        else:
+            self._actions = np.asarray(actions)
         self._episodes = None
 
     @property
@@ -195,22 +215,11 @@ class MDPDataset:
 
         """
         if self._episodes is None:
-            self._episodes = self._to_episodes()
+            self._episodes = _to_episodes(self.get_observation_shape(),
+                                          self.get_action_size(),
+                                          self._observations, self._actions,
+                                          self._rewards, self._terminals)
         return self._episodes
-
-    def _to_episodes(self):
-        rets = []
-        head_index = 0
-        for i in range(_safe_size(self.observations)):
-            if self._terminals[i]:
-                episode = Episode(self.get_observation_shape(),
-                                  self.get_action_size(),
-                                  self._observations[head_index:i + 1],
-                                  self._actions[head_index:i + 1],
-                                  self._rewards[head_index:i + 1])
-                rets.append(episode)
-                head_index = i + 1
-        return rets
 
     def size(self):
         """ Returns the number of episodes in the dataset.
@@ -291,6 +300,102 @@ class MDPDataset:
             }
 
         return stats
+
+    def append(self, observations, actions, rewards, terminals):
+        """ Append new data.
+
+        Args:
+            observations (numpy.ndarray or list(numpy.ndarray)): N-D array.
+            actions (numpy.ndarray): actions.
+            rewards (numpy.ndarray): rewards.
+            terminals (numpy.ndarray): terminals.
+
+        """
+        # validation
+        for observation, action in zip(observations, actions):
+            assert observation.shape == self.get_observation_shape()
+            if self.discrete_action:
+                assert int(action) < self.get_action_size()
+            else:
+                assert action.shape == (self.get_action_size(), )
+
+        # append observations
+        if isinstance(self._observations, list):
+            self._observations += list(map(lambda x: x, observations))
+        else:
+            self._observations = np.vstack([self._observations, observations])
+
+        # append actions
+        if self.discrete_action:
+            self._actions = np.hstack([self._actions, actions])
+        else:
+            self._actions = np.vstack([self._actions, actions])
+
+        # append rests
+        self._rewards = np.hstack([self._rewards, rewards])
+        self._terminals = np.hstack([self._terminals, terminals])
+
+        # convert new data to list of episodes
+        episodes = _to_episodes(self.get_observation_shape(),
+                                self.get_action_size(), observations, actions,
+                                rewards, terminals)
+
+        # append to episodes
+        self._episodes += episodes
+
+    def dump(self, fname):
+        """ Save dataset as HDF5.
+
+        Args:
+            fname (str): file path.
+
+        """
+        with h5py.File(fname, 'w') as f:
+            f.create_dataset('observations', data=self._observations)
+            f.create_dataset('actions', data=self._actions)
+            f.create_dataset('rewards', data=self._rewards)
+            f.create_dataset('terminals', data=self._terminals)
+            f.create_dataset('discrete_action', data=self.discrete_action)
+            f.flush()
+
+    @classmethod
+    def load(cls, fname):
+        """ Load dataset from HDF5.
+
+        .. code-block:: python
+
+            import numpy as np
+            from d3rlpy.dataset import MDPDataset
+
+            dataset = MDPDataset(np.random.random(10, 4),
+                                 np.random.random(10, 2),
+                                 np.random.random(10),
+                                 np.random.randint(2, size=10))
+
+            # save as HDF5
+            dataset.dump('dataset.h5')
+
+            # load from HDF5
+            new_dataset = MDPDataset.load('dataset.h5')
+
+        Args:
+            fname (str): file path.
+
+        """
+        with h5py.File(fname, 'r') as f:
+            observations = f['observations'][()]
+            actions = f['actions'][()]
+            rewards = f['rewards'][()]
+            terminals = f['terminals'][()]
+            discrete_action = f['discrete_action'][()]
+
+        dataset = cls(observations=observations,
+                      actions=actions,
+                      rewards=rewards,
+                      terminals=terminals,
+                      discrete_action=discrete_action)
+
+        return dataset
 
     def __len__(self):
         return self.size()

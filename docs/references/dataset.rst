@@ -40,6 +40,12 @@ reinforcement learning datasets without any efforts.
     dataset.episodes[0].next_observation
     dataset.episodes[0].terminal
 
+    # save as HDF5
+    dataset.dump('dataset.h5')
+
+    # load from HDF5
+    new_dataset = MDPDataset.load('dataset.h5')
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:

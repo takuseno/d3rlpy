@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import os
 
 from sklearn.model_selection import train_test_split
 from d3rlpy.dataset import _compute_rewards, _load_images, read_csv
@@ -106,6 +107,27 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
     for i, episode in enumerate(dataset.episodes):
         assert isinstance(episode, Episode)
         assert episode is dataset.episodes[i]
+
+    # check append
+    dataset.append(observations, actions, rewards, terminals)
+    assert len(dataset) == 2 * n_episodes
+    assert dataset.observations.shape == (2 * data_size, observation_size)
+    assert dataset.rewards.shape == (2 * data_size, )
+    assert dataset.terminals.shape == (2 * data_size, )
+    if discrete_action:
+        assert dataset.actions.shape == (2 * data_size, )
+    else:
+        assert dataset.actions.shape == (2 * data_size, action_size)
+
+    # check dump and load
+    dataset.dump(os.path.join('test_data', 'dataset.h5'))
+    new_dataset = MDPDataset.load(os.path.join('test_data', 'dataset.h5'))
+    assert np.all(dataset.observations == new_dataset.observations)
+    assert np.all(dataset.actions == new_dataset.actions)
+    assert np.all(dataset.rewards == new_dataset.rewards)
+    assert np.all(dataset.terminals == new_dataset.terminals)
+    assert dataset.discrete_action == new_dataset.discrete_action
+    assert len(dataset) == len(new_dataset)
 
 
 @pytest.mark.parametrize('data_size', [100])
