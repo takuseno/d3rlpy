@@ -85,7 +85,7 @@ def _quantile_huber_loss(y, target, taus):
     huber_loss = _huber_loss(y, target)
     delta = ((target - y).detach() < 0.0).float()
     element_wise_loss = ((taus - delta).abs() * huber_loss)
-    return element_wise_loss.sum(dim=2).mean()
+    return element_wise_loss.sum(dim=2).mean(dim=1)
 
 
 def _make_taus_prime(n_quantiles, device):
@@ -93,6 +93,16 @@ def _make_taus_prime(n_quantiles, device):
     taus = ((steps + 1).float() / n_quantiles).view(1, -1)
     taus_dot = (steps.float() / n_quantiles).view(1, -1)
     return (taus + taus_dot) / 2.0
+
+
+def _reduce(value, reduction_type):
+    if reduction_type == 'mean':
+        return value.mean()
+    elif reduction_type == 'sum':
+        return value.sum()
+    elif reduction_type == 'none':
+        return value.view(-1, 1)
+    raise ValueError('invalid reduction type.')
 
 
 class DiscreteQRQFunction(nn.Module):
@@ -112,7 +122,13 @@ class DiscreteQRQFunction(nn.Module):
 
         return quantiles.mean(dim=2)
 
-    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
         assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
 
         # extraect quantiles corresponding to act_t
@@ -125,7 +141,9 @@ class DiscreteQRQFunction(nn.Module):
         y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
         quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
         taus = taus.view(1, 1, -1)
-        return _quantile_huber_loss(quantiles_t, y, taus)
+        loss = _quantile_huber_loss(quantiles_t, y, taus)
+
+        return _reduce(loss, reduction)
 
     def compute_target(self, x, action):
         return _pick_value_by_action(self.forward(x, True), action)
@@ -148,7 +166,13 @@ class ContinuousQRQFunction(nn.Module):
 
         return quantiles.mean(dim=1, keepdims=True)
 
-    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
         assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
 
         quantiles_t = self.forward(obs_t, act_t, as_quantiles=True)
@@ -160,7 +184,9 @@ class ContinuousQRQFunction(nn.Module):
         y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
         quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
         taus = taus.view(1, 1, -1)
-        return _quantile_huber_loss(quantiles_t, y, taus)
+        loss = _quantile_huber_loss(quantiles_t, y, taus)
+
+        return _reduce(loss, reduction)
 
     def compute_target(self, x, action):
         return self.forward(x, action, as_quantiles=True)
@@ -216,7 +242,13 @@ class DiscreteIQNQFunction(nn.Module):
             return rets[0]
         return rets
 
-    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
         assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
 
         # extraect quantiles corresponding to act_t
@@ -227,7 +259,9 @@ class DiscreteIQNQFunction(nn.Module):
         y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
         quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
         taus = taus.view(obs_t.shape[0], 1, -1)
-        return _quantile_huber_loss(quantiles_t, y, taus)
+        loss = _quantile_huber_loss(quantiles_t, y, taus)
+
+        return _reduce(loss, reduction)
 
     def compute_target(self, x, action):
         quantiles = self.forward(x, as_quantiles=True)
@@ -297,7 +331,13 @@ class ContinuousIQNQFunction(nn.Module):
             return rets[0]
         return rets
 
-    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
         assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
 
         quantiles_t, taus = self.forward(obs_t,
@@ -309,7 +349,9 @@ class ContinuousIQNQFunction(nn.Module):
         y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
         quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
         taus = taus.view(obs_t.shape[0], 1, -1)
-        return _quantile_huber_loss(quantiles_t, y, taus)
+        loss = _quantile_huber_loss(quantiles_t, y, taus)
+
+        return _reduce(loss, reduction)
 
     def compute_target(self, x, action):
         return self.forward(x, action, as_quantiles=True)
@@ -415,7 +457,13 @@ class DiscreteFQFQFunction(nn.Module):
             return rets[0]
         return rets
 
-    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
         assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
 
         # extraect quantiles corresponding to act_t
@@ -439,10 +487,14 @@ class DiscreteFQFQFunction(nn.Module):
         # but, it's combined here
         q_taus = self._compute_quantiles(h.detach(), taus, True)
         q_taus_prime = self._compute_quantiles(h.detach(), taus_prime, True)
-        proposal_target = q_taus_prime[:, :, :-1] + q_taus_prime[:, :, 1:]
-        proposal_loss = (2 * q_taus[:, :, :-1] - proposal_target).mean()
+        batch_steps = torch.arange(obs_t.shape[0])
+        proposal_loss = 2 * q_taus[batch_steps, act_t.view(-1), :-1]
+        proposal_loss -= q_taus_prime[batch_steps, act_t.view(-1), :-1]
+        proposal_loss -= q_taus_prime[batch_steps, act_t.view(-1), 1:]
 
-        return quantile_loss + proposal_loss
+        loss = quantile_loss + proposal_loss.mean(dim=1)
+
+        return _reduce(loss, reduction)
 
     def compute_target(self, x, action):
         quantiles = self.forward(x, as_quantiles=True)
@@ -500,7 +552,13 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
             return rets[0]
         return rets
 
-    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
         assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
 
         values, taus, h = self.forward(obs_t,
@@ -522,9 +580,11 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         q_taus = self._compute_quantiles(h.detach(), taus, True)
         q_taus_prime = self._compute_quantiles(h.detach(), taus_prime, True)
         proposal_target = q_taus_prime[:, :-1] + q_taus_prime[:, 1:]
-        proposal_loss = (2 * q_taus[:, :-1] - proposal_target).mean()
+        proposal_loss = (2 * q_taus[:, :-1] - proposal_target).sum(dim=1)
 
-        return quantile_loss + proposal_loss
+        loss = quantile_loss + proposal_loss
+
+        return _reduce(loss, reduction)
 
 
 class DiscreteQFunction(nn.Module):
@@ -538,11 +598,18 @@ class DiscreteQFunction(nn.Module):
         h = self.head(x)
         return self.fc(h)
 
-    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
         one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
         q_t = (self.forward(obs_t) * one_hot.float()).sum(dim=1, keepdims=True)
         y = rew_tp1 + gamma * q_tp1
-        return _huber_loss(q_t, y).mean()
+        loss = _huber_loss(q_t, y)
+        return _reduce(loss, reduction)
 
     def compute_target(self, x, action):
         return _pick_value_by_action(self.forward(x), action, keepdims=True)
@@ -559,10 +626,17 @@ class ContinuousQFunction(nn.Module):
         h = self.head(x, action)
         return self.fc(h)
 
-    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
         q_t = self.forward(obs_t, act_t)
         y = rew_tp1 + gamma * q_tp1
-        return F.mse_loss(q_t, y)
+        loss = F.mse_loss(q_t, y, reduction='none')
+        return _reduce(loss, reduction)
 
     def compute_target(self, x, action):
         return self.forward(x, action)
@@ -614,16 +688,20 @@ class EnsembleQFunction(nn.Module):
         self.bootstrap = bootstrap and len(q_funcs) > 1
 
     def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
-        if self.bootstrap:
-            n_q_funcs = len(self.q_funcs)
-            masks = [1] + np.random.randint(2, size=n_q_funcs - 1).tolist()
-            masks = np.random.permutation(masks)
-
         td_sum = 0.0
         for i, q_func in enumerate(self.q_funcs):
-            if self.bootstrap and masks[i] == 0:
-                continue
-            td_sum += q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
+            loss = q_func.compute_error(obs_t,
+                                        act_t,
+                                        rew_tp1,
+                                        q_tp1,
+                                        gamma,
+                                        reduction='none')
+
+            if self.bootstrap:
+                mask = torch.randint(0, 2, loss.shape, device=obs_t.device)
+                loss *= mask.float()
+
+            td_sum += loss.mean()
 
         return td_sum
 
