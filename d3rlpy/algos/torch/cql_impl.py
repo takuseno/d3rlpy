@@ -122,7 +122,10 @@ class CQLImpl(SACImpl, ICQLImpl):
 
         element_wise_loss = logsumexp - data_values - self.alpha_threshold
 
-        return (self.log_alpha.exp() * element_wise_loss).sum(dim=0).mean()
+        # this clipping seems to stabilize training
+        clipped_alpha = self.log_alpha.clamp(-10.0, 2.0).exp()
+
+        return (clipped_alpha * element_wise_loss).sum(dim=0).mean()
 
 
 class DiscreteCQLImpl(DoubleDQNImpl):

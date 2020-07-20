@@ -148,7 +148,7 @@ class BEARImpl(SACImpl, IBEARImpl):
                                     self.mmd_sigma)
         mmd -= 2 * distance.sum(dim=1).sum(dim=1) / self.n_action_samples**2
 
-        clipped_alpha = self.log_alpha.clamp(-5.0, 10.0).exp()
+        clipped_alpha = self.log_alpha.clamp(-10.0, 2.0).exp()
 
         return (clipped_alpha * (mmd - self.alpha_threshold)).sum(dim=1).mean()
 
