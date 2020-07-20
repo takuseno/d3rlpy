@@ -662,9 +662,6 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
         f = q_func.q_funcs[i]
         ref_td_sum += f.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
-    # bootstrapping someimtes makes all ones mask
-    loss += q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
-    loss /= 2
     if bootstrap:
         assert not torch.allclose(ref_td_sum, loss)
     elif q_func_type != 'iqn':
