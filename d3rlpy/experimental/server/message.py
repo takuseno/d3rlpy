@@ -1,8 +1,9 @@
 import numpy as np
-import msgpack
 
 
 def pack_experience(observations, actions, rewards, terminals):
+    import msgpack
+
     package = {
         'observations': observations.astype('f4').tobytes('C'),
         'actions': actions.astype('f4').tobytes('C'),
@@ -15,6 +16,8 @@ def pack_experience(observations, actions, rewards, terminals):
 
 
 def unpack_experience(binary_data):
+    import msgpack
+
     package = msgpack.unpackb(binary_data, raw=False)
     observations = np.frombuffer(package['observations'], dtype=np.float32)
     actions = np.frombuffer(package['actions'], dtype=np.float32)

@@ -1,9 +1,7 @@
 import os
 import json
-import msgpack
 import d3rlpy.experimental.server.async as async
 
-from flask import Flask, request, jsonify, send_file
 from d3rlpy.algos import create_algo
 from .tasks import train
 from .message import unpack_experience
@@ -15,6 +13,7 @@ class Server:
                  algo_params,
                  dataset,
                  dir_path='d3rlpy_logs/worker'):
+        from flask import Flask
         self.algo_name = algo_name
         self.algo_params = algo_params
         self.dataset = dataset
@@ -58,6 +57,7 @@ class Server:
         self.app.run(host=host, port=port, debug=debug)
 
     def append_data(self):
+        from flask import request, jsonify
         req_data = request.data
         observations, actions, rewards, terminals = unpack_experience(req_data)
         self.dataset.append(observations, actions, rewards, terminals)
@@ -65,6 +65,8 @@ class Server:
         return jsonify({'dataset': {'total_episodes': len(self.dataset)}})
 
     def get_model(self):
+        from flask import jsonify, send_file
+
         # initialize algorithm
         algo = create_algo(self.algo_name, self.dataset.is_action_discrete(),
                            **self.algo_params)
@@ -81,6 +83,7 @@ class Server:
             trial -= 1
 
         if trial < 0:
+            from flask import jsonify
             return jsonify({'status': 'empty'})
 
         # save policy
@@ -95,6 +98,7 @@ class Server:
         return res
 
     def get_status(self):
+        from flask import jsonify
         is_training = self._check_training_status()
         rets = {
             'training': is_training,
@@ -104,6 +108,7 @@ class Server:
         return jsonify(rets)
 
     def train(self):
+        from flask import jsonify
         if self._check_training_status():
             return jsonify({'status': 'training'})
 
