@@ -39,7 +39,7 @@ def test_compare():
     score = _compare(algo, base_algo, test_episodes, True)
 
 
-def test_train(celery_worker):
+def test_train():
     dataset, _ = get_cartpole()
     dataset_path = os.path.join('test_data', 'worker_dataset.h5')
     dataset.dump(dataset_path)
