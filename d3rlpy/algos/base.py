@@ -236,6 +236,7 @@ class AlgoBase:
     def fit(self,
             episodes,
             experiment_name=None,
+            with_timestamp=True,
             logdir='d3rlpy_logs',
             verbose=True,
             show_progress=True,
@@ -253,6 +254,8 @@ class AlgoBase:
             episodes (list(d3rlpy.dataset.Episode)): list of episodes to train.
             experiment_name (str): experiment name for logging. If not passed,
                 the directory name will be `{class name}_{timestamp}`.
+            with_timestamp (bool): flag to add timestamp string to the last of
+                directory name.
             logdir (str): root directory name to save logs.
             verbose (bool): flag to show logged information on stdout.
             show_progress (bool): flag to show progress bar for iterations.
@@ -281,8 +284,8 @@ class AlgoBase:
             self.create_impl(observation_shape, action_size)
 
         # setup logger
-        logger = self._prepare_logger(experiment_name, logdir, verbose,
-                                      tensorboard)
+        logger = self._prepare_logger(experiment_name, with_timestamp, logdir,
+                                      verbose, tensorboard)
 
         # save hyperparameters
         self._save_params(logger, observation_shape, action_size)
@@ -406,14 +409,16 @@ class AlgoBase:
     def _get_loss_labels(self):
         raise NotImplementedError
 
-    def _prepare_logger(self, experiment_name, logdir, verbose, tensorboard):
+    def _prepare_logger(self, experiment_name, with_timestamp, logdir, verbose,
+                        tensorboard):
         if experiment_name is None:
             experiment_name = self.__class__.__name__
 
         logger = D3RLPyLogger(experiment_name,
                               root_dir=logdir,
                               verbose=verbose,
-                              tensorboard=tensorboard)
+                              tensorboard=tensorboard,
+                              with_timestamp=with_timestamp)
 
         return logger
 
