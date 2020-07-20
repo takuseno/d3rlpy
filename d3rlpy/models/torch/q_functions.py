@@ -580,7 +580,7 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         q_taus = self._compute_quantiles(h.detach(), taus, True)
         q_taus_prime = self._compute_quantiles(h.detach(), taus_prime, True)
         proposal_target = q_taus_prime[:, :-1] + q_taus_prime[:, 1:]
-        proposal_loss = (2 * q_taus[:, :-1] - proposal_target).sum(dim=1)
+        proposal_loss = (2 * q_taus[:, :-1] - proposal_target).mean(dim=1)
 
         loss = quantile_loss + proposal_loss
 
