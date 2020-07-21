@@ -2,6 +2,7 @@ import os
 import json
 import d3rlpy.experimental.server.async as async
 
+from datetime import datetime
 from d3rlpy.algos import create_algo
 from .tasks import train
 from .message import unpack_experience
@@ -12,17 +13,21 @@ class Server:
                  algo_name,
                  algo_params,
                  dataset,
-                 dir_path='d3rlpy_logs/worker'):
+                 dir_path='d3rlpy_logs/worker',
+                 with_timestamp=True,
+                 model_path=None):
         from flask import Flask
         self.algo_name = algo_name
         self.algo_params = algo_params
         self.dataset = dataset
-        self.dir_path = os.path.abspath(dir_path)
         self.n_trials = 0
 
         # setup flask server
         self.app = Flask(__name__)
-        self.app.add_url_rule('/train', 'train', self.train, methods=['POST'])
+        self.app.add_url_rule('/train',
+                              'train',
+                              self.train_algo,
+                              methods=['POST'])
         self.app.add_url_rule('/data',
                               'data',
                               self.append_data,
@@ -37,6 +42,9 @@ class Server:
                               methods=['GET'])
 
         # prepare directory
+        if with_timestamp:
+            dir_path += '_' + datetime.now().strftime('%Y%m%d%H%M%S')
+        self.dir_path = os.path.abspath(dir_path)
         os.makedirs(dir_path)
 
         # save initial dataset
@@ -48,8 +56,15 @@ class Server:
         self.train_uid = None
         self.latest_metrics = {}
 
-        # start initial training
-        self._dispatch_training_job()
+        # make initial model
+        if model_path:
+            algo = create_algo(algo_name, **algo_params)
+            algo.create_impl(dataset.get_observation_shape(),
+                             dataset.get_action_size())
+            algo.load_model(model_path)
+            algo.save_model(self.model_save_path_tmpl % 0)
+        else:
+            self._dispatch_training_job()
 
     def run(self, host='0.0.0.0', port=8000, debug=False):
         if not os.path.exists(self.dir_path):
@@ -107,7 +122,7 @@ class Server:
         }
         return jsonify(rets)
 
-    def train(self):
+    def train_algo(self):
         from flask import jsonify
         if self._check_training_status():
             return jsonify({'status': 'training'})
