@@ -16,6 +16,12 @@ library.
 
 .. toctree::
    :maxdepth: 2
+   :caption: Tutorials
+
+   notebooks
+
+.. toctree::
+   :maxdepth: 2
    :caption: References
 
    references/index
