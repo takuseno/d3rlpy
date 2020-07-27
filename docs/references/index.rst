@@ -16,3 +16,4 @@ API Reference
    save_and_load
    logging
    sklearn
+   online

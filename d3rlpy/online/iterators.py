@@ -35,7 +35,7 @@ def train(env,
         eval_epsilon (float): :math:`\\epsilon`-greedy factor during
             evaluation.
         experiment_name (str): experiment name for logging. If not passed,
-            the directory name will be `{class name}_{timestamp}`.
+            the directory name will be `{class name}_online_{timestamp}`.
         with_timestamp (bool): flag to add timestamp string to the last of
             directory name.
         logdir (str): root directory name to save logs.

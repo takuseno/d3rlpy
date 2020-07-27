@@ -10,7 +10,7 @@ class Explorer(metaclass=ABCMeta):
 
 
 class LinearDecayEpsilonGreedy(Explorer):
-    """ :math:`\\epsilon`-greedy explorer with linearly decay schedule.
+    """ :math:`\\epsilon`-greedy explorer with linear decay schedule.
 
     Args:
         start_epsilon (float): the beginning :math:`\\epsilon`.
