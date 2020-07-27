@@ -5,7 +5,6 @@ from d3rlpy.online.buffers import ReplayBuffer
 from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
 from d3rlpy.online.iterators import train
 
-
 env = gym.make('CartPole-v0')
 eval_env = gym.make('CartPole-v0')
 

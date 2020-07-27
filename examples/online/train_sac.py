@@ -4,7 +4,6 @@ from d3rlpy.algos import SAC
 from d3rlpy.online.buffers import ReplayBuffer
 from d3rlpy.online.iterators import train
 
-
 env = gym.make('Pendulum-v0')
 eval_env = gym.make('Pendulum-v0')
 
