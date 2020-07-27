@@ -310,7 +310,7 @@ def impl_tester(impl, discrete, imitator):
     try:
         action = impl.sample_action(observations)
         if discrete:
-            assert action.shape == (100,)
+            assert action.shape == (100, )
         else:
             assert action.shape == (100, impl.action_size)
     except NotImplementedError:
