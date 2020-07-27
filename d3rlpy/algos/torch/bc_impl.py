@@ -57,6 +57,9 @@ class BCImpl(TorchImplBase, IBCImpl):
     def predict_value(self, x, action, with_std):
         raise NotImplementedError('BC does not support value estimation')
 
+    def sample_action(self, x):
+        raise NotImplementedError('BC does not support sampling action')
+
 
 class DiscreteBCImpl(BCImpl):
     def __init__(self, observation_shape, action_size, learning_rate, eps,

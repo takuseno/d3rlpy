@@ -13,6 +13,10 @@ from d3rlpy.preprocessing import Scaler
 
 
 class DummyImpl(ImplBase):
+    def __init__(self, observation_shape, action_size):
+        self.observation_shape = observation_shape
+        self.action_size = action_size
+
     def save_model(self, fname):
         pass
 
@@ -26,6 +30,9 @@ class DummyImpl(ImplBase):
         pass
 
     def predict_value(self, x, action, with_std):
+        pass
+
+    def sample_action(self, x):
         pass
 
 
@@ -43,9 +50,9 @@ class DummyScaler(Scaler):
         return {}
 
 
-def algo_tester(algo, observation_shape, imitator=False):
+def algo_tester(algo, observation_shape, imitator=False, action_size=2):
     # dummy impl object
-    impl = DummyImpl()
+    impl = DummyImpl(observation_shape, action_size)
 
     algo.impl = impl
 
@@ -86,7 +93,7 @@ def algo_tester(algo, observation_shape, imitator=False):
 
     # check predict
     x = np.random.random((2, 3)).tolist()
-    ref_y = np.random.random((2, 3)).tolist()
+    ref_y = np.random.random((2, action_size)).tolist()
     impl.predict_best_action = Mock(return_value=ref_y)
     y = algo.predict(x)
     assert y == ref_y
@@ -94,12 +101,21 @@ def algo_tester(algo, observation_shape, imitator=False):
 
     # check predict_value
     if not imitator:
-        action = np.random.random((2, 3)).tolist()
+        action = np.random.random((2, action_size)).tolist()
         ref_value = np.random.random((2, 3)).tolist()
         impl.predict_value = Mock(return_value=ref_value)
         value = algo.predict_value(x, action)
         assert value == ref_value
         impl.predict_value.assert_called_with(x, action, False)
+
+    # check sample_action
+    impl.sample_action = Mock(return_value=ref_y)
+    try:
+        y = algo.sample_action(x)
+        assert y == ref_y
+        impl.sample_action.assert_called_with(x)
+    except NotImplementedError:
+        pass
 
     # check fit
     update_backup = algo.update
@@ -112,7 +128,7 @@ def algo_tester(algo, observation_shape, imitator=False):
     algo.batch_size = n_batch
     algo.n_epochs = n_epochs
     observations = np.random.random((data_size, ) + observation_shape)
-    actions = np.random.random((data_size, 3))
+    actions = np.random.random((data_size, action_size))
     rewards = np.random.random(data_size)
     terminals = np.zeros(data_size)
     for i in range(n_episodes):
@@ -143,13 +159,13 @@ def algo_tester(algo, observation_shape, imitator=False):
                           verbose=False,
                           tensorboard=False)
     # save parameters to test_data/test/params.json
-    algo._save_params(logger, observation_shape, 3)
+    algo._save_params(logger)
     # load params.json
     json_path = os.path.join(logger.logdir, 'params.json')
     new_algo = algo.__class__.from_json(json_path)
     assert new_algo.impl is not None
     assert new_algo.impl.observation_shape == observation_shape
-    assert new_algo.impl.action_size == 3
+    assert new_algo.impl.action_size == action_size
     assert type(algo.scaler) == type(new_algo.scaler)
 
     # set backed up methods
@@ -289,6 +305,16 @@ def impl_tester(impl, discrete, imitator):
         value, std = impl.predict_value(observations, actions, with_std=True)
         assert value.shape == (100, )
         assert std.shape == (100, )
+
+    # check sample_action
+    try:
+        action = impl.sample_action(observations)
+        if discrete:
+            assert action.shape == (100,)
+        else:
+            assert action.shape == (100, impl.action_size)
+    except NotImplementedError:
+        pass
 
 
 def torch_impl_tester(impl,

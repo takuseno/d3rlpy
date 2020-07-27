@@ -106,6 +106,9 @@ class DQNImpl(TorchImplBase, IDQNImpl):
 
         return np.array(ret_values)
 
+    def sample_action(self, x):
+        return self.predict_best_action(x)
+
     def update_target(self):
         hard_sync(self.targ_q_func, self.q_func)
 

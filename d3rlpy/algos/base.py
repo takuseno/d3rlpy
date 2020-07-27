@@ -33,6 +33,10 @@ class ImplBase(metaclass=ABCMeta):
     def predict_value(self, x, action, with_std):
         pass
 
+    @abstractmethod
+    def sample_action(self, x):
+        pass
+
 
 class AlgoBase:
     """ Algorithm base class.
@@ -288,7 +292,7 @@ class AlgoBase:
                                       verbose, tensorboard)
 
         # save hyperparameters
-        self._save_params(logger, observation_shape, action_size)
+        self._save_params(logger)
 
         # training loop
         total_step = 0
@@ -380,6 +384,21 @@ class AlgoBase:
         """
         return self.impl.predict_value(x, action, with_std)
 
+    def sample_action(self, x):
+        """ Returns sampled actions.
+
+        The sampled actions are identical to the output of `predict` method if
+        the policy is deterministic.
+
+        Args:
+            x (numpy.ndarray): observations.
+
+        Returns:
+            numpy.ndarray: sampled actions.
+
+        """
+        return self.impl.sample_action(x)
+
     def create_impl(self, observation_shape, action_size):
         """ Instantiate implementation objects with the dataset shapes.
 
@@ -434,7 +453,7 @@ class AlgoBase:
 
             logger.add_metric(name, test_score)
 
-    def _save_params(self, logger, observation_shape, action_size):
+    def _save_params(self, logger):
         with disable_parallel():
             params = self.get_params(deep=False)
 
@@ -442,8 +461,8 @@ class AlgoBase:
         params = {k: v for k, v in params.items() if k != 'impl'}
 
         # save shapes
-        params['observation_shape'] = observation_shape
-        params['action_size'] = action_size
+        params['observation_shape'] = self.impl.observation_shape
+        params['action_size'] = self.impl.action_size
 
         # save scaler
         if self.scaler:

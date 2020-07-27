@@ -132,6 +132,9 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
 
         return mean_values
 
+    def sample_action(self, x):
+        return self.predict_best_action(x)
+
     def update_critic_target(self):
         soft_sync(self.targ_q_func, self.q_func, self.tau)
 

@@ -140,6 +140,9 @@ class BCQImpl(DDPGImpl, IBCQImpl):
         index = values.view(-1, self.n_action_samples).argmax(dim=1)
         return action[torch.arange(action.shape[0]), index]
 
+    def sample_action(self, x):
+        raise NotImplementedError('BCQ does not support sampling action')
+
     def compute_target(self, x):
         # TODO: this seems to be slow with image observation
         with torch.no_grad():

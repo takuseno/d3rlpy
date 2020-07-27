@@ -79,6 +79,11 @@ class BC(AlgoBase):
         """
         raise NotImplementedError('BC does not support value estimation.')
 
+    def sample_action(self, x):
+        """ sampling action is not supported by BC algorithm.
+        """
+        raise NotImplementedError('BC does not support sampling action.')
+
     def _get_loss_labels(self):
         return ['loss']
 

@@ -227,6 +227,11 @@ class BCQ(AlgoBase):
             actor_loss = None
         return critic_loss, actor_loss, imitator_loss
 
+    def sample_action(self, x):
+        """ BCQ does not support sampling action.
+        """
+        raise NotImplementedError('BCQ does not support sampling action.')
+
     def _get_loss_labels(self):
         return ['critic_loss', 'actor_loss', 'imitator_loss']
 

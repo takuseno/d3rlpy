@@ -80,6 +80,15 @@ class SACImpl(DDPGImpl, ISACImpl):
 
         return loss.cpu().detach().numpy(), cur_temp
 
+    @train_api
+    @torch_api
+    def sample_action(self, x):
+        if self.scaler:
+            x = self.scaler.transform(x)
+
+        with torch.no_grad():
+            return self.policy.sample(x).cpu().detach().numpy()
+
     def compute_target(self, x):
         with torch.no_grad():
             action, log_prob = self.policy.sample(x, with_log_prob=True)
