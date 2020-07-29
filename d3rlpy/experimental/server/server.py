@@ -98,8 +98,9 @@ class Server:
             trial -= 1
 
         if trial < 0:
+            # return error
             from flask import jsonify
-            return jsonify({'status': 'empty'})
+            return jsonify({'status': 'empty'}), 500
 
         # save policy
         policy_path = os.path.join(self.dir_path, 'policy.pt')
