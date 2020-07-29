@@ -124,6 +124,7 @@ class VectorHead(nn.Module):
                  hidden_units=None,
                  use_batch_norm=False):
         super().__init__()
+        self.observation_shape = observation_shape
 
         if hidden_units is None:
             hidden_units = [256, 256]
@@ -157,6 +158,7 @@ class VectorHeadWithAction(VectorHead):
         self.action_size = action_size
         concat_shape = (observation_shape[0] + action_size, )
         super().__init__(concat_shape, hidden_units, use_batch_norm)
+        self.observation_shape = observation_shape
 
     def forward(self, x, action):
         x = torch.cat([x, action], dim=1)
