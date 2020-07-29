@@ -129,7 +129,7 @@ class ProbablisticRegressor(nn.Module):
         mu = self.mu(h)
         logstd = self.logstd(h)
         clipped_logstd = logstd.clamp(-20.0, 2.0)
-        return Normal(mu, clipped_logstd)
+        return Normal(mu, clipped_logstd.exp())
 
     def forward(self, x):
         dist = self.dist(x)
