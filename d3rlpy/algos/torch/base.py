@@ -1,6 +1,6 @@
 import torch
 
-from d3rlpy.algos.base import ImplBase
+from d3rlpy.algos.base import AlgoImplBase
 from d3rlpy.gpu import Device
 from .utility import freeze, unfreeze
 from .utility import to_cuda, to_cpu
@@ -9,7 +9,7 @@ from .utility import map_location
 from .utility import get_state_dict, set_state_dict
 
 
-class TorchImplBase(ImplBase):
+class TorchImplBase(AlgoImplBase):
     @eval_api
     @torch_api
     def predict_best_action(self, x):

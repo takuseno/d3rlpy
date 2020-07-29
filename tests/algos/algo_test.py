@@ -5,14 +5,14 @@ import pickle
 import gym
 
 from unittest.mock import Mock
-from d3rlpy.algos.torch.base import ImplBase
+from d3rlpy.algos.torch.base import TorchImplBase
 from d3rlpy.dataset import MDPDataset, Transition, TransitionMiniBatch
 from d3rlpy.datasets import get_cartpole, get_pendulum
 from d3rlpy.logger import D3RLPyLogger
 from d3rlpy.preprocessing import Scaler
 
 
-class DummyImpl(ImplBase):
+class DummyImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size):
         self.observation_shape = observation_shape
         self.action_size = action_size
