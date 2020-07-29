@@ -133,6 +133,9 @@ def test_discrete_imitator(feature_size, action_size, beta, batch_size):
     penalty = (logits**2).mean()
     assert torch.allclose(loss, F.nll_loss(y, action) + beta * penalty)
 
+    # check layer connections
+    check_parameter_updates(imitator, (x, ))
+
 
 @pytest.mark.parametrize('feature_size', [100])
 @pytest.mark.parametrize('action_size', [2])
@@ -148,6 +151,9 @@ def test_deterministic_regressor(feature_size, action_size, batch_size):
     action = torch.rand(batch_size, action_size)
     loss = imitator.compute_error(x, action)
     assert torch.allclose(F.mse_loss(y, action), loss)
+
+    # check layer connections
+    check_parameter_updates(imitator, (x, ))
 
 
 @pytest.mark.parametrize('feature_size', [100])
@@ -167,3 +173,6 @@ def test_probablistic_regressor(feature_size, action_size, batch_size, n):
 
     y = imitator.sample_n(x, n)
     assert y.shape == (batch_size, n, action_size)
+
+    # check layer connections
+    check_parameter_updates(imitator, (x, ))
