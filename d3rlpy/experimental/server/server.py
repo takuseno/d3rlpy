@@ -63,6 +63,7 @@ class Server:
                              dataset.get_action_size())
             algo.load_model(model_path)
             algo.save_model(self.model_save_path_tmpl % 0)
+            self.n_trials += 1
         else:
             self._dispatch_training_job()
 
