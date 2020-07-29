@@ -16,6 +16,12 @@ class DynamicsImplBase(ImplBase):
 
 
 class DynamicsBase(LearnableBase):
+    def __init__(self, n_epochs, batch_size, n_transitions, horizon, scaler,
+                 use_gpu):
+        super().__init__(n_epochs, batch_size, scaler, use_gpu)
+        self.n_transitions = n_transitions
+        self.horizon = horizon
+
     def predict(self, x, action):
         """ Returns predicted observation and reward.
 

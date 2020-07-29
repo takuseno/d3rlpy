@@ -17,13 +17,12 @@ class MOPO(DynamicsBase):
                  use_gpu=False,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler, use_gpu)
+        super().__init__(n_epochs, batch_size, n_transitions, horizon, scaler,
+                         use_gpu)
         self.learning_rate = learning_rate
         self.eps = eps
         self.n_ensembles = n_ensembles
-        self.n_transitions = n_transitions
         self.lam = lam
-        self.horizon = horizon
         self.use_batch_norm = use_batch_norm
         self.impl = impl
 
