@@ -37,6 +37,10 @@ class MOPO(DynamicsBase):
     This generation process starts with randomly sampled `n_transitions`
     transitions till `horizon` steps.
 
+    Note:
+        Currently, MOPO only supports vector observations and continuous
+        control settings.
+
     References:
         * `Yu et al., MOPO: Model-based Offline Policy Optimization.
           <https://arxiv.org/abs/2005.13239>`_

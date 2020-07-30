@@ -17,3 +17,4 @@ API Reference
    logging
    sklearn
    online
+   model_based
