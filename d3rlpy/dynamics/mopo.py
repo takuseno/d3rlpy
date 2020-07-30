@@ -9,7 +9,7 @@ class MOPO(DynamicsBase):
                  learning_rate=1e-3,
                  eps=1e-8,
                  n_ensembles=5,
-                 n_transitions=5,
+                 n_transitions=10,
                  lam=1.0,
                  horizon=5,
                  use_batch_norm=False,

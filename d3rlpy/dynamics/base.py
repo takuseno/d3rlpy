@@ -72,10 +72,15 @@ class DynamicsBase(LearnableBase):
             # append new transitions
             new_transitions = []
             for i in range(self.n_transitions):
-                transition = Transition(observation_shape, action_size,
-                                        observations[i], actions[i],
-                                        rewards[i], next_observations[i],
-                                        next_actions[i], next_rewards[i], 0.0)
+                transition = Transition(observation_shape=observation_shape,
+                                        action_size=action_size,
+                                        observation=observations[i],
+                                        action=actions[i],
+                                        reward=float(rewards[i][0]),
+                                        next_observation=next_observations[i],
+                                        next_action=next_actions[i],
+                                        next_reward=float(next_rewards[i][0]),
+                                        terminal=0.0)
                 new_transitions.append(transition)
 
             rets += new_transitions
