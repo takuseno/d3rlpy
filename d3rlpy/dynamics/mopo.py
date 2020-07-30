@@ -1,5 +1,4 @@
 from .base import DynamicsBase
-from .torch.mopo_impl import MOPOImpl
 
 
 class MOPO(DynamicsBase):
@@ -27,6 +26,7 @@ class MOPO(DynamicsBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
+        from .torch.mopo_impl import MOPOImpl
         self.impl = MOPOImpl(observation_shape=observation_shape,
                              action_size=action_size,
                              learning_rate=self.learning_rate,
