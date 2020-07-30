@@ -41,6 +41,9 @@ class DummyScaler(Scaler):
     def transform(self, x):
         return 0.1 * x
 
+    def reverse_transform(self, x):
+        return 10.0 * x
+
     def get_type(self):
         return 'dummy'
 

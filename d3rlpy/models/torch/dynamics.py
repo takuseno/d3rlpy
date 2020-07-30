@@ -48,18 +48,19 @@ class EnsembleDynamicsModel(nn.Module):
             rewards.append(reward.view(1, x.shape[0], 1))
             variances.append(variance.view(1, x.shape[0], 1))
 
-        observations = torch.cat(observations, dim=0).transpose(0, 1)
-        rewards = torch.cat(rewards, dim=0).transpose(0, 1)
+        all_observations = torch.cat(observations, dim=0).transpose(0, 1)
+        all_rewards = torch.cat(rewards, dim=0).transpose(0, 1)
         variances = torch.cat(variances, dim=0).transpose(0, 1)
 
         # uniformly sample from ensemble outputs
         indices = torch.randint(0, len(self.models), size=(x.shape[0], ))
-        observations = observations[torch.arange(x.shape[0]), indices]
-        rewards = rewards[torch.arange(x.shape[0]), indices]
+        observations = all_observations[torch.arange(x.shape[0]), indices]
+        rewards = all_rewards[torch.arange(x.shape[0]), indices]
 
         if with_variance:
-            variances = _compute_ensemble_variance(observations, rewards,
-                                                   variances, variance_type)
+            variances = _compute_ensemble_variance(all_observations,
+                                                   all_rewards, variances,
+                                                   variance_type)
             return observations, rewards, variances
 
         return observations, rewards

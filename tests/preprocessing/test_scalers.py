@@ -32,6 +32,7 @@ def test_pixel_scaler(observation_shape):
 
     assert scaler.get_type() == 'pixel'
     assert scaler.get_params() == {}
+    assert torch.all(scaler.reverse_transform(y) == x)
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
@@ -56,6 +57,7 @@ def test_min_max_scaler(observation_shape, batch_size):
     params = scaler.get_params()
     assert np.all(params['minimum'] == min)
     assert np.all(params['maximum'] == max)
+    assert torch.allclose(scaler.reverse_transform(y), x)
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
@@ -131,6 +133,7 @@ def test_standard_scaler(observation_shape, batch_size):
     params = scaler.get_params()
     assert np.all(params['mean'] == mean)
     assert np.all(params['std'] == std)
+    assert torch.allclose(scaler.reverse_transform(y), x, atol=1e-6)
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])

@@ -14,6 +14,10 @@ class Scaler(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def reverse_transform(self, x):
+        pass
+
+    @abstractmethod
     def get_type(self):
         pass
 
@@ -66,6 +70,18 @@ class PixelScaler(Scaler):
 
         """
         return x.float() / 255.0
+
+    def reverse_transform(self, x):
+        """ Returns reversely transformed observations.
+
+        Args:
+            x (torch.Tensor): normalized observation tensor.
+
+        Returns:
+            torch.Tensor: unnormalized pixel observation tensor.
+
+        """
+        return (x * 255.0).long()
 
     def get_params(self):
         """ Returns scaling parameters.
@@ -187,6 +203,25 @@ class MinMaxScaler(Scaler):
                                dtype=torch.float32,
                                device=x.device)
         return (x - minimum) / (maximum - minimum)
+
+    def reverse_transform(self, x):
+        """ Returns reversely transformed observations.
+
+        Args:
+            x (torch.Tensor): normalized observation tensor.
+
+        Returns:
+            torch.Tensor: unnormalized observation tensor.
+
+        """
+        assert self.minimum is not None and self.maximum is not None
+        minimum = torch.tensor(self.minimum,
+                               dtype=torch.float32,
+                               device=x.device)
+        maximum = torch.tensor(self.maximum,
+                               dtype=torch.float32,
+                               device=x.device)
+        return ((maximum - minimum) * x) + minimum
 
     def get_params(self):
         """ Returns scaling parameters.
@@ -310,6 +345,21 @@ class StandardScaler(Scaler):
         mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
         std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
         return (x - mean) / std
+
+    def reverse_transform(self, x):
+        """ Returns reversely transformed observation tensor.
+
+        Args:
+            x (torch.Tensor): standardized observation tensor.
+
+        Returns:
+            torch.Tensor: unstandardized observation tensor.
+
+        """
+        assert self.mean is not None and self.std is not None
+        mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
+        std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
+        return (std * x) + mean
 
     def get_params(self):
         """ Returns scaling parameters.

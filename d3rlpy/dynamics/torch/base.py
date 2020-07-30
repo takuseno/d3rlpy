@@ -17,9 +17,13 @@ class TorchImplBase(DynamicsImplBase):
 
         with torch.no_grad():
             observation, reward = self._predict(x, action)
-            observation = observation.cpu().detach().numpy()
-            reward = reward.cpu().detach().numpy()
-            return observation, reward
+
+            if self.scaler:
+                observation = self.scaler.reverse_transform(observation)
+
+        observation = observation.cpu().detach().numpy()
+        reward = reward.cpu().detach().numpy()
+        return observation, reward
 
     def _predict(self, x, action):
         raise NotImplementedError
@@ -32,9 +36,13 @@ class TorchImplBase(DynamicsImplBase):
 
         with torch.no_grad():
             observation, reward = self._generate(x, action)
-            observation = observation.cpu().detach().numpy()
-            reward = reward.cpu().detach().numpy()
-            return observation, reward
+
+            if self.scaler:
+                observation = self.scaler.reverse_transform(observation)
+
+        observation = observation.cpu().detach().numpy()
+        reward = reward.cpu().detach().numpy()
+        return observation, reward
 
     def _generate(self, x, action):
         raise NotImplementedError
