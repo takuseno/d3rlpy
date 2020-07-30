@@ -4,7 +4,7 @@
 ![MIT](https://img.shields.io/badge/license-MIT-blue)
 
 # d3rlpy
-Data-driven Deep Reinforcement Learning library in scikit-learn style.
+Data-driven Deep Reinforcement Learning Library as a Tool.
 
 ```py
 from d3rlpy.dataset import MDPDataset
@@ -22,9 +22,9 @@ actions = bear.predict(x)
 ```
 
 These are the design principles of d3rlpy:
-- This library is designed for practical projects unlike the many other RL libraries.
-- This library is not focusing on reproducing RL papers.
-- This library is adding more techniques than the original implementations.
+- d3rlpy is designed for practical projects unlike the many other RL libraries.
+- d3rlpy is not focusing on reproducing RL papers.
+- d3rlpy is adding more techniques than the original implementations.
 
 ## scikit-learn compatibility
 This library is designed as if born from scikit-learn.
@@ -99,44 +99,22 @@ try {
 | [Advantage-weighted Behavior Model (ABM)](https://arxiv.org/abs/2002.08396) | :construction: | :construction: | :white_check_mark: |
 | [Conservative Q-Learning (CQL)](https://arxiv.org/abs/2006.04779) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
-## supported techniques
+## supported Q functions
+- [x] standard Q function
 - [x] [Quantile Regression](https://arxiv.org/abs/1710.10044)
 - [x] [Implicit Quantile Network](https://arxiv.org/abs/1806.06923)
-- [x] [Fully parametrized Quantile Function](https://arxiv.org/abs/1911.02140)
-- [ ] [Image Augmentation is All You Need](https://arxiv.org/abs/2004.13649)
-- [ ] [Model-based Offline Policy Optimization](https://arxiv.org/abs/2005.13239)
-- [ ] [Online Fine-tuning](https://arxiv.org/abs/2006.09359)
+- [x] [Fully parametrized Quantile Function](https://arxiv.org/abs/1911.02140) (experimental)
 
-## supported evaluation metrics
-scikit-learn style scoring functions are provided.
-```py
-from d3rlpy.metrics.scorer import td_error_scorer
+## other features
+Basically, all features are available with every algorithm.
 
-train_episodes, test_episodes = train_test_split(dataset)
+- [x] ensemble Q function with bootstrapping
+- [x] [delayed policy updates](https://arxiv.org/abs/1802.09477)
+- [x] parallel cross validation with multiple GPU
+- [x] online training
+- [x] [Model-based Offline Policy Optimization](https://arxiv.org/abs/2005.13239)
+- [ ] automatic image augmentation
 
-bear.fit(train_episodes,
-         eval_episodes=test_episodes,
-         scorers={'td_error': td_error_scorer})
-```
-
-If you have an access to the target environments, you can also evaluate
-algorithms on them.
-```py
-from d3rlpy.metics.scorer import evaluate_on_environment
-
-env_scorer = evaluate_on_environment(gym.make('Pendulum-v0'))
-
-bear.fit(train_episodes,
-         eval_episodes=test_episodes,
-         scorers={'td_error': td_error_scorer,
-                  'environment': env_scorer})
-```
-
-- [ ] Off-policy Classification (requires success flags)
-- [x] Temporal-difference Error
-- [x] Discounted Sum of Advantages
-- [x] Average value estimation
-- [x] Evaluation with gym-like environments
 
 ## contributions
 ### coding style
