@@ -7,18 +7,18 @@ from torch.nn.utils import spectral_norm
 from .heads import create_head
 
 
-def create_probablistic_model(observation_shape,
-                              action_size,
-                              n_ensembles=5,
-                              use_batch_norm=False):
+def create_probablistic_dynamics(observation_shape,
+                                 action_size,
+                                 n_ensembles=5,
+                                 use_batch_norm=False):
     models = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape,
                            action_size,
                            use_batch_norm=use_batch_norm)
-        model = ProbablisticModel(head)
+        model = ProbablisticDynamics(head)
         models.append(model)
-    return EnsembleDynamicsModel(models)
+    return EnsembleDynamics(models)
 
 
 def _compute_ensemble_variance(observations, rewards, variances,
@@ -31,7 +31,7 @@ def _compute_ensemble_variance(observations, rewards, variances,
     raise ValueError('invalid variance_type.')
 
 
-class EnsembleDynamicsModel(nn.Module):
+class EnsembleDynamics(nn.Module):
     def __init__(self, models):
         super().__init__()
         self.models = nn.ModuleList(models)
@@ -77,7 +77,7 @@ class EnsembleDynamicsModel(nn.Module):
         return loss_sum
 
 
-class ProbablisticModel(nn.Module):
+class ProbablisticDynamics(nn.Module):
     def __init__(self, head):
         super().__init__()
         self.head = head

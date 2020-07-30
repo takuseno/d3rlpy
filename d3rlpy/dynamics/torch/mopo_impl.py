@@ -1,5 +1,5 @@
 from torch.optim import Adam
-from d3rlpy.models.torch.dynamics import create_probablistic_model
+from d3rlpy.models.torch.dynamics import create_probablistic_dynamics
 from d3rlpy.algos.torch.utility import torch_api, train_api
 from .base import TorchImplBase
 
@@ -17,7 +17,7 @@ class MOPOImpl(TorchImplBase):
         self.scaler = scaler
         self.use_gpu = use_gpu
 
-        self._build_model()
+        self._build_dynamics()
 
         self.to_cpu()
         if self.use_gpu:
@@ -25,23 +25,23 @@ class MOPOImpl(TorchImplBase):
 
         self._build_optim()
 
-    def _build_model(self):
-        self.model = create_probablistic_model(
+    def _build_dynamics(self):
+        self.dynamics = create_probablistic_dynamics(
             self.observation_shape,
             self.action_size,
             n_ensembles=self.n_ensembles,
             use_batch_norm=self.use_batch_norm)
 
     def _build_optim(self):
-        self.optim = Adam(self.model.parameters(),
+        self.optim = Adam(self.dynamics.parameters(),
                           self.learning_rate,
                           eps=self.eps)
 
     def _predict(self, x, action):
-        return self.model(x, action)
+        return self.dynamics(x, action)
 
     def _generate(self, x, action):
-        observations, rewards, variances = self.model(x, action, True)
+        observations, rewards, variances = self.dynamics(x, action, True)
         return observations, rewards - self.lam * variances
 
     @train_api
@@ -51,7 +51,7 @@ class MOPOImpl(TorchImplBase):
             obs_t = self.scaler.transform(obs_t)
             obs_tp1 = self.scaler.transform(obs_tp1)
 
-        loss = self.model.compute_error(obs_t, act_t, rew_tp1, obs_tp1)
+        loss = self.dynamics.compute_error(obs_t, act_t, rew_tp1, obs_tp1)
 
         self.optim.zero_grad()
         loss.backward()
