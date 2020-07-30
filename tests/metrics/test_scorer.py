@@ -8,6 +8,8 @@ from d3rlpy.metrics.scorer import value_estimation_std_scorer
 from d3rlpy.metrics.scorer import continuous_action_diff_scorer
 from d3rlpy.metrics.scorer import discrete_action_match_scorer
 from d3rlpy.metrics.scorer import evaluate_on_environment
+from d3rlpy.metrics.scorer import dynamics_observation_prediction_error_scorer
+from d3rlpy.metrics.scorer import dynamics_reward_prediction_error_scorer
 from d3rlpy.dataset import Episode, TransitionMiniBatch
 
 
@@ -281,3 +283,68 @@ def test_evaluate_on_environment(observation_shape, action_size,
 
     mean_reward = evaluate_on_environment(DummyEnv(), n_trials)(algo)
     assert np.allclose(mean_reward, np.mean(ref_rewards))
+
+
+class DummyDynamics:
+    def __init__(self, noise):
+        self.noise = np.reshape(noise, (1, -1))
+
+    def predict(self, x, action):
+        y = x + self.noise + np.sum(action)
+        return y, np.sum(x, axis=1).reshape((-1, 1))
+
+
+@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_episodes', [100])
+@pytest.mark.parametrize('episode_length', [10])
+def test_dynamics_observation_prediction_error_scorer(observation_shape,
+                                                      action_size, n_episodes,
+                                                      episode_length):
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length, ) + observation_shape)
+        actions = np.random.random((episode_length, action_size))
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(observation_shape, action_size, observations,
+                          actions, rewards)
+        episodes.append(episode)
+
+    dynamics = DummyDynamics(np.random.random(observation_shape))
+
+    total_errors = []
+    for episode in episodes:
+        batch = TransitionMiniBatch(episode.transitions)
+        pred_x, _ = dynamics.predict(batch.observations, batch.actions)
+        errors = ((batch.next_observations - pred_x)**2).sum(axis=1)
+        total_errors += errors.tolist()
+    score = dynamics_observation_prediction_error_scorer(dynamics, episodes)
+    assert np.allclose(score, -np.mean(total_errors))
+
+
+@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_episodes', [100])
+@pytest.mark.parametrize('episode_length', [10])
+def test_dynamics_reward_prediction_error_scorer(observation_shape,
+                                                 action_size, n_episodes,
+                                                 episode_length):
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length, ) + observation_shape)
+        actions = np.random.random((episode_length, action_size))
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(observation_shape, action_size, observations,
+                          actions, rewards)
+        episodes.append(episode)
+
+    dynamics = DummyDynamics(np.random.random(observation_shape))
+
+    total_errors = []
+    for episode in episodes:
+        batch = TransitionMiniBatch(episode.transitions)
+        _, pred_reward = dynamics.predict(batch.observations, batch.actions)
+        errors = ((batch.next_rewards - pred_reward)**2).reshape(-1)
+        total_errors += errors.tolist()
+    score = dynamics_reward_prediction_error_scorer(dynamics, episodes)
+    assert np.allclose(score, -np.mean(total_errors))

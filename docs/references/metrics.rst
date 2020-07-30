@@ -44,6 +44,9 @@ You can also use them with scikit-learn utilities.
                             })
 
 
+Algorithms
+----------
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -57,3 +60,13 @@ You can also use them with scikit-learn utilities.
    d3rlpy.metrics.scorer.evaluate_on_environment
    d3rlpy.metrics.comparer.compare_continuous_action_diff
    d3rlpy.metrics.comparer.compare_discrete_action_match
+
+Dynamics
+--------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   d3rlpy.metrics.scorer.dynamics_observation_prediction_error_scorer
+   d3rlpy.metrics.scorer.dynamics_reward_prediction_error_scorer

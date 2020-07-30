@@ -299,8 +299,76 @@ def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
     return scorer
 
 
+def dynamics_observation_prediction_error_scorer(dynamics,
+                                                 episodes,
+                                                 window_size=1024):
+    """ Returns MSE of observation prediction (in negative scale).
+
+    This metrics suggests how dynamics model is generalized to test sets.
+    If the MSE is large, the dynamics model are overfitting.
+
+    .. math::
+
+        \\mathbb{E}_{s_t, a_t, s_{t+1} \\sim D} [(s_{t+1} - s')^2]
+
+    where :math:`s' \\sim T(s_t, a_t)`.
+
+    Args:
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
+        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        window_size (int): mini-batch size to compute.
+
+    Returns:
+        float: negative mean squared error.
+
+    """
+    total_errors = []
+    for episode in episodes:
+        for batch in _make_batches_from_episode(episode, window_size):
+            pred = dynamics.predict(batch.observations, batch.actions)
+            errors = ((batch.next_observations - pred[0])**2).sum(axis=1)
+            total_errors += errors.tolist()
+    # smaller is better
+    return -np.mean(total_errors)
+
+
+def dynamics_reward_prediction_error_scorer(dynamics,
+                                            episodes,
+                                            window_size=1024):
+    """ Returns MSE of reward prediction (in negative scale).
+
+    This metrics suggests how dynamics model is generalized to test sets.
+    If the MSE is large, the dynamics model are overfitting.
+
+    .. math::
+
+        \\mathbb{E}_{s_t, a_t, r_{t+1} \\sim D} [(r_{t+1} - r')^2]
+
+    where :math:`r' \\sim T(s_t, a_t)`.
+
+    Args:
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
+        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        window_size (int): mini-batch size to compute.
+
+    Returns:
+        float: negative mean squared error.
+
+    """
+    total_errors = []
+    for episode in episodes:
+        for batch in _make_batches_from_episode(episode, window_size):
+            pred = dynamics.predict(batch.observations, batch.actions)
+            errors = ((batch.next_rewards - pred[1])**2).reshape(-1)
+            total_errors += errors.tolist()
+    # smaller is better
+    return -np.mean(total_errors)
+
+
 NEGATED_SCORER = [
     td_error_scorer, value_estimation_std_scorer,
     average_value_estimation_scorer, discounted_sum_of_advantage_scorer,
-    continuous_action_diff_scorer
+    continuous_action_diff_scorer,
+    dynamics_observation_prediction_error_scorer,
+    dynamics_reward_prediction_error_scorer
 ]
