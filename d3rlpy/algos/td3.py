@@ -54,6 +54,8 @@ class TD3(AlgoBase):
         use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
+            augmentation.
         impl (d3rlpy.algos.ddpg.IDDPGImpl): algorithm implementation.
 
     Attributes:
@@ -75,6 +77,7 @@ class TD3(AlgoBase):
         n_epochs (int): the number of epochs to train.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.ddpg.IDDPGImpl): algorithm implementation.
 
     """
@@ -96,9 +99,10 @@ class TD3(AlgoBase):
                  n_epochs=1000,
                  use_gpu=False,
                  scaler=None,
+                 dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler, use_gpu)
+        super().__init__(n_epochs, batch_size, scaler, dynamics, use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.gamma = gamma

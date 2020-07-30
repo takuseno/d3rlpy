@@ -258,6 +258,12 @@ class LearnableBase:
         # training loop
         total_step = 0
         for epoch in range(self.n_epochs):
+
+            # data augmentation
+            new_transitions = self._generate_new_data(transitions)
+            if new_transitions:
+                transitions += new_transitions
+
             indices = np.random.permutation(np.arange(len(transitions)))
             n_iters = len(transitions) // self.batch_size
             range_gen = trange(n_iters) if show_progress else range(n_iters)
@@ -314,6 +320,20 @@ class LearnableBase:
         """
         raise NotImplementedError
 
+    def _generate_new_data(self, transitions):
+        """ Returns generated transitions for data augmentation.
+
+        This method is called at the beginning of every epoch.
+
+        Args:
+            transitions (list(d3rlpy.dataset.Transition)): list of transitions.
+
+        Returns:
+            list(d3rlpy.dataset.Transition): list of new transitions.
+
+        """
+        return None
+
     def _get_loss_labels(self):
         raise NotImplementedError
 
@@ -343,11 +363,13 @@ class LearnableBase:
             logger.add_metric(name, test_score)
 
     def _save_params(self, logger):
-        with disable_parallel():
-            params = self.get_params(deep=False)
-
         # get hyperparameters without impl
-        params = {k: v for k, v in params.items() if k != 'impl'}
+        params = {}
+        with disable_parallel():
+            for k, v in self.get_params(deep=False).items():
+                if isinstance(v, (ImplBase, LearnableBase)):
+                    continue
+                params[k] = v
 
         # save shapes
         params['observation_shape'] = self.impl.observation_shape

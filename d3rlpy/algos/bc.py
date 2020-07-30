@@ -31,6 +31,8 @@ class BC(AlgoBase):
         use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
+            augmentation.
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 
     Attributes:
@@ -41,6 +43,7 @@ class BC(AlgoBase):
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 
     """
@@ -52,9 +55,10 @@ class BC(AlgoBase):
                  n_epochs=1000,
                  use_gpu=False,
                  scaler=None,
+                 dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler, use_gpu)
+        super().__init__(n_epochs, batch_size, scaler, dynamics, use_gpu)
         self.learning_rate = learning_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
@@ -114,6 +118,8 @@ class DiscreteBC(BC):
         use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
+            augmentation.
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 
     Attributes:
@@ -125,6 +131,7 @@ class DiscreteBC(BC):
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
 
     """
@@ -137,10 +144,11 @@ class DiscreteBC(BC):
                  n_epochs=1000,
                  use_gpu=False,
                  scaler=None,
+                 dynamics=None,
                  impl=None,
                  **kwargs):
         super().__init__(learning_rate, batch_size, eps, use_batch_norm,
-                         n_epochs, use_gpu, scaler, impl, **kwargs)
+                         n_epochs, use_gpu, scaler, dynamics, impl, **kwargs)
         self.beta = beta
 
     def create_impl(self, observation_shape, action_size):

@@ -21,6 +21,10 @@ class AlgoImplBase(ImplBase):
 
 
 class AlgoBase(LearnableBase):
+    def __init__(self, n_epochs, batch_size, scaler, dynamics, use_gpu):
+        super().__init__(n_epochs, batch_size, scaler, use_gpu)
+        self.dynamics = dynamics
+
     def save_policy(self, fname):
         """ Save the greedy-policy computational graph as TorchScript.
 
@@ -115,3 +119,9 @@ class AlgoBase(LearnableBase):
 
         """
         return self.impl.sample_action(x)
+
+    def _generate_new_data(self, transitions):
+        new_data = []
+        if self.dynamics:
+            new_data += self.dynamics.generate(self, transitions)
+        return new_data
