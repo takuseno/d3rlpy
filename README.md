@@ -94,6 +94,7 @@ gscv.fit(train_episodes)
 Basically, all features are available with every algorithm.
 
 - [x] evaluation metrics in a scikit-learn scorer function style
+- [x] embedded preprocessors
 - [x] ensemble Q function with bootstrapping
 - [x] [delayed policy updates](https://arxiv.org/abs/1802.09477)
 - [x] parallel cross validation with multiple GPU
@@ -122,6 +123,7 @@ cql = DiscreteCQL(n_epochs=100,
                   n_critics=3,
                   bootstrap=True,
                   q_func_type='qr',
+                  scaler='pixel',
                   use_gpu=True)
 
 # start training
