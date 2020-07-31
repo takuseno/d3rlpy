@@ -4,7 +4,7 @@
 ![MIT](https://img.shields.io/badge/license-MIT-blue)
 
 # d3rlpy
-Data-driven Deep Reinforcement Learning Library as a Tool.
+Data-driven Deep Reinforcement Learning Library as an Out-of-the-box Tool.
 
 ```py
 from d3rlpy.dataset import MDPDataset
@@ -20,6 +20,11 @@ bear.fit(dataset.episodes)
 # ready to control
 actions = bear.predict(x)
 ```
+
+d3rlpy provides state-of-the-art data-driven deep reinforcement learning
+algorithms through out-of-the-box scikit-learn-style APIs.
+Unlike other RL libraries, the provided algorithms can achieve extremely
+powerful performance beyond the paper via several tweaks.
 
 These are the design principles of d3rlpy:
 - d3rlpy is designed for practical projects unlike the many other RL libraries.
@@ -58,31 +63,6 @@ gscv = GridSearchCV(estimator=bear,
 gscv.fit(train_episodes)
 ```
 
-## deploy
-Machine learning models often require dependencies even after deployment.
-d3rlpy provides more flexible options to solve this problem via torch
-script so that the production environment never cares about which algorithms
-and hyperparameters are used to train.
-
-```py
-# save the learned greedy policy as torch script
-bear.save_policy('policy.pt')
-
-# load the policy without any dependencies except pytorch
-policy = torch.jit.load('policy.pt')
-actions = policy(x)
-```
-
-even on C++
-```c++
-torch::jit::script::Module module;
-try {
-  module = torch::jit::load('policy.pt');
-} catch (const c10::Error& e) {
-  //
-}
-```
-
 ## supported algorithms
 | algorithm | discrete control | continuous control | data-driven RL? |
 |:-|:-:|:-:|:-:|
@@ -97,7 +77,7 @@ try {
 | [Bootstrapping Error Accumulation Reduction (BEAR)](https://arxiv.org/abs/1906.00949) | :no_entry: | :white_check_mark: | :white_check_mark: |
 | [Advantage-Weighted Regression (AWR)](https://arxiv.org/abs/1910.00177) | :construction: | :construction: | :white_check_mark: |
 | [Advantage-weighted Behavior Model (ABM)](https://arxiv.org/abs/2002.08396) | :construction: | :construction: | :white_check_mark: |
-| [Conservative Q-Learning (CQL)](https://arxiv.org/abs/2006.04779) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| [Conservative Q-Learning (CQL)](https://arxiv.org/abs/2006.04779) (recommended) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## supported Q functions
 - [x] standard Q function
@@ -108,6 +88,7 @@ try {
 ## other features
 Basically, all features are available with every algorithm.
 
+- [x] evaluation metrics in a scikit-learn scorer function style
 - [x] ensemble Q function with bootstrapping
 - [x] [delayed policy updates](https://arxiv.org/abs/1802.09477)
 - [x] parallel cross validation with multiple GPU
@@ -184,7 +165,7 @@ cql.fit(train_episodes,
 ```
 ![hopper](assets/hopper.png)
 
-See more PyBullet datasets at [d4rl-pybullet](https://github.com/takuseno/d4rl-pybullet)
+See more PyBullet datasets at [d4rl-pybullet](https://github.com/takuseno/d4rl-pybullet).
 
 ## contributions
 ### coding style
