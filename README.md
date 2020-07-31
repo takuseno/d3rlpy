@@ -1,3 +1,4 @@
+[![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
 ![format check](https://github.com/takuseno/d3rlpy/workflows/format%20check/badge.svg)
 ![test](https://github.com/takuseno/d3rlpy/workflows/test/badge.svg)
 [![codecov](https://codecov.io/gh/takuseno/d3rlpy/branch/master/graph/badge.svg?token=AQ02USKN6Y)](https://codecov.io/gh/takuseno/d3rlpy)
