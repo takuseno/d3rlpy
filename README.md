@@ -31,6 +31,11 @@ These are the design principles of d3rlpy:
 - d3rlpy is not focusing on reproducing RL papers.
 - d3rlpy is adding more techniques than the original implementations.
 
+## installation
+```
+$ pip install d3rlpy
+```
+
 ## scikit-learn compatibility
 This library is designed as if born from scikit-learn.
 You can fully utilize scikit-learn's utilities to increase your productivity.
