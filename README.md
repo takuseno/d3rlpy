@@ -1,6 +1,7 @@
 [![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
 ![format check](https://github.com/takuseno/d3rlpy/workflows/format%20check/badge.svg)
 ![test](https://github.com/takuseno/d3rlpy/workflows/test/badge.svg)
+[![Documentation Status](https://readthedocs.org/projects/d3rlpy/badge/?version=latest)](https://d3rlpy.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/takuseno/d3rlpy/branch/master/graph/badge.svg?token=AQ02USKN6Y)](https://codecov.io/gh/takuseno/d3rlpy)
 ![MIT](https://img.shields.io/badge/license-MIT-blue)
 
@@ -31,6 +32,8 @@ These are the design principles of d3rlpy:
 - d3rlpy is designed for practical projects unlike the many other RL libraries.
 - d3rlpy is not focusing on reproducing RL papers.
 - d3rlpy is adding more techniques than the original implementations.
+
+Documentation: https://d3rlpy.readthedocs.io
 
 ## installation
 ```
