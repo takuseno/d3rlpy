@@ -77,9 +77,20 @@ class EnsembleDynamics(nn.Module):
         return loss_sum
 
 
+def _apply_spectral_norm_recursively(model):
+    for _, module in model.named_children():
+        if isinstance(module, nn.ModuleList):
+            for i in range(len(module)):
+                spectral_norm(module[i])
+        else:
+            spectral_norm(module)
+
+
 class ProbablisticDynamics(nn.Module):
     def __init__(self, head):
         super().__init__()
+        # apply spectral normalization except logstd head.
+        _apply_spectral_norm_recursively(head)
         self.head = head
 
         feature_size = head.feature_size
@@ -112,7 +123,8 @@ class ProbablisticDynamics(nn.Module):
         mu, logstd = self.compute_stats(x, action)
         dist = Normal(mu, logstd.exp())
         pred = dist.rsample()
-        next_x = pred[:, :-1]
+        # residual prediction
+        next_x = x + pred[:, :-1]
         next_reward = pred[:, -1].view(-1, 1)
         if with_variance:
             return next_x, next_reward, dist.variance.sum(dim=1, keepdims=True)
@@ -124,9 +136,23 @@ class ProbablisticDynamics(nn.Module):
 
         y = torch.cat([obs_tp1, rew_tp1], dim=1)
 
-        likelihood_loss = (((mu - y)**2) * inv_std).sum(dim=1)
-        penalty = logstd.sum(dim=1)
+        # residual prediction
+        mu_x = obs_t + mu[:, :-1]
+        mu_reward = mu[:, -1].view(-1, 1)
+        inv_std_x = torch.exp(-logstd[:, :-1])
+        inv_std_reward = torch.exp(-logstd[:, -1].view(-1, 1))
+
+        # gaussian likelihood loss
+        likelihood_loss = (((mu_x - obs_tp1)**2) * inv_std_x).sum(
+            dim=1, keepdims=True)
+        likelihood_loss += (((mu_reward - rew_tp1)**2) * inv_std_reward)
+
+        # penalty to minimize standard deviation
+        penalty = logstd.sum(dim=1, keepdims=True)
+
+        # minimize logstd bounds
         bound_loss = self.max_logstd.sum() - self.min_logstd.sum()
+
         loss = likelihood_loss + penalty + bound_loss / obs_t.shape[0]
 
         return loss.view(-1, 1)
