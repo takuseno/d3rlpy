@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# clean
+rm -rf d3rlpy.egg-info
+rm -rf dist
+rm -rf build
+
+python setup.py test
+
+python setup.py sdist bdist_wheel
