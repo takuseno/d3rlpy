@@ -116,6 +116,39 @@ Basically, all features are available with every algorithm.
 - [ ] user-defined custom network
 - [ ] automatic image augmentation
 
+## examples
+### Atari 2600
+```py
+from d3rlpy.datasets import get_atari
+from d3rlpy.algos import DiscreteCQL
+from d3rlpy.metrics.scorer import evaluate_on_environment
+from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
+from sklearn.model_selection import train_test_split
+
+# get data-driven RL dataset
+dataset, env = get_atari('breakout-expert-v0')
+
+# split dataset
+train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
+
+# setup algorithm
+cql = DiscreteCQL(n_epochs=100,
+                  n_critics=3,
+                  bootstrap=True,
+                  q_func_type='qr',
+                  use_gpu=True)
+
+# start training
+cql.fit(train_episodes,
+        eval_episodes=test_episodes,
+        scorers={
+            'environment': evaluate_on_environment(env),
+            'advantage': discounted_sum_of_advantage_scorer
+        })
+```
+![breakout](assets/breakout.png)
+
+See more Atari datasets at [d4rl-atari](https://github.com/takuseno/d4rl-atari).
 
 ## contributions
 ### coding style
