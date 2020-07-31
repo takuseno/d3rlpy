@@ -168,7 +168,10 @@ cql.fit(train_episodes,
             'advantage': discounted_sum_of_advantage_scorer
         })
 ```
-![hopper](assets/hopper.png)
+| performance | demo |
+|:-:|:-:|
+|![hopper](assets/hopper.png)|![hopper](assets/hopper.gif)|
+
 
 See more PyBullet datasets at [d4rl-pybullet](https://github.com/takuseno/d4rl-pybullet).
 
