@@ -181,7 +181,7 @@ cql.fit(train_episodes,
 
 See more PyBullet datasets at [d4rl-pybullet](https://github.com/takuseno/d4rl-pybullet).
 
-## Tutorials
+## tutorials
 Try a cartpole example on Google Colaboratory!
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/takuseno/d3rlpy/blob/master/tutorials/cartpole.ipynb)
