@@ -183,6 +183,7 @@ See more PyBullet datasets at [d4rl-pybullet](https://github.com/takuseno/d4rl-p
 
 ## Tutorials
 Try a cartpole example on Google Colaboratory!
+
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/takuseno/d3rlpy/blob/master/tutorials/cartpole.ipynb)
 
 
