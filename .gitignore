@@ -12,3 +12,5 @@ docs/modules.rst
 docs/references/generated
 coverage.xml
 .coverage
+build
+dist
