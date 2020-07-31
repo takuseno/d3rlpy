@@ -146,7 +146,9 @@ cql.fit(train_episodes,
             'advantage': discounted_sum_of_advantage_scorer
         })
 ```
-![breakout](assets/breakout.png)
+| performance | demo |
+|:-:|:-:|
+|![breakout](assets/breakout.png)|![breakout](assets/breakout.gif)|
 
 See more Atari datasets at [d4rl-atari](https://github.com/takuseno/d4rl-atari).
 
