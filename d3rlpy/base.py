@@ -84,7 +84,7 @@ class LearnableBase:
 
         Args:
             fname (str): file path to `params.json`.
-            use_gpu (bool or str): flag to use GPU or device name.
+            use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
 
         Returns:
             d3rlpy.base.LearnableBase: algorithm.
