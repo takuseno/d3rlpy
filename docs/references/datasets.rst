@@ -1,7 +1,7 @@
 Datasets
 ========
 
-.. module:: d3rlpy
+.. module:: d3rlpy.datasets
 
 d3rlpy provides datasets for experimenting data-driven deep reinforcement
 learning algorithms.
