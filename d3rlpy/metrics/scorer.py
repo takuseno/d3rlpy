@@ -394,5 +394,6 @@ NEGATED_SCORER = [
     average_value_estimation_scorer, discounted_sum_of_advantage_scorer,
     continuous_action_diff_scorer,
     dynamics_observation_prediction_error_scorer,
-    dynamics_reward_prediction_error_scorer
+    dynamics_reward_prediction_error_scorer,
+    dynamics_prediction_variance_scorer,
 ]
