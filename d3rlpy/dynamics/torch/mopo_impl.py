@@ -6,7 +6,8 @@ from .base import TorchImplBase
 
 class MOPOImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate, eps,
-                 n_ensembles, lam, use_batch_norm, scaler, use_gpu):
+                 n_ensembles, lam, use_batch_norm, discrete_action, scaler,
+                 use_gpu):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.learning_rate = learning_rate
@@ -14,6 +15,7 @@ class MOPOImpl(TorchImplBase):
         self.n_ensembles = n_ensembles
         self.lam = lam
         self.use_batch_norm = use_batch_norm
+        self.discrete_action = discrete_action
         self.scaler = scaler
         self.use_gpu = use_gpu
 
@@ -30,7 +32,8 @@ class MOPOImpl(TorchImplBase):
             self.observation_shape,
             self.action_size,
             n_ensembles=self.n_ensembles,
-            use_batch_norm=self.use_batch_norm)
+            use_batch_norm=self.use_batch_norm,
+            discrete_action=self.discrete_action)
 
     def _build_optim(self):
         self.optim = Adam(self.dynamics.parameters(),

@@ -12,9 +12,10 @@ from tests.dynamics.dynamics_test import torch_impl_tester
 @pytest.mark.parametrize('n_ensembles', [5])
 @pytest.mark.parametrize('lam', [1.0])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
+@pytest.mark.parametrize('discrete_action', [False, True])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 def test_mopo_impl(observation_shape, action_size, learning_rate, eps,
-                   n_ensembles, lam, use_batch_norm, scaler):
+                   n_ensembles, lam, use_batch_norm, discrete_action, scaler):
     impl = MOPOImpl(observation_shape,
                     action_size,
                     learning_rate,
@@ -22,6 +23,7 @@ def test_mopo_impl(observation_shape, action_size, learning_rate, eps,
                     n_ensembles,
                     lam,
                     use_batch_norm,
+                    discrete_action,
                     use_gpu=False,
                     scaler=scaler)
-    torch_impl_tester(impl, discrete=False)
+    torch_impl_tester(impl, discrete=discrete_action)

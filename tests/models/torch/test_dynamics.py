@@ -12,17 +12,23 @@ from .model_test import check_parameter_updates, DummyHead
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('n_ensembles', [5])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('discrete_action', [False, True])
 @pytest.mark.parametrize('batch_size', [32])
 def test_create_probablistic_dynamics(observation_shape, action_size,
-                                      n_ensembles, use_batch_norm, batch_size):
+                                      n_ensembles, use_batch_norm,
+                                      discrete_action, batch_size):
     dynamics = create_probablistic_dynamics(observation_shape, action_size,
-                                            n_ensembles, use_batch_norm)
+                                            n_ensembles, use_batch_norm,
+                                            discrete_action)
 
     assert isinstance(dynamics, EnsembleDynamics)
     assert len(dynamics.models) == n_ensembles
 
     x = torch.rand((batch_size, ) + observation_shape)
-    action = torch.rand(batch_size, action_size)
+    if discrete_action:
+        action = torch.randint(0, action_size, size=(batch_size, 1))
+    else:
+        action = torch.rand(batch_size, action_size)
     observation, reward = dynamics(x, action)
     assert observation.shape == (batch_size, ) + observation_shape
     assert reward.shape == (batch_size, 1)

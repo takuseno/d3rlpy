@@ -38,8 +38,7 @@ class MOPO(DynamicsBase):
     transitions till `horizon` steps.
 
     Note:
-        Currently, MOPO only supports vector observations and continuous
-        control settings.
+        Currently, MOPO only supports vector observations.
 
     References:
         * `Yu et al., MOPO: Model-based Offline Policy Optimization.
@@ -55,6 +54,7 @@ class MOPO(DynamicsBase):
         horizon (int): the number of steps to generate.
         lam (float): :math:`\\lambda` for uncertainty penalties.
         use_batch_norm (bool): flag to insert batch normalization layers.
+        discrete_action (bool): flag to take discrete actions.
         scaler (d3rlpy.preprocessing.scalers.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`.
         use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
@@ -70,6 +70,7 @@ class MOPO(DynamicsBase):
         horizon (int): the number of steps to generate.
         lam (float): :math:`\\lambda` for uncertainty penalties.
         use_batch_norm (bool): flag to insert batch normalization layers.
+        discrete_action (bool): flag to take discrete actions.
         scaler (d3rlpy.preprocessing.scalers.Scaler): preprocessor.
         use_gpu (d3rlpy.gpu.Device): flag to use GPU or device.
         impl (d3rlpy.dynamics.base.DynamicsImplBase): dynamics implementation.
@@ -85,6 +86,7 @@ class MOPO(DynamicsBase):
                  horizon=5,
                  lam=1.0,
                  use_batch_norm=False,
+                 discrete_action=False,
                  scaler=None,
                  use_gpu=False,
                  impl=None,
@@ -96,6 +98,7 @@ class MOPO(DynamicsBase):
         self.n_ensembles = n_ensembles
         self.lam = lam
         self.use_batch_norm = use_batch_norm
+        self.discrete_action = discrete_action
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -107,6 +110,7 @@ class MOPO(DynamicsBase):
                              n_ensembles=self.n_ensembles,
                              lam=self.lam,
                              use_batch_norm=self.use_batch_norm,
+                             discrete_action=self.discrete_action,
                              scaler=self.scaler,
                              use_gpu=self.use_gpu)
 

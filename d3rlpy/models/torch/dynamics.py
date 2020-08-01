@@ -10,12 +10,14 @@ from .heads import create_head
 def create_probablistic_dynamics(observation_shape,
                                  action_size,
                                  n_ensembles=5,
-                                 use_batch_norm=False):
+                                 use_batch_norm=False,
+                                 discrete_action=False):
     models = []
     for _ in range(n_ensembles):
         head = create_head(observation_shape,
                            action_size,
-                           use_batch_norm=use_batch_norm)
+                           use_batch_norm=use_batch_norm,
+                           discrete_action=discrete_action)
         model = ProbablisticDynamics(head)
         models.append(model)
     return EnsembleDynamics(models)

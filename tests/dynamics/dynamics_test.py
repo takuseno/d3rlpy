@@ -31,10 +31,13 @@ class DummyImpl(TorchImplBase):
 
 
 class DummyAlgo:
-    def __init__(self, action_size):
+    def __init__(self, action_size, discrete_action):
         self.action_size = action_size
+        self.discrete_action = discrete_action
 
     def sample_action(self, x):
+        if self.discrete_action:
+            return np.random.randint(0, self.action_size, size=x.shape[0])
         return np.random.random((x.shape[0], self.action_size))
 
 
@@ -71,7 +74,7 @@ def dynamics_update_tester(dynamics,
                                      discrete)
 
     # dummy algo
-    algo = DummyAlgo(action_size)
+    algo = DummyAlgo(action_size, discrete)
 
     new_transitions = dynamics.generate(algo, transitions)
     assert len(new_transitions) == dynamics.horizon * dynamics.n_transitions
