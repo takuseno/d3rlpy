@@ -14,8 +14,6 @@ import os
 import sys
 import pkg_resources
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
 
 # -- readthedocs -------------------------------------------------------------
 __version__ = pkg_resources.get_distribution('d3rlpy').version
