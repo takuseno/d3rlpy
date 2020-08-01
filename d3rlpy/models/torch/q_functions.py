@@ -365,25 +365,18 @@ class DiscreteFQFQFunction(nn.Module):
         self.embed_size = embed_size
         self.n_quantiles = n_quantiles
         self.embed = nn.Linear(embed_size, head.feature_size)
-
-        # TODO: refactor this.
-        self.fcs = nn.ModuleList()
-        for _ in range(self.action_size):
-            self.fcs.append(nn.Linear(head.feature_size, 1))
-
-        self.proposal = nn.Linear(head.feature_size, action_size * n_quantiles)
+        self.fc = nn.Linear(head.feature_size, action_size)
+        self.proposal = nn.Linear(head.feature_size, n_quantiles)
 
     def _make_taus(self, h):
         # compute taus without making backward path
-        flat_proposals = self.proposal(h.detach())
-        # (batch, action * quantle) -> (batch, action, quantile)
-        proposals = flat_proposals.view(h.shape[0], self.action_size, -1)
+        proposals = self.proposal(h.detach())
         # tau_i+1
-        taus = torch.cumsum(torch.softmax(proposals, dim=2), dim=2)
+        taus = torch.cumsum(torch.softmax(proposals, dim=1), dim=1)
 
         # tau_i
-        pads = torch.zeros(h.shape[0], self.action_size, 1, device=h.device)
-        taus_minus = torch.cat([pads, taus[:, :, :-1]], dim=2)
+        pads = torch.zeros(h.shape[0], 1, device=h.device)
+        taus_minus = torch.cat([pads, taus[:, :-1]], dim=1)
 
         # tau^
         taus_prime = (taus + taus_minus) / 2
@@ -394,43 +387,27 @@ class DiscreteFQFQFunction(nn.Module):
         if detach:
             embed_W = self.embed.weight.detach()
             embed_b = self.embed.bias.detach()
-            fc_Ws = []
-            fc_bs = []
-            for fc in self.fcs:
-                fc_Ws.append(fc.weight.detach())
-                fc_bs.append(fc.bias.detach())
+            fc_W = self.fc.weight.detach()
+            fc_b = self.fc.bias.detach()
         else:
             embed_W = self.embed.weight
             embed_b = self.embed.bias
-            fc_Ws = []
-            fc_bs = []
-            for fc in self.fcs:
-                fc_Ws.append(fc.weight)
-                fc_bs.append(fc.bias)
+            fc_W = self.fc.weight
+            fc_b = self.fc.bias
 
         # compute embedding
         steps = torch.arange(self.embed_size, device=h.device).float() + 1
         # (batch, action, quantile, embedding)
-        expanded_taus = taus.view(h.shape[0], self.action_size, -1, 1)
-        prior = torch.cos(math.pi * steps.view(1, 1, 1, -1) * expanded_taus)
-        # (batch, action, quantile, embedding) -> (batch, action, quantile, feature)
+        expanded_taus = taus.view(h.shape[0], -1, 1)
+        prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
+        # (batch, quantile, embedding) -> (batch, quantile, feature)
         phi = torch.relu(F.linear(prior, embed_W, embed_b))
 
-        # (batch, 1, 1, feature) -> (batch, action, quantile, feature)
-        prod = h.view(h.shape[0], 1, 1, -1) * phi
+        # (batch, 1, feature) -> (batch, quantile, feature)
+        prod = h.view(h.shape[0], 1, -1) * phi
 
-        # TODO: refactor this
-        # (batch, action, quantile, feature) -> (action, batch, quantile, feature)
-        prod = prod.transpose(0, 1)
-        quantiles = []
-        for i in range(self.action_size):
-            # (batch, quantile, feature) -> (batch, quantile, 1)
-            q = F.linear(prod[i], fc_Ws[i], fc_bs[i])
-            # (batch, quantile, 1) -> (1, batch, quantile)
-            quantiles.append(q.view(1, h.shape[0], self.n_quantiles))
-
-        # (action, batch, quantile) -> (batch, action, quantile)
-        return torch.cat(quantiles, dim=0).transpose(0, 1)
+        # (batch, quantile, feature) -> (batch, action, quantile)
+        return F.linear(prod, fc_W, fc_b).transpose(1, 2)
 
     def forward(self, x, as_quantiles=False, with_taus=False, with_h=False):
         h = self.head(x)
@@ -445,7 +422,8 @@ class DiscreteFQFQFunction(nn.Module):
         if as_quantiles:
             rets.append(quantiles)
         else:
-            rets.append(((taus - taus_minus) * quantiles).sum(dim=2))
+            taus_prime = (taus - taus_minus).view(-1, 1, self.n_quantiles)
+            rets.append((taus_prime * quantiles).sum(dim=2))
 
         if with_taus:
             rets.append([taus, taus_prime])
@@ -474,13 +452,12 @@ class DiscreteFQFQFunction(nn.Module):
         taus, taus_prime = taus
 
         quantiles_t = _pick_value_by_action(values, act_t)
-        taus_prime_t = _pick_value_by_action(taus_prime, act_t)
 
         # compute errors with all combination
         y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
         quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
-        taus_prime_t = taus_prime_t.view(obs_t.shape[0], 1, -1).detach()
-        quantile_loss = _quantile_huber_loss(quantiles_t, y, taus_prime_t)
+        taus_prime = taus_prime.view(obs_t.shape[0], 1, -1).detach()
+        quantile_loss = _quantile_huber_loss(quantiles_t, y, taus_prime)
 
         # compute proposal network loss
         # original paper explicitly separates the optimization process
