@@ -390,8 +390,10 @@ def dynamics_prediction_variance_scorer(dynamics, episodes, window_size=1024):
 
 
 NEGATED_SCORER = [
-    td_error_scorer, value_estimation_std_scorer,
-    average_value_estimation_scorer, discounted_sum_of_advantage_scorer,
+    td_error_scorer,
+    value_estimation_std_scorer,
+    average_value_estimation_scorer,
+    discounted_sum_of_advantage_scorer,
     continuous_action_diff_scorer,
     dynamics_observation_prediction_error_scorer,
     dynamics_reward_prediction_error_scorer,
