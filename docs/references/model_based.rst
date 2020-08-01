@@ -15,7 +15,7 @@ which can boost performance potentially beyond the model-free algorithms.
   from d3rlpy.metrics.scorer import dynamics_reward_prediction_error_scorer
   from sklearn.model_selection import train_test_split
 
-  dataset, _ = get_cartpole()
+  dataset, _ = get_pendulum()
 
   train_episodes, test_episodes = train_test_split(dataset)
 
