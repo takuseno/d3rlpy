@@ -70,3 +70,4 @@ Dynamics
 
    d3rlpy.metrics.scorer.dynamics_observation_prediction_error_scorer
    d3rlpy.metrics.scorer.dynamics_reward_prediction_error_scorer
+   d3rlpy.metrics.scorer.dynamics_prediction_variance_scorer

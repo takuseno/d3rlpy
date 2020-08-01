@@ -365,6 +365,30 @@ def dynamics_reward_prediction_error_scorer(dynamics,
     return -np.mean(total_errors)
 
 
+def dynamics_prediction_variance_scorer(dynamics, episodes, window_size=1024):
+    """ Returns prediction variance of ensemble dynamics (in negative scale).
+
+    This metrics suggests how dynamics model is confident of test sets.
+    If the variance is large, the dynamics model has large uncertainty.
+
+    Args:
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
+        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        window_size (int): mini-batch size to compute.
+
+    Returns:
+        float: negative variance.
+
+    """
+    total_variances = []
+    for episode in episodes:
+        for batch in _make_batches_from_episode(episode, window_size):
+            pred = dynamics.predict(batch.observations, batch.actions, True)
+            total_variances += pred[2].tolist()
+    # smaller is better
+    return -np.mean(total_variances)
+
+
 NEGATED_SCORER = [
     td_error_scorer, value_estimation_std_scorer,
     average_value_estimation_scorer, discounted_sum_of_advantage_scorer,
