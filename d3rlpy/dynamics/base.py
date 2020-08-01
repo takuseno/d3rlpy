@@ -7,7 +7,7 @@ from ..dataset import Transition, TransitionMiniBatch
 
 class DynamicsImplBase(ImplBase):
     @abstractmethod
-    def predict(self, x, action):
+    def predict(self, x, action, with_variance):
         pass
 
     @abstractmethod
@@ -22,18 +22,22 @@ class DynamicsBase(LearnableBase):
         self.n_transitions = n_transitions
         self.horizon = horizon
 
-    def predict(self, x, action):
+    def predict(self, x, action, with_variance=False):
         """ Returns predicted observation and reward.
 
         Args:
             x (numpy.ndarray): observation
             action (numpy.ndarray): action
+            with_variance (bool): flag to return prediction variance.
 
         Returns:
             tuple: tuple of predicted observation and reward.
 
         """
-        return self.impl.predict(x, action)
+        observations, rewards, variances = self.impl.predict(x, action)
+        if with_variance:
+            return observations, rewards, variances
+        return observations, rewards
 
     def generate(self, algo, transitions):
         """ Returns new transitions for data augmentation.

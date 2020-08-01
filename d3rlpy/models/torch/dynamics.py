@@ -36,7 +36,7 @@ class EnsembleDynamics(nn.Module):
         super().__init__()
         self.models = nn.ModuleList(models)
 
-    def forward(self, x, action, with_variance=False, variance_type='max'):
+    def forward(self, x, action, with_variance=False, variance_type='data'):
         observations = []
         rewards = []
         variances = []
@@ -153,6 +153,6 @@ class ProbablisticDynamics(nn.Module):
         # minimize logstd bounds
         bound_loss = self.max_logstd.sum() - self.min_logstd.sum()
 
-        loss = likelihood_loss + penalty + bound_loss / obs_t.shape[0]
+        loss = likelihood_loss + penalty + bound_loss
 
         return loss.view(-1, 1)

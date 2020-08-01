@@ -51,11 +51,16 @@ def dynamics_tester(dynamics, observation_shape, action_size=2):
     action = np.random.random((2, 3)).tolist()
     ref_y = np.random.random((2, 3)).tolist()
     ref_reward = np.random.random((2, 1)).tolist()
-    impl.predict = Mock(return_value=(ref_y, ref_reward))
+    ref_variance = np.random.random((2, 1)).tolist()
+    impl.predict = Mock(return_value=(ref_y, ref_reward, ref_variance))
     y, reward = dynamics.predict(x, action)
     assert y == ref_y
     assert reward == ref_reward
     impl.predict.assert_called_with(x, action)
+
+    # check with_variance
+    y, reward, variance = dynamics.predict(x, action, with_variance=True)
+    assert variance == ref_variance
 
 
 def dynamics_update_tester(dynamics,
@@ -80,9 +85,10 @@ def impl_tester(impl, discrete):
         actions = np.random.random((100, impl.action_size))
 
     # check predict
-    y, rewards = impl.predict(observations, actions)
+    y, rewards, variance = impl.predict(observations, actions)
     assert y.shape == (100, ) + impl.observation_shape
     assert rewards.shape == (100, 1)
+    assert variance.shape == (100, 1)
 
     # check generate
     y, rewards = impl.generate(observations, actions)

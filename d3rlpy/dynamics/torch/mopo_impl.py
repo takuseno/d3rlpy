@@ -38,10 +38,13 @@ class MOPOImpl(TorchImplBase):
                           eps=self.eps)
 
     def _predict(self, x, action):
-        return self.dynamics(x, action)
+        return self.dynamics(x, action, True, 'data')
 
     def _generate(self, x, action):
-        observations, rewards, variances = self.dynamics(x, action, True)
+        observations, rewards, variances = self.dynamics(x,
+                                                         action,
+                                                         with_variance=True,
+                                                         variance_type='data')
         return observations, rewards - self.lam * variances
 
     @train_api

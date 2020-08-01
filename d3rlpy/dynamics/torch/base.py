@@ -16,14 +16,16 @@ class TorchImplBase(DynamicsImplBase):
             x = self.scaler.transform(x)
 
         with torch.no_grad():
-            observation, reward = self._predict(x, action)
+            observation, reward, variance = self._predict(x, action)
 
             if self.scaler:
                 observation = self.scaler.reverse_transform(observation)
 
         observation = observation.cpu().detach().numpy()
         reward = reward.cpu().detach().numpy()
-        return observation, reward
+        variance = variance.cpu().detach().numpy()
+
+        return observation, reward, variance
 
     def _predict(self, x, action):
         raise NotImplementedError
