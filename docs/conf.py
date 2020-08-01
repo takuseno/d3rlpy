@@ -17,19 +17,7 @@ import pkg_resources
 sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)), '..'))
 
 # -- readthedocs -------------------------------------------------------------
-__version__ = pkg_resources.get_distribution('d3rlpy').version
-
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-
-rtd_version = os.environ.get('READTHEDOCS_VERSION')
-if rtd_version == 'latest':
-    tag = 'master'
-else:
-    tag = 'v{}'.format(__version__)
-extlinks = {
-    'blob': ('https://github.com/takuseno/d3rlpy/blob/{}/%s'.format(tag), ''),
-    'tree': ('https://github.com/takuseno/d3rlpy/tree/{}/%s'.format(tag), ''),
-}
 
 # -- Project information -----------------------------------------------------
 
