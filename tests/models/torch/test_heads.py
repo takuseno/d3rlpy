@@ -25,14 +25,20 @@ def test_create_head_with_pixel_head(observation_shape, batch_size,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('discrete_action', [False, True])
 def test_create_head_with_pixel_head_with_action(observation_shape,
                                                  action_size, batch_size,
-                                                 use_batch_norm):
+                                                 use_batch_norm,
+                                                 discrete_action):
     head = create_head(observation_shape,
                        action_size,
-                       use_batch_norm=use_batch_norm)
+                       use_batch_norm=use_batch_norm,
+                       discrete_action=discrete_action)
     x = torch.rand((batch_size, ) + observation_shape)
-    action = torch.rand((batch_size, action_size))
+    if discrete_action:
+        action = torch.randint(0, action_size, size=(batch_size, 1))
+    else:
+        action = torch.rand((batch_size, action_size))
     y = head(x, action)
 
     assert head.use_batch_norm == use_batch_norm
@@ -58,14 +64,20 @@ def test_create_head_with_vector_head(observation_shape, batch_size,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('discrete_action', [False, True])
 def test_create_head_with_vector_head_with_action(observation_shape,
                                                   action_size, batch_size,
-                                                  use_batch_norm):
+                                                  use_batch_norm,
+                                                  discrete_action):
     head = create_head(observation_shape,
                        action_size,
-                       use_batch_norm=use_batch_norm)
+                       use_batch_norm=use_batch_norm,
+                       discrete_action=discrete_action)
     x = torch.rand((batch_size, ) + observation_shape)
-    action = torch.rand((batch_size, action_size))
+    if discrete_action:
+        action = torch.randint(0, action_size, size=(batch_size, 1))
+    else:
+        action = torch.rand((batch_size, action_size))
     y = head(x, action)
 
     assert head.use_batch_norm == use_batch_norm
@@ -104,14 +116,18 @@ def test_pixel_head(shapes, filters, feature_size, batch_size, use_batch_norm):
 @pytest.mark.parametrize('feature_size', [512])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('discrete_action', [False, True])
 def test_pixel_head_with_action(shapes, action_size, filters, feature_size,
-                                batch_size, use_batch_norm):
+                                batch_size, use_batch_norm, discrete_action):
     observation_shape, linear_input_size = shapes
 
     head = PixelHeadWithAction(observation_shape, action_size, filters,
-                               feature_size, use_batch_norm)
+                               feature_size, use_batch_norm, discrete_action)
     x = torch.rand((batch_size, ) + observation_shape)
-    action = torch.rand((batch_size, action_size))
+    if discrete_action:
+        action = torch.randint(0, action_size, size=(batch_size, 1))
+    else:
+        action = torch.rand((batch_size, action_size))
     y = head(x, action)
 
     # check output shape
@@ -156,13 +172,17 @@ def test_vector_head(observation_shape, hidden_units, batch_size,
 @pytest.mark.parametrize('hidden_units', [[256, 256]])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('discrete_action', [False, True])
 def test_vector_head(observation_shape, action_size, hidden_units, batch_size,
-                     use_batch_norm):
+                     use_batch_norm, discrete_action):
     head = VectorHeadWithAction(observation_shape, action_size, hidden_units,
-                                use_batch_norm)
+                                use_batch_norm, discrete_action)
 
     x = torch.rand((batch_size, ) + observation_shape)
-    action = torch.rand((batch_size, action_size))
+    if discrete_action:
+        action = torch.randint(0, action_size, size=(batch_size, 1))
+    else:
+        action = torch.rand((batch_size, action_size))
     y = head(x, action)
 
     # check output shape

@@ -1,10 +1,12 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 def create_head(observation_shape,
                 action_size=None,
                 use_batch_norm=False,
+                discrete_action=False,
                 **kwargs):
     if len(observation_shape) == 3:
         # pixel input
@@ -12,6 +14,7 @@ def create_head(observation_shape,
             return PixelHeadWithAction(observation_shape,
                                        action_size,
                                        use_batch_norm=use_batch_norm,
+                                       discrete_action=discrete_action,
                                        **kwargs)
         return PixelHead(observation_shape,
                          use_batch_norm=use_batch_norm,
@@ -22,6 +25,7 @@ def create_head(observation_shape,
             return VectorHeadWithAction(observation_shape,
                                         action_size,
                                         use_batch_norm=use_batch_norm,
+                                        discrete_action=discrete_action,
                                         **kwargs)
         return VectorHead(observation_shape,
                           use_batch_norm=use_batch_norm,
@@ -97,8 +101,10 @@ class PixelHeadWithAction(PixelHead):
                  action_size,
                  filters=None,
                  feature_size=None,
-                 use_batch_norm=False):
+                 use_batch_norm=False,
+                 discrete_action=False):
         self.action_size = action_size
+        self.discrete_action = discrete_action
         super().__init__(observation_shape, filters, feature_size,
                          use_batch_norm)
 
@@ -108,6 +114,10 @@ class PixelHeadWithAction(PixelHead):
 
     def forward(self, x, action):
         h = self._conv_encode(x)
+
+        if self.discrete_action:
+            action = F.one_hot(action.view(-1).long(),
+                               num_classes=self.action_size).float()
 
         # cocat feature and action
         h = torch.cat([h.view(h.shape[0], -1), action], dim=1)
@@ -154,12 +164,18 @@ class VectorHeadWithAction(VectorHead):
                  observation_shape,
                  action_size,
                  hidden_units=None,
-                 use_batch_norm=False):
+                 use_batch_norm=False,
+                 discrete_action=False):
         self.action_size = action_size
+        self.discrete_action = discrete_action
         concat_shape = (observation_shape[0] + action_size, )
         super().__init__(concat_shape, hidden_units, use_batch_norm)
         self.observation_shape = observation_shape
 
     def forward(self, x, action):
+        if self.discrete_action:
+            action = F.one_hot(action.view(-1).long(),
+                               num_classes=self.action_size).float()
+
         x = torch.cat([x, action], dim=1)
         return super().forward(x)
