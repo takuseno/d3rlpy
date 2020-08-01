@@ -99,6 +99,7 @@ Basically, all features are available with every algorithm.
 
 - [x] evaluation metrics in a scikit-learn scorer function style
 - [x] embedded preprocessors
+- [x] export greedy-policy as a TorchScript model
 - [x] ensemble Q function with bootstrapping
 - [x] [delayed policy updates](https://arxiv.org/abs/1802.09477)
 - [x] parallel cross validation with multiple GPU
