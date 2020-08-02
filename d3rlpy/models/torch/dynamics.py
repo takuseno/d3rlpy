@@ -147,8 +147,8 @@ class ProbablisticDynamics(nn.Module):
         # residual prediction
         mu_x = obs_t + mu[:, :-1]
         mu_reward = mu[:, -1].view(-1, 1)
-        logstd_x = -logstd[:, :-1]
-        logstd_reward = -logstd[:, -1].view(-1, 1)
+        logstd_x = logstd[:, :-1]
+        logstd_reward = logstd[:, -1].view(-1, 1)
 
         # gaussian likelihood loss
         likelihood_loss = _gaussian_likelihood(obs_tp1, mu_x, logstd_x)
