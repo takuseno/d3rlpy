@@ -206,20 +206,31 @@ class DiscreteIQNQFunction(nn.Module):
         taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
         return taus
 
-    def _compute_quantiles(self, h, taus):
+    def _compute_quantiles(self, h, taus, detach=False):
+        if detach:
+            embed_W = self.embed.weight.detach()
+            embed_b = self.embed.bias.detach()
+            fc_W = self.fc.weight.detach()
+            fc_b = self.fc.bias.detach()
+        else:
+            embed_W = self.embed.weight
+            embed_b = self.embed.bias
+            fc_W = self.fc.weight
+            fc_b = self.fc.bias
+
         # compute embedding
         steps = torch.arange(self.embed_size, device=h.device).float() + 1
         # (batch, quantile, embedding)
         expanded_taus = taus.view(h.shape[0], self.n_quantiles, 1)
         prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
         # (batch, quantile, embedding) -> (batch, quantile, feature)
-        phi = torch.relu(self.embed(prior))
+        phi = torch.relu(F.linear(prior, embed_W, embed_b))
 
         # (batch, 1, feature) -> (batch,  quantile, feature)
         prod = h.view(h.shape[0], 1, -1) * phi
 
         # (batch, quantile, feature) -> (batch, action, quantile)
-        return self.fc(prod).transpose(1, 2)
+        return F.linear(prod, fc_W, fc_b).transpose(1, 2)
 
     def forward(self, x, as_quantiles=False, with_taus=False):
         h = self.head(x)
@@ -357,15 +368,9 @@ class ContinuousIQNQFunction(nn.Module):
         return self.forward(x, action, as_quantiles=True)
 
 
-class DiscreteFQFQFunction(nn.Module):
+class DiscreteFQFQFunction(DiscreteIQNQFunction):
     def __init__(self, head, action_size, n_quantiles, embed_size):
-        super().__init__()
-        self.head = head
-        self.action_size = action_size
-        self.embed_size = embed_size
-        self.n_quantiles = n_quantiles
-        self.embed = nn.Linear(embed_size, head.feature_size)
-        self.fc = nn.Linear(head.feature_size, action_size)
+        super().__init__(head, action_size, n_quantiles, embed_size)
         self.proposal = nn.Linear(head.feature_size, n_quantiles)
 
     def _make_taus(self, h):
@@ -382,32 +387,6 @@ class DiscreteFQFQFunction(nn.Module):
         taus_prime = (taus + taus_minus) / 2
 
         return taus, taus_minus, taus_prime
-
-    def _compute_quantiles(self, h, taus, detach=False):
-        if detach:
-            embed_W = self.embed.weight.detach()
-            embed_b = self.embed.bias.detach()
-            fc_W = self.fc.weight.detach()
-            fc_b = self.fc.bias.detach()
-        else:
-            embed_W = self.embed.weight
-            embed_b = self.embed.bias
-            fc_W = self.fc.weight
-            fc_b = self.fc.bias
-
-        # compute embedding
-        steps = torch.arange(self.embed_size, device=h.device).float() + 1
-        # (batch, action, quantile, embedding)
-        expanded_taus = taus.view(h.shape[0], -1, 1)
-        prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
-        # (batch, quantile, embedding) -> (batch, quantile, feature)
-        phi = torch.relu(F.linear(prior, embed_W, embed_b))
-
-        # (batch, 1, feature) -> (batch, quantile, feature)
-        prod = h.view(h.shape[0], 1, -1) * phi
-
-        # (batch, quantile, feature) -> (batch, action, quantile)
-        return F.linear(prod, fc_W, fc_b).transpose(1, 2)
 
     def forward(self, x, as_quantiles=False, with_taus=False, with_h=False):
         h = self.head(x)
@@ -476,10 +455,6 @@ class DiscreteFQFQFunction(nn.Module):
         loss = quantile_loss + proposal_loss
 
         return _reduce(loss, reduction)
-
-    def compute_target(self, x, action):
-        quantiles = self.forward(x, as_quantiles=True)
-        return _pick_value_by_action(quantiles, action)
 
 
 class ContinuousFQFQFunction(ContinuousIQNQFunction):
