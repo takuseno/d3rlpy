@@ -384,8 +384,8 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         if as_quantiles:
             rets.append(quantiles)
         else:
-            taus_prime = (taus - taus_minus).view(-1, 1, self.n_quantiles)
-            rets.append((taus_prime * quantiles).sum(dim=2))
+            weight = (taus - taus_minus).view(-1, 1, self.n_quantiles)
+            rets.append((weight * quantiles).sum(dim=2))
 
         if with_taus:
             rets.append([taus, taus_prime, entropies])
