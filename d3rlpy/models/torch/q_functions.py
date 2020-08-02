@@ -441,7 +441,7 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         prop_diff2 = q_taus - q_taus_prime[:, 1:]
         prop_base2 = torch.cat([q_taus[:, 1:], q_taus_prime[:, -1:]], dim=1)
         prop_sign2 = q_taus < prop_base2
-        prop_loss2 = torch.where(prop_sign2, prop_diff2, prop_diff2)
+        prop_loss2 = torch.where(prop_sign2, prop_diff2, -prop_diff2)
 
         proposal_grads = (prop_loss1 + prop_loss2).detach()
 
@@ -548,7 +548,7 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         prop_diff2 = q_taus - q_taus_prime[:, 1:]
         prop_base2 = torch.cat([q_taus[:, 1:], q_taus_prime[:, -1:]], dim=1)
         prop_sign2 = q_taus < prop_base2
-        prop_loss2 = torch.where(prop_sign2, prop_diff2, prop_diff2)
+        prop_loss2 = torch.where(prop_sign2, prop_diff2, -prop_diff2)
 
         proposal_grads = (prop_loss1 + prop_loss2).detach()
 
