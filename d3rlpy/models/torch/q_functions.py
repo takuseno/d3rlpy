@@ -445,9 +445,9 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
 
         proposal_grads = (prop_loss1 + prop_loss2).detach()
 
-        # small learning rate for prpposal network
         proposal_loss = (proposal_grads * taus[:, :-1]).sum(dim=1)
 
+        # small learning rate for prpposal network
         loss = quantile_loss + 1e-5 * (proposal_loss - 1e-2 * entropies)
 
         return _reduce(loss, reduction)
