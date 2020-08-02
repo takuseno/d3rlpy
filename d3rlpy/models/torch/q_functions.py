@@ -206,31 +206,20 @@ class DiscreteIQNQFunction(nn.Module):
         taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
         return taus
 
-    def _compute_quantiles(self, h, taus, detach=False):
-        if detach:
-            embed_W = self.embed.weight.detach()
-            embed_b = self.embed.bias.detach()
-            fc_W = self.fc.weight.detach()
-            fc_b = self.fc.bias.detach()
-        else:
-            embed_W = self.embed.weight
-            embed_b = self.embed.bias
-            fc_W = self.fc.weight
-            fc_b = self.fc.bias
-
+    def _compute_quantiles(self, h, taus):
         # compute embedding
         steps = torch.arange(self.embed_size, device=h.device).float() + 1
         # (batch, quantile, embedding)
         expanded_taus = taus.view(h.shape[0], self.n_quantiles, 1)
         prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
         # (batch, quantile, embedding) -> (batch, quantile, feature)
-        phi = torch.relu(F.linear(prior, embed_W, embed_b))
+        phi = torch.relu(self.embed(prior))
 
         # (batch, 1, feature) -> (batch,  quantile, feature)
         prod = h.view(h.shape[0], 1, -1) * phi
 
         # (batch, quantile, feature) -> (batch, action, quantile)
-        return F.linear(prod, fc_W, fc_b).transpose(1, 2)
+        return self.fc(prod).transpose(1, 2)
 
     def forward(self, x, as_quantiles=False, with_taus=False):
         h = self.head(x)
@@ -293,31 +282,20 @@ class ContinuousIQNQFunction(nn.Module):
         taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
         return taus
 
-    def _compute_quantiles(self, h, taus, detach=False):
-        if detach:
-            embed_W = self.embed.weight.detach()
-            embed_b = self.embed.bias.detach()
-            fc_W = self.fc.weight.detach()
-            fc_b = self.fc.bias.detach()
-        else:
-            embed_W = self.embed.weight
-            embed_b = self.embed.bias
-            fc_W = self.fc.weight
-            fc_b = self.fc.bias
-
+    def _compute_quantiles(self, h, taus):
         # compute embedding
         steps = torch.arange(self.embed_size, device=h.device).float() + 1
         # (batch, quantile, embedding)
         expanded_taus = taus.view(h.shape[0], -1, 1)
         prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
         # (batch, quantile, embedding) -> (batch, quantile, feature)
-        phi = torch.relu(F.linear(prior, embed_W, embed_b))
+        phi = torch.relu(self.embed(prior))
 
         # (batch, 1, feature) -> (batch, quantile, feature)
         prod = h.view(h.shape[0], 1, -1) * phi
 
         # (batch, quantile, feature) -> (batch, quantile)
-        quantiles = F.linear(prod, fc_W, fc_b).view(h.shape[0], -1)
+        quantiles = self.fc(prod).view(h.shape[0], -1)
 
         return quantiles
 
@@ -377,7 +355,7 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         # compute taus without making backward path
         proposals = self.proposal(h.detach())
         # tau_i+1
-        taus = torch.cumsum(torch.softmax(proposals, dim=1), dim=1)
+        taus = torch.cumsum(torch.log_softmax(proposals, dim=1).exp(), dim=1)
 
         # tau_i
         pads = torch.zeros(h.shape[0], 1, device=h.device)
@@ -441,8 +419,8 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         # compute proposal network loss
         # original paper explicitly separates the optimization process
         # but, it's combined here
-        q_taus = self._compute_quantiles(h.detach(), taus, True)
-        q_taus_prime = self._compute_quantiles(h.detach(), taus_prime, True)
+        q_taus = self._compute_quantiles(h.detach(), taus)
+        q_taus_prime = self._compute_quantiles(h.detach(), taus_prime)
         batch_steps = torch.arange(obs_t.shape[0])
         q_taus = q_taus[batch_steps, act_t.view(-1)]
         q_taus_prime = q_taus_prime[batch_steps, act_t.view(-1)]
@@ -466,7 +444,7 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         # compute taus without making backward path
         proposals = self.proposal(h.detach())
         # tau_i+1
-        taus = torch.cumsum(torch.softmax(proposals, dim=1), dim=1)
+        taus = torch.cumsum(torch.log_softmax(proposals, dim=1).exp(), dim=1)
 
         # tau_i
         pads = torch.zeros(h.shape[0], 1, device=h.device)
@@ -533,8 +511,8 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         # compute proposal network loss
         # original paper explicitly separates the optimization process
         # but, it's combined here
-        q_taus = self._compute_quantiles(h.detach(), taus, True)
-        q_taus_prime = self._compute_quantiles(h.detach(), taus_prime, True)
+        q_taus = self._compute_quantiles(h.detach(), taus)
+        q_taus_prime = self._compute_quantiles(h.detach(), taus_prime)
         prop_loss1 = q_taus[:, :-1] - q_taus_prime[:, :-1]
         prop_loss2 = q_taus[:, :-1] - q_taus_prime[:, 1:]
         proposal_grads = (prop_loss1 + prop_loss2).detach()
