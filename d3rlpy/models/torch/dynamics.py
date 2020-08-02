@@ -17,7 +17,8 @@ def create_probablistic_dynamics(observation_shape,
         head = create_head(observation_shape,
                            action_size,
                            use_batch_norm=use_batch_norm,
-                           discrete_action=discrete_action)
+                           discrete_action=discrete_action,
+                           activation_type='swish')
         model = ProbablisticDynamics(head)
         models.append(model)
     return EnsembleDynamics(models)
@@ -88,6 +89,11 @@ def _apply_spectral_norm_recursively(model):
             spectral_norm(module)
 
 
+def _gaussian_likelihood(x, mu, logstd):
+    inv_std = torch.exp(-logstd)
+    return (((mu - x)**2) * inv_std).sum(dim=1, keepdims=True)
+
+
 class ProbablisticDynamics(nn.Module):
     def __init__(self, head):
         super().__init__()
@@ -141,13 +147,13 @@ class ProbablisticDynamics(nn.Module):
         # residual prediction
         mu_x = obs_t + mu[:, :-1]
         mu_reward = mu[:, -1].view(-1, 1)
-        inv_std_x = torch.exp(-logstd[:, :-1])
-        inv_std_reward = torch.exp(-logstd[:, -1].view(-1, 1))
+        logstd_x = -logstd[:, :-1]
+        logstd_reward = -logstd[:, -1].view(-1, 1)
 
         # gaussian likelihood loss
-        likelihood_loss = (((mu_x - obs_tp1)**2) * inv_std_x).sum(
-            dim=1, keepdims=True)
-        likelihood_loss += (((mu_reward - rew_tp1)**2) * inv_std_reward)
+        likelihood_loss = _gaussian_likelihood(obs_tp1, mu_x, logstd_x)
+        likelihood_loss += _gaussian_likelihood(rew_tp1, mu_reward,
+                                                logstd_reward)
 
         # penalty to minimize standard deviation
         penalty = logstd.sum(dim=1, keepdims=True)
@@ -155,6 +161,6 @@ class ProbablisticDynamics(nn.Module):
         # minimize logstd bounds
         bound_loss = self.max_logstd.sum() - self.min_logstd.sum()
 
-        loss = likelihood_loss + penalty + bound_loss
+        loss = likelihood_loss + penalty + 1e-2 * bound_loss
 
         return loss.view(-1, 1)
