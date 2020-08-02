@@ -422,11 +422,24 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         q_taus = self._compute_quantiles(h.detach(), taus)
         q_taus_prime = self._compute_quantiles(h.detach(), taus_prime)
         batch_steps = torch.arange(obs_t.shape[0])
-        q_taus = q_taus[batch_steps, act_t.view(-1)]
+        # (batch, n_quantiles - 1)
+        q_taus = q_taus[batch_steps, act_t.view(-1)][:, :-1]
+        # (batch, n_quantiles)
         q_taus_prime = q_taus_prime[batch_steps, act_t.view(-1)]
-        prop_loss1 = q_taus[:, :-1] - q_taus_prime[:, :-1]
-        prop_loss2 = q_taus[:, :-1] - q_taus_prime[:, 1:]
+
+        # compute gradients
+        prop_diff1 = q_taus - q_taus_prime[:, :-1]
+        prop_base1 = torch.cat([q_taus_prime[:, :1], q_taus[:, :-1]], dim=1)
+        prop_sign1 = q_taus > prop_base1
+        prop_loss1 = torch.where(prop_sign1, prop_diff1, -prop_diff1)
+
+        prop_diff2 = q_taus - q_taus_prime[:, 1:]
+        prop_base2 = torch.cat([q_taus[:, 1:], q_taus_prime[:, -1:]], dim=1)
+        prop_sign2 = q_taus < prop_base2
+        prop_loss2 = torch.where(prop_sign2, prop_diff2, prop_diff2)
+
         proposal_grads = (prop_loss1 + prop_loss2).detach()
+
         # small learning rate for prpposal network
         proposal_loss = 1e-5 * (proposal_grads * taus[:, :-1]).mean(dim=1)
 
@@ -511,11 +524,24 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         # compute proposal network loss
         # original paper explicitly separates the optimization process
         # but, it's combined here
-        q_taus = self._compute_quantiles(h.detach(), taus)
+        # (batch, n_quantiles - 1)
+        q_taus = self._compute_quantiles(h.detach(), taus)[:, :-1]
+        # (batch, n_quantiles)
         q_taus_prime = self._compute_quantiles(h.detach(), taus_prime)
-        prop_loss1 = q_taus[:, :-1] - q_taus_prime[:, :-1]
-        prop_loss2 = q_taus[:, :-1] - q_taus_prime[:, 1:]
+
+        # compute gradients
+        prop_diff1 = q_taus - q_taus_prime[:, :-1]
+        prop_base1 = torch.cat([q_taus_prime[:, :1], q_taus[:, :-1]], dim=1)
+        prop_sign1 = q_taus > prop_base1
+        prop_loss1 = torch.where(prop_sign1, prop_diff1, -prop_diff1)
+
+        prop_diff2 = q_taus - q_taus_prime[:, 1:]
+        prop_base2 = torch.cat([q_taus[:, 1:], q_taus_prime[:, -1:]], dim=1)
+        prop_sign2 = q_taus < prop_base2
+        prop_loss2 = torch.where(prop_sign2, prop_diff2, prop_diff2)
+
         proposal_grads = (prop_loss1 + prop_loss2).detach()
+
         # small lerarning rate for proposal network
         proposal_loss = 1e-5 * (proposal_grads * taus[:, :-1]).mean(dim=1)
 
