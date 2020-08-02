@@ -255,12 +255,15 @@ class LearnableBase:
         # save hyperparameters
         self._save_params(logger)
 
+        # hold original dataset
+        env_transitions = transitions
+
         # training loop
         total_step = 0
         for epoch in range(self.n_epochs):
 
             # data augmentation
-            new_transitions = self._generate_new_data(transitions)
+            new_transitions = self._generate_new_data(env_transitions)
             if new_transitions:
                 transitions += new_transitions
 
