@@ -95,6 +95,16 @@ def _gaussian_likelihood(x, mu, logstd):
 
 
 class ProbablisticDynamics(nn.Module):
+    """ Probablistic dynamics model.
+
+    References:
+        * `Janner et al., When to Trust Your Model: Model-Based Policy
+          Optimization. <https://arxiv.org/abs/1906.08253>`_
+        * `Chua et al., Deep Reinforcement Learning in a Handful of Trials
+          using Probabilistic Dynamics Models.
+          <https://arxiv.org/abs/1805.12114>`_
+
+    """
     def __init__(self, head):
         super().__init__()
         # apply spectral normalization except logstd head.
