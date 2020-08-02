@@ -465,11 +465,15 @@ class DiscreteFQFQFunction(nn.Module):
         q_taus = self._compute_quantiles(h.detach(), taus, True)
         q_taus_prime = self._compute_quantiles(h.detach(), taus_prime, True)
         batch_steps = torch.arange(obs_t.shape[0])
-        proposal_loss = 2 * q_taus[batch_steps, act_t.view(-1), :-1]
-        proposal_loss -= q_taus_prime[batch_steps, act_t.view(-1), :-1]
-        proposal_loss -= q_taus_prime[batch_steps, act_t.view(-1), 1:]
+        q_taus = q_taus[batch_steps, act_t.view(-1)]
+        q_taus_prime = q_taus_prime[batch_steps, act_t.view(-1)]
+        prop_loss1 = q_taus[:, :-1] - q_taus_prime[:, :-1]
+        prop_loss2 = q_taus[:, :-1] - q_taus_prime[:, 1:]
+        proposal_grads = (prop_loss1 + prop_loss2).detach()
+        # small learning rate for prpposal network
+        proposal_loss = 1e-5 * (proposal_grads * taus[:, :-1]).mean(dim=1)
 
-        loss = quantile_loss + proposal_loss.mean(dim=1)
+        loss = quantile_loss + proposal_loss
 
         return _reduce(loss, reduction)
 
@@ -556,8 +560,11 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         # but, it's combined here
         q_taus = self._compute_quantiles(h.detach(), taus, True)
         q_taus_prime = self._compute_quantiles(h.detach(), taus_prime, True)
-        proposal_target = q_taus_prime[:, :-1] + q_taus_prime[:, 1:]
-        proposal_loss = (2 * q_taus[:, :-1] - proposal_target).mean(dim=1)
+        prop_loss1 = q_taus[:, :-1] - q_taus_prime[:, :-1]
+        prop_loss2 = q_taus[:, :-1] - q_taus_prime[:, 1:]
+        proposal_grads = (prop_loss1 + prop_loss2).detach()
+        # small lerarning rate for proposal network
+        proposal_loss = 1e-5 * (proposal_grads * taus[:, :-1]).mean(dim=1)
 
         loss = quantile_loss + proposal_loss
 
