@@ -355,7 +355,9 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         # compute taus without making backward path
         proposals = self.proposal(h.detach())
         # tau_i+1
-        taus = torch.cumsum(torch.log_softmax(proposals, dim=1).exp(), dim=1)
+        log_probs = torch.log_softmax(proposals, dim=1)
+        probs = log_probs.exp()
+        taus = torch.cumsum(probs, dim=1)
 
         # tau_i
         pads = torch.zeros(h.shape[0], 1, device=h.device)
@@ -364,12 +366,15 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         # tau^
         taus_prime = (taus + taus_minus) / 2
 
-        return taus, taus_minus, taus_prime
+        # entropy for penalty
+        entropies = -(log_probs * probs).sum(dim=1)
+
+        return taus, taus_minus, taus_prime, entropies
 
     def forward(self, x, as_quantiles=False, with_taus=False, with_h=False):
         h = self.head(x)
 
-        taus, taus_minus, taus_prime = self._make_taus(h)
+        taus, taus_minus, taus_prime, entropies = self._make_taus(h)
 
         # compute quantiles without making backward path to proposal net
         quantiles = self._compute_quantiles(h, taus_prime.detach())
@@ -383,7 +388,7 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
             rets.append((taus_prime * quantiles).sum(dim=2))
 
         if with_taus:
-            rets.append([taus, taus_prime])
+            rets.append([taus, taus_prime, entropies])
 
         if with_h:
             rets.append(h)
@@ -406,7 +411,7 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
                                        as_quantiles=True,
                                        with_taus=True,
                                        with_h=True)
-        taus, taus_prime = taus
+        taus, taus_prime, entropies = taus
 
         quantiles_t = _pick_value_by_action(values, act_t)
 
@@ -441,9 +446,9 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         proposal_grads = (prop_loss1 + prop_loss2).detach()
 
         # small learning rate for prpposal network
-        proposal_loss = 1e-5 * (proposal_grads * taus[:, :-1]).mean(dim=1)
+        proposal_loss = (proposal_grads * taus[:, :-1]).sum(dim=1)
 
-        loss = quantile_loss + proposal_loss
+        loss = quantile_loss + 1e-5 * (proposal_loss - 1e-2 * entropies)
 
         return _reduce(loss, reduction)
 
@@ -457,7 +462,9 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         # compute taus without making backward path
         proposals = self.proposal(h.detach())
         # tau_i+1
-        taus = torch.cumsum(torch.log_softmax(proposals, dim=1).exp(), dim=1)
+        log_probs = torch.log_softmax(proposals, dim=1)
+        probs = log_probs.exp()
+        taus = torch.cumsum(probs, dim=1)
 
         # tau_i
         pads = torch.zeros(h.shape[0], 1, device=h.device)
@@ -466,7 +473,10 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         # tau^
         taus_prime = (taus + taus_minus) / 2
 
-        return taus, taus_minus, taus_prime
+        # entropy for penalty
+        entropies = -(log_probs * probs).sum(dim=1)
+
+        return taus, taus_minus, taus_prime, entropies
 
     def forward(self,
                 x,
@@ -476,7 +486,7 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
                 with_h=False):
         h = self.head(x, action)
 
-        taus, taus_minus, taus_prime = self._make_taus(h)
+        taus, taus_minus, taus_prime, entropies = self._make_taus(h)
 
         # compute quantiles without making backward path to proposal net
         quantiles = self._compute_quantiles(h, taus_prime.detach())
@@ -490,7 +500,7 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
             rets.append((weight * quantiles).sum(dim=1, keepdims=True))
 
         if with_taus:
-            rets.append([taus, taus_prime])
+            rets.append([taus, taus_prime, entropies])
 
         if with_h:
             rets.append(h)
@@ -513,7 +523,7 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
                                        as_quantiles=True,
                                        with_taus=True,
                                        with_h=True)
-        taus, taus_prime = taus
+        taus, taus_prime, entropies = taus
 
         # compute errors with all combination
         y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
@@ -542,10 +552,10 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
 
         proposal_grads = (prop_loss1 + prop_loss2).detach()
 
-        # small lerarning rate for proposal network
-        proposal_loss = 1e-5 * (proposal_grads * taus[:, :-1]).mean(dim=1)
+        proposal_loss = (proposal_grads * taus[:, :-1]).sum(dim=1)
 
-        loss = quantile_loss + proposal_loss
+        # small lerarning rate for proposal network
+        loss = quantile_loss + 1e-5 * (proposal_loss - 1e-2 * entropies)
 
         return _reduce(loss, reduction)
 
