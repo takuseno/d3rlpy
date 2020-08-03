@@ -162,6 +162,8 @@ class ProbablisticDynamics(nn.Module):
 
         # gaussian likelihood loss
         likelihood_loss = _gaussian_likelihood(obs_tp1, mu_x, logstd_x)
+        # to balance observation loss and reward loss
+        likelihood_loss /= mu_x.shape[1]
         likelihood_loss += _gaussian_likelihood(rew_tp1, mu_reward,
                                                 logstd_reward)
 
