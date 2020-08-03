@@ -384,7 +384,7 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         if as_quantiles:
             rets.append(quantiles)
         else:
-            weight = (taus - taus_minus).view(-1, 1, self.n_quantiles)
+            weight = (taus - taus_minus).view(-1, 1, self.n_quantiles).detach()
             rets.append((weight * quantiles).sum(dim=2))
 
         if with_taus:
@@ -496,7 +496,7 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         if as_quantiles:
             rets.append(quantiles)
         else:
-            weight = taus - taus_minus
+            weight = (taus - taus_minus).detach()
             rets.append((weight * quantiles).sum(dim=1, keepdims=True))
 
         if with_taus:
