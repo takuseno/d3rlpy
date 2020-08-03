@@ -9,7 +9,7 @@ class MOPO(DynamicsBase):
     new dynamics data with uncertainty penalties.
 
     The ensemble dynamics model consists of :math:`N` probablistic models
-    :math:`\{T_{\\theta_i}\}_{i=1}^N`.
+    :math:`\\{T_{\\theta_i}\\}_{i=1}^N`.
     At each epoch, new transitions are generated via randomly picked dynamics
     model :math:`T_\\theta`.
 
@@ -18,7 +18,7 @@ class MOPO(DynamicsBase):
         s_{t+1}, r_{t+1} \\sim T_\\theta(s_t, a_t)
 
     where :math:`s_t \\sim D` for the first step, otherwise :math:`s_t` is the
-    previous generated observation, and :math:`a_t \\sim \\pi(\cdot|s_t)`.
+    previous generated observation, and :math:`a_t \\sim \\pi(\\cdot|s_t)`.
     The generated :math:`r_{t+1}` would be far from the ground truth if the
     actions sampled from the policy function is out-of-distribution.
     Thus, the uncertainty penalty reguralizes this bias.
