@@ -81,7 +81,7 @@ class MOPO(DynamicsBase):
     def __init__(self,
                  n_epochs=30,
                  batch_size=100,
-                 learning_rate=1e-3,
+                 learning_rate=1e-4,
                  eps=1e-8,
                  weight_decay=1e-4,
                  n_ensembles=5,
