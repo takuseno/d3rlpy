@@ -161,6 +161,10 @@ train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
 # setup algorithm
 cql = CQL(n_epochs=300,
+          actor_learning_rate=1e-3,
+          critic_learning_rate=1e-3,
+          temp_learning_rate=1e-3,
+          alpha_learning_rate=1e-3,
           n_critics=10,
           bootstrap=True,
           update_actor_interval=2,

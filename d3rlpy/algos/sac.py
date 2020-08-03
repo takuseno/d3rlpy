@@ -97,9 +97,9 @@ class SAC(AlgoBase):
 
     """
     def __init__(self,
-                 actor_learning_rate=1e-3,
-                 critic_learning_rate=1e-3,
-                 temp_learning_rate=1e-3,
+                 actor_learning_rate=3e-4,
+                 critic_learning_rate=3e-4,
+                 temp_learning_rate=3e-4,
                  batch_size=100,
                  gamma=0.99,
                  tau=0.005,
