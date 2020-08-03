@@ -49,6 +49,7 @@ class MOPO(DynamicsBase):
         batch_size (int): mini-batch size.
         learning_rate (float): learning rate for dynamics model.
         eps (float): :math:`\\epsilon` for Adam optimizer.
+        weight_decay (float): weight decay rate.
         n_ensembles (int): the number of dynamics model for ensemble.
         n_transitions (int): the number of parallel trajectories to generate.
         horizon (int): the number of steps to generate.
@@ -65,6 +66,7 @@ class MOPO(DynamicsBase):
         batch_size (int): mini-batch size.
         learning_rate (float): learning rate for dynamics model.
         eps (float): :math:`\\epsilon` for Adam optimizer.
+        weight_decay (float): weight decay rate.
         n_ensembles (int): the number of dynamics model for ensemble.
         n_transitions (int): the number of parallel trajectories to generate.
         horizon (int): the number of steps to generate.
@@ -81,6 +83,7 @@ class MOPO(DynamicsBase):
                  batch_size=100,
                  learning_rate=1e-3,
                  eps=1e-8,
+                 weight_decay=1e-4,
                  n_ensembles=5,
                  n_transitions=10,
                  horizon=5,
@@ -95,6 +98,7 @@ class MOPO(DynamicsBase):
                          use_gpu)
         self.learning_rate = learning_rate
         self.eps = eps
+        self.weight_decay = weight_decay
         self.n_ensembles = n_ensembles
         self.lam = lam
         self.use_batch_norm = use_batch_norm
@@ -107,6 +111,7 @@ class MOPO(DynamicsBase):
                              action_size=action_size,
                              learning_rate=self.learning_rate,
                              eps=self.eps,
+                             weight_decay=self.weight_decay,
                              n_ensembles=self.n_ensembles,
                              lam=self.lam,
                              use_batch_norm=self.use_batch_norm,
