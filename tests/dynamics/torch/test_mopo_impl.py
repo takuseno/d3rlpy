@@ -9,17 +9,20 @@ from tests.dynamics.dynamics_test import torch_impl_tester
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [1e-3])
 @pytest.mark.parametrize('eps', [1e-8])
+@pytest.mark.parametrize('weight_decay', [1e-4])
 @pytest.mark.parametrize('n_ensembles', [5])
 @pytest.mark.parametrize('lam', [1.0])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
 @pytest.mark.parametrize('discrete_action', [False, True])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 def test_mopo_impl(observation_shape, action_size, learning_rate, eps,
-                   n_ensembles, lam, use_batch_norm, discrete_action, scaler):
+                   weight_decay, n_ensembles, lam, use_batch_norm,
+                   discrete_action, scaler):
     impl = MOPOImpl(observation_shape,
                     action_size,
                     learning_rate,
                     eps,
+                    weight_decay,
                     n_ensembles,
                     lam,
                     use_batch_norm,
