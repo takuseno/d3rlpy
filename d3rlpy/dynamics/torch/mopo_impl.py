@@ -43,13 +43,13 @@ class MOPOImpl(TorchImplBase):
                           weight_decay=self.weight_decay)
 
     def _predict(self, x, action):
-        return self.dynamics(x, action, True, 'data')
+        return self.dynamics(x, action, True, 'max')
 
     def _generate(self, x, action):
         observations, rewards, variances = self.dynamics(x,
                                                          action,
                                                          with_variance=True,
-                                                         variance_type='data')
+                                                         variance_type='max')
         return observations, rewards - self.lam * variances
 
     @train_api
