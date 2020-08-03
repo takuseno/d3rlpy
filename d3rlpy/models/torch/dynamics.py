@@ -84,14 +84,14 @@ def _apply_spectral_norm_recursively(model):
     for _, module in model.named_children():
         if isinstance(module, nn.ModuleList):
             for i in range(len(module)):
-                spectral_norm(module[i])
+                _apply_spectral_norm_recursively(module[i])
         else:
             spectral_norm(module)
 
 
 def _gaussian_likelihood(x, mu, logstd):
     inv_std = torch.exp(-logstd)
-    return (((mu - x)**2) * inv_std).sum(dim=1, keepdims=True)
+    return (((mu - x)**2) * inv_std).mean(dim=1, keepdims=True)
 
 
 class ProbablisticDynamics(nn.Module):
@@ -162,8 +162,6 @@ class ProbablisticDynamics(nn.Module):
 
         # gaussian likelihood loss
         likelihood_loss = _gaussian_likelihood(obs_tp1, mu_x, logstd_x)
-        # to balance observation loss and reward loss
-        likelihood_loss /= mu_x.shape[1]
         likelihood_loss += _gaussian_likelihood(rew_tp1, mu_reward,
                                                 logstd_reward)
 
