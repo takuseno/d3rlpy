@@ -2,40 +2,10 @@ import torch
 import torch.nn as nn
 import kornia.augmentation as aug
 
-from abc import ABCMeta, abstractmethod
+from .base import Augmentation
 
 
-class ImageAugmentation(metaclass=ABCMeta):
-    @abstractmethod
-    def transform(self, x):
-        pass
-
-    @abstractmethod
-    def get_type(self):
-        pass
-
-    @abstractmethod
-    def get_params(self):
-        pass
-
-
-def create_augmentation(augmentation_type, **kwargs):
-    if augmentation_type == 'random_shift':
-        return RandomShift(**kwargs)
-    elif augmentation_type == 'cutout':
-        return Cutout(**kwargs)
-    elif augmentation_type == 'horizontal_flip':
-        return HorizontalFlip(**kwargs)
-    elif augmentation_type == 'vertical_flip':
-        return VerticalFlip(**kwargs)
-    elif augmentation_type == 'random_rotation':
-        return RandomRotation(**kwargs)
-    elif augmentation_type == 'intensity':
-        return Intensity(**kwargs)
-    raise ValueError('invalid augmentation_type.')
-
-
-class RandomShift(ImageAugmentation):
+class RandomShift(Augmentation):
     """ Random shift augmentation.
 
     Args:
@@ -87,7 +57,7 @@ class RandomShift(ImageAugmentation):
         return {'shift_size': self.shift_size}
 
 
-class Cutout(ImageAugmentation):
+class Cutout(Augmentation):
     """ Cutout augmentation.
 
     Args:
@@ -132,7 +102,7 @@ class Cutout(ImageAugmentation):
         return {'probability': self.probability}
 
 
-class HorizontalFlip(ImageAugmentation):
+class HorizontalFlip(Augmentation):
     """ Horizontal flip augmentation.
 
     Args:
@@ -177,7 +147,7 @@ class HorizontalFlip(ImageAugmentation):
         return {'probability': self.probability}
 
 
-class VerticalFlip(ImageAugmentation):
+class VerticalFlip(Augmentation):
     """ Vertical flip augmentation.
 
     Args:
@@ -222,7 +192,7 @@ class VerticalFlip(ImageAugmentation):
         return {'probability': self.probability}
 
 
-class RandomRotation(ImageAugmentation):
+class RandomRotation(Augmentation):
     """ Random rotation augmentation.
 
     Args:
@@ -267,7 +237,7 @@ class RandomRotation(ImageAugmentation):
         return {'degree': self.degree}
 
 
-class Intensity(ImageAugmentation):
+class Intensity(Augmentation):
     """ Intensity augmentation.
 
     .. math::
