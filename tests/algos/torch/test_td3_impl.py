@@ -13,6 +13,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('reguralizing_rate', [0.0])
 @pytest.mark.parametrize('n_critics', [2])
 @pytest.mark.parametrize('bootstrap', [False])
+@pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('target_smoothing_sigma', [0.2])
 @pytest.mark.parametrize('target_smoothing_clip', [0.5])
 @pytest.mark.parametrize('eps', [1e-8])
@@ -21,7 +22,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 def test_td3_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, gamma, tau, reguralizing_rate,
-                  n_critics, bootstrap, target_smoothing_sigma,
+                  n_critics, bootstrap, share_encoder, target_smoothing_sigma,
                   target_smoothing_clip, eps, use_batch_norm, q_func_type,
                   scaler):
     impl = TD3Impl(observation_shape,
@@ -33,6 +34,7 @@ def test_td3_impl(observation_shape, action_size, actor_learning_rate,
                    reguralizing_rate,
                    n_critics,
                    bootstrap,
+                   share_encoder,
                    target_smoothing_sigma,
                    target_smoothing_clip,
                    eps,

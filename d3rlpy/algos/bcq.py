@@ -94,6 +94,7 @@ class BCQ(AlgoBase):
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
         n_action_samples (int): the number of action samples to estimate
@@ -125,6 +126,7 @@ class BCQ(AlgoBase):
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
         n_action_samples (int): the number of action samples to estimate
@@ -153,6 +155,7 @@ class BCQ(AlgoBase):
                  tau=0.005,
                  n_critics=2,
                  bootstrap=False,
+                 share_encoder=False,
                  update_actor_interval=1,
                  lam=0.75,
                  n_action_samples=100,
@@ -177,6 +180,7 @@ class BCQ(AlgoBase):
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
+        self.share_encoder = share_encoder
         self.update_actor_interval = update_actor_interval
         self.lam = lam
         self.n_action_samples = n_action_samples
@@ -200,6 +204,7 @@ class BCQ(AlgoBase):
                             tau=self.tau,
                             n_critics=self.n_critics,
                             bootstrap=self.bootstrap,
+                            share_encoder=self.share_encoder,
                             lam=self.lam,
                             n_action_samples=self.n_action_samples,
                             action_flexibility=self.action_flexibility,
@@ -285,6 +290,7 @@ class DiscreteBCQ(AlgoBase):
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         action_flexibility (float): probability threshold represented as
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
@@ -307,6 +313,7 @@ class DiscreteBCQ(AlgoBase):
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         action_flexibility (float): probability threshold represented as
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
@@ -327,6 +334,7 @@ class DiscreteBCQ(AlgoBase):
                  gamma=0.99,
                  n_critics=1,
                  bootstrap=False,
+                 share_encoder=False,
                  action_flexibility=0.3,
                  beta=0.5,
                  eps=1.5e-4,
@@ -344,6 +352,7 @@ class DiscreteBCQ(AlgoBase):
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
+        self.share_encoder = share_encoder
         self.action_flexibility = action_flexibility
         self.beta = beta
         self.eps = eps
@@ -360,6 +369,7 @@ class DiscreteBCQ(AlgoBase):
                                     gamma=self.gamma,
                                     n_critics=self.n_critics,
                                     bootstrap=self.bootstrap,
+                                    share_encoder=self.share_encoder,
                                     action_flexibility=self.action_flexibility,
                                     beta=self.beta,
                                     eps=self.eps,

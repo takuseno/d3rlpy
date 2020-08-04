@@ -21,7 +21,7 @@ from .dqn_impl import DoubleDQNImpl
 class BCQImpl(DDPGImpl, IBCQImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, imitator_learning_rate, gamma, tau,
-                 n_critics, bootstrap, lam, n_action_samples,
+                 n_critics, bootstrap, share_encoder, lam, n_action_samples,
                  action_flexibility, latent_size, beta, eps, use_batch_norm,
                  q_func_type, use_gpu, scaler):
         # imitator requires these parameters
@@ -42,8 +42,8 @@ class BCQImpl(DDPGImpl, IBCQImpl):
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, n_critics,
-                         bootstrap, 0.0, eps, use_batch_norm, q_func_type,
-                         use_gpu, scaler)
+                         bootstrap, share_encoder, 0.0, eps, use_batch_norm,
+                         q_func_type, use_gpu, scaler)
 
         # setup optimizer after the parameters move to GPU
         self._build_imitator_optim()
@@ -157,15 +157,15 @@ class BCQImpl(DDPGImpl, IBCQImpl):
 
 class DiscreteBCQImpl(DoubleDQNImpl):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
-                 n_critics, bootstrap, action_flexibility, beta, eps,
-                 use_batch_norm, q_func_type, use_gpu, scaler):
+                 n_critics, bootstrap, share_encoder, action_flexibility, beta,
+                 eps, use_batch_norm, q_func_type, use_gpu, scaler):
 
         self.action_flexibility = action_flexibility
         self.beta = beta
 
         super().__init__(observation_shape, action_size, learning_rate, gamma,
-                         n_critics, bootstrap, eps, use_batch_norm,
-                         q_func_type, use_gpu, scaler)
+                         n_critics, bootstrap, share_encoder, eps,
+                         use_batch_norm, q_func_type, use_gpu, scaler)
 
     def _build_network(self):
         super()._build_network()

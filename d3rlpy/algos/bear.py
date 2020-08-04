@@ -63,6 +63,7 @@ class BEAR(AlgoBase):
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\\alpha` value.
@@ -99,6 +100,7 @@ class BEAR(AlgoBase):
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\\alpha` value.
@@ -132,6 +134,7 @@ class BEAR(AlgoBase):
                  tau=0.005,
                  n_critics=2,
                  bootstrap=False,
+                 share_encoder=False,
                  update_actor_interval=1,
                  initial_temperature=1.0,
                  initial_alpha=1.0,
@@ -159,6 +162,7 @@ class BEAR(AlgoBase):
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
+        self.share_encoder = share_encoder
         self.update_actor_interval = update_actor_interval
         self.initial_temperature = initial_temperature
         self.initial_alpha = initial_alpha
@@ -186,6 +190,7 @@ class BEAR(AlgoBase):
             tau=self.tau,
             n_critics=self.n_critics,
             bootstrap=self.bootstrap,
+            share_encoder=self.share_encoder,
             initial_temperature=self.initial_temperature,
             initial_alpha=self.initial_alpha,
             alpha_threshold=self.alpha_threshold,

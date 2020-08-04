@@ -16,6 +16,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('tau', [0.05])
 @pytest.mark.parametrize('n_critics', [2])
 @pytest.mark.parametrize('bootstrap', [False])
+@pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('initial_temperature', [1.0])
 @pytest.mark.parametrize('initial_alpha', [1.0])
 @pytest.mark.parametrize('alpha_threshold', [0.05])
@@ -29,9 +30,9 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, imitator_learning_rate,
                   temp_learning_rate, alpha_learning_rate, gamma, tau,
-                  n_critics, bootstrap, initial_temperature, initial_alpha,
-                  alpha_threshold, lam, n_action_samples, mmd_sigma, eps,
-                  use_batch_norm, q_func_type, scaler):
+                  n_critics, bootstrap, share_encoder, initial_temperature,
+                  initial_alpha, alpha_threshold, lam, n_action_samples,
+                  mmd_sigma, eps, use_batch_norm, q_func_type, scaler):
     impl = BEARImpl(observation_shape,
                     action_size,
                     actor_learning_rate,
@@ -43,6 +44,7 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                     tau,
                     n_critics,
                     bootstrap,
+                    share_encoder,
                     initial_temperature,
                     initial_alpha,
                     alpha_threshold,

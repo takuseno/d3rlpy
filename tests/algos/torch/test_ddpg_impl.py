@@ -12,6 +12,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('tau', [0.05])
 @pytest.mark.parametrize('n_critics', [1])
 @pytest.mark.parametrize('bootstrap', [False])
+@pytest.mark.parametrize('share_encoder', [True])
 @pytest.mark.parametrize('reguralizing_rate', [1e-8])
 @pytest.mark.parametrize('eps', [1e-8])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
@@ -19,8 +20,8 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 def test_ddpg_impl(observation_shape, action_size, actor_learning_rate,
                    critic_learning_rate, gamma, tau, n_critics, bootstrap,
-                   reguralizing_rate, eps, use_batch_norm, q_func_type,
-                   scaler):
+                   share_encoder, reguralizing_rate, eps, use_batch_norm,
+                   q_func_type, scaler):
     impl = DDPGImpl(observation_shape,
                     action_size,
                     actor_learning_rate,
@@ -29,6 +30,7 @@ def test_ddpg_impl(observation_shape, action_size, actor_learning_rate,
                     tau,
                     n_critics,
                     bootstrap,
+                    share_encoder,
                     reguralizing_rate,
                     eps,
                     use_batch_norm,

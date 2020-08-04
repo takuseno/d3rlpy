@@ -14,8 +14,8 @@ from .base import TorchImplBase
 class DDPGImpl(TorchImplBase, IDDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, gamma, tau, n_critics, bootstrap,
-                 reguralizing_rate, eps, use_batch_norm, q_func_type, use_gpu,
-                 scaler):
+                 share_encoder, reguralizing_rate, eps, use_batch_norm,
+                 q_func_type, use_gpu, scaler):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.actor_learning_rate = actor_learning_rate
@@ -24,6 +24,7 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
+        self.share_encoder = share_encoder
         self.reguralizing_rate = reguralizing_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
@@ -54,7 +55,8 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
             n_ensembles=self.n_critics,
             use_batch_norm=self.use_batch_norm,
             q_func_type=self.q_func_type,
-            bootstrap=self.bootstrap)
+            bootstrap=self.bootstrap,
+            share_encoder=self.share_encoder)
 
     def _build_critic_optim(self):
         self.critic_optim = Adam(self.q_func.parameters(),

@@ -22,9 +22,9 @@ class CQL(AlgoBase):
 
     .. math::
 
-        L(\\theta_i) = \\alpha \\mathbb{E}_{s_t \sim D}
-            [\\log{\\sum_a \exp{Q_{\\theta_i}(s_t, a)}}
-             - \mathbb{E}_{a \sim D} [Q_{\\theta_i}(s, a)] - \\tau]
+        L(\\theta_i) = \\alpha \\mathbb{E}_{s_t \\sim D}
+            [\\log{\\sum_a \\exp{Q_{\\theta_i}(s_t, a)}}
+             - \\mathbb{E}_{a \\sim D} [Q_{\\theta_i}(s, a)] - \\tau]
             + L_{SAC}(\\theta_i)
 
     where :math:`\\alpha` is an automatically adjustable value via Lagrangian
@@ -39,10 +39,10 @@ class CQL(AlgoBase):
 
     .. math::
 
-        \\log{\\sum_a \\exp{Q(s, a)}} \\approx \log{(
-            \\frac{1}{2N} \\sum_{a_i \sim \\text{Unif}(a)}^N
+        \\log{\\sum_a \\exp{Q(s, a)}} \\approx \\log{(
+            \\frac{1}{2N} \\sum_{a_i \\sim \\text{Unif}(a)}^N
                 [\\frac{\\exp{Q(s, a_i)}}{\\text{Unif}(a)}]
-            + \\frac{1}{2N} \\sum_{a_i \sim \pi_\\phi(a|s)}^N
+            + \\frac{1}{2N} \\sum_{a_i \\sim \\pi_\\phi(a|s)}^N
                 [\\frac{\\exp{Q(s, a_i)}}{\\pi_\\phi(a_i|s)}])}
 
     where :math:`N` is the number of sampled actions.
@@ -64,6 +64,7 @@ class CQL(AlgoBase):
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\\alpha` value.
@@ -93,6 +94,7 @@ class CQL(AlgoBase):
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\\alpha` value.
@@ -119,6 +121,7 @@ class CQL(AlgoBase):
                  tau=0.005,
                  n_critics=2,
                  bootstrap=False,
+                 share_encoder=False,
                  update_actor_interval=1,
                  initial_temperature=1.0,
                  initial_alpha=5.0,
@@ -142,6 +145,7 @@ class CQL(AlgoBase):
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
+        self.share_encoder = share_encoder
         self.update_actor_interval = update_actor_interval
         self.initial_temperature = initial_temperature
         self.initial_alpha = initial_alpha
@@ -165,6 +169,7 @@ class CQL(AlgoBase):
                             tau=self.tau,
                             n_critics=self.n_critics,
                             bootstrap=self.bootstrap,
+                            share_encoder=self.share_encoder,
                             initial_temperature=self.initial_temperature,
                             initial_alpha=self.initial_alpha,
                             alpha_threshold=self.alpha_threshold,
@@ -217,9 +222,9 @@ class DiscreteCQL(DoubleDQN):
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{s_t \sim D}
-            [\\log{\\sum_a \exp{Q_{\\theta}(s_t, a)}}
-             - \mathbb{E}_{a \sim D} [Q_{\\theta}(s, a)]]
+        L(\\theta) = \\mathbb{E}_{s_t \\sim D}
+            [\\log{\\sum_a \\exp{Q_{\\theta}(s_t, a)}}
+             - \\mathbb{E}_{a \\sim D} [Q_{\\theta}(s, a)]]
             + L_{DoubleDQN}(\\theta)
 
     References:
@@ -232,7 +237,7 @@ class DiscreteCQL(DoubleDQN):
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
-        eps (float): :math:`\epsilon` for Adam optimizer.
+        eps (float): :math:`\\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
         use_batch_norm (bool): flag to insert batch normalization layers
@@ -252,7 +257,7 @@ class DiscreteCQL(DoubleDQN):
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
-        eps (float): :math:`\epsilon` for Adam optimizer.
+        eps (float): :math:`\\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
         use_batch_norm (bool): flag to insert batch normalization layers
@@ -272,6 +277,7 @@ class DiscreteCQL(DoubleDQN):
                                     gamma=self.gamma,
                                     n_critics=self.n_critics,
                                     bootstrap=self.bootstrap,
+                                    share_encoder=self.share_encoder,
                                     eps=self.eps,
                                     use_batch_norm=self.use_batch_norm,
                                     q_func_type=self.q_func_type,

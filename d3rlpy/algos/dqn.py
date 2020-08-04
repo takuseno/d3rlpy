@@ -35,6 +35,7 @@ class DQN(AlgoBase):
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers
@@ -54,6 +55,7 @@ class DQN(AlgoBase):
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers
@@ -71,6 +73,7 @@ class DQN(AlgoBase):
                  gamma=0.99,
                  n_critics=1,
                  bootstrap=False,
+                 share_encoder=False,
                  eps=1.5e-4,
                  target_update_interval=8e3,
                  use_batch_norm=True,
@@ -86,6 +89,7 @@ class DQN(AlgoBase):
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
+        self.share_encoder = share_encoder
         self.eps = eps
         self.target_update_interval = target_update_interval
         self.use_batch_norm = use_batch_norm
@@ -100,6 +104,7 @@ class DQN(AlgoBase):
                             gamma=self.gamma,
                             n_critics=self.n_critics,
                             bootstrap=self.bootstrap,
+                            share_encoder=self.share_encoder,
                             eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
@@ -145,6 +150,7 @@ class DoubleDQN(DQN):
         gamma (float): discount factor.
         n_critics (int): the number of Q functions.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
@@ -165,6 +171,7 @@ class DoubleDQN(DQN):
         gamma (float): discount factor.
         n_critics (int): the number of Q functions.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
         eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
@@ -185,6 +192,7 @@ class DoubleDQN(DQN):
                                   gamma=self.gamma,
                                   n_critics=self.n_critics,
                                   bootstrap=self.bootstrap,
+                                  share_encoder=self.share_encoder,
                                   eps=self.eps,
                                   use_batch_norm=self.use_batch_norm,
                                   q_func_type=self.q_func_type,

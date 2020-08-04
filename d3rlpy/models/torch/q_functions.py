@@ -14,10 +14,20 @@ def create_discrete_q_function(observation_shape,
                                embed_size=64,
                                use_batch_norm=False,
                                q_func_type='mean',
-                               bootstrap=False):
+                               bootstrap=False,
+                               share_encoder=False):
+
+    if share_encoder:
+        head = create_head(observation_shape, use_batch_norm=use_batch_norm)
+        # normalize gradient scale by ensemble size
+        for p in head.parameters():
+            p.register_hook(lambda grad: grad / n_ensembles)
+
     q_funcs = []
     for _ in range(n_ensembles):
-        head = create_head(observation_shape, use_batch_norm=use_batch_norm)
+        if not share_encoder:
+            head = create_head(observation_shape,
+                               use_batch_norm=use_batch_norm)
         if q_func_type == 'mean':
             q_func = DiscreteQFunction(head, action_size)
         elif q_func_type == 'qr':
@@ -41,12 +51,23 @@ def create_continuous_q_function(observation_shape,
                                  embed_size=64,
                                  use_batch_norm=False,
                                  q_func_type='mean',
-                                 bootstrap=False):
-    q_funcs = []
-    for _ in range(n_ensembles):
+                                 bootstrap=False,
+                                 share_encoder=False):
+
+    if share_encoder:
         head = create_head(observation_shape,
                            action_size,
                            use_batch_norm=use_batch_norm)
+        # normalize gradient scale by ensemble size
+        for p in head.parameters():
+            p.register_hook(lambda grad: grad / n_ensembles)
+
+    q_funcs = []
+    for _ in range(n_ensembles):
+        if not share_encoder:
+            head = create_head(observation_shape,
+                               action_size,
+                               use_batch_norm=use_batch_norm)
         if q_func_type == 'mean':
             q_func = ContinuousQFunction(head)
         elif q_func_type == 'qr':

@@ -14,15 +14,15 @@ from .ddpg_impl import DDPGImpl
 class SACImpl(DDPGImpl, ISACImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, temp_learning_rate, gamma, tau,
-                 n_critics, bootstrap, initial_temperature, eps,
+                 n_critics, bootstrap, share_encoder, initial_temperature, eps,
                  use_batch_norm, q_func_type, use_gpu, scaler):
         self.temp_learning_rate = temp_learning_rate
         self.initial_temperature = initial_temperature
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, n_critics,
-                         bootstrap, 0.0, eps, use_batch_norm, q_func_type,
-                         use_gpu, scaler)
+                         bootstrap, share_encoder, 0.0, eps, use_batch_norm,
+                         q_func_type, use_gpu, scaler)
 
         # TODO: save and load temperature parameter
         # setup temeprature after device property is set.

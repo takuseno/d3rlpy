@@ -14,6 +14,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('tau', [0.05])
 @pytest.mark.parametrize('n_critics', [2])
 @pytest.mark.parametrize('bootstrap', [False])
+@pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('lam', [0.75])
 @pytest.mark.parametrize('n_action_samples', [10])  # small for test
 @pytest.mark.parametrize('action_flexibility', [0.05])
@@ -25,7 +26,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, imitator_learning_rate, gamma, tau,
-                  n_critics, bootstrap, lam, n_action_samples,
+                  n_critics, bootstrap, share_encoder, lam, n_action_samples,
                   action_flexibility, latent_size, beta, eps, use_batch_norm,
                   q_func_type, scaler):
     impl = BCQImpl(observation_shape,
@@ -37,6 +38,7 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                    tau,
                    n_critics,
                    bootstrap,
+                   share_encoder,
                    lam,
                    n_action_samples,
                    action_flexibility,
@@ -86,6 +88,7 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('n_critics', [1])
 @pytest.mark.parametrize('bootstrap', [False])
+@pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('action_flexibility', [0.3])
 @pytest.mark.parametrize('beta', [1e-2])
 @pytest.mark.parametrize('eps', [0.95])
@@ -93,14 +96,16 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None])
 def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
-                           gamma, n_critics, bootstrap, action_flexibility,
-                           beta, eps, use_batch_norm, q_func_type, scaler):
+                           gamma, n_critics, bootstrap, share_encoder,
+                           action_flexibility, beta, eps, use_batch_norm,
+                           q_func_type, scaler):
     impl = DiscreteBCQImpl(observation_shape,
                            action_size,
                            learning_rate,
                            gamma,
                            n_critics,
                            bootstrap,
+                           share_encoder,
                            action_flexibility,
                            beta,
                            eps,

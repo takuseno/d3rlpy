@@ -16,9 +16,10 @@ from .dqn_impl import DoubleDQNImpl
 class CQLImpl(SACImpl, ICQLImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, temp_learning_rate, alpha_learning_rate,
-                 gamma, tau, n_critics, bootstrap, initial_temperature,
-                 initial_alpha, alpha_threshold, n_action_samples, eps,
-                 use_batch_norm, q_func_type, use_gpu, scaler):
+                 gamma, tau, n_critics, bootstrap, share_encoder,
+                 initial_temperature, initial_alpha, alpha_threshold,
+                 n_action_samples, eps, use_batch_norm, q_func_type, use_gpu,
+                 scaler):
         self.alpha_learning_rate = alpha_learning_rate
         self.initial_alpha = initial_alpha
         self.alpha_threshold = alpha_threshold
@@ -26,8 +27,9 @@ class CQLImpl(SACImpl, ICQLImpl):
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, temp_learning_rate, gamma, tau,
-                         n_critics, bootstrap, initial_temperature, eps,
-                         use_batch_norm, q_func_type, use_gpu, scaler)
+                         n_critics, bootstrap, share_encoder,
+                         initial_temperature, eps, use_batch_norm, q_func_type,
+                         use_gpu, scaler)
 
         # TODO: save and load alpha parameter
         # setup alpha after device property is set.

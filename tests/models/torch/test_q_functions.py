@@ -26,17 +26,25 @@ from .model_test import check_parameter_updates, DummyHead
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('n_ensembles', [1, 2])
+@pytest.mark.parametrize('n_ensembles', [1, 5])
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('embed_size', [64])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_create_discrete_q_function(observation_shape, action_size, batch_size,
                                     n_ensembles, n_quantiles, embed_size,
-                                    use_batch_norm, q_func_type):
-    q_func = create_discrete_q_function(observation_shape, action_size,
-                                        n_ensembles, n_quantiles, embed_size,
-                                        use_batch_norm, q_func_type)
+                                    use_batch_norm, share_encoder,
+                                    q_func_type):
+
+    q_func = create_discrete_q_function(observation_shape,
+                                        action_size,
+                                        n_ensembles,
+                                        n_quantiles,
+                                        embed_size,
+                                        use_batch_norm,
+                                        q_func_type,
+                                        share_encoder=share_encoder)
 
     assert isinstance(q_func, EnsembleDiscreteQFunction)
     for f in q_func.q_funcs:
@@ -50,6 +58,14 @@ def test_create_discrete_q_function(observation_shape, action_size, batch_size,
         elif q_func_type == 'fqf':
             assert isinstance(f, DiscreteFQFQFunction)
 
+    # check share_encoder
+    head = q_func.q_funcs[0].head
+    for q_func in q_func.q_funcs[1:]:
+        if share_encoder:
+            assert head is q_func.head
+        else:
+            assert head is not q_func.head
+
     x = torch.rand((batch_size, ) + observation_shape)
     y = q_func(x)
     assert y.shape == (batch_size, action_size)
@@ -62,13 +78,21 @@ def test_create_discrete_q_function(observation_shape, action_size, batch_size,
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('embed_size', [64])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_create_continuous_q_function(observation_shape, action_size,
                                       batch_size, n_ensembles, n_quantiles,
-                                      embed_size, use_batch_norm, q_func_type):
-    q_func = create_continuous_q_function(observation_shape, action_size,
-                                          n_ensembles, n_quantiles, embed_size,
-                                          use_batch_norm, q_func_type)
+                                      embed_size, use_batch_norm,
+                                      share_encoder, q_func_type):
+
+    q_func = create_continuous_q_function(observation_shape,
+                                          action_size,
+                                          n_ensembles,
+                                          n_quantiles,
+                                          embed_size,
+                                          use_batch_norm,
+                                          q_func_type,
+                                          share_encoder=share_encoder)
 
     assert isinstance(q_func, EnsembleContinuousQFunction)
     for f in q_func.q_funcs:
@@ -81,6 +105,14 @@ def test_create_continuous_q_function(observation_shape, action_size,
         elif q_func_type == 'fqf':
             assert isinstance(f, ContinuousFQFQFunction)
         assert f.head.use_batch_norm == use_batch_norm
+
+    # check share_encoder
+    head = q_func.q_funcs[0].head
+    for q_func in q_func.q_funcs[1:]:
+        if share_encoder:
+            assert head is q_func.head
+        else:
+            assert head is not q_func.head
 
     x = torch.rand((batch_size, ) + observation_shape)
     action = torch.rand(batch_size, action_size)
