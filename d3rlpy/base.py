@@ -5,6 +5,7 @@ import json
 from abc import ABCMeta, abstractmethod
 from tqdm import trange
 from .preprocessing import create_scaler
+from .augmentation import create_augmentation, AugmentationPipeline
 from .dataset import TransitionMiniBatch
 from .logger import D3RLPyLogger
 from .metrics.scorer import NEGATED_SCORER
@@ -31,11 +32,13 @@ class LearnableBase:
         n_epochs (int): the number of epochs to train.
         batch_size (int): the batch size of training.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor
+        augmentation (list(str or d3rlpy.augmentation.base.Augmentation)):
+            list of data augmentations.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         impl (d3rlpy.base.ImplBase): implementation object.
 
     """
-    def __init__(self, n_epochs, batch_size, scaler, use_gpu):
+    def __init__(self, n_epochs, batch_size, scaler, augmentation, use_gpu):
         """ __init__ method.
 
         Args:
@@ -43,17 +46,31 @@ class LearnableBase:
             batch_size (int): mini-batch size.
             scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
                 The available options are `['pixel', 'min_max', 'standard']`
+            augmentation (list(str or d3rlpy.augmentation.base.Augmentation)):
+                list of data augmentations.
             use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
 
         """
         self.n_epochs = n_epochs
         self.batch_size = batch_size
 
+        # prepare preprocessor
         if isinstance(scaler, str):
             self.scaler = create_scaler(scaler)
         else:
             self.scaler = scaler
 
+        # prepare augmentations
+        if isinstance(augmentation, AugmentationPipeline):
+            self.augmentation = augmentation
+        else:
+            self.augmentation = AugmentationPipeline()
+            for aug in augmentation:
+                if isinstance(aug, str):
+                    aug = create_augmentation(aug)
+                self.augmentation.append(aug)
+
+        # prepare GPU device
         if isinstance(use_gpu, bool) and use_gpu:
             self.use_gpu = Device(0)
         elif isinstance(use_gpu, Device):
@@ -98,12 +115,21 @@ class LearnableBase:
         del params['observation_shape']
         del params['action_size']
 
-        # remove create scaler object
+        # create scaler object
         if params['scaler']:
             scaler_type = params['scaler']['type']
             scaler_params = params['scaler']['params']
             scaler = create_scaler(scaler_type, **scaler_params)
             params['scaler'] = scaler
+
+        # create augmentation objects
+        augmentations = []
+        for param in params['augmentation']:
+            aug_type = param['type']
+            aug_params = param['params']
+            augmentation = create_augmentation(aug_type, **aug_params)
+            augmentations.append(augmentation)
+        params['augmentation'] = AugmentationPipeline(augmentations)
 
         # overwrite use_gpu flag
         params['use_gpu'] = use_gpu
@@ -384,6 +410,16 @@ class LearnableBase:
                 'type': self.scaler.get_type(),
                 'params': self.scaler.get_params()
             }
+
+        # save augmentations
+        params['augmentation'] = []
+        aug_types = self.augmentation.get_type()
+        aug_params = self.augmentation.get_params()
+        for aug_type, aug_param in zip(aug_types, aug_params):
+            params['augmentation'].append({
+                'type': aug_type,
+                'params': aug_params
+            })
 
         # save GPU device id
         if self.use_gpu:

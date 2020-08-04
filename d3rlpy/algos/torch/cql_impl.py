@@ -19,7 +19,7 @@ class CQLImpl(SACImpl, ICQLImpl):
                  gamma, tau, n_critics, bootstrap, share_encoder,
                  initial_temperature, initial_alpha, alpha_threshold,
                  n_action_samples, eps, use_batch_norm, q_func_type, use_gpu,
-                 scaler):
+                 scaler, augmentation, n_augmentations):
         self.alpha_learning_rate = alpha_learning_rate
         self.initial_alpha = initial_alpha
         self.alpha_threshold = alpha_threshold
@@ -29,7 +29,7 @@ class CQLImpl(SACImpl, ICQLImpl):
                          critic_learning_rate, temp_learning_rate, gamma, tau,
                          n_critics, bootstrap, share_encoder,
                          initial_temperature, eps, use_batch_norm, q_func_type,
-                         use_gpu, scaler)
+                         use_gpu, scaler, augmentation, n_augmentations)
 
         # TODO: save and load alpha parameter
         # setup alpha after device property is set.
@@ -44,28 +44,10 @@ class CQLImpl(SACImpl, ICQLImpl):
     def _build_alpha_optim(self):
         self.alpha_optim = Adam([self.log_alpha], self.alpha_learning_rate)
 
-    @train_api
-    @torch_api
-    def update_critic(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-            obs_tp1 = self.scaler.transform(obs_tp1)
-
-        # compute td error
-        q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
-        td_loss = self.q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1,
-                                            self.gamma)
-
-        # compute penalty
+    def _compute_critic_loss(self, obs_t, act_t, rew_tp1, q_tp1):
+        loss = super()._compute_critic_loss(obs_t, act_t, rew_tp1, q_tp1)
         conservative_loss = self._compute_conservative_loss(obs_t, act_t)
-
-        loss = conservative_loss + td_loss
-
-        self.critic_optim.zero_grad()
-        loss.backward()
-        self.critic_optim.step()
-
-        return loss.cpu().detach().numpy()
+        return loss + conservative_loss
 
     @train_api
     @torch_api
@@ -131,29 +113,10 @@ class CQLImpl(SACImpl, ICQLImpl):
 
 
 class DiscreteCQLImpl(DoubleDQNImpl):
-    @train_api
-    @torch_api
-    def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-            obs_tp1 = self.scaler.transform(obs_tp1)
-
-        # convert float to long
-        act_t = act_t.long()
-
-        q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
-        td_loss = self.q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1,
-                                            self.gamma)
-
+    def _compute_loss(self, obs_t, act_t, rew_tp1, q_tp1):
+        loss = super()._compute_loss(obs_t, act_t, rew_tp1, q_tp1)
         conservative_loss = self._compute_conservative_loss(obs_t, act_t)
-
-        loss = conservative_loss + td_loss
-
-        self.optim.zero_grad()
-        loss.backward()
-        self.optim.step()
-
-        return loss.cpu().detach().numpy()
+        return loss + conservative_loss
 
     def _compute_conservative_loss(self, obs_t, act_t):
         # compute logsumexp

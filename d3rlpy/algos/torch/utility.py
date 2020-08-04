@@ -62,6 +62,17 @@ def unfreeze(impl):
                 p.requires_grad = True
 
 
+def compute_augemtation_mean(augmentation, n_augmentations, func, inputs,
+                             targets):
+    ret = 0.0
+    for _ in range(n_augmentations):
+        kwargs = dict(inputs)
+        for target in targets:
+            kwargs[target] = augmentation.transform(kwargs[target])
+        ret += func(**kwargs)
+    return ret / n_augmentations
+
+
 def get_state_dict(impl):
     rets = {}
     for key in dir(impl):

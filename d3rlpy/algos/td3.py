@@ -55,6 +55,9 @@ class TD3(AlgoBase):
         use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
+        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
+            augmentation pipeline.
+        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.ddpg.IDDPGImpl): algorithm implementation.
@@ -79,6 +82,9 @@ class TD3(AlgoBase):
         n_epochs (int): the number of epochs to train.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        augmentation (d3rlpy.augmentation.AugmentationPipeline):
+            augmentation pipeline.
+        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.ddpg.IDDPGImpl): algorithm implementation.
 
@@ -102,10 +108,13 @@ class TD3(AlgoBase):
                  n_epochs=1000,
                  use_gpu=False,
                  scaler=None,
+                 augmentation=[],
+                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler, dynamics, use_gpu)
+        super().__init__(n_epochs, batch_size, scaler, augmentation, dynamics,
+                         use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.gamma = gamma
@@ -120,6 +129,7 @@ class TD3(AlgoBase):
         self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
+        self.n_augmentations = n_augmentations
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -140,7 +150,9 @@ class TD3(AlgoBase):
                             use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu,
-                            scaler=self.scaler)
+                            scaler=self.scaler,
+                            augmentation=self.augmentation,
+                            n_augmentations=self.n_augmentations)
 
     def update(self, epoch, total_step, batch):
         critic_loss = self.impl.update_critic(batch.observations,

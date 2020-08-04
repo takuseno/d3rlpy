@@ -15,14 +15,16 @@ class SACImpl(DDPGImpl, ISACImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, temp_learning_rate, gamma, tau,
                  n_critics, bootstrap, share_encoder, initial_temperature, eps,
-                 use_batch_norm, q_func_type, use_gpu, scaler):
+                 use_batch_norm, q_func_type, use_gpu, scaler, augmentation,
+                 n_augmentations):
         self.temp_learning_rate = temp_learning_rate
         self.initial_temperature = initial_temperature
 
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, n_critics,
                          bootstrap, share_encoder, 0.0, eps, use_batch_norm,
-                         q_func_type, use_gpu, scaler)
+                         q_func_type, use_gpu, scaler, augmentation,
+                         n_augmentations)
 
         # TODO: save and load temperature parameter
         # setup temeprature after device property is set.
@@ -42,22 +44,11 @@ class SACImpl(DDPGImpl, ISACImpl):
     def _build_temperature_optim(self):
         self.temp_optim = Adam([self.log_temp], self.temp_learning_rate)
 
-    @train_api
-    @torch_api
-    def update_actor(self, obs_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
+    def _compute_actor_loss(self, obs_t):
         action, log_prob = self.policy(obs_t, with_log_prob=True)
         entropy = self.log_temp.exp() * log_prob
         q_t = self.q_func(obs_t, action, 'min')
-        loss = (entropy - q_t).mean()
-
-        self.actor_optim.zero_grad()
-        loss.backward()
-        self.actor_optim.step()
-
-        return loss.cpu().detach().numpy()
+        return (entropy - q_t).mean()
 
     @train_api
     @torch_api

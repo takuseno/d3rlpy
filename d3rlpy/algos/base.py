@@ -21,8 +21,9 @@ class AlgoImplBase(ImplBase):
 
 
 class AlgoBase(LearnableBase):
-    def __init__(self, n_epochs, batch_size, scaler, dynamics, use_gpu):
-        super().__init__(n_epochs, batch_size, scaler, use_gpu)
+    def __init__(self, n_epochs, batch_size, scaler, augmentation, dynamics,
+                 use_gpu):
+        super().__init__(n_epochs, batch_size, scaler, augmentation, use_gpu)
         self.dynamics = dynamics
 
     def save_policy(self, fname):

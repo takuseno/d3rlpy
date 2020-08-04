@@ -8,6 +8,7 @@ from d3rlpy.models.torch.imitators import create_probablistic_regressor
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
 from d3rlpy.algos.bear import IBEARImpl
 from .utility import torch_api, train_api
+from .utility import compute_augemtation_mean
 from .sac_impl import SACImpl
 
 
@@ -21,7 +22,8 @@ class BEARImpl(SACImpl, IBEARImpl):
                  temp_learning_rate, alpha_learning_rate, gamma, tau,
                  n_critics, bootstrap, share_encoder, initial_temperature,
                  initial_alpha, alpha_threshold, lam, n_action_samples,
-                 mmd_sigma, eps, use_batch_norm, q_func_type, use_gpu, scaler):
+                 mmd_sigma, eps, use_batch_norm, q_func_type, use_gpu, scaler,
+                 augmentation, n_augmentations):
         # imitator requires these parameters
         self.observation_shape = observation_shape
         self.action_size = action_size
@@ -40,7 +42,7 @@ class BEARImpl(SACImpl, IBEARImpl):
                          critic_learning_rate, temp_learning_rate, gamma, tau,
                          n_critics, bootstrap, share_encoder,
                          initial_temperature, eps, use_batch_norm, q_func_type,
-                         use_gpu, scaler)
+                         use_gpu, scaler, augmentation, n_augmentations)
 
         self._build_imitator_optim()
         self._build_alpha()
@@ -66,27 +68,10 @@ class BEARImpl(SACImpl, IBEARImpl):
                                 self.alpha_learning_rate,
                                 eps=self.eps)
 
-    @train_api
-    @torch_api
-    def update_actor(self, obs_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
-        action, log_prob = self.policy(obs_t, with_log_prob=True)
-        entropy = self.log_temp.exp() * log_prob
-        # mean is empirically better
-        q_t = self.q_func(obs_t, action, 'mean')
-        td_loss = (entropy - q_t).mean()
-
+    def _compute_actor_loss(self, obs_t):
+        loss = super()._compute_actor_loss(obs_t)
         mmd_loss = self._compute_mmd(obs_t)
-
-        loss = td_loss + mmd_loss
-
-        self.actor_optim.zero_grad()
-        loss.backward()
-        self.actor_optim.step()
-
-        return loss.cpu().detach().numpy()
+        return loss + mmd_loss
 
     @train_api
     @torch_api
@@ -94,7 +79,12 @@ class BEARImpl(SACImpl, IBEARImpl):
         if self.scaler:
             obs_t = self.scaler.transform(obs_t)
 
-        loss = self.imitator.compute_error(obs_t, act_t)
+        loss = compute_augemtation_mean(self.augmentation,
+                                        self.n_augmentations,
+                                        self.imitator.compute_error, {
+                                            'x': obs_t,
+                                            'action': act_t
+                                        }, ['x'])
 
         self.imitator_optim.zero_grad()
         loss.backward()

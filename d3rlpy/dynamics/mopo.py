@@ -58,6 +58,8 @@ class MOPO(DynamicsBase):
         discrete_action (bool): flag to take discrete actions.
         scaler (d3rlpy.preprocessing.scalers.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`.
+        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
+            augmentation pipeline.
         use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         impl (d3rlpy.dynamics.base.DynamicsImplBase): dynamics implementation.
 
@@ -74,6 +76,8 @@ class MOPO(DynamicsBase):
         use_batch_norm (bool): flag to insert batch normalization layers.
         discrete_action (bool): flag to take discrete actions.
         scaler (d3rlpy.preprocessing.scalers.Scaler): preprocessor.
+        augmentation (d3rlpy.augmentation.AugmentationPipeline):
+            augmentation pipeline.
         use_gpu (d3rlpy.gpu.Device): flag to use GPU or device.
         impl (d3rlpy.dynamics.base.DynamicsImplBase): dynamics implementation.
 
@@ -91,11 +95,12 @@ class MOPO(DynamicsBase):
                  use_batch_norm=False,
                  discrete_action=False,
                  scaler=None,
+                 augmentation=[],
                  use_gpu=False,
                  impl=None,
                  **kwargs):
         super().__init__(n_epochs, batch_size, n_transitions, horizon, scaler,
-                         use_gpu)
+                         augmentation, use_gpu)
         self.learning_rate = learning_rate
         self.eps = eps
         self.weight_decay = weight_decay

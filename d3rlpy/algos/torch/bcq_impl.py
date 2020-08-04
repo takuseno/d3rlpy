@@ -14,6 +14,7 @@ from d3rlpy.models.torch.imitators import create_discrete_imitator
 from d3rlpy.models.torch.imitators import DiscreteImitator
 from d3rlpy.algos.bcq import IBCQImpl
 from .utility import torch_api, train_api
+from .utility import compute_augemtation_mean
 from .ddpg_impl import DDPGImpl
 from .dqn_impl import DoubleDQNImpl
 
@@ -23,7 +24,7 @@ class BCQImpl(DDPGImpl, IBCQImpl):
                  critic_learning_rate, imitator_learning_rate, gamma, tau,
                  n_critics, bootstrap, share_encoder, lam, n_action_samples,
                  action_flexibility, latent_size, beta, eps, use_batch_norm,
-                 q_func_type, use_gpu, scaler):
+                 q_func_type, use_gpu, scaler, augmentation, n_augmentations):
         # imitator requires these parameters
         self.observation_shape = observation_shape
         self.action_size = action_size
@@ -43,7 +44,8 @@ class BCQImpl(DDPGImpl, IBCQImpl):
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, n_critics,
                          bootstrap, share_encoder, 0.0, eps, use_batch_norm,
-                         q_func_type, use_gpu, scaler)
+                         q_func_type, use_gpu, scaler, augmentation,
+                         n_augmentations)
 
         # setup optimizer after the parameters move to GPU
         self._build_imitator_optim()
@@ -64,25 +66,14 @@ class BCQImpl(DDPGImpl, IBCQImpl):
                                    self.imitator_learning_rate,
                                    eps=self.eps)
 
-    @train_api
-    @torch_api
-    def update_actor(self, obs_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
+    def _compute_actor_loss(self, obs_t):
         latent = torch.randn(obs_t.shape[0],
                              self.latent_size,
                              device=self.device)
         clipped_latent = latent.clamp(-0.5, 0.5)
         sampled_action = self.imitator.decode(obs_t, clipped_latent)
         action = self.policy(obs_t, sampled_action)
-        loss = -self.q_func(obs_t, action, 'none')[0].mean()
-
-        self.actor_optim.zero_grad()
-        loss.backward()
-        self.actor_optim.step()
-
-        return loss.cpu().detach().numpy()
+        return -self.q_func(obs_t, action, 'none')[0].mean()
 
     @train_api
     @torch_api
@@ -90,7 +81,12 @@ class BCQImpl(DDPGImpl, IBCQImpl):
         if self.scaler:
             obs_t = self.scaler.transform(obs_t)
 
-        loss = self.imitator.compute_error(obs_t, act_t)
+        loss = compute_augemtation_mean(self.augmentation,
+                                        self.n_augmentations,
+                                        self.imitator.compute_error, {
+                                            'x': obs_t,
+                                            'action': act_t
+                                        }, ['x'])
 
         self.imitator_optim.zero_grad()
         loss.backward()
@@ -158,14 +154,16 @@ class BCQImpl(DDPGImpl, IBCQImpl):
 class DiscreteBCQImpl(DoubleDQNImpl):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
                  n_critics, bootstrap, share_encoder, action_flexibility, beta,
-                 eps, use_batch_norm, q_func_type, use_gpu, scaler):
+                 eps, use_batch_norm, q_func_type, use_gpu, scaler,
+                 augmentation, n_augmentations):
 
         self.action_flexibility = action_flexibility
         self.beta = beta
 
         super().__init__(observation_shape, action_size, learning_rate, gamma,
                          n_critics, bootstrap, share_encoder, eps,
-                         use_batch_norm, q_func_type, use_gpu, scaler)
+                         use_batch_norm, q_func_type, use_gpu, scaler,
+                         augmentation, n_augmentations)
 
     def _build_network(self):
         super()._build_network()
@@ -186,34 +184,10 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         unique_params = list(set(q_func_params + imitator_params))
         self.optim = Adam(unique_params, lr=self.learning_rate, eps=self.eps)
 
-    @train_api
-    @torch_api
-    def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-            obs_tp1 = self.scaler.transform(obs_tp1)
-
-        # convert float to long
-        act_t = act_t.long()
-
-        # loss for Q function
-        q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
-        value_loss = self.q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1,
-                                               self.gamma)
-
-        # loss for imitator
-        imitator_loss = self.imitator.compute_error(obs_t, act_t)
-
-        loss = value_loss + imitator_loss
-
-        self.optim.zero_grad()
-        loss.backward()
-        self.optim.step()
-
-        value_loss = value_loss.cpu().detach().numpy()
-        imitator_loss = imitator_loss.cpu().detach().numpy()
-
-        return value_loss, imitator_loss
+    def _compute_loss(self, obs_t, act_t, rew_tp1, q_tp1):
+        loss = super()._compute_loss(obs_t, act_t, rew_tp1, q_tp1)
+        imitator_loss = self.imitator.compute_error(obs_t, act_t.long())
+        return loss + imitator_loss
 
     def _predict_best_action(self, x):
         log_probs = self.imitator(x)

@@ -8,6 +8,7 @@ from d3rlpy.models.torch.policies import create_deterministic_policy
 from d3rlpy.algos.ddpg import IDDPGImpl
 from .utility import soft_sync, torch_api
 from .utility import train_api, eval_api
+from .utility import compute_augemtation_mean
 from .base import TorchImplBase
 
 
@@ -15,7 +16,7 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, gamma, tau, n_critics, bootstrap,
                  share_encoder, reguralizing_rate, eps, use_batch_norm,
-                 q_func_type, use_gpu, scaler):
+                 q_func_type, use_gpu, scaler, augmentation, n_augmentations):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.actor_learning_rate = actor_learning_rate
@@ -30,6 +31,8 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.scaler = scaler
+        self.augmentation = augmentation
+        self.n_augmentations = n_augmentations
 
         # setup torch models
         self._build_critic()
@@ -80,9 +83,20 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
             obs_t = self.scaler.transform(obs_t)
             obs_tp1 = self.scaler.transform(obs_tp1)
 
-        q_tp1 = self.compute_target(obs_tp1) * (1.0 - ter_tp1)
-        loss = self.q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1,
-                                         self.gamma)
+        q_tp1 = compute_augemtation_mean(self.augmentation,
+                                         self.n_augmentations,
+                                         self.compute_target, {'x': obs_tp1},
+                                         ['x'])
+        q_tp1 *= (1.0 - ter_tp1)
+
+        loss = compute_augemtation_mean(self.augmentation,
+                                        self.n_augmentations,
+                                        self._compute_critic_loss, {
+                                            'obs_t': obs_t,
+                                            'act_t': act_t,
+                                            'rew_tp1': rew_tp1,
+                                            'q_tp1': q_tp1
+                                        }, ['obs_t'])
 
         self.critic_optim.zero_grad()
         loss.backward()
@@ -90,21 +104,32 @@ class DDPGImpl(TorchImplBase, IDDPGImpl):
 
         return loss.cpu().detach().numpy()
 
+    def _compute_critic_loss(self, obs_t, act_t, rew_tp1, q_tp1):
+        return self.q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1,
+                                         self.gamma)
+
     @train_api
     @torch_api
     def update_actor(self, obs_t):
         if self.scaler:
             obs_t = self.scaler.transform(obs_t)
 
-        action, raw_action = self.policy(obs_t, with_raw=True)
-        q_t = self.q_func(obs_t, action, 'min')
-        loss = -q_t.mean() + self.reguralizing_rate * (raw_action**2).mean()
+        loss = compute_augemtation_mean(self.augmentation,
+                                        self.n_augmentations,
+                                        self._compute_actor_loss,
+                                        {'obs_t': obs_t}, ['obs_t'])
 
         self.actor_optim.zero_grad()
         loss.backward()
         self.actor_optim.step()
 
         return loss.cpu().detach().numpy()
+
+    def _compute_actor_loss(self, obs_t):
+        action, raw_action = self.policy(obs_t, with_raw=True)
+        q_t = self.q_func(obs_t, action, 'min')
+        penalty = self.reguralizing_rate * (raw_action**2).mean()
+        return -q_t.mean() + penalty
 
     def compute_target(self, x):
         with torch.no_grad():

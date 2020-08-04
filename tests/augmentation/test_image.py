@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from d3rlpy.augmentation.image import create_augmentation
+from d3rlpy.augmentation import create_augmentation
 from d3rlpy.augmentation.image import RandomShift
 from d3rlpy.augmentation.image import Cutout
 from d3rlpy.augmentation.image import HorizontalFlip
