@@ -418,7 +418,7 @@ class LearnableBase:
         for aug_type, aug_param in zip(aug_types, aug_params):
             params['augmentation'].append({
                 'type': aug_type,
-                'params': aug_params
+                'params': aug_param
             })
 
         # save GPU device id
