@@ -6,7 +6,6 @@ from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
 from d3rlpy.metrics.scorer import average_value_estimation_scorer
 from sklearn.model_selection import train_test_split
 
-
 dataset, env = get_atari('breakout-expert-v0')
 
 train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
