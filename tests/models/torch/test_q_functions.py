@@ -240,7 +240,7 @@ def test_discrete_qr_q_function(feature_size, action_size, n_quantiles,
     assert np.allclose(loss.cpu().detach(), ref_loss.mean())
 
     # check layer connection
-    check_parameter_updates(q_func, (x, ))
+    check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
 @pytest.mark.parametrize('feature_size', [100])
@@ -288,7 +288,7 @@ def test_continuous_qr_q_function(feature_size, action_size, n_quantiles,
     assert np.allclose(loss.cpu().detach(), ref_loss.mean())
 
     # check layer connection
-    check_parameter_updates(q_func, (x, action))
+    check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
 @pytest.mark.parametrize('feature_size', [100])
@@ -323,7 +323,7 @@ def test_discrete_iqn_q_function(feature_size, action_size, n_quantiles,
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
 
     # check layer connection
-    check_parameter_updates(q_func, (x, ))
+    check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
 @pytest.mark.parametrize('feature_size', [100])
@@ -358,7 +358,7 @@ def test_continuous_iqn_q_function(feature_size, action_size, n_quantiles,
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
 
     # check layer connection
-    check_parameter_updates(q_func, (x, action))
+    check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
 @pytest.mark.parametrize('feature_size', [100])
@@ -393,7 +393,7 @@ def test_discrete_fqf_q_function(feature_size, action_size, n_quantiles,
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
 
     # check layer connection
-    check_parameter_updates(q_func, (x, ))
+    check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
 @pytest.mark.parametrize('feature_size', [100])
@@ -428,7 +428,7 @@ def test_continuous_fqf_q_function(feature_size, action_size, n_quantiles,
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
 
     # check layer connection
-    check_parameter_updates(q_func, (x, action))
+    check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
 def ref_huber_loss(a, b):
@@ -474,16 +474,15 @@ def test_discrete_q_function(feature_size, action_size, batch_size, gamma):
     q_t = filter_by_action(q_func(obs_t).detach().numpy(), act_t, action_size)
     ref_loss = ref_huber_loss(q_t.reshape((-1, 1)), target)
 
-    loss = q_func.compute_error(obs_t,
-                                torch.tensor(act_t, dtype=torch.int64),
-                                torch.tensor(rew_tp1, dtype=torch.float32),
-                                torch.tensor(q_tp1, dtype=torch.float32),
-                                gamma=gamma)
+    act_t = torch.tensor(act_t, dtype=torch.int64)
+    rew_tp1 = torch.tensor(rew_tp1, dtype=torch.float32)
+    q_tp1 = torch.tensor(q_tp1, dtype=torch.float32)
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma=gamma)
 
     assert np.allclose(loss.detach().numpy(), ref_loss)
 
     # check layer connection
-    check_parameter_updates(q_func, (x, ))
+    check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
 @pytest.mark.parametrize('feature_size', [100])
@@ -558,7 +557,7 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
         assert torch.allclose(ref_td_sum, loss)
 
     # check layer connection
-    check_parameter_updates(q_func, (x, 'mean'))
+    check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
 @pytest.mark.parametrize('feature_size', [100])
@@ -590,15 +589,14 @@ def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
     q_t = q_func(obs_t, act_t).detach().numpy()
     ref_loss = ((q_t - target)**2).mean()
 
-    loss = q_func.compute_error(obs_t, act_t,
-                                torch.tensor(rew_tp1, dtype=torch.float32),
-                                torch.tensor(q_tp1, dtype=torch.float32),
-                                gamma)
+    rew_tp1 = torch.tensor(rew_tp1, dtype=torch.float32)
+    q_tp1 = torch.tensor(q_tp1, dtype=torch.float32)
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
 
     assert np.allclose(loss.detach().numpy(), ref_loss)
 
     # check layer connection
-    check_parameter_updates(q_func, (x, action))
+    check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
 @pytest.mark.parametrize('feature_size', [100])
@@ -668,7 +666,7 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
         assert torch.allclose(ref_td_sum, loss)
 
     # check layer connection
-    check_parameter_updates(q_func, (x, action, 'mean'))
+    check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])

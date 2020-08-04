@@ -81,7 +81,7 @@ def test_probablistic_dynamics(feature_size, action_size, batch_size):
     assert loss.shape == (batch_size, 1)
 
     # check layer connection
-    check_parameter_updates(dynamics, (x, action))
+    check_parameter_updates(dynamics, (x, action, reward, x))
 
 
 @pytest.mark.parametrize('feature_size', [100])
@@ -113,4 +113,4 @@ def test_ensemble_dynamics_dynamics(feature_size, action_size, batch_size,
     loss = dynamics.compute_error(x, action, reward, x)
 
     # check layer connection
-    check_parameter_updates(dynamics, (x, action))
+    check_parameter_updates(dynamics, (x, action, reward, x))

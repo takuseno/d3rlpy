@@ -8,7 +8,10 @@ def check_parameter_updates(model, inputs):
     model.train()
     params_before = copy.deepcopy([p for p in model.parameters()])
     optim = SGD(model.parameters(), lr=1.0)
-    output = model(*inputs)
+    if hasattr(model, 'compute_error'):
+        output = model.compute_error(*inputs)
+    else:
+        output = model(*inputs)
     if isinstance(output, (list, tuple)):
         loss = 0.0
         for y in output:
