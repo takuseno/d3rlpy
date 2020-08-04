@@ -12,6 +12,7 @@ API Reference
    dataset
    datasets
    preprocessing
+   data_augmentation
    metrics
    save_and_load
    logging
