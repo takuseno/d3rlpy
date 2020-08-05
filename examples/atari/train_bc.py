@@ -1,7 +1,7 @@
 import argparse
 import d3rlpy
 
-from d3rlpy.algos import BC
+from d3rlpy.algos import DiscreteBC
 from d3rlpy.datasets import get_atari
 from d3rlpy.metrics.scorer import evaluate_on_environment
 from d3rlpy.gpu import Device

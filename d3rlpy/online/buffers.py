@@ -1,8 +1,6 @@
 import numpy as np
-import random
 
 from abc import ABCMeta, abstractmethod
-from collections import deque
 from ..dataset import Transition, TransitionMiniBatch
 from .utility import get_action_size_from_env
 

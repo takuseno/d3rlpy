@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 
 setup(name="d3rlpy",
@@ -21,6 +21,7 @@ setup(name="d3rlpy",
       packages=["d3rlpy",
                 "d3rlpy.algos",
                 "d3rlpy.algos.torch",
+                "d3rlpy.augmentation",
                 "d3rlpy.dynamics",
                 "d3rlpy.dynamics.torch",
                 "d3rlpy.metrics",

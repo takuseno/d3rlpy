@@ -4,7 +4,6 @@ import math
 
 from torch.optim import Adam
 from d3rlpy.models.torch.policies import create_normal_policy
-from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from .utility import torch_api, train_api
 from .ddpg_impl import DDPGImpl
 

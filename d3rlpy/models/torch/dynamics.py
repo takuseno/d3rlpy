@@ -150,9 +150,6 @@ class ProbablisticDynamics(nn.Module):
 
     def compute_error(self, obs_t, act_t, rew_tp1, obs_tp1):
         mu, logstd = self.compute_stats(obs_t, act_t)
-        inv_std = torch.exp(-logstd)
-
-        y = torch.cat([obs_tp1, rew_tp1], dim=1)
 
         # residual prediction
         mu_x = obs_t + mu[:, :-1]

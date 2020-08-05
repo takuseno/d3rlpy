@@ -1,6 +1,5 @@
 import torch
 
-from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from .ddpg_impl import DDPGImpl
 
 

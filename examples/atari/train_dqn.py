@@ -3,7 +3,6 @@ import d3rlpy
 
 from d3rlpy.algos import DQN
 from d3rlpy.datasets import get_atari
-from d3rlpy.preprocessing import PixelScaler
 from d3rlpy.metrics.scorer import evaluate_on_environment
 from d3rlpy.metrics.scorer import td_error_scorer
 from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer

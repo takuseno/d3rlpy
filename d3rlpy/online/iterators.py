@@ -1,5 +1,3 @@
-import numpy as np
-
 from tqdm import trange
 from ..metrics.scorer import evaluate_on_environment
 from ..logger import D3RLPyLogger
