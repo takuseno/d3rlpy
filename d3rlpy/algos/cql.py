@@ -111,9 +111,9 @@ class CQL(AlgoBase):
 
     """
     def __init__(self,
-                 actor_learning_rate=3e-4,
+                 actor_learning_rate=3e-5,
                  critic_learning_rate=3e-4,
-                 temp_learning_rate=3e-4,
+                 temp_learning_rate=3e-5,
                  alpha_learning_rate=3e-4,
                  batch_size=100,
                  gamma=0.99,
