@@ -11,14 +11,14 @@ it's the core dependency.
 from pip
 --------
 
-.. code-block::
+`pip` is a recommended way to install d3rlpy::
 
   $ pip install d3rlpy
 
 from source
 -----------
 
-.. code-block::
+You can also install via GitHub repository::
 
   $ git clone https://github.com/takuseno/d3rlpy
   $ cd d3rlpy
