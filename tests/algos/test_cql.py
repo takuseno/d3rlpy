@@ -9,7 +9,7 @@ from .algo_test import algo_cartpole_tester, algo_pendulum_tester
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
-@pytest.mark.parametrize('scaler', [None, 'pixel', 'min_max', 'standard'])
+@pytest.mark.parametrize('scaler', [None, 'standard'])
 def test_cql(observation_shape, action_size, q_func_type, scaler):
     cql = CQL(q_func_type=q_func_type, scaler=scaler)
     algo_tester(cql, observation_shape)
@@ -25,7 +25,7 @@ def test_cql_performance():
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
-@pytest.mark.parametrize('scaler', [None, 'pixel', 'min_max', 'standard'])
+@pytest.mark.parametrize('scaler', [None, 'standard'])
 def test_discrete_cql(observation_shape, action_size, q_func_type, scaler):
     cql = DiscreteCQL(q_func_type=q_func_type, scaler=scaler)
     algo_tester(cql, observation_shape)
