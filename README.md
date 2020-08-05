@@ -104,9 +104,9 @@ Basically, all features are available with every algorithm.
 - [x] [delayed policy updates](https://arxiv.org/abs/1802.09477)
 - [x] parallel cross validation with multiple GPU
 - [x] online training
+- [x] [data augmentation](https://arxiv.org/abs/2004.13649)
 - [x] [Model-based Offline Policy Optimization](https://arxiv.org/abs/2005.13239)
 - [ ] user-defined custom network
-- [ ] automatic image augmentation
 
 ## examples
 ### Atari 2600
