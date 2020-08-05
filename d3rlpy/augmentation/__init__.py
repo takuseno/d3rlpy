@@ -36,7 +36,7 @@ class AugmentationPipeline(Augmentation):
 
     """
     def __init__(self, augmentations=[]):
-        self.augmentations = augmentations
+        self.augmentations = list(augmentations)
 
     def append(self, augmentation):
         """ Append augmentation to pipeline.
