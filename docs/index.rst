@@ -6,8 +6,12 @@
 d3rlpy - A data-driven deep reinforcement learning library as an out-of-the-box tool.
 =====================================================================================
 
-d3rlpy is a easy-to-use data-driven deep reinforcement learning
-library.
+`d3rlpy <https://github.com/takuseno/d3rlpy>`_ is a easy-to-use data-driven
+deep reinforcement learning library.
+
+.. code-block::
+
+  $ pip install d3rlpy
 
 d3rlpy provides state-of-the-art data-driven deep reinforcement learning
 algorithms through out-of-the-box scikit-learn-style APIs.
@@ -32,6 +36,7 @@ These are the design principles of d3rlpy:
    :caption: References
 
    references/index
+   installation
 
 .. toctree::
    :maxdepth: 2
