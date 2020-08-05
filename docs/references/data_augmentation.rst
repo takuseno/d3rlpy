@@ -8,15 +8,15 @@ reinforcement learning algorithms.
 
 `Kostrikov et al., Image Augmentation Is All You Need: Regularizing Deep Reinforcement Learning from Pixels. <https://arxiv.org/abs/2004.13649>`_
 
- Efficient data augmentation can boost algorithm performance significantly. 
+ Efficient data augmentation potentially boosts algorithm performance significantly.
 
 .. code-block:: python
 
     from d3rlpy.algos import DiscreteCQL
 
     # choose data augmentation types
-    cql = CQL(augmentation=['random_shift', 'intensity'],
-              n_augmentations=2)
+    cql = DiscreteCQL(augmentation=['random_shift', 'intensity'],
+                      n_augmentations=2)
 
 You can also tune data augmentation parameters by yourself.
 
@@ -26,8 +26,8 @@ You can also tune data augmentation parameters by yourself.
 
     random_shift = RandomShift(shift_size=10)
 
-    cql = CQL(augmentation=[random_shift, 'intensity'],
-              n_augmentations=2)
+    cql = DiscreteCQL(augmentation=[random_shift, 'intensity'],
+                      n_augmentations=2)
 
 Image Observation
 -----------------
