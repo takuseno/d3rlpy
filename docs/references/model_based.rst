@@ -1,5 +1,5 @@
-Model-based Data Augmentation
-=============================
+Model-based Data Augmentation (experimental)
+============================================
 
 .. module:: d3rlpy.dynamics
 
