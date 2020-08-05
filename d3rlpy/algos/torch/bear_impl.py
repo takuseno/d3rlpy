@@ -1,12 +1,10 @@
 import torch
 import torch.nn as nn
-import copy
 import math
 
 from torch.optim import Adam
 from d3rlpy.models.torch.imitators import create_probablistic_regressor
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
-from d3rlpy.algos.bear import IBEARImpl
 from .utility import torch_api, train_api
 from .utility import compute_augemtation_mean
 from .sac_impl import SACImpl
@@ -16,7 +14,7 @@ def _gaussian_kernel(x, y, sigma):
     return (-((x - y)**2) / (2 * sigma**2)).exp()
 
 
-class BEARImpl(SACImpl, IBEARImpl):
+class BEARImpl(SACImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, imitator_learning_rate,
                  temp_learning_rate, alpha_learning_rate, gamma, tau,

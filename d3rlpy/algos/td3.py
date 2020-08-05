@@ -1,5 +1,5 @@
 from .base import AlgoBase
-from .ddpg import IDDPGImpl
+from .torch.td3_impl import TD3Impl
 
 
 class TD3(AlgoBase):
@@ -60,7 +60,7 @@ class TD3(AlgoBase):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (d3rlpy.algos.ddpg.IDDPGImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.td3_impl.TD3Impl): algorithm implementation.
 
     Attributes:
         actor_learning_rate (float): learning rate for a policy function.
@@ -86,7 +86,7 @@ class TD3(AlgoBase):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.ddpg.IDDPGImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.td3_impl.TD3Impl): algorithm implementation.
 
     """
     def __init__(self,
@@ -133,7 +133,6 @@ class TD3(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        from .torch.td3_impl import TD3Impl
         self.impl = TD3Impl(observation_shape=observation_shape,
                             action_size=action_size,
                             actor_learning_rate=self.actor_learning_rate,

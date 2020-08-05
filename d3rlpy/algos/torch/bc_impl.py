@@ -1,16 +1,14 @@
 import torch
-import copy
 
 from torch.optim import Adam
 from d3rlpy.models.torch.imitators import create_deterministic_regressor
 from d3rlpy.models.torch.imitators import create_discrete_imitator
-from d3rlpy.algos.bc import IBCImpl
 from .base import TorchImplBase
 from .utility import torch_api, train_api
 from .utility import compute_augemtation_mean
 
 
-class BCImpl(TorchImplBase, IBCImpl):
+class BCImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate, eps,
                  use_batch_norm, use_gpu, scaler, augmentation,
                  n_augmentations):

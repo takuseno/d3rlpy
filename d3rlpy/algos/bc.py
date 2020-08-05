@@ -1,11 +1,5 @@
-from abc import ABCMeta, abstractmethod
 from .base import AlgoBase
-
-
-class IBCImpl(metaclass=ABCMeta):
-    @abstractmethod
-    def update_imitator(self, obs_t, act_t):
-        pass
+from .torch.bc_impl import BCImpl, DiscreteBCImpl
 
 
 class BC(AlgoBase):
@@ -36,7 +30,8 @@ class BC(AlgoBase):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
+        impl (d3rlpy.algos.torch.bc_impl.BCImpl):
+            implemenation of the algorithm.
 
     Attributes:
         n_epochs (int): the number of epochs to train.
@@ -50,7 +45,8 @@ class BC(AlgoBase):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
+        impl (d3rlpy.algos.torch.bc_impl.BCImpl):
+            implemenation of the algorithm.
 
     """
     def __init__(self,
@@ -75,7 +71,6 @@ class BC(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        from .torch.bc_impl import BCImpl
         self.impl = BCImpl(observation_shape=observation_shape,
                            action_size=action_size,
                            learning_rate=self.learning_rate,
@@ -135,7 +130,8 @@ class DiscreteBC(BC):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
+        impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
+            implemenation of the algorithm.
 
     Attributes:
         n_epochs (int): the number of epochs to train.
@@ -150,7 +146,8 @@ class DiscreteBC(BC):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.bc.IBCImpl): implemenation of the algorithm.
+        impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
+            implemenation of the algorithm.
 
     """
     def __init__(self,
@@ -173,7 +170,6 @@ class DiscreteBC(BC):
         self.beta = beta
 
     def create_impl(self, observation_shape, action_size):
-        from .torch.bc_impl import DiscreteBCImpl
         self.impl = DiscreteBCImpl(observation_shape=observation_shape,
                                    action_size=action_size,
                                    learning_rate=self.learning_rate,

@@ -1,13 +1,5 @@
-from abc import abstractmethod
 from .base import AlgoBase
-from .dqn import IDQNImpl
-from .ddpg import IDDPGImpl
-
-
-class IBCQImpl(IDDPGImpl):
-    @abstractmethod
-    def update_imitator(self, obs_t, act_t):
-        pass
+from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 
 
 class BCQ(AlgoBase):
@@ -118,7 +110,7 @@ class BCQ(AlgoBase):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (d3rlpy.algos.bcq.IBCQImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
 
     Attributes:
         actor_learning_rate (float): learning rate for policy function.
@@ -149,7 +141,7 @@ class BCQ(AlgoBase):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.bcq.IBCQImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
 
     """
     def __init__(self,
@@ -204,7 +196,6 @@ class BCQ(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        from .torch.bcq_impl import BCQImpl
         self.impl = BCQImpl(observation_shape=observation_shape,
                             action_size=action_size,
                             actor_learning_rate=self.actor_learning_rate,
@@ -320,7 +311,8 @@ class DiscreteBCQ(AlgoBase):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (torch.algos.dqn.IDQNImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.bcq_impl.DiscreteBCQImpl):
+            algorithm implementation.
 
     Attributes:
         learning_rate (float): learning rate.
@@ -343,7 +335,8 @@ class DiscreteBCQ(AlgoBase):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (torch.algos.dqn.IDQNImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.bcq_impl.DiscreteBCQImpl):
+            algorithm implementation.
 
     """
     def __init__(self,
@@ -384,7 +377,6 @@ class DiscreteBCQ(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        from .torch.bcq_impl import DiscreteBCQImpl
         self.impl = DiscreteBCQImpl(observation_shape=observation_shape,
                                     action_size=action_size,
                                     learning_rate=self.learning_rate,

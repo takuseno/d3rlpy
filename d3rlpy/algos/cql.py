@@ -1,13 +1,6 @@
-from abc import abstractmethod
 from .base import AlgoBase
-from .sac import ISACImpl
 from .dqn import DoubleDQN
-
-
-class ICQLImpl(ISACImpl):
-    @abstractmethod
-    def update_alpha(self, obs_t, act_t):
-        pass
+from .torch.cql_impl import CQLImpl, DiscreteCQLImpl
 
 
 class CQL(AlgoBase):
@@ -84,7 +77,7 @@ class CQL(AlgoBase):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (d3rlpy.algos.cql.ICQLImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.cql_impl.CQLImpl): algorithm implementation.
 
     Attributes:
         actor_learning_rate (float): learning rate for policy function.
@@ -114,7 +107,7 @@ class CQL(AlgoBase):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.cql.ICQLImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.cql_impl.CQLImpl): algorithm implementation.
 
     """
     def __init__(self,
@@ -168,7 +161,6 @@ class CQL(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        from .torch.cql_impl import CQLImpl
         self.impl = CQLImpl(observation_shape=observation_shape,
                             action_size=action_size,
                             actor_learning_rate=self.actor_learning_rate,
@@ -264,7 +256,8 @@ class DiscreteCQL(DoubleDQN):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.cql_impl.DiscreteCQLImpl):
+            algorithm implementation.
 
     Attributes:
         learning_rate (float): learning rate.
@@ -284,11 +277,11 @@ class DiscreteCQL(DoubleDQN):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.CQLImpl.DiscreteCQLImpl):
+            algorithm implementation.
 
     """
     def create_impl(self, observation_shape, action_size):
-        from .torch.cql_impl import DiscreteCQLImpl
         self.impl = DiscreteCQLImpl(observation_shape=observation_shape,
                                     action_size=action_size,
                                     learning_rate=self.learning_rate,

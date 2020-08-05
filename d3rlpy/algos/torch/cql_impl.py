@@ -1,19 +1,17 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import copy
 import math
 
 from torch.optim import Adam
 from d3rlpy.models.torch.policies import create_normal_policy
 from d3rlpy.models.torch.q_functions import create_continuous_q_function
-from d3rlpy.algos.cql import ICQLImpl
 from .utility import torch_api, train_api
 from .sac_impl import SACImpl
 from .dqn_impl import DoubleDQNImpl
 
 
-class CQLImpl(SACImpl, ICQLImpl):
+class CQLImpl(SACImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, temp_learning_rate, alpha_learning_rate,
                  gamma, tau, n_critics, bootstrap, share_encoder,

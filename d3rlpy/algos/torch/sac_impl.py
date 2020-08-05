@@ -1,17 +1,15 @@
 import torch
 import torch.nn as nn
-import copy
 import math
 
 from torch.optim import Adam
 from d3rlpy.models.torch.policies import create_normal_policy
 from d3rlpy.models.torch.q_functions import create_continuous_q_function
-from d3rlpy.algos.sac import ISACImpl
 from .utility import torch_api, train_api
 from .ddpg_impl import DDPGImpl
 
 
-class SACImpl(DDPGImpl, ISACImpl):
+class SACImpl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, temp_learning_rate, gamma, tau,
                  n_critics, bootstrap, share_encoder, initial_temperature, eps,

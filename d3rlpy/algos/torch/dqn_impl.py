@@ -5,14 +5,13 @@ import copy
 
 from torch.optim import Adam
 from d3rlpy.models.torch.q_functions import create_discrete_q_function
-from d3rlpy.algos.dqn import IDQNImpl
 from .utility import hard_sync
 from .utility import torch_api, train_api, eval_api
 from .utility import compute_augemtation_mean
 from .base import TorchImplBase
 
 
-class DQNImpl(TorchImplBase, IDQNImpl):
+class DQNImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
                  n_critics, bootstrap, share_encoder, eps, use_batch_norm,
                  q_func_type, use_gpu, scaler, augmentation, n_augmentations):

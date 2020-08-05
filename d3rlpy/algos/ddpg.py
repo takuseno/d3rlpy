@@ -1,23 +1,5 @@
-from abc import ABCMeta, abstractmethod
 from .base import AlgoBase
-
-
-class IDDPGImpl(metaclass=ABCMeta):
-    @abstractmethod
-    def update_critic(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        pass
-
-    @abstractmethod
-    def update_actor(self, obs_t):
-        pass
-
-    @abstractmethod
-    def update_actor_target(self):
-        pass
-
-    @abstractmethod
-    def update_critic_target(self):
-        pass
+from .torch.ddpg_impl import DDPGImpl
 
 
 class DDPG(AlgoBase):
@@ -74,7 +56,7 @@ class DDPG(AlgoBase):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (d3rlpy.algos.ddpg.IDDPGImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.ddpg_impl.DDPGImpl): algorithm implementation.
 
     Attributes:
         actor_learning_rate (float): learning rate for policy function.
@@ -96,7 +78,7 @@ class DDPG(AlgoBase):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.ddpg.IDDPGImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.ddpg_impl.DDPGImpl): algorithm implementation.
 
     """
     def __init__(self,
@@ -137,7 +119,6 @@ class DDPG(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        from .torch.ddpg_impl import DDPGImpl
         self.impl = DDPGImpl(observation_shape=observation_shape,
                              action_size=action_size,
                              actor_learning_rate=self.actor_learning_rate,

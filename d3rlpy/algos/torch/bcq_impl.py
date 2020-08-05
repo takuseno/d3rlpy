@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import copy
 import math
 
 from torch.optim import Adam
@@ -12,14 +11,13 @@ from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
 from d3rlpy.models.torch.imitators import create_conditional_vae
 from d3rlpy.models.torch.imitators import create_discrete_imitator
 from d3rlpy.models.torch.imitators import DiscreteImitator
-from d3rlpy.algos.bcq import IBCQImpl
 from .utility import torch_api, train_api
 from .utility import compute_augemtation_mean
 from .ddpg_impl import DDPGImpl
 from .dqn_impl import DoubleDQNImpl
 
 
-class BCQImpl(DDPGImpl, IBCQImpl):
+class BCQImpl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, imitator_learning_rate, gamma, tau,
                  n_critics, bootstrap, share_encoder, lam, n_action_samples,

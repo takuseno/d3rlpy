@@ -5,14 +5,13 @@ import copy
 from torch.optim import Adam
 from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from d3rlpy.models.torch.policies import create_deterministic_policy
-from d3rlpy.algos.ddpg import IDDPGImpl
 from .utility import soft_sync, torch_api
 from .utility import train_api, eval_api
 from .utility import compute_augemtation_mean
 from .base import TorchImplBase
 
 
-class DDPGImpl(TorchImplBase, IDDPGImpl):
+class DDPGImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, gamma, tau, n_critics, bootstrap,
                  share_encoder, reguralizing_rate, eps, use_batch_norm,

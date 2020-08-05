@@ -1,12 +1,5 @@
-from abc import ABCMeta, abstractmethod
 from .base import AlgoBase
-from .ddpg import IDDPGImpl
-
-
-class ISACImpl(IDDPGImpl):
-    @abstractmethod
-    def update_temp(self, obs_t):
-        pass
+from .torch.sac_impl import SACImpl
 
 
 class SAC(AlgoBase):
@@ -77,7 +70,7 @@ class SAC(AlgoBase):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (d3rlpy.algos.sac.ISACImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
 
     Attributes:
         actor_learning_rate (float): learning rate for policy function.
@@ -101,7 +94,7 @@ class SAC(AlgoBase):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.sac.ISACImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
 
     """
     def __init__(self,
@@ -146,7 +139,6 @@ class SAC(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        from .torch.sac_impl import SACImpl
         self.impl = SACImpl(observation_shape=observation_shape,
                             action_size=action_size,
                             actor_learning_rate=self.actor_learning_rate,

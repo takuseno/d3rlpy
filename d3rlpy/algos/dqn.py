@@ -1,17 +1,5 @@
-import copy
-
-from abc import ABCMeta, abstractmethod
 from .base import AlgoBase
-
-
-class IDQNImpl(metaclass=ABCMeta):
-    @abstractmethod
-    def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        pass
-
-    @abstractmethod
-    def update_target(self):
-        pass
+from .torch.dqn_impl import DQNImpl, DoubleDQNImpl
 
 
 class DQN(AlgoBase):
@@ -50,7 +38,7 @@ class DQN(AlgoBase):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.dqn_impl.DQNImpl): algorithm implementation.
 
     Attributes:
         learning_rate (float): learning rate.
@@ -70,7 +58,7 @@ class DQN(AlgoBase):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.dqn_impl.DQNImpl): algorithm implementation.
 
     """
     def __init__(self,
@@ -107,7 +95,6 @@ class DQN(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        from .torch.dqn_impl import DQNImpl
         self.impl = DQNImpl(observation_shape=observation_shape,
                             action_size=action_size,
                             learning_rate=self.learning_rate,
@@ -178,7 +165,8 @@ class DoubleDQN(DQN):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.dqn_impl.DoubleDQNImpl):
+            algorithm implementation.
 
     Attributes:
         learning_rate (float): learning rate.
@@ -199,11 +187,11 @@ class DoubleDQN(DQN):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynaics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.dqn.IDQNImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.dqn_impl.DoubleDQNImpl):
+            algorithm implementation.
 
     """
     def create_impl(self, observation_shape, action_size):
-        from .torch.dqn_impl import DoubleDQNImpl
         self.impl = DoubleDQNImpl(observation_shape=observation_shape,
                                   action_size=action_size,
                                   learning_rate=self.learning_rate,

@@ -1,12 +1,5 @@
-from abc import abstractmethod
 from .base import AlgoBase
-from .sac import ISACImpl
-
-
-class IBEARImpl(ISACImpl):
-    @abstractmethod
-    def update_alpha(self, obs_t):
-        pass
+from .torch.bear_impl import BEARImpl
 
 
 class BEAR(AlgoBase):
@@ -89,7 +82,7 @@ class BEAR(AlgoBase):
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
-        impl (d3rlpy.algos.bear.IBEARImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.bear_impl.BEARImpl): algorithm implementation.
 
     Attributes:
         actor_learning_rate (float): learning rate for policy function.
@@ -126,7 +119,7 @@ class BEAR(AlgoBase):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.bear.IBEARImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.bear_impl.BEARImpl): algorithm implementation.
 
     """
     def __init__(self,
@@ -187,7 +180,6 @@ class BEAR(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        from .torch.bear_impl import BEARImpl
         self.impl = BEARImpl(
             observation_shape=observation_shape,
             action_size=action_size,
