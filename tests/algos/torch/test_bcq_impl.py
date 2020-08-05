@@ -54,6 +54,7 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                    scaler=scaler,
                    augmentation=augmentation,
                    n_augmentations=n_augmentations)
+    impl.build()
 
     # test internal methods
     x = torch.rand(32, *observation_shape)

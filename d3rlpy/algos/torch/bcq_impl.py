@@ -23,12 +23,11 @@ class BCQImpl(DDPGImpl):
                  n_critics, bootstrap, share_encoder, lam, n_action_samples,
                  action_flexibility, latent_size, beta, eps, use_batch_norm,
                  q_func_type, use_gpu, scaler, augmentation, n_augmentations):
-        # imitator requires these parameters
-        self.observation_shape = observation_shape
-        self.action_size = action_size
-        self.use_batch_norm = use_batch_norm
-        self.eps = eps
-
+        super().__init__(observation_shape, action_size, actor_learning_rate,
+                         critic_learning_rate, gamma, tau, n_critics,
+                         bootstrap, share_encoder, 0.0, eps, use_batch_norm,
+                         q_func_type, use_gpu, scaler, augmentation,
+                         n_augmentations)
         self.imitator_learning_rate = imitator_learning_rate
         self.n_critics = n_critics
         self.lam = lam
@@ -37,14 +36,9 @@ class BCQImpl(DDPGImpl):
         self.latent_size = latent_size
         self.beta = beta
 
+    def build(self):
         self._build_imitator()
-
-        super().__init__(observation_shape, action_size, actor_learning_rate,
-                         critic_learning_rate, gamma, tau, n_critics,
-                         bootstrap, share_encoder, 0.0, eps, use_batch_norm,
-                         q_func_type, use_gpu, scaler, augmentation,
-                         n_augmentations)
-
+        super().build()
         # setup optimizer after the parameters move to GPU
         self._build_imitator_optim()
 
@@ -154,14 +148,12 @@ class DiscreteBCQImpl(DoubleDQNImpl):
                  n_critics, bootstrap, share_encoder, action_flexibility, beta,
                  eps, use_batch_norm, q_func_type, use_gpu, scaler,
                  augmentation, n_augmentations):
-
-        self.action_flexibility = action_flexibility
-        self.beta = beta
-
         super().__init__(observation_shape, action_size, learning_rate, gamma,
                          n_critics, bootstrap, share_encoder, eps,
                          use_batch_norm, q_func_type, use_gpu, scaler,
                          augmentation, n_augmentations)
+        self.action_flexibility = action_flexibility
+        self.beta = beta
 
     def _build_network(self):
         super()._build_network()

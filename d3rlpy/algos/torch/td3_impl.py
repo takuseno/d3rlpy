@@ -10,14 +10,13 @@ class TD3Impl(DDPGImpl):
                  n_critics, bootstrap, share_encoder, target_smoothing_sigma,
                  target_smoothing_clip, eps, use_batch_norm, q_func_type,
                  use_gpu, scaler, augmentation, n_augmentations):
-        self.target_smoothing_sigma = target_smoothing_sigma
-        self.target_smoothing_clip = target_smoothing_clip
-
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, n_critics,
                          bootstrap, share_encoder, reguralizing_rate, eps,
                          use_batch_norm, q_func_type, use_gpu, scaler,
                          augmentation, n_augmentations)
+        self.target_smoothing_sigma = target_smoothing_sigma
+        self.target_smoothing_clip = target_smoothing_clip
 
     def compute_target(self, x):
         with torch.no_grad():

@@ -32,7 +32,9 @@ class DDPGImpl(TorchImplBase):
         self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
+        self.use_gpu = use_gpu
 
+    def build(self):
         # setup torch models
         self._build_critic()
         self._build_actor()
@@ -41,8 +43,8 @@ class DDPGImpl(TorchImplBase):
         self.targ_q_func = copy.deepcopy(self.q_func)
         self.targ_policy = copy.deepcopy(self.policy)
 
-        if use_gpu:
-            self.to_gpu(use_gpu)
+        if self.use_gpu:
+            self.to_gpu(self.use_gpu)
         else:
             self.to_cpu()
 

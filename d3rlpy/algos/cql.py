@@ -183,6 +183,7 @@ class CQL(AlgoBase):
                             scaler=self.scaler,
                             augmentation=self.augmentation,
                             n_augmentations=self.n_augmentations)
+        self.impl.build()
 
     def update(self, epoch, total_step, batch):
         critic_loss = self.impl.update_critic(batch.observations,
@@ -296,3 +297,4 @@ class DiscreteCQL(DoubleDQN):
                                     scaler=self.scaler,
                                     augmentation=self.augmentation,
                                     n_augmentations=self.n_augmentations)
+        self.impl.build()

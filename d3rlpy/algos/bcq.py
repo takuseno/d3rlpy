@@ -218,6 +218,7 @@ class BCQ(AlgoBase):
                             scaler=self.scaler,
                             augmentation=self.augmentation,
                             n_augmentations=self.n_augmentations)
+        self.impl.build()
 
     def update(self, epoch, total_step, batch):
         imitator_loss = self.impl.update_imitator(batch.observations,
@@ -393,6 +394,7 @@ class DiscreteBCQ(AlgoBase):
                                     scaler=self.scaler,
                                     augmentation=self.augmentation,
                                     n_augmentations=self.n_augmentations)
+        self.impl.build()
 
     def update(self, epoch, total_step, batch):
         loss = self.impl.update(batch.observations, batch.actions,

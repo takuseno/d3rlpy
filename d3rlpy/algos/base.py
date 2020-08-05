@@ -4,6 +4,10 @@ from abc import ABCMeta, abstractmethod
 
 class AlgoImplBase(ImplBase):
     @abstractmethod
+    def build(self):
+        pass
+
+    @abstractmethod
     def save_policy(self, fname):
         pass
 

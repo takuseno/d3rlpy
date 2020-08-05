@@ -136,6 +136,7 @@ class DDPG(AlgoBase):
                              scaler=self.scaler,
                              augmentation=self.augmentation,
                              n_augmentations=self.n_augmentations)
+        self.impl.build()
 
     def update(self, epoch, itr, batch):
         critic_loss = self.impl.update_critic(batch.observations,

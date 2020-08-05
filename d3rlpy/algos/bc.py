@@ -80,6 +80,7 @@ class BC(AlgoBase):
                            scaler=self.scaler,
                            augmentation=self.augmentation,
                            n_augmentations=self.n_augmentations)
+        self.impl.build()
 
     def update(self, epoch, itr, batch):
         loss = self.impl.update_imitator(batch.observations, batch.actions)
@@ -180,3 +181,4 @@ class DiscreteBC(BC):
                                    scaler=self.scaler,
                                    augmentation=self.augmentation,
                                    n_augmentations=self.n_augmentations)
+        self.impl.build()

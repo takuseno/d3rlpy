@@ -18,19 +18,18 @@ class CQLImpl(SACImpl):
                  initial_temperature, initial_alpha, alpha_threshold,
                  n_action_samples, eps, use_batch_norm, q_func_type, use_gpu,
                  scaler, augmentation, n_augmentations):
-        self.alpha_learning_rate = alpha_learning_rate
-        self.initial_alpha = initial_alpha
-        self.alpha_threshold = alpha_threshold
-        self.n_action_samples = n_action_samples
-
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, temp_learning_rate, gamma, tau,
                          n_critics, bootstrap, share_encoder,
                          initial_temperature, eps, use_batch_norm, q_func_type,
                          use_gpu, scaler, augmentation, n_augmentations)
+        self.alpha_learning_rate = alpha_learning_rate
+        self.initial_alpha = initial_alpha
+        self.alpha_threshold = alpha_threshold
+        self.n_action_samples = n_action_samples
 
-        # TODO: save and load alpha parameter
-        # setup alpha after device property is set.
+    def build(self):
+        super().build()
         self._build_alpha()
         self._build_alpha_optim()
 

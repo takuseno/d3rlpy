@@ -28,15 +28,17 @@ class DQNImpl(TorchImplBase):
         self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
+        self.use_gpu = use_gpu
 
+    def build(self):
         # setup torch models
         self._build_network()
 
         # setup target network
         self.targ_q_func = copy.deepcopy(self.q_func)
 
-        if use_gpu:
-            self.to_gpu(use_gpu)
+        if self.use_gpu:
+            self.to_gpu(self.use_gpu)
         else:
             self.to_cpu()
 

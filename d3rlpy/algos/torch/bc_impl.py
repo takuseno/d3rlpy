@@ -20,11 +20,13 @@ class BCImpl(TorchImplBase):
         self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
+        self.use_gpu = use_gpu
 
+    def build(self):
         self._build_network()
 
-        if use_gpu:
-            self.to_gpu(use_gpu)
+        if self.use_gpu:
+            self.to_gpu(self.use_gpu)
         else:
             self.to_cpu()
 
@@ -75,10 +77,10 @@ class DiscreteBCImpl(BCImpl):
     def __init__(self, observation_shape, action_size, learning_rate, eps,
                  beta, use_batch_norm, use_gpu, scaler, augmentation,
                  n_augmentations):
-        self.beta = beta
         super().__init__(observation_shape, action_size, learning_rate, eps,
                          use_batch_norm, use_gpu, scaler, augmentation,
                          n_augmentations)
+        self.beta = beta
 
     def _build_network(self):
         self.imitator = create_discrete_imitator(self.observation_shape,

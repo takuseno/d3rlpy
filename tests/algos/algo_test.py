@@ -15,6 +15,9 @@ class DummyImpl(TorchImplBase):
         self.observation_shape = observation_shape
         self.action_size = action_size
 
+    def build(self):
+        pass
+
     def save_model(self, fname):
         pass
 
@@ -179,6 +182,9 @@ def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
 
 
 def impl_tester(impl, discrete, imitator):
+    # setup implementation
+    impl.build()
+
     observations = np.random.random((100, ) + impl.observation_shape)
     if discrete:
         actions = np.random.randint(impl.action_size, size=100)

@@ -109,6 +109,7 @@ class DQN(AlgoBase):
                             scaler=self.scaler,
                             augmentation=self.augmentation,
                             n_augmentations=self.n_augmentations)
+        self.impl.build()
 
     def update(self, epoch, total_step, batch):
         loss = self.impl.update(batch.observations, batch.actions,
@@ -206,3 +207,4 @@ class DoubleDQN(DQN):
                                   scaler=self.scaler,
                                   augmentation=self.augmentation,
                                   n_augmentations=self.n_augmentations)
+        self.impl.build()
