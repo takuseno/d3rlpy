@@ -5,7 +5,7 @@ from d3rlpy.models.torch.dynamics import create_probablistic_dynamics
 from d3rlpy.models.torch.dynamics import _compute_ensemble_variance
 from d3rlpy.models.torch.dynamics import ProbablisticDynamics
 from d3rlpy.models.torch.dynamics import EnsembleDynamics
-from .model_test import check_parameter_updates, DummyHead
+from .model_test import check_parameter_updates, DummyEncoder
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
@@ -61,8 +61,8 @@ def test_compute_ensemble_variance(batch_size, observation_shape, n_ensembles,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
 def test_probablistic_dynamics(feature_size, action_size, batch_size):
-    head = DummyHead(feature_size, action_size, True)
-    dynamics = ProbablisticDynamics(head)
+    encoder = DummyEncoder(feature_size, action_size, True)
+    dynamics = ProbablisticDynamics(encoder)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -90,10 +90,10 @@ def test_probablistic_dynamics(feature_size, action_size, batch_size):
 @pytest.mark.parametrize('n_ensembles', [5])
 def test_ensemble_dynamics_dynamics(feature_size, action_size, batch_size,
                                     n_ensembles):
-    head = DummyHead(feature_size, action_size, True)
+    encoder = DummyEncoder(feature_size, action_size, True)
     models = []
     for _ in range(n_ensembles):
-        models.append(ProbablisticDynamics(head))
+        models.append(ProbablisticDynamics(encoder))
 
     dynamics = EnsembleDynamics(models)
 

@@ -7,7 +7,7 @@ from d3rlpy.models.torch.policies import create_normal_policy
 from d3rlpy.models.torch.policies import DeterministicPolicy
 from d3rlpy.models.torch.policies import DeterministicResidualPolicy
 from d3rlpy.models.torch.policies import NormalPolicy
-from .model_test import check_parameter_updates, DummyHead
+from .model_test import check_parameter_updates, DummyEncoder
 
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
@@ -66,8 +66,8 @@ def test_create_normal_policy(observation_shape, action_size, batch_size,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
 def test_deterministic_policy(feature_size, action_size, batch_size):
-    head = DummyHead(feature_size)
-    policy = DeterministicPolicy(head, action_size)
+    encoder = DummyEncoder(feature_size)
+    policy = DeterministicPolicy(encoder, action_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -88,8 +88,8 @@ def test_deterministic_policy(feature_size, action_size, batch_size):
 @pytest.mark.parametrize('batch_size', [32])
 def test_deterministic_residual_policy(feature_size, action_size, scale,
                                        batch_size):
-    head = DummyHead(feature_size, action_size)
-    policy = DeterministicResidualPolicy(head, scale)
+    encoder = DummyEncoder(feature_size, action_size)
+    policy = DeterministicResidualPolicy(encoder, scale)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -114,8 +114,8 @@ def test_deterministic_residual_policy(feature_size, action_size, scale,
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('n', [10])
 def test_normal_policy(feature_size, action_size, batch_size, n):
-    head = DummyHead(feature_size)
-    policy = NormalPolicy(head, action_size)
+    encoder = DummyEncoder(feature_size)
+    policy = NormalPolicy(encoder, action_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)

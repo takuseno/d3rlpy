@@ -20,7 +20,7 @@ from d3rlpy.models.torch.q_functions import EnsembleDiscreteQFunction
 from d3rlpy.models.torch.q_functions import ContinuousQFunction
 from d3rlpy.models.torch.q_functions import EnsembleContinuousQFunction
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
-from .model_test import check_parameter_updates, DummyHead
+from .model_test import check_parameter_updates, DummyEncoder
 
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
@@ -48,7 +48,7 @@ def test_create_discrete_q_function(observation_shape, action_size, batch_size,
 
     assert isinstance(q_func, EnsembleDiscreteQFunction)
     for f in q_func.q_funcs:
-        assert f.head.use_batch_norm == use_batch_norm
+        assert f.encoder.use_batch_norm == use_batch_norm
         if q_func_type == 'mean':
             assert isinstance(f, DiscreteQFunction)
         elif q_func_type == 'qr':
@@ -59,12 +59,12 @@ def test_create_discrete_q_function(observation_shape, action_size, batch_size,
             assert isinstance(f, DiscreteFQFQFunction)
 
     # check share_encoder
-    head = q_func.q_funcs[0].head
+    encoder = q_func.q_funcs[0].encoder
     for q_func in q_func.q_funcs[1:]:
         if share_encoder:
-            assert head is q_func.head
+            assert encoder is q_func.encoder
         else:
-            assert head is not q_func.head
+            assert encoder is not q_func.encoder
 
     x = torch.rand((batch_size, ) + observation_shape)
     y = q_func(x)
@@ -104,15 +104,15 @@ def test_create_continuous_q_function(observation_shape, action_size,
             assert isinstance(f, ContinuousIQNQFunction)
         elif q_func_type == 'fqf':
             assert isinstance(f, ContinuousFQFQFunction)
-        assert f.head.use_batch_norm == use_batch_norm
+        assert f.encoder.use_batch_norm == use_batch_norm
 
     # check share_encoder
-    head = q_func.q_funcs[0].head
+    encoder = q_func.q_funcs[0].encoder
     for q_func in q_func.q_funcs[1:]:
         if share_encoder:
-            assert head is q_func.head
+            assert encoder is q_func.encoder
         else:
-            assert head is not q_func.head
+            assert encoder is not q_func.encoder
 
     x = torch.rand((batch_size, ) + observation_shape)
     action = torch.rand(batch_size, action_size)
@@ -234,8 +234,8 @@ def test_reduce_quantile_ensemble(n_ensembles, n_quantiles, batch_size,
 @pytest.mark.parametrize('gamma', [0.99])
 def test_discrete_qr_q_function(feature_size, action_size, n_quantiles,
                                 batch_size, gamma):
-    head = DummyHead(feature_size)
-    q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
+    encoder = DummyEncoder(feature_size)
+    q_func = DiscreteQRQFunction(encoder, action_size, n_quantiles)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -282,8 +282,8 @@ def test_discrete_qr_q_function(feature_size, action_size, n_quantiles,
 @pytest.mark.parametrize('gamma', [0.99])
 def test_continuous_qr_q_function(feature_size, action_size, n_quantiles,
                                   batch_size, gamma):
-    head = DummyHead(feature_size, action_size, concat=True)
-    q_func = ContinuousQRQFunction(head, n_quantiles)
+    encoder = DummyEncoder(feature_size, action_size, concat=True)
+    q_func = ContinuousQRQFunction(encoder, n_quantiles)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -331,8 +331,9 @@ def test_continuous_qr_q_function(feature_size, action_size, n_quantiles,
 @pytest.mark.parametrize('gamma', [0.99])
 def test_discrete_iqn_q_function(feature_size, action_size, n_quantiles,
                                  batch_size, embed_size, gamma):
-    head = DummyHead(feature_size)
-    q_func = DiscreteIQNQFunction(head, action_size, n_quantiles, embed_size)
+    encoder = DummyEncoder(feature_size)
+    q_func = DiscreteIQNQFunction(encoder, action_size, n_quantiles,
+                                  embed_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -366,8 +367,8 @@ def test_discrete_iqn_q_function(feature_size, action_size, n_quantiles,
 @pytest.mark.parametrize('gamma', [0.99])
 def test_continuous_iqn_q_function(feature_size, action_size, n_quantiles,
                                    batch_size, embed_size, gamma):
-    head = DummyHead(feature_size, action_size)
-    q_func = ContinuousIQNQFunction(head, n_quantiles, embed_size)
+    encoder = DummyEncoder(feature_size, action_size)
+    q_func = ContinuousIQNQFunction(encoder, n_quantiles, embed_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -401,8 +402,9 @@ def test_continuous_iqn_q_function(feature_size, action_size, n_quantiles,
 @pytest.mark.parametrize('gamma', [0.99])
 def test_discrete_fqf_q_function(feature_size, action_size, n_quantiles,
                                  batch_size, embed_size, gamma):
-    head = DummyHead(feature_size)
-    q_func = DiscreteFQFQFunction(head, action_size, n_quantiles, embed_size)
+    encoder = DummyEncoder(feature_size)
+    q_func = DiscreteFQFQFunction(encoder, action_size, n_quantiles,
+                                  embed_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -436,8 +438,8 @@ def test_discrete_fqf_q_function(feature_size, action_size, n_quantiles,
 @pytest.mark.parametrize('gamma', [0.99])
 def test_continuous_fqf_q_function(feature_size, action_size, n_quantiles,
                                    batch_size, embed_size, gamma):
-    head = DummyHead(feature_size, action_size)
-    q_func = ContinuousFQFQFunction(head, n_quantiles, embed_size)
+    encoder = DummyEncoder(feature_size, action_size)
+    q_func = ContinuousFQFQFunction(encoder, n_quantiles, embed_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -482,8 +484,8 @@ def filter_by_action(value, action, action_size):
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('gamma', [0.99])
 def test_discrete_q_function(feature_size, action_size, batch_size, gamma):
-    head = DummyHead(feature_size)
-    q_func = DiscreteQFunction(head, action_size)
+    encoder = DummyEncoder(feature_size)
+    q_func = DiscreteQFunction(encoder, action_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -531,16 +533,16 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
                                       n_quantiles, embed_size, bootstrap):
     q_funcs = []
     for _ in range(ensemble_size):
-        head = DummyHead(feature_size)
+        encoder = DummyEncoder(feature_size)
         if q_func_type == 'mean':
-            q_func = DiscreteQFunction(head, action_size)
+            q_func = DiscreteQFunction(encoder, action_size)
         elif q_func_type == 'qr':
-            q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
+            q_func = DiscreteQRQFunction(encoder, action_size, n_quantiles)
         elif q_func_type == 'iqn':
-            q_func = DiscreteIQNQFunction(head, action_size, n_quantiles,
+            q_func = DiscreteIQNQFunction(encoder, action_size, n_quantiles,
                                           embed_size)
         elif q_func_type == 'fqf':
-            q_func = DiscreteFQFQFunction(head, action_size, n_quantiles,
+            q_func = DiscreteFQFQFunction(encoder, action_size, n_quantiles,
                                           embed_size)
         q_funcs.append(q_func)
     q_func = EnsembleDiscreteQFunction(q_funcs, bootstrap)
@@ -597,8 +599,8 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('gamma', [0.99])
 def test_continuous_q_function(feature_size, action_size, batch_size, gamma):
-    head = DummyHead(feature_size, action_size, concat=True)
-    q_func = ContinuousQFunction(head)
+    encoder = DummyEncoder(feature_size, action_size, concat=True)
+    q_func = ContinuousQFunction(encoder)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -645,15 +647,15 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
                                         n_quantiles, embed_size, bootstrap):
     q_funcs = []
     for _ in range(ensemble_size):
-        head = DummyHead(feature_size, action_size, concat=True)
+        encoder = DummyEncoder(feature_size, action_size, concat=True)
         if q_func_type == 'mean':
-            q_func = ContinuousQFunction(head)
+            q_func = ContinuousQFunction(encoder)
         elif q_func_type == 'qr':
-            q_func = ContinuousQRQFunction(head, n_quantiles)
+            q_func = ContinuousQRQFunction(encoder, n_quantiles)
         elif q_func_type == 'iqn':
-            q_func = ContinuousIQNQFunction(head, n_quantiles, embed_size)
+            q_func = ContinuousIQNQFunction(encoder, n_quantiles, embed_size)
         elif q_func_type == 'fqf':
-            q_func = ContinuousFQFQFunction(head, n_quantiles, embed_size)
+            q_func = ContinuousFQFQFunction(encoder, n_quantiles, embed_size)
         q_funcs.append(q_func)
 
     q_func = EnsembleContinuousQFunction(q_funcs, bootstrap)

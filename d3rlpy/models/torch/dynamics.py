@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from torch.distributions import Normal
 from torch.nn.utils import spectral_norm
-from .heads import create_head
+from .encoders import create_encoder
 
 
 def create_probablistic_dynamics(observation_shape,
@@ -14,13 +14,13 @@ def create_probablistic_dynamics(observation_shape,
                                  discrete_action=False):
     models = []
     for _ in range(n_ensembles):
-        head = create_head(observation_shape,
-                           action_size,
-                           use_batch_norm=use_batch_norm,
-                           discrete_action=discrete_action,
-                           activation_type='swish',
-                           hidden_units=[200, 200, 200, 200])
-        model = ProbablisticDynamics(head)
+        encoder = create_encoder(observation_shape,
+                                 action_size,
+                                 use_batch_norm=use_batch_norm,
+                                 discrete_action=discrete_action,
+                                 activation_type='swish',
+                                 hidden_units=[200, 200, 200, 200])
+        model = ProbablisticDynamics(encoder)
         models.append(model)
     return EnsembleDynamics(models)
 
@@ -106,14 +106,14 @@ class ProbablisticDynamics(nn.Module):
           <https://arxiv.org/abs/1805.12114>`_
 
     """
-    def __init__(self, head):
+    def __init__(self, encoder):
         super().__init__()
-        # apply spectral normalization except logstd head.
-        _apply_spectral_norm_recursively(head)
-        self.head = head
+        # apply spectral normalization except logstd encoder.
+        _apply_spectral_norm_recursively(encoder)
+        self.encoder = encoder
 
-        feature_size = head.feature_size
-        observation_size = head.observation_shape[0]
+        feature_size = encoder.feature_size
+        observation_size = encoder.observation_shape[0]
         out_size = observation_size + 1
 
         # TODO: handle image observation
@@ -127,7 +127,7 @@ class ProbablisticDynamics(nn.Module):
         self.min_logstd = nn.Parameter(init_min)
 
     def compute_stats(self, x, action):
-        h = self.head(x, action)
+        h = self.encoder(x, action)
 
         mu = self.mu(h)
 

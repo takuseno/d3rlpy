@@ -11,46 +11,46 @@ def _create_activation(activation_type):
     raise ValueError('invalid activation_type.')
 
 
-def create_head(observation_shape,
-                action_size=None,
-                use_batch_norm=False,
-                discrete_action=False,
-                activation_type='relu',
-                **kwargs):
+def create_encoder(observation_shape,
+                   action_size=None,
+                   use_batch_norm=False,
+                   discrete_action=False,
+                   activation_type='relu',
+                   **kwargs):
 
     activation = _create_activation(activation_type)
 
     if len(observation_shape) == 3:
         # pixel input
         if action_size is not None:
-            return PixelHeadWithAction(observation_shape,
-                                       action_size,
-                                       use_batch_norm=use_batch_norm,
-                                       discrete_action=discrete_action,
-                                       activation=activation,
-                                       **kwargs)
-        return PixelHead(observation_shape,
-                         use_batch_norm=use_batch_norm,
-                         activation=activation,
-                         **kwargs)
+            return PixelEncoderWithAction(observation_shape,
+                                          action_size,
+                                          use_batch_norm=use_batch_norm,
+                                          discrete_action=discrete_action,
+                                          activation=activation,
+                                          **kwargs)
+        return PixelEncoder(observation_shape,
+                            use_batch_norm=use_batch_norm,
+                            activation=activation,
+                            **kwargs)
     elif len(observation_shape) == 1:
         # vector input
         if action_size is not None:
-            return VectorHeadWithAction(observation_shape,
-                                        action_size,
-                                        use_batch_norm=use_batch_norm,
-                                        discrete_action=discrete_action,
-                                        activation=activation,
-                                        **kwargs)
-        return VectorHead(observation_shape,
-                          use_batch_norm=use_batch_norm,
-                          activation=activation,
-                          **kwargs)
+            return VectorEncoderWithAction(observation_shape,
+                                           action_size,
+                                           use_batch_norm=use_batch_norm,
+                                           discrete_action=discrete_action,
+                                           activation=activation,
+                                           **kwargs)
+        return VectorEncoder(observation_shape,
+                             use_batch_norm=use_batch_norm,
+                             activation=activation,
+                             **kwargs)
     else:
         raise ValueError('observation_shape must be 1d or 3d.')
 
 
-class PixelHead(nn.Module):
+class PixelEncoder(nn.Module):
     def __init__(self,
                  observation_shape,
                  filters=None,
@@ -113,7 +113,7 @@ class PixelHead(nn.Module):
         return h
 
 
-class PixelHeadWithAction(PixelHead):
+class PixelEncoderWithAction(PixelEncoder):
     def __init__(self,
                  observation_shape,
                  action_size,
@@ -147,7 +147,7 @@ class PixelHeadWithAction(PixelHead):
         return h
 
 
-class VectorHead(nn.Module):
+class VectorEncoder(nn.Module):
     def __init__(self,
                  observation_shape,
                  hidden_units=None,
@@ -180,7 +180,7 @@ class VectorHead(nn.Module):
         return h
 
 
-class VectorHeadWithAction(VectorHead):
+class VectorEncoderWithAction(VectorEncoder):
     def __init__(self,
                  observation_shape,
                  action_size,

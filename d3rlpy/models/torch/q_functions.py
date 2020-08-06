@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-from .heads import create_head
+from .encoders import create_encoder
 
 
 def create_discrete_q_function(observation_shape,
@@ -17,25 +17,26 @@ def create_discrete_q_function(observation_shape,
                                share_encoder=False):
 
     if share_encoder:
-        head = create_head(observation_shape, use_batch_norm=use_batch_norm)
+        encoder = create_encoder(observation_shape,
+                                 use_batch_norm=use_batch_norm)
         # normalize gradient scale by ensemble size
-        for p in head.parameters():
+        for p in encoder.parameters():
             p.register_hook(lambda grad: grad / n_ensembles)
 
     q_funcs = []
     for _ in range(n_ensembles):
         if not share_encoder:
-            head = create_head(observation_shape,
-                               use_batch_norm=use_batch_norm)
+            encoder = create_encoder(observation_shape,
+                                     use_batch_norm=use_batch_norm)
         if q_func_type == 'mean':
-            q_func = DiscreteQFunction(head, action_size)
+            q_func = DiscreteQFunction(encoder, action_size)
         elif q_func_type == 'qr':
-            q_func = DiscreteQRQFunction(head, action_size, n_quantiles)
+            q_func = DiscreteQRQFunction(encoder, action_size, n_quantiles)
         elif q_func_type == 'iqn':
-            q_func = DiscreteIQNQFunction(head, action_size, n_quantiles,
+            q_func = DiscreteIQNQFunction(encoder, action_size, n_quantiles,
                                           embed_size)
         elif q_func_type == 'fqf':
-            q_func = DiscreteFQFQFunction(head, action_size, n_quantiles,
+            q_func = DiscreteFQFQFunction(encoder, action_size, n_quantiles,
                                           embed_size)
         else:
             raise ValueError('invalid quantile regression type')
@@ -54,27 +55,27 @@ def create_continuous_q_function(observation_shape,
                                  share_encoder=False):
 
     if share_encoder:
-        head = create_head(observation_shape,
-                           action_size,
-                           use_batch_norm=use_batch_norm)
+        encoder = create_encoder(observation_shape,
+                                 action_size,
+                                 use_batch_norm=use_batch_norm)
         # normalize gradient scale by ensemble size
-        for p in head.parameters():
+        for p in encoder.parameters():
             p.register_hook(lambda grad: grad / n_ensembles)
 
     q_funcs = []
     for _ in range(n_ensembles):
         if not share_encoder:
-            head = create_head(observation_shape,
-                               action_size,
-                               use_batch_norm=use_batch_norm)
+            encoder = create_encoder(observation_shape,
+                                     action_size,
+                                     use_batch_norm=use_batch_norm)
         if q_func_type == 'mean':
-            q_func = ContinuousQFunction(head)
+            q_func = ContinuousQFunction(encoder)
         elif q_func_type == 'qr':
-            q_func = ContinuousQRQFunction(head, n_quantiles)
+            q_func = ContinuousQRQFunction(encoder, n_quantiles)
         elif q_func_type == 'iqn':
-            q_func = ContinuousIQNQFunction(head, n_quantiles, embed_size)
+            q_func = ContinuousIQNQFunction(encoder, n_quantiles, embed_size)
         elif q_func_type == 'fqf':
-            q_func = ContinuousFQFQFunction(head, n_quantiles, embed_size)
+            q_func = ContinuousFQFQFunction(encoder, n_quantiles, embed_size)
         else:
             raise ValueError('invalid quantile regression type')
         q_funcs.append(q_func)
@@ -126,15 +127,15 @@ def _reduce(value, reduction_type):
 
 
 class DiscreteQRQFunction(nn.Module):
-    def __init__(self, head, action_size, n_quantiles):
+    def __init__(self, encoder, action_size, n_quantiles):
         super().__init__()
-        self.head = head
+        self.encoder = encoder
         self.action_size = action_size
         self.n_quantiles = n_quantiles
-        self.fc = nn.Linear(head.feature_size, action_size * n_quantiles)
+        self.fc = nn.Linear(encoder.feature_size, action_size * n_quantiles)
 
     def forward(self, x, as_quantiles=False):
-        h = self.head(x)
+        h = self.encoder(x)
         quantiles = self.fc(h).view(-1, self.action_size, self.n_quantiles)
 
         if as_quantiles:
@@ -170,15 +171,15 @@ class DiscreteQRQFunction(nn.Module):
 
 
 class ContinuousQRQFunction(nn.Module):
-    def __init__(self, head, n_quantiles):
+    def __init__(self, encoder, n_quantiles):
         super().__init__()
-        self.head = head
-        self.action_size = head.action_size
+        self.encoder = encoder
+        self.action_size = encoder.action_size
         self.n_quantiles = n_quantiles
-        self.fc = nn.Linear(head.feature_size, n_quantiles)
+        self.fc = nn.Linear(encoder.feature_size, n_quantiles)
 
     def forward(self, x, action, as_quantiles=False):
-        h = self.head(x, action)
+        h = self.encoder(x, action)
         quantiles = self.fc(h)
 
         if as_quantiles:
@@ -213,14 +214,14 @@ class ContinuousQRQFunction(nn.Module):
 
 
 class DiscreteIQNQFunction(nn.Module):
-    def __init__(self, head, action_size, n_quantiles, embed_size):
+    def __init__(self, encoder, action_size, n_quantiles, embed_size):
         super().__init__()
-        self.head = head
+        self.encoder = encoder
         self.action_size = action_size
         self.embed_size = embed_size
         self.n_quantiles = n_quantiles
-        self.embed = nn.Linear(embed_size, head.feature_size)
-        self.fc = nn.Linear(head.feature_size, self.action_size)
+        self.embed = nn.Linear(embed_size, encoder.feature_size)
+        self.fc = nn.Linear(encoder.feature_size, self.action_size)
 
     def _make_taus(self, h):
         taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
@@ -242,7 +243,7 @@ class DiscreteIQNQFunction(nn.Module):
         return self.fc(prod).transpose(1, 2)
 
     def forward(self, x, as_quantiles=False, with_taus=False):
-        h = self.head(x)
+        h = self.encoder(x)
 
         taus = self._make_taus(h)
 
@@ -289,14 +290,14 @@ class DiscreteIQNQFunction(nn.Module):
 
 
 class ContinuousIQNQFunction(nn.Module):
-    def __init__(self, head, n_quantiles, embed_size):
+    def __init__(self, encoder, n_quantiles, embed_size):
         super().__init__()
-        self.head = head
-        self.action_size = head.action_size
+        self.encoder = encoder
+        self.action_size = encoder.action_size
         self.embed_size = embed_size
         self.n_quantiles = n_quantiles
-        self.embed = nn.Linear(embed_size, head.feature_size)
-        self.fc = nn.Linear(head.feature_size, 1)
+        self.embed = nn.Linear(embed_size, encoder.feature_size)
+        self.fc = nn.Linear(encoder.feature_size, 1)
 
     def _make_taus(self, h):
         taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
@@ -320,7 +321,7 @@ class ContinuousIQNQFunction(nn.Module):
         return quantiles
 
     def forward(self, x, action, as_quantiles=False, with_taus=False):
-        h = self.head(x, action)
+        h = self.encoder(x, action)
 
         taus = self._make_taus(h)
 
@@ -367,9 +368,9 @@ class ContinuousIQNQFunction(nn.Module):
 
 
 class DiscreteFQFQFunction(DiscreteIQNQFunction):
-    def __init__(self, head, action_size, n_quantiles, embed_size):
-        super().__init__(head, action_size, n_quantiles, embed_size)
-        self.proposal = nn.Linear(head.feature_size, n_quantiles)
+    def __init__(self, encoder, action_size, n_quantiles, embed_size):
+        super().__init__(encoder, action_size, n_quantiles, embed_size)
+        self.proposal = nn.Linear(encoder.feature_size, n_quantiles)
 
     def _make_taus(self, h):
         # compute taus without making backward path
@@ -392,7 +393,7 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         return taus, taus_minus, taus_prime, entropies
 
     def forward(self, x, as_quantiles=False, with_taus=False, with_h=False):
-        h = self.head(x)
+        h = self.encoder(x)
 
         taus, taus_minus, taus_prime, entropies = self._make_taus(h)
 
@@ -474,9 +475,9 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
 
 
 class ContinuousFQFQFunction(ContinuousIQNQFunction):
-    def __init__(self, head, n_quantiles, embed_size):
-        super().__init__(head, n_quantiles, embed_size)
-        self.proposal = nn.Linear(head.feature_size, n_quantiles)
+    def __init__(self, encoder, n_quantiles, embed_size):
+        super().__init__(encoder, n_quantiles, embed_size)
+        self.proposal = nn.Linear(encoder.feature_size, n_quantiles)
 
     def _make_taus(self, h):
         # compute taus without making backward path
@@ -504,7 +505,7 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
                 as_quantiles=False,
                 with_taus=False,
                 with_h=False):
-        h = self.head(x, action)
+        h = self.encoder(x, action)
 
         taus, taus_minus, taus_prime, entropies = self._make_taus(h)
 
@@ -581,14 +582,14 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
 
 
 class DiscreteQFunction(nn.Module):
-    def __init__(self, head, action_size):
+    def __init__(self, encoder, action_size):
         super().__init__()
         self.action_size = action_size
-        self.head = head
-        self.fc = nn.Linear(head.feature_size, action_size)
+        self.encoder = encoder
+        self.fc = nn.Linear(encoder.feature_size, action_size)
 
     def forward(self, x):
-        h = self.head(x)
+        h = self.encoder(x)
         return self.fc(h)
 
     def compute_error(self,
@@ -609,14 +610,14 @@ class DiscreteQFunction(nn.Module):
 
 
 class ContinuousQFunction(nn.Module):
-    def __init__(self, head):
+    def __init__(self, encoder):
         super().__init__()
-        self.head = head
-        self.action_size = head.action_size
-        self.fc = nn.Linear(head.feature_size, 1)
+        self.encoder = encoder
+        self.action_size = encoder.action_size
+        self.fc = nn.Linear(encoder.feature_size, 1)
 
     def forward(self, x, action):
-        h = self.head(x, action)
+        h = self.encoder(x, action)
         return self.fc(h)
 
     def compute_error(self,

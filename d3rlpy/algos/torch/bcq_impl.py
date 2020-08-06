@@ -2,7 +2,7 @@ import torch
 import math
 
 from torch.optim import Adam
-from d3rlpy.models.torch.heads import PixelHead
+from d3rlpy.models.torch.encoders import PixelEncoder
 from d3rlpy.models.torch.policies import create_deterministic_residual_policy
 from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
@@ -156,8 +156,8 @@ class DiscreteBCQImpl(DoubleDQNImpl):
     def _build_network(self):
         super()._build_network()
         # share convolutional layers if observation is pixel
-        if isinstance(self.q_func.q_funcs[0].head, PixelHead):
-            self.imitator = DiscreteImitator(self.q_func.q_funcs[0].head,
+        if isinstance(self.q_func.q_funcs[0].encoder, PixelEncoder):
+            self.imitator = DiscreteImitator(self.q_func.q_funcs[0].encoder,
                                              self.action_size, self.beta)
         else:
             self.imitator = create_discrete_imitator(self.observation_shape,

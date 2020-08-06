@@ -4,29 +4,29 @@ import torch.nn.functional as F
 import math
 
 from torch.distributions import Normal, Categorical
-from .heads import create_head
+from .encoders import create_encoder
 
 
 def create_deterministic_policy(observation_shape,
                                 action_size,
                                 use_batch_norm=False):
-    head = create_head(observation_shape, use_batch_norm=use_batch_norm)
-    return DeterministicPolicy(head, action_size)
+    encoder = create_encoder(observation_shape, use_batch_norm=use_batch_norm)
+    return DeterministicPolicy(encoder, action_size)
 
 
 def create_deterministic_residual_policy(observation_shape,
                                          action_size,
                                          scale,
                                          use_batch_norm=False):
-    head = create_head(observation_shape,
-                       action_size,
-                       use_batch_norm=use_batch_norm)
-    return DeterministicResidualPolicy(head, scale)
+    encoder = create_encoder(observation_shape,
+                             action_size,
+                             use_batch_norm=use_batch_norm)
+    return DeterministicResidualPolicy(encoder, scale)
 
 
 def create_normal_policy(observation_shape, action_size, use_batch_norm=False):
-    head = create_head(observation_shape, use_batch_norm=use_batch_norm)
-    return NormalPolicy(head, action_size)
+    encoder = create_encoder(observation_shape, use_batch_norm=use_batch_norm)
+    return NormalPolicy(encoder, action_size)
 
 
 def _squash_action(dist, raw_action):
@@ -37,13 +37,13 @@ def _squash_action(dist, raw_action):
 
 
 class DeterministicPolicy(nn.Module):
-    def __init__(self, head, action_size):
+    def __init__(self, encoder, action_size):
         super().__init__()
-        self.head = head
-        self.fc = nn.Linear(head.feature_size, action_size)
+        self.encoder = encoder
+        self.fc = nn.Linear(encoder.feature_size, action_size)
 
     def forward(self, x, with_raw=False):
-        h = self.head(x)
+        h = self.encoder(x)
         raw_action = self.fc(h)
         if with_raw:
             return torch.tanh(raw_action), raw_action
@@ -54,14 +54,14 @@ class DeterministicPolicy(nn.Module):
 
 
 class DeterministicResidualPolicy(nn.Module):
-    def __init__(self, head, scale):
+    def __init__(self, encoder, scale):
         super().__init__()
         self.scale = scale
-        self.head = head
-        self.fc = nn.Linear(head.feature_size, head.action_size)
+        self.encoder = encoder
+        self.fc = nn.Linear(encoder.feature_size, encoder.action_size)
 
     def forward(self, x, action):
-        h = self.head(x, action)
+        h = self.encoder(x, action)
         residual_action = self.scale * torch.tanh(self.fc(h))
         return (action + residual_action).clamp(-1.0, 1.0)
 
@@ -70,15 +70,15 @@ class DeterministicResidualPolicy(nn.Module):
 
 
 class NormalPolicy(nn.Module):
-    def __init__(self, head, action_size):
+    def __init__(self, encoder, action_size):
         super().__init__()
         self.action_size = action_size
-        self.head = head
-        self.mu = nn.Linear(head.feature_size, action_size)
-        self.logstd = nn.Linear(head.feature_size, action_size)
+        self.encoder = encoder
+        self.mu = nn.Linear(encoder.feature_size, action_size)
+        self.logstd = nn.Linear(encoder.feature_size, action_size)
 
     def dist(self, x):
-        h = self.head(x)
+        h = self.encoder(x)
         mu = self.mu(h)
         logstd = self.logstd(h)
         clipped_logstd = logstd.clamp(-20.0, 2.0)
@@ -124,13 +124,13 @@ class NormalPolicy(nn.Module):
 
 
 class CategoricalPolicy(nn.Module):
-    def __init__(self, head, action_size):
+    def __init__(self, encoder, action_size):
         super().__init__()
-        self.head = head
-        self.fc = nn.Linear(head.feature_size, action_size)
+        self.encoder = encoder
+        self.fc = nn.Linear(encoder.feature_size, action_size)
 
     def dist(self, x):
-        h = self.head(x)
+        h = self.encoder(x)
         h = self.fc(h)
         return Categorical(torch.softmax(h))
 

@@ -10,7 +10,7 @@ from d3rlpy.models.torch.imitators import ConditionalVAE
 from d3rlpy.models.torch.imitators import DiscreteImitator
 from d3rlpy.models.torch.imitators import DeterministicRegressor
 from d3rlpy.models.torch.imitators import ProbablisticRegressor
-from .model_test import check_parameter_updates, DummyHead
+from .model_test import check_parameter_updates, DummyEncoder
 
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
@@ -87,9 +87,9 @@ def test_create_probablistic_regressor(observation_shape, action_size,
 @pytest.mark.parametrize('batch_size', [32])
 def test_conditional_vae(feature_size, action_size, latent_size, beta,
                          batch_size):
-    encoder_head = DummyHead(feature_size, action_size, True)
-    decoder_head = DummyHead(feature_size, latent_size, True)
-    vae = ConditionalVAE(encoder_head, decoder_head, beta)
+    encoder_encoder = DummyEncoder(feature_size, action_size, True)
+    decoder_encoder = DummyEncoder(feature_size, latent_size, True)
+    vae = ConditionalVAE(encoder_encoder, decoder_encoder, beta)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -118,8 +118,8 @@ def test_conditional_vae(feature_size, action_size, latent_size, beta,
 @pytest.mark.parametrize('beta', [1e-2])
 @pytest.mark.parametrize('batch_size', [32])
 def test_discrete_imitator(feature_size, action_size, beta, batch_size):
-    head = DummyHead(feature_size)
-    imitator = DiscreteImitator(head, action_size, beta)
+    encoder = DummyEncoder(feature_size)
+    imitator = DiscreteImitator(encoder, action_size, beta)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -141,8 +141,8 @@ def test_discrete_imitator(feature_size, action_size, beta, batch_size):
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
 def test_deterministic_regressor(feature_size, action_size, batch_size):
-    head = DummyHead(feature_size)
-    imitator = DeterministicRegressor(head, action_size)
+    encoder = DummyEncoder(feature_size)
+    imitator = DeterministicRegressor(encoder, action_size)
 
     x = torch.rand(batch_size, feature_size)
     y = imitator(x)
@@ -161,8 +161,8 @@ def test_deterministic_regressor(feature_size, action_size, batch_size):
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('n', [10])
 def test_probablistic_regressor(feature_size, action_size, batch_size, n):
-    head = DummyHead(feature_size)
-    imitator = ProbablisticRegressor(head, action_size)
+    encoder = DummyEncoder(feature_size)
+    imitator = ProbablisticRegressor(encoder, action_size)
 
     x = torch.rand(batch_size, feature_size)
     y = imitator(x)
