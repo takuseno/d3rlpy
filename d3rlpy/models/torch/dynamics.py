@@ -11,7 +11,8 @@ def create_probablistic_dynamics(observation_shape,
                                  action_size,
                                  n_ensembles=5,
                                  use_batch_norm=False,
-                                 discrete_action=False):
+                                 discrete_action=False,
+                                 encoder_params={}):
     models = []
     for _ in range(n_ensembles):
         encoder = create_encoder(observation_shape,
@@ -19,7 +20,8 @@ def create_probablistic_dynamics(observation_shape,
                                  use_batch_norm=use_batch_norm,
                                  discrete_action=discrete_action,
                                  activation_type='swish',
-                                 hidden_units=[200, 200, 200, 200])
+                                 hidden_units=[200, 200, 200, 200],
+                                 **encoder_params)
         model = ProbablisticDynamics(encoder)
         models.append(model)
     return EnsembleDynamics(models)

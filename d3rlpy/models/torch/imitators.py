@@ -11,35 +11,47 @@ def create_conditional_vae(observation_shape,
                            action_size,
                            latent_size,
                            beta,
-                           use_batch_norm=False):
+                           use_batch_norm=False,
+                           encoder_params={}):
     encoder_encoder = create_encoder(observation_shape,
                                      action_size,
-                                     use_batch_norm=use_batch_norm)
+                                     use_batch_norm=use_batch_norm,
+                                     **encoder_params)
     decoder_encoder = create_encoder(observation_shape,
                                      latent_size,
-                                     use_batch_norm=use_batch_norm)
+                                     use_batch_norm=use_batch_norm,
+                                     **encoder_params)
     return ConditionalVAE(encoder_encoder, decoder_encoder, beta)
 
 
 def create_discrete_imitator(observation_shape,
                              action_size,
                              beta,
-                             use_batch_norm=False):
-    encoder = create_encoder(observation_shape, use_batch_norm=use_batch_norm)
+                             use_batch_norm=False,
+                             encoder_params={}):
+    encoder = create_encoder(observation_shape,
+                             use_batch_norm=use_batch_norm,
+                             **encoder_params)
     return DiscreteImitator(encoder, action_size, beta)
 
 
 def create_deterministic_regressor(observation_shape,
                                    action_size,
-                                   use_batch_norm=False):
-    encoder = create_encoder(observation_shape, use_batch_norm=use_batch_norm)
+                                   use_batch_norm=False,
+                                   encoder_params={}):
+    encoder = create_encoder(observation_shape,
+                             use_batch_norm=use_batch_norm,
+                             **encoder_params)
     return DeterministicRegressor(encoder, action_size)
 
 
 def create_probablistic_regressor(observation_shape,
                                   action_size,
-                                  use_batch_norm=False):
-    encoder = create_encoder(observation_shape, use_batch_norm=use_batch_norm)
+                                  use_batch_norm=False,
+                                  encoder_params={}):
+    encoder = create_encoder(observation_shape,
+                             use_batch_norm=use_batch_norm,
+                             **encoder_params)
     return ProbablisticRegressor(encoder, action_size)
 
 

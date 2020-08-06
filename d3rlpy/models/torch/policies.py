@@ -9,23 +9,33 @@ from .encoders import create_encoder
 
 def create_deterministic_policy(observation_shape,
                                 action_size,
-                                use_batch_norm=False):
-    encoder = create_encoder(observation_shape, use_batch_norm=use_batch_norm)
+                                use_batch_norm=False,
+                                encoder_params={}):
+    encoder = create_encoder(observation_shape,
+                             use_batch_norm=use_batch_norm,
+                             **encoder_params)
     return DeterministicPolicy(encoder, action_size)
 
 
 def create_deterministic_residual_policy(observation_shape,
                                          action_size,
                                          scale,
-                                         use_batch_norm=False):
+                                         use_batch_norm=False,
+                                         encoder_params={}):
     encoder = create_encoder(observation_shape,
                              action_size,
-                             use_batch_norm=use_batch_norm)
+                             use_batch_norm=use_batch_norm,
+                             **encoder_params)
     return DeterministicResidualPolicy(encoder, scale)
 
 
-def create_normal_policy(observation_shape, action_size, use_batch_norm=False):
-    encoder = create_encoder(observation_shape, use_batch_norm=use_batch_norm)
+def create_normal_policy(observation_shape,
+                         action_size,
+                         use_batch_norm=False,
+                         encoder_params={}):
+    encoder = create_encoder(observation_shape,
+                             use_batch_norm=use_batch_norm,
+                             **encoder_params)
     return NormalPolicy(encoder, action_size)
 
 
