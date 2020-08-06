@@ -18,7 +18,8 @@ def create_probablistic_dynamics(observation_shape,
                            action_size,
                            use_batch_norm=use_batch_norm,
                            discrete_action=discrete_action,
-                           activation_type='swish')
+                           activation_type='swish',
+                           hidden_units=[200, 200, 200, 200])
         model = ProbablisticDynamics(head)
         models.append(model)
     return EnsembleDynamics(models)
