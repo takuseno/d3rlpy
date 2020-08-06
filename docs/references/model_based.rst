@@ -1,5 +1,5 @@
-Model-based Data Augmentation (experimental)
-============================================
+Model-based Data Augmentation
+=============================
 
 .. module:: d3rlpy.dynamics
 
@@ -41,9 +41,9 @@ Pick the best model based on evaluation metrics.
   # load trained dynamics model
   mopo = MOPO.from_json('<path-to-params.json>/params.json')
   mopo.load_model('<path-to-model>/model_xx.pt')
-  mopo.n_transitions = 10 # tunable parameter
+  mopo.n_transitions = 400 # tunable parameter
   mopo.horizon = 5 # tunable parameter
-  mopo.lam = 5.0 # tunable parameter
+  mopo.lam = 1.0 # tunable parameter
 
   # give mopo as dynamics argument.
   cql = CQL(dynamics=mopo)
