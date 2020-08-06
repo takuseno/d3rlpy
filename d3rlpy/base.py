@@ -291,7 +291,7 @@ class LearnableBase:
             # data augmentation
             new_transitions = self._generate_new_data(env_transitions)
             if new_transitions:
-                transitions += new_transitions
+                transitions = env_transitions + new_transitions
 
             indices = np.random.permutation(np.arange(len(transitions)))
             n_iters = len(transitions) // self.batch_size
