@@ -11,7 +11,7 @@ from .utility import compute_augemtation_mean
 class BCImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate, eps,
                  use_batch_norm, use_gpu, scaler, augmentation,
-                 n_augmentations):
+                 n_augmentations, encoder_params):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.learning_rate = learning_rate
@@ -20,6 +20,7 @@ class BCImpl(TorchImplBase):
         self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
+        self.encoder_params = encoder_params
         self.use_gpu = use_gpu
 
     def build(self):
@@ -33,8 +34,10 @@ class BCImpl(TorchImplBase):
         self._build_optim()
 
     def _build_network(self):
-        self.imitator = create_deterministic_regressor(self.observation_shape,
-                                                       self.action_size)
+        self.imitator = create_deterministic_regressor(
+            self.observation_shape,
+            self.action_size,
+            encoder_params=self.encoder_params)
 
     def _build_optim(self):
         self.optim = Adam(self.imitator.parameters(),
@@ -76,15 +79,18 @@ class BCImpl(TorchImplBase):
 class DiscreteBCImpl(BCImpl):
     def __init__(self, observation_shape, action_size, learning_rate, eps,
                  beta, use_batch_norm, use_gpu, scaler, augmentation,
-                 n_augmentations):
+                 n_augmentations, encoder_params):
         super().__init__(observation_shape, action_size, learning_rate, eps,
                          use_batch_norm, use_gpu, scaler, augmentation,
-                         n_augmentations)
+                         n_augmentations, encoder_params)
         self.beta = beta
 
     def _build_network(self):
-        self.imitator = create_discrete_imitator(self.observation_shape,
-                                                 self.action_size, self.beta)
+        self.imitator = create_discrete_imitator(
+            self.observation_shape,
+            self.action_size,
+            self.beta,
+            encoder_params=self.encoder_params)
 
     def _predict_best_action(self, x):
         return self.imitator(x).argmax(dim=1)

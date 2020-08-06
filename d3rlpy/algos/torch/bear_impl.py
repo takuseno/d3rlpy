@@ -21,12 +21,13 @@ class BEARImpl(SACImpl):
                  n_critics, bootstrap, share_encoder, initial_temperature,
                  initial_alpha, alpha_threshold, lam, n_action_samples,
                  mmd_sigma, eps, use_batch_norm, q_func_type, use_gpu, scaler,
-                 augmentation, n_augmentations):
+                 augmentation, n_augmentations, encoder_params):
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, temp_learning_rate, gamma, tau,
                          n_critics, bootstrap, share_encoder,
                          initial_temperature, eps, use_batch_norm, q_func_type,
-                         use_gpu, scaler, augmentation, n_augmentations)
+                         use_gpu, scaler, augmentation, n_augmentations,
+                         encoder_params)
         self.imitator_learning_rate = imitator_learning_rate
         self.alpha_learning_rate = alpha_learning_rate
         self.initial_alpha = initial_alpha
@@ -43,9 +44,11 @@ class BEARImpl(SACImpl):
         self._build_alpha_optim()
 
     def _build_imitator(self):
-        self.imitator = create_probablistic_regressor(self.observation_shape,
-                                                      self.action_size,
-                                                      self.use_batch_norm)
+        self.imitator = create_probablistic_regressor(
+            self.observation_shape,
+            self.action_size,
+            self.use_batch_norm,
+            encoder_params=self.encoder_params)
 
     def _build_imitator_optim(self):
         self.imitator_optim = Adam(self.imitator.parameters(),

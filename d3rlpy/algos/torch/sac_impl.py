@@ -13,12 +13,12 @@ class SACImpl(DDPGImpl):
                  critic_learning_rate, temp_learning_rate, gamma, tau,
                  n_critics, bootstrap, share_encoder, initial_temperature, eps,
                  use_batch_norm, q_func_type, use_gpu, scaler, augmentation,
-                 n_augmentations):
+                 n_augmentations, encoder_params):
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, n_critics,
                          bootstrap, share_encoder, 0.0, eps, use_batch_norm,
                          q_func_type, use_gpu, scaler, augmentation,
-                         n_augmentations)
+                         n_augmentations, encoder_params)
         self.temp_learning_rate = temp_learning_rate
         self.initial_temperature = initial_temperature
 
@@ -32,7 +32,8 @@ class SACImpl(DDPGImpl):
     def _build_actor(self):
         self.policy = create_normal_policy(self.observation_shape,
                                            self.action_size,
-                                           self.use_batch_norm)
+                                           self.use_batch_norm,
+                                           encoder_params=self.encoder_params)
 
     def _build_temperature(self):
         initial_val = math.log(self.initial_temperature)

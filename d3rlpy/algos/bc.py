@@ -28,6 +28,12 @@ class BC(AlgoBase):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup. If the
+            observation is pixel, you can pass ``filters`` with list of tuples
+            consisting with ``(filter_size, kernel_size, stride)`` and
+            ``feature_size`` with an integer scaler for the last linear layer
+            size. If the observation is vector, you can pass ``hidden_units``
+            with list of hidden unit sizes.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bc_impl.BCImpl):
@@ -44,6 +50,7 @@ class BC(AlgoBase):
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bc_impl.BCImpl):
             implemenation of the algorithm.
@@ -59,6 +66,7 @@ class BC(AlgoBase):
                  scaler=None,
                  augmentation=[],
                  n_augmentations=1,
+                 encoder_params={},
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -68,6 +76,7 @@ class BC(AlgoBase):
         self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.n_augmentations = n_augmentations
+        self.encoder_params = encoder_params
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -79,7 +88,8 @@ class BC(AlgoBase):
                            use_gpu=self.use_gpu,
                            scaler=self.scaler,
                            augmentation=self.augmentation,
-                           n_augmentations=self.n_augmentations)
+                           n_augmentations=self.n_augmentations,
+                           encoder_params=self.encoder_params)
         self.impl.build()
 
     def update(self, epoch, itr, batch):
@@ -129,6 +139,12 @@ class DiscreteBC(BC):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup. If the
+            observation is pixel, you can pass ``filters`` with list of tuples
+            consisting with ``(filter_size, kernel_size, stride)`` and
+            ``feature_size`` with an integer scaler for the last linear layer
+            size. If the observation is vector, you can pass ``hidden_units``
+            with list of hidden unit sizes.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
@@ -146,6 +162,7 @@ class DiscreteBC(BC):
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
             implemenation of the algorithm.
@@ -162,12 +179,14 @@ class DiscreteBC(BC):
                  scaler=None,
                  augmentation=[],
                  n_augmentations=1,
+                 encoder_params={},
                  dynamics=None,
                  impl=None,
                  **kwargs):
         super().__init__(learning_rate, batch_size, eps, use_batch_norm,
                          n_epochs, use_gpu, scaler, augmentation,
-                         n_augmentations, dynamics, impl, **kwargs)
+                         n_augmentations, encoder_params, dynamics, impl,
+                         **kwargs)
         self.beta = beta
 
     def create_impl(self, observation_shape, action_size):
@@ -180,5 +199,6 @@ class DiscreteBC(BC):
                                    use_gpu=self.use_gpu,
                                    scaler=self.scaler,
                                    augmentation=self.augmentation,
-                                   n_augmentations=self.n_augmentations)
+                                   n_augmentations=self.n_augmentations,
+                                   encoder_params=self.encoder_params)
         self.impl.build()

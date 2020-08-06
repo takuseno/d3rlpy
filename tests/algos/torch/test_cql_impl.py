@@ -26,12 +26,14 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
+@pytest.mark.parametrize('encoder_params', [{}])
 def test_cql_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, temp_learning_rate,
                   alpha_learning_rate, gamma, tau, n_critics, bootstrap,
                   share_encoder, initial_temperature, initial_alpha,
                   alpha_threshold, n_action_samples, eps, use_batch_norm,
-                  q_func_type, scaler, augmentation, n_augmentations):
+                  q_func_type, scaler, augmentation, n_augmentations,
+                  encoder_params):
     impl = CQLImpl(observation_shape,
                    action_size,
                    actor_learning_rate,
@@ -53,7 +55,8 @@ def test_cql_impl(observation_shape, action_size, actor_learning_rate,
                    use_gpu=False,
                    scaler=scaler,
                    augmentation=augmentation,
-                   n_augmentations=n_augmentations)
+                   n_augmentations=n_augmentations,
+                   encoder_params=encoder_params)
     torch_impl_tester(impl,
                       discrete=False,
                       deterministic_best_action=q_func_type != 'iqn')
@@ -72,10 +75,11 @@ def test_cql_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
+@pytest.mark.parametrize('encoder_params', [{}])
 def test_double_dqn_impl(observation_shape, action_size, learning_rate, gamma,
                          n_critics, bootstrap, share_encoder, eps,
                          use_batch_norm, q_func_type, scaler, augmentation,
-                         n_augmentations):
+                         n_augmentations, encoder_params):
     impl = DiscreteCQLImpl(observation_shape,
                            action_size,
                            learning_rate,
@@ -89,7 +93,8 @@ def test_double_dqn_impl(observation_shape, action_size, learning_rate, gamma,
                            use_gpu=False,
                            scaler=scaler,
                            augmentation=augmentation,
-                           n_augmentations=n_augmentations)
+                           n_augmentations=n_augmentations,
+                           encoder_params=encoder_params)
     torch_impl_tester(impl,
                       discrete=True,
                       deterministic_best_action=q_func_type != 'iqn')

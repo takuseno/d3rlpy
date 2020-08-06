@@ -13,7 +13,8 @@ from .base import TorchImplBase
 class DQNImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
                  n_critics, bootstrap, share_encoder, eps, use_batch_norm,
-                 q_func_type, use_gpu, scaler, augmentation, n_augmentations):
+                 q_func_type, use_gpu, scaler, augmentation, n_augmentations,
+                 encoder_params):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.learning_rate = learning_rate
@@ -27,6 +28,7 @@ class DQNImpl(TorchImplBase):
         self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
+        self.encoder_params = encoder_params
         self.use_gpu = use_gpu
 
     def build(self):
@@ -52,7 +54,8 @@ class DQNImpl(TorchImplBase):
             use_batch_norm=self.use_batch_norm,
             q_func_type=self.q_func_type,
             bootstrap=self.bootstrap,
-            share_encoder=self.share_encoder)
+            share_encoder=self.share_encoder,
+            encoder_params=self.encoder_params)
 
     def _build_optim(self):
         self.optim = Adam(self.q_func.parameters(),

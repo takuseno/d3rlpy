@@ -36,6 +36,12 @@ class DQN(AlgoBase):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup. If the
+            observation is pixel, you can pass ``filters`` with list of tuples
+            consisting with ``(filter_size, kernel_size, stride)`` and
+            ``feature_size`` with an integer scaler for the last linear layer
+            size. If the observation is vector, you can pass ``hidden_units``
+            with list of hidden unit sizes.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.dqn_impl.DQNImpl): algorithm implementation.
@@ -57,6 +63,7 @@ class DQN(AlgoBase):
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.dqn_impl.DQNImpl): algorithm implementation.
 
@@ -77,6 +84,7 @@ class DQN(AlgoBase):
                  scaler=None,
                  augmentation=[],
                  n_augmentations=1,
+                 encoder_params={},
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -92,6 +100,7 @@ class DQN(AlgoBase):
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.n_augmentations = n_augmentations
+        self.encoder_params = encoder_params
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -108,7 +117,8 @@ class DQN(AlgoBase):
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
                             augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations)
+                            n_augmentations=self.n_augmentations,
+                            encoder_params=self.encoder_params)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
@@ -164,6 +174,12 @@ class DoubleDQN(DQN):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup. If the
+            observation is pixel, you can pass ``filters`` with list of tuples
+            consisting with ``(filter_size, kernel_size, stride)`` and
+            ``feature_size`` with an integer scaler for the last linear layer
+            size. If the observation is vector, you can pass ``hidden_units``
+            with list of hidden unit sizes.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.dqn_impl.DoubleDQNImpl):
@@ -187,6 +203,7 @@ class DoubleDQN(DQN):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynaics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.dqn_impl.DoubleDQNImpl):
             algorithm implementation.
@@ -206,5 +223,6 @@ class DoubleDQN(DQN):
                                   use_gpu=self.use_gpu,
                                   scaler=self.scaler,
                                   augmentation=self.augmentation,
-                                  n_augmentations=self.n_augmentations)
+                                  n_augmentations=self.n_augmentations,
+                                  encoder_params=self.encoder_params)
         self.impl.build()

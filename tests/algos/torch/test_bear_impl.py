@@ -30,13 +30,14 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
+@pytest.mark.parametrize('encoder_params', [{}])
 def test_bear_impl(observation_shape, action_size, actor_learning_rate,
                    critic_learning_rate, imitator_learning_rate,
                    temp_learning_rate, alpha_learning_rate, gamma, tau,
                    n_critics, bootstrap, share_encoder, initial_temperature,
                    initial_alpha, alpha_threshold, lam, n_action_samples,
                    mmd_sigma, eps, use_batch_norm, q_func_type, scaler,
-                   augmentation, n_augmentations):
+                   augmentation, n_augmentations, encoder_params):
     impl = BEARImpl(observation_shape,
                     action_size,
                     actor_learning_rate,
@@ -61,7 +62,8 @@ def test_bear_impl(observation_shape, action_size, actor_learning_rate,
                     use_gpu=False,
                     scaler=scaler,
                     augmentation=augmentation,
-                    n_augmentations=n_augmentations)
+                    n_augmentations=n_augmentations,
+                    encoder_params=encoder_params)
     impl.build()
 
     x = torch.rand(32, *observation_shape)

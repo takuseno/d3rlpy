@@ -23,11 +23,12 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
+@pytest.mark.parametrize('encoder_params', [{}])
 def test_td3_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, gamma, tau, reguralizing_rate,
                   n_critics, bootstrap, share_encoder, target_smoothing_sigma,
                   target_smoothing_clip, eps, use_batch_norm, q_func_type,
-                  scaler, augmentation, n_augmentations):
+                  scaler, augmentation, n_augmentations, encoder_params):
     impl = TD3Impl(observation_shape,
                    action_size,
                    actor_learning_rate,
@@ -46,7 +47,8 @@ def test_td3_impl(observation_shape, action_size, actor_learning_rate,
                    use_gpu=False,
                    scaler=scaler,
                    augmentation=augmentation,
-                   n_augmentations=n_augmentations)
+                   n_augmentations=n_augmentations,
+                   encoder_params=encoder_params)
     torch_impl_tester(impl,
                       discrete=False,
                       deterministic_best_action=q_func_type != 'iqn')
