@@ -13,6 +13,7 @@ train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 cql = DiscreteCQL(n_epochs=100,
                   scaler='pixel',
                   augmentation=['random_shift', 'intensity'],
+                  n_augmentations=2,
                   use_batch_norm=False,
                   use_gpu=True)
 
