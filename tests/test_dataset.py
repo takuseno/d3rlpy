@@ -52,6 +52,11 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
     assert np.allclose(return_stats['std'], np.std(ref_returns))
     assert np.allclose(return_stats['min'], np.min(ref_returns))
     assert np.allclose(return_stats['max'], np.max(ref_returns))
+    reward_stats = stats['reward']
+    assert np.allclose(reward_stats['mean'], np.mean(rewards))
+    assert np.allclose(reward_stats['std'], np.std(rewards))
+    assert np.allclose(reward_stats['min'], np.min(rewards))
+    assert np.allclose(reward_stats['max'], np.max(rewards))
     observation_stats = stats['observation']
     assert np.all(observation_stats['mean'] == np.mean(observations, axis=0))
     assert np.all(observation_stats['std'] == np.std(observations, axis=0))

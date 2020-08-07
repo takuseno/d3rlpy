@@ -213,6 +213,12 @@ class MDPDataset:
                 'std': np.std(episode_returns),
                 'min': np.min(episode_returns),
                 'max': np.max(episode_returns),
+            },
+            'reward': {
+                'mean': np.mean(self._rewards),
+                'std': np.std(self._rewards),
+                'min': np.min(self._rewards),
+                'max': np.max(self._rewards),
             }
         }
 
