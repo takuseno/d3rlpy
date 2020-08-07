@@ -194,10 +194,30 @@ class MDPDataset:
         .. code-block:: python
 
             stats = dataset.compute_stats()
-            stats['return']['mean'] # mean of episode returns
-            stats['return']['std'] # standard deviation of episode returns
-            stats['return']['min'] # minimum of episode returns
-            stats['return']['max'] # maximum of episode returns
+
+            # return statistics
+            stats['return']['mean']
+            stats['return']['std']
+            stats['return']['min']
+            stats['return']['max']
+
+            # reward statistics
+            stats['reward']['mean']
+            stats['reward']['std']
+            stats['reward']['min']
+            stats['reward']['max']
+
+            # action (only with continuous control actions)
+            stats['action']['mean']
+            stats['action']['std']
+            stats['action']['min']
+            stats['action']['max']
+
+            # observation (only with numpy.ndarray observations)
+            stats['observation']['mean']
+            stats['observation']['std']
+            stats['observation']['min']
+            stats['observation']['max']
 
         Returns:
             dict: statistics of the dataset.
@@ -243,7 +263,7 @@ class MDPDataset:
         return stats
 
     def clip_reward(self, low=None, high=None):
-        """ Clip rewards in the given range.
+        """ Clips rewards in the given range.
 
         Args:
             low (float): minimum value. If None, clipping is not performed on
@@ -258,7 +278,7 @@ class MDPDataset:
             self._build_episodes()
 
     def append(self, observations, actions, rewards, terminals):
-        """ Append new data.
+        """ Appends new data.
 
         Args:
             observations (numpy.ndarray or list(numpy.ndarray)): N-D array.
@@ -300,7 +320,7 @@ class MDPDataset:
         self._episodes += episodes
 
     def dump(self, fname):
-        """ Save dataset as HDF5.
+        """ Saves dataset as HDF5.
 
         Args:
             fname (str): file path.
@@ -316,7 +336,7 @@ class MDPDataset:
 
     @classmethod
     def load(cls, fname):
-        """ Load dataset from HDF5.
+        """ Loads dataset from HDF5.
 
         .. code-block:: python
 
