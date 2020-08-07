@@ -222,6 +222,15 @@ class MDPDataset:
             }
         }
 
+        # only for continuous control task
+        if not self.discrete_action:
+            stats['action'] = {
+                'mean': np.mean(self.actions, axis=0),
+                'std': np.std(self.actions, axis=0),
+                'min': np.min(self.actions, axis=0),
+                'max': np.max(self.actions, axis=0),
+            }
+
         # avoid large copy when observations are huge data.
         if isinstance(self._observations, np.ndarray):
             stats['observation'] = {

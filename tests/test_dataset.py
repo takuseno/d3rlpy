@@ -60,6 +60,14 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
     observation_stats = stats['observation']
     assert np.all(observation_stats['mean'] == np.mean(observations, axis=0))
     assert np.all(observation_stats['std'] == np.std(observations, axis=0))
+    if discrete_action:
+        assert 'action' not in stats
+    else:
+        action_stats = stats['action']
+        assert np.all(action_stats['mean'] == np.mean(actions, axis=0))
+        assert np.all(action_stats['std'] == np.std(actions, axis=0))
+        assert np.all(action_stats['min'] == np.min(actions, axis=0))
+        assert np.all(action_stats['max'] == np.max(actions, axis=0))
 
     # check episodes exported from dataset
     episodes = dataset.episodes
