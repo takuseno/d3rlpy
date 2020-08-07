@@ -14,7 +14,7 @@ from d3rlpy.dataset import MDPDataset, Episode, Transition, TransitionMiniBatch
 def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
                      discrete_action):
     observations = np.random.random((data_size, observation_size))
-    rewards = np.random.random(data_size)
+    rewards = np.random.uniform(-10.0, 10.0, size=data_size)
     n_steps = data_size // n_episodes
     terminals = np.array(([0] * (n_steps - 1) + [1]) * n_episodes)
 
@@ -87,6 +87,13 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
         assert dataset.actions.shape == (2 * data_size, )
     else:
         assert dataset.actions.shape == (2 * data_size, action_size)
+
+    # check clip_reward
+    dataset.clip_reward(-1.0, 1.0)
+    assert rewards[rewards > 1.0].sum() != 0
+    assert rewards[rewards < -1.0].sum() != 0
+    assert dataset.rewards[dataset.rewards > 1.0].sum() == 0
+    assert dataset.rewards[dataset.rewards < -1.0].sum() == 0
 
     # check dump and load
     dataset.dump(os.path.join('test_data', 'dataset.h5'))

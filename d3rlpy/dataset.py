@@ -144,10 +144,7 @@ class MDPDataset:
 
         """
         if self._episodes is None:
-            self._episodes = _to_episodes(self.get_observation_shape(),
-                                          self.get_action_size(),
-                                          self._observations, self._actions,
-                                          self._rewards, self._terminals)
+            self._build_episodes()
         return self._episodes
 
     def size(self):
@@ -229,6 +226,21 @@ class MDPDataset:
             }
 
         return stats
+
+    def clip_reward(self, low=None, high=None):
+        """ Clip rewards in the given range.
+
+        Args:
+            low (float): minimum value. If None, clipping is not performed on
+                lower edge.
+            high (float): maximum value. If None, clipping is not performed on
+                upper edge.
+
+        """
+        self._rewards = np.clip(self._rewards, low, high)
+        # rebuild Episode objects
+        if self._episodes:
+            self._build_episodes()
 
     def append(self, observations, actions, rewards, terminals):
         """ Append new data.
@@ -325,6 +337,12 @@ class MDPDataset:
                       discrete_action=discrete_action)
 
         return dataset
+
+    def _build_episodes(self):
+        self._episodes = _to_episodes(self.get_observation_shape(),
+                                      self.get_action_size(),
+                                      self._observations, self._actions,
+                                      self._rewards, self._terminals)
 
     def __len__(self):
         return self.size()
