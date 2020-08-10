@@ -19,7 +19,7 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
     terminals = np.array(([0] * (n_steps - 1) + [1]) * n_episodes)
 
     if discrete_action:
-        actions = np.random.randint(10, size=data_size)
+        actions = np.random.randint(action_size, size=data_size)
         ref_action_size = np.max(actions) + 1
     else:
         actions = np.random.random((data_size, action_size))
@@ -34,7 +34,7 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
     assert np.all(dataset.rewards == rewards)
     assert np.all(dataset.terminals == terminals)
     assert dataset.size() == n_episodes
-    assert dataset.get_action_size() == ref_action_size
+    assert dataset.get_action_size() == action_size
     assert dataset.get_observation_shape() == (observation_size, )
     assert dataset.is_action_discrete() == discrete_action
 
@@ -61,13 +61,18 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
     assert np.all(observation_stats['mean'] == np.mean(observations, axis=0))
     assert np.all(observation_stats['std'] == np.std(observations, axis=0))
     if discrete_action:
-        assert 'action' not in stats
+        freqs, action_ids = stats['action']['histogram']
+        assert np.sum(freqs) == data_size
+        assert list(action_ids) == [i for i in range(action_size)]
     else:
         action_stats = stats['action']
         assert np.all(action_stats['mean'] == np.mean(actions, axis=0))
         assert np.all(action_stats['std'] == np.std(actions, axis=0))
         assert np.all(action_stats['min'] == np.min(actions, axis=0))
         assert np.all(action_stats['max'] == np.max(actions, axis=0))
+        assert len(action_stats['histogram']) == action_size
+        for freqs, _ in action_stats['histogram']:
+            assert np.sum(freqs) == data_size
 
     # check episodes exported from dataset
     episodes = dataset.episodes

@@ -246,11 +246,24 @@ class MDPDataset:
 
         # only for continuous control task
         if not self.discrete_action:
+            # calculate histogram on each dimension
+            hists = []
+            for i in range(self.get_action_size()):
+                hists.append(np.histogram(self.actions[:, i], bins=20))
             stats['action'] = {
                 'mean': np.mean(self.actions, axis=0),
                 'std': np.std(self.actions, axis=0),
                 'min': np.min(self.actions, axis=0),
                 'max': np.max(self.actions, axis=0),
+                'histogram': hists
+            }
+        else:
+            # count frequency of discrete actions
+            freqs = []
+            for i in range(self.get_action_size()):
+                freqs.append((self.actions == i).sum())
+            stats['action'] = {
+                'histogram': [freqs, np.arange(self.get_action_size())]
             }
 
         # avoid large copy when observations are huge data.
