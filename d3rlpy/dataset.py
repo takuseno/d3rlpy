@@ -233,12 +233,14 @@ class MDPDataset:
                 'std': np.std(episode_returns),
                 'min': np.min(episode_returns),
                 'max': np.max(episode_returns),
+                'histogram': np.histogram(episode_returns, bins=20)
             },
             'reward': {
                 'mean': np.mean(self._rewards),
                 'std': np.std(self._rewards),
                 'min': np.min(self._rewards),
                 'max': np.max(self._rewards),
+                'histogram': np.histogram(self._rewards, bins=20)
             }
         }
 
