@@ -1,3 +1,5 @@
+# d3rlpy: A data-driven deep reinforcement learning library as an out-of-the-box tool
+
 [![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
 ![format check](https://github.com/takuseno/d3rlpy/workflows/format%20check/badge.svg)
 ![test](https://github.com/takuseno/d3rlpy/workflows/test/badge.svg)
@@ -6,8 +8,7 @@
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/takuseno/d3rlpy.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/takuseno/d3rlpy/context:python)
 ![MIT](https://img.shields.io/badge/license-MIT-blue)
 
-# d3rlpy
-Data-driven Deep Reinforcement Learning Library as an Out-of-the-box Tool.
+d3rlpy is a data-driven deep reinforcement learning library as an out-of-the-box tool.
 
 ```py
 from d3rlpy.dataset import MDPDataset
