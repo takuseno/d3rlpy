@@ -28,24 +28,23 @@ Documentation: https://d3rlpy.readthedocs.io
 
 ## key features
 
-- Designed for Data-Driven Deep Reinforcement Learning
-  - d3rlpy is designed for data-driven deep reinforcement learning algorithms,
-    where the algorithm finds the good policy within the given dataset in
-    contrast to the conventional reinforcement learning paradigm.
-    This paradigm extends the domain to robotics, recommendation, dialogue and
-    medical systems where online interaction is not feasible.
-    Furthermore, d3rlpy also supports the conventional online training
-    paradigm to fit in with any cases.
-- Easy-To-Use API
-  - d3rlpy provides state-of-the-art algorithms through scikit-learn style APIs.
-    Moreoever, d3rlpy is not just easy to use, but also fully compatible with
-    scikit-learn utilites such as `train_test_split`, `cross_validate` and
-    others.
-- Beyond State-Of-The-Art
-  - d3rlpy provides further tweeks to improve performance of state-of-the-art
-    algorithms potentially beyond their original papers.
-    Therefore, d3rlpy enables every user to achieve professional-level
-    performance just in a few lines of codes.
+### :zap: Designed for Data-Driven Deep Reinforcement Learning
+d3rlpy is designed for data-driven deep reinforcement learning algorithms,
+where the algorithm finds the good policy within the given dataset in
+contrast to the conventional reinforcement learning paradigm.
+This paradigm extends the domain to robotics, recommendation, dialogue and
+medical systems where online interaction is not feasible.
+Furthermore, d3rlpy also supports the conventional online training
+paradigm to fit in with any cases.
+### :beginner: Easy-To-Use API
+d3rlpy provides state-of-the-art algorithms through scikit-learn style APIs.
+Moreoever, d3rlpy is not just easy to use, but also fully compatible with
+scikit-learn utilites such as `train_test_split`, `cross_validate` and others.
+### :rocket: Beyond State-Of-The-Art
+d3rlpy provides further tweeks to improve performance of state-of-the-art
+algorithms potentially beyond their original papers.
+Therefore, d3rlpy enables every user to achieve professional-level
+performance just in a few lines of codes.
 
 ## installation
 ```
