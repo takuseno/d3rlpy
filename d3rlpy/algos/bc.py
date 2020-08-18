@@ -22,7 +22,8 @@ class BC(AlgoBase):
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         n_epochs (int): the number of epochs to train.
-        use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
+        use_gpu (bool, int or d3rlpy.gpu.Device):
+            flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
@@ -133,7 +134,8 @@ class DiscreteBC(BC):
         eps (float): :math:`\\epsilon` for Adam optimizer.
         beta (float): reguralization factor.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
+        use_gpu (bool, int or d3rlpy.gpu.Device):
+            flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):

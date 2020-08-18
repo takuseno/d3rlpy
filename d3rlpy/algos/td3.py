@@ -52,7 +52,8 @@ class TD3(AlgoBase):
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
         n_epochs (int): the number of epochs to train.
-        use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
+        use_gpu (bool, int or d3rlpy.gpu.Device):
+            flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):

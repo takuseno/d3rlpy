@@ -48,7 +48,8 @@ class LearnableBase:
                 The available options are `['pixel', 'min_max', 'standard']`
             augmentation (list(str or d3rlpy.augmentation.base.Augmentation)):
                 list of data augmentations.
-            use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
+            use_gpu (bool, int or d3rlpy.gpu.Device):
+                flag to use GPU, device ID or device.
 
         """
         self.n_epochs = n_epochs
@@ -71,8 +72,11 @@ class LearnableBase:
                 self.augmentation.append(aug)
 
         # prepare GPU device
-        if isinstance(use_gpu, bool) and use_gpu:
+        # isinstance cannot tell difference between bool and int
+        if type(use_gpu) == bool and use_gpu:
             self.use_gpu = Device(0)
+        elif type(use_gpu) == int:
+            self.use_gpu = Device(use_gpu)
         elif isinstance(use_gpu, Device):
             self.use_gpu = use_gpu
         else:
@@ -101,7 +105,8 @@ class LearnableBase:
 
         Args:
             fname (str): file path to `params.json`.
-            use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
+            use_gpu (bool, int or d3rlpy.gpu.Device):
+                flag to use GPU, device ID or device.
 
         Returns:
             d3rlpy.base.LearnableBase: algorithm.
