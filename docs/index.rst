@@ -18,13 +18,6 @@ algorithms through out-of-the-box scikit-learn-style APIs.
 Unlike other RL libraries, the provided algorithms can achieve extremely
 powerful performance beyond the paper via several tweaks.
 
-These are the design principles of d3rlpy:
-
-* d3rlpy is desined for practical projects.
-* d3rlpy provides state-of-the-art techniques across RL researches to
-  let everyone easily achieve an incredible performance.
-* d3rlpy provides scikit-learn-compatible APIs.
-
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials

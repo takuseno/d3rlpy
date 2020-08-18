@@ -24,53 +24,32 @@ bear.fit(dataset.episodes)
 actions = bear.predict(x)
 ```
 
-d3rlpy provides state-of-the-art data-driven deep reinforcement learning
-algorithms through out-of-the-box scikit-learn-style APIs.
-Unlike other RL libraries, the provided algorithms can achieve extremely
-powerful performance beyond the paper via several tweaks.
-
-These are the design principles of d3rlpy:
-- d3rlpy is designed for practical projects unlike the many other RL libraries.
-- d3rlpy is not focusing on reproducing RL papers.
-- d3rlpy is adding more techniques than the original implementations.
-
 Documentation: https://d3rlpy.readthedocs.io
+
+## key features
+
+- Designed for Data-Driven Deep Reinforcement Learning
+  - d3rlpy is designed for data-driven deep reinforcement learning algorithms,
+    where the algorithm finds the good policy within the given dataset in
+    contrast to the conventional reinforcement learning paradigm.
+    This paradigm extends the domain to robotics, recommendation, dialogue and
+    medical systems where online interaction is not feasible.
+    Furthermore, d3rlpy also supports the conventional online training
+    paradigm to fit in with any cases.
+- Easy-To-Use API
+  - d3rlpy provides state-of-the-art algorithms through scikit-learn style APIs.
+    Moreoever, d3rlpy is not just easy to use, but also fully compatible with
+    scikit-learn utilites such as `train_test_split`, `cross_validate` and
+    others.
+- Beyond State-Of-The-Art
+  - d3rlpy provides further tweeks to improve performance of state-of-the-art
+    algorithms potentially beyond their original papers.
+    Therefore, d3rlpy enables every user to achieve professional-level
+    performance just in a few lines of codes.
 
 ## installation
 ```
 $ pip install d3rlpy
-```
-
-## scikit-learn compatibility
-This library is designed as if born from scikit-learn.
-You can fully utilize scikit-learn's utilities to increase your productivity.
-```py
-from sklearn.model_selection import train_test_split
-from d3rlpy.metrics.scorer import td_error_scorer
-
-train_episodes, test_episodes = train_test_split(dataset)
-
-bear.fit(train_episodes,
-         eval_episodes=test_episodes,
-         scorers={'td_error': td_error_scorer})
-```
-
-You can naturally perform cross-validation.
-```py
-from sklearn.model_selection import cross_validate
-
-scores = cross_validate(bear, dataset, scoring={'td_error': td_error_scorer})
-```
-
-And more.
-```py
-from sklearn.model_selection import GridSearchCV
-
-gscv = GridSearchCV(estimator=bear,
-                    param_grid={'actor_learning_rate': np.arange(1, 10) * 1e-3},
-                    scoring={'td_error': td_error_scorer},
-                    refit=False)
-gscv.fit(train_episodes)
 ```
 
 ## supported algorithms
@@ -108,6 +87,38 @@ Basically, all features are available with every algorithm.
 - [x] [data augmentation](https://arxiv.org/abs/2004.13649)
 - [x] [Model-based Offline Policy Optimization](https://arxiv.org/abs/2005.13239)
 - [ ] user-defined custom network
+
+## scikit-learn compatibility
+This library is designed as if born from scikit-learn.
+You can fully utilize scikit-learn's utilities to increase your productivity.
+```py
+from sklearn.model_selection import train_test_split
+from d3rlpy.metrics.scorer import td_error_scorer
+
+train_episodes, test_episodes = train_test_split(dataset)
+
+bear.fit(train_episodes,
+         eval_episodes=test_episodes,
+         scorers={'td_error': td_error_scorer})
+```
+
+You can naturally perform cross-validation.
+```py
+from sklearn.model_selection import cross_validate
+
+scores = cross_validate(bear, dataset, scoring={'td_error': td_error_scorer})
+```
+
+And more.
+```py
+from sklearn.model_selection import GridSearchCV
+
+gscv = GridSearchCV(estimator=bear,
+                    param_grid={'actor_learning_rate': np.arange(1, 10) * 1e-3},
+                    scoring={'td_error': td_error_scorer},
+                    refit=False)
+gscv.fit(train_episodes)
+```
 
 ## examples
 ### Atari 2600
