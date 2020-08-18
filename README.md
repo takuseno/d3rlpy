@@ -11,17 +11,17 @@ Data-driven Deep Reinforcement Learning Library as an Out-of-the-box Tool.
 
 ```py
 from d3rlpy.dataset import MDPDataset
-from d3rlpy.algos import BEAR
+from d3rlpy.algos import CQL
 
 # MDPDataset takes arrays of state transitions
 dataset = MDPDataset(observations, actions, rewards, terminals)
 
 # train data-driven deep RL
-bear = BEAR()
-bear.fit(dataset.episodes)
+cql = CQL()
+cql.fit(dataset.episodes)
 
 # ready to control
-actions = bear.predict(x)
+actions = cql.predict(x)
 ```
 
 Documentation: https://d3rlpy.readthedocs.io
@@ -29,13 +29,10 @@ Documentation: https://d3rlpy.readthedocs.io
 ## key features
 
 ### :zap: Designed for Data-Driven Deep Reinforcement Learning
-d3rlpy is designed for data-driven deep reinforcement learning algorithms,
-where the algorithm finds the good policy within the given dataset in
-contrast to the conventional reinforcement learning paradigm.
-This paradigm extends the domain to robotics, recommendation, dialogue and
-medical systems where online interaction is not feasible.
-Furthermore, d3rlpy also supports the conventional online training
-paradigm to fit in with any cases.
+d3rlpy is designed for data-driven deep reinforcement learning algorithms
+where the algorithm finds the good policy within the given dataset,
+which is suitable to tasks where online interaction is not feasible.
+d3rlpy also supports the conventional online training paradigm to fit in with any cases.
 ### :beginner: Easy-To-Use API
 d3rlpy provides state-of-the-art algorithms through scikit-learn style APIs.
 Moreoever, d3rlpy is not just easy to use, but also fully compatible with
@@ -113,7 +110,7 @@ And more.
 from sklearn.model_selection import GridSearchCV
 
 gscv = GridSearchCV(estimator=bear,
-                    param_grid={'actor_learning_rate': np.arange(1, 10) * 1e-3},
+                    param_grid={'actor_learning_rate': [3e-3, 3e-4, 3e-5]},
                     scoring={'td_error': td_error_scorer},
                     refit=False)
 gscv.fit(train_episodes)
