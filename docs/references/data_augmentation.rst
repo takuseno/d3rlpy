@@ -6,7 +6,8 @@ Data Augmentation
 d3rlpy provides data augmentation techniques tightly integrated with
 reinforcement learning algorithms.
 
-`Kostrikov et al., Image Augmentation Is All You Need: Regularizing Deep Reinforcement Learning from Pixels. <https://arxiv.org/abs/2004.13649>`_
+#. `Kostrikov et al., Image Augmentation Is All You Need: Regularizing Deep Reinforcement Learning from Pixels. <https://arxiv.org/abs/2004.13649>`_
+#. `Laskin et al., Reinforcement Learning with Augmented Data. <https://arxiv.org/abs/2004.14990>`_
 
  Efficient data augmentation potentially boosts algorithm performance significantly.
 
@@ -42,3 +43,13 @@ Image Observation
    d3rlpy.augmentation.image.VerticalFlip
    d3rlpy.augmentation.image.RandomRotation
    d3rlpy.augmentation.image.Intensity
+
+Vector Observation
+------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   d3rlpy.augmentation.vector.SingleAmplitudeScaling
+   d3rlpy.augmentation.vector.MultipleAmplitudeScaling

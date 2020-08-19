@@ -5,6 +5,8 @@ from .image import HorizontalFlip
 from .image import VerticalFlip
 from .image import RandomRotation
 from .image import Intensity
+from .vector import SingleAmplitudeScaling
+from .vector import MultipleAmplitudeScaling
 
 
 def create_augmentation(augmentation_type, **kwargs):
@@ -20,6 +22,10 @@ def create_augmentation(augmentation_type, **kwargs):
         return RandomRotation(**kwargs)
     elif augmentation_type == 'intensity':
         return Intensity(**kwargs)
+    elif augmentation_type == 'single_amplitude_scaling':
+        return SingleAmplitudeScaling(**kwargs)
+    elif augmentation_type == 'multiple_amplitude_scaling':
+        return MultipleAmplitudeScaling(**kwargs)
     raise ValueError('invalid augmentation_type.')
 
 
