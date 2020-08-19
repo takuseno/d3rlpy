@@ -17,7 +17,7 @@ cql = CQL(n_epochs=100,
 cql.fit(train_episodes,
         eval_episodes=test_episodes,
         scorers={
-            'environment': evaluate_on_environment(env, epsilon=0.05),
+            'environment': evaluate_on_environment(env),
             'td_error': td_error_scorer,
             'discounted_advantage': discounted_sum_of_advantage_scorer,
             'value_scale': average_value_estimation_scorer
