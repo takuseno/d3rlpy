@@ -43,6 +43,7 @@ Image Observation
    d3rlpy.augmentation.image.VerticalFlip
    d3rlpy.augmentation.image.RandomRotation
    d3rlpy.augmentation.image.Intensity
+   d3rlpy.augmentation.image.ColorJitter
 
 Vector Observation
 ------------------

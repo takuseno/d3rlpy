@@ -292,6 +292,25 @@ class Intensity(Augmentation):
 
 
 class ColorJitter(Augmentation):
+    """ Color Jitter augmentation.
+
+    This augmentation modifies the given images in the HSV channel spaces
+    as well as a contrast change.
+    This augmentation will be useful with the real world images.
+
+    Args:
+        brightness (float): brightness scale.
+        contrast (float): contrast scale.
+        saturation (float): saturation scale.
+        hue (float): hue scale.
+
+    Attributes:
+        brightness (float): brightness scale.
+        contrast (float): contrast scale.
+        saturation (float): saturation scale.
+        hue (float): hue scale.
+
+    """
     def __init__(self, brightness=0.4, contrast=0.4, saturation=0.4, hue=0.5):
         self.brightness = brightness
         self.contrast = contrast
@@ -299,6 +318,15 @@ class ColorJitter(Augmentation):
         self.hue = hue
 
     def transform(self, x):
+        """ Returns jittered images.
+
+        Args:
+            x (torch.Tensor): observation tensor.
+
+        Returns:
+            torch.Tensor: processed observation tensor.
+
+        """
         # check if channel can be devided by three
         if x.shape[1] % 3 > 0:
             raise ValueError('color jitter is used with stacked RGB images')
@@ -370,9 +398,21 @@ class ColorJitter(Augmentation):
         return ((rgb - means) * (scale + means)).clamp(0, 1)
 
     def get_type(self):
+        """ Returns augmentation type.
+
+        Returns:
+            str: `color_jitter`.
+
+        """
         return 'color_jitter'
 
     def get_params(self):
+        """ Returns augmentation parameters.
+
+        Returns:
+            dict: augmentation parameters.
+
+        """
         return {
             'brightness': self.brightness,
             'contrast': self.contrast,
