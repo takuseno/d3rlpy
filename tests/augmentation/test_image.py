@@ -8,11 +8,12 @@ from d3rlpy.augmentation.image import HorizontalFlip
 from d3rlpy.augmentation.image import VerticalFlip
 from d3rlpy.augmentation.image import RandomRotation
 from d3rlpy.augmentation.image import Intensity
+from d3rlpy.augmentation.image import ColorJitter
 
 
 @pytest.mark.parametrize('augmentation_type', [
     'random_shift', 'cutout', 'horizontal_flip', 'vertical_flip',
-    'random_rotation', 'intensity'
+    'random_rotation', 'intensity', 'color_jitter'
 ])
 def test_create_augmentation(augmentation_type):
     augmentation = create_augmentation(augmentation_type)
@@ -28,6 +29,8 @@ def test_create_augmentation(augmentation_type):
         assert isinstance(augmentation, RandomRotation)
     elif augmentation_type == 'intensity':
         assert isinstance(augmentation, Intensity)
+    elif augmentation_type == 'color_jitter':
+        assert isinstance(augmentation, ColorJitter)
 
 
 @pytest.mark.parametrize('batch_size', [32])
@@ -124,3 +127,26 @@ def test_intensity(batch_size, observation_shape, scale):
 
     assert augmentation.get_type() == 'intensity'
     assert augmentation.get_params()['scale'] == scale
+
+
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('observation_shape', [(3, 4, 4), (9, 4, 4)])
+@pytest.mark.parametrize('hue', [0.4])
+@pytest.mark.parametrize('saturation', [0.4])
+@pytest.mark.parametrize('brightness', [0.4])
+@pytest.mark.parametrize('contrast', [0.4])
+def test_color_jitter(batch_size, observation_shape, hue, saturation,
+                      brightness, contrast):
+    augmentation = ColorJitter(brightness, contrast, saturation, hue)
+
+    x = torch.rand(batch_size, *observation_shape)
+
+    y = augmentation.transform(x)
+
+    assert not torch.all(x == y)
+
+    assert augmentation.get_type() == 'color_jitter'
+    assert augmentation.get_params()['hue'] == hue
+    assert augmentation.get_params()['saturation'] == saturation
+    assert augmentation.get_params()['brightness'] == brightness
+    assert augmentation.get_params()['contrast'] == contrast

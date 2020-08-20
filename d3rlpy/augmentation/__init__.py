@@ -5,6 +5,7 @@ from .image import HorizontalFlip
 from .image import VerticalFlip
 from .image import RandomRotation
 from .image import Intensity
+from .image import ColorJitter
 from .vector import SingleAmplitudeScaling
 from .vector import MultipleAmplitudeScaling
 
@@ -22,6 +23,8 @@ def create_augmentation(augmentation_type, **kwargs):
         return RandomRotation(**kwargs)
     elif augmentation_type == 'intensity':
         return Intensity(**kwargs)
+    elif augmentation_type == 'color_jitter':
+        return ColorJitter(**kwargs)
     elif augmentation_type == 'single_amplitude_scaling':
         return SingleAmplitudeScaling(**kwargs)
     elif augmentation_type == 'multiple_amplitude_scaling':
