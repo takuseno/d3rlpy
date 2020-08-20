@@ -12,6 +12,10 @@ class SingleAmplitudeScaling(Augmentation):
 
     where :math:`z \\sim \\text{Unif}(minimum, maximum)`.
 
+    References:
+        * `Laskin et al., Reinforcement Learning with Augmented Data.
+          <https://arxiv.org/abs/2004.14990>`_
+
     Args:
         minimum (float): minimum amplitude scale.
         maximum (float): maximum amplitude scale.
@@ -67,6 +71,10 @@ class MultipleAmplitudeScaling(SingleAmplitudeScaling):
 
     where :math:`z \\sim \\text{Unif}(minimum, maximum)` and :math:`z`
     is a vector with different amplitude scale on each.
+
+    References:
+        * `Laskin et al., Reinforcement Learning with Augmented Data.
+          <https://arxiv.org/abs/2004.14990>`_
 
     Args:
         minimum (float): minimum amplitude scale.

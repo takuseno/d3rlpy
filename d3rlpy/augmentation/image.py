@@ -10,6 +10,11 @@ from .base import Augmentation
 class RandomShift(Augmentation):
     """ Random shift augmentation.
 
+    References:
+        * `Kostrikov et al., Image Augmentation Is All You Need: Regularizing
+          Deep Reinforcement Learning from Pixels.
+          <https://arxiv.org/abs/2004.13649>`_
+
     Args:
         shift_size (int): size to shift image.
 
@@ -62,6 +67,11 @@ class RandomShift(Augmentation):
 class Cutout(Augmentation):
     """ Cutout augmentation.
 
+    References:
+        * `Kostrikov et al., Image Augmentation Is All You Need: Regularizing
+          Deep Reinforcement Learning from Pixels.
+          <https://arxiv.org/abs/2004.13649>`_
+
     Args:
         probability (float): probability to cutout.
 
@@ -106,6 +116,11 @@ class Cutout(Augmentation):
 
 class HorizontalFlip(Augmentation):
     """ Horizontal flip augmentation.
+
+    References:
+        * `Kostrikov et al., Image Augmentation Is All You Need: Regularizing
+          Deep Reinforcement Learning from Pixels.
+          <https://arxiv.org/abs/2004.13649>`_
 
     Args:
         probability (float): probability to flip horizontally.
@@ -152,6 +167,11 @@ class HorizontalFlip(Augmentation):
 class VerticalFlip(Augmentation):
     """ Vertical flip augmentation.
 
+    References:
+        * `Kostrikov et al., Image Augmentation Is All You Need: Regularizing
+          Deep Reinforcement Learning from Pixels.
+          <https://arxiv.org/abs/2004.13649>`_
+
     Args:
         probability (float): probability to flip vertically.
 
@@ -196,6 +216,11 @@ class VerticalFlip(Augmentation):
 
 class RandomRotation(Augmentation):
     """ Random rotation augmentation.
+
+    References:
+        * `Kostrikov et al., Image Augmentation Is All You Need: Regularizing
+          Deep Reinforcement Learning from Pixels.
+          <https://arxiv.org/abs/2004.13649>`_
 
     Args:
         degree (float): range of degrees to rotate image.
@@ -248,6 +273,11 @@ class Intensity(Augmentation):
 
     where :math:`n \\sim N(0, scale)`.
 
+    References:
+        * `Kostrikov et al., Image Augmentation Is All You Need: Regularizing
+          Deep Reinforcement Learning from Pixels.
+          <https://arxiv.org/abs/2004.13649>`_
+
     Args:
         scale (float): scale of multiplier.
 
@@ -297,6 +327,10 @@ class ColorJitter(Augmentation):
     This augmentation modifies the given images in the HSV channel spaces
     as well as a contrast change.
     This augmentation will be useful with the real world images.
+
+    References:
+        * `Laskin et al., Reinforcement Learning with Augmented Data.
+          <https://arxiv.org/abs/2004.14990>`_
 
     Args:
         brightness (float): brightness scale.
