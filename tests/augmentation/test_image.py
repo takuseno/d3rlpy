@@ -131,10 +131,10 @@ def test_intensity(batch_size, observation_shape, scale):
 
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('observation_shape', [(3, 4, 4), (9, 4, 4)])
-@pytest.mark.parametrize('hue', [0.4])
-@pytest.mark.parametrize('saturation', [0.4])
-@pytest.mark.parametrize('brightness', [0.4])
-@pytest.mark.parametrize('contrast', [0.4])
+@pytest.mark.parametrize('hue', [(0.6, 1.4)])
+@pytest.mark.parametrize('saturation', [(0.6, 1.4)])
+@pytest.mark.parametrize('brightness', [(0.6, 1.4)])
+@pytest.mark.parametrize('contrast', [(0.6, 1.4)])
 def test_color_jitter(batch_size, observation_shape, hue, saturation,
                       brightness, contrast):
     augmentation = ColorJitter(brightness, contrast, saturation, hue)

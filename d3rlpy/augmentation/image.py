@@ -333,19 +333,23 @@ class ColorJitter(Augmentation):
           <https://arxiv.org/abs/2004.14990>`_
 
     Args:
-        brightness (float): brightness scale.
-        contrast (float): contrast scale.
-        saturation (float): saturation scale.
-        hue (float): hue scale.
+        brightness (tuple): brightness scale range.
+        contrast (tuple): contrast scale range.
+        saturation (tuple): saturation scale range.
+        hue (tuple): hue scale range.
 
     Attributes:
-        brightness (float): brightness scale.
-        contrast (float): contrast scale.
-        saturation (float): saturation scale.
-        hue (float): hue scale.
+        brightness (tuple): brightness scale range.
+        contrast (tuple): contrast scale range.
+        saturation (tuple): saturation scale range.
+        hue (tuple): hue scale range.
 
     """
-    def __init__(self, brightness=0.4, contrast=0.4, saturation=0.4, hue=0.5):
+    def __init__(self,
+                 brightness=(0.6, 1.4),
+                 contrast=(0.6, 1.4),
+                 saturation=(0.6, 1.4),
+                 hue=(-0.5, 0.5)):
         self.brightness = brightness
         self.contrast = contrast
         self.saturation = saturation
@@ -409,25 +413,25 @@ class ColorJitter(Augmentation):
 
     def _transform_hue(self, hsv):
         scale = torch.empty(hsv.shape[0], 1, 1, 1, device=hsv.device)
-        scale = scale.uniform_(self.hue) * 255.0 / 360.0
+        scale = scale.uniform_(*self.hue) * 255.0 / 360.0
         hsv[:, :, 0, :, :] = (hsv[:, :, 0, :, :] + scale) % 1
         return hsv
 
     def _transform_saturate(self, hsv):
         scale = torch.empty(hsv.shape[0], 1, 1, 1, device=hsv.device)
-        scale.uniform_(self.saturation)
+        scale.uniform_(*self.saturation)
         hsv[:, :, 1, :, :] *= scale
         return hsv.clamp(0, 1)
 
     def _transform_brightness(self, hsv):
         scale = torch.empty(hsv.shape[0], 1, 1, 1, device=hsv.device)
-        scale.uniform_(self.saturation)
+        scale.uniform_(*self.brightness)
         hsv[:, :, 2, :, :] *= scale
-        return hsv
+        return hsv.clamp(0, 1)
 
     def _transform_contrast(self, rgb):
         scale = torch.empty(rgb.shape[0], 1, 1, 1, 1, device=rgb.device)
-        scale.uniform_(self.contrast)
+        scale.uniform_(*self.contrast)
         means = rgb.mean(dim=(3, 4), keepdims=True)
         return ((rgb - means) * (scale + means)).clamp(0, 1)
 
