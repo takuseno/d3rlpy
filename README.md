@@ -34,10 +34,12 @@ d3rlpy is designed for data-driven deep reinforcement learning algorithms
 where the algorithm finds the good policy within the given dataset,
 which is suitable to tasks where online interaction is not feasible.
 d3rlpy also supports the conventional online training paradigm to fit in with any cases.
+
 ### :beginner: Easy-To-Use API
 d3rlpy provides state-of-the-art algorithms through scikit-learn style APIs.
 Moreoever, d3rlpy is not just easy to use, but also fully compatible with
 scikit-learn utilites such as `train_test_split`, `cross_validate` and others.
+
 ### :rocket: Beyond State-Of-The-Art
 d3rlpy provides further tweeks to improve performance of state-of-the-art
 algorithms potentially beyond their original papers.
@@ -82,7 +84,7 @@ Basically, all features are available with every algorithm.
 - [x] parallel cross validation with multiple GPU
 - [x] online training
 - [x] [data augmentation](https://arxiv.org/abs/2004.13649)
-- [x] [Model-based Offline Policy Optimization](https://arxiv.org/abs/2005.13239)
+- [x] [model-based algorithm](https://arxiv.org/abs/2005.13239)
 - [ ] user-defined custom network
 
 ## scikit-learn compatibility
@@ -94,23 +96,23 @@ from d3rlpy.metrics.scorer import td_error_scorer
 
 train_episodes, test_episodes = train_test_split(dataset)
 
-bear.fit(train_episodes,
-         eval_episodes=test_episodes,
-         scorers={'td_error': td_error_scorer})
+cql.fit(train_episodes,
+        eval_episodes=test_episodes,
+        scorers={'td_error': td_error_scorer})
 ```
 
 You can naturally perform cross-validation.
 ```py
 from sklearn.model_selection import cross_validate
 
-scores = cross_validate(bear, dataset, scoring={'td_error': td_error_scorer})
+scores = cross_validate(cql, dataset, scoring={'td_error': td_error_scorer})
 ```
 
 And more.
 ```py
 from sklearn.model_selection import GridSearchCV
 
-gscv = GridSearchCV(estimator=bear,
+gscv = GridSearchCV(estimator=cql,
                     param_grid={'actor_learning_rate': [3e-3, 3e-4, 3e-5]},
                     scoring={'td_error': td_error_scorer},
                     refit=False)
