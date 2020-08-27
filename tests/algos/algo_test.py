@@ -2,6 +2,7 @@ import numpy as np
 import os
 import torch
 import gym
+import onnxruntime as ort
 
 from unittest.mock import Mock
 from tests.base_test import base_tester, base_update_tester
@@ -24,7 +25,7 @@ class DummyImpl(TorchImplBase):
     def load_model(self, fname):
         pass
 
-    def save_policy(self, fname):
+    def save_policy(self, fname, as_onnx=False):
         pass
 
     def predict_best_action(self, x):
@@ -64,8 +65,8 @@ def algo_tester(algo, observation_shape, imitator=False, action_size=2):
 
     # check save policy
     impl.save_policy = Mock()
-    algo.save_policy('policy.pt')
-    impl.save_policy.assert_called_with('policy.pt')
+    algo.save_policy('policy.pt', False)
+    impl.save_policy.assert_called_with('policy.pt', False)
 
     # check predict
     x = np.random.random((2, 3)).tolist()
@@ -228,8 +229,8 @@ def torch_impl_tester(impl,
     impl.save_model(os.path.join('test_data', 'model.pt'))
     impl.load_model(os.path.join('test_data', 'model.pt'))
 
-    # check save_policy
-    impl.save_policy(os.path.join('test_data', 'model.pt'))
+    # check save_policy as TorchScript
+    impl.save_policy(os.path.join('test_data', 'model.pt'), False)
     policy = torch.jit.load(os.path.join('test_data', 'model.pt'))
     observations = torch.rand(100, *impl.observation_shape)
     action = policy(observations)
@@ -238,7 +239,26 @@ def torch_impl_tester(impl,
     else:
         assert action.shape == (100, impl.action_size)
 
+    # check output consistency between the full model and TorchScript
     # TODO: check probablistic policy
     # https://github.com/pytorch/pytorch/pull/25753
     if deterministic_best_action:
         assert np.allclose(action, impl.predict_best_action(observations))
+
+    # check save_policy as ONNX
+    impl.save_policy(os.path.join('test_data', 'model.onnx'), True)
+    ort_session = ort.InferenceSession(os.path.join('test_data', 'model.onnx'))
+    observations = np.random.rand(1, *impl.observation_shape).astype('f4')
+    action = ort_session.run(None, {'input_0': observations})[0]
+    if discrete:
+        assert action.shape == (1, )
+    else:
+        assert action.shape == (1, impl.action_size)
+
+    # check output consistency between the full model and ONNX
+    # TODO: check probablistic policy
+    # https://github.com/pytorch/pytorch/pull/25753
+    if deterministic_best_action:
+        assert np.allclose(action,
+                           impl.predict_best_action(observations),
+                           atol=1e-6)

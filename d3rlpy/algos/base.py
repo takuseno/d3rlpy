@@ -8,7 +8,7 @@ class AlgoImplBase(ImplBase):
         pass
 
     @abstractmethod
-    def save_policy(self, fname):
+    def save_policy(self, fname, as_onnx):
         pass
 
     @abstractmethod
@@ -30,15 +30,18 @@ class AlgoBase(LearnableBase):
         super().__init__(n_epochs, batch_size, scaler, augmentation, use_gpu)
         self.dynamics = dynamics
 
-    def save_policy(self, fname):
-        """ Save the greedy-policy computational graph as TorchScript.
+    def save_policy(self, fname, as_onnx=False):
+        """ Save the greedy-policy computational graph as TorchScript or ONNX.
 
         .. code-block:: python
 
+            # save as TorchScript
             algo.save_policy('policy.pt')
 
-        The artifacts saved with this method will work without any dependencies
-        except pytorch.
+            # save as ONNX
+            algo.save_policy('policy.onnx', as_onnx=True)
+
+        The artifacts saved with this method will work without d3rlpy.
         This method is especially useful to deploy the learned policy to
         production environments or embedding systems.
 
@@ -46,12 +49,14 @@ class AlgoBase(LearnableBase):
 
             * https://pytorch.org/tutorials/beginner/Intro_to_TorchScript_tutorial.html (for Python).
             * https://pytorch.org/tutorials/advanced/cpp_export.html (for C++).
+            * https://onnx.ai (for ONNX)
 
         Args:
             fname (str): destination file path.
+            as_onnx (bool): flag to save as ONNX format.
 
         """
-        self.impl.save_policy(fname)
+        self.impl.save_policy(fname, as_onnx)
 
     def predict(self, x):
         """ Returns greedy actions.

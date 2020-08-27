@@ -46,6 +46,11 @@ You can recreate algorithm objects from `params.json` via `from_json` method.
 save_policy
 -----------
 
+`save_policy` method saves the only greedy-policy computation graph as
+TorchSciprt or ONNX.
+When `save_policy` method is called, the greedy-policy graph is constructed
+and traced via `torch.jit.trace` function.
+
 .. code-block:: python
 
     from d3rlpy.datasets import get_cartpole
@@ -56,14 +61,16 @@ save_policy
     dqn = DQN(n_epochs=1)
     dqn.fit(dataset.episodes)
 
-    # save only greedy-policy
+    # save greedy-policy as TorchScript
     dqn.save_policy('policy.pt')
 
-`save_policy` method saves the only greedy-policy computation graph as
-TorchSciprt.
+    # save greedy-policy as ONNX
+    dqn.save_policy('policy.onnx', as_onnx=True)
+
+TorchScript
+~~~~~~~~~~~
+
 TorchScript is a optimizable graph expression provided by PyTorch.
-When `save_policy` method is called, the greedy-policy graph is constructed
-and traced via `torch.jit.trace` function.
 The saved policy can be loaded without any dependencies except PyTorch.
 
 .. code-block:: python
@@ -97,3 +104,28 @@ empower your robotics and embedding system projects.
 
 You can get more information about TorchScript
 `here <https://pytorch.org/docs/stable/jit.html>`_.
+
+ONNX
+~~~~
+
+ONNX is an open format built to represent machine learning models.
+This is also useful when deploying the trained model to productions with
+various programming languages including Python, C++, JavaScript and more.
+
+The following example is written with
+`onnxruntime <https://github.com/microsoft/onnxruntime>`_.
+
+.. code-block:: python
+
+  import onnxruntime
+
+  # load ONNX policy via onnxruntime
+  ort_session = ort.InferenceSession('policy.onnx')
+
+  # observation
+  observation = np.random.rand(1, 6).astype(np.float32)
+
+  # returns greedy action
+  action = ort_session.run(None, {'input_0': observation})[0]
+
+You can get more information about ONNX `here <https://onnx.ai/>`_.

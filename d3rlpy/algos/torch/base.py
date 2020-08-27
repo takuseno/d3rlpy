@@ -23,7 +23,7 @@ class TorchImplBase(AlgoImplBase):
         raise NotImplementedError
 
     @eval_api
-    def save_policy(self, fname):
+    def save_policy(self, fname, as_onnx):
         dummy_x = torch.rand(1, *self.observation_shape, device=self.device)
 
         # workaround until version 1.6
@@ -36,7 +36,19 @@ class TorchImplBase(AlgoImplBase):
             return self._predict_best_action(x)
 
         traced_script = torch.jit.trace(_func, dummy_x, check_trace=False)
-        traced_script.save(fname)
+
+        if as_onnx:
+            # currently, PyTorch cannot directly export function as ONNX.
+            torch.onnx.export(traced_script,
+                              dummy_x,
+                              fname,
+                              export_params=True,
+                              opset_version=11,
+                              input_names=['input_0'],
+                              output_names=['output_0'],
+                              example_outputs=traced_script(dummy_x))
+        else:
+            traced_script.save(fname)
 
         # workaround until version 1.6
         unfreeze(self)

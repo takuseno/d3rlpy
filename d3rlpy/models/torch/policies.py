@@ -95,19 +95,18 @@ class NormalPolicy(nn.Module):
         return Normal(mu, clipped_logstd.exp())
 
     def forward(self, x, deterministic=False, with_log_prob=False):
-        dist = self.dist(x)
-
         if deterministic:
-            action = dist.mean
+            # to avoid errors at ONNX export because broadcast_tensors in
+            # Normal distribution is not supported by ONNX
+            action = self.mu(self.encoder(x))
         else:
+            dist = self.dist(x)
             action = dist.rsample()
 
-        squashed_action, log_prob = _squash_action(dist, action)
-
         if with_log_prob:
-            return squashed_action, log_prob
+            return _squash_action(dist, action)
 
-        return squashed_action
+        return torch.tanh(action)
 
     def sample(self, x, with_log_prob=False):
         return self.forward(x, with_log_prob=with_log_prob)
@@ -129,8 +128,8 @@ class NormalPolicy(nn.Module):
 
         return squashed_action
 
-    def best_action(self, x, with_log_prob=False):
-        return self.forward(x, deterministic=True, with_log_prob=with_log_prob)
+    def best_action(self, x):
+        return self.forward(x, deterministic=True, with_log_prob=False)
 
 
 class CategoricalPolicy(nn.Module):
