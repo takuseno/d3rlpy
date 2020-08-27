@@ -117,7 +117,7 @@ The following example is written with
 
 .. code-block:: python
 
-  import onnxruntime
+  import onnxruntime as ort
 
   # load ONNX policy via onnxruntime
   ort_session = ort.InferenceSession('policy.onnx')
