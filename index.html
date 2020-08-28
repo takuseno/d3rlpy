@@ -1,0 +1,301 @@
+<!doctype html>
+<html>
+  <head>
+    <title>d3rlpy: A data-driven deep reinforcement learning library as an out-of-the-box tool</title>
+    <meta name="description" content="d3rlpy is a Python library providing the state-of-the-art data-driven deep reinforcement learning algorithms through scikit-learn style API.">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css">
+    <link rel="stylesheet" href="http://fonts.googleapis.com/earlyaccess/notosansjp.css">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <section class="hero is-medium is-bold">
+
+      <div class="hero-head">
+        <header class="navbar">
+          <div class="container">
+            <div class="navbar-brand">
+              <a class="navbar-item minerva-header-logo">
+                d3rlpy
+              </a>
+              <span class="navbar-burger burger" data-target="navbarMenuHeroC">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </div>
+            <div id="navbarMenuHeroC" class="navbar-menu">
+              <div class="navbar-end">
+                <span class="navbar-item">
+                  <iframe src="https://ghbtns.com/github-btn.html?user=takuseno&repo=d3rlpy&type=star&count=true&size=large" frameborder="0" scrolling="0" width="130" height="30" title="GitHub"></iframe>
+                </span>
+              </div>
+            </div>
+          </div>
+        </header>
+      </div>
+
+      <div class="hero-body">
+        <div class="container has-text-centered">
+          <h1 class="title text-center minerva-logo">d3rlpy</h1>
+          <h2 class="subtitle text-center minerva-subtitle">
+            A data-driven deep reinforcement learning library as an out-of-the-box tool
+          </h2>
+          <div class="buttons is-fullwidth is-centered">
+            <a class="button" href="https://github.com/takuseno/d3rlpy">
+              <span class="icon">
+                <i class="fab fa-github"></i>
+              </span>
+              <span>GitHub</span>
+            </a>
+            <a class="button" href="https://d3rlpy.readthedocs.io">Documentation</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container has-text-centered">
+        <h2 class="title">
+          The library providing professional-level deep reinforcement learning algorithms for everyone.
+        </h2>
+        <div class="content is-medium">
+        <p>
+          d3rlpy is especially designed for practical projects unlike other
+          reinforcement learning libraries that focus on reproducing papers.
+          The goal of this library is to provide any kinds of users with
+          professional-level algorithms, which actually work with extremely
+          powerful performance.
+        </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section features">
+      <div class="container has-text-centered">
+
+        <h1 class="title">features</h1>
+
+        <div class="tile is-ancestor">
+
+          <div class="tile is-parent">
+            <div class="tile is-child box">
+              <h1 class="title">
+                <span class="icon">
+                  <i class="fas fa-database"></i>
+                </span>
+              </h1>
+              <h1 class="subtitle has-text-weight-semibold">
+                DESIGNED FOR DATA-DRIVEN DEEP REINFORCEMENT LEARNING
+              </h1>
+              <p class="has-text-weight-medium">
+                d3rlpy is designed for data-driven deep reinforcement learning
+                algorithms where the algorithm finds the good policy within the
+                given dataset, which is suitable to tasks where online
+                interaction is not feasible.
+              </p>
+            </div>
+          </div>
+
+          <div class="tile is-parent">
+            <div class="tile is-child box">
+              <h1 class="title">
+                <span class="icon">
+                  <i class="fas fa-leaf"></i>
+                </span>
+              </h1>
+              <h1 class="subtitle has-text-weight-semibold">
+                EASY-TO-USE API
+              </h1>
+              <p class="has-text-weight-medium">
+                d3rlpy provides state-of-the-art algorithms through scikit-learn
+                style APIs without compromising flexibility that provides
+                detailed configurations for professional users. Moreoever,
+                d3rlpy is not just designed like scikit-learn, but also fully
+                compatible with scikit-learn utilites.
+              </p>
+            </div>
+          </div>
+
+          <div class="tile is-parent">
+            <div class="tile is-child box">
+              <h1 class="title">
+                <span class="icon">
+                  <i class="fas fa-rocket"></i>
+                </span>
+              </h1>
+              <h1 class="subtitle has-text-weight-semibold">
+                BEYOND STATE-OF-THE-ART
+              </h1>
+              <p class="has-text-weight-medium">
+                d3rlpy provides further tweeks such as ensemble algorithms and
+                data augmentation to improve performance of
+                state-of-the-art algorithms potentially beyond their original
+                papers. Therefore, d3rlpy enables every user to achieve
+                professional-level performance just in a few lines of codes.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <section class="section quick-start">
+      <div class="container">
+        <div class="has-text-centered">
+          <h1 class="title">quick start</h1>
+        </div>
+
+        <div class="container has-text-centered install">
+          <pre>
+            <code>$ pip install d3rlpy</code>
+          </pre>
+        </div>
+
+        <div class="columns is-desktop">
+
+          <div class="column example-block">
+
+            <div class="has-text-centered">
+              <h1 class="subtitle has-text-weight-bold">PyBullet</h1>
+            </div>
+
+            <div class="gif-container">
+              <img class="gif" src="hopper.gif"></img>
+            </div>
+
+            <div class="install-dataset mb-2">
+              <pre>
+                <code>  $ pip install git+https://github.com/takuseno/d4rl-pybullet</code>
+              </pre>
+            </div>
+
+            <div class="example">
+              <pre>
+                <code>
+  from d3rlpy.datasets import get_pybullet
+  from d3rlpy.algos import CQL
+  from d3rlpy.metrics.scorer import evaluate_on_environment
+
+  dataset, env = get_pybullet('hopper-bullet-mixed-v0')
+
+  cql = CQL(n_epochs=100, use_gpu=True)
+
+  cql.fit(dataset.episodes)
+
+  evaluate_on_environment(env, render=True)(cql)
+                </code>
+              </pre>
+            </div>
+
+          </div>
+
+          <div class="column example-block">
+
+            <div class="has-text-centered">
+              <h1 class="subtitle has-text-weight-bold">Atari 2600</h1>
+            </div>
+
+            <div class="gif-container">
+              <img class="gif" src="breakout.gif"></img>
+            </div>
+
+            <div class="install-dataset mb-2">
+              <pre>
+                <code>  $ pip install git+https://github.com/takuseno/d4rl-atari</code>
+              </pre>
+            </div>
+
+            <div class="example">
+              <pre>
+                <code>
+  from d3rlpy.datasets import get_atari
+  from d3rlpy.algos import DiscreteCQL
+  from d3rlpy.metrics.scorer import evaluate_on_environment
+
+  dataset, env = get_atari('breakout-mixed-v0')
+
+  cql = DiscreteCQL(n_epochs=100, use_gpu=True)
+
+  cql.fit(dataset.episodes)
+
+  evaluate_on_environment(env, render=True)(cql)
+                </code>
+              </pre>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <section class="section library">
+      <div class="container has-text-centered">
+
+        <h1 class="title">d3rlpy family</h1>
+
+        <div class="card">
+          <div class="card-content">
+            <h1 class="title">d4rl-pybullet</h1>
+            <h2 class="subtitle has-text-weight-medium">
+              Datasets for data-driven deep reinforcement learning with
+              Pybullet environments
+            </h2>
+            <div class="content">
+              <p class="has-text-weight-medium">
+                d4rl-pybullet is a dataset library providing continuous-control datasets collected with PyBullet environments.
+              </p>
+            </div>
+            <div class="buttons is-centered">
+              <a class="button" href="https://github.com/takuseno/d4rl-pybullet">
+                <span class="icon">
+                  <i class="fab fa-github"></i>
+                </span>
+                <span>GitHub</span>
+              </a>
+              <iframe src="https://ghbtns.com/github-btn.html?user=takuseno&repo=d4rl-pybullet&type=star&count=true&size=large" frameborder="0" scrolling="0" width="130" height="30" title="GitHub"></iframe>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-content">
+            <h1 class="title">d4rl-atari</h1>
+            <h2 class="subtitle has-text-weight-medium">
+              Datasets for data-driven deep reinforcement learning with Atari environments (wrapper for datasets released by Google)
+            </h2>
+            <div class="content">
+              <p class="has-text-weight-medium">
+                d4rl-atari is a dataset library providing Atari datasets released by Google with convenience of automatic dataset management and easy-to-use API.
+              </p>
+            </div>
+            <div class="buttons is-centered">
+              <a class="button" href="https://github.com/takuseno/d4rl-atari">
+                <span class="icon">
+                  <i class="fab fa-github"></i>
+                </span>
+                <span>GitHub</span>
+              </a>
+              <iframe src="https://ghbtns.com/github-btn.html?user=takuseno&repo=d4rl-atari&type=star&count=true&size=large" frameborder="0" scrolling="0" width="130" height="30" title="GitHub"></iframe>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="content has-text-centered">
+        <p>Copyright &copy; 2020 Takuma Seno.</p>
+      </div>
+    </footer>
+
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+    <script defer src="script.js"></script>
+  </body>
+</html>
