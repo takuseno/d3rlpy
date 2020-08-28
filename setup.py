@@ -2,7 +2,7 @@ from setuptools import setup
 
 
 setup(name="d3rlpy",
-      version="0.21",
+      version="0.22",
       description="Data-driven Deep Reinforcement Learning Library as an Out-of-the-box Tool",
       long_description=open("README.md").read(),
       long_description_content_type="text/markdown",
