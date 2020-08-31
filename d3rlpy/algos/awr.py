@@ -147,7 +147,7 @@ class AWR(AlgoBase):
         # compute TD(lambda)
         lambda_returns = []
         for i in range(len(batch)):
-            returns = batch.returns[i]
+            returns = np.array(batch.returns[i])
             observations = batch.consequent_observations[i]
             values = self.predict_value(observations, [])
             gammas = self.gamma**(np.arange(returns.shape[0]) + 1)
