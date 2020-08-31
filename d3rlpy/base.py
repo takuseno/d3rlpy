@@ -36,6 +36,7 @@ class LearnableBase:
             list of data augmentations.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         impl (d3rlpy.base.ImplBase): implementation object.
+        eval_results_ (dict): evaluation results.
 
     """
     def __init__(self, n_epochs, batch_size, scaler, augmentation, use_gpu):
@@ -83,6 +84,7 @@ class LearnableBase:
             self.use_gpu = None
 
         self.impl = None
+        self.eval_results_ = {}
 
     @classmethod
     def from_json(cls, fname, use_gpu=False):
@@ -192,6 +194,9 @@ class LearnableBase:
             # remove magic properties
             if key[:2] == '__':
                 continue
+            # remove protected properties
+            if key[-1] == '_':
+                continue
             # pick scalar parameters
             value = getattr(self, key)
             if np.isscalar(value):
@@ -285,6 +290,9 @@ class LearnableBase:
 
         # save hyperparameters
         self._save_params(logger)
+
+        # refresh evaluation metrics
+        self.eval_results_ = {}
 
         # hold original dataset
         env_transitions = transitions
@@ -394,7 +402,13 @@ class LearnableBase:
             if scorer in NEGATED_SCORER:
                 test_score *= -1
 
+            # logging metrics
             logger.add_metric(name, test_score)
+
+            # store metric locally
+            if name not in self.eval_results_:
+                self.eval_results_[name] = []
+            self.eval_results_[name].append(test_score)
 
     def _save_params(self, logger):
         # get hyperparameters without impl

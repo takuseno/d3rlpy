@@ -116,6 +116,7 @@ class CQL(AlgoBase):
         encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.cql_impl.CQLImpl): algorithm implementation.
+        eval_results_ (dict): evaluation results.
 
     """
     def __init__(self,
@@ -299,6 +300,7 @@ class DiscreteCQL(DoubleDQN):
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.CQLImpl.DiscreteCQLImpl):
             algorithm implementation.
+        eval_results_ (dict): evaluation results.
 
     """
     def create_impl(self, observation_shape, action_size):

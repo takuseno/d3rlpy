@@ -128,6 +128,7 @@ class BEAR(AlgoBase):
         encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bear_impl.BEARImpl): algorithm implementation.
+        eval_results_ (dict): evaluation results.
 
     """
     def __init__(self,

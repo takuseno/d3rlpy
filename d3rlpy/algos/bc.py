@@ -55,6 +55,7 @@ class BC(AlgoBase):
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bc_impl.BCImpl):
             implemenation of the algorithm.
+        eval_results_ (dict): evaluation results.
 
     """
     def __init__(self,
@@ -168,6 +169,7 @@ class DiscreteBC(BC):
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
             implemenation of the algorithm.
+        eval_results_ (dict): evaluation results.
 
     """
     def __init__(self,

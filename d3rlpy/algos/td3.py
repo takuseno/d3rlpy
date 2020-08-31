@@ -95,6 +95,7 @@ class TD3(AlgoBase):
         encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.td3_impl.TD3Impl): algorithm implementation.
+        eval_results_ (dict): evaluation results.
 
     """
     def __init__(self,

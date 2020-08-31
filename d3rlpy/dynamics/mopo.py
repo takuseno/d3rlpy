@@ -80,6 +80,7 @@ class MOPO(DynamicsBase):
             augmentation pipeline.
         use_gpu (d3rlpy.gpu.Device): flag to use GPU or device.
         impl (d3rlpy.dynamics.base.DynamicsImplBase): dynamics implementation.
+        eval_results_ (dict): evaluation results.
 
     """
     def __init__(self,
