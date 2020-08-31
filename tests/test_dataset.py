@@ -106,6 +106,19 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
     else:
         assert dataset.actions.shape == (2 * data_size, action_size)
 
+    # check extend
+    another_dataset = MDPDataset(observations, actions, rewards, terminals,
+                                 discrete_action)
+    dataset.extend(another_dataset)
+    assert len(dataset) == 3 * n_episodes
+    assert dataset.observations.shape == (3 * data_size, observation_size)
+    assert dataset.rewards.shape == (3 * data_size, )
+    assert dataset.terminals.shape == (3 * data_size, )
+    if discrete_action:
+        assert dataset.actions.shape == (3 * data_size, )
+    else:
+        assert dataset.actions.shape == (3 * data_size, action_size)
+
     # check clip_reward
     dataset.clip_reward(-1.0, 1.0)
     assert rewards[rewards > 1.0].sum() != 0

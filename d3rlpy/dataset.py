@@ -334,6 +334,19 @@ class MDPDataset:
         # append to episodes
         self._episodes += episodes
 
+    def extend(self, dataset):
+        """ Extend dataset by another dataset.
+
+        Args:
+            dataset (d3rlpy.dataset.MDPDataset): dataset.
+
+        """
+        assert self.is_action_discrete() == dataset.is_action_discrete()
+        assert self.get_observation_shape() == dataset.get_observation_shape()
+        assert self.get_action_size() == dataset.get_action_size()
+        self.append(dataset.observations, dataset.actions, dataset.rewards,
+                    dataset.terminals)
+
     def dump(self, fname):
         """ Saves dataset as HDF5.
 
