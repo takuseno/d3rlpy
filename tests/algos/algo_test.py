@@ -182,7 +182,7 @@ def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
             assert False, 'performance is not good enough: %d.' % success_count
 
 
-def impl_tester(impl, discrete, imitator):
+def impl_tester(impl, discrete, imitator, test_with_std):
     # setup implementation
     impl.build()
 
@@ -204,9 +204,12 @@ def impl_tester(impl, discrete, imitator):
         value = impl.predict_value(observations, actions, with_std=False)
         assert value.shape == (100, )
 
-        value, std = impl.predict_value(observations, actions, with_std=True)
-        assert value.shape == (100, )
-        assert std.shape == (100, )
+        if test_with_std:
+            value, std = impl.predict_value(observations,
+                                            actions,
+                                            with_std=True)
+            assert value.shape == (100, )
+            assert std.shape == (100, )
 
     # check sample_action
     try:
@@ -222,8 +225,9 @@ def impl_tester(impl, discrete, imitator):
 def torch_impl_tester(impl,
                       discrete,
                       deterministic_best_action=True,
-                      imitator=False):
-    impl_tester(impl, discrete, imitator)
+                      imitator=False,
+                      test_with_std=True):
+    impl_tester(impl, discrete, imitator, test_with_std)
 
     # check save_model and load_model
     impl.save_model(os.path.join('test_data', 'model.pt'))

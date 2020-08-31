@@ -1,4 +1,5 @@
 from .base import AlgoBase
+from .awr import AWR
 from .bc import BC, DiscreteBC
 from .bcq import BCQ, DiscreteBCQ
 from .bear import BEAR
@@ -21,7 +22,12 @@ def create_algo(name, discrete, **params):
         d3rlpy.algos.base.AlgoBase: algorithm.
 
     """
-    if name == 'bc':
+    if name == 'awr':
+        if discrete:
+            raise ValueError('AWR is not available for discrete action-space.')
+        else:
+            return AWR(**params)
+    elif name == 'bc':
         if discrete:
             return DiscreteBC(**params)
         else:

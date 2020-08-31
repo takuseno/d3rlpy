@@ -107,6 +107,8 @@ def base_update_tester(model, observation_shape, action_size, discrete=False):
         reward = np.random.random()
         next_reward = np.random.random()
         terminal = np.random.randint(2)
+        returns = np.random.random(100)
+        consequent_observations = np.random.random((100, *observation_shape))
         if discrete:
             action = np.random.randint(action_size)
             next_action = np.random.randint(action_size)
@@ -115,7 +117,8 @@ def base_update_tester(model, observation_shape, action_size, discrete=False):
             next_action = np.random.random(action_size)
         transition = Transition(observation_shape, action_size, observation,
                                 action, reward, next_observation, next_action,
-                                next_reward, terminal)
+                                next_reward, terminal, returns,
+                                consequent_observations)
         transitions.append(transition)
 
     batch = TransitionMiniBatch(transitions)
