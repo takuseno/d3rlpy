@@ -162,7 +162,6 @@ class AWR(AlgoBase):
         # compute TD(lambda)
         lambda_returns = []
         for i in range(len(batch)):
-            # bootstrapping
             observations = batch.consequent_observations[i]
             values = self.predict_value(observations, [])
 
