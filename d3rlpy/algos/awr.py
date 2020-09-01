@@ -4,6 +4,21 @@ from .base import AlgoBase
 from .torch.awr_impl import AWRImpl
 
 
+def _compute_lambda_return(returns, values, gamma, lam):
+    assert returns.shape == values.shape
+
+    gammas = gamma**(np.arange(returns.shape[0]) + 1)
+    # zero value for terminal transition
+    gammas[-1] = 0.0
+    returns += gammas * values
+
+    lambdas = lam**np.arange(returns.shape[0])
+    lambda_return = (1.0 - lam) * np.sum(lambdas[:-1] * returns[:-1])
+    lambda_return += lambdas[-1] * returns[-1]
+
+    return lambda_return
+
+
 class AWR(AlgoBase):
     """ Advantage-Weighted Regression algorithm.
 
@@ -45,7 +60,7 @@ class AWR(AlgoBase):
         lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
         beta (float): :math:`B` for weight scale.
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
+        momentum (float): momentum for stochastic gradient descent.
         use_batch_norm (bool): flag to insert batch normalization layers.
         n_epochs (int): the number of epochs to train.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -76,7 +91,7 @@ class AWR(AlgoBase):
         lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
         beta (float): :math:`B` for weight scale.
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
+        momentum (float): momentum for stochastic gradient descent.
         use_batch_norm (bool): flag to insert batch normalization layers.
         n_epochs (int): the number of epochs to train.
         use_gpu (d3rlpy.gpu.Device): GPU device.
@@ -98,9 +113,9 @@ class AWR(AlgoBase):
                  n_actor_updates=1000,
                  n_critic_updates=200,
                  lam=0.95,
-                 beta=0.5,
+                 beta=0.05,
                  max_weight=20.0,
-                 eps=1e-8,
+                 momentum=0.9,
                  use_batch_norm=False,
                  n_epochs=1000,
                  use_gpu=False,
@@ -111,7 +126,7 @@ class AWR(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        # batch_size in AWR has different semantic from Q learning.
+        # batch_size in AWR has different semantic from Q learning algorithms.
         super().__init__(n_epochs, batch_size, scaler, augmentation, dynamics,
                          use_gpu)
         self.actor_learning_rate = actor_learning_rate
@@ -124,7 +139,7 @@ class AWR(AlgoBase):
         self.beta = beta
         self.max_weight = max_weight
         self.use_batch_norm = use_batch_norm
-        self.eps = eps
+        self.momentum = momentum
         self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
         self.impl = impl
@@ -135,7 +150,7 @@ class AWR(AlgoBase):
                             actor_learning_rate=self.actor_learning_rate,
                             critic_learning_rate=self.critic_learning_rate,
                             use_batch_norm=self.use_batch_norm,
-                            eps=self.eps,
+                            momentum=self.momentum,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
                             augmentation=self.augmentation,
@@ -143,31 +158,46 @@ class AWR(AlgoBase):
                             encoder_params=self.encoder_params)
         self.impl.build()
 
-    def update(self, epoch, itr, batch):
+    def _compute_lambda_returns(self, batch):
         # compute TD(lambda)
         lambda_returns = []
         for i in range(len(batch)):
-            returns = batch.returns[i]
+            # bootstrapping
             observations = batch.consequent_observations[i]
             values = self.predict_value(observations, [])
-            gammas = self.gamma**(np.arange(returns.shape[0]) + 1)
-            gammas[-1] = 0.0
-            returns += gammas * values
-            lambdas = self.lam**(np.arange(returns.shape[0]))
-            lambda_return = (1.0 - self.lam) * np.sum(lambdas * returns)
-            lambda_returns.append([lambda_return])
-        lambda_returns = np.array(lambda_returns)
 
-        # calcuate advantage
+            # prevent side effect
+            returns = np.array(batch.returns[i]).copy()
+
+            # compute lambda return
+            lambda_return = _compute_lambda_return(returns=returns,
+                                                   values=values,
+                                                   gamma=self.gamma,
+                                                   lam=self.lam)
+
+            lambda_returns.append([lambda_return])
+        return np.array(lambda_returns)
+
+    def _compute_advantages(self, returns, batch):
         baselines = self.predict_value(batch.observations, []).reshape((-1, 1))
-        advantages = lambda_returns - baselines
+        advantages = returns - baselines
         adv_mean = np.mean(advantages)
         adv_std = np.std(advantages)
-        norm_advantages = (advantages - adv_mean) / (adv_std + 1e-5)
+        return (advantages - adv_mean) / (adv_std + 1e-5)
+
+    def _compute_clipped_weights(self, advantages):
+        weights = np.exp(advantages / self.beta)
+        return np.minimum(weights, self.max_weight)
+
+    def update(self, epoch, itr, batch):
+        # compute lmabda return
+        lambda_returns = self._compute_lambda_returns(batch)
+
+        # calcuate advantage
+        advantages = self._compute_advantages(lambda_returns, batch)
 
         # compute weights
-        weights = np.exp(norm_advantages / self.beta)
-        clipped_weights = np.minimum(weights, self.max_weight)
+        clipped_weights = self._compute_clipped_weights(advantages)
 
         n_steps_per_batch = self.batch_size // self.batch_size_per_update
 
@@ -181,6 +211,7 @@ class AWR(AlgoBase):
                 returns = lambda_returns[head_index:tail_index]
                 critic_loss = self.impl.update_critic(observations, returns)
                 critic_loss_history.append(critic_loss)
+        critic_loss_mean = np.mean(critic_loss_history)
 
         # update actor
         actor_loss_history = []
@@ -194,8 +225,9 @@ class AWR(AlgoBase):
                 actor_loss = self.impl.update_actor(observations, actions,
                                                     weights)
                 actor_loss_history.append(actor_loss)
+        actor_loss_mean = np.mean(actor_loss_history)
 
-        return np.mean(critic_loss_history), np.mean(actor_loss_history)
+        return critic_loss_mean, actor_loss_mean, np.mean(clipped_weights)
 
     def _get_loss_labels(self):
-        return ['critic_loss', 'actor_loss']
+        return ['critic_loss', 'actor_loss', 'weights']

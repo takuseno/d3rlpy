@@ -1,6 +1,6 @@
 import torch
 
-from torch.optim import Adam
+from torch.optim import SGD
 from d3rlpy.models.torch.v_functions import create_value_function
 from d3rlpy.models.torch.policies import create_normal_policy
 from .utility import torch_api, train_api, eval_api
@@ -10,14 +10,14 @@ from .base import TorchImplBase
 
 class AWRImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, eps, use_batch_norm, use_gpu, scaler,
-                 augmentation, n_augmentations, encoder_params):
+                 critic_learning_rate, momentum, use_batch_norm, use_gpu,
+                 scaler, augmentation, n_augmentations, encoder_params):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.use_batch_norm = use_batch_norm
-        self.eps = eps
+        self.momentum = momentum
         self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
@@ -44,9 +44,9 @@ class AWRImpl(TorchImplBase):
                                             encoder_params=self.encoder_params)
 
     def _build_critic_optim(self):
-        self.critic_optim = Adam(self.v_func.parameters(),
-                                 lr=self.critic_learning_rate,
-                                 eps=self.eps)
+        self.critic_optim = SGD(self.v_func.parameters(),
+                                lr=self.critic_learning_rate,
+                                momentum=self.momentum)
 
     def _build_actor(self):
         self.policy = create_normal_policy(self.observation_shape,
@@ -55,9 +55,9 @@ class AWRImpl(TorchImplBase):
                                            encoder_params=self.encoder_params)
 
     def _build_actor_optim(self):
-        self.actor_optim = Adam(self.policy.parameters(),
-                                lr=self.actor_learning_rate,
-                                eps=self.eps)
+        self.actor_optim = SGD(self.policy.parameters(),
+                               lr=self.actor_learning_rate,
+                               momentum=self.momentum)
 
     @train_api
     @torch_api

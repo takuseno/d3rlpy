@@ -1,8 +1,24 @@
 import pytest
+import numpy as np
 
-from d3rlpy.algos.awr import AWR
+from d3rlpy.algos.awr import AWR, _compute_lambda_return
 from tests import performance_test
 from .algo_test import algo_tester, algo_update_tester, algo_pendulum_tester
+
+
+@pytest.mark.parametrize('horizon', [100])
+@pytest.mark.parametrize('gamma', [0.99])
+def test_compute_lambda_return(horizon, gamma):
+    returns = np.random.random(horizon)
+    values = np.random.random(horizon)
+
+    # TD(0)
+    lambda_return = _compute_lambda_return(returns.copy(), values, gamma, 0.0)
+    assert np.allclose(lambda_return, returns[0] + gamma * values[0])
+
+    # TD(1)
+    lambda_return = _compute_lambda_return(returns.copy(), values, gamma, 1.0)
+    assert np.allclose(lambda_return, returns[-1])
 
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
