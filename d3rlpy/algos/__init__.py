@@ -1,5 +1,5 @@
 from .base import AlgoBase
-from .awr import AWR
+from .awr import AWR, DiscreteAWR
 from .bc import BC, DiscreteBC
 from .bcq import BCQ, DiscreteBCQ
 from .bear import BEAR
@@ -24,7 +24,7 @@ def create_algo(name, discrete, **params):
     """
     if name == 'awr':
         if discrete:
-            raise ValueError('AWR is not available for discrete action-space.')
+            return DiscreteAWR(**params)
         else:
             return AWR(**params)
     elif name == 'bc':

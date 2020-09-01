@@ -34,3 +34,5 @@ Discrete control algorithms
    d3rlpy.algos.DoubleDQN
    d3rlpy.algos.DiscreteBCQ
    d3rlpy.algos.DiscreteCQL
+   d3rlpy.algos.DiscreteCQL
+   d3rlpy.algos.DiscreteAWR

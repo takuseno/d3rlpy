@@ -3,6 +3,7 @@ import torch
 from torch.optim import SGD
 from d3rlpy.models.torch.v_functions import create_value_function
 from d3rlpy.models.torch.policies import create_normal_policy
+from d3rlpy.models.torch.policies import create_categorical_policy
 from .utility import torch_api, train_api, eval_api
 from .utility import compute_augemtation_mean
 from .base import TorchImplBase
@@ -103,8 +104,8 @@ class AWRImpl(TorchImplBase):
 
     def _compute_actor_loss(self, observation, action, weight):
         dist = self.policy.dist(observation)
-        log_probs = dist.log_prob(action)
-        return -(weight * log_probs).mean()
+        log_probs = dist.log_prob(action).view(observation.shape[0], -1)
+        return -(weight * log_probs.sum(dim=1, keepdims=True)).mean()
 
     def _predict_best_action(self, x):
         return self.policy.best_action(x)
@@ -126,3 +127,12 @@ class AWRImpl(TorchImplBase):
 
         with torch.no_grad():
             return self.policy.sample(x).cpu().detach().numpy()
+
+
+class DiscreteAWRImpl(AWRImpl):
+    def _build_actor(self):
+        self.policy = create_categorical_policy(
+            self.observation_shape,
+            self.action_size,
+            self.use_batch_norm,
+            encoder_params=self.encoder_params)
