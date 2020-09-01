@@ -5,6 +5,7 @@ import copy
 from d3rlpy.models.torch.policies import create_deterministic_policy
 from d3rlpy.models.torch.policies import create_deterministic_residual_policy
 from d3rlpy.models.torch.policies import create_normal_policy
+from d3rlpy.models.torch.policies import create_categorical_policy
 from d3rlpy.models.torch.policies import DeterministicPolicy
 from d3rlpy.models.torch.policies import DeterministicResidualPolicy
 from d3rlpy.models.torch.policies import NormalPolicy
@@ -62,6 +63,22 @@ def test_create_normal_policy(observation_shape, action_size, batch_size,
     x = torch.rand((batch_size, ) + observation_shape)
     y = policy(x)
     assert y.shape == (batch_size, action_size)
+
+
+@pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('use_batch_norm', [False, True])
+def test_create_categorical_policy(observation_shape, action_size, batch_size,
+                                   use_batch_norm):
+    policy = create_categorical_policy(observation_shape, action_size,
+                                       use_batch_norm)
+
+    assert isinstance(policy, CategoricalPolicy)
+
+    x = torch.rand((batch_size, ) + observation_shape)
+    y = policy(x)
+    assert y.shape == (batch_size, )
 
 
 @pytest.mark.parametrize('feature_size', [100])

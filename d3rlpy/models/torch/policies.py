@@ -39,6 +39,16 @@ def create_normal_policy(observation_shape,
     return NormalPolicy(encoder, action_size)
 
 
+def create_categorical_policy(observation_shape,
+                              action_size,
+                              use_batch_norm=False,
+                              encoder_params={}):
+    encoder = create_encoder(observation_shape,
+                             use_batch_norm=use_batch_norm,
+                             **encoder_params)
+    return CategoricalPolicy(encoder, action_size)
+
+
 def _squash_action(dist, raw_action):
     squashed_action = torch.tanh(raw_action)
     jacob = 2 * (math.log(2) - raw_action - F.softplus(-2 * raw_action))
