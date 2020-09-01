@@ -1,5 +1,6 @@
 import pytest
 import torch
+import copy
 
 from d3rlpy.models.torch.policies import create_deterministic_policy
 from d3rlpy.models.torch.policies import create_deterministic_residual_policy
@@ -7,6 +8,7 @@ from d3rlpy.models.torch.policies import create_normal_policy
 from d3rlpy.models.torch.policies import DeterministicPolicy
 from d3rlpy.models.torch.policies import DeterministicResidualPolicy
 from d3rlpy.models.torch.policies import NormalPolicy
+from d3rlpy.models.torch.policies import CategoricalPolicy
 from .model_test import check_parameter_updates, DummyEncoder
 
 
@@ -135,3 +137,29 @@ def test_normal_policy(feature_size, action_size, batch_size, n):
 
     # check layer connection
     check_parameter_updates(policy, (x, ))
+
+
+@pytest.mark.parametrize('feature_size', [100])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('batch_size', [32])
+def test_categorical_policy(feature_size, action_size, batch_size):
+    encoder = DummyEncoder(feature_size)
+    policy = CategoricalPolicy(encoder, action_size)
+
+    # check output shape
+    x = torch.rand(batch_size, feature_size)
+    y = policy(x)
+    assert y.shape == (batch_size, )
+
+    # check log_prob shape
+    _, log_prob = policy(x, with_log_prob=True)
+    assert log_prob.shape == (batch_size, )
+
+    # check distribution type
+    assert isinstance(policy.dist(x), torch.distributions.Categorical)
+
+    # check if sampled action is not identical to the bset action
+    assert not torch.all(policy.sample(x) == policy.best_action(x))
+
+    # check layer connection
+    check_parameter_updates(policy, output=log_prob)

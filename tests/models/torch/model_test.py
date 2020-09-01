@@ -4,14 +4,15 @@ import copy
 from torch.optim import SGD
 
 
-def check_parameter_updates(model, inputs):
+def check_parameter_updates(model, inputs=None, output=None):
     model.train()
     params_before = copy.deepcopy([p for p in model.parameters()])
     optim = SGD(model.parameters(), lr=1.0)
-    if hasattr(model, 'compute_error'):
-        output = model.compute_error(*inputs)
-    else:
-        output = model(*inputs)
+    if output is None:
+        if hasattr(model, 'compute_error'):
+            output = model.compute_error(*inputs)
+        else:
+            output = model(*inputs)
     if isinstance(output, (list, tuple)):
         loss = 0.0
         for y in output:
