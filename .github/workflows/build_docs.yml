@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Python.3.6.10
+      - name: Setup Python.3.6.x
         uses: actions/setup-python@v1
         with:
-          python-version: 3.6.11
+          python-version: 3.6.x
       - name: Cache pip
         uses: actions/cache@v1
         with:
