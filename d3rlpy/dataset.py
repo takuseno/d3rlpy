@@ -35,6 +35,7 @@ def _to_transitions(observation_shape, action_size, observations, actions,
                     rewards, gamma, precompute_returns):
     rets = []
     num_data = _safe_size(observations)
+    prev_transition = None
     for i in range(num_data - 1):
         observation = observations[i]
         action = actions[i]
@@ -67,7 +68,14 @@ def _to_transitions(observation_shape, action_size, observations, actions,
             next_reward=next_reward,
             terminal=terminal,
             returns=returns,
-            consequent_observations=consequent_observations)
+            consequent_observations=consequent_observations,
+            prev_transition=prev_transition)
+
+        # set pointer to the next transition
+        if prev_transition:
+            prev_transition.next_transition = transition
+
+        prev_transition = transition
 
         rets.append(transition)
     return rets
@@ -719,6 +727,10 @@ class Transition:
         returns (list): list of Monte-Carlo returns at `t`.
         consequent_observations (numpy.ndarray or list(numpy.ndarray)):
             list of consequent observations until termination
+        prev_transition (d3rlpy.dataset.Transition):
+            pointer to the previous transition.
+        next_transition (d3rlpy.dataset.Transition):
+            pointer to the next transition.
 
     """
     def __init__(self,
@@ -732,7 +744,9 @@ class Transition:
                  next_reward,
                  terminal,
                  returns=[],
-                 consequent_observations=[]):
+                 consequent_observations=[],
+                 prev_transition=None,
+                 next_transition=None):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self._observation = observation
@@ -744,6 +758,8 @@ class Transition:
         self._terminal = terminal
         self._returns = returns
         self._consequent_observations = consequent_observations
+        self._prev_transition = prev_transition
+        self._next_transition = next_transition
 
     def get_observation_shape(self):
         """ Returns observation shape.
@@ -862,6 +878,52 @@ class Transition:
 
         """
         return self._consequent_observations
+
+    @property
+    def prev_transition(self):
+        """ Returns pointer to the previous transition.
+
+        If this is the first transition, this method should return ``None``.
+
+        Returns:
+            d3rlpy.dataset.Transition: previous transition.
+
+        """
+        return self._prev_transition
+
+    @prev_transition.setter
+    def prev_transition(self, transition):
+        """ Sets transition to ``prev_transition``.
+
+        Args:
+            d3rlpy.dataset.Transition: previous transition.
+
+        """
+        assert isinstance(transition, Transition)
+        self._prev_transition = transition
+
+    @property
+    def next_transition(self):
+        """ Returns pointer to the next transition.
+
+        If this is the last transition, this method should return ``None``.
+
+        Returns:
+            d3rlpy.dataset.Transition: next transition.
+
+        """
+        return self._next_transition
+
+    @next_transition.setter
+    def next_transition(self, transition):
+        """ Sets transition to ``next_transition``.
+
+        Args:
+            d3rlpy.dataset.Dataset: next transition.
+
+        """
+        assert isinstance(transition, Transition)
+        self._next_transition = transition
 
 
 class TransitionMiniBatch:

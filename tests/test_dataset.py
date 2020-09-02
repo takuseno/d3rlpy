@@ -186,6 +186,22 @@ def test_episode(data_size, observation_size, action_size, gamma):
             ref_return += (gamma**j) * rewards[i + 1 + j][0]
             assert ret == ref_return
 
+    # check forward pointers
+    count = 1
+    transition = episode[0]
+    while transition.next_transition:
+        transition = transition.next_transition
+        count += 1
+    assert count == data_size - 1
+
+    # check backward pointers
+    count = 1
+    transition = episode[-1]
+    while transition.prev_transition:
+        transition = transition.prev_transition
+        count += 1
+    assert count == data_size - 1
+
     # check list-like bahaviors
     assert len(episode) == data_size - 1
     assert episode[0] is episode.transitions[0]
