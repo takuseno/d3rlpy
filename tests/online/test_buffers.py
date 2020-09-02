@@ -8,11 +8,10 @@ from d3rlpy.dataset import TransitionMiniBatch
 @pytest.mark.parametrize('n_episodes', [10])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('maxlen', [50])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_replay_buffer(n_episodes, batch_size, maxlen, gamma):
+def test_replay_buffer(n_episodes, batch_size, maxlen):
     env = gym.make('CartPole-v0')
 
-    buffer = ReplayBuffer(maxlen, env, gamma)
+    buffer = ReplayBuffer(maxlen, env)
 
     total_step = 0
     for episode in range(n_episodes):
@@ -37,5 +36,3 @@ def test_replay_buffer(n_episodes, batch_size, maxlen, gamma):
     assert batch.next_actions.shape == (batch_size, 1)
     assert batch.next_rewards.shape == (batch_size, 1)
     assert batch.terminals.shape == (batch_size, 1)
-    assert len(batch.returns) == batch_size
-    assert len(batch.consequent_observations) == batch_size

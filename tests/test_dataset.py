@@ -140,19 +140,16 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
 @pytest.mark.parametrize('data_size', [100])
 @pytest.mark.parametrize('observation_size', [4])
 @pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_episode(data_size, observation_size, action_size, gamma):
+def test_episode(data_size, observation_size, action_size):
     observations = np.random.random((data_size, observation_size))
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random((data_size, 1))
 
-    episode = Episode((observation_size, ),
-                      action_size,
-                      observations,
-                      actions,
-                      rewards,
-                      gamma,
-                      precompute_returns=True)
+    episode = Episode(observation_shape=(observation_size, ),
+                      action_size=action_size,
+                      observations=observations,
+                      actions=actions,
+                      rewards=rewards)
 
     # check Episode methods
     assert np.all(episode.observations == observations)
@@ -176,15 +173,6 @@ def test_episode(data_size, observation_size, action_size, gamma):
         assert np.all(t.next_action == actions[i + 1])
         assert t.next_reward == rewards[i + 1]
         assert t.terminal == (1.0 if (i == data_size - 2) else 0.0)
-        assert len(t.returns) == data_size - i - 1
-        assert len(t.consequent_observations) == data_size - i - 1
-
-        # check returns
-        ref_return = 0.0
-        for j, ret in enumerate(t.returns):
-            print(t.returns)
-            ref_return += (gamma**j) * rewards[i + 1 + j][0]
-            assert ret == ref_return
 
     # check forward pointers
     count = 1
@@ -209,30 +197,17 @@ def test_episode(data_size, observation_size, action_size, gamma):
         assert isinstance(transition, Transition)
         assert transition is episode.transitions[i]
 
-    # check precompute_returns=False
-    episode = Episode((observation_size, ),
-                      action_size,
-                      observations,
-                      actions,
-                      rewards,
-                      gamma,
-                      precompute_returns=False)
-    for transition in episode:
-        assert transition.returns == []
-        assert transition.consequent_observations == []
-
 
 @pytest.mark.parametrize('data_size', [100])
 @pytest.mark.parametrize('observation_size', [4])
 @pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_transition_minibatch(data_size, observation_size, action_size, gamma):
+def test_transition_minibatch(data_size, observation_size, action_size):
     observations = np.random.random((data_size, observation_size))
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random((data_size, 1))
 
     episode = Episode((observation_size, ), action_size, observations, actions,
-                      rewards, gamma)
+                      rewards)
 
     batch = TransitionMiniBatch(episode.transitions)
     for i, t in enumerate(episode.transitions):
@@ -243,9 +218,6 @@ def test_transition_minibatch(data_size, observation_size, action_size, gamma):
         assert np.all(batch.next_actions[i] == t.next_action)
         assert np.all(batch.next_rewards[i] == t.next_reward)
         assert np.all(batch.terminals[i] == t.terminal)
-        assert np.all(batch.returns[i] == t.returns)
-        assert np.all(
-            batch.consequent_observations[i] == t.consequent_observations)
 
     # check list-like behavior
     assert len(batch) == data_size - 1

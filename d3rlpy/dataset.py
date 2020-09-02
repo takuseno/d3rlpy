@@ -1,8 +1,6 @@
 import numpy as np
 import h5py
 
-from tqdm import trange
-
 
 def _safe_size(array):
     if isinstance(array, (list, tuple)):
@@ -13,18 +11,16 @@ def _safe_size(array):
 
 
 def _to_episodes(observation_shape, action_size, observations, actions,
-                 rewards, terminals, gamma, precompute_returns):
+                 rewards, terminals):
     rets = []
     head_index = 0
-    for i in trange(_safe_size(observations), desc='splitting into episodes'):
+    for i in range(_safe_size(observations)):
         if terminals[i]:
             episode = Episode(observation_shape=observation_shape,
                               action_size=action_size,
                               observations=observations[head_index:i + 1],
                               actions=actions[head_index:i + 1],
-                              rewards=rewards[head_index:i + 1],
-                              gamma=gamma,
-                              precompute_returns=precompute_returns)
+                              rewards=rewards[head_index:i + 1])
             episode.build_transitions()
             rets.append(episode)
             head_index = i + 1
@@ -32,7 +28,7 @@ def _to_episodes(observation_shape, action_size, observations, actions,
 
 
 def _to_transitions(observation_shape, action_size, observations, actions,
-                    rewards, gamma, precompute_returns):
+                    rewards):
     rets = []
     num_data = _safe_size(observations)
     prev_transition = None
@@ -45,31 +41,16 @@ def _to_transitions(observation_shape, action_size, observations, actions,
         next_reward = rewards[i + 1]
         terminal = 1.0 if i == num_data - 2 else 0.0
 
-        if precompute_returns:
-            # compute returns
-            R = 0.0
-            returns = []
-            for j, r in enumerate(np.array(rewards).reshape(-1)[i + 1:]):
-                R += (gamma**j) * r
-                returns.append(R)
-            consequent_observations = observations[i + 1:]
-        else:
-            returns = []
-            consequent_observations = []
-
-        transition = Transition(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            observation=observation,
-            action=action,
-            reward=reward,
-            next_observation=next_observation,
-            next_action=next_action,
-            next_reward=next_reward,
-            terminal=terminal,
-            returns=returns,
-            consequent_observations=consequent_observations,
-            prev_transition=prev_transition)
+        transition = Transition(observation_shape=observation_shape,
+                                action_size=action_size,
+                                observation=observation,
+                                action=action,
+                                reward=reward,
+                                next_observation=next_observation,
+                                next_action=next_action,
+                                next_reward=next_reward,
+                                terminal=terminal,
+                                prev_transition=prev_transition)
 
         # set pointer to the next transition
         if prev_transition:
@@ -131,9 +112,6 @@ class MDPDataset:
         terminals (numpy.ndarray): array of binary terminal flags.
         discrete_action (bool): flag to use the given actions as discrete
             action-space actions.
-        gamma (float): discount factor to compute Monte-Carlo returns.
-        precompute_returns (bool): flag to compute Monte-Carlo returns. This
-            computation takes a while when the dataset is extremely large.
 
     """
     def __init__(self,
@@ -141,15 +119,11 @@ class MDPDataset:
                  actions,
                  rewards,
                  terminals,
-                 discrete_action=False,
-                 gamma=0.99,
-                 precompute_returns=False):
+                 discrete_action=False):
         self._observations = observations
         self._rewards = np.asarray(rewards).reshape(-1)
         self._terminals = np.asarray(terminals).reshape(-1)
         self.discrete_action = discrete_action
-        self._gamma = gamma
-        self._precompute_returns = precompute_returns
         if discrete_action:
             self._actions = np.asarray(actions).reshape(-1)
         else:
@@ -208,36 +182,6 @@ class MDPDataset:
         if self._episodes is None:
             self.build_episodes()
         return self._episodes
-
-    @property
-    def gamma(self):
-        """ Returns the discount factor.
-
-        Returns:
-            float: discount factor.
-
-        """
-        return self._gamma
-
-    @property
-    def precompute_returns(self):
-        """ Returns the flag to compute Monte-Carlo returns.
-
-        Returns:
-            bool: flag to compute Monte-Carlo returns.
-
-        """
-        return self._precompute_returns
-
-    @precompute_returns.setter
-    def precompute_returns(self, value):
-        """ Sets flag to compute Monte-Carlo returns.
-
-        Args:
-            value (bool): flag to compute Monte-Carlo returns.
-
-        """
-        self._precompute_returns = value
 
     def size(self):
         """ Returns the number of episodes in the dataset.
@@ -424,9 +368,7 @@ class MDPDataset:
                                 observations=observations,
                                 actions=actions,
                                 rewards=rewards,
-                                terminals=terminals,
-                                gamma=self.gamma,
-                                precompute_returns=self.precompute_returns)
+                                terminals=terminals)
 
         # append to episodes
         self._episodes += episodes
@@ -460,7 +402,7 @@ class MDPDataset:
             f.flush()
 
     @classmethod
-    def load(cls, fname, gamma=0.99, precompute_returns=False):
+    def load(cls, fname):
         """ Loads dataset from HDF5.
 
         .. code-block:: python
@@ -481,8 +423,6 @@ class MDPDataset:
 
         Args:
             fname (str): file path.
-            gamma (float): discount factor.
-            precompute_returns (bool): flag to compute Monte-Carlo returns.
 
         """
         with h5py.File(fname, 'r') as f:
@@ -496,9 +436,7 @@ class MDPDataset:
                       actions=actions,
                       rewards=rewards,
                       terminals=terminals,
-                      discrete_action=discrete_action,
-                      gamma=gamma,
-                      precompute_returns=precompute_returns)
+                      discrete_action=discrete_action)
 
         return dataset
 
@@ -515,9 +453,7 @@ class MDPDataset:
             observations=self._observations,
             actions=self._actions,
             rewards=self._rewards,
-            terminals=self._terminals,
-            gamma=self.gamma,
-            precompute_returns=self.precompute_returns)
+            terminals=self._terminals)
 
     def __len__(self):
         return self.size()
@@ -558,25 +494,15 @@ class Episode:
         actions (numpy.ndarray): actions.
         rewards (numpy.ndarray): scalar rewards.
         terminals (numpy.ndarray): binary terminal flags.
-        gamma (float): discount factor to compute Monte-Carlo returns.
-        precompute_returns (bool): flag to compute Monte-Carlo returns.
 
     """
-    def __init__(self,
-                 observation_shape,
-                 action_size,
-                 observations,
-                 actions,
-                 rewards,
-                 gamma=0.99,
-                 precompute_returns=False):
+    def __init__(self, observation_shape, action_size, observations, actions,
+                 rewards):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self._observations = observations
         self._actions = actions
         self._rewards = rewards
-        self._gamma = gamma
-        self._precompute_returns = precompute_returns
         self._transitions = None
 
     @property
@@ -622,26 +548,6 @@ class Episode:
             self.build_transitions()
         return self._transitions
 
-    @property
-    def gamma(self):
-        """ Returns the discount factor.
-
-        Returns:
-            float: discount factor.
-
-        """
-        return self._gamma
-
-    @property
-    def precompute_returns(self):
-        """ Returns the flag to compute Monte-Carlo returns.
-
-        Returns:
-            bool: flag to compute Monte-Carlo returns.
-
-        """
-        return self._precompute_returns
-
     def build_transitions(self):
         """ Builds transition objects.
 
@@ -654,9 +560,7 @@ class Episode:
             action_size=self.action_size,
             observations=self._observations,
             actions=self._actions,
-            rewards=self._rewards,
-            gamma=self.gamma,
-            precompute_returns=self.precompute_returns)
+            rewards=self._rewards)
 
     def size(self):
         """ Returns the number of transitions.
@@ -724,9 +628,6 @@ class Transition:
         next_action (numpy.ndarray or int): action at `t+1`.
         next_reward (float): reward at `t+1`.
         terminal (int): terminal flag at `t+1`.
-        returns (list): list of Monte-Carlo returns at `t`.
-        consequent_observations (numpy.ndarray or list(numpy.ndarray)):
-            list of consequent observations until termination
         prev_transition (d3rlpy.dataset.Transition):
             pointer to the previous transition.
         next_transition (d3rlpy.dataset.Transition):
@@ -743,8 +644,6 @@ class Transition:
                  next_action,
                  next_reward,
                  terminal,
-                 returns=[],
-                 consequent_observations=[],
                  prev_transition=None,
                  next_transition=None):
         self.observation_shape = observation_shape
@@ -756,8 +655,6 @@ class Transition:
         self._next_action = next_action
         self._next_reward = next_reward
         self._terminal = terminal
-        self._returns = returns
-        self._consequent_observations = consequent_observations
         self._prev_transition = prev_transition
         self._next_transition = next_transition
 
@@ -850,36 +747,6 @@ class Transition:
         return self._terminal
 
     @property
-    def returns(self):
-        """ Returns list of Monte-Carlo returns.
-
-        The returns are computed with every horizon until the termination.
-
-        .. math::
-
-            R_t = \\{\\sum^j_{i=1} \\gamma^{i - 1} r_{t + i} \\}_{j=1}^{T}
-
-        Returns:
-            list: Monte-Carlo returns at `t`.
-
-        """
-        return self._returns
-
-    @property
-    def consequent_observations(self):
-        """ Returns list of consequent observations until the termination.
-
-        These observations will be used to compute bootstrapping values for
-        Monte-Carlo returns.
-
-        Returns:
-            numpy.ndarray or list(numpy.ndarray):
-                list of consequent observations.
-
-        """
-        return self._consequent_observations
-
-    @property
     def prev_transition(self):
         """ Returns pointer to the previous transition.
 
@@ -947,8 +814,6 @@ class TransitionMiniBatch:
         next_actions = []
         next_rewards = []
         terminals = []
-        returns = []
-        consequent_observations = []
         for transition in transitions:
             observations.append(transition.observation)
             actions.append(transition.action)
@@ -957,8 +822,6 @@ class TransitionMiniBatch:
             next_actions.append(transition.next_action)
             next_rewards.append(transition.next_reward)
             terminals.append(transition.terminal)
-            returns.append(transition.returns)
-            consequent_observations.append(transition.consequent_observations)
 
         # convert list to ndarray and fix shapes
         self._observations = np.array(observations)
@@ -968,8 +831,6 @@ class TransitionMiniBatch:
         self._next_rewards = np.array(next_rewards).reshape((self.size(), 1))
         self._next_actions = np.array(next_actions).reshape((self.size(), -1))
         self._terminals = np.array(terminals).reshape((self.size(), 1))
-        self._returns = returns
-        self._consequent_observations = consequent_observations
 
     @property
     def observations(self):
@@ -1040,32 +901,6 @@ class TransitionMiniBatch:
 
         """
         return self._terminals
-
-    @property
-    def returns(self):
-        """ Returns mini-batch of Monte-Caro returns at `t`.
-
-        Note:
-            * each element would have list with different length.
-
-        Returns:
-            list: list of returns at `t`.
-
-        """
-        return self._returns
-
-    @property
-    def consequent_observations(self):
-        """ Returns mini-batch of consequent observations until termination.
-
-        Note:
-            * each element would have list with different length.
-
-        Returns:
-            list: list of consequent observations until termination.
-
-        """
-        return self._consequent_observations
 
     @property
     def transitions(self):

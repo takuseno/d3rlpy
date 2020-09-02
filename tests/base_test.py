@@ -101,24 +101,37 @@ def base_tester(model, impl, observation_shape, action_size=2):
 def base_update_tester(model, observation_shape, action_size, discrete=False):
     # make mini-batch
     transitions = []
-    for _ in range(model.batch_size):
+    prev_transition = None
+    for i in range(model.batch_size):
         observation = np.random.random(observation_shape)
         next_observation = np.random.random(observation_shape)
         reward = np.random.random()
         next_reward = np.random.random()
         terminal = np.random.randint(2)
-        returns = np.random.random(100)
-        consequent_observations = np.random.random((100, *observation_shape))
         if discrete:
             action = np.random.randint(action_size)
             next_action = np.random.randint(action_size)
         else:
             action = np.random.random(action_size)
             next_action = np.random.random(action_size)
-        transition = Transition(observation_shape, action_size, observation,
-                                action, reward, next_observation, next_action,
-                                next_reward, terminal, returns,
-                                consequent_observations)
+
+        transition = Transition(observation_shape=observation_shape,
+                                action_size=action_size,
+                                observation=observation,
+                                action=action,
+                                reward=reward,
+                                next_observation=next_observation,
+                                next_action=next_action,
+                                next_reward=next_reward,
+                                terminal=terminal,
+                                prev_transition=prev_transition)
+
+        # set transition to the next pointer
+        if prev_transition:
+            prev_transition.next_transition = transition
+
+        prev_transition = transition
+
         transitions.append(transition)
 
     batch = TransitionMiniBatch(transitions)

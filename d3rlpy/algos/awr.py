@@ -163,14 +163,24 @@ class AWR(AlgoBase):
         # compute TD(lambda)
         lambda_returns = []
         for i in range(len(batch)):
-            observations = batch.consequent_observations[i]
+            # gather consequent observations until the end of episode
+            observations = []
+            returns = []
+            R = 0.0
+            discount = 1.0
+            transition = batch.transitions[i]
+            while transition:
+                # compute Monte-Carlo return
+                R += discount * transition.next_reward
+                discount *= self.gamma
+                observations.append(transition.next_observation)
+                returns.append(R)
+                transition = transition.next_transition
+
             values = self.predict_value(observations, [])
 
-            # prevent side effect
-            returns = np.array(batch.returns[i]).copy()
-
             # compute lambda return
-            lambda_return = _compute_lambda_return(returns=returns,
+            lambda_return = _compute_lambda_return(returns=np.array(returns),
                                                    values=values,
                                                    gamma=self.gamma,
                                                    lam=self.lam)
