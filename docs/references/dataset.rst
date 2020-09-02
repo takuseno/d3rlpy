@@ -34,11 +34,18 @@ reinforcement learning datasets without any efforts.
     dataset.episodes
 
     # each episode is also splitted into d3rlpy.dataset.Transition objects
-    dataset.episodes[0].observation
-    dataset.episodes[0].action
-    dataset.episodes[0].next_reward
-    dataset.episodes[0].next_observation
-    dataset.episodes[0].terminal
+    episode = dataset.episodes[0]
+    episode[0].observation
+    episode[0].action
+    episode[0].next_reward
+    episode[0].next_observation
+    episode[0].terminal
+
+    # d3rlpy.dataset.Transition object has pointers to previous and next
+    # transitions like linked list.
+    transition = episode[0]
+    while transition.next_transition:
+        transition = transition.next_transition
 
     # save as HDF5
     dataset.dump('dataset.h5')
