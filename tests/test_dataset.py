@@ -146,8 +146,13 @@ def test_episode(data_size, observation_size, action_size, gamma):
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random((data_size, 1))
 
-    episode = Episode((observation_size, ), action_size, observations, actions,
-                      rewards, gamma)
+    episode = Episode((observation_size, ),
+                      action_size,
+                      observations,
+                      actions,
+                      rewards,
+                      gamma,
+                      precompute_returns=True)
 
     # check Episode methods
     assert np.all(episode.observations == observations)
@@ -187,6 +192,18 @@ def test_episode(data_size, observation_size, action_size, gamma):
     for i, transition in enumerate(episode):
         assert isinstance(transition, Transition)
         assert transition is episode.transitions[i]
+
+    # check precompute_returns=False
+    episode = Episode((observation_size, ),
+                      action_size,
+                      observations,
+                      actions,
+                      rewards,
+                      gamma,
+                      precompute_returns=False)
+    for transition in episode:
+        assert transition.returns == []
+        assert transition.consequent_observations == []
 
 
 @pytest.mark.parametrize('data_size', [100])

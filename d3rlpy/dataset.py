@@ -1,6 +1,8 @@
 import numpy as np
 import h5py
 
+from tqdm import trange
+
 
 def _safe_size(array):
     if isinstance(array, (list, tuple)):
@@ -11,19 +13,63 @@ def _safe_size(array):
 
 
 def _to_episodes(observation_shape, action_size, observations, actions,
-                 rewards, terminals, gamma):
+                 rewards, terminals, gamma, precompute_returns):
     rets = []
     head_index = 0
-    for i in range(_safe_size(observations)):
+    for i in trange(_safe_size(observations), desc='splitting into episodes'):
         if terminals[i]:
             episode = Episode(observation_shape=observation_shape,
                               action_size=action_size,
                               observations=observations[head_index:i + 1],
                               actions=actions[head_index:i + 1],
                               rewards=rewards[head_index:i + 1],
-                              gamma=gamma)
+                              gamma=gamma,
+                              precompute_returns=precompute_returns)
+            episode.build_transitions()
             rets.append(episode)
             head_index = i + 1
+    return rets
+
+
+def _to_transitions(observation_shape, action_size, observations, actions,
+                    rewards, gamma, precompute_returns):
+    rets = []
+    num_data = _safe_size(observations)
+    for i in range(num_data - 1):
+        observation = observations[i]
+        action = actions[i]
+        reward = rewards[i]
+        next_observation = observations[i + 1]
+        next_action = actions[i + 1]
+        next_reward = rewards[i + 1]
+        terminal = 1.0 if i == num_data - 2 else 0.0
+
+        if precompute_returns:
+            # compute returns
+            R = 0.0
+            returns = []
+            for j, r in enumerate(np.array(rewards).reshape(-1)[i + 1:]):
+                R += (gamma**j) * r
+                returns.append(R)
+            consequent_observations = observations[i + 1:]
+        else:
+            returns = []
+            consequent_observations = []
+
+        transition = Transition(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            observation=observation,
+            action=action,
+            reward=reward,
+            next_observation=next_observation,
+            next_action=next_action,
+            next_reward=next_reward,
+            terminal=terminal,
+            returns=returns,
+            consequent_observations=consequent_observations)
+
+        rets.append(transition)
     return rets
 
 
@@ -78,6 +124,8 @@ class MDPDataset:
         discrete_action (bool): flag to use the given actions as discrete
             action-space actions.
         gamma (float): discount factor to compute Monte-Carlo returns.
+        precompute_returns (bool): flag to compute Monte-Carlo returns. This
+            computation takes a while when the dataset is extremely large.
 
     """
     def __init__(self,
@@ -86,12 +134,14 @@ class MDPDataset:
                  rewards,
                  terminals,
                  discrete_action=False,
-                 gamma=0.99):
+                 gamma=0.99,
+                 precompute_returns=False):
         self._observations = observations
         self._rewards = np.asarray(rewards).reshape(-1)
         self._terminals = np.asarray(terminals).reshape(-1)
         self.discrete_action = discrete_action
         self._gamma = gamma
+        self._precompute_returns = precompute_returns
         if discrete_action:
             self._actions = np.asarray(actions).reshape(-1)
         else:
@@ -148,7 +198,7 @@ class MDPDataset:
 
         """
         if self._episodes is None:
-            self._build_episodes()
+            self.build_episodes()
         return self._episodes
 
     @property
@@ -160,6 +210,26 @@ class MDPDataset:
 
         """
         return self._gamma
+
+    @property
+    def precompute_returns(self):
+        """ Returns the flag to compute Monte-Carlo returns.
+
+        Returns:
+            bool: flag to compute Monte-Carlo returns.
+
+        """
+        return self._precompute_returns
+
+    @precompute_returns.setter
+    def precompute_returns(self, value):
+        """ Sets flag to compute Monte-Carlo returns.
+
+        Args:
+            value (bool): flag to compute Monte-Carlo returns.
+
+        """
+        self._precompute_returns = value
 
     def size(self):
         """ Returns the number of episodes in the dataset.
@@ -304,7 +374,7 @@ class MDPDataset:
         self._rewards = np.clip(self._rewards, low, high)
         # rebuild Episode objects
         if self._episodes:
-            self._build_episodes()
+            self.build_episodes()
 
     def append(self, observations, actions, rewards, terminals):
         """ Appends new data.
@@ -347,7 +417,8 @@ class MDPDataset:
                                 actions=actions,
                                 rewards=rewards,
                                 terminals=terminals,
-                                gamma=self.gamma)
+                                gamma=self.gamma,
+                                precompute_returns=self.precompute_returns)
 
         # append to episodes
         self._episodes += episodes
@@ -381,7 +452,7 @@ class MDPDataset:
             f.flush()
 
     @classmethod
-    def load(cls, fname):
+    def load(cls, fname, gamma=0.99, precompute_returns=False):
         """ Loads dataset from HDF5.
 
         .. code-block:: python
@@ -402,6 +473,8 @@ class MDPDataset:
 
         Args:
             fname (str): file path.
+            gamma (float): discount factor.
+            precompute_returns (bool): flag to compute Monte-Carlo returns.
 
         """
         with h5py.File(fname, 'r') as f:
@@ -415,11 +488,19 @@ class MDPDataset:
                       actions=actions,
                       rewards=rewards,
                       terminals=terminals,
-                      discrete_action=discrete_action)
+                      discrete_action=discrete_action,
+                      gamma=gamma,
+                      precompute_returns=precompute_returns)
 
         return dataset
 
-    def _build_episodes(self):
+    def build_episodes(self):
+        """ Builds episode objects.
+
+        This method will be internally called when accessing the episodes
+        property at the first time.
+
+        """
         self._episodes = _to_episodes(
             observation_shape=self.get_observation_shape(),
             action_size=self.get_action_size(),
@@ -427,7 +508,8 @@ class MDPDataset:
             actions=self._actions,
             rewards=self._rewards,
             terminals=self._terminals,
-            gamma=self.gamma)
+            gamma=self.gamma,
+            precompute_returns=self.precompute_returns)
 
     def __len__(self):
         return self.size()
@@ -469,6 +551,7 @@ class Episode:
         rewards (numpy.ndarray): scalar rewards.
         terminals (numpy.ndarray): binary terminal flags.
         gamma (float): discount factor to compute Monte-Carlo returns.
+        precompute_returns (bool): flag to compute Monte-Carlo returns.
 
     """
     def __init__(self,
@@ -477,13 +560,15 @@ class Episode:
                  observations,
                  actions,
                  rewards,
-                 gamma=0.99):
+                 gamma=0.99,
+                 precompute_returns=False):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self._observations = observations
         self._actions = actions
         self._rewards = rewards
         self._gamma = gamma
+        self._precompute_returns = precompute_returns
         self._transitions = None
 
     @property
@@ -526,7 +611,7 @@ class Episode:
 
         """
         if self._transitions is None:
-            self._transitions = self._to_transitions()
+            self.build_transitions()
         return self._transitions
 
     @property
@@ -539,41 +624,31 @@ class Episode:
         """
         return self._gamma
 
-    def _to_transitions(self):
-        rets = []
-        num_data = _safe_size(self._observations)
-        for i in range(num_data - 1):
-            observation = self._observations[i]
-            action = self._actions[i]
-            reward = self._rewards[i]
-            next_observation = self._observations[i + 1]
-            next_action = self._actions[i + 1]
-            next_reward = self._rewards[i + 1]
-            terminal = 1.0 if i == num_data - 2 else 0.0
-            consequent_observations = self._observations[i + 1:]
+    @property
+    def precompute_returns(self):
+        """ Returns the flag to compute Monte-Carlo returns.
 
-            # compute returns
-            R = 0.0
-            returns = []
-            for j, r in enumerate(np.array(self._rewards).reshape(-1)[i + 1:]):
-                R += (self.gamma**j) * r
-                returns.append(R)
+        Returns:
+            bool: flag to compute Monte-Carlo returns.
 
-            transition = Transition(
-                observation_shape=self.observation_shape,
-                action_size=self.action_size,
-                observation=observation,
-                action=action,
-                reward=reward,
-                next_observation=next_observation,
-                next_action=next_action,
-                next_reward=next_reward,
-                terminal=terminal,
-                returns=returns,
-                consequent_observations=consequent_observations)
+        """
+        return self._precompute_returns
 
-            rets.append(transition)
-        return rets
+    def build_transitions(self):
+        """ Builds transition objects.
+
+        This method will be internally called when accessing the transitions
+        property at the first time.
+
+        """
+        self._transitions = _to_transitions(
+            observation_shape=self.observation_shape,
+            action_size=self.action_size,
+            observations=self._observations,
+            actions=self._actions,
+            rewards=self._rewards,
+            gamma=self.gamma,
+            precompute_returns=self.precompute_returns)
 
     def size(self):
         """ Returns the number of transitions.

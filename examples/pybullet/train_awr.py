@@ -14,6 +14,9 @@ from sklearn.model_selection import train_test_split
 def main(args):
     dataset, env = get_pybullet(args.dataset)
 
+    # enable flag to compute Monte-Carlo returns
+    dataset.precompute_returns = True
+
     d3rlpy.seed(args.seed)
 
     train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
