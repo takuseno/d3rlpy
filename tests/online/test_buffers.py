@@ -1,5 +1,7 @@
+import numpy as np
 import pytest
 import gym
+import torch
 
 from d3rlpy.online.buffers import ReplayBuffer
 from d3rlpy.dataset import TransitionMiniBatch
@@ -8,10 +10,11 @@ from d3rlpy.dataset import TransitionMiniBatch
 @pytest.mark.parametrize('n_episodes', [10])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('maxlen', [50])
-def test_replay_buffer(n_episodes, batch_size, maxlen):
+@pytest.mark.parametrize('as_tensor', [False, True])
+def test_replay_buffer(n_episodes, batch_size, maxlen, as_tensor):
     env = gym.make('CartPole-v0')
 
-    buffer = ReplayBuffer(maxlen, env)
+    buffer = ReplayBuffer(maxlen, env, as_tensor=as_tensor)
 
     total_step = 0
     for episode in range(n_episodes):
@@ -36,3 +39,10 @@ def test_replay_buffer(n_episodes, batch_size, maxlen):
     assert batch.next_actions.shape == (batch_size, 1)
     assert batch.next_rewards.shape == (batch_size, 1)
     assert batch.terminals.shape == (batch_size, 1)
+
+    if as_tensor:
+        assert isinstance(batch.observations, torch.Tensor)
+        assert isinstance(batch.next_observations, torch.Tensor)
+    else:
+        assert isinstance(batch.observations, np.ndarray)
+        assert isinstance(batch.next_observations, np.ndarray)

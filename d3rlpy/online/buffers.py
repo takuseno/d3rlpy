@@ -3,7 +3,8 @@ import numpy as np
 from abc import ABCMeta, abstractmethod
 from collections import deque
 from random import sample
-from ..dataset import Transition, TransitionMiniBatch
+from ..gpu import Device
+from ..dataset import Transition, TransitionMiniBatch, _numpy_to_tensor
 from .utility import get_action_size_from_env
 
 
@@ -54,6 +55,8 @@ class ReplayBuffer(Buffer):
     Args:
         maxlen (int): the maximum number of data length.
         env (gym.Env): gym-like environment to extract shape information.
+        as_tensor (bool): flag to hold observations as ``torch.Tensor``.
+        device (d3rlpy.gpu.Device or int): gpu device or device id for tensor.
 
     Attributes:
         observations (list(numpy.ndarray)):
@@ -63,9 +66,11 @@ class ReplayBuffer(Buffer):
         transitions (collections.deque): list of transitions.
         observation_shape (tuple): observation shape.
         action_size (int): action size.
+        as_tensor (bool): flag to hold observations as ``torch.Tensor``.
+        device (d3rlpy.gpu.Device): gpu device.
 
     """
-    def __init__(self, maxlen, env):
+    def __init__(self, maxlen, env, as_tensor=False, device=None):
         # temporary cache to hold transitions for an entire episode
         self.observations = []
         self.actions = []
@@ -77,6 +82,13 @@ class ReplayBuffer(Buffer):
         self.observation_shape = env.observation_space.shape
         self.action_size = get_action_size_from_env(env)
 
+        # data type option
+        if isinstance(device, int):
+            self.device = Device(device)
+        else:
+            self.device = device
+        self.as_tensor = as_tensor
+
     def append(self, observation, action, reward, terminal):
         # validation
         assert observation.shape == self.observation_shape
@@ -85,6 +97,10 @@ class ReplayBuffer(Buffer):
         else:
             action = int(action)
             assert action < self.action_size
+
+        # numpy.ndarray to PyTorch conversion
+        if self.as_tensor:
+            observation = _numpy_to_tensor(observation, self.device)
 
         self.observations.append(observation)
         self.actions.append(action)
