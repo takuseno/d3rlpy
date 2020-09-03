@@ -178,7 +178,7 @@ class MDPDataset:
         """ Returns the observations.
 
         Returns:
-            (numpy.ndarray, list(numpy.ndarray) or torch.Tensor):
+            numpy.ndarray, list(numpy.ndarray) or torch.Tensor:
                 array of observations.
 
         """
@@ -590,7 +590,8 @@ class Episode:
         """ Returns the observations.
 
         Returns:
-            (numpy.ndarray or list(numpy.ndarray)): array of observations.
+            numpy.ndarray, list(numpy.ndarray) or torch.Tensor:
+                array of observations.
 
         """
         return self._observations
@@ -761,7 +762,7 @@ class Transition:
         """ Returns observation at `t`.
 
         Returns:
-            numpy.ndarray: observation at `t`.
+            numpy.ndarray or torch.Tensor: observation at `t`.
 
         """
         return self._observation
@@ -791,7 +792,7 @@ class Transition:
         """ Returns observation at `t+1`.
 
         Returns:
-            numpy.ndarray: observation at `t+1`.
+            numpy.ndarray or torch.Tensor: observation at `t+1`.
 
         """
         return self._next_observation

@@ -200,6 +200,15 @@ class AWR(AlgoBase):
         return np.minimum(weights, self.max_weight)
 
     def predict_value(self, x, *args, **kwargs):
+        """ Returns predicted state values.
+
+        Args:
+            x (numpy.ndarray): observations.
+
+        Returns:
+            numpy.ndarray: predicted state values.
+
+        """
         return self.impl.predict_value(x)
 
     def update(self, epoch, itr, batch):
