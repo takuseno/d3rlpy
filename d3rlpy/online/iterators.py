@@ -1,4 +1,5 @@
 from tqdm import trange
+from ..preprocessing.stack import StackedObservation
 from ..metrics.scorer import evaluate_on_environment
 from ..logger import D3RLPyLogger
 from .utility import get_action_size_from_env
@@ -54,10 +55,19 @@ def train(env,
                           tensorboard=tensorboard,
                           with_timestamp=with_timestamp)
 
+    observation_shape = env.observation_space.shape
+    is_image = len(observation_shape) == 3
+
     # setup algorithm
     if algo.impl is None:
         action_size = get_action_size_from_env(env)
-        algo.create_impl(env.observation_space.shape, action_size)
+        if is_image:
+            stacked_observation = StackedObservation(observation_shape,
+                                                     algo.n_frames)
+            n_channels = observation_shape[0]
+            image_size = observation_shape[1:]
+            observation_shape = (n_channels * algo.n_frames, *image_size)
+        algo.create_impl(observation_shape, action_size)
 
     # save hyperparameters
     algo._save_params(logger)
@@ -76,11 +86,18 @@ def train(env,
     total_step = 0
     for epoch in range(algo.n_epochs):
         for step in range(n_steps_per_epoch):
+            # stack observation if necessary
+            if is_image:
+                stacked_observation.append(observation)
+                fed_observation = stacked_observation.eval()
+            else:
+                fed_observation = observation
+
             # sample exploration action
             if explorer:
-                action = explorer.sample(algo, observation, total_step)
+                action = explorer.sample(algo, fed_observation, total_step)
             else:
-                action = algo.sample_action([observation])[0]
+                action = algo.sample_action([fed_observation])[0]
 
             # store observation
             buffer.append(observation, action, reward, terminal)
@@ -90,12 +107,15 @@ def train(env,
                 observation, reward, terminal = env.reset(), 0.0, False
             else:
                 observation, reward, terminal, _ = env.step(action)
+                # for image observation
+                if is_image:
+                    stacked_observation.clear()
 
             total_step += 1
 
         # update loop
         for i in xrange(n_updates_per_epoch):
-            batch = buffer.sample(algo.batch_size)
+            batch = buffer.sample(algo.batch_size, algo.n_frames)
             loss = algo.update(epoch, epoch * n_updates_per_epoch + i, batch)
             for name, val in zip(algo._get_loss_labels(), loss):
                 if val:
