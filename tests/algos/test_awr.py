@@ -27,7 +27,7 @@ def test_compute_lambda_return(horizon, gamma):
 @pytest.mark.parametrize('scaler', [None, 'standard'])
 def test_awr(observation_shape, action_size, scaler):
     awr = AWR(scaler=scaler, batch_size=100, batch_size_per_update=20)
-    algo_tester(awr, observation_shape)
+    algo_tester(awr, observation_shape, state_value=True)
     algo_update_tester(awr, observation_shape, action_size)
 
 
@@ -42,7 +42,7 @@ def test_awr_performance():
 @pytest.mark.parametrize('scaler', [None, 'standard'])
 def test_discrete_awr(observation_shape, action_size, scaler):
     awr = DiscreteAWR(scaler=scaler, batch_size=100, batch_size_per_update=20)
-    algo_tester(awr, observation_shape)
+    algo_tester(awr, observation_shape, state_value=True)
     algo_update_tester(awr, observation_shape, action_size, True)
 
 

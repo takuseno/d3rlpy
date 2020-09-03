@@ -55,7 +55,11 @@ class DummyScaler(Scaler):
         return {}
 
 
-def algo_tester(algo, observation_shape, imitator=False, action_size=2):
+def algo_tester(algo,
+                observation_shape,
+                imitator=False,
+                action_size=2,
+                state_value=False):
     # dummy impl object
     impl = DummyImpl(observation_shape, action_size)
 
@@ -77,7 +81,7 @@ def algo_tester(algo, observation_shape, imitator=False, action_size=2):
     impl.predict_best_action.assert_called_with(x)
 
     # check predict_value
-    if not imitator:
+    if not imitator and not state_value:
         action = np.random.random((2, action_size)).tolist()
         ref_value = np.random.random((2, 3)).tolist()
         impl.predict_value = Mock(return_value=ref_value)
