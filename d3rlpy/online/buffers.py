@@ -26,11 +26,13 @@ class Buffer(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def sample(self, batch_size):
+    def sample(self, batch_size, n_frames=1):
         """ Returns sampled mini-batch of transitions.
 
         Args:
             batch_size (int): mini-batch size.
+            n_frames (int):
+                the number of frames to stack for image observation.
 
         Returns:
             d3rlpy.dataset.TransitionMiniBatch: mini-batch.
@@ -146,8 +148,9 @@ class ReplayBuffer(Buffer):
         self.actions = []
         self.rewards = []
 
-    def sample(self, batch_size):
-        return TransitionMiniBatch(sample(self.transitions, batch_size))
+    def sample(self, batch_size, n_frames=1):
+        transitions = sample(self.transitions, batch_size)
+        return TransitionMiniBatch(transitions, n_frames)
 
     def size(self):
         return len(self.transitions)
