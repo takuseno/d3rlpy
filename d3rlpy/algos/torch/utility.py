@@ -102,8 +102,13 @@ def torch_api(f):
         # convert all args to torch.Tensor
         tensors = []
         for val in args:
-            tensor = torch.tensor(val, dtype=torch.float32, device=self.device)
-            tensors.append(tensor)
+            if isinstance(val, torch.Tensor) and val.device == self.device:
+                tensors.append(val)
+            elif isinstance(val, list) and isinstance(val[0], torch.Tensor):
+                tensors.append(torch.stack(val))
+            else:
+                tensor = torch.tensor(val, torch.float32, self.device)
+                tensors.append(tensor)
         return f(self, *tensors, **kwargs)
 
     return wrapper

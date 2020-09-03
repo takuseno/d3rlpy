@@ -1,13 +1,40 @@
 import numpy as np
+import torch
 import h5py
+
+from .gpu import Device
 
 
 def _safe_size(array):
     if isinstance(array, (list, tuple)):
         return len(array)
-    elif isinstance(array, np.ndarray):
+    elif isinstance(array, (np.ndarray, torch.Tensor)):
         return array.shape[0]
     raise ValueError
+
+
+def _device_to_string(device):
+    if device is None:
+        return 'cpu:0'
+    return 'cuda:%d' % device.get_id()
+
+
+def _numpy_to_tensor(ndarray, device):
+    # return if ndarray is already torch.Tensor
+    if isinstance(ndarray, torch.Tensor):
+        return ndarray
+
+    if ndarray.dtype == np.float32:
+        dtype = torch.float32
+    elif ndarray.dtype == np.float64:
+        dtype = torch.float32
+    elif ndarray.dtype == np.int32:
+        dtype = torch.int32
+    elif ndarray.dtype == np.uint8:
+        dtype = torch.uint8
+    device = _device_to_string(device)
+
+    return torch.tensor(ndarray, dtype=dtype, device=device)
 
 
 def _to_episodes(observation_shape, action_size, observations, actions,
@@ -21,7 +48,6 @@ def _to_episodes(observation_shape, action_size, observations, actions,
                               observations=observations[head_index:i + 1],
                               actions=actions[head_index:i + 1],
                               rewards=rewards[head_index:i + 1])
-            episode.build_transitions()
             rets.append(episode)
             head_index = i + 1
     return rets
@@ -112,6 +138,8 @@ class MDPDataset:
         terminals (numpy.ndarray): array of binary terminal flags.
         discrete_action (bool): flag to use the given actions as discrete
             action-space actions.
+        as_tensor (bool): flag to hold observations as ``torch.Tensor``.
+        device (d3rlpy.gpu.Device or int): gpu device or device id for tensors.
 
     """
     def __init__(self,
@@ -119,8 +147,22 @@ class MDPDataset:
                  actions,
                  rewards,
                  terminals,
-                 discrete_action=False):
-        self._observations = observations
+                 discrete_action=False,
+                 as_tensor=False,
+                 device=None):
+        # data type option
+        self._as_tensor = as_tensor
+        if isinstance(device, int):
+            self._device = Device(device)
+        else:
+            self._device = device
+
+        # numpy to PyTorch conversion
+        if as_tensor:
+            self._observations = _numpy_to_tensor(observations, self._device)
+        else:
+            self._observations = observations
+
         self._rewards = np.asarray(rewards).reshape(-1)
         self._terminals = np.asarray(terminals).reshape(-1)
         self.discrete_action = discrete_action
@@ -128,6 +170,7 @@ class MDPDataset:
             self._actions = np.asarray(actions).reshape(-1)
         else:
             self._actions = np.asarray(actions)
+
         self._episodes = None
 
     @property
@@ -135,7 +178,8 @@ class MDPDataset:
         """ Returns the observations.
 
         Returns:
-            (numpy.ndarray or list(numpy.ndarray)): array of observations.
+            (numpy.ndarray, list(numpy.ndarray) or torch.Tensor):
+                array of observations.
 
         """
         return self._observations
@@ -169,6 +213,26 @@ class MDPDataset:
 
         """
         return self._terminals
+
+    @property
+    def as_tensor(self):
+        """ Returns the flag to hold observations as ``torch.Tensor``.
+
+        Returns:
+            bool: flag to hold observations as ``torch.Tensor``.
+
+        """
+        return self._as_tensor
+
+    @property
+    def device(self):
+        """ Returns the gpu device for tensors.
+
+        Returns:
+            d3rlpy.gpu.Device: gpu device.
+
+        """
+        return self._device
 
     @property
     def episodes(self):
@@ -349,6 +413,10 @@ class MDPDataset:
         # append observations
         if isinstance(self._observations, list):
             self._observations += list(map(lambda x: x, observations))
+        elif isinstance(self._observations, torch.Tensor):
+            observations = _numpy_to_tensor(observations, self._device)
+            self._observations = torch.cat([self._observations, observations],
+                                           dim=0)
         else:
             self._observations = np.vstack([self._observations, observations])
 
@@ -393,8 +461,14 @@ class MDPDataset:
             fname (str): file path.
 
         """
+        # make sure if data is numpy.ndarray or list
+        if isinstance(self._observations, torch.Tensor):
+            observations = self._observations.cpu().numpy()
+        else:
+            observations = self._observations
+
         with h5py.File(fname, 'w') as f:
-            f.create_dataset('observations', data=self._observations)
+            f.create_dataset('observations', data=observations)
             f.create_dataset('actions', data=self._actions)
             f.create_dataset('rewards', data=self._rewards)
             f.create_dataset('terminals', data=self._terminals)
@@ -402,7 +476,7 @@ class MDPDataset:
             f.flush()
 
     @classmethod
-    def load(cls, fname):
+    def load(cls, fname, as_tensor=False, device=None):
         """ Loads dataset from HDF5.
 
         .. code-block:: python
@@ -423,6 +497,9 @@ class MDPDataset:
 
         Args:
             fname (str): file path.
+            as_tensor (bool): flag to hold observations as ``torch.Tensor``.
+            device (d3rlpy.gpu.Device or int):
+                gpu device or device id for tensor.
 
         """
         with h5py.File(fname, 'r') as f:
@@ -436,7 +513,9 @@ class MDPDataset:
                       actions=actions,
                       rewards=rewards,
                       terminals=terminals,
-                      discrete_action=discrete_action)
+                      discrete_action=discrete_action,
+                      as_tensor=as_tensor,
+                      device=device)
 
         return dataset
 
@@ -490,7 +569,8 @@ class Episode:
     Args:
         observation_shape (tuple): observation shape.
         action_size (int): dimension of action-space.
-        observations (numpy.ndarray or list(numpy.ndarray)): observations.
+        observations (numpy.ndarray, list(numpy.ndarray) or torch.Tensor):
+            observations.
         actions (numpy.ndarray): actions.
         rewards (numpy.ndarray): scalar rewards.
         terminals (numpy.ndarray): binary terminal flags.
@@ -621,10 +701,10 @@ class Transition:
     Args:
         observation_shape (tuple): observation shape.
         action_size (int): dimension of action-space.
-        observation (numpy.ndarray): observation at `t`.
+        observation (numpy.ndarray or torch.Tensor): observation at `t`.
         action (numpy.ndarray or int): action at `t`.
         reward (float): reward at `t`.
-        next_observation (numpy.ndarray): observation at `t+1`.
+        next_observation (numpy.ndarray or torch.Tensor): observation at `t+1`.
         next_action (numpy.ndarray or int): action at `t+1`.
         next_reward (float): reward at `t+1`.
         terminal (int): terminal flag at `t+1`.
@@ -823,11 +903,16 @@ class TransitionMiniBatch:
             next_rewards.append(transition.next_reward)
             terminals.append(transition.terminal)
 
-        # convert list to ndarray and fix shapes
-        self._observations = np.array(observations)
+        # convert list to ndarray or torch.Tensor and fix shapes
+        if isinstance(observations[0], torch.Tensor):
+            self._observations = torch.stack(observations, dim=0)
+            self._next_observations = torch.stack(next_observations, dim=0)
+        else:
+            self._observations = np.array(observations)
+            self._next_observations = np.array(next_observations)
+
         self._actions = np.array(actions).reshape((self.size(), -1))
         self._rewards = np.array(rewards).reshape((self.size(), 1))
-        self._next_observations = np.array(next_observations)
         self._next_rewards = np.array(next_rewards).reshape((self.size(), 1))
         self._next_actions = np.array(next_actions).reshape((self.size(), -1))
         self._terminals = np.array(terminals).reshape((self.size(), 1))
@@ -837,7 +922,7 @@ class TransitionMiniBatch:
         """ Returns mini-batch of observations at `t`.
 
         Returns:
-            numpy.ndarray: observations at `t`.
+            numpy.ndarray or torch.Tensor: observations at `t`.
 
         """
         return self._observations
@@ -867,7 +952,7 @@ class TransitionMiniBatch:
         """ Returns mini-batch of observations at `t+1`.
 
         Returns:
-            numpy.ndarray: observations at `t+1`.
+            numpy.ndarray or torch.Tensor: observations at `t+1`.
 
         """
         return self._next_observations

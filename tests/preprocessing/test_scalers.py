@@ -62,38 +62,19 @@ def test_min_max_scaler(observation_shape, batch_size):
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
 @pytest.mark.parametrize('batch_size', [32])
-def test_min_max_scaler_with_dataset(observation_shape, batch_size):
-    observations = np.random.random((batch_size, ) + observation_shape)
-    actions = np.random.random((batch_size, 1))
-    rewards = np.random.random(batch_size)
-    terminals = np.random.randint(2, size=batch_size)
-
-    dataset = MDPDataset(observations, actions, rewards, terminals)
-
-    max = observations.max(axis=0)
-    min = observations.min(axis=0)
-
-    scaler = MinMaxScaler(dataset)
-
-    x = torch.rand((batch_size, ) + observation_shape)
-
-    y = scaler.transform(x)
-
-    ref_y = (x.numpy() - min.reshape((1, -1))) / (max - min).reshape((1, -1))
-
-    assert np.allclose(y.numpy(), ref_y)
-
-
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('batch_size', [32])
-def test_min_max_scaler_with_episode(observation_shape, batch_size):
+@pytest.mark.parametrize('as_tensor', [True, False])
+def test_min_max_scaler_with_episode(observation_shape, batch_size, as_tensor):
     observations = np.random.random((batch_size, ) + observation_shape)
     actions = np.random.random((batch_size, 1))
     rewards = np.random.random(batch_size)
     terminals = np.random.randint(2, size=batch_size)
     terminals[-1] = 1.0
 
-    dataset = MDPDataset(observations, actions, rewards, terminals)
+    dataset = MDPDataset(observations=observations,
+                         actions=actions,
+                         rewards=rewards,
+                         terminals=terminals,
+                         as_tensor=as_tensor)
 
     max = observations.max(axis=0)
     min = observations.min(axis=0)
@@ -104,7 +85,6 @@ def test_min_max_scaler_with_episode(observation_shape, batch_size):
     x = torch.rand((batch_size, ) + observation_shape)
 
     y = scaler.transform(x)
-
     ref_y = (x.numpy() - min.reshape((1, -1))) / (max - min).reshape((1, -1))
 
     assert np.allclose(y.numpy(), ref_y)
@@ -138,40 +118,21 @@ def test_standard_scaler(observation_shape, batch_size):
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
 @pytest.mark.parametrize('batch_size', [32])
-def test_standard_scaler_with_dataset(observation_shape, batch_size):
+@pytest.mark.parametrize('as_tensor', [True, False])
+def test_standard_scaler_with_episode(observation_shape, batch_size,
+                                      as_tensor):
     shape = (batch_size, ) + observation_shape
-    observations = np.random.random(shape).astype('f')
-    actions = np.random.random((batch_size, 1)).astype('f')
-    rewards = np.random.random(batch_size).astype('f')
-    terminals = np.random.randint(2, size=batch_size)
-
-    dataset = MDPDataset(observations, actions, rewards, terminals)
-
-    mean = observations.mean(axis=0)
-    std = observations.std(axis=0)
-
-    scaler = StandardScaler(dataset)
-
-    x = torch.rand((batch_size, ) + observation_shape)
-
-    y = scaler.transform(x)
-
-    ref_y = (x.numpy() - mean.reshape((1, -1))) / std.reshape((1, -1))
-
-    assert np.allclose(y.numpy(), ref_y)
-
-
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('batch_size', [32])
-def test_standard_scaler_with_episode(observation_shape, batch_size):
-    shape = (batch_size, ) + observation_shape
-    observations = np.random.random(shape).astype('f')
-    actions = np.random.random((batch_size, 1)).astype('f')
-    rewards = np.random.random(batch_size).astype('f')
+    observations = np.random.random(shape).astype('f4')
+    actions = np.random.random((batch_size, 1)).astype('f4')
+    rewards = np.random.random(batch_size).astype('f4')
     terminals = np.random.randint(2, size=batch_size)
     terminals[-1] = 1.0
 
-    dataset = MDPDataset(observations, actions, rewards, terminals)
+    dataset = MDPDataset(observations=observations,
+                         actions=actions,
+                         rewards=rewards,
+                         terminals=terminals,
+                         as_tensor=as_tensor)
 
     mean = observations.mean(axis=0)
     std = observations.std(axis=0)

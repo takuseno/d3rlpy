@@ -152,16 +152,13 @@ class MinMaxScaler(Scaler):
 
     """
     def __init__(self, dataset=None, maximum=None, minimum=None):
+        self.minimum = None
+        self.maximum = None
         if dataset:
-            stats = dataset.compute_stats()
-            self.minimum = stats['observation']['min']
-            self.maximum = stats['observation']['max']
+            self.fit(dataset.episodes)
         elif maximum is not None and minimum is not None:
             self.minimum = np.asarray(minimum)
             self.maximum = np.asarray(maximum)
-        else:
-            self.minimum = None
-            self.maximum = None
 
     def fit(self, episodes):
         """ Fits minimum and maximum from list of episodes.
@@ -174,7 +171,10 @@ class MinMaxScaler(Scaler):
             return
 
         for i, e in enumerate(episodes):
-            observations = np.asarray(e.observations)
+            if isinstance(e.observations, torch.Tensor):
+                observations = e.observations.cpu().numpy()
+            else:
+                observations = np.asarray(e.observations)
             if i == 0:
                 minimum = observations.min(axis=0)
                 maximum = observations.max(axis=0)
@@ -290,16 +290,13 @@ class StandardScaler(Scaler):
 
     """
     def __init__(self, dataset=None, mean=None, std=None):
+        self.mean = None
+        self.std = None
         if dataset:
-            stats = dataset.compute_stats()
-            self.mean = stats['observation']['mean']
-            self.std = stats['observation']['std']
+            self.fit(dataset.episodes)
         elif mean is not None and std is not None:
             self.mean = np.asarray(mean)
             self.std = np.asarray(std)
-        else:
-            self.mean = None
-            self.std = None
 
     def fit(self, episodes):
         """ Fits mean and standard deviation from list of episodes.
@@ -315,7 +312,10 @@ class StandardScaler(Scaler):
         total_sum = np.zeros(episodes[0].observation_shape)
         total_count = 0
         for e in episodes:
-            observations = np.asarray(e.observations)
+            if isinstance(e.observations, torch.Tensor):
+                observations = e.observations.cpu().numpy()
+            else:
+                observations = np.asarray(e.observations)
             total_sum += observations.sum(axis=0)
             total_count += observations.shape[0]
         mean = total_sum / total_count
@@ -324,7 +324,10 @@ class StandardScaler(Scaler):
         total_sqsum = np.zeros(episodes[0].observation_shape)
         expanded_mean = mean.reshape((1, ) + mean.shape)
         for e in episodes:
-            observations = np.asarray(e.observations)
+            if isinstance(e.observations, torch.Tensor):
+                observations = e.observations.cpu().numpy()
+            else:
+                observations = np.asarray(e.observations)
             total_sqsum += ((observations - expanded_mean)**2).sum(axis=0)
         std = np.sqrt(total_sqsum / total_count)
 

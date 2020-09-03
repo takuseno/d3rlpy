@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import torch
 import os
 
 from sklearn.model_selection import train_test_split
@@ -25,8 +26,11 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
         actions = np.random.random((data_size, action_size))
         ref_action_size = action_size
 
-    dataset = MDPDataset(observations, actions, rewards, terminals,
-                         discrete_action)
+    dataset = MDPDataset(observations=observations,
+                         actions=actions,
+                         rewards=rewards,
+                         terminals=terminals,
+                         discrete_action=discrete_action)
 
     # check MDPDataset methods
     assert np.all(dataset.observations == observations)
@@ -136,6 +140,20 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
     assert dataset.discrete_action == new_dataset.discrete_action
     assert len(dataset) == len(new_dataset)
 
+    # check as_tensor
+    dataset = MDPDataset(observations=observations,
+                         actions=actions,
+                         rewards=rewards,
+                         terminals=terminals,
+                         discrete_action=discrete_action,
+                         as_tensor=True)
+    assert isinstance(dataset.observations, torch.Tensor)
+    for episode in dataset:
+        assert isinstance(episode.observations, torch.Tensor)
+        for transition in episode:
+            assert isinstance(transition.observation, torch.Tensor)
+            assert isinstance(transition.next_observation, torch.Tensor)
+
 
 @pytest.mark.parametrize('data_size', [100])
 @pytest.mark.parametrize('observation_size', [4])
@@ -201,20 +219,33 @@ def test_episode(data_size, observation_size, action_size):
 @pytest.mark.parametrize('data_size', [100])
 @pytest.mark.parametrize('observation_size', [4])
 @pytest.mark.parametrize('action_size', [2])
-def test_transition_minibatch(data_size, observation_size, action_size):
-    observations = np.random.random((data_size, observation_size))
+@pytest.mark.parametrize('as_tensor', [True, False])
+def test_transition_minibatch(data_size, observation_size, action_size,
+                              as_tensor):
+    if as_tensor:
+        observations = torch.rand(data_size, observation_size)
+    else:
+        observations = np.random.random((data_size, observation_size))
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random((data_size, 1))
 
-    episode = Episode((observation_size, ), action_size, observations, actions,
-                      rewards)
+    episode = Episode(observation_shape=(observation_size, ),
+                      action_size=action_size,
+                      observations=observations,
+                      actions=actions,
+                      rewards=rewards)
 
     batch = TransitionMiniBatch(episode.transitions)
     for i, t in enumerate(episode.transitions):
-        assert np.all(batch.observations[i] == t.observation)
+        observation = batch.observations[i]
+        next_observation = batch.next_observations[i]
+        if as_tensor:
+            observation = observation.numpy()
+            next_observation = next_observation.numpy()
+        assert np.allclose(observation, t.observation)
         assert np.all(batch.actions[i] == t.action)
         assert np.all(batch.rewards[i] == t.reward)
-        assert np.all(batch.next_observations[i] == t.next_observation)
+        assert np.allclose(next_observation, t.next_observation)
         assert np.all(batch.next_actions[i] == t.next_action)
         assert np.all(batch.next_rewards[i] == t.next_reward)
         assert np.all(batch.terminals[i] == t.terminal)
