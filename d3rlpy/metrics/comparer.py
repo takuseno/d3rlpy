@@ -1,6 +1,6 @@
 import numpy as np
 
-from .scorer import _make_batches_from_episode
+from .scorer import _make_batches
 
 
 def compare_continuous_action_diff(base_algo, window_size=1024):
@@ -39,7 +39,8 @@ def compare_continuous_action_diff(base_algo, window_size=1024):
     def scorer(algo, episodes):
         total_diffs = []
         for episode in episodes:
-            for batch in _make_batches_from_episode(episode, window_size):
+            # TODO: handle different n_frames
+            for batch in _make_batches(episode, window_size, algo.n_frames):
                 base_actions = base_algo.predict(batch.observations)
                 actions = algo.predict(batch.observations)
                 diff = ((actions - base_actions)**2).sum(axis=1).tolist()
@@ -87,7 +88,8 @@ def compare_discrete_action_match(base_algo, window_size=1024):
     def scorer(algo, episodes):
         total_matches = []
         for episode in episodes:
-            for batch in _make_batches_from_episode(episode, window_size):
+            # TODO: handle different n_frames
+            for batch in _make_batches(episode, window_size, algo.n_frames):
                 base_actions = base_algo.predict(batch.observations)
                 actions = algo.predict(batch.observations)
                 match = (base_actions == actions).tolist()

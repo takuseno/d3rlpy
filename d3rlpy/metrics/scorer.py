@@ -1,9 +1,10 @@
 import numpy as np
 
+from ..preprocessing.stack import StackedObservation
 from ..dataset import TransitionMiniBatch
 
 
-def _make_batches_from_episode(episode, window_size):
+def _make_batches(episode, window_size, n_frames):
     n_batches = len(episode) // window_size
     if len(episode) % window_size != 0:
         n_batches += 1
@@ -11,7 +12,7 @@ def _make_batches_from_episode(episode, window_size):
         head_index = i * window_size
         last_index = min(head_index + window_size, len(episode))
         transitions = episode.transitions[head_index:last_index]
-        batch = TransitionMiniBatch(transitions)
+        batch = TransitionMiniBatch(transitions, n_frames)
         yield batch
 
 
@@ -38,7 +39,7 @@ def td_error_scorer(algo, episodes, window_size=1024):
     """
     total_errors = []
     for episode in episodes:
-        for batch in _make_batches_from_episode(episode, window_size):
+        for batch in _make_batches(episode, window_size, algo.n_frames):
             # estimate values for current observations
             values = algo.predict_value(batch.observations, batch.actions)
 
@@ -88,7 +89,7 @@ def discounted_sum_of_advantage_scorer(algo, episodes, window_size=1024):
     """
     total_sums = []
     for episode in episodes:
-        for batch in _make_batches_from_episode(episode, window_size):
+        for batch in _make_batches(episode, window_size, algo.n_frames):
             # estimate values for dataset actions
             dataset_values = algo.predict_value(batch.observations,
                                                 batch.actions)
@@ -135,7 +136,7 @@ def average_value_estimation_scorer(algo, episodes, window_size=1024):
     """
     total_values = []
     for episode in episodes:
-        for batch in _make_batches_from_episode(episode, window_size):
+        for batch in _make_batches(episode, window_size, algo.n_frames):
             actions = algo.predict(batch.observations)
             values = algo.predict_value(batch.observations, actions)
             total_values += values.tolist()
@@ -169,7 +170,7 @@ def value_estimation_std_scorer(algo, episodes, window_size=1024):
     """
     total_stds = []
     for episode in episodes:
-        for batch in _make_batches_from_episode(episode, window_size):
+        for batch in _make_batches(episode, window_size, algo.n_frames):
             actions = algo.predict(batch.observations)
             _, stds = algo.predict_value(batch.observations, actions, True)
             total_stds += stds.tolist()
@@ -200,7 +201,7 @@ def continuous_action_diff_scorer(algo, episodes, window_size=1024):
     """
     total_diffs = []
     for episode in episodes:
-        for batch in _make_batches_from_episode(episode, window_size):
+        for batch in _make_batches(episode, window_size, algo.n_frames):
             actions = algo.predict(batch.observations)
             diff = ((batch.actions - actions)**2).sum(axis=1).tolist()
             total_diffs += diff
@@ -232,7 +233,7 @@ def discrete_action_match_scorer(algo, episodes, window_size=1024):
     """
     total_matches = []
     for episode in episodes:
-        for batch in _make_batches_from_episode(episode, window_size):
+        for batch in _make_batches(episode, window_size, algo.n_frames):
             actions = algo.predict(batch.observations)
             match = (batch.actions.reshape(-1) == actions).tolist()
             total_matches += match
@@ -275,18 +276,41 @@ def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
 
 
     """
+
+    # for image observation
+    observation_shape = env.observation_space.shape
+    is_image = len(observation_shape) == 3
+
     def scorer(algo, *args):
+        if is_image:
+            stacked_observation = StackedObservation(observation_shape,
+                                                     algo.n_frames)
+
         episode_rewards = []
         for _ in range(n_trials):
             observation = env.reset()
             episode_reward = 0.0
+
+            # frame stacking
+            if is_image:
+                stacked_observation.clear()
+                stacked_observation.append(observation)
+
             while True:
+                # take action
                 if np.random.random() < epsilon:
                     action = env.action_space.sample()
                 else:
-                    action = algo.predict([observation])[0]
+                    if is_image:
+                        action = algo.predict([stacked_observation.eval()])[0]
+                    else:
+                        action = algo.predict([observation])[0]
+
                 observation, reward, done, _ = env.step(action)
                 episode_reward += reward
+
+                if is_image:
+                    stacked_observation.append(observation)
 
                 if render:
                     env.render()
@@ -324,7 +348,7 @@ def dynamics_observation_prediction_error_scorer(dynamics,
     """
     total_errors = []
     for episode in episodes:
-        for batch in _make_batches_from_episode(episode, window_size):
+        for batch in _make_batches(episode, window_size, dynamics.n_frames):
             pred = dynamics.predict(batch.observations, batch.actions)
             errors = ((batch.next_observations - pred[0])**2).sum(axis=1)
             total_errors += errors.tolist()
@@ -357,7 +381,7 @@ def dynamics_reward_prediction_error_scorer(dynamics,
     """
     total_errors = []
     for episode in episodes:
-        for batch in _make_batches_from_episode(episode, window_size):
+        for batch in _make_batches(episode, window_size, dynamics.n_frames):
             pred = dynamics.predict(batch.observations, batch.actions)
             errors = ((batch.next_rewards - pred[1])**2).reshape(-1)
             total_errors += errors.tolist()
@@ -382,7 +406,7 @@ def dynamics_prediction_variance_scorer(dynamics, episodes, window_size=1024):
     """
     total_variances = []
     for episode in episodes:
-        for batch in _make_batches_from_episode(episode, window_size):
+        for batch in _make_batches(episode, window_size, dynamics.n_frames):
             pred = dynamics.predict(batch.observations, batch.actions, True)
             total_variances += pred[2].tolist()
     # smaller is better

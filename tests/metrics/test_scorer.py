@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from functools import reduce
+from operator import mul
+from gym import spaces
+
 from d3rlpy.metrics.scorer import td_error_scorer
 from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
 from d3rlpy.metrics.scorer import average_value_estimation_scorer
@@ -20,9 +24,11 @@ class DummyAlgo:
         self.A = A
         self.gamma = gamma
         self.discrete = discrete
+        self.n_frames = 1
 
     def predict(self, x):
-        y = np.matmul(x, self.A)
+        x = np.array(x)
+        y = np.matmul(x.reshape(x.shape[0], -1), self.A)
         if self.discrete:
             return y.argmax(axis=1)
         return y
@@ -246,18 +252,24 @@ def test_discrete_action_math_scorer(observation_shape, action_size,
     assert np.allclose(score, np.mean(total_matches))
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('episode_length', [10])
 @pytest.mark.parametrize('n_trials', [10])
 def test_evaluate_on_environment(observation_shape, action_size,
                                  episode_length, n_trials):
     shape = (n_trials, episode_length + 1) + observation_shape
-    observations = np.random.random(shape)
+    if len(observation_shape) == 3:
+        observations = np.random.randint(0, 255, size=shape, dtype=np.uint8)
+    else:
+        observations = np.random.random(shape)
 
     class DummyEnv:
         def __init__(self):
             self.episode = 0
+            self.observation_space = spaces.Box(low=0,
+                                                high=255,
+                                                shape=observation_shape)
 
         def step(self, action):
             self.t += 1
@@ -272,12 +284,13 @@ def test_evaluate_on_environment(observation_shape, action_size,
             return observations[self.episode - 1, 0]
 
     # projection matrix for deterministic action
-    A = np.random.random(observation_shape + (action_size, ))
+    feature_size = reduce(mul, observation_shape)
+    A = np.random.random((feature_size, action_size))
     algo = DummyAlgo(A, 0.0)
 
     ref_rewards = []
     for i in range(n_trials):
-        episode_obs = observations[i, :, :]
+        episode_obs = observations[i].reshape((-1, feature_size))
         actions = algo.predict(episode_obs[:-1])
         rewards = np.mean(episode_obs[1:], axis=1) + np.mean(actions, axis=1)
         ref_rewards.append(np.sum(rewards))
@@ -289,6 +302,7 @@ def test_evaluate_on_environment(observation_shape, action_size,
 class DummyDynamics:
     def __init__(self, noise):
         self.noise = np.reshape(noise, (1, -1))
+        self.n_frames = 1
 
     def predict(self, x, action, with_variance=False):
         y = x + self.noise + np.sum(action)
