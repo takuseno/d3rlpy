@@ -177,7 +177,7 @@ class AWR(AlgoBase):
                 returns.append(R)
                 transition = transition.next_transition
 
-            values = self.predict_value(observations, [])
+            values = self.predict_value(observations)
 
             # compute lambda return
             lambda_return = _compute_lambda_return(returns=np.array(returns),
@@ -189,7 +189,7 @@ class AWR(AlgoBase):
         return np.array(lambda_returns)
 
     def _compute_advantages(self, returns, batch):
-        baselines = self.predict_value(batch.observations, []).reshape((-1, 1))
+        baselines = self.predict_value(batch.observations).reshape((-1, 1))
         advantages = returns - baselines
         adv_mean = np.mean(advantages)
         adv_std = np.std(advantages)
@@ -198,6 +198,9 @@ class AWR(AlgoBase):
     def _compute_clipped_weights(self, advantages):
         weights = np.exp(advantages / self.beta)
         return np.minimum(weights, self.max_weight)
+
+    def predict_value(self, x, *args, **kwargs):
+        return self.impl.predict_value(x)
 
     def update(self, epoch, itr, batch):
         # compute lmabda return
