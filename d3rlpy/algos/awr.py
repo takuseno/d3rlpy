@@ -53,6 +53,7 @@ class AWR(AlgoBase):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for value function.
         batch_size (int): batch size per iteration.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.
@@ -84,6 +85,7 @@ class AWR(AlgoBase):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for value function.
         batch_size (int): batch size per iteration.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.
@@ -109,6 +111,7 @@ class AWR(AlgoBase):
                  actor_learning_rate=5e-5,
                  critic_learning_rate=1e-4,
                  batch_size=2048,
+                 n_frames=1,
                  gamma=0.99,
                  batch_size_per_update=256,
                  n_actor_updates=1000,
@@ -128,8 +131,8 @@ class AWR(AlgoBase):
                  impl=None,
                  **kwargs):
         # batch_size in AWR has different semantic from Q learning algorithms.
-        super().__init__(n_epochs, batch_size, scaler, augmentation, dynamics,
-                         use_gpu)
+        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
+                         dynamics, use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.batch_size_per_update = batch_size_per_update
@@ -289,6 +292,7 @@ class DiscreteAWR(AWR):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for value function.
         batch_size (int): batch size per iteration.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.
@@ -321,6 +325,7 @@ class DiscreteAWR(AWR):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for value function.
         batch_size (int): batch size per iteration.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.

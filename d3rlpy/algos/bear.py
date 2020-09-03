@@ -52,6 +52,7 @@ class BEAR(AlgoBase):
         temp_learning_rate (float): learning rate for temperature parameter.
         alpha_learning_rate (float): learning rate for :math:`\\alpha`.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -99,6 +100,7 @@ class BEAR(AlgoBase):
         temp_learning_rate (float): learning rate for temperature parameter.
         alpha_learning_rate (float): learning rate for :math:`\\alpha`.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -138,6 +140,7 @@ class BEAR(AlgoBase):
                  temp_learning_rate=3e-4,
                  alpha_learning_rate=1e-3,
                  batch_size=100,
+                 n_frames=1,
                  gamma=0.99,
                  tau=0.005,
                  n_critics=2,
@@ -163,8 +166,8 @@ class BEAR(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler, augmentation, dynamics,
-                         use_gpu)
+        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
+                         dynamics, use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.imitator_learning_rate = imitator_learning_rate

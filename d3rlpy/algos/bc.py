@@ -19,6 +19,7 @@ class BC(AlgoBase):
     Args:
         learning_rate (float): learing rate.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         n_epochs (int): the number of epochs to train.
@@ -43,6 +44,7 @@ class BC(AlgoBase):
     Attributes:
         n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         learning_rate (float): learing rate.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
@@ -61,6 +63,7 @@ class BC(AlgoBase):
     def __init__(self,
                  learning_rate=1e-3,
                  batch_size=100,
+                 n_frames=1,
                  eps=1e-8,
                  use_batch_norm=False,
                  n_epochs=1000,
@@ -72,8 +75,8 @@ class BC(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler, augmentation, dynamics,
-                         use_gpu)
+        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
+                         dynamics, use_gpu)
         self.learning_rate = learning_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
@@ -131,6 +134,7 @@ class DiscreteBC(BC):
     Args:
         n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         learning_rate (float): learing rate.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         beta (float): reguralization factor.
@@ -156,6 +160,7 @@ class DiscreteBC(BC):
     Attributes:
         n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         learning_rate (float): learing rate.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         beta (float): reguralization factor.
@@ -175,6 +180,7 @@ class DiscreteBC(BC):
     def __init__(self,
                  learning_rate=1e-3,
                  batch_size=100,
+                 n_frames=1,
                  eps=1e-8,
                  beta=0.5,
                  use_batch_norm=True,
@@ -187,10 +193,10 @@ class DiscreteBC(BC):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(learning_rate, batch_size, eps, use_batch_norm,
-                         n_epochs, use_gpu, scaler, augmentation,
-                         n_augmentations, encoder_params, dynamics, impl,
-                         **kwargs)
+        super().__init__(learning_rate, batch_size, n_frames, eps,
+                         use_batch_norm, n_epochs, use_gpu, scaler,
+                         augmentation, n_augmentations, encoder_params,
+                         dynamics, impl, **kwargs)
         self.beta = beta
 
     def create_impl(self, observation_shape, action_size):

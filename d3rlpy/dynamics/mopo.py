@@ -47,6 +47,7 @@ class MOPO(DynamicsBase):
     Args:
         n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         learning_rate (float): learning rate for dynamics model.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         weight_decay (float): weight decay rate.
@@ -66,6 +67,7 @@ class MOPO(DynamicsBase):
     Attributes:
         n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         learning_rate (float): learning rate for dynamics model.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         weight_decay (float): weight decay rate.
@@ -86,6 +88,7 @@ class MOPO(DynamicsBase):
     def __init__(self,
                  n_epochs=30,
                  batch_size=100,
+                 n_frames=1,
                  learning_rate=1e-3,
                  eps=1e-8,
                  weight_decay=1e-4,
@@ -100,8 +103,8 @@ class MOPO(DynamicsBase):
                  use_gpu=False,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, n_transitions, horizon, scaler,
-                         augmentation, use_gpu)
+        super().__init__(n_epochs, batch_size, n_frames, n_transitions,
+                         horizon, scaler, augmentation, use_gpu)
         self.learning_rate = learning_rate
         self.eps = eps
         self.weight_decay = weight_decay

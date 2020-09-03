@@ -39,7 +39,8 @@ class LearnableBase:
         eval_results_ (dict): evaluation results.
 
     """
-    def __init__(self, n_epochs, batch_size, scaler, augmentation, use_gpu):
+    def __init__(self, n_epochs, batch_size, n_frames, scaler, augmentation,
+                 use_gpu):
         """ __init__ method.
 
         Args:
@@ -55,6 +56,7 @@ class LearnableBase:
         """
         self.n_epochs = n_epochs
         self.batch_size = batch_size
+        self.n_frames = n_frames
 
         # prepare preprocessor
         if isinstance(scaler, str):
@@ -279,7 +281,12 @@ class LearnableBase:
             self.scaler.fit(episodes)
 
         # instantiate implementation
-        observation_shape = transitions[0].get_observation_shape()
+        observation_shape = tuple(transitions[0].get_observation_shape())
+        # frame stacking for image observation
+        if len(observation_shape) == 3:
+            n_channels = observation_shape[0]
+            image_size = observation_shape[1:]
+            observation_shape = (self.n_frames * n_channels, *image_size)
         action_size = transitions[0].get_action_size()
         if self.impl is None:
             self.create_impl(observation_shape, action_size)
@@ -317,7 +324,7 @@ class LearnableBase:
                     batch.append(transitions[index])
 
                 loss = self.update(epoch, total_step,
-                                   TransitionMiniBatch(batch))
+                                   TransitionMiniBatch(batch, self.n_frames))
 
                 # record metrics
                 for name, val in zip(self._get_loss_labels(), loss):
@@ -357,7 +364,7 @@ class LearnableBase:
             batch (d3rlpy.dataset.TransitionMiniBatch): mini-batch data.
 
         Returns:
-            list: loss values. 
+            list: loss values.
 
         """
         raise NotImplementedError

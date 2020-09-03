@@ -82,6 +82,7 @@ class BCQ(AlgoBase):
         critic_learning_rate (float): learning rate for Q functions.
         imitator_learning_rate (float): learning rate for Conditional VAE.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -124,6 +125,7 @@ class BCQ(AlgoBase):
         critic_learning_rate (float): learning rate for Q functions.
         imitator_learning_rate (float): learning rate for Conditional VAE.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -158,6 +160,7 @@ class BCQ(AlgoBase):
                  critic_learning_rate=1e-3,
                  imitator_learning_rate=1e-3,
                  batch_size=100,
+                 n_frames=1,
                  gamma=0.99,
                  tau=0.005,
                  n_critics=2,
@@ -182,8 +185,8 @@ class BCQ(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler, augmentation, dynamics,
-                         use_gpu)
+        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
+                         dynamics, use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.imitator_learning_rate = imitator_learning_rate
@@ -303,6 +306,7 @@ class DiscreteBCQ(AlgoBase):
     Args:
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -337,6 +341,7 @@ class DiscreteBCQ(AlgoBase):
     Attributes:
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -364,6 +369,7 @@ class DiscreteBCQ(AlgoBase):
     def __init__(self,
                  learning_rate=6.25e-5,
                  batch_size=32,
+                 n_frames=1,
                  gamma=0.99,
                  n_critics=1,
                  bootstrap=False,
@@ -383,8 +389,8 @@ class DiscreteBCQ(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler, augmentation, dynamics,
-                         use_gpu)
+        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
+                         dynamics, use_gpu)
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.n_critics = n_critics

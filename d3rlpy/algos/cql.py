@@ -53,6 +53,7 @@ class CQL(AlgoBase):
             learning rate for temperature parameter of SAC.
         alpha_learning_rate (float): learning rate for :math:`\\alpha`.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -93,6 +94,7 @@ class CQL(AlgoBase):
             learning rate for temperature parameter of SAC.
         alpha_learning_rate (float): learning rate for :math:`\\alpha`.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -125,6 +127,7 @@ class CQL(AlgoBase):
                  temp_learning_rate=3e-5,
                  alpha_learning_rate=3e-4,
                  batch_size=100,
+                 n_frames=1,
                  gamma=0.99,
                  tau=0.005,
                  n_critics=2,
@@ -147,8 +150,8 @@ class CQL(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler, augmentation, dynamics,
-                         use_gpu)
+        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
+                         dynamics, use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.temp_learning_rate = temp_learning_rate
@@ -251,6 +254,7 @@ class DiscreteCQL(DoubleDQN):
     Args:
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -282,6 +286,7 @@ class DiscreteCQL(DoubleDQN):
     Attributes:
         learning_rate (float): learning rate.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.

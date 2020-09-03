@@ -10,15 +10,15 @@ class DDPG(AlgoBase):
 
     .. math::
 
-        L(\\theta) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
-            + \gamma Q_{\\theta'}(s_{t+1}, \pi_{\phi'}(s_{t+1}))
+        L(\\theta) = \\mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \\sim D} [(r_{t+1}
+            + \\gamma Q_{\\theta'}(s_{t+1}, \\pi_{\\phi'}(s_{t+1}))
             - Q_\\theta(s_t, a_t))^2]
 
     .. math::
 
-        J(\phi) = \mathbb{E}_{s_t \sim D} [Q_\\theta(s_t, \pi_\phi(s_t))]
+        J(\\phi) = \\mathbb{E}_{s_t \\sim D} [Q_\\theta(s_t, \\pi_\\phi(s_t))]
 
-    where :math:`\\theta'` and :math:`\phi` are the target network parameters.
+    where :math:`\\theta'` and :math:`\\phi` are the target network parameters.
     There target network parameters are updated every iteration.
 
     .. math::
@@ -37,6 +37,7 @@ class DDPG(AlgoBase):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q function.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -69,6 +70,7 @@ class DDPG(AlgoBase):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q function.
         batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -94,6 +96,7 @@ class DDPG(AlgoBase):
                  actor_learning_rate=3e-4,
                  critic_learning_rate=3e-4,
                  batch_size=100,
+                 n_frames=1,
                  gamma=0.99,
                  tau=0.005,
                  n_critics=1,
@@ -112,8 +115,8 @@ class DDPG(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, scaler, augmentation, dynamics,
-                         use_gpu)
+        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
+                         dynamics, use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.gamma = gamma
