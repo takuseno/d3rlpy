@@ -88,6 +88,43 @@ def _to_transitions(observation_shape, action_size, observations, actions,
     return rets
 
 
+def _stack_frames(transition, n_frames):
+    assert len(transition.observation.shape) == 3
+    assert n_frames > 1
+    assert isinstance(transition.observation, (np.ndarray, torch.Tensor))
+
+    dtype = transition.observation.dtype
+    n_channels = transition.observation.shape[0]
+    image_size = transition.observation.shape[1:]
+    shape = (n_frames * n_channels, *image_size)
+
+    # create empty ndarray
+    if isinstance(transition.observation, np.ndarray):
+        observation = np.zeros(shape, dtype=dtype)
+        next_observation = np.zeros(shape, dtype=dtype)
+    else:
+        device = transition.observation.device
+        observation = torch.zeros(shape, dtype=dtype, device=device)
+        next_observation = torch.zeros(shape, dtype=dtype, device=device)
+
+    # stack frames
+    t = transition
+    for i in range(n_frames):
+        tail_index = n_frames * n_channels - i * n_channels
+        head_index = tail_index - n_channels
+        observation[head_index:tail_index] = t.observation
+        next_observation[head_index:tail_index] = t.next_observation
+        if t.prev_transition is None:
+            if i != n_frames - 1:
+                tail_index -= n_channels
+                head_index -= n_channels
+                next_observation[head_index:tail_index] = t.observation
+            break
+        t = t.prev_transition
+
+    return observation, next_observation
+
+
 class MDPDataset:
     """ Markov-Decision Process Dataset class.
 
@@ -885,7 +922,7 @@ class TransitionMiniBatch:
             mini-batch of transitions.
 
     """
-    def __init__(self, transitions):
+    def __init__(self, transitions, n_frames=1):
         self._transitions = transitions
 
         observations = []
@@ -896,10 +933,18 @@ class TransitionMiniBatch:
         next_rewards = []
         terminals = []
         for transition in transitions:
-            observations.append(transition.observation)
+            # stack frames if necessary
+            if n_frames > 1 and len(transition.observation.shape) == 3:
+                stacked_data = _stack_frames(transition, n_frames)
+                observation, next_observation = stacked_data
+            else:
+                observation = transition.observation
+                next_observation = transition.next_observation
+
+            observations.append(observation)
             actions.append(transition.action)
             rewards.append(transition.reward)
-            next_observations.append(transition.next_observation)
+            next_observations.append(next_observation)
             next_actions.append(transition.next_action)
             next_rewards.append(transition.next_reward)
             terminals.append(transition.terminal)

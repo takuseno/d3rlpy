@@ -3,8 +3,66 @@ import pytest
 import torch
 import os
 
+from collections import deque
 from sklearn.model_selection import train_test_split
 from d3rlpy.dataset import MDPDataset, Episode, Transition, TransitionMiniBatch
+from d3rlpy.dataset import _stack_frames
+
+
+@pytest.mark.parametrize('data_size', [100])
+@pytest.mark.parametrize('observation_shape', [(4, 84, 84)])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_frames', [4])
+@pytest.mark.parametrize('as_tensor', [False, True])
+def test_stack_frames(data_size, observation_shape, action_size, n_frames,
+                      as_tensor):
+    if as_tensor:
+        observations = torch.rand(data_size, *observation_shape)
+    else:
+        observations = np.random.random((data_size, *observation_shape))
+    actions = np.random.random((data_size, action_size))
+    rewards = np.random.random((data_size, 1))
+
+    episode = Episode(observation_shape=observation_shape,
+                      action_size=action_size,
+                      observations=observations,
+                      actions=actions,
+                      rewards=rewards)
+
+    image_size = observation_shape[1:]
+    n_channels = n_frames * observation_shape[0]
+    stacked_shape = (n_channels, *image_size)
+
+    if as_tensor:
+        padding = torch.zeros(n_frames - 1, *observation_shape)
+        padded_observations = torch.cat([padding, observations])
+    else:
+        padding = np.zeros((n_frames - 1, *observation_shape))
+        padded_observations = np.vstack([padding, observations])
+
+    for i, transition in enumerate(episode.transitions):
+        observation, next_observation = _stack_frames(transition, n_frames)
+
+        # create reference stacked observation
+        head_index = i
+        tail_index = head_index + n_frames
+        window = padded_observations[head_index:tail_index]
+        next_window = padded_observations[head_index + 1:tail_index + 1]
+
+        if as_tensor:
+            ref_observation = window.view(stacked_shape)
+            ref_next_observation = next_window.view(stacked_shape)
+            assert observation.shape == ref_observation.shape
+            assert next_observation.shape == ref_next_observation.shape
+            assert torch.all(observation == ref_observation)
+            assert torch.all(next_observation == ref_next_observation)
+        else:
+            ref_observation = np.vstack(window)
+            ref_next_observation = np.vstack(next_window)
+            assert observation.shape == ref_observation.shape
+            assert next_observation.shape == ref_next_observation.shape
+            assert np.all(observation == ref_observation)
+            assert np.all(next_observation == ref_next_observation)
 
 
 @pytest.mark.parametrize('data_size', [100])
@@ -217,35 +275,48 @@ def test_episode(data_size, observation_size, action_size):
 
 
 @pytest.mark.parametrize('data_size', [100])
-@pytest.mark.parametrize('observation_size', [4])
+@pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('as_tensor', [True, False])
-def test_transition_minibatch(data_size, observation_size, action_size,
-                              as_tensor):
+@pytest.mark.parametrize('n_frames', [1, 4])
+def test_transition_minibatch(data_size, observation_shape, action_size,
+                              as_tensor, n_frames):
     if as_tensor:
-        observations = torch.rand(data_size, observation_size)
+        observations = torch.rand(data_size, *observation_shape)
     else:
-        observations = np.random.random((data_size, observation_size))
+        observations = np.random.random((data_size, *observation_shape))
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random((data_size, 1))
 
-    episode = Episode(observation_shape=(observation_size, ),
+    episode = Episode(observation_shape=observation_shape,
                       action_size=action_size,
                       observations=observations,
                       actions=actions,
                       rewards=rewards)
 
-    batch = TransitionMiniBatch(episode.transitions)
+    if len(observation_shape) == 3:
+        n_channels = n_frames * observation_shape[0]
+        image_size = observation_shape[1:]
+        batched_observation_shape = (data_size - 1, n_channels, *image_size)
+    else:
+        batched_observation_shape = (data_size - 1, *observation_shape)
+
+    batch = TransitionMiniBatch(episode.transitions, n_frames)
+    assert batch.observations.shape == batched_observation_shape
+    assert batch.next_observations.shape == batched_observation_shape
     for i, t in enumerate(episode.transitions):
         observation = batch.observations[i]
         next_observation = batch.next_observations[i]
         if as_tensor:
             observation = observation.numpy()
             next_observation = next_observation.numpy()
-        assert np.allclose(observation, t.observation)
+
+        if n_frames == 1:
+            assert np.allclose(observation, t.observation)
+            assert np.allclose(next_observation, t.next_observation)
+
         assert np.all(batch.actions[i] == t.action)
         assert np.all(batch.rewards[i] == t.reward)
-        assert np.allclose(next_observation, t.next_observation)
         assert np.all(batch.next_actions[i] == t.next_action)
         assert np.all(batch.next_rewards[i] == t.next_reward)
         assert np.all(batch.terminals[i] == t.terminal)
