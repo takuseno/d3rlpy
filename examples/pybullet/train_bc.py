@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 
 
 def main(args):
-    dataset, env = get_pybullet(args.dataset)
+    dataset, env = get_pybullet(args.dataset, as_tensor=True, device=args.gpu)
 
     d3rlpy.seed(args.seed)
 

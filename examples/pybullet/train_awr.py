@@ -12,10 +12,7 @@ from sklearn.model_selection import train_test_split
 
 
 def main(args):
-    dataset, env = get_pybullet(args.dataset)
-
-    # enable flag to compute Monte-Carlo returns
-    dataset.precompute_returns = True
+    dataset, env = get_pybullet(args.dataset, as_tensor=True, device=args.gpu)
 
     d3rlpy.seed(args.seed)
 
