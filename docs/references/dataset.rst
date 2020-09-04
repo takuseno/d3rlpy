@@ -53,15 +53,6 @@ reinforcement learning datasets without any efforts.
     # load from HDF5
     new_dataset = MDPDataset.load('dataset.h5')
 
-For computational efficiency, the dataset can be placed on GPU devices. If you
-enable this option, you can significantly increase training speed especially
-with image observations.
-
-.. code-block:: python
-
-    # place dataset on cuda:0
-    dataset = MDPDataset(observations, actions, rewards, terminals, as_tensor=True, device=0)
-
 .. autosummary::
    :toctree: generated/
    :nosignatures:

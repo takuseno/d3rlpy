@@ -12,9 +12,7 @@ from sklearn.model_selection import train_test_split
 
 
 def main(args):
-    dataset, env = get_atari(args.dataset,
-                             as_tensor=args.use_gpu_for_dataset,
-                             device=args.gpu)
+    dataset, env = get_atari(args.dataset)
 
     d3rlpy.seed(args.seed)
 
@@ -47,6 +45,5 @@ if __name__ == '__main__':
                         default='mean',
                         choices=['mean', 'qr', 'iqn', 'fqf'])
     parser.add_argument('--gpu', type=int)
-    parser.add_argument('--use-gpu-for-dataset', action='store_true')
     args = parser.parse_args()
     main(args)
