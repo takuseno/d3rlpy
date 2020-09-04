@@ -58,15 +58,16 @@ def train(env,
     observation_shape = env.observation_space.shape
     is_image = len(observation_shape) == 3
 
+    # prepare stacked observation
+    if is_image:
+        stacked_frame = StackedObservation(observation_shape, algo.n_frames)
+        n_channels = observation_shape[0]
+        image_size = observation_shape[1:]
+        observation_shape = (n_channels * algo.n_frames, *image_size)
+
     # setup algorithm
     if algo.impl is None:
         action_size = get_action_size_from_env(env)
-        if is_image:
-            stacked_observation = StackedObservation(observation_shape,
-                                                     algo.n_frames)
-            n_channels = observation_shape[0]
-            image_size = observation_shape[1:]
-            observation_shape = (n_channels * algo.n_frames, *image_size)
         algo.create_impl(observation_shape, action_size)
 
     # save hyperparameters
@@ -88,8 +89,8 @@ def train(env,
         for step in range(n_steps_per_epoch):
             # stack observation if necessary
             if is_image:
-                stacked_observation.append(observation)
-                fed_observation = stacked_observation.eval()
+                stacked_frame.append(observation)
+                fed_observation = stacked_frame.eval()
             else:
                 fed_observation = observation
 
@@ -109,7 +110,7 @@ def train(env,
                 observation, reward, terminal, _ = env.step(action)
                 # for image observation
                 if is_image:
-                    stacked_observation.clear()
+                    stacked_frame.clear()
 
             total_step += 1
 

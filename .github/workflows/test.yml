@@ -24,6 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest-cov gym flask msgpack onnxruntime
+          pip install git+https://github.com/takuseno/d4rl-atari
       - name: Unit tests
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
