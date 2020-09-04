@@ -29,6 +29,18 @@ class Buffer(metaclass=ABCMeta):
     def sample(self, batch_size, n_frames=1):
         """ Returns sampled mini-batch of transitions.
 
+        If observation is image, you can stack arbitrary frames via
+        ``n_frames``.
+
+        .. code-block:: python
+
+            buffer.observation_shape == (3, 84, 84)
+
+            # stack 4 frames
+            batch = buffer.sample(batch_size=32, n_frames=4)
+
+            batch.observations.shape == (32, 12, 84, 84)
+
         Args:
             batch_size (int): mini-batch size.
             n_frames (int):

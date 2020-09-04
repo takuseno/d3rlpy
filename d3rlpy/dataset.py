@@ -917,9 +917,28 @@ class TransitionMiniBatch:
     This class is designed to hold :class:`d3rlpy.dataset.Transition` objects
     for being passed to algorithms during fitting.
 
+    If the observation is image, you can stack arbitrary frames via
+    ``n_frames``.
+
+    .. code-block:: python
+
+        transition.observation.shape == (3, 84, 84)
+
+        batch_size = len(transitions)
+
+        # stack 4 frames
+        batch = TransitionMiniBatch(transitions, n_frames=4)
+
+        # 4 frames x 3 channels
+        batch.observations.shape == (batch_size, 12, 84, 84)
+
+    This is implemented by tracing previous transitions through
+    ``prev_transition`` property.
+
     Args:
         transitions (list(d3rlpy.dataset.Transition)):
             mini-batch of transitions.
+        n_frames (int): the number of frames to stack for image observation.
 
     """
     def __init__(self, transitions, n_frames=1):
