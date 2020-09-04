@@ -151,7 +151,7 @@ def get_atari(env_name, as_tensor=False, device=None):
     """
     try:
         import d4rl_atari
-        env = gym.make(env_name)
+        env = gym.make(env_name, stack=False)
         dataset = MDPDataset(**env.get_dataset(),
                              discrete_action=True,
                              as_tensor=as_tensor,

@@ -12,19 +12,21 @@ from sklearn.model_selection import train_test_split
 
 
 def main(args):
-    dataset, env = get_atari(args.dataset)
+    dataset, env = get_atari(args.dataset,
+                             as_tensor=args.use_gpu_for_dataset,
+                             device=args.gpu)
 
     d3rlpy.seed(args.seed)
 
     train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
-    device = None if args.gpu is None else Device(args.gpu)
-
-    cql = DiscreteCQL(n_epochs=100,
-                      q_func_type=args.q_func_type,
-                      scaler='pixel',
-                      use_batch_norm=False,
-                      use_gpu=device)
+    cql = DiscreteCQL(
+        n_epochs=100,
+        n_frames=4,  # frame stacking
+        q_func_type=args.q_func_type,
+        scaler='pixel',
+        use_batch_norm=False,
+        use_gpu=args.gpu)
 
     cql.fit(train_episodes,
             eval_episodes=test_episodes,
@@ -45,5 +47,6 @@ if __name__ == '__main__':
                         default='mean',
                         choices=['mean', 'qr', 'iqn', 'fqf'])
     parser.add_argument('--gpu', type=int)
+    parser.add_argument('--use-gpu-for-dataset', action='store_true')
     args = parser.parse_args()
     main(args)
