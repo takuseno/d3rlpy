@@ -259,7 +259,7 @@
 
   dataset, env = get_atari('breakout-mixed-v0')
 
-  cql = DiscreteCQL(n_epochs=100, use_gpu=True)
+  cql = DiscreteCQL(n_epochs=100, n_frames=4, scaler='pixel', use_gpu=True)
 
   cql.fit(dataset.episodes)
 
