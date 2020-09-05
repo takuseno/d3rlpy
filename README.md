@@ -136,6 +136,7 @@ train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
 # setup algorithm
 cql = DiscreteCQL(n_epochs=100,
+                  n_frames=4,
                   n_critics=3,
                   bootstrap=True,
                   q_func_type='qr',
