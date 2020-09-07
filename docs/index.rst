@@ -22,6 +22,7 @@ powerful performance beyond the paper via several tweaks.
    :maxdepth: 2
    :caption: Tutorials
 
+   getting_started
    notebooks
 
 .. toctree::

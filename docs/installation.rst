@@ -8,15 +8,18 @@ d3rlpy is only tested on Linux and macOS.
 However, you can possibly run d3rlpy on Windows as long as PyTorch runs since
 it's the core dependency.
 
-from pip
---------
+Install d3rlpy
+--------------
+
+Install via PyPI
+~~~~~~~~~~~~~~~
 
 `pip` is a recommended way to install d3rlpy::
 
   $ pip install d3rlpy
 
-from source
------------
+Install from source
+~~~~~~~~~~~~~~~~~~~
 
 You can also install via GitHub repository::
 
