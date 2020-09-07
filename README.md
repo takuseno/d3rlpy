@@ -7,6 +7,7 @@
 [![codecov](https://codecov.io/gh/takuseno/d3rlpy/branch/master/graph/badge.svg?token=AQ02USKN6Y)](https://codecov.io/gh/takuseno/d3rlpy)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/takuseno/d3rlpy.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/takuseno/d3rlpy/context:python)
 ![MIT](https://img.shields.io/badge/license-MIT-blue)
+![Gitter](https://img.shields.io/gitter/room/d3rlpy/d3rlpy)
 
 d3rlpy is a data-driven deep reinforcement learning library as an out-of-the-box tool.
 
