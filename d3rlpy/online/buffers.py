@@ -73,10 +73,11 @@ class ReplayBuffer(Buffer):
         device (d3rlpy.gpu.Device or int): gpu device or device id for tensor.
 
     Attributes:
-        observations (list(numpy.ndarray)):
-            list of observations in the current episode.
-        actions (list(numpy.ndarray)): list of actions in the current episode.
-        rewards (list(float)): list of rewards in the current episode.
+        prev_observation (numpy.ndarray): previously appended observation.
+        prev_action (numpy.ndarray or int): previously appended action.
+        prev_reward (float): previously appended reward.
+        prev_transition (d3rlpy.dataset.Transition):
+            previously appended transition.
         transitions (collections.deque): list of transitions.
         observation_shape (tuple): observation shape.
         action_size (int): action size.
@@ -86,9 +87,10 @@ class ReplayBuffer(Buffer):
     """
     def __init__(self, maxlen, env, as_tensor=False, device=None):
         # temporary cache to hold transitions for an entire episode
-        self.observations = []
-        self.actions = []
-        self.rewards = []
+        self.prev_observation = None
+        self.prev_action = None
+        self.prev_reward = None
+        self.prev_transition = None
 
         self.transitions = deque(maxlen=maxlen)
 
@@ -116,49 +118,38 @@ class ReplayBuffer(Buffer):
         if self.as_tensor:
             observation = _numpy_to_tensor(observation, self.device)
 
-        self.observations.append(observation)
-        self.actions.append(action)
-        self.rewards.append(reward)
-
-        # commit data in the current episode
-        if terminal:
-            self._commit()
-
-    def _commit(self):
-        episode_size = len(self.observations)
-        prev_transition = None
-        for i in range(episode_size - 1):
-            observation = self.observations[i]
-            action = self.actions[i]
-            reward = self.rewards[i]
-            next_observation = self.observations[i + 1]
-            next_action = self.actions[i + 1]
-            next_reward = self.rewards[i + 1]
-            terminal = 1.0 if i == episode_size - 2 else 0.0
+        # create Transition object
+        if self.prev_observation is not None:
+            if isinstance(terminal, bool):
+                terminal = 1.0 if terminal else 0.0
 
             transition = Transition(observation_shape=self.observation_shape,
                                     action_size=self.action_size,
-                                    observation=observation,
-                                    action=action,
-                                    reward=reward,
-                                    next_observation=next_observation,
-                                    next_action=next_action,
-                                    next_reward=next_reward,
+                                    observation=self.prev_observation,
+                                    action=self.prev_action,
+                                    reward=self.prev_reward,
+                                    next_observation=observation,
+                                    next_action=action,
+                                    next_reward=reward,
                                     terminal=terminal,
-                                    prev_transition=prev_transition)
+                                    prev_transition=self.prev_transition)
 
-            # set transition to the next pointer
-            if prev_transition:
-                prev_transition.next_transition = transition
-
-            prev_transition = transition
+            if self.prev_transition:
+                self.prev_transition.next_transition = transition
 
             self.transitions.append(transition)
 
-        # refresh cache
-        self.observations = []
-        self.actions = []
-        self.rewards = []
+            self.prev_transition = transition
+
+        self.prev_observation = observation
+        self.prev_action = action
+        self.prev_reward = reward
+
+        if terminal:
+            self.prev_observation = None
+            self.prev_action = None
+            self.prev_reward = None
+            self.prev_transition = None
 
     def sample(self, batch_size, n_frames=1):
         transitions = sample(self.transitions, batch_size)

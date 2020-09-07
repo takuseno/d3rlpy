@@ -4,13 +4,12 @@ from .base import AlgoBase
 from .torch.awr_impl import AWRImpl, DiscreteAWRImpl
 
 
-def _compute_lambda_return(returns, values, gamma, lam):
+def _compute_lambda_return(returns, values, terminals, gamma, lam):
     assert returns.shape == values.shape
 
     gammas = gamma**(np.arange(returns.shape[0]) + 1)
     # zero value for terminal transition
-    gammas[-1] = 0.0
-    returns += gammas * values
+    returns += gammas * values * (1.0 - terminals)
 
     lambdas = lam**np.arange(returns.shape[0])
     lambda_return = (1.0 - lam) * np.sum(lambdas[:-1] * returns[:-1])
@@ -169,6 +168,7 @@ class AWR(AlgoBase):
             # gather consequent observations until the end of episode
             observations = []
             returns = []
+            terminals = []
             R = 0.0
             discount = 1.0
             transition = batch.transitions[i]
@@ -178,15 +178,18 @@ class AWR(AlgoBase):
                 discount *= self.gamma
                 observations.append(transition.next_observation)
                 returns.append(R)
+                terminals.append(transition.terminal)
                 transition = transition.next_transition
 
             values = self.predict_value(observations)
 
             # compute lambda return
-            lambda_return = _compute_lambda_return(returns=np.array(returns),
-                                                   values=values,
-                                                   gamma=self.gamma,
-                                                   lam=self.lam)
+            lambda_return = _compute_lambda_return(
+                returns=np.array(returns),
+                values=values,
+                terminals=np.array(terminals),
+                gamma=self.gamma,
+                lam=self.lam)
 
             lambda_returns.append([lambda_return])
         return np.array(lambda_returns)

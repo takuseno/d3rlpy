@@ -12,13 +12,17 @@ from .algo_test import algo_pendulum_tester, algo_cartpole_tester
 def test_compute_lambda_return(horizon, gamma):
     returns = np.random.random(horizon)
     values = np.random.random(horizon)
+    terminals = np.zeros(horizon)
+    terminals[-1] = 1.0
 
     # TD(0)
-    lambda_return = _compute_lambda_return(returns.copy(), values, gamma, 0.0)
+    lambda_return = _compute_lambda_return(returns.copy(), values, terminals,
+                                           gamma, 0.0)
     assert np.allclose(lambda_return, returns[0] + gamma * values[0])
 
     # TD(1)
-    lambda_return = _compute_lambda_return(returns.copy(), values, gamma, 1.0)
+    lambda_return = _compute_lambda_return(returns.copy(), values, terminals,
+                                           gamma, 1.0)
     assert np.allclose(lambda_return, returns[-1])
 
 
