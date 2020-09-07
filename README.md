@@ -37,9 +37,9 @@ which is suitable to tasks where online interaction is not feasible.
 d3rlpy also supports the conventional online training paradigm to fit in with any cases.
 
 ### :beginner: Easy-To-Use API
-d3rlpy provides state-of-the-art algorithms through scikit-learn style APIs.
-Moreoever, d3rlpy is not just easy to use, but also fully compatible with
-scikit-learn utilites such as `train_test_split`, `cross_validate` and others.
+d3rlpy provides state-of-the-art algorithms through scikit-learn style APIs
+without compromising flexibility that provides detailed configurations for professional users.
+Moreoever, d3rlpy is not just designed like scikit-learn, but also fully compatible with scikit-learn utilites.
 
 ### :rocket: Beyond State-Of-The-Art
 d3rlpy provides further tweeks to improve performance of state-of-the-art
