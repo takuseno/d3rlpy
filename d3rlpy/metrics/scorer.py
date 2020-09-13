@@ -167,6 +167,9 @@ def value_estimation_std_scorer(algo, episodes, window_size=1024):
         episodes (list(d3rlpy.dataset.Episode)): list of episodes.
         window_size (int): mini-batch size to compute.
 
+    Returns:
+        float: negative standard deviation.
+
     """
     total_stds = []
     for episode in episodes:
@@ -176,6 +179,101 @@ def value_estimation_std_scorer(algo, episodes, window_size=1024):
             total_stds += stds.tolist()
     # smaller is better
     return -np.mean(total_stds)
+
+
+def initial_state_value_estimation_scorer(algo, episodes, window_size=1024):
+    """ Returns mean estimated action-values at the initial states.
+
+    This metrics suggests how much return the trained policy would get from
+    the initial states by deploying the policy to the states.
+    If the estimated value is large, the trained policy is expected to get
+    higher returns.
+
+    .. math::
+
+        \\mathbb{E}_{s_0 \\sim D} [Q(s_0, \\pi(s_0))]
+
+    References:
+        * `Paine et al., Hyperparameter Selection for Offline Reinforcement
+          Learning <https://arxiv.org/abs/2007.09055>`_
+
+    Args:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm.
+        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        window_size (int): mini-batch size to compute.
+
+    Returns:
+        float: mean action-value estimation at the initial states.
+
+    """
+    total_values = []
+    for episode in episodes:
+        for batch in _make_batches(episode, window_size, algo.n_frames):
+            # estimate action-value in initial states
+            actions = algo.predict([batch.observations[0]])
+            values = algo.predict_value([batch.observations[0]], actions)
+            total_values.append(values[0])
+    return np.mean(total_values)
+
+
+def soft_opc_scorer(return_threshold):
+    """ Returns Soft Off-Policy Classification metrics.
+
+    This function returns scorer function, which is suitable to the standard
+    scikit-learn scorer function style.
+    The metrics of the scorer funciton is evaluating gaps of action-value
+    estimation between the success episodes and the all episodes.
+    If the learned Q-function is optimal, action-values in success episodes
+    are expected to be higher than the others.
+    The success episode is defined as an episode with a return above the given
+    threshold.
+
+    .. math::
+
+        \\mathbb{E}_{s, a \\sim D_{success}} [Q(s, a)]
+            - \\mathbb{E}_{s, a \\sim D} [Q(s, a)]
+
+    .. code-block:: python
+
+        from d3rlpy.datasets import get_cartpole
+        from d3rlpy.algos import DQN
+        from d3rlpy.metrics.scorer import soft_opc_scorer
+        from sklearn.model_selection import train_test_split
+
+        dataset, _ = get_cartpole()
+        train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
+
+        scorer = soft_opc_scorer(return_threshold=180)
+
+        dqn = DQN()
+        dqn.fit(train_episodes,
+                eval_episodes=test_episodes,
+                scorers={'soft_opc': scorer})
+
+    References:
+        * `Irpan et al., Off-Policy Evaluation via Off-Policy Classification.
+          <https://arxiv.org/abs/1906.01624>`_
+
+    Args:
+        return_threshold (float): threshold of success episodes.
+
+    Returns:
+        callable: scorer function.
+
+    """
+    def scorer(algo, episodes, window_size=1024):
+        success_values = []
+        all_values = []
+        for episode in episodes:
+            is_success = episode.compute_return() >= return_threshold
+            for batch in _make_batches(episode, window_size, algo.n_frames):
+                values = algo.predict_value(batch.observations, batch.actions)
+                all_values += values.reshape(-1).tolist()
+                if is_success:
+                    success_values += values.reshape(-1).tolist()
+        return np.mean(success_values) - np.mean(all_values)
+
+    return scorer
 
 
 def continuous_action_diff_scorer(algo, episodes, window_size=1024):

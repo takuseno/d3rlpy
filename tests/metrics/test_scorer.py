@@ -9,6 +9,8 @@ from d3rlpy.metrics.scorer import td_error_scorer
 from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
 from d3rlpy.metrics.scorer import average_value_estimation_scorer
 from d3rlpy.metrics.scorer import value_estimation_std_scorer
+from d3rlpy.metrics.scorer import initial_state_value_estimation_scorer
+from d3rlpy.metrics.scorer import soft_opc_scorer
 from d3rlpy.metrics.scorer import continuous_action_diff_scorer
 from d3rlpy.metrics.scorer import discrete_action_match_scorer
 from d3rlpy.metrics.scorer import evaluate_on_environment
@@ -191,6 +193,70 @@ def test_value_estimation_std_scorer(observation_shape, action_size,
 
     score = value_estimation_std_scorer(algo, episodes)
     assert np.allclose(score, -np.mean(total_stds))
+
+
+@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_episodes', [100])
+@pytest.mark.parametrize('episode_length', [10])
+def test_initial_state_value_estimation_scorer(observation_shape, action_size,
+                                               n_episodes, episode_length):
+    # projection matrix for deterministic action
+    A = np.random.random(observation_shape + (action_size, ))
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length, ) + observation_shape)
+        actions = np.matmul(observations, A)
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(observation_shape, action_size, observations,
+                          actions, rewards)
+        episodes.append(episode)
+
+    algo = DummyAlgo(A, 0.0)
+
+    total_values = []
+    for episode in episodes:
+        observation = episode.observations[0].reshape(1, -1)
+        policy_actions = algo.predict(observation)
+        values = algo.predict_value(observation, policy_actions)
+        total_values.append(values)
+
+    score = initial_state_value_estimation_scorer(algo, episodes)
+    assert np.allclose(score, np.mean(total_values))
+
+
+@pytest.mark.parametrize('observation_shape', [(100, )])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_episodes', [100])
+@pytest.mark.parametrize('episode_length', [10])
+@pytest.mark.parametrize('threshold', [5.0])
+def test_soft_opc_scorer(observation_shape, action_size, n_episodes,
+                         episode_length, threshold):
+    # projection matrix for deterministic action
+    A = np.random.random(observation_shape + (action_size, ))
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length, ) + observation_shape)
+        actions = np.matmul(observations, A)
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(observation_shape, action_size, observations,
+                          actions, rewards)
+        episodes.append(episode)
+
+    algo = DummyAlgo(A, 0.0)
+    success_values = []
+    all_values = []
+    for episode in episodes:
+        is_success = episode.compute_return() >= threshold
+        batch = TransitionMiniBatch(episode.transitions)
+        values = algo.predict_value(batch.observations, batch.actions)
+        if is_success:
+            success_values += values.tolist()
+        all_values += values.tolist()
+
+    scorer = soft_opc_scorer(threshold)
+    score = scorer(algo, episodes)
+    assert np.allclose(score, np.mean(success_values) - np.mean(all_values))
 
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
