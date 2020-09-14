@@ -20,6 +20,10 @@ cql.fit(train_episodes,
             'soft_opc': soft_opc_scorer(600)
         })
 
+# or load the trained model
+# cql = CQL.from_json('<path-to-json>/params.json')
+# cql.load_model('<path-to-model>/model.pt')
+
 # evaluate the trained policy
 fqe = FQE(algo=cql,
           n_epochs=200,
