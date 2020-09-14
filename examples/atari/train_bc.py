@@ -19,7 +19,6 @@ def main(args):
         n_epochs=100,
         n_frames=4,  # frame stacking
         scaler='pixel',
-        use_batch_norm=False,
         use_gpu=args.gpu)
 
     bc.fit(train_episodes,

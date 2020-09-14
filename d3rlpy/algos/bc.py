@@ -183,7 +183,7 @@ class DiscreteBC(BC):
                  n_frames=1,
                  eps=1e-8,
                  beta=0.5,
-                 use_batch_norm=True,
+                 use_batch_norm=False,
                  n_epochs=1000,
                  use_gpu=False,
                  scaler=None,
