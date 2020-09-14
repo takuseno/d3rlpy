@@ -82,7 +82,7 @@ class DQN(AlgoBase):
                  share_encoder=False,
                  eps=1.5e-4,
                  target_update_interval=8e3,
-                 use_batch_norm=True,
+                 use_batch_norm=False,
                  q_func_type='mean',
                  n_epochs=1000,
                  use_gpu=False,

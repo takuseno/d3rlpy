@@ -12,8 +12,8 @@ train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
 cql = DiscreteCQL(n_epochs=100,
                   scaler='pixel',
+                  n_frames=4,
                   augmentation=['random_shift', 'intensity'],
-                  use_batch_norm=False,
                   use_gpu=True)
 
 cql.fit(train_episodes,

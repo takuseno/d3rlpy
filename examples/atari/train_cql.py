@@ -23,7 +23,6 @@ def main(args):
         n_frames=4,  # frame stacking
         q_func_type=args.q_func_type,
         scaler='pixel',
-        use_batch_norm=False,
         use_gpu=args.gpu)
 
     cql.fit(train_episodes,
