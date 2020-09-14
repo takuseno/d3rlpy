@@ -19,7 +19,7 @@ cql = DiscreteCQL(n_epochs=100,
 cql.fit(train_episodes,
         eval_episodes=test_episodes,
         scorers={
-            'environment': evaluate_on_environment(env),
+            'environment': evaluate_on_environment(env, epsilon=0.05),
             'init_value': initial_state_value_estimation_scorer,
             'soft_opc': soft_opc_scorer(70)
         })
