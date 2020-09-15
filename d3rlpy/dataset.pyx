@@ -808,7 +808,7 @@ cdef class Transition:
         self._next_transition = transition
 
 
-cpdef tuple _stack_frames(Transition transition not None, int n_frames):
+cpdef tuple _stack_frames(Transition transition, int n_frames):
     assert len(transition.observation.shape) == 3
     assert n_frames > 1
     assert isinstance(transition.observation, np.ndarray)
