@@ -27,7 +27,7 @@ TEST_PERFORMANCE=$TEST_PERFORMANCE \
 pytest --cov-report=xml \
        --cov=d3rlpy \
        --cov-config=.coveragerc \
-       tests/test_dataset.py -p no:warnings -v
+       tests -p no:warnings -v
 
 # clean up
 rm -r test_data
