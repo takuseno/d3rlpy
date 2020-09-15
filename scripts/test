@@ -24,7 +24,10 @@ fi
 # run tests
 echo "Run unit tests"
 TEST_PERFORMANCE=$TEST_PERFORMANCE \
-pytest --cov-report=xml --cov=d3rlpy tests -p no:warnings -v
+pytest --cov-report=xml \
+       --cov=d3rlpy \
+       --cov-config=.coveragerc \
+       tests -p no:warnings -v
 
 # clean up
 rm -r test_data

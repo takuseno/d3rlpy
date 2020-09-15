@@ -1,40 +1,16 @@
 import numpy as np
-import torch
+cimport numpy as np
 import h5py
-
-from .gpu import Device
+import copy
+import cython
 
 
 def _safe_size(array):
     if isinstance(array, (list, tuple)):
         return len(array)
-    elif isinstance(array, (np.ndarray, torch.Tensor)):
+    elif isinstance(array, np.ndarray):
         return array.shape[0]
     raise ValueError
-
-
-def _device_to_string(device):
-    if device is None:
-        return 'cpu:0'
-    return 'cuda:%d' % device.get_id()
-
-
-def _numpy_to_tensor(ndarray, device):
-    # return if ndarray is already torch.Tensor
-    if isinstance(ndarray, torch.Tensor):
-        return ndarray
-
-    if ndarray.dtype == np.float32:
-        dtype = torch.float32
-    elif ndarray.dtype == np.float64:
-        dtype = torch.float32
-    elif ndarray.dtype == np.int32:
-        dtype = torch.int32
-    elif ndarray.dtype == np.uint8:
-        dtype = torch.uint8
-    device = _device_to_string(device)
-
-    return torch.tensor(ndarray, dtype=dtype, device=device)
 
 
 def _to_episodes(observation_shape, action_size, observations, actions,
@@ -88,43 +64,6 @@ def _to_transitions(observation_shape, action_size, observations, actions,
     return rets
 
 
-def _stack_frames(transition, n_frames):
-    assert len(transition.observation.shape) == 3
-    assert n_frames > 1
-    assert isinstance(transition.observation, (np.ndarray, torch.Tensor))
-
-    dtype = transition.observation.dtype
-    n_channels = transition.observation.shape[0]
-    image_size = transition.observation.shape[1:]
-    shape = (n_frames * n_channels, *image_size)
-
-    # create empty ndarray
-    if isinstance(transition.observation, np.ndarray):
-        observation = np.zeros(shape, dtype=dtype)
-        next_observation = np.zeros(shape, dtype=dtype)
-    else:
-        device = transition.observation.device
-        observation = torch.zeros(shape, dtype=dtype, device=device)
-        next_observation = torch.zeros(shape, dtype=dtype, device=device)
-
-    # stack frames
-    t = transition
-    for i in range(n_frames):
-        tail_index = n_frames * n_channels - i * n_channels
-        head_index = tail_index - n_channels
-        observation[head_index:tail_index] = t.observation
-        next_observation[head_index:tail_index] = t.next_observation
-        if t.prev_transition is None:
-            if i != n_frames - 1:
-                tail_index -= n_channels
-                head_index -= n_channels
-                next_observation[head_index:tail_index] = t.observation
-            break
-        t = t.prev_transition
-
-    return observation, next_observation
-
-
 class MDPDataset:
     """ Markov-Decision Process Dataset class.
 
@@ -164,7 +103,7 @@ class MDPDataset:
             pass
 
     Args:
-        observations (numpy.ndarray or list(numpy.ndarray)): N-D array. If the
+        observations (numpy.ndarray): N-D array. If the
             observation is a vector, the shape should be
             `(N, dim_observation)`. If the observations is an image, the shape
             should be `(N, C, H, W)`.
@@ -175,8 +114,6 @@ class MDPDataset:
         terminals (numpy.ndarray): array of binary terminal flags.
         discrete_action (bool): flag to use the given actions as discrete
             action-space actions.
-        as_tensor (bool): flag to hold observations as ``torch.Tensor``.
-        device (d3rlpy.gpu.Device or int): gpu device or device id for tensors.
 
     """
     def __init__(self,
@@ -184,22 +121,8 @@ class MDPDataset:
                  actions,
                  rewards,
                  terminals,
-                 discrete_action=False,
-                 as_tensor=False,
-                 device=None):
-        # data type option
-        self._as_tensor = as_tensor
-        if isinstance(device, int):
-            self._device = Device(device)
-        else:
-            self._device = device
-
-        # numpy to PyTorch conversion
-        if as_tensor:
-            self._observations = _numpy_to_tensor(observations, self._device)
-        else:
-            self._observations = observations
-
+                 discrete_action=False):
+        self._observations = np.asarray(observations)
         self._rewards = np.asarray(rewards).reshape(-1)
         self._terminals = np.asarray(terminals).reshape(-1)
         self.discrete_action = discrete_action
@@ -215,8 +138,7 @@ class MDPDataset:
         """ Returns the observations.
 
         Returns:
-            numpy.ndarray, list(numpy.ndarray) or torch.Tensor:
-                array of observations.
+            numpy.ndarray: array of observations.
 
         """
         return self._observations
@@ -250,26 +172,6 @@ class MDPDataset:
 
         """
         return self._terminals
-
-    @property
-    def as_tensor(self):
-        """ Returns the flag to hold observations as ``torch.Tensor``.
-
-        Returns:
-            bool: flag to hold observations as ``torch.Tensor``.
-
-        """
-        return self._as_tensor
-
-    @property
-    def device(self):
-        """ Returns the gpu device for tensors.
-
-        Returns:
-            d3rlpy.gpu.Device: gpu device.
-
-        """
-        return self._device
 
     @property
     def episodes(self):
@@ -404,13 +306,12 @@ class MDPDataset:
             }
 
         # avoid large copy when observations are huge data.
-        if isinstance(self._observations, np.ndarray):
-            stats['observation'] = {
-                'mean': np.mean(self.observations, axis=0),
-                'std': np.std(self.observations, axis=0),
-                'min': np.min(self.observations, axis=0),
-                'max': np.max(self.observations, axis=0),
-            }
+        stats['observation'] = {
+            'mean': np.mean(self.observations, axis=0),
+            'std': np.std(self.observations, axis=0),
+            'min': np.min(self.observations, axis=0),
+            'max': np.max(self.observations, axis=0),
+        }
 
         return stats
 
@@ -448,14 +349,7 @@ class MDPDataset:
                 assert action.shape == (self.get_action_size(), )
 
         # append observations
-        if isinstance(self._observations, list):
-            self._observations += list(map(lambda x: x, observations))
-        elif isinstance(self._observations, torch.Tensor):
-            observations = _numpy_to_tensor(observations, self._device)
-            self._observations = torch.cat([self._observations, observations],
-                                           dim=0)
-        else:
-            self._observations = np.vstack([self._observations, observations])
+        self._observations = np.vstack([self._observations, observations])
 
         # append actions
         if self.discrete_action:
@@ -498,14 +392,8 @@ class MDPDataset:
             fname (str): file path.
 
         """
-        # make sure if data is numpy.ndarray or list
-        if isinstance(self._observations, torch.Tensor):
-            observations = self._observations.cpu().numpy()
-        else:
-            observations = self._observations
-
         with h5py.File(fname, 'w') as f:
-            f.create_dataset('observations', data=observations)
+            f.create_dataset('observations', data=self._observations)
             f.create_dataset('actions', data=self._actions)
             f.create_dataset('rewards', data=self._rewards)
             f.create_dataset('terminals', data=self._terminals)
@@ -513,7 +401,7 @@ class MDPDataset:
             f.flush()
 
     @classmethod
-    def load(cls, fname, as_tensor=False, device=None):
+    def load(cls, fname):
         """ Loads dataset from HDF5.
 
         .. code-block:: python
@@ -534,9 +422,6 @@ class MDPDataset:
 
         Args:
             fname (str): file path.
-            as_tensor (bool): flag to hold observations as ``torch.Tensor``.
-            device (d3rlpy.gpu.Device or int):
-                gpu device or device id for tensor.
 
         """
         with h5py.File(fname, 'r') as f:
@@ -550,9 +435,7 @@ class MDPDataset:
                       actions=actions,
                       rewards=rewards,
                       terminals=terminals,
-                      discrete_action=discrete_action,
-                      as_tensor=as_tensor,
-                      device=device)
+                      discrete_action=discrete_action)
 
         return dataset
 
@@ -730,7 +613,13 @@ class Episode:
         return iter(self.transitions)
 
 
-class Transition:
+UINT8 = np.uint8
+FLOAT = np.float
+ctypedef np.uint8_t UINT8_t
+ctypedef np.float_t FLOAT_t
+
+
+cdef class Transition:
     """ Transition class.
 
     This class is designed to hold data between two time steps, which is
@@ -752,16 +641,28 @@ class Transition:
             pointer to the next transition.
 
     """
+    cdef tuple observation_shape
+    cdef int action_size
+    cdef np.ndarray _observation
+    cdef _action
+    cdef float _reward
+    cdef np.ndarray _next_observation
+    cdef _next_action
+    cdef float _next_reward
+    cdef float _terminal
+    cdef Transition _prev_transition
+    cdef Transition _next_transition
+
     def __init__(self,
-                 observation_shape,
-                 action_size,
-                 observation,
-                 action,
-                 reward,
-                 next_observation,
-                 next_action,
-                 next_reward,
-                 terminal,
+                 tuple observation_shape not None,
+                 int action_size,
+                 observation not None,
+                 action not None,
+                 float reward,
+                 next_observation not None,
+                 next_action not None,
+                 float next_reward,
+                 float terminal,
                  prev_transition=None,
                  next_transition=None):
         self.observation_shape = observation_shape
@@ -911,7 +812,43 @@ class Transition:
         self._next_transition = transition
 
 
-class TransitionMiniBatch:
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef tuple _stack_frames(Transition transition, int n_frames):
+    assert len(transition.observation.shape) == 3
+    assert n_frames > 1
+    assert isinstance(transition.observation, np.ndarray)
+
+    cdef int n_channels = transition.observation.shape[0]
+    cdef tuple image_size = transition.observation.shape[1:]
+    cdef tuple shape = (n_frames * n_channels, *image_size)
+
+    # returned array
+    cdef np.ndarray[UINT8_t, ndim=3] observation = np.zeros(shape, dtype=UINT8)
+    cdef np.ndarray[UINT8_t, ndim=3] next_observation = np.zeros(shape, dtype=UINT8)
+
+    # stack frames
+    cdef Transition t = transition
+    cdef int i
+    cdef int head_index
+    cdef int tail_index
+    for i in range(n_frames):
+        tail_index = n_frames * n_channels - i * n_channels
+        head_index = tail_index - n_channels
+        observation[head_index:tail_index][...] = t.observation
+        next_observation[head_index:tail_index][...] = t.next_observation
+        if t.prev_transition is None:
+            if i != n_frames - 1:
+                tail_index -= n_channels
+                head_index -= n_channels
+                next_observation[head_index:tail_index][...] = t.observation
+            break
+        t = t.prev_transition
+
+    return observation, next_observation
+
+
+cdef class TransitionMiniBatch:
     """ mini-batch of Transition objects.
 
     This class is designed to hold :class:`d3rlpy.dataset.Transition` objects
@@ -941,17 +878,48 @@ class TransitionMiniBatch:
         n_frames (int): the number of frames to stack for image observation.
 
     """
-    def __init__(self, transitions, n_frames=1):
+    cdef list _transitions
+    cdef _observations
+    cdef _actions
+    cdef np.float32_t[:, :] _rewards
+    cdef _next_observations
+    cdef _next_actions
+    cdef np.float32_t[:, :] _next_rewards
+    cdef np.float32_t[:, :] _terminals
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def __init__(self, list transitions not None, int n_frames=1):
         self._transitions = transitions
 
-        observations = []
-        actions = []
-        rewards = []
-        next_observations = []
-        next_actions = []
-        next_rewards = []
-        terminals = []
-        for transition in transitions:
+        # determine observation shape
+        cdef tuple observation_shape = transitions[0].get_observation_shape()
+        cdef int observation_ndim = len(observation_shape)
+        observation_dtype = transitions[0].observation.dtype
+        if len(observation_shape) == 3 and n_frames > 1:
+            c, h, w = observation_shape
+            observation_shape = (n_frames * c, h, w)
+
+        # determine action shape
+        cdef int action_size = transitions[0].get_action_size()
+        cdef tuple action_shape = tuple()
+        action_dtype = np.int32
+        if isinstance(transitions[0].action, np.ndarray):
+            action_shape = (action_size,)
+            action_dtype = np.float32
+
+        cdef int size = len(transitions)
+        self._observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
+        self._actions = np.empty((size,) + action_shape, dtype=action_dtype)
+        self._rewards = np.empty((size, 1), dtype=np.float32)
+        self._next_observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
+        self._next_actions = np.empty((size,) + action_shape, dtype=action_dtype)
+        self._next_rewards = np.empty((size, 1), dtype=np.float32)
+        self._terminals = np.empty((size, 1), dtype=np.float32)
+
+        cdef int i
+        for i in range(size):
+            transition = transitions[i]
             # stack frames if necessary
             if n_frames > 1 and len(transition.observation.shape) == 3:
                 stacked_data = _stack_frames(transition, n_frames)
@@ -960,27 +928,13 @@ class TransitionMiniBatch:
                 observation = transition.observation
                 next_observation = transition.next_observation
 
-            observations.append(observation)
-            actions.append(transition.action)
-            rewards.append(transition.reward)
-            next_observations.append(next_observation)
-            next_actions.append(transition.next_action)
-            next_rewards.append(transition.next_reward)
-            terminals.append(transition.terminal)
-
-        # convert list to ndarray or torch.Tensor and fix shapes
-        if isinstance(observations[0], torch.Tensor):
-            self._observations = torch.stack(observations, dim=0)
-            self._next_observations = torch.stack(next_observations, dim=0)
-        else:
-            self._observations = np.array(observations)
-            self._next_observations = np.array(next_observations)
-
-        self._actions = np.array(actions).reshape((self.size(), -1))
-        self._rewards = np.array(rewards).reshape((self.size(), 1))
-        self._next_rewards = np.array(next_rewards).reshape((self.size(), 1))
-        self._next_actions = np.array(next_actions).reshape((self.size(), -1))
-        self._terminals = np.array(terminals).reshape((self.size(), 1))
+            self._observations[i][...] = observation
+            self._actions[i] = transitions[i].action
+            self._rewards[i][0] = transitions[i].reward
+            self._next_observations[i][...] = next_observation
+            self._next_actions[i] = transitions[i].next_action
+            self._next_rewards[i][0] = transitions[i].next_reward
+            self._terminals[i][0] = transitions[i].terminal
 
     @property
     def observations(self):

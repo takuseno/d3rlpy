@@ -171,10 +171,7 @@ class MinMaxScaler(Scaler):
             return
 
         for i, e in enumerate(episodes):
-            if isinstance(e.observations, torch.Tensor):
-                observations = e.observations.cpu().numpy()
-            else:
-                observations = np.asarray(e.observations)
+            observations = np.asarray(e.observations)
             if i == 0:
                 minimum = observations.min(axis=0)
                 maximum = observations.max(axis=0)
@@ -312,10 +309,7 @@ class StandardScaler(Scaler):
         total_sum = np.zeros(episodes[0].observation_shape)
         total_count = 0
         for e in episodes:
-            if isinstance(e.observations, torch.Tensor):
-                observations = e.observations.cpu().numpy()
-            else:
-                observations = np.asarray(e.observations)
+            observations = np.asarray(e.observations)
             total_sum += observations.sum(axis=0)
             total_count += observations.shape[0]
         mean = total_sum / total_count
@@ -324,10 +318,7 @@ class StandardScaler(Scaler):
         total_sqsum = np.zeros(episodes[0].observation_shape)
         expanded_mean = mean.reshape((1, ) + mean.shape)
         for e in episodes:
-            if isinstance(e.observations, torch.Tensor):
-                observations = e.observations.cpu().numpy()
-            else:
-                observations = np.asarray(e.observations)
+            observations = np.asarray(e.observations)
             total_sqsum += ((observations - expanded_mean)**2).sum(axis=0)
         std = np.sqrt(total_sqsum / total_count)
 
