@@ -39,4 +39,4 @@ setup(name="d3rlpy",
       python_requires=">=3.5.0",
       zip_safe=False,
       package_data={'d3rlpy': ['*.pyx']},
-      ext_modules=cythonize([ext]))
+      ext_modules=cythonize([ext], compiler_directives={'linetrace': True}))

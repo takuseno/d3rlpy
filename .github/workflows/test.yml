@@ -27,7 +27,7 @@ jobs:
           pip install git+https://github.com/takuseno/d4rl-atari
       - name: Build Cython
         run: |
-          python setup.py build_ext --inplace
+          python setup.py build_ext --inplace --define CYTHON_TRACE
       - name: Unit tests
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
