@@ -1,5 +1,11 @@
-from setuptools import setup
+from setuptools import setup, Extension
+from Cython.Build import cythonize
+from numpy import get_include
 
+# setup Cython build
+ext = Extension('d3rlpy.dataset',
+                sources=['d3rlpy/dataset.pyx'],
+                include_dirs=[get_include()])
 
 setup(name="d3rlpy",
       version="0.23",
@@ -17,7 +23,8 @@ setup(name="d3rlpy",
                         "GPUtil",
                         "h5py",
                         "gym",
-                        "kornia"],
+                        "kornia",
+                        "Cython"],
       packages=["d3rlpy",
                 "d3rlpy.algos",
                 "d3rlpy.algos.torch",
@@ -29,4 +36,7 @@ setup(name="d3rlpy",
                 "d3rlpy.models.torch",
                 "d3rlpy.preprocessing",
                 "d3rlpy.online"],
-      python_requires=">=3.5.0")
+      python_requires=">=3.5.0",
+      zip_safe=False,
+      package_data={'d3rlpy': ['*.pyx']},
+      ext_modules=cythonize([ext]))

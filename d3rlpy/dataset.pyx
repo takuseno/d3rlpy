@@ -1,6 +1,7 @@
 import numpy as np
+cimport numpy as np
 import h5py
-
+import copy
 
 def _safe_size(array):
     if isinstance(array, (list, tuple)):
@@ -59,38 +60,6 @@ def _to_transitions(observation_shape, action_size, observations, actions,
 
         rets.append(transition)
     return rets
-
-
-def _stack_frames(transition, n_frames):
-    assert len(transition.observation.shape) == 3
-    assert n_frames > 1
-    assert isinstance(transition.observation, np.ndarray)
-
-    dtype = transition.observation.dtype
-    n_channels = transition.observation.shape[0]
-    image_size = transition.observation.shape[1:]
-    shape = (n_frames * n_channels, *image_size)
-
-    # returned array
-    observation = np.zeros(shape, dtype=dtype)
-    next_observation = np.zeros(shape, dtype=dtype)
-
-    # stack frames
-    t = transition
-    for i in range(n_frames):
-        tail_index = n_frames * n_channels - i * n_channels
-        head_index = tail_index - n_channels
-        observation[head_index:tail_index] = t.observation
-        next_observation[head_index:tail_index] = t.next_observation
-        if t.prev_transition is None:
-            if i != n_frames - 1:
-                tail_index -= n_channels
-                head_index -= n_channels
-                next_observation[head_index:tail_index] = t.observation
-            break
-        t = t.prev_transition
-
-    return observation, next_observation
 
 
 class MDPDataset:
@@ -641,8 +610,20 @@ class Episode:
     def __iter__(self):
         return iter(self.transitions)
 
+ctypedef fused action_t:
+    int
+    np.ndarray[np.float, ndim=1]
 
-class Transition:
+ctypedef fused observation_t:
+    np.ndarray[np.uint8_t, ndim=3]
+    np.ndarray[np.float, ndim=1]
+
+UINT8 = np.uint8
+FLOAT = np.float
+ctypedef np.uint8_t UINT8_t
+ctypedef np.float_t FLOAT_t
+
+cdef class Transition:
     """ Transition class.
 
     This class is designed to hold data between two time steps, which is
@@ -664,16 +645,28 @@ class Transition:
             pointer to the next transition.
 
     """
+    cdef tuple observation_shape
+    cdef int action_size
+    cdef np.ndarray _observation
+    cdef _action
+    cdef float _reward
+    cdef np.ndarray _next_observation
+    cdef _next_action
+    cdef float _next_reward
+    cdef float _terminal
+    cdef Transition _prev_transition
+    cdef Transition _next_transition
+
     def __init__(self,
-                 observation_shape,
-                 action_size,
-                 observation,
-                 action,
-                 reward,
-                 next_observation,
-                 next_action,
-                 next_reward,
-                 terminal,
+                 tuple observation_shape not None,
+                 int action_size,
+                 observation not None,
+                 action not None,
+                 float reward,
+                 next_observation not None,
+                 next_action not None,
+                 float next_reward,
+                 float terminal,
                  prev_transition=None,
                  next_transition=None):
         self.observation_shape = observation_shape
@@ -823,7 +816,41 @@ class Transition:
         self._next_transition = transition
 
 
-class TransitionMiniBatch:
+cpdef tuple _stack_frames(Transition transition, int n_frames):
+    assert len(transition.observation.shape) == 3
+    assert n_frames > 1
+    assert isinstance(transition.observation, np.ndarray)
+
+    cdef int n_channels = transition.observation.shape[0]
+    cdef tuple image_size = transition.observation.shape[1:]
+    cdef tuple shape = (n_frames * n_channels, *image_size)
+
+    # returned array
+    cdef np.ndarray[UINT8_t, ndim=3] observation = np.zeros(shape, dtype=UINT8)
+    cdef np.ndarray[UINT8_t, ndim=3] next_observation = np.zeros(shape, dtype=UINT8)
+
+    # stack frames
+    cdef Transition t = transition
+    cdef int i
+    cdef int head_index
+    cdef int tail_index
+    for i in range(n_frames):
+        tail_index = n_frames * n_channels - i * n_channels
+        head_index = tail_index - n_channels
+        observation[head_index:tail_index][...] = t.observation
+        next_observation[head_index:tail_index][...] = t.next_observation
+        if t.prev_transition is None:
+            if i != n_frames - 1:
+                tail_index -= n_channels
+                head_index -= n_channels
+                next_observation[head_index:tail_index][...] = t.observation
+            break
+        t = t.prev_transition
+
+    return observation, next_observation
+
+
+cdef class TransitionMiniBatch:
     """ mini-batch of Transition objects.
 
     This class is designed to hold :class:`d3rlpy.dataset.Transition` objects
@@ -853,17 +880,46 @@ class TransitionMiniBatch:
         n_frames (int): the number of frames to stack for image observation.
 
     """
-    def __init__(self, transitions, n_frames=1):
+    cdef list _transitions
+    cdef _observations
+    cdef _actions
+    cdef np.float_t[:, :] _rewards
+    cdef _next_observations
+    cdef _next_actions
+    cdef np.float_t[:, :] _next_rewards
+    cdef np.float_t[:, :] _terminals
+
+    def __init__(self, list transitions, int n_frames=1):
         self._transitions = transitions
 
-        observations = []
-        actions = []
-        rewards = []
-        next_observations = []
-        next_actions = []
-        next_rewards = []
-        terminals = []
-        for transition in transitions:
+        # determine observation shape
+        cdef tuple observation_shape = transitions[0].get_observation_shape()
+        cdef int observation_ndim = len(observation_shape)
+        observation_dtype = transitions[0].observation.dtype
+        if len(observation_shape) == 3 and n_frames > 1:
+            c, h, w = observation_shape
+            observation_shape = (n_frames * c, h, w)
+
+        # determine action shape
+        cdef int action_size = transitions[0].get_action_size()
+        cdef tuple action_shape = tuple()
+        action_dtype = np.int32
+        if isinstance(transitions[0].action, np.ndarray):
+            action_shape = (action_size,)
+            action_dtype = np.float32
+
+        cdef int size = len(transitions)
+        self._observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
+        self._actions = np.empty((size,) + action_shape, dtype=action_dtype)
+        self._rewards = np.empty((size, 1), dtype=np.float)
+        self._next_observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
+        self._next_actions = np.empty((size,) + action_shape, dtype=action_dtype)
+        self._next_rewards = np.empty((size, 1), dtype=np.float)
+        self._terminals = np.empty((size, 1), dtype=np.float)
+
+        cdef int i
+        for i in range(size):
+            transition = transitions[i]
             # stack frames if necessary
             if n_frames > 1 and len(transition.observation.shape) == 3:
                 stacked_data = _stack_frames(transition, n_frames)
@@ -872,21 +928,13 @@ class TransitionMiniBatch:
                 observation = transition.observation
                 next_observation = transition.next_observation
 
-            observations.append(observation)
-            actions.append(transition.action)
-            rewards.append(transition.reward)
-            next_observations.append(next_observation)
-            next_actions.append(transition.next_action)
-            next_rewards.append(transition.next_reward)
-            terminals.append(transition.terminal)
-
-        self._observations = np.array(observations)
-        self._actions = np.array(actions).reshape((self.size(), -1))
-        self._rewards = np.array(rewards).reshape((self.size(), 1))
-        self._next_observations = np.array(next_observations)
-        self._next_rewards = np.array(next_rewards).reshape((self.size(), 1))
-        self._next_actions = np.array(next_actions).reshape((self.size(), -1))
-        self._terminals = np.array(terminals).reshape((self.size(), 1))
+            self._observations[i][...] = observation
+            self._actions[i] = transitions[i].action
+            self._rewards[i][0] = transitions[i].reward
+            self._next_observations[i][...] = next_observation
+            self._next_actions[i] = transitions[i].next_action
+            self._next_rewards[i][0] = transitions[i].next_reward
+            self._terminals[i][0] = transitions[i].terminal
 
     @property
     def observations(self):

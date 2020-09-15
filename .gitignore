@@ -1,6 +1,8 @@
 *.pyc
 *__pycache__
 *.pkl
+*.c
+*.so
 .python-version
 d3rlpy_data
 test_data

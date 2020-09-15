@@ -13,7 +13,7 @@ from d3rlpy.dataset import _stack_frames
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('n_frames', [4])
 def test_stack_frames(data_size, observation_shape, action_size, n_frames):
-    observations = np.random.random((data_size, *observation_shape))
+    observations = np.random.randint(256, size=(data_size, *observation_shape), dtype=np.uint8)
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random((data_size, 1))
 
@@ -188,7 +188,7 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
 def test_episode(data_size, observation_size, action_size):
     observations = np.random.random((data_size, observation_size))
     actions = np.random.random((data_size, action_size))
-    rewards = np.random.random((data_size, 1))
+    rewards = np.random.random(data_size)
 
     episode = Episode(observation_shape=(observation_size, ),
                       action_size=action_size,
@@ -209,14 +209,14 @@ def test_episode(data_size, observation_size, action_size):
     assert len(episode.transitions) == data_size - 1
     for i, t in enumerate(episode.transitions):
         assert isinstance(t, Transition)
-        assert t.observation_shape == (observation_size, )
-        assert t.action_size == action_size
+        assert t.get_observation_shape() == (observation_size, )
+        assert t.get_action_size() == action_size
         assert np.all(t.observation == observations[i])
         assert np.all(t.action == actions[i])
-        assert t.reward == rewards[i]
+        assert np.allclose(t.reward, rewards[i])
         assert np.all(t.next_observation == observations[i + 1])
         assert np.all(t.next_action == actions[i + 1])
-        assert t.next_reward == rewards[i + 1]
+        assert np.allclose(t.next_reward, rewards[i + 1])
         assert t.terminal == (1.0 if (i == data_size - 2) else 0.0)
 
     # check forward pointers
@@ -247,11 +247,15 @@ def test_episode(data_size, observation_size, action_size):
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('n_frames', [1, 4])
+@pytest.mark.parametrize('discrete_action', [False, True])
 def test_transition_minibatch(data_size, observation_shape, action_size,
-                              n_frames):
+                              n_frames, discrete_action):
     observations = np.random.random((data_size, *observation_shape))
-    actions = np.random.random((data_size, action_size))
-    rewards = np.random.random((data_size, 1))
+    if discrete_action:
+        actions = np.random.randint(action_size, size=data_size)
+    else:
+        actions = np.random.random((data_size, action_size)).astype('f4')
+    rewards = np.random.random((data_size, 1)).astype('f4')
 
     episode = Episode(observation_shape=observation_shape,
                       action_size=action_size,
@@ -278,10 +282,10 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
             assert np.allclose(next_observation, t.next_observation)
 
         assert np.all(batch.actions[i] == t.action)
-        assert np.all(batch.rewards[i] == t.reward)
+        assert np.all(batch.rewards[i][0] == t.reward)
         assert np.all(batch.next_actions[i] == t.next_action)
-        assert np.all(batch.next_rewards[i] == t.next_reward)
-        assert np.all(batch.terminals[i] == t.terminal)
+        assert np.all(batch.next_rewards[i][0] == t.next_reward)
+        assert np.all(batch.terminals[i][0] == t.terminal)
 
     # check list-like behavior
     assert len(batch) == data_size - 1
