@@ -3,6 +3,7 @@ cimport numpy as np
 import h5py
 import copy
 
+
 def _safe_size(array):
     if isinstance(array, (list, tuple)):
         return len(array)
@@ -610,10 +611,12 @@ class Episode:
     def __iter__(self):
         return iter(self.transitions)
 
+
 UINT8 = np.uint8
 FLOAT = np.float
 ctypedef np.uint8_t UINT8_t
 ctypedef np.float_t FLOAT_t
+
 
 cdef class Transition:
     """ Transition class.
@@ -875,11 +878,11 @@ cdef class TransitionMiniBatch:
     cdef list _transitions
     cdef _observations
     cdef _actions
-    cdef np.float_t[:, :] _rewards
+    cdef np.float32_t[:, :] _rewards
     cdef _next_observations
     cdef _next_actions
-    cdef np.float_t[:, :] _next_rewards
-    cdef np.float_t[:, :] _terminals
+    cdef np.float32_t[:, :] _next_rewards
+    cdef np.float32_t[:, :] _terminals
 
     def __init__(self, list transitions not None, int n_frames=1):
         self._transitions = transitions
@@ -903,11 +906,11 @@ cdef class TransitionMiniBatch:
         cdef int size = len(transitions)
         self._observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
         self._actions = np.empty((size,) + action_shape, dtype=action_dtype)
-        self._rewards = np.empty((size, 1), dtype=np.float)
+        self._rewards = np.empty((size, 1), dtype=np.float32)
         self._next_observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
         self._next_actions = np.empty((size,) + action_shape, dtype=action_dtype)
-        self._next_rewards = np.empty((size, 1), dtype=np.float)
-        self._terminals = np.empty((size, 1), dtype=np.float)
+        self._next_rewards = np.empty((size, 1), dtype=np.float32)
+        self._terminals = np.empty((size, 1), dtype=np.float32)
 
         cdef int i
         for i in range(size):
