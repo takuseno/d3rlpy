@@ -2,6 +2,7 @@ import numpy as np
 cimport numpy as np
 import h5py
 import copy
+import cython
 
 
 def _safe_size(array):
@@ -811,6 +812,8 @@ cdef class Transition:
         self._next_transition = transition
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cpdef tuple _stack_frames(Transition transition, int n_frames):
     assert len(transition.observation.shape) == 3
     assert n_frames > 1
@@ -884,6 +887,8 @@ cdef class TransitionMiniBatch:
     cdef np.float32_t[:, :] _next_rewards
     cdef np.float32_t[:, :] _terminals
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def __init__(self, list transitions not None, int n_frames=1):
         self._transitions = transitions
 
