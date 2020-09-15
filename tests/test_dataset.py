@@ -13,7 +13,9 @@ from d3rlpy.dataset import _stack_frames
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('n_frames', [4])
 def test_stack_frames(data_size, observation_shape, action_size, n_frames):
-    observations = np.random.randint(256, size=(data_size, *observation_shape), dtype=np.uint8)
+    observations = np.random.randint(256,
+                                     size=(data_size, *observation_shape),
+                                     dtype=np.uint8)
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random((data_size, 1))
 
