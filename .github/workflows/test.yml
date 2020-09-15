@@ -25,6 +25,9 @@ jobs:
           pip install -r requirements.txt
           pip install pytest-cov gym flask msgpack onnxruntime
           pip install git+https://github.com/takuseno/d4rl-atari
+      - name: Build Cython
+        run: |
+          pip setup.py build_ext --inplace
       - name: Unit tests
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
