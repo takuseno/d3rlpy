@@ -10,15 +10,11 @@ CARTPOLE_URL = 'https://www.dropbox.com/s/2tmo7ul00268l3e/cartpole.pkl?dl=1'
 PENDULUM_URL = 'https://www.dropbox.com/s/90z7a84ngndrqt4/pendulum.pkl?dl=1'
 
 
-def get_cartpole(as_tensor=False, device=None):
+def get_cartpole():
     """ Returns cartpole dataset and environment.
 
     The dataset is automatically downloaded to `d3rlpy_data/cartpole.pkl` if it
     does not exist.
-
-    Args:
-        as_tensor (bool): flag to hold observations as ``torch.Tensor``.
-        device (d3rlpy.gpu.device or int): gpu deivce of device id for tensor.
 
     Returns:
         tuple: tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -43,22 +39,16 @@ def get_cartpole(as_tensor=False, device=None):
                          actions=actions,
                          rewards=rewards,
                          terminals=terminals,
-                         discrete_action=True,
-                         as_tensor=as_tensor,
-                         device=device)
+                         discrete_action=True)
 
     return dataset, env
 
 
-def get_pendulum(as_tensor=False, device=None):
+def get_pendulum():
     """ Returns pendulum dataset and environment.
 
     The dataset is automatically downloaded to `d3rlpy_data/pendulum.pkl` if it
     does not exist.
-
-    Args:
-        as_tensor (bool): flag to hold observations as ``torch.Tensor``.
-        device (d3rlpy.gpu.Device or int): gpu device or device id for tensor.
 
     Returns:
         tuple: tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -81,14 +71,12 @@ def get_pendulum(as_tensor=False, device=None):
     dataset = MDPDataset(observations=observations,
                          actions=actions,
                          rewards=rewards,
-                         terminals=terminals,
-                         as_tensor=as_tensor,
-                         device=device)
+                         terminals=terminals)
 
     return dataset, env
 
 
-def get_pybullet(env_name, as_tensor=False, device=None):
+def get_pybullet(env_name):
     """ Returns pybullet dataset and envrironment.
 
     The dataset is provided through d4rl-pybullet. See more details including
@@ -105,8 +93,6 @@ def get_pybullet(env_name, as_tensor=False, device=None):
 
     Args:
         env_name (str): environment id of d4rl-pybullet dataset.
-        as_tensor (bool): flag to hold observations as ``torch.Tensor``.
-        device (d3rlpy.gpu.Device or int): gpu device or device id for tensor.
 
     Returns:
         tuple: tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -115,9 +101,7 @@ def get_pybullet(env_name, as_tensor=False, device=None):
     try:
         import d4rl_pybullet
         env = gym.make(env_name)
-        dataset = MDPDataset(**env.get_dataset(),
-                             as_tensor=as_tensor,
-                             device=device)
+        dataset = MDPDataset(**env.get_dataset())
         return dataset, env
     except ImportError:
         raise ImportError(
@@ -125,7 +109,7 @@ def get_pybullet(env_name, as_tensor=False, device=None):
             'pip install git+https://github.com/takuseno/d4rl-pybullet')
 
 
-def get_atari(env_name, as_tensor=False, device=None):
+def get_atari(env_name):
     """ Returns atari dataset and envrironment.
 
     The dataset is provided through d4rl-atari. See more details including
@@ -142,8 +126,6 @@ def get_atari(env_name, as_tensor=False, device=None):
 
     Args:
         env_name (str): environment id of d4rl-atari dataset.
-        as_tensor (bool): flag to hold observations as ``torch.Tensor``.
-        device (d3rlpy.gpu.Device or int): gpu device or device id for tensor.
 
     Returns:
         tuple: tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -152,10 +134,7 @@ def get_atari(env_name, as_tensor=False, device=None):
     try:
         import d4rl_atari
         env = gym.make(env_name, stack=False)
-        dataset = MDPDataset(**env.get_dataset(),
-                             discrete_action=True,
-                             as_tensor=as_tensor,
-                             device=device)
+        dataset = MDPDataset(**env.get_dataset(), discrete_action=True)
         return dataset, env
     except ImportError:
         raise ImportError(

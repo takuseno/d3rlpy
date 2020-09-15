@@ -68,8 +68,6 @@ class ReplayBuffer(Buffer):
     Args:
         maxlen (int): the maximum number of data length.
         env (gym.Env): gym-like environment to extract shape information.
-        as_tensor (bool): flag to hold observations as ``torch.Tensor``.
-        device (d3rlpy.gpu.Device or int): gpu device or device id for tensor.
 
     Attributes:
         prev_observation (numpy.ndarray): previously appended observation.

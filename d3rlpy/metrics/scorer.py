@@ -49,8 +49,8 @@ def td_error_scorer(algo, episodes, window_size=1024):
                                              next_actions)
 
             # calculate td errors
-            mask = (1.0 - batch.terminals).reshape(-1)
-            rewards = batch.next_rewards.reshape(-1)
+            mask = (1.0 - np.asarray(batch.terminals)).reshape(-1)
+            rewards = np.asarray(batch.next_rewards).reshape(-1)
             y = rewards + algo.gamma * next_values * mask
             total_errors += ((values - y)**2).tolist()
 

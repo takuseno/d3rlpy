@@ -31,10 +31,10 @@ def test_replay_buffer(n_episodes, batch_size, maxlen):
     batch = buffer.sample(batch_size)
     assert len(batch) == batch_size
     assert batch.observations.shape == (batch_size, ) + observation_shape
-    assert batch.actions.shape == (batch_size, 1)
+    assert batch.actions.shape == (batch_size, )
     assert batch.rewards.shape == (batch_size, 1)
     assert batch.next_observations.shape == (batch_size, ) + observation_shape
-    assert batch.next_actions.shape == (batch_size, 1)
+    assert batch.next_actions.shape == (batch_size, )
     assert batch.next_rewards.shape == (batch_size, 1)
     assert batch.terminals.shape == (batch_size, 1)
     assert isinstance(batch.observations, np.ndarray)

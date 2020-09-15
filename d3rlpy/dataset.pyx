@@ -610,14 +610,6 @@ class Episode:
     def __iter__(self):
         return iter(self.transitions)
 
-ctypedef fused action_t:
-    int
-    np.ndarray[np.float, ndim=1]
-
-ctypedef fused observation_t:
-    np.ndarray[np.uint8_t, ndim=3]
-    np.ndarray[np.float, ndim=1]
-
 UINT8 = np.uint8
 FLOAT = np.float
 ctypedef np.uint8_t UINT8_t
@@ -816,7 +808,7 @@ cdef class Transition:
         self._next_transition = transition
 
 
-cpdef tuple _stack_frames(Transition transition, int n_frames):
+cpdef tuple _stack_frames(Transition transition not None, int n_frames):
     assert len(transition.observation.shape) == 3
     assert n_frames > 1
     assert isinstance(transition.observation, np.ndarray)
@@ -889,7 +881,7 @@ cdef class TransitionMiniBatch:
     cdef np.float_t[:, :] _next_rewards
     cdef np.float_t[:, :] _terminals
 
-    def __init__(self, list transitions, int n_frames=1):
+    def __init__(self, list transitions not None, int n_frames=1):
         self._transitions = transitions
 
         # determine observation shape

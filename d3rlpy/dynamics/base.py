@@ -56,8 +56,8 @@ class DynamicsBase(LearnableBase):
         for i in np.random.randint(len(transitions), size=self.n_transitions):
             init_transitions.append(transitions[i])
 
-        observation_shape = transitions[0].observation_shape
-        action_size = transitions[0].action_size
+        observation_shape = transitions[0].get_observation_shape()
+        action_size = transitions[0].get_action_size()
 
         rets = []
 
