@@ -62,8 +62,7 @@ def test_min_max_scaler(observation_shape, batch_size):
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('as_tensor', [True, False])
-def test_min_max_scaler_with_episode(observation_shape, batch_size, as_tensor):
+def test_min_max_scaler_with_episode(observation_shape, batch_size):
     observations = np.random.random((batch_size, ) + observation_shape)
     actions = np.random.random((batch_size, 1))
     rewards = np.random.random(batch_size)
@@ -73,8 +72,7 @@ def test_min_max_scaler_with_episode(observation_shape, batch_size, as_tensor):
     dataset = MDPDataset(observations=observations,
                          actions=actions,
                          rewards=rewards,
-                         terminals=terminals,
-                         as_tensor=as_tensor)
+                         terminals=terminals)
 
     max = observations.max(axis=0)
     min = observations.min(axis=0)
@@ -118,9 +116,7 @@ def test_standard_scaler(observation_shape, batch_size):
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('as_tensor', [True, False])
-def test_standard_scaler_with_episode(observation_shape, batch_size,
-                                      as_tensor):
+def test_standard_scaler_with_episode(observation_shape, batch_size):
     shape = (batch_size, ) + observation_shape
     observations = np.random.random(shape).astype('f4')
     actions = np.random.random((batch_size, 1)).astype('f4')
@@ -131,8 +127,7 @@ def test_standard_scaler_with_episode(observation_shape, batch_size,
     dataset = MDPDataset(observations=observations,
                          actions=actions,
                          rewards=rewards,
-                         terminals=terminals,
-                         as_tensor=as_tensor)
+                         terminals=terminals)
 
     mean = observations.mean(axis=0)
     std = observations.std(axis=0)

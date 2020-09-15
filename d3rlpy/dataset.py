@@ -1,40 +1,13 @@
 import numpy as np
-import torch
 import h5py
-
-from .gpu import Device
 
 
 def _safe_size(array):
     if isinstance(array, (list, tuple)):
         return len(array)
-    elif isinstance(array, (np.ndarray, torch.Tensor)):
+    elif isinstance(array, np.ndarray):
         return array.shape[0]
     raise ValueError
-
-
-def _device_to_string(device):
-    if device is None:
-        return 'cpu:0'
-    return 'cuda:%d' % device.get_id()
-
-
-def _numpy_to_tensor(ndarray, device):
-    # return if ndarray is already torch.Tensor
-    if isinstance(ndarray, torch.Tensor):
-        return ndarray
-
-    if ndarray.dtype == np.float32:
-        dtype = torch.float32
-    elif ndarray.dtype == np.float64:
-        dtype = torch.float32
-    elif ndarray.dtype == np.int32:
-        dtype = torch.int32
-    elif ndarray.dtype == np.uint8:
-        dtype = torch.uint8
-    device = _device_to_string(device)
-
-    return torch.tensor(ndarray, dtype=dtype, device=device)
 
 
 def _to_episodes(observation_shape, action_size, observations, actions,
@@ -91,21 +64,16 @@ def _to_transitions(observation_shape, action_size, observations, actions,
 def _stack_frames(transition, n_frames):
     assert len(transition.observation.shape) == 3
     assert n_frames > 1
-    assert isinstance(transition.observation, (np.ndarray, torch.Tensor))
+    assert isinstance(transition.observation, np.ndarray)
 
     dtype = transition.observation.dtype
     n_channels = transition.observation.shape[0]
     image_size = transition.observation.shape[1:]
     shape = (n_frames * n_channels, *image_size)
 
-    # create empty ndarray
-    if isinstance(transition.observation, np.ndarray):
-        observation = np.zeros(shape, dtype=dtype)
-        next_observation = np.zeros(shape, dtype=dtype)
-    else:
-        device = transition.observation.device
-        observation = torch.zeros(shape, dtype=dtype, device=device)
-        next_observation = torch.zeros(shape, dtype=dtype, device=device)
+    # returned array
+    observation = np.zeros(shape, dtype=dtype)
+    next_observation = np.zeros(shape, dtype=dtype)
 
     # stack frames
     t = transition
@@ -164,7 +132,7 @@ class MDPDataset:
             pass
 
     Args:
-        observations (numpy.ndarray or list(numpy.ndarray)): N-D array. If the
+        observations (numpy.ndarray): N-D array. If the
             observation is a vector, the shape should be
             `(N, dim_observation)`. If the observations is an image, the shape
             should be `(N, C, H, W)`.
@@ -175,8 +143,6 @@ class MDPDataset:
         terminals (numpy.ndarray): array of binary terminal flags.
         discrete_action (bool): flag to use the given actions as discrete
             action-space actions.
-        as_tensor (bool): flag to hold observations as ``torch.Tensor``.
-        device (d3rlpy.gpu.Device or int): gpu device or device id for tensors.
 
     """
     def __init__(self,
@@ -184,22 +150,8 @@ class MDPDataset:
                  actions,
                  rewards,
                  terminals,
-                 discrete_action=False,
-                 as_tensor=False,
-                 device=None):
-        # data type option
-        self._as_tensor = as_tensor
-        if isinstance(device, int):
-            self._device = Device(device)
-        else:
-            self._device = device
-
-        # numpy to PyTorch conversion
-        if as_tensor:
-            self._observations = _numpy_to_tensor(observations, self._device)
-        else:
-            self._observations = observations
-
+                 discrete_action=False):
+        self._observations = np.asarray(observations)
         self._rewards = np.asarray(rewards).reshape(-1)
         self._terminals = np.asarray(terminals).reshape(-1)
         self.discrete_action = discrete_action
@@ -215,8 +167,7 @@ class MDPDataset:
         """ Returns the observations.
 
         Returns:
-            numpy.ndarray, list(numpy.ndarray) or torch.Tensor:
-                array of observations.
+            numpy.ndarray: array of observations.
 
         """
         return self._observations
@@ -250,26 +201,6 @@ class MDPDataset:
 
         """
         return self._terminals
-
-    @property
-    def as_tensor(self):
-        """ Returns the flag to hold observations as ``torch.Tensor``.
-
-        Returns:
-            bool: flag to hold observations as ``torch.Tensor``.
-
-        """
-        return self._as_tensor
-
-    @property
-    def device(self):
-        """ Returns the gpu device for tensors.
-
-        Returns:
-            d3rlpy.gpu.Device: gpu device.
-
-        """
-        return self._device
 
     @property
     def episodes(self):
@@ -404,13 +335,12 @@ class MDPDataset:
             }
 
         # avoid large copy when observations are huge data.
-        if isinstance(self._observations, np.ndarray):
-            stats['observation'] = {
-                'mean': np.mean(self.observations, axis=0),
-                'std': np.std(self.observations, axis=0),
-                'min': np.min(self.observations, axis=0),
-                'max': np.max(self.observations, axis=0),
-            }
+        stats['observation'] = {
+            'mean': np.mean(self.observations, axis=0),
+            'std': np.std(self.observations, axis=0),
+            'min': np.min(self.observations, axis=0),
+            'max': np.max(self.observations, axis=0),
+        }
 
         return stats
 
@@ -448,14 +378,7 @@ class MDPDataset:
                 assert action.shape == (self.get_action_size(), )
 
         # append observations
-        if isinstance(self._observations, list):
-            self._observations += list(map(lambda x: x, observations))
-        elif isinstance(self._observations, torch.Tensor):
-            observations = _numpy_to_tensor(observations, self._device)
-            self._observations = torch.cat([self._observations, observations],
-                                           dim=0)
-        else:
-            self._observations = np.vstack([self._observations, observations])
+        self._observations = np.vstack([self._observations, observations])
 
         # append actions
         if self.discrete_action:
@@ -498,14 +421,8 @@ class MDPDataset:
             fname (str): file path.
 
         """
-        # make sure if data is numpy.ndarray or list
-        if isinstance(self._observations, torch.Tensor):
-            observations = self._observations.cpu().numpy()
-        else:
-            observations = self._observations
-
         with h5py.File(fname, 'w') as f:
-            f.create_dataset('observations', data=observations)
+            f.create_dataset('observations', data=self._observations)
             f.create_dataset('actions', data=self._actions)
             f.create_dataset('rewards', data=self._rewards)
             f.create_dataset('terminals', data=self._terminals)
@@ -513,7 +430,7 @@ class MDPDataset:
             f.flush()
 
     @classmethod
-    def load(cls, fname, as_tensor=False, device=None):
+    def load(cls, fname):
         """ Loads dataset from HDF5.
 
         .. code-block:: python
@@ -534,9 +451,6 @@ class MDPDataset:
 
         Args:
             fname (str): file path.
-            as_tensor (bool): flag to hold observations as ``torch.Tensor``.
-            device (d3rlpy.gpu.Device or int):
-                gpu device or device id for tensor.
 
         """
         with h5py.File(fname, 'r') as f:
@@ -550,9 +464,7 @@ class MDPDataset:
                       actions=actions,
                       rewards=rewards,
                       terminals=terminals,
-                      discrete_action=discrete_action,
-                      as_tensor=as_tensor,
-                      device=device)
+                      discrete_action=discrete_action)
 
         return dataset
 
@@ -968,16 +880,10 @@ class TransitionMiniBatch:
             next_rewards.append(transition.next_reward)
             terminals.append(transition.terminal)
 
-        # convert list to ndarray or torch.Tensor and fix shapes
-        if isinstance(observations[0], torch.Tensor):
-            self._observations = torch.stack(observations, dim=0)
-            self._next_observations = torch.stack(next_observations, dim=0)
-        else:
-            self._observations = np.array(observations)
-            self._next_observations = np.array(next_observations)
-
+        self._observations = np.array(observations)
         self._actions = np.array(actions).reshape((self.size(), -1))
         self._rewards = np.array(rewards).reshape((self.size(), 1))
+        self._next_observations = np.array(next_observations)
         self._next_rewards = np.array(next_rewards).reshape((self.size(), 1))
         self._next_actions = np.array(next_actions).reshape((self.size(), -1))
         self._terminals = np.array(terminals).reshape((self.size(), 1))
