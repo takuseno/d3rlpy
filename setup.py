@@ -28,7 +28,5 @@ setup(name="d3rlpy",
                 "d3rlpy.models",
                 "d3rlpy.models.torch",
                 "d3rlpy.preprocessing",
-                "d3rlpy.experimental",
-                "d3rlpy.experimental.server",
                 "d3rlpy.online"],
       python_requires=">=3.5.0")
