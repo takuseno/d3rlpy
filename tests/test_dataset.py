@@ -209,7 +209,13 @@ def test_episode(data_size, observation_size, action_size):
 @pytest.mark.parametrize('discrete_action', [False, True])
 def test_transition_minibatch(data_size, observation_shape, action_size,
                               n_frames, discrete_action):
-    observations = np.random.randint(256, size=(data_size, *observation_shape), dtype=np.uint8)
+    if len(observation_shape) == 3:
+        observations = np.random.randint(256,
+                                         size=(data_size, *observation_shape),
+                                         dtype=np.uint8)
+    else:
+        observations = np.random.random((data_size, ) +
+                                        observation_shape).astype('f4')
     if discrete_action:
         actions = np.random.randint(action_size, size=data_size)
     else:
@@ -240,10 +246,7 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
         observation = batch.observations[i]
         next_observation = batch.next_observations[i]
 
-        if n_frames == 1:
-            assert np.allclose(observation, t.observation)
-            assert np.allclose(next_observation, t.next_observation)
-        elif n_frames > 1 and len(observation_shape) == 3:
+        if n_frames > 1 and len(observation_shape) == 3:
             # check frame stacking
             head_index = i
             tail_index = head_index + n_frames
@@ -255,6 +258,9 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
             assert next_observation.shape == ref_next_observation.shape
             assert np.all(observation == ref_observation)
             assert np.all(next_observation == ref_next_observation)
+        else:
+            assert np.allclose(observation, t.observation)
+            assert np.allclose(next_observation, t.next_observation)
 
         assert np.all(batch.actions[i] == t.action)
         assert np.all(batch.rewards[i][0] == t.reward)
