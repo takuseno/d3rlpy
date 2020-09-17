@@ -5,6 +5,7 @@ import copy
 import cython
 
 from cython cimport view
+from libc.string cimport memcpy
 from libcpp cimport nullptr
 from libcpp cimport bool
 from libcpp.memory cimport make_shared, shared_ptr
@@ -891,8 +892,8 @@ cdef class Transition:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void _stack_frames(TransitionPtri transition,
-                        UINT8_t[:, :, :] stack,
-                        UINT8_t[:, :, :] next_stack,
+                        UINT8_t* stack,
+                        UINT8_t* next_stack,
                         int n_frames) nogil:
     cdef int c = transition.get().observation_shape[0]
     cdef int h = transition.get().observation_shape[1]
@@ -908,23 +909,13 @@ cdef void _stack_frames(TransitionPtri transition,
     for i in range(n_frames):
         tail_channel = n_frames * c - i * c
         head_channel = tail_channel - c
-        for j in range(c):
-            for k in range(h):
-                for l in range(w):
-                    offset = head_channel * h * w
-                    index = j * h * w + k * w + l
-                    stack[head_channel + j][k][l] = t.get().observation[index]
-                    next_stack[head_channel + j][k][l] = t.get().next_observation[index]
+        memcpy(stack + head_channel * h * w, t.get().observation, c * h * w)
+        memcpy(next_stack + head_channel * h * w, t.get().next_observation, c * h * w)
         if t.get().prev_transition == nullptr:
             if i != n_frames - 1:
                 tail_channel -= c
                 head_channel -= c
-                for j in range(c):
-                    for k in range(h):
-                        for l in range(w):
-                            offset = head_channel * h * w
-                            index = j * h * w + k * w + l
-                            next_stack[head_channel + j][k][l] = t.get().observation[index]
+                memcpy(next_stack + head_channel * h * w, t.get().observation, c * h * w)
             break
         t = t.get().prev_transition
 
@@ -998,8 +989,10 @@ cdef class TransitionMiniBatch:
 
         cdef int i
         cdef Transition transition
-        cdef UINT8_t[:, :, :] observation_ptr
-        cdef UINT8_t[:, :, :] next_observation_ptr
+        cdef np.ndarray observation
+        cdef np.ndarray next_observation
+        cdef UINT8_t* observation_ptr
+        cdef UINT8_t* next_observation_ptr
         cdef TransitionPtri transition_ptr
         for i in range(size):
             transition = transitions[i]
@@ -1007,8 +1000,8 @@ cdef class TransitionMiniBatch:
             if n_frames > 1 and len(transition.observation.shape) == 3:
                 observation = np.zeros(observation_shape, dtype=np.uint8)
                 next_observation = np.zeros(observation_shape, dtype=np.uint8)
-                observation_ptr = observation.data
-                next_observation_ptr = next_observation.data
+                observation_ptr = <UINT8_t*> observation.data
+                next_observation_ptr = <UINT8_t*> next_observation.data
                 transition_ptr = transition.get_ptr_i()
                 with nogil:
                     _stack_frames(transition_ptr, observation_ptr, next_observation_ptr, n_frames)
