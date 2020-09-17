@@ -1,0 +1,3 @@
+include d3rlpy/*.pyx
+include d3rlpy/*.pxd
+include d3rlpy/cpp/include/d3rlpy/*.h
