@@ -2,6 +2,7 @@
 *__pycache__
 *.pkl
 *.c
+*.cpp
 *.so
 .python-version
 d3rlpy_data

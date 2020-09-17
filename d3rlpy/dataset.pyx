@@ -4,6 +4,13 @@ import h5py
 import copy
 import cython
 
+from cython cimport view
+from libc.string cimport memcpy
+from libcpp cimport nullptr
+from libcpp cimport bool
+from libcpp.memory cimport make_shared, shared_ptr
+from dataset cimport CTransition
+
 
 def _safe_size(array):
     if isinstance(array, (list, tuple)):
@@ -613,10 +620,9 @@ class Episode:
         return iter(self.transitions)
 
 
-UINT8 = np.uint8
-FLOAT = np.float
 ctypedef np.uint8_t UINT8_t
-ctypedef np.float_t FLOAT_t
+ctypedef np.float32_t FLOAT_t
+ctypedef shared_ptr[CTransition] TransitionPtr
 
 
 cdef class Transition:
@@ -641,41 +647,63 @@ cdef class Transition:
             pointer to the next transition.
 
     """
-    cdef tuple observation_shape
-    cdef int action_size
-    cdef np.ndarray _observation
+    cdef TransitionPtr _thisptr
+    cdef bool _is_image
+    cdef _observation
     cdef _action
-    cdef float _reward
-    cdef np.ndarray _next_observation
+    cdef _next_observation
     cdef _next_action
-    cdef float _next_reward
-    cdef float _terminal
     cdef Transition _prev_transition
     cdef Transition _next_transition
 
-    def __init__(self,
-                 tuple observation_shape not None,
-                 int action_size,
-                 observation not None,
-                 action not None,
-                 float reward,
-                 next_observation not None,
-                 next_action not None,
-                 float next_reward,
-                 float terminal,
-                 prev_transition=None,
-                 next_transition=None):
-        self.observation_shape = observation_shape
-        self.action_size = action_size
+    def __cinit__(self,
+                  vector[int] observation_shape,
+                  int action_size,
+                  np.ndarray observation,
+                  action not None,
+                  float reward,
+                  np.ndarray next_observation,
+                  next_action not None,
+                  float next_reward,
+                  float terminal,
+                  Transition prev_transition=None,
+                  Transition next_transition=None):
+        cdef TransitionPtr prev_ptr
+        cdef TransitionPtr next_ptr
+
+        if prev_transition:
+            prev_ptr = prev_transition.get_ptr()
+        if next_transition:
+            next_ptr = next_transition.get_ptr()
+
+        self._thisptr = make_shared[CTransition]()
+        self._thisptr.get().observation_shape = observation_shape
+        self._thisptr.get().action_size = action_size
+        self._thisptr.get().reward = reward
+        self._thisptr.get().next_reward = next_reward
+        self._thisptr.get().terminal = terminal
+        self._thisptr.get().prev_transition = prev_ptr
+        self._thisptr.get().next_transition = next_ptr
+
+        # assign observation
+        if observation_shape.size() == 3:
+            self._thisptr.get().observation_i = <UINT8_t*> observation.data
+            self._thisptr.get().next_observation_i = <UINT8_t*> next_observation.data
+            self._is_image = True
+        else:
+            self._thisptr.get().observation_f = <FLOAT_t*> observation.data
+            self._thisptr.get().next_observation_f = <FLOAT_t*> next_observation.data
+            self._is_image = False
+
         self._observation = observation
         self._action = action
-        self._reward = reward
         self._next_observation = next_observation
         self._next_action = next_action
-        self._next_reward = next_reward
-        self._terminal = terminal
         self._prev_transition = prev_transition
         self._next_transition = next_transition
+
+    cdef TransitionPtr get_ptr(self):
+        return self._thisptr
 
     def get_observation_shape(self):
         """ Returns observation shape.
@@ -684,7 +712,7 @@ cdef class Transition:
             tuple: observation shape.
 
         """
-        return self.observation_shape
+        return tuple(self._thisptr.get().observation_shape)
 
     def get_action_size(self):
         """ Returns dimension of action-space.
@@ -693,7 +721,7 @@ cdef class Transition:
             int: dimension of action-space.
 
         """
-        return self.action_size
+        return self._thisptr.get().action_size
 
     @property
     def observation(self):
@@ -723,7 +751,7 @@ cdef class Transition:
             float: reward at `t`.
 
         """
-        return self._reward
+        return self._thisptr.get().reward
 
     @property
     def next_observation(self):
@@ -753,7 +781,7 @@ cdef class Transition:
             float: reward at `t+1`.
 
         """
-        return self._next_reward
+        return self._thisptr.get().next_reward
 
     @property
     def terminal(self):
@@ -763,7 +791,7 @@ cdef class Transition:
             int: terminal flag at `t+1`.
 
         """
-        return self._terminal
+        return self._thisptr.get().terminal
 
     @property
     def prev_transition(self):
@@ -778,7 +806,7 @@ cdef class Transition:
         return self._prev_transition
 
     @prev_transition.setter
-    def prev_transition(self, transition):
+    def prev_transition(self, Transition transition):
         """ Sets transition to ``prev_transition``.
 
         Args:
@@ -786,6 +814,9 @@ cdef class Transition:
 
         """
         assert isinstance(transition, Transition)
+        cdef TransitionPtr ptr
+        ptr = transition.get_ptr().get().prev_transition
+        self._thisptr.get().prev_transition = ptr
         self._prev_transition = transition
 
     @property
@@ -801,7 +832,7 @@ cdef class Transition:
         return self._next_transition
 
     @next_transition.setter
-    def next_transition(self, transition):
+    def next_transition(self, Transition transition):
         """ Sets transition to ``next_transition``.
 
         Args:
@@ -809,43 +840,41 @@ cdef class Transition:
 
         """
         assert isinstance(transition, Transition)
+        cdef TransitionPtr ptr
+        ptr = transition.get_ptr().get().next_transition
+        self._thisptr.get().next_transition = ptr
         self._next_transition = transition
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef tuple _stack_frames(Transition transition, int n_frames):
-    assert len(transition.observation.shape) == 3
-    assert n_frames > 1
-    assert isinstance(transition.observation, np.ndarray)
-
-    cdef int n_channels = transition.observation.shape[0]
-    cdef tuple image_size = transition.observation.shape[1:]
-    cdef tuple shape = (n_frames * n_channels, *image_size)
-
-    # returned array
-    cdef np.ndarray[UINT8_t, ndim=3] observation = np.zeros(shape, dtype=UINT8)
-    cdef np.ndarray[UINT8_t, ndim=3] next_observation = np.zeros(shape, dtype=UINT8)
+cdef void _stack_frames(TransitionPtr transition,
+                        UINT8_t* stack,
+                        UINT8_t* next_stack,
+                        int n_frames) nogil:
+    cdef int c = transition.get().observation_shape[0]
+    cdef int h = transition.get().observation_shape[1]
+    cdef int w = transition.get().observation_shape[2]
 
     # stack frames
-    cdef Transition t = transition
-    cdef int i
-    cdef int head_index
-    cdef int tail_index
+    cdef TransitionPtr t = transition
+    cdef int i, j, k, l
+    cdef int head_channel
+    cdef int tail_channel
+    cdef int offset
+    cdef int index
     for i in range(n_frames):
-        tail_index = n_frames * n_channels - i * n_channels
-        head_index = tail_index - n_channels
-        observation[head_index:tail_index][...] = t.observation
-        next_observation[head_index:tail_index][...] = t.next_observation
-        if t.prev_transition is None:
+        tail_channel = n_frames * c - i * c
+        head_channel = tail_channel - c
+        memcpy(stack + head_channel * h * w, t.get().observation_i, c * h * w)
+        memcpy(next_stack + head_channel * h * w, t.get().next_observation_i, c * h * w)
+        if t.get().prev_transition == nullptr:
             if i != n_frames - 1:
-                tail_index -= n_channels
-                head_index -= n_channels
-                next_observation[head_index:tail_index][...] = t.observation
+                tail_channel -= c
+                head_channel -= c
+                memcpy(next_stack + head_channel * h * w, t.get().observation_i, c * h * w)
             break
-        t = t.prev_transition
-
-    return observation, next_observation
+        t = t.get().prev_transition
 
 
 cdef class TransitionMiniBatch:
@@ -879,17 +908,15 @@ cdef class TransitionMiniBatch:
 
     """
     cdef list _transitions
-    cdef _observations
+    cdef np.ndarray _observations
     cdef _actions
     cdef np.float32_t[:, :] _rewards
-    cdef _next_observations
+    cdef np.ndarray _next_observations
     cdef _next_actions
     cdef np.float32_t[:, :] _next_rewards
     cdef np.float32_t[:, :] _terminals
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def __init__(self, list transitions not None, int n_frames=1):
+    def __cinit__(self, list transitions not None, int n_frames=1):
         self._transitions = transitions
 
         # determine observation shape
@@ -909,29 +936,39 @@ cdef class TransitionMiniBatch:
             action_dtype = np.float32
 
         cdef int size = len(transitions)
-        self._observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
+        self._observations = np.zeros((size,) + observation_shape, dtype=observation_dtype)
         self._actions = np.empty((size,) + action_shape, dtype=action_dtype)
         self._rewards = np.empty((size, 1), dtype=np.float32)
-        self._next_observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
+        self._next_observations = np.zeros((size,) + observation_shape, dtype=observation_dtype)
         self._next_actions = np.empty((size,) + action_shape, dtype=action_dtype)
         self._next_rewards = np.empty((size, 1), dtype=np.float32)
         self._terminals = np.empty((size, 1), dtype=np.float32)
 
         cdef int i
+        cdef Transition transition
+        cdef np.ndarray observation
+        cdef np.ndarray next_observation
+        cdef UINT8_t* observation_ptr
+        cdef UINT8_t* next_observation_ptr
+        cdef TransitionPtr transition_ptr
         for i in range(size):
             transition = transitions[i]
+
             # stack frames if necessary
             if n_frames > 1 and len(transition.observation.shape) == 3:
-                stacked_data = _stack_frames(transition, n_frames)
-                observation, next_observation = stacked_data
+                observation = self._observations[i]
+                next_observation = self._next_observations[i]
+                observation_ptr = <UINT8_t*> observation.data
+                next_observation_ptr = <UINT8_t*> next_observation.data
+                transition_ptr = transition.get_ptr()
+                with nogil:
+                    _stack_frames(transition_ptr, observation_ptr, next_observation_ptr, n_frames)
             else:
-                observation = transition.observation
-                next_observation = transition.next_observation
+                self._observations[i][...] = transition.observation
+                self._next_observations[i][...] = transition.next_observation
 
-            self._observations[i][...] = observation
             self._actions[i] = transitions[i].action
             self._rewards[i][0] = transitions[i].reward
-            self._next_observations[i][...] = next_observation
             self._next_actions[i] = transitions[i].next_action
             self._next_rewards[i][0] = transitions[i].next_reward
             self._terminals[i][0] = transitions[i].terminal
