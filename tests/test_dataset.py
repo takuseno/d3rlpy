@@ -5,49 +5,6 @@ import os
 from collections import deque
 from sklearn.model_selection import train_test_split
 from d3rlpy.dataset import MDPDataset, Episode, Transition, TransitionMiniBatch
-from d3rlpy.dataset import _stack_frames
-
-
-@pytest.mark.parametrize('data_size', [100])
-@pytest.mark.parametrize('observation_shape', [(4, 84, 84)])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_frames', [4])
-def test_stack_frames(data_size, observation_shape, action_size, n_frames):
-    observations = np.random.randint(256,
-                                     size=(data_size, *observation_shape),
-                                     dtype=np.uint8)
-    actions = np.random.random((data_size, action_size))
-    rewards = np.random.random((data_size, 1))
-
-    episode = Episode(observation_shape=observation_shape,
-                      action_size=action_size,
-                      observations=observations,
-                      actions=actions,
-                      rewards=rewards)
-
-    image_size = observation_shape[1:]
-    n_channels = n_frames * observation_shape[0]
-    stacked_shape = (n_channels, *image_size)
-
-    # add empty frames to the head
-    padding = np.zeros((n_frames - 1, *observation_shape))
-    padded_observations = np.vstack([padding, observations])
-
-    for i, transition in enumerate(episode.transitions):
-        observation, next_observation = _stack_frames(transition, n_frames)
-
-        # create reference stacked observation
-        head_index = i
-        tail_index = head_index + n_frames
-        window = padded_observations[head_index:tail_index]
-        next_window = padded_observations[head_index + 1:tail_index + 1]
-
-        ref_observation = np.vstack(window)
-        ref_next_observation = np.vstack(next_window)
-        assert observation.shape == ref_observation.shape
-        assert next_observation.shape == ref_next_observation.shape
-        assert np.all(observation == ref_observation)
-        assert np.all(next_observation == ref_next_observation)
 
 
 @pytest.mark.parametrize('data_size', [100])
@@ -252,7 +209,7 @@ def test_episode(data_size, observation_size, action_size):
 @pytest.mark.parametrize('discrete_action', [False, True])
 def test_transition_minibatch(data_size, observation_shape, action_size,
                               n_frames, discrete_action):
-    observations = np.random.random((data_size, *observation_shape))
+    observations = np.random.randint(256, size=(data_size, *observation_shape), dtype=np.uint8)
     if discrete_action:
         actions = np.random.randint(action_size, size=data_size)
     else:
@@ -272,6 +229,10 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
     else:
         batched_observation_shape = (data_size - 1, *observation_shape)
 
+    # create padded observations for check stacking
+    padding = np.zeros((n_frames - 1, *observation_shape), dtype=np.uint8)
+    padded_observations = np.vstack([padding, observations])
+
     batch = TransitionMiniBatch(episode.transitions, n_frames)
     assert batch.observations.shape == batched_observation_shape
     assert batch.next_observations.shape == batched_observation_shape
@@ -282,6 +243,18 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
         if n_frames == 1:
             assert np.allclose(observation, t.observation)
             assert np.allclose(next_observation, t.next_observation)
+        elif n_frames > 1 and len(observation_shape) == 3:
+            # check frame stacking
+            head_index = i
+            tail_index = head_index + n_frames
+            window = padded_observations[head_index:tail_index]
+            next_window = padded_observations[head_index + 1:tail_index + 1]
+            ref_observation = np.vstack(window)
+            ref_next_observation = np.vstack(next_window)
+            assert observation.shape == ref_observation.shape
+            assert next_observation.shape == ref_next_observation.shape
+            assert np.all(observation == ref_observation)
+            assert np.all(next_observation == ref_next_observation)
 
         assert np.all(batch.actions[i] == t.action)
         assert np.all(batch.rewards[i][0] == t.reward)
