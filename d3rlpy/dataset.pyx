@@ -4,6 +4,12 @@ import h5py
 import copy
 import cython
 
+from cython cimport view
+from libcpp cimport nullptr
+from libcpp cimport bool
+from libcpp.memory cimport make_shared, shared_ptr
+from dataset cimport CTransition
+
 
 def _safe_size(array):
     if isinstance(array, (list, tuple)):
@@ -616,7 +622,9 @@ class Episode:
 UINT8 = np.uint8
 FLOAT = np.float
 ctypedef np.uint8_t UINT8_t
-ctypedef np.float_t FLOAT_t
+ctypedef np.float32_t FLOAT_t
+ctypedef shared_ptr[CTransition[UINT8_t]] TransitionPtri
+ctypedef shared_ptr[CTransition[FLOAT_t]] TransitionPtrf
 
 
 cdef class Transition:
@@ -641,41 +649,78 @@ cdef class Transition:
             pointer to the next transition.
 
     """
-    cdef tuple observation_shape
-    cdef int action_size
-    cdef np.ndarray _observation
+    cdef TransitionPtri _thisptr_i
+    cdef TransitionPtrf _thisptr_f
+    cdef bool _is_image
+    cdef _observation
     cdef _action
-    cdef float _reward
-    cdef np.ndarray _next_observation
+    cdef _next_observation
     cdef _next_action
-    cdef float _next_reward
-    cdef float _terminal
     cdef Transition _prev_transition
     cdef Transition _next_transition
 
-    def __init__(self,
-                 tuple observation_shape not None,
-                 int action_size,
-                 observation not None,
-                 action not None,
-                 float reward,
-                 next_observation not None,
-                 next_action not None,
-                 float next_reward,
-                 float terminal,
-                 prev_transition=None,
-                 next_transition=None):
-        self.observation_shape = observation_shape
-        self.action_size = action_size
+    def __cinit__(self,
+                  vector[int] observation_shape,
+                  int action_size,
+                  np.ndarray observation,
+                  action not None,
+                  float reward,
+                  np.ndarray next_observation,
+                  next_action not None,
+                  float next_reward,
+                  float terminal,
+                  Transition prev_transition=None,
+                  Transition next_transition=None):
+        cdef TransitionPtri prev_ptr_i = shared_ptr[CTransition[UINT8_t]]()
+        cdef TransitionPtri next_ptr_i = shared_ptr[CTransition[UINT8_t]]()
+        cdef TransitionPtrf prev_ptr_f = shared_ptr[CTransition[FLOAT_t]]()
+        cdef TransitionPtrf next_ptr_f = shared_ptr[CTransition[FLOAT_t]]()
+
+        if observation_shape.size() == 3:
+            if prev_transition:
+                prev_ptr_i = prev_transition.get_ptr_i()
+            if next_transition:
+                next_ptr_i = next_transition.get_ptr_i()
+            self._thisptr_i = make_shared[CTransition[UINT8_t]]()
+            self._thisptr_i.get().observation_shape = observation_shape
+            self._thisptr_i.get().action_size = action_size
+            self._thisptr_i.get().observation = <UINT8_t*> observation.data
+            self._thisptr_i.get().reward = reward
+            self._thisptr_i.get().next_observation = <UINT8_t*> next_observation.data
+            self._thisptr_i.get().next_reward = next_reward
+            self._thisptr_i.get().terminal = terminal
+            self._thisptr_i.get().prev_transition = prev_ptr_i
+            self._thisptr_i.get().next_transition = next_ptr_i
+            self._is_image = True
+        else:
+            if prev_transition:
+                prev_ptr_f = prev_transition.get_ptr_f()
+            if next_transition:
+                next_ptr_f = next_transition.get_ptr_f()
+            self._thisptr_f = make_shared[CTransition[FLOAT_t]]()
+            self._thisptr_f.get().observation_shape = observation_shape
+            self._thisptr_f.get().action_size = action_size
+            self._thisptr_f.get().observation = <FLOAT_t*> observation.data
+            self._thisptr_f.get().reward = reward
+            self._thisptr_f.get().next_observation = <FLOAT_t*> next_observation.data
+            self._thisptr_f.get().next_reward = next_reward
+            self._thisptr_f.get().terminal = terminal
+            self._thisptr_f.get().prev_transition = prev_ptr_f
+            self._thisptr_f.get().next_transition = next_ptr_f
+            self._is_image = False
+
         self._observation = observation
         self._action = action
-        self._reward = reward
         self._next_observation = next_observation
         self._next_action = next_action
-        self._next_reward = next_reward
-        self._terminal = terminal
         self._prev_transition = prev_transition
         self._next_transition = next_transition
+
+    cdef TransitionPtri get_ptr_i(self):
+        return self._thisptr_i
+
+    cdef TransitionPtrf get_ptr_f(self):
+        return self._thisptr_f
 
     def get_observation_shape(self):
         """ Returns observation shape.
@@ -684,7 +729,10 @@ cdef class Transition:
             tuple: observation shape.
 
         """
-        return self.observation_shape
+        if self._is_image:
+            return tuple(self._thisptr_i.get().observation_shape)
+        else:
+            return tuple(self._thisptr_f.get().observation_shape)
 
     def get_action_size(self):
         """ Returns dimension of action-space.
@@ -693,7 +741,10 @@ cdef class Transition:
             int: dimension of action-space.
 
         """
-        return self.action_size
+        if self._is_image:
+            return self._thisptr_i.get().action_size
+        else:
+            return self._thisptr_f.get().action_size
 
     @property
     def observation(self):
@@ -723,7 +774,10 @@ cdef class Transition:
             float: reward at `t`.
 
         """
-        return self._reward
+        if self._is_image:
+            return self._thisptr_i.get().reward
+        else:
+            return self._thisptr_f.get().reward
 
     @property
     def next_observation(self):
@@ -753,7 +807,10 @@ cdef class Transition:
             float: reward at `t+1`.
 
         """
-        return self._next_reward
+        if self._is_image:
+            return self._thisptr_i.get().next_reward
+        else:
+            return self._thisptr_f.get().next_reward
 
     @property
     def terminal(self):
@@ -763,7 +820,10 @@ cdef class Transition:
             int: terminal flag at `t+1`.
 
         """
-        return self._terminal
+        if self._is_image:
+            return self._thisptr_i.get().terminal
+        else:
+            return self._thisptr_f.get().terminal
 
     @property
     def prev_transition(self):
@@ -778,7 +838,7 @@ cdef class Transition:
         return self._prev_transition
 
     @prev_transition.setter
-    def prev_transition(self, transition):
+    def prev_transition(self, Transition transition):
         """ Sets transition to ``prev_transition``.
 
         Args:
@@ -786,6 +846,14 @@ cdef class Transition:
 
         """
         assert isinstance(transition, Transition)
+        cdef shared_ptr[CTransition[UINT8_t]] transition_i
+        cdef shared_ptr[CTransition[FLOAT_t]] transition_f
+        if self._is_image:
+            transition_i = transition.get_ptr_i().get().prev_transition
+            self._thisptr_i.get().prev_transition = transition_i
+        else:
+            transition_f = transition.get_ptr_f().get().prev_transition
+            self._thisptr_f.get().prev_transition = transition_f
         self._prev_transition = transition
 
     @property
@@ -801,7 +869,7 @@ cdef class Transition:
         return self._next_transition
 
     @next_transition.setter
-    def next_transition(self, transition):
+    def next_transition(self, Transition transition):
         """ Sets transition to ``next_transition``.
 
         Args:
@@ -809,6 +877,14 @@ cdef class Transition:
 
         """
         assert isinstance(transition, Transition)
+        cdef shared_ptr[CTransition[UINT8_t]] next_transition_i
+        cdef shared_ptr[CTransition[FLOAT_t]] next_transition_f
+        if self._is_image:
+            transition_i = transition.get_ptr_i().get().next_transition
+            self._thisptr_i.get().next_transition = transition_i
+        else:
+            transition_f = transition.get_ptr_f().get().next_transition
+            self._thisptr_f.get().next_transition = transition_f
         self._next_transition = transition
 
 

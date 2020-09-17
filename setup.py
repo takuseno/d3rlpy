@@ -1,11 +1,18 @@
+import os
+
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 from numpy import get_include
 
+os.environ['CFLAGS'] = '-std=c++11'
+
 # setup Cython build
 ext = Extension('d3rlpy.dataset',
                 sources=['d3rlpy/dataset.pyx'],
-                include_dirs=[get_include()])
+                include_dirs=[get_include(), 'd3rlpy/cpp/include'],
+                language='c++',
+                extra_compile_args=["-std=c++11"],
+                extra_link_args=["-std=c++11"])
 
 setup(name="d3rlpy",
       version="0.23",
@@ -38,7 +45,7 @@ setup(name="d3rlpy",
                 "d3rlpy.online"],
       python_requires=">=3.5.0",
       zip_safe=False,
-      package_data={'d3rlpy': ['*.pyx']},
+      package_data={'d3rlpy': ['*.pyx', '*.pxd', 'cpp/include/d3rlpy/*.h']},
       ext_modules=cythonize([ext],
                             compiler_directives={
                                 'linetrace': True,
