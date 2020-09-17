@@ -4,4 +4,9 @@ indent_style = space
 
 [*.py]
 indent_size = 4
-indent_style = space
+
+[*.pyx]
+indent_size = 4
+
+[*.pxd]
+indent_size = 4
