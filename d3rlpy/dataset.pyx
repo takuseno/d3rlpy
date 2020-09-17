@@ -620,12 +620,9 @@ class Episode:
         return iter(self.transitions)
 
 
-UINT8 = np.uint8
-FLOAT = np.float
 ctypedef np.uint8_t UINT8_t
 ctypedef np.float32_t FLOAT_t
-ctypedef shared_ptr[CTransition[UINT8_t]] TransitionPtri
-ctypedef shared_ptr[CTransition[FLOAT_t]] TransitionPtrf
+ctypedef shared_ptr[CTransition] TransitionPtr
 
 
 cdef class Transition:
@@ -650,8 +647,7 @@ cdef class Transition:
             pointer to the next transition.
 
     """
-    cdef TransitionPtri _thisptr_i
-    cdef TransitionPtrf _thisptr_f
+    cdef TransitionPtr _thisptr
     cdef bool _is_image
     cdef _observation
     cdef _action
@@ -672,42 +668,31 @@ cdef class Transition:
                   float terminal,
                   Transition prev_transition=None,
                   Transition next_transition=None):
-        cdef TransitionPtri prev_ptr_i
-        cdef TransitionPtri next_ptr_i
-        cdef TransitionPtrf prev_ptr_f
-        cdef TransitionPtrf next_ptr_f
+        cdef TransitionPtr prev_ptr
+        cdef TransitionPtr next_ptr
 
+        if prev_transition:
+            prev_ptr = prev_transition.get_ptr()
+        if next_transition:
+            next_ptr = next_transition.get_ptr()
+
+        self._thisptr = make_shared[CTransition]()
+        self._thisptr.get().observation_shape = observation_shape
+        self._thisptr.get().action_size = action_size
+        self._thisptr.get().reward = reward
+        self._thisptr.get().next_reward = next_reward
+        self._thisptr.get().terminal = terminal
+        self._thisptr.get().prev_transition = prev_ptr
+        self._thisptr.get().next_transition = next_ptr
+
+        # assign observation
         if observation_shape.size() == 3:
-            if prev_transition:
-                prev_ptr_i = prev_transition.get_ptr_i()
-            if next_transition:
-                next_ptr_i = next_transition.get_ptr_i()
-            self._thisptr_i = make_shared[CTransition[UINT8_t]]()
-            self._thisptr_i.get().observation_shape = observation_shape
-            self._thisptr_i.get().action_size = action_size
-            self._thisptr_i.get().observation = <UINT8_t*> observation.data
-            self._thisptr_i.get().reward = reward
-            self._thisptr_i.get().next_observation = <UINT8_t*> next_observation.data
-            self._thisptr_i.get().next_reward = next_reward
-            self._thisptr_i.get().terminal = terminal
-            self._thisptr_i.get().prev_transition = prev_ptr_i
-            self._thisptr_i.get().next_transition = next_ptr_i
+            self._thisptr.get().observation_i = <UINT8_t*> observation.data
+            self._thisptr.get().next_observation_i = <UINT8_t*> next_observation.data
             self._is_image = True
         else:
-            if prev_transition:
-                prev_ptr_f = prev_transition.get_ptr_f()
-            if next_transition:
-                next_ptr_f = next_transition.get_ptr_f()
-            self._thisptr_f = make_shared[CTransition[FLOAT_t]]()
-            self._thisptr_f.get().observation_shape = observation_shape
-            self._thisptr_f.get().action_size = action_size
-            self._thisptr_f.get().observation = <FLOAT_t*> observation.data
-            self._thisptr_f.get().reward = reward
-            self._thisptr_f.get().next_observation = <FLOAT_t*> next_observation.data
-            self._thisptr_f.get().next_reward = next_reward
-            self._thisptr_f.get().terminal = terminal
-            self._thisptr_f.get().prev_transition = prev_ptr_f
-            self._thisptr_f.get().next_transition = next_ptr_f
+            self._thisptr.get().observation_f = <FLOAT_t*> observation.data
+            self._thisptr.get().next_observation_f = <FLOAT_t*> next_observation.data
             self._is_image = False
 
         self._observation = observation
@@ -717,11 +702,8 @@ cdef class Transition:
         self._prev_transition = prev_transition
         self._next_transition = next_transition
 
-    cdef TransitionPtri get_ptr_i(self):
-        return self._thisptr_i
-
-    cdef TransitionPtrf get_ptr_f(self):
-        return self._thisptr_f
+    cdef TransitionPtr get_ptr(self):
+        return self._thisptr
 
     def get_observation_shape(self):
         """ Returns observation shape.
@@ -730,10 +712,7 @@ cdef class Transition:
             tuple: observation shape.
 
         """
-        if self._is_image:
-            return tuple(self._thisptr_i.get().observation_shape)
-        else:
-            return tuple(self._thisptr_f.get().observation_shape)
+        return tuple(self._thisptr.get().observation_shape)
 
     def get_action_size(self):
         """ Returns dimension of action-space.
@@ -742,10 +721,7 @@ cdef class Transition:
             int: dimension of action-space.
 
         """
-        if self._is_image:
-            return self._thisptr_i.get().action_size
-        else:
-            return self._thisptr_f.get().action_size
+        return self._thisptr.get().action_size
 
     @property
     def observation(self):
@@ -775,10 +751,7 @@ cdef class Transition:
             float: reward at `t`.
 
         """
-        if self._is_image:
-            return self._thisptr_i.get().reward
-        else:
-            return self._thisptr_f.get().reward
+        return self._thisptr.get().reward
 
     @property
     def next_observation(self):
@@ -808,10 +781,7 @@ cdef class Transition:
             float: reward at `t+1`.
 
         """
-        if self._is_image:
-            return self._thisptr_i.get().next_reward
-        else:
-            return self._thisptr_f.get().next_reward
+        return self._thisptr.get().next_reward
 
     @property
     def terminal(self):
@@ -821,10 +791,7 @@ cdef class Transition:
             int: terminal flag at `t+1`.
 
         """
-        if self._is_image:
-            return self._thisptr_i.get().terminal
-        else:
-            return self._thisptr_f.get().terminal
+        return self._thisptr.get().terminal
 
     @property
     def prev_transition(self):
@@ -847,14 +814,9 @@ cdef class Transition:
 
         """
         assert isinstance(transition, Transition)
-        cdef shared_ptr[CTransition[UINT8_t]] transition_i
-        cdef shared_ptr[CTransition[FLOAT_t]] transition_f
-        if self._is_image:
-            transition_i = transition.get_ptr_i().get().prev_transition
-            self._thisptr_i.get().prev_transition = transition_i
-        else:
-            transition_f = transition.get_ptr_f().get().prev_transition
-            self._thisptr_f.get().prev_transition = transition_f
+        cdef TransitionPtr ptr
+        ptr = transition.get_ptr().get().prev_transition
+        self._thisptr.get().prev_transition = ptr
         self._prev_transition = transition
 
     @property
@@ -878,20 +840,15 @@ cdef class Transition:
 
         """
         assert isinstance(transition, Transition)
-        cdef shared_ptr[CTransition[UINT8_t]] next_transition_i
-        cdef shared_ptr[CTransition[FLOAT_t]] next_transition_f
-        if self._is_image:
-            transition_i = transition.get_ptr_i().get().next_transition
-            self._thisptr_i.get().next_transition = transition_i
-        else:
-            transition_f = transition.get_ptr_f().get().next_transition
-            self._thisptr_f.get().next_transition = transition_f
+        cdef TransitionPtr ptr
+        ptr = transition.get_ptr().get().next_transition
+        self._thisptr.get().next_transition = ptr
         self._next_transition = transition
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _stack_frames(TransitionPtri transition,
+cdef void _stack_frames(TransitionPtr transition,
                         UINT8_t* stack,
                         UINT8_t* next_stack,
                         int n_frames) nogil:
@@ -900,7 +857,7 @@ cdef void _stack_frames(TransitionPtri transition,
     cdef int w = transition.get().observation_shape[2]
 
     # stack frames
-    cdef TransitionPtri t = transition
+    cdef TransitionPtr t = transition
     cdef int i, j, k, l
     cdef int head_channel
     cdef int tail_channel
@@ -909,13 +866,13 @@ cdef void _stack_frames(TransitionPtri transition,
     for i in range(n_frames):
         tail_channel = n_frames * c - i * c
         head_channel = tail_channel - c
-        memcpy(stack + head_channel * h * w, t.get().observation, c * h * w)
-        memcpy(next_stack + head_channel * h * w, t.get().next_observation, c * h * w)
+        memcpy(stack + head_channel * h * w, t.get().observation_i, c * h * w)
+        memcpy(next_stack + head_channel * h * w, t.get().next_observation_i, c * h * w)
         if t.get().prev_transition == nullptr:
             if i != n_frames - 1:
                 tail_channel -= c
                 head_channel -= c
-                memcpy(next_stack + head_channel * h * w, t.get().observation, c * h * w)
+                memcpy(next_stack + head_channel * h * w, t.get().observation_i, c * h * w)
             break
         t = t.get().prev_transition
 
@@ -951,10 +908,10 @@ cdef class TransitionMiniBatch:
 
     """
     cdef list _transitions
-    cdef _observations
+    cdef np.ndarray _observations
     cdef _actions
     cdef np.float32_t[:, :] _rewards
-    cdef _next_observations
+    cdef np.ndarray _next_observations
     cdef _next_actions
     cdef np.float32_t[:, :] _next_rewards
     cdef np.float32_t[:, :] _terminals
@@ -979,10 +936,10 @@ cdef class TransitionMiniBatch:
             action_dtype = np.float32
 
         cdef int size = len(transitions)
-        self._observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
+        self._observations = np.zeros((size,) + observation_shape, dtype=observation_dtype)
         self._actions = np.empty((size,) + action_shape, dtype=action_dtype)
         self._rewards = np.empty((size, 1), dtype=np.float32)
-        self._next_observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
+        self._next_observations = np.zeros((size,) + observation_shape, dtype=observation_dtype)
         self._next_actions = np.empty((size,) + action_shape, dtype=action_dtype)
         self._next_rewards = np.empty((size, 1), dtype=np.float32)
         self._terminals = np.empty((size, 1), dtype=np.float32)
@@ -993,26 +950,25 @@ cdef class TransitionMiniBatch:
         cdef np.ndarray next_observation
         cdef UINT8_t* observation_ptr
         cdef UINT8_t* next_observation_ptr
-        cdef TransitionPtri transition_ptr
+        cdef TransitionPtr transition_ptr
         for i in range(size):
             transition = transitions[i]
+
             # stack frames if necessary
             if n_frames > 1 and len(transition.observation.shape) == 3:
-                observation = np.zeros(observation_shape, dtype=np.uint8)
-                next_observation = np.zeros(observation_shape, dtype=np.uint8)
+                observation = self._observations[i]
+                next_observation = self._next_observations[i]
                 observation_ptr = <UINT8_t*> observation.data
                 next_observation_ptr = <UINT8_t*> next_observation.data
-                transition_ptr = transition.get_ptr_i()
+                transition_ptr = transition.get_ptr()
                 with nogil:
                     _stack_frames(transition_ptr, observation_ptr, next_observation_ptr, n_frames)
             else:
-                observation = transition.observation
-                next_observation = transition.next_observation
+                self._observations[i][...] = transition.observation
+                self._next_observations[i][...] = transition.next_observation
 
-            self._observations[i][...] = observation
             self._actions[i] = transitions[i].action
             self._rewards[i][0] = transitions[i].reward
-            self._next_observations[i][...] = next_observation
             self._next_actions[i] = transitions[i].next_action
             self._next_rewards[i][0] = transitions[i].next_reward
             self._terminals[i][0] = transitions[i].terminal

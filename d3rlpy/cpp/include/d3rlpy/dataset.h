@@ -5,13 +5,14 @@ namespace d3rlpy {
 
   using namespace std;
 
-  template<typename T>
   struct CTransition {
     vector<int> observation_shape;
     int action_size;
-    T* observation;
+    unsigned char* observation_i;
+    float* observation_f;
     float reward;
-    T* next_observation;
+    unsigned char* next_observation_i;
+    float* next_observation_f;
     float next_reward;
     float terminal;
     shared_ptr<CTransition> prev_transition;
