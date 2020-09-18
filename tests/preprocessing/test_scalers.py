@@ -38,7 +38,8 @@ def test_pixel_scaler(observation_shape):
 @pytest.mark.parametrize('observation_shape', [(100, )])
 @pytest.mark.parametrize('batch_size', [32])
 def test_min_max_scaler(observation_shape, batch_size):
-    observations = np.random.random((batch_size, ) + observation_shape)
+    shape = (batch_size, ) + observation_shape
+    observations = np.random.random(shape).astype('f4')
 
     max = observations.max(axis=0)
     min = observations.min(axis=0)
@@ -63,7 +64,8 @@ def test_min_max_scaler(observation_shape, batch_size):
 @pytest.mark.parametrize('observation_shape', [(100, )])
 @pytest.mark.parametrize('batch_size', [32])
 def test_min_max_scaler_with_episode(observation_shape, batch_size):
-    observations = np.random.random((batch_size, ) + observation_shape)
+    shape = (batch_size, ) + observation_shape
+    observations = np.random.random(shape).astype('f4')
     actions = np.random.random((batch_size, 1))
     rewards = np.random.random(batch_size)
     terminals = np.random.randint(2, size=batch_size)
@@ -92,7 +94,7 @@ def test_min_max_scaler_with_episode(observation_shape, batch_size):
 @pytest.mark.parametrize('batch_size', [32])
 def test_standard_scaler(observation_shape, batch_size):
     shape = (batch_size, ) + observation_shape
-    observations = np.random.random(shape).astype('f')
+    observations = np.random.random(shape).astype('f4')
 
     mean = observations.mean(axis=0)
     std = observations.std(axis=0)

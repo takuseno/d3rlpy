@@ -18,8 +18,8 @@ def test_compare_continuous_action_diff(observation_shape, action_size,
         observations = np.random.random((episode_length, ) + observation_shape)
         actions = np.random.random((episode_length, action_size))
         rewards = np.random.random((episode_length, 1))
-        episode = Episode(observation_shape, action_size, observations,
-                          actions, rewards)
+        episode = Episode(observation_shape, action_size,
+                          observations.astype('f4'), actions, rewards)
         episodes.append(episode)
 
     A1 = np.random.random(observation_shape + (action_size, ))
@@ -50,8 +50,8 @@ def test_compare_discrete_action_diff(observation_shape, action_size,
         observations = np.random.random((episode_length, ) + observation_shape)
         actions = np.random.random((episode_length, action_size))
         rewards = np.random.random((episode_length, 1))
-        episode = Episode(observation_shape, action_size, observations,
-                          actions, rewards)
+        episode = Episode(observation_shape, action_size,
+                          observations.astype('f4'), actions, rewards)
         episodes.append(episode)
 
     A1 = np.random.random(observation_shape + (action_size, ))

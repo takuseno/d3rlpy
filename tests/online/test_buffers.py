@@ -19,10 +19,10 @@ def test_replay_buffer(n_episodes, batch_size, maxlen):
         observation, reward, terminal = env.reset(), 0.0, False
         while not terminal:
             action = env.action_space.sample()
-            buffer.append(observation, action, reward, terminal)
+            buffer.append(observation.astype('f4'), action, reward, terminal)
             observation, reward, terminal, _ = env.step(action)
             total_step += 1
-        buffer.append(observation, action, reward, terminal)
+        buffer.append(observation.astype('f4'), action, reward, terminal)
         total_step += 1
 
     assert len(buffer) == maxlen

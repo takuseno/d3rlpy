@@ -116,7 +116,7 @@ class MDPDataset:
             should be `(N, C, H, W)`.
         actions (numpy.ndarray): N-D array. If the actions-space is
             continuous, the shape should be `(N, dim_action)`. If the
-            action-space is discrete, the shpae should be `(N,)`.
+            action-space is discrete, the shape should be `(N,)`.
         rewards (numpy.ndarray): array of scalar rewards.
         terminals (numpy.ndarray): array of binary terminal flags.
         discrete_action (bool): flag to use the given actions as discrete
@@ -129,14 +129,21 @@ class MDPDataset:
                  rewards,
                  terminals,
                  discrete_action=False):
-        self._observations = np.asarray(observations)
-        self._rewards = np.asarray(rewards).reshape(-1)
-        self._terminals = np.asarray(terminals).reshape(-1)
+        # validation
+        assert isinstance(observations, np.ndarray)
+        if len(observations.shape) == 4:
+            assert observations.dtype == np.uint8
+        else:
+            assert observations.dtype == np.float32
+
+        self._observations = observations
+        self._rewards = np.asarray(rewards, dtype=np.float32).reshape(-1)
+        self._terminals = np.asarray(terminals, dtype=np.float32).reshape(-1)
         self.discrete_action = discrete_action
         if discrete_action:
-            self._actions = np.asarray(actions).reshape(-1)
+            self._actions = np.asarray(actions, dtype=np.int32).reshape(-1)
         else:
-            self._actions = np.asarray(actions)
+            self._actions = np.asarray(actions, dtype=np.float32)
 
         self._episodes = None
 
@@ -341,7 +348,7 @@ class MDPDataset:
         """ Appends new data.
 
         Args:
-            observations (numpy.ndarray or list(numpy.ndarray)): N-D array.
+            observations (numpy.ndarray): N-D array.
             actions (numpy.ndarray): actions.
             rewards (numpy.ndarray): rewards.
             terminals (numpy.ndarray): terminals.
@@ -496,8 +503,7 @@ class Episode:
     Args:
         observation_shape (tuple): observation shape.
         action_size (int): dimension of action-space.
-        observations (numpy.ndarray, list(numpy.ndarray) or torch.Tensor):
-            observations.
+        observations (numpy.ndarray): observations.
         actions (numpy.ndarray): actions.
         rewards (numpy.ndarray): scalar rewards.
         terminals (numpy.ndarray): binary terminal flags.
@@ -505,6 +511,13 @@ class Episode:
     """
     def __init__(self, observation_shape, action_size, observations, actions,
                  rewards):
+        # validation
+        assert isinstance(observations, np.ndarray)
+        if len(observation_shape) == 3:
+            assert observations.dtype == np.uint8
+        else:
+            assert observations.dtype == np.float32
+
         self.observation_shape = observation_shape
         self.action_size = action_size
         self._observations = observations
@@ -517,8 +530,7 @@ class Episode:
         """ Returns the observations.
 
         Returns:
-            numpy.ndarray, list(numpy.ndarray) or torch.Tensor:
-                array of observations.
+            numpy.ndarray: array of observations.
 
         """
         return self._observations
@@ -634,10 +646,10 @@ cdef class Transition:
     Args:
         observation_shape (tuple): observation shape.
         action_size (int): dimension of action-space.
-        observation (numpy.ndarray or torch.Tensor): observation at `t`.
+        observation (numpy.ndarray): observation at `t`.
         action (numpy.ndarray or int): action at `t`.
         reward (float): reward at `t`.
-        next_observation (numpy.ndarray or torch.Tensor): observation at `t+1`.
+        next_observation (numpy.ndarray): observation at `t+1`.
         next_action (numpy.ndarray or int): action at `t+1`.
         next_reward (float): reward at `t+1`.
         terminal (int): terminal flag at `t+1`.
@@ -670,6 +682,14 @@ cdef class Transition:
                   Transition next_transition=None):
         cdef TransitionPtr prev_ptr
         cdef TransitionPtr next_ptr
+
+        # validation
+        if observation_shape.size() == 3:
+            assert observation.dtype == np.uint8
+            assert next_observation.dtype == np.uint8
+        else:
+            assert observation.dtype == np.float32
+            assert next_observation.dtype == np.float32
 
         if prev_transition:
             prev_ptr = prev_transition.get_ptr()

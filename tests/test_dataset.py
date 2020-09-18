@@ -14,8 +14,8 @@ from d3rlpy.dataset import MDPDataset, Episode, Transition, TransitionMiniBatch
 @pytest.mark.parametrize('discrete_action', [True, False])
 def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
                      discrete_action):
-    observations = np.random.random((data_size, observation_size))
-    rewards = np.random.uniform(-10.0, 10.0, size=data_size)
+    observations = np.random.random((data_size, observation_size)).astype('f4')
+    rewards = np.random.uniform(-10.0, 10.0, size=data_size).astype('f4')
     n_steps = data_size // n_episodes
     terminals = np.array(([0] * (n_steps - 1) + [1]) * n_episodes)
 
@@ -23,7 +23,7 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
         actions = np.random.randint(action_size, size=data_size)
         ref_action_size = np.max(actions) + 1
     else:
-        actions = np.random.random((data_size, action_size))
+        actions = np.random.random((data_size, action_size)).astype('f4')
         ref_action_size = action_size
 
     dataset = MDPDataset(observations=observations,
@@ -145,7 +145,7 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
 @pytest.mark.parametrize('observation_size', [4])
 @pytest.mark.parametrize('action_size', [2])
 def test_episode(data_size, observation_size, action_size):
-    observations = np.random.random((data_size, observation_size))
+    observations = np.random.random((data_size, observation_size)).astype('f4')
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random(data_size)
 
@@ -283,7 +283,7 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
 @pytest.mark.parametrize('test_size', [0.2])
 def test_dataset_with_sklearn(data_size, observation_size, action_size,
                               n_episodes, test_size):
-    observations = np.random.random((data_size, observation_size))
+    observations = np.random.random((data_size, observation_size)).astype('f4')
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random(data_size)
     n_steps = data_size // n_episodes

@@ -50,7 +50,11 @@ def base_tester(model, impl, observation_shape, action_size=2):
     data_size = n_episodes * episode_length
     model.batch_size = n_batch
     model.n_epochs = n_epochs
-    observations = np.random.random((data_size, ) + observation_shape)
+    shape = (data_size, ) + observation_shape
+    if len(observation_shape) == 3:
+        observations = np.random.randint(256, size=shape, dtype=np.uint8)
+    else:
+        observations = np.random.random(shape).astype('f4')
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random(data_size)
     terminals = np.zeros(data_size)
@@ -103,8 +107,16 @@ def base_update_tester(model, observation_shape, action_size, discrete=False):
     transitions = []
     prev_transition = None
     for i in range(model.batch_size):
-        observation = np.random.random(observation_shape)
-        next_observation = np.random.random(observation_shape)
+        if len(observation_shape) == 3:
+            observation = np.random.randint(256,
+                                            size=observation_shape,
+                                            dtype=np.uint8)
+            next_observation = np.random.randint(256,
+                                                 size=observation_shape,
+                                                 dtype=np.uint8)
+        else:
+            observation = np.random.random(observation_shape).astype('f4')
+            next_observation = np.random.random(observation_shape).astype('f4')
         reward = np.random.random()
         next_reward = np.random.random()
         terminal = np.random.randint(2)
@@ -112,8 +124,8 @@ def base_update_tester(model, observation_shape, action_size, discrete=False):
             action = np.random.randint(action_size)
             next_action = np.random.randint(action_size)
         else:
-            action = np.random.random(action_size)
-            next_action = np.random.random(action_size)
+            action = np.random.random(action_size).astype('f4')
+            next_action = np.random.random(action_size).astype('f4')
 
         transition = Transition(observation_shape=observation_shape,
                                 action_size=action_size,

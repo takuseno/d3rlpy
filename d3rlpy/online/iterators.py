@@ -86,12 +86,13 @@ def train(env,
     observation, reward, terminal = env.reset(), 0.0, False
     total_step = 0
     for epoch in range(algo.n_epochs):
-        for step in range(n_steps_per_epoch):
+        for _ in range(n_steps_per_epoch):
             # stack observation if necessary
             if is_image:
                 stacked_frame.append(observation)
                 fed_observation = stacked_frame.eval()
             else:
+                observation = observation.astype('f4')
                 fed_observation = observation
 
             # sample exploration action
