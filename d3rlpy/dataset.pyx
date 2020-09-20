@@ -5,6 +5,7 @@ import copy
 import cython
 
 from cython cimport view
+from cython.parallel import prange
 from libc.string cimport memcpy
 from libcpp cimport nullptr
 from libcpp cimport bool
@@ -634,6 +635,7 @@ class Episode:
 
 ctypedef np.uint8_t UINT8_t
 ctypedef np.float32_t FLOAT_t
+ctypedef np.int32_t INT_t
 ctypedef shared_ptr[CTransition] TransitionPtr
 
 
@@ -661,6 +663,7 @@ cdef class Transition:
     """
     cdef TransitionPtr _thisptr
     cdef bool _is_image
+    cdef bool _is_discrete
     cdef _observation
     cdef _action
     cdef _next_observation
@@ -714,6 +717,24 @@ cdef class Transition:
             self._thisptr.get().observation_f = <FLOAT_t*> observation.data
             self._thisptr.get().next_observation_f = <FLOAT_t*> next_observation.data
             self._is_image = False
+
+        # assign action
+        cdef np.ndarray[FLOAT_t, ndim=1] action_f
+        cdef np.ndarray[FLOAT_t, ndim=1] next_action_f
+        cdef int action_i
+        cdef int next_action_i
+        if isinstance(action, np.ndarray):
+            action_f = np.asarray(action, dtype=np.float32)
+            next_action_f = np.asarray(next_action, dtype=np.float32)
+            self._thisptr.get().action_f = <FLOAT_t*> action_f.data
+            self._thisptr.get().next_action_f = <FLOAT_t*> next_action_f.data
+            self._is_discrete = False
+        else:
+            action_i = action
+            next_action_i = next_action
+            self._thisptr.get().action_i = action_i
+            self._thisptr.get().next_action_i = next_action_i
+            self._is_discrete = True
 
         self._observation = observation
         self._action = action
@@ -929,12 +950,12 @@ cdef class TransitionMiniBatch:
     """
     cdef list _transitions
     cdef np.ndarray _observations
-    cdef _actions
-    cdef np.float32_t[:, :] _rewards
+    cdef np.ndarray _actions
+    cdef np.ndarray _rewards
     cdef np.ndarray _next_observations
-    cdef _next_actions
-    cdef np.float32_t[:, :] _next_rewards
-    cdef np.float32_t[:, :] _terminals
+    cdef np.ndarray _next_actions
+    cdef np.ndarray _next_rewards
+    cdef np.ndarray _terminals
 
     def __cinit__(self, list transitions not None, int n_frames=1):
         self._transitions = transitions
@@ -955,6 +976,7 @@ cdef class TransitionMiniBatch:
             action_shape = (action_size,)
             action_dtype = np.float32
 
+        # allocate batch data
         cdef int size = len(transitions)
         self._observations = np.zeros((size,) + observation_shape, dtype=observation_dtype)
         self._actions = np.empty((size,) + action_shape, dtype=action_dtype)
@@ -964,34 +986,79 @@ cdef class TransitionMiniBatch:
         self._next_rewards = np.empty((size, 1), dtype=np.float32)
         self._terminals = np.empty((size, 1), dtype=np.float32)
 
+        cdef bool is_image
+        cdef bool is_dicsrete
+        is_image = len(transitions[0].get_observation_shape()) == 3
+        is_discrete = not isinstance(transitions[0].action, np.ndarray)
+
+        # prepare pointers to batch data
+        cdef void* observations_ptr = self._observations.data
+        cdef void* actions_ptr = self._actions.data
+        cdef FLOAT_t* rewards_ptr = <FLOAT_t*> self._rewards.data
+        cdef void* next_observations_ptr = self._next_observations.data
+        cdef void* next_actions_ptr = self._next_actions.data
+        cdef FLOAT_t* next_rewards_ptr = <FLOAT_t*> self._next_rewards.data
+        cdef FLOAT_t* terminals_ptr = <FLOAT_t*> self._terminals.data
+
+        # get pointers to transitions
         cdef int i
         cdef Transition transition
-        cdef np.ndarray observation
-        cdef np.ndarray next_observation
-        cdef UINT8_t* observation_ptr
-        cdef UINT8_t* next_observation_ptr
-        cdef TransitionPtr transition_ptr
+        cdef vector[TransitionPtr] transition_ptrs
         for i in range(size):
             transition = transitions[i]
+            transition_ptrs.push_back(transition.get_ptr())
 
-            # stack frames if necessary
-            if n_frames > 1 and len(transition.observation.shape) == 3:
-                observation = self._observations[i]
-                next_observation = self._next_observations[i]
-                observation_ptr = <UINT8_t*> observation.data
-                next_observation_ptr = <UINT8_t*> next_observation.data
-                transition_ptr = transition.get_ptr()
-                with nogil:
-                    _stack_frames(transition_ptr, observation_ptr, next_observation_ptr, n_frames)
+        cdef int offset
+        cdef int channel, height, width
+        cdef TransitionPtr ptr
+        for i in prange(size, nogil=True):
+            ptr = transition_ptrs[i]
+
+            # assign observation
+            if is_image:
+                channel = ptr.get().observation_shape[0]
+                height = ptr.get().observation_shape[1]
+                width = ptr.get().observation_shape[2]
+                # stack frames if necessary
+                if n_frames > 1:
+                    offset = n_frames * i * channel * height * width
+                    _stack_frames(ptr,
+                                 (<UINT8_t*> observations_ptr) + offset,
+                                 (<UINT8_t*> next_observations_ptr) + offset,
+                                 n_frames)
+                else:
+                    offset = i * channel * height * width
+                    memcpy((<UINT8_t*> observations_ptr) + offset,
+                           ptr.get().observation_i,
+                           channel * height * width)
+                    memcpy((<UINT8_t*> next_observations_ptr) + offset,
+                           ptr.get().next_observation_i,
+                           channel * height * width)
             else:
-                self._observations[i][...] = transition.observation
-                self._next_observations[i][...] = transition.next_observation
+                offset = i * ptr.get().observation_shape[0]
+                memcpy((<FLOAT_t*> observations_ptr) + offset,
+                       ptr.get().observation_f,
+                       ptr.get().observation_shape[0] * sizeof(FLOAT_t))
+                memcpy((<FLOAT_t*> next_observations_ptr) + offset,
+                       ptr.get().next_observation_f,
+                       ptr.get().observation_shape[0] * sizeof(FLOAT_t))
 
-            self._actions[i] = transitions[i].action
-            self._rewards[i][0] = transitions[i].reward
-            self._next_actions[i] = transitions[i].next_action
-            self._next_rewards[i][0] = transitions[i].next_reward
-            self._terminals[i][0] = transitions[i].terminal
+            # assign action
+            if is_discrete:
+                ((<INT_t*> actions_ptr) + i)[0] = ptr.get().action_i
+                ((<INT_t*> next_actions_ptr) + i)[0] = ptr.get().next_action_i
+            else:
+                offset = i * ptr.get().action_size
+                memcpy((<FLOAT_t*> actions_ptr) + offset,
+                       ptr.get().action_f,
+                       ptr.get().action_size * sizeof(FLOAT_t))
+                memcpy((<FLOAT_t*> next_actions_ptr) + offset,
+                       ptr.get().next_action_f,
+                       ptr.get().action_size * sizeof(FLOAT_t))
+
+            rewards_ptr[i] = ptr.get().reward
+            next_rewards_ptr[i] = ptr.get().next_reward
+            terminals_ptr[i] = ptr.get().terminal
 
     @property
     def observations(self):
