@@ -62,8 +62,8 @@ def test_td_error_scorer(observation_shape, action_size, n_episodes,
     episodes = []
     for _ in range(n_episodes):
         observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.matmul(observations, A)
-        rewards = np.random.random((episode_length, 1))
+        actions = np.matmul(observations, A).astype('f4')
+        rewards = np.random.random((episode_length, 1)).astype('f4')
         episode = Episode(observation_shape, action_size,
                           observations.astype('f4'), actions, rewards)
         episodes.append(episode)
@@ -113,8 +113,8 @@ def test_discounted_sum_of_advantage_scorer(observation_shape, action_size,
         observations = np.random.random((episode_length, ) + observation_shape)
         # make difference between algorithm outputs and dataset
         noise = 100 * np.random.random((episode_length, action_size))
-        actions = np.matmul(observations, A) + noise
-        rewards = np.random.random((episode_length, 1))
+        actions = (np.matmul(observations, A) + noise).astype('f4')
+        rewards = np.random.random((episode_length, 1)).astype('f4')
         episode = Episode(observation_shape, action_size,
                           observations.astype('f4'), actions, rewards)
         episodes.append(episode)
@@ -145,8 +145,8 @@ def test_average_value_estimation_scorer(observation_shape, action_size,
     episodes = []
     for _ in range(n_episodes):
         observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.matmul(observations, A)
-        rewards = np.random.random((episode_length, 1))
+        actions = np.matmul(observations, A).astype('f4')
+        rewards = np.random.random((episode_length, 1)).astype('f4')
         episode = Episode(observation_shape, action_size,
                           observations.astype('f4'), actions, rewards)
         episodes.append(episode)
@@ -175,8 +175,8 @@ def test_value_estimation_std_scorer(observation_shape, action_size,
     episodes = []
     for _ in range(n_episodes):
         observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.matmul(observations, A)
-        rewards = np.random.random((episode_length, 1))
+        actions = np.matmul(observations, A).astype('f4')
+        rewards = np.random.random((episode_length, 1)).astype('f4')
         episode = Episode(observation_shape, action_size,
                           observations.astype('f4'), actions, rewards)
         episodes.append(episode)
@@ -205,8 +205,8 @@ def test_initial_state_value_estimation_scorer(observation_shape, action_size,
     episodes = []
     for _ in range(n_episodes):
         observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.matmul(observations, A)
-        rewards = np.random.random((episode_length, 1))
+        actions = np.matmul(observations, A).astype('f4')
+        rewards = np.random.random((episode_length, 1)).astype('f4')
         episode = Episode(observation_shape, action_size,
                           observations.astype('f4'), actions, rewards)
         episodes.append(episode)
@@ -236,8 +236,8 @@ def test_soft_opc_scorer(observation_shape, action_size, n_episodes,
     episodes = []
     for _ in range(n_episodes):
         observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.matmul(observations, A)
-        rewards = np.random.random((episode_length, 1))
+        actions = np.matmul(observations, A).astype('f4')
+        rewards = np.random.random((episode_length, 1)).astype('f4')
         episode = Episode(observation_shape, action_size,
                           observations.astype('f4'), actions, rewards)
         episodes.append(episode)
@@ -269,9 +269,8 @@ def test_continuous_action_diff_scorer(observation_shape, action_size,
     episodes = []
     for _ in range(n_episodes):
         observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.matmul(observations, A)
-        actions = np.random.random((episode_length, action_size))
-        rewards = np.random.random((episode_length, 1))
+        actions = np.random.random((episode_length, action_size)).astype('f4')
+        rewards = np.random.random((episode_length, 1)).astype('f4')
         episode = Episode(observation_shape, action_size,
                           observations.astype('f4'), actions, rewards)
         episodes.append(episode)
@@ -300,7 +299,7 @@ def test_discrete_action_math_scorer(observation_shape, action_size,
     for _ in range(n_episodes):
         observations = np.random.random((episode_length, ) + observation_shape)
         actions = np.random.randint(action_size, size=episode_length)
-        rewards = np.random.random((episode_length, 1))
+        rewards = np.random.random((episode_length, 1)).astype('f4')
         episode = Episode(observation_shape, action_size,
                           observations.astype('f4'), actions, rewards)
         episodes.append(episode)
@@ -387,8 +386,8 @@ def test_dynamics_observation_prediction_error_scorer(observation_shape,
     episodes = []
     for _ in range(n_episodes):
         observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.random.random((episode_length, action_size))
-        rewards = np.random.random((episode_length, 1))
+        actions = np.random.random((episode_length, action_size)).astype('f4')
+        rewards = np.random.random((episode_length, 1)).astype('f4')
         episode = Episode(observation_shape, action_size,
                           observations.astype('f4'), actions, rewards)
         episodes.append(episode)
@@ -415,8 +414,8 @@ def test_dynamics_reward_prediction_error_scorer(observation_shape,
     episodes = []
     for _ in range(n_episodes):
         observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.random.random((episode_length, action_size))
-        rewards = np.random.random((episode_length, 1))
+        actions = np.random.random((episode_length, action_size)).astype('f4')
+        rewards = np.random.random((episode_length, 1)).astype('f4')
         episode = Episode(observation_shape, action_size,
                           observations.astype('f4'), actions, rewards)
         episodes.append(episode)
@@ -445,7 +444,8 @@ def test_dynamics_prediction_variance_scorer(observation_shape, action_size,
         actions = np.random.random((episode_length, action_size))
         rewards = np.random.random((episode_length, 1))
         episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions, rewards)
+                          observations.astype('f4'), actions.astype('f4'),
+                          rewards.astype('f4'))
         episodes.append(episode)
 
     dynamics = DummyDynamics(np.random.random(observation_shape))

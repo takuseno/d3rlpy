@@ -146,8 +146,8 @@ def test_mdp_dataset(data_size, observation_size, action_size, n_episodes,
 @pytest.mark.parametrize('action_size', [2])
 def test_episode(data_size, observation_size, action_size):
     observations = np.random.random((data_size, observation_size)).astype('f4')
-    actions = np.random.random((data_size, action_size))
-    rewards = np.random.random(data_size)
+    actions = np.random.random((data_size, action_size)).astype('f4')
+    rewards = np.random.random(data_size).astype('f4')
 
     episode = Episode(observation_shape=(observation_size, ),
                       action_size=action_size,
