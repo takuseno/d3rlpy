@@ -519,11 +519,17 @@ class Episode:
         else:
             assert observations.dtype == np.float32
 
+        # fix action dtype and shape
+        if len(actions.shape) == 1:
+            actions = np.asarray(actions, dtype=np.int32).reshape(-1)
+        else:
+            actions = np.asarray(actions, dtype=np.float32)
+
         self.observation_shape = observation_shape
         self.action_size = action_size
         self._observations = observations
         self._actions = actions
-        self._rewards = rewards
+        self._rewards = np.asarray(rewards, dtype=np.float32)
         self._transitions = None
 
     @property
