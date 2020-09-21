@@ -986,6 +986,7 @@ cdef class TransitionMiniBatch:
         self._next_rewards = np.empty((size, 1), dtype=np.float32)
         self._terminals = np.empty((size, 1), dtype=np.float32)
 
+        # determine flags
         cdef bool is_image
         cdef bool is_dicsrete
         is_image = len(transitions[0].get_observation_shape()) == 3
@@ -1008,57 +1009,77 @@ cdef class TransitionMiniBatch:
             transition = transitions[i]
             transition_ptrs.push_back(transition.get_ptr())
 
-        cdef int offset
-        cdef int channel, height, width
+        # efficient memory copy
         cdef TransitionPtr ptr
         for i in prange(size, nogil=True):
             ptr = transition_ptrs[i]
+            self._assign_to_batch(i, ptr, observations_ptr, actions_ptr,
+                                  rewards_ptr, next_observations_ptr,
+                                  next_actions_ptr, next_rewards_ptr,
+                                  terminals_ptr, n_frames, is_image,
+                                  is_discrete)
 
-            # assign observation
-            if is_image:
-                channel = ptr.get().observation_shape[0]
-                height = ptr.get().observation_shape[1]
-                width = ptr.get().observation_shape[2]
-                # stack frames if necessary
-                if n_frames > 1:
-                    offset = n_frames * i * channel * height * width
-                    _stack_frames(ptr,
-                                 (<UINT8_t*> observations_ptr) + offset,
-                                 (<UINT8_t*> next_observations_ptr) + offset,
-                                 n_frames)
-                else:
-                    offset = i * channel * height * width
-                    memcpy((<UINT8_t*> observations_ptr) + offset,
-                           ptr.get().observation_i,
-                           channel * height * width)
-                    memcpy((<UINT8_t*> next_observations_ptr) + offset,
-                           ptr.get().next_observation_i,
-                           channel * height * width)
+    cdef void _assign_to_batch(self,
+                               int i,
+                               TransitionPtr ptr,
+                               void* observations_ptr,
+                               void* actions_ptr,
+                               float* rewards_ptr,
+                               void* next_observations_ptr,
+                               void* next_actions_ptr,
+                               float* next_rewards_ptr,
+                               float* terminals_ptr,
+                               int n_frames,
+                               bool is_image,
+                               bool is_discrete) nogil:
+        cdef int offset
+        cdef int channel, height, width
+
+        # assign observation
+        if is_image:
+            channel = ptr.get().observation_shape[0]
+            height = ptr.get().observation_shape[1]
+            width = ptr.get().observation_shape[2]
+            # stack frames if necessary
+            if n_frames > 1:
+                offset = n_frames * i * channel * height * width
+                _stack_frames(ptr,
+                             (<UINT8_t*> observations_ptr) + offset,
+                             (<UINT8_t*> next_observations_ptr) + offset,
+                             n_frames)
             else:
-                offset = i * ptr.get().observation_shape[0]
-                memcpy((<FLOAT_t*> observations_ptr) + offset,
-                       ptr.get().observation_f,
-                       ptr.get().observation_shape[0] * sizeof(FLOAT_t))
-                memcpy((<FLOAT_t*> next_observations_ptr) + offset,
-                       ptr.get().next_observation_f,
-                       ptr.get().observation_shape[0] * sizeof(FLOAT_t))
+                offset = i * channel * height * width
+                memcpy((<UINT8_t*> observations_ptr) + offset,
+                       ptr.get().observation_i,
+                       channel * height * width)
+                memcpy((<UINT8_t*> next_observations_ptr) + offset,
+                       ptr.get().next_observation_i,
+                       channel * height * width)
+        else:
+            offset = i * ptr.get().observation_shape[0]
+            memcpy((<FLOAT_t*> observations_ptr) + offset,
+                   ptr.get().observation_f,
+                   ptr.get().observation_shape[0] * sizeof(FLOAT_t))
+            memcpy((<FLOAT_t*> next_observations_ptr) + offset,
+                   ptr.get().next_observation_f,
+                   ptr.get().observation_shape[0] * sizeof(FLOAT_t))
 
-            # assign action
-            if is_discrete:
-                ((<INT_t*> actions_ptr) + i)[0] = ptr.get().action_i
-                ((<INT_t*> next_actions_ptr) + i)[0] = ptr.get().next_action_i
-            else:
-                offset = i * ptr.get().action_size
-                memcpy((<FLOAT_t*> actions_ptr) + offset,
-                       ptr.get().action_f,
-                       ptr.get().action_size * sizeof(FLOAT_t))
-                memcpy((<FLOAT_t*> next_actions_ptr) + offset,
-                       ptr.get().next_action_f,
-                       ptr.get().action_size * sizeof(FLOAT_t))
+        # assign action
+        if is_discrete:
+            ((<INT_t*> actions_ptr) + i)[0] = ptr.get().action_i
+            ((<INT_t*> next_actions_ptr) + i)[0] = ptr.get().next_action_i
+        else:
+            offset = i * ptr.get().action_size
+            memcpy((<FLOAT_t*> actions_ptr) + offset,
+                   ptr.get().action_f,
+                   ptr.get().action_size * sizeof(FLOAT_t))
+            memcpy((<FLOAT_t*> next_actions_ptr) + offset,
+                   ptr.get().next_action_f,
+                   ptr.get().action_size * sizeof(FLOAT_t))
 
-            rewards_ptr[i] = ptr.get().reward
-            next_rewards_ptr[i] = ptr.get().next_reward
-            terminals_ptr[i] = ptr.get().terminal
+        rewards_ptr[i] = ptr.get().reward
+        next_rewards_ptr[i] = ptr.get().next_reward
+        terminals_ptr[i] = ptr.get().terminal
 
     @property
     def observations(self):
