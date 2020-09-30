@@ -94,7 +94,8 @@ class AWACImpl(DDPGImpl):
             reshaped_v_values = flat_v_values.view(obs_t.shape[0], -1, 1)
             v_values = reshaped_v_values.mean(dim=1)
 
-            # compute normalized advantage like AWR
+            # compute normalized advantages like AWR
+            # this normalization dramatically stabilizes training
             adv_values = q_values - v_values
             mean_values = adv_values.mean(dim=0, keepdims=True)
             std_values = adv_values.std(dim=0, keepdims=True) + 1e-5
@@ -106,3 +107,12 @@ class AWACImpl(DDPGImpl):
             clipped_weights = weights.clamp(max=self.max_weight)
 
         return -(log_probs * clipped_weights).mean()
+
+    @eval_api
+    @torch_api
+    def sample_action(self, x):
+        if self.scaler:
+            x = self.scaler.transform(x)
+
+        with torch.no_grad():
+            return self.policy.sample(x).cpu().detach().numpy()
