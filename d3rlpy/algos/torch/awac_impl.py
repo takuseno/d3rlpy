@@ -10,9 +10,9 @@ from .utility import torch_api, train_api, eval_api
 class AWACImpl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, gamma, tau, lam, n_action_samples,
-                 actor_weight_decay, n_critics, bootstrap, share_encoder, eps,
-                 use_batch_norm, q_func_type, use_gpu, scaler, augmentation,
-                 n_augmentations, encoder_params):
+                 max_weight, actor_weight_decay, n_critics, bootstrap,
+                 share_encoder, eps, use_batch_norm, q_func_type, use_gpu,
+                 scaler, augmentation, n_augmentations, encoder_params):
         super().__init__(observation_shape, action_size, actor_learning_rate,
                          critic_learning_rate, gamma, tau, n_critics,
                          bootstrap, share_encoder, 0.0, eps, use_batch_norm,
@@ -20,6 +20,7 @@ class AWACImpl(DDPGImpl):
                          n_augmentations, encoder_params)
         self.lam = lam
         self.n_action_samples = n_action_samples
+        self.max_weight = max_weight
         self.actor_weight_decay = actor_weight_decay
 
     def _build_actor(self):
@@ -93,7 +94,15 @@ class AWACImpl(DDPGImpl):
             reshaped_v_values = flat_v_values.view(obs_t.shape[0], -1, 1)
             v_values = reshaped_v_values.mean(dim=1)
 
-            # compute weight
-            weights = torch.exp((q_values - v_values) / self.lam)
+            # compute normalized advantage like AWR
+            adv_values = q_values - v_values
+            mean_values = adv_values.mean(dim=0, keepdims=True)
+            std_values = adv_values.std(dim=0, keepdims=True) + 1e-5
+            normalized_adv_values = (adv_values - mean_values) / std_values
 
-        return -(log_probs * weights).mean()
+            # compute weight
+            weights = torch.exp(normalized_adv_values / self.lam)
+            # clip like AWR
+            clipped_weights = weights.clamp(max=self.max_weight)
+
+        return -(log_probs * clipped_weights).mean()

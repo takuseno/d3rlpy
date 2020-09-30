@@ -13,6 +13,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('tau', [0.05])
 @pytest.mark.parametrize('lam', [1.0])
 @pytest.mark.parametrize('n_action_samples', [10])
+@pytest.mark.parametrize('max_weight', [20.0])
 @pytest.mark.parametrize('actor_weight_decay', [1e-4])
 @pytest.mark.parametrize('n_critics', [1])
 @pytest.mark.parametrize('bootstrap', [False])
@@ -26,9 +27,9 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('encoder_params', [{}])
 def test_awac_impl(observation_shape, action_size, actor_learning_rate,
                    critic_learning_rate, gamma, tau, lam, n_action_samples,
-                   actor_weight_decay, n_critics, bootstrap, share_encoder,
-                   eps, use_batch_norm, q_func_type, scaler, augmentation,
-                   n_augmentations, encoder_params):
+                   max_weight, actor_weight_decay, n_critics, bootstrap,
+                   share_encoder, eps, use_batch_norm, q_func_type, scaler,
+                   augmentation, n_augmentations, encoder_params):
     impl = AWACImpl(observation_shape,
                     action_size,
                     actor_learning_rate,
@@ -37,6 +38,7 @@ def test_awac_impl(observation_shape, action_size, actor_learning_rate,
                     tau,
                     lam,
                     n_action_samples,
+                    max_weight,
                     actor_weight_decay,
                     n_critics,
                     bootstrap,

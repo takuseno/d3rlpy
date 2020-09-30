@@ -12,6 +12,7 @@ class AWAC(AlgoBase):
                  tau=0.005,
                  lam=1.0,
                  n_action_samples=10,
+                 max_weight=20.0,
                  actor_weight_decay=1e-4,
                  n_critics=2,
                  bootstrap=False,
@@ -37,6 +38,7 @@ class AWAC(AlgoBase):
         self.tau = tau
         self.lam = lam
         self.n_action_samples = n_action_samples
+        self.max_weight = max_weight
         self.actor_weight_decay = actor_weight_decay
         self.n_critics = n_critics
         self.bootstrap = bootstrap
@@ -59,6 +61,7 @@ class AWAC(AlgoBase):
                              tau=self.tau,
                              lam=self.lam,
                              n_action_samples=self.n_action_samples,
+                             max_weight=self.max_weight,
                              actor_weight_decay=self.actor_weight_decay,
                              n_critics=self.n_critics,
                              bootstrap=self.bootstrap,
