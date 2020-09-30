@@ -49,7 +49,7 @@ def create_categorical_policy(observation_shape,
     return CategoricalPolicy(encoder, action_size)
 
 
-def _squash_action(dist, raw_action):
+def squash_action(dist, raw_action):
     squashed_action = torch.tanh(raw_action)
     jacob = 2 * (math.log(2) - raw_action - F.softplus(-2 * raw_action))
     log_prob = (dist.log_prob(raw_action) - jacob).sum(dim=-1, keepdims=True)
@@ -114,7 +114,7 @@ class NormalPolicy(nn.Module):
             action = dist.rsample()
 
         if with_log_prob:
-            return _squash_action(dist, action)
+            return squash_action(dist, action)
 
         return torch.tanh(action)
 
@@ -126,7 +126,7 @@ class NormalPolicy(nn.Module):
 
         action = dist.rsample((n, ))
 
-        squashed_action_T, log_prob_T = _squash_action(dist, action)
+        squashed_action_T, log_prob_T = squash_action(dist, action)
 
         # (n, batch, action) -> (batch, n, action)
         squashed_action = squashed_action_T.transpose(0, 1)
