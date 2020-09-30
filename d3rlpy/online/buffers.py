@@ -25,6 +25,16 @@ class Buffer(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def append_episode(self, episode):
+        """ Append Episode object to buffer.
+
+        Args:
+            episode (d3rlpy.dataset.Episode): episode.
+
+        """
+        pass
+
+    @abstractmethod
     def sample(self, batch_size, n_frames=1):
         """ Returns sampled mini-batch of transitions.
 
@@ -68,6 +78,8 @@ class ReplayBuffer(Buffer):
     Args:
         maxlen (int): the maximum number of data length.
         env (gym.Env): gym-like environment to extract shape information.
+        episodes (list(d3rlpy.dataset.Episode)): list of episodes to
+            initialize buffer
 
     Attributes:
         prev_observation (numpy.ndarray): previously appended observation.
@@ -80,7 +92,7 @@ class ReplayBuffer(Buffer):
         action_size (int): action size.
 
     """
-    def __init__(self, maxlen, env):
+    def __init__(self, maxlen, env, episodes=None):
         # temporary cache to hold transitions for an entire episode
         self.prev_observation = None
         self.prev_action = None
@@ -92,6 +104,11 @@ class ReplayBuffer(Buffer):
         # extract shape information
         self.observation_shape = env.observation_space.shape
         self.action_size = get_action_size_from_env(env)
+
+        # add initial transitions
+        if episodes:
+            for episode in episodes:
+                self.append_episode(episode)
 
     def append(self, observation, action, reward, terminal):
         # validation
@@ -134,6 +151,12 @@ class ReplayBuffer(Buffer):
             self.prev_action = None
             self.prev_reward = None
             self.prev_transition = None
+
+    def append_episode(self, episode):
+        assert episode.get_observation_shape() == self.observation_shape
+        assert episode.get_action_size() == self.action_size
+        for transition in episode.transitions:
+            self.transitions.append(transition)
 
     def sample(self, batch_size, n_frames=1):
         transitions = sample(self.transitions, batch_size)
