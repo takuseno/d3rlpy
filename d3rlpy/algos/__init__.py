@@ -1,4 +1,5 @@
 from .base import AlgoBase
+from .awac import AWAC
 from .awr import AWR, DiscreteAWR
 from .bc import BC, DiscreteBC
 from .bcq import BCQ, DiscreteBCQ
