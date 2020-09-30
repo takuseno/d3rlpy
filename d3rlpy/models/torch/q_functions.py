@@ -460,22 +460,11 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         q_taus_prime = q_taus_prime[batch_steps, act_t.view(-1)]
 
         # compute gradients
-        prop_diff1 = q_taus - q_taus_prime[:, :-1]
-        prop_base1 = torch.cat([q_taus_prime[:, :1], q_taus[:, :-1]], dim=1)
-        prop_sign1 = q_taus > prop_base1
-        prop_loss1 = torch.where(prop_sign1, prop_diff1, -prop_diff1)
-
-        prop_diff2 = q_taus - q_taus_prime[:, 1:]
-        prop_base2 = torch.cat([q_taus[:, 1:], q_taus_prime[:, -1:]], dim=1)
-        prop_sign2 = q_taus < prop_base2
-        prop_loss2 = torch.where(prop_sign2, prop_diff2, -prop_diff2)
-
-        proposal_grads = (prop_loss1 + prop_loss2).detach()
-
-        proposal_loss = (proposal_grads * taus[:, :-1]).sum(dim=1)
+        proposal_grad = 2 * q_taus - q_taus_prime[:, :-1] - q_taus_prime[:, 1:]
+        proposal_loss = (proposal_grad.detach() * taus[:, :-1]).sum(dim=1)
 
         # small learning rate for prpposal network
-        loss = quantile_loss + 1e-5 * (proposal_loss - 1e-2 * entropies)
+        loss = quantile_loss + 1e-5 * (proposal_loss - 1e-3 * entropies)
 
         return _reduce(loss, reduction)
 
@@ -567,22 +556,11 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         q_taus_prime = self._compute_quantiles(h.detach(), taus_prime)
 
         # compute gradients
-        prop_diff1 = q_taus - q_taus_prime[:, :-1]
-        prop_base1 = torch.cat([q_taus_prime[:, :1], q_taus[:, :-1]], dim=1)
-        prop_sign1 = q_taus > prop_base1
-        prop_loss1 = torch.where(prop_sign1, prop_diff1, -prop_diff1)
-
-        prop_diff2 = q_taus - q_taus_prime[:, 1:]
-        prop_base2 = torch.cat([q_taus[:, 1:], q_taus_prime[:, -1:]], dim=1)
-        prop_sign2 = q_taus < prop_base2
-        prop_loss2 = torch.where(prop_sign2, prop_diff2, -prop_diff2)
-
-        proposal_grads = (prop_loss1 + prop_loss2).detach()
-
-        proposal_loss = (proposal_grads * taus[:, :-1]).sum(dim=1)
+        proposal_grad = 2 * q_taus - q_taus_prime[:, :-1] - q_taus_prime[:, 1:]
+        proposal_loss = (proposal_grad.detach() * taus[:, :-1]).sum(dim=1)
 
         # small lerarning rate for proposal network
-        loss = quantile_loss + 1e-5 * (proposal_loss - 1e-2 * entropies)
+        loss = quantile_loss + 1e-5 * (proposal_loss - 1e-3 * entropies)
 
         return _reduce(loss, reduction)
 
