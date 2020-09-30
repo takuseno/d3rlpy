@@ -2,7 +2,7 @@ import torch
 
 from torch.optim import SGD
 from d3rlpy.models.torch.v_functions import create_value_function
-from d3rlpy.models.torch.policies import create_normal_policy
+from d3rlpy.models.torch.policies import squash_action, create_normal_policy
 from d3rlpy.models.torch.policies import create_categorical_policy
 from .utility import torch_api, train_api, eval_api
 from .utility import compute_augemtation_mean
@@ -104,8 +104,14 @@ class AWRImpl(TorchImplBase):
 
     def _compute_actor_loss(self, observation, action, weight):
         dist = self.policy.dist(observation)
-        log_probs = dist.log_prob(action).view(observation.shape[0], -1)
-        return -(weight * log_probs.sum(dim=1, keepdims=True)).mean()
+
+        # unnormalize action via inverse tanh function
+        unnormalized_action = torch.atanh(action)
+
+        # compute log probability
+        _, log_probs = squash_action(dist, unnormalized_action)
+
+        return -(weight * log_probs).mean()
 
     def _predict_best_action(self, x):
         return self.policy.best_action(x)
@@ -136,3 +142,8 @@ class DiscreteAWRImpl(AWRImpl):
             self.action_size,
             self.use_batch_norm,
             encoder_params=self.encoder_params)
+
+    def _compute_actor_loss(self, observation, action, weight):
+        dist = self.policy.dist(observation)
+        log_probs = dist.log_prob(action).view(observation.shape[0], -1)
+        return -(weight * log_probs.sum(dim=1, keepdims=True)).mean()
