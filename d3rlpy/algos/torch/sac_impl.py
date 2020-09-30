@@ -4,7 +4,7 @@ import math
 
 from torch.optim import Adam
 from d3rlpy.models.torch.policies import create_normal_policy
-from .utility import torch_api, train_api
+from .utility import torch_api, train_api, eval_api
 from .ddpg_impl import DDPGImpl
 
 
@@ -70,7 +70,7 @@ class SACImpl(DDPGImpl):
 
         return loss.cpu().detach().numpy(), cur_temp
 
-    @train_api
+    @eval_api
     @torch_api
     def sample_action(self, x):
         if self.scaler:
