@@ -59,7 +59,7 @@ class AWACImpl(DDPGImpl):
         dist = self.policy.dist(obs_t)
 
         # unnormalize action via inverse tanh function
-        unnormalized_act_t = torch.atanh(act_t)
+        unnormalized_act_t = torch.atanh(act_t).clamp(-2.0, 2.0)
 
         # compute log probability
         _, log_probs = squash_action(dist, unnormalized_act_t)
