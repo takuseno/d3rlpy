@@ -11,7 +11,7 @@ class AWAC(AlgoBase):
                  gamma=0.99,
                  tau=0.005,
                  lam=1.0,
-                 n_action_samples=10,
+                 n_action_samples=1,
                  max_weight=20.0,
                  actor_weight_decay=1e-4,
                  n_critics=2,
