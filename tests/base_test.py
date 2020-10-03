@@ -95,6 +95,11 @@ def base_tester(model, impl, observation_shape, action_size=2):
     assert new_model.impl.action_size == action_size
     assert type(model.scaler) == type(new_model.scaler)
 
+    # check __setattr__ override
+    prev_batch_size = model.impl.batch_size
+    model.batch_size = prev_batch_size + 1
+    assert model.impl.batch_size == model.batch_size
+
     # set backed up methods
     model.impl = None
     model.update = update_backup

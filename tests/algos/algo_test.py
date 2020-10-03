@@ -15,6 +15,7 @@ class DummyImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size):
         self.observation_shape = observation_shape
         self.action_size = action_size
+        self.batch_size = 32
 
     def build(self):
         pass
