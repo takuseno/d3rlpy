@@ -9,17 +9,29 @@ from .utility import torch_api, train_api, eval_api
 
 class AWACImpl(SACImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, temp_learning_rate, gamma, tau, lam,
-                 n_action_samples, max_weight, actor_weight_decay,
-                 initial_temperature, n_critics, bootstrap, share_encoder, eps,
-                 use_batch_norm, q_func_type, use_gpu, scaler, augmentation,
-                 n_augmentations, encoder_params):
-        super().__init__(observation_shape, action_size, actor_learning_rate,
-                         critic_learning_rate, temp_learning_rate, gamma, tau,
-                         n_critics, bootstrap, share_encoder,
-                         initial_temperature, eps, use_batch_norm, q_func_type,
-                         use_gpu, scaler, augmentation, n_augmentations,
-                         encoder_params)
+                 critic_learning_rate, gamma, tau, lam, n_action_samples,
+                 max_weight, actor_weight_decay, n_critics, bootstrap,
+                 share_encoder, eps, use_batch_norm, q_func_type, use_gpu,
+                 scaler, augmentation, n_augmentations, encoder_params):
+        super().__init__(observation_shape=observation_shape,
+                         action_size=action_size,
+                         actor_learning_rate=actor_learning_rate,
+                         critic_learning_rate=critic_learning_rate,
+                         temp_learning_rate=0.0,
+                         gamma=gamma,
+                         tau=tau,
+                         n_critics=n_critics,
+                         bootstrap=bootstrap,
+                         share_encoder=share_encoder,
+                         initial_temperature=1e-10,
+                         eps=eps,
+                         use_batch_norm=use_batch_norm,
+                         q_func_type=q_func_type,
+                         use_gpu=use_gpu,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         n_augmentations=n_augmentations,
+                         encoder_params=encoder_params)
         self.lam = lam
         self.n_action_samples = n_action_samples
         self.max_weight = max_weight
@@ -59,7 +71,17 @@ class AWACImpl(SACImpl):
         # compute log probability
         _, log_probs = squash_action(dist, unnormalized_act_t)
 
-        # compute weight
+        # compute exponential weight
+        weights = self._compute_weights(obs_t, act_t)
+
+        # this seems to be trick to scale gradients.
+        # torch.sum can replace this.
+        # https://github.com/vitchyr/rlkit/blob/5274672e9ff6481def0ffed61cd1b1c52210a840/rlkit/torch/sac/awac_trainer.py#L639
+        multiplier = len(weights)
+
+        return -(log_probs * multiplier * weights).mean()
+
+    def _compute_weights(self, obs_t, act_t):
         with torch.no_grad():
             batch_size = obs_t.shape[0]
 
@@ -97,9 +119,4 @@ class AWACImpl(SACImpl):
             weights = torch.exp(normalized_adv_values / self.lam)
             # clip like AWR
             clipped_weights = weights.clamp(0.0, self.max_weight)
-
-        # SAC-style entropy loss
-        _, greedy_log_probs = self.policy(obs_t, with_log_prob=True)
-        entropy = self.log_temp.exp() * greedy_log_probs
-
-        return entropy.mean() - (log_probs * clipped_weights).mean()
+        return clipped_weights
