@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 
 from torch.optim import Adam
 from d3rlpy.models.torch.policies import squash_action, create_normal_policy
@@ -44,6 +45,7 @@ class AWACImpl(SACImpl):
                                            min_log_std=-6.0,
                                            max_log_std=0.0,
                                            encoder_params=self.encoder_params)
+
     def _build_actor_optim(self):
         self.actor_optim = Adam(self.policy.parameters(),
                                 lr=self.actor_learning_rate,
@@ -81,12 +83,7 @@ class AWACImpl(SACImpl):
         # compute exponential weight
         weights = self._compute_weights(obs_t, act_t)
 
-        # this seems to be trick to scale gradients.
-        # torch.sum can replace this.
-        # https://github.com/vitchyr/rlkit/blob/5274672e9ff6481def0ffed61cd1b1c52210a840/rlkit/torch/sac/awac_trainer.py#L639
-        multiplier = len(weights)
-
-        return -(log_probs * multiplier * weights).mean()
+        return -(log_probs * weights).sum()
 
     def _compute_weights(self, obs_t, act_t):
         with torch.no_grad():
@@ -115,15 +112,11 @@ class AWACImpl(SACImpl):
             reshaped_v_values = flat_v_values.view(obs_t.shape[0], -1, 1)
             v_values = reshaped_v_values.mean(dim=1)
 
-            # compute normalized advantages like AWR
-            # this normalization dramatically stabilizes training
-            adv_values = q_values - v_values
-            mean_values = adv_values.mean(dim=0, keepdims=True)
-            std_values = adv_values.std(dim=0, keepdims=True) + 1e-5
-            normalized_adv_values = (adv_values - mean_values) / std_values
+            # compute normalized weight
+            adv_values = (q_values - v_values).view(-1)
+            weights = F.softmax(adv_values / self.lam, dim=0).view(-1, 1)
 
-            # compute weight
-            weights = torch.exp(normalized_adv_values / self.lam)
             # clip like AWR
             clipped_weights = weights.clamp(0.0, self.max_weight)
+
         return clipped_weights
