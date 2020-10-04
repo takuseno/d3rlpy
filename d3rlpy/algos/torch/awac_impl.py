@@ -42,8 +42,9 @@ class AWACImpl(SACImpl):
         self.policy = create_normal_policy(self.observation_shape,
                                            self.action_size,
                                            self.use_batch_norm,
-                                           min_log_std=-6.0,
-                                           max_log_std=0.0,
+                                           min_logstd=-6.0,
+                                           max_logstd=0.0,
+                                           use_std_parameter=True,
                                            encoder_params=self.encoder_params)
 
     def _build_actor_optim(self):

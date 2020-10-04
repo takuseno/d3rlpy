@@ -32,13 +32,18 @@ def create_deterministic_residual_policy(observation_shape,
 def create_normal_policy(observation_shape,
                          action_size,
                          use_batch_norm=False,
-                         min_log_std=-20.0,
-                         max_log_std=2.0,
+                         min_logstd=-20.0,
+                         max_logstd=2.0,
+                         use_std_parameter=False,
                          encoder_params={}):
     encoder = create_encoder(observation_shape,
                              use_batch_norm=use_batch_norm,
                              **encoder_params)
-    return NormalPolicy(encoder, action_size, min_log_std, max_log_std)
+    return NormalPolicy(encoder,
+                        action_size,
+                        min_logstd=min_logstd,
+                        max_logstd=max_logstd,
+                        use_std_parameter=use_std_parameter)
 
 
 def create_categorical_policy(observation_shape,
@@ -92,20 +97,31 @@ class DeterministicResidualPolicy(nn.Module):
 
 
 class NormalPolicy(nn.Module):
-    def __init__(self, encoder, action_size, min_log_std, max_log_std):
+    def __init__(self, encoder, action_size, min_logstd, max_logstd,
+                 use_std_parameter):
         super().__init__()
         self.action_size = action_size
         self.encoder = encoder
-        self.min_log_std = min_log_std
-        self.max_log_std = max_log_std
+        self.min_logstd = min_logstd
+        self.max_logstd = max_logstd
+        self.use_std_parameter = use_std_parameter
         self.mu = nn.Linear(encoder.feature_size, action_size)
-        self.logstd = nn.Linear(encoder.feature_size, action_size)
+        if self.use_std_parameter:
+            initial_logstd = torch.zeros(1, action_size, dtype=torch.float32)
+            self.logstd = nn.Parameter(initial_logstd)
+        else:
+            self.logstd = nn.Linear(encoder.feature_size, action_size)
 
     def dist(self, x):
         h = self.encoder(x)
         mu = self.mu(h)
-        logstd = self.logstd(h)
-        clipped_logstd = logstd.clamp(self.min_log_std, self.max_log_std)
+        if self.use_std_parameter:
+            logstd = torch.sigmoid(self.logstd)
+            base_logstd = self.max_logstd - self.min_logstd
+            clipped_logstd = self.min_logstd + logstd * base_logstd
+        else:
+            logstd = self.logstd(h)
+            clipped_logstd = logstd.clamp(self.min_logstd, self.max_logstd)
         return Normal(mu, clipped_logstd.exp())
 
     def forward(self, x, deterministic=False, with_log_prob=False):
