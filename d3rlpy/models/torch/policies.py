@@ -32,11 +32,13 @@ def create_deterministic_residual_policy(observation_shape,
 def create_normal_policy(observation_shape,
                          action_size,
                          use_batch_norm=False,
+                         min_log_std=-20.0,
+                         max_log_std=2.0,
                          encoder_params={}):
     encoder = create_encoder(observation_shape,
                              use_batch_norm=use_batch_norm,
                              **encoder_params)
-    return NormalPolicy(encoder, action_size)
+    return NormalPolicy(encoder, action_size, min_log_std, max_log_std)
 
 
 def create_categorical_policy(observation_shape,
@@ -90,10 +92,12 @@ class DeterministicResidualPolicy(nn.Module):
 
 
 class NormalPolicy(nn.Module):
-    def __init__(self, encoder, action_size):
+    def __init__(self, encoder, action_size, min_log_std, max_log_std):
         super().__init__()
         self.action_size = action_size
         self.encoder = encoder
+        self.min_log_std = min_log_std
+        self.max_log_std = max_log_std
         self.mu = nn.Linear(encoder.feature_size, action_size)
         self.logstd = nn.Linear(encoder.feature_size, action_size)
 
@@ -101,7 +105,7 @@ class NormalPolicy(nn.Module):
         h = self.encoder(x)
         mu = self.mu(h)
         logstd = self.logstd(h)
-        clipped_logstd = logstd.clamp(-20.0, 2.0)
+        clipped_logstd = logstd.clamp(self.min_log_std, self.max_log_std)
         return Normal(mu, clipped_logstd.exp())
 
     def forward(self, x, deterministic=False, with_log_prob=False):

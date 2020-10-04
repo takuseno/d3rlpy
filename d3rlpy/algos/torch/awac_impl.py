@@ -37,6 +37,13 @@ class AWACImpl(SACImpl):
         self.max_weight = max_weight
         self.actor_weight_decay = actor_weight_decay
 
+    def _build_actor(self):
+        self.policy = create_normal_policy(self.observation_shape,
+                                           self.action_size,
+                                           self.use_batch_norm,
+                                           min_log_std=-6.0,
+                                           max_log_std=0.0,
+                                           encoder_params=self.encoder_params)
     def _build_actor_optim(self):
         self.actor_optim = Adam(self.policy.parameters(),
                                 lr=self.actor_learning_rate,
