@@ -21,6 +21,7 @@ Continuous control algorithms
    d3rlpy.algos.BEAR
    d3rlpy.algos.CQL
    d3rlpy.algos.AWR
+   d3rlpy.algos.AWAC
 
 Discrete control algorithms
 ---------------------------
