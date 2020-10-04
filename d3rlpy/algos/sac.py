@@ -13,27 +13,27 @@ class SAC(AlgoBase):
 
     .. math::
 
-        L(\\theta_i) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D,
-                                   a_{t+1} \sim \pi_\phi(\cdot|s_{t+1})} [
+        L(\\theta_i) = \\mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \\sim D,
+                                   a_{t+1} \\sim \\pi_\\phi(\\cdot|s_{t+1})} [
             (y - Q_{\\theta_i}(s_t, a_t))^2]
 
     .. math::
 
-        y = r_{t+1} + \gamma (\min_j Q_{\\theta_j}(s_{t+1}, a_{t+1})
-            - \\alpha \log (\pi_\phi(a_{t+1}|s_{t+1})))
+        y = r_{t+1} + \\gamma (\\min_j Q_{\\theta_j}(s_{t+1}, a_{t+1})
+            - \\alpha \\log (\\pi_\\phi(a_{t+1}|s_{t+1})))
 
     .. math::
 
-        J(\phi) = \mathbb{E}_{s_t \sim D, a_t \sim \pi_\phi(\cdot|s_t)}
-            [\\alpha \log (\pi_\phi (a_t|s_t))
-              - \min_i Q_{\\theta_i}(s_t, \pi_\phi(a_t|s_t))]
+        J(\\phi) = \\mathbb{E}_{s_t \\sim D, a_t \\sim \\pi_\\phi(\\cdot|s_t)}
+            [\\alpha \\log (\\pi_\\phi (a_t|s_t))
+              - \\min_i Q_{\\theta_i}(s_t, \\pi_\\phi(a_t|s_t))]
 
     The temperature parameter :math:`\\alpha` is also automatically adjustable.
 
     .. math::
 
-        J(\\alpha) = \mathbb{E}_{s_t \sim D, a_t \sim \pi_\phi(\cdot|s_t)}
-            [-\\alpha (\log (\pi_\phi(a_t|s_t)) + H)]
+        J(\\alpha) = \\mathbb{E}_{s_t \\sim D, a_t \\sim \\pi_\\phi\(\cdot|s_t)}
+            [-\\alpha (\\log (\\pi_\\phi(a_t|s_t)) + H)]
 
     where :math:`H` is a target
     entropy, which is defined as :math:`\dim a`.
