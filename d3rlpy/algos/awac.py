@@ -3,6 +3,100 @@ from .torch.awac_impl import AWACImpl
 
 
 class AWAC(AlgoBase):
+    """ Advantage Weighted Actor-Critic algorithm.
+
+    AWAC is a TD3-based actor-critic algorithm that enables efficient
+    fine-tuning where the policy is trained with offline datasets and is
+    deployed to online training.
+
+    The policy is trained as a supervised regression.
+
+    .. math::
+
+        J(\\phi) = \\mathbb{E}_{s_t, a_t \\sim D}
+            [\\log \\pi_\\phi(a_t|s_t)
+                \\exp(\\frac{1}{\\lambda} A^\\pi (s_t, a_t))]
+
+    where :math:`A^\\pi (s_t, a_t) = Q_\\theta(s_t, a_t) -
+    Q_\\theta(s_t, a'_t)` and :math:`a'_t \\sim \\pi_\\phi(\\cdot|s_t)`
+
+    The key difference from AWR is that AWAC uses Q-function trained via TD
+    learning for the better sample-efficiency.
+
+    References:
+        * `Nair et al., Accelerating Online Reinforcement Learning with Offline
+          Datasets. <https://arxiv.org/abs/2006.09359>`_
+
+    Args:
+        actor_learning_rate (float): learning rate for policy function.
+        critic_learning_rate (float): learning rate for Q functions.
+        batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
+        gamma (float): discount factor.
+        tau (float): target network synchronization coefficiency.
+        lam (float): :math:`\\lambda` for weight calculation.
+        n_action_samples (int): the number of sampled actions to calculate
+            :math:`A^\\pi(s_t, a_t)`.
+        max_weight (float): maximum weight for cross-entropy loss.
+        actor_weight_decay (float): decay factor for policy function.
+        n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
+        update_actor_interval (int): interval to update policy function.
+        eps (float): :math:`\\epsilon` for Adam optimizer.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+        q_func_type (str): type of Q function. Available options are
+            `['mean', 'qr', 'iqn', 'fqf']`.
+        n_epochs (int): the number of epochs to train.
+        use_gpu (bool, int or d3rlpy.gpu.Device):
+            flag to use GPU, device ID or device.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+            The available options are `['pixel', 'min_max', 'standard']`
+        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
+            augmentation pipeline.
+        n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup. If the
+            observation is pixel, you can pass ``filters`` with list of tuples
+            consisting with ``(filter_size, kernel_size, stride)`` and
+            ``feature_size`` with an integer scaler for the last linear layer
+            size. If the observation is vector, you can pass ``hidden_units``
+            with list of hidden unit sizes.
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
+            augmentation.
+        impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
+
+    Attributes:
+        actor_learning_rate (float): learning rate for policy function.
+        critic_learning_rate (float): learning rate for Q functions.
+        batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
+        gamma (float): discount factor.
+        tau (float): target network synchronization coefficiency.
+        lam (float): :math:`\\lambda` for weight calculation.
+        n_action_samples (int): the number of sampled actions to calculate
+            :math:`A^\\pi(s_t, a_t)`.
+        max_weight (float): maximum weight for cross-entropy loss.
+        actor_weight_decay (float): decay factor for policy function.
+        n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
+        update_actor_interval (int): interval to update policy function.
+        eps (float): :math:`\\epsilon` for Adam optimizer.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+        q_func_type (str): type of Q function.
+        n_epochs (int): the number of epochs to train.
+        use_gpu (bool, int or d3rlpy.gpu.Device):
+            flag to use GPU, device ID or device.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
+            augmentation pipeline.
+        n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup.
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
+            augmentation.
+        impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
+
+    """
     def __init__(self,
                  actor_learning_rate=3e-4,
                  critic_learning_rate=3e-4,
@@ -18,7 +112,7 @@ class AWAC(AlgoBase):
                  bootstrap=False,
                  share_encoder=False,
                  update_actor_interval=1,
-                 eps=1e-4,
+                 eps=1e-8,
                  use_batch_norm=False,
                  q_func_type='mean',
                  n_epochs=1000,
