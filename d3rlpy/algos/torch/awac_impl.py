@@ -24,7 +24,7 @@ class AWACImpl(SACImpl):
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
-                         initial_temperature=1e-10,
+                         initial_temperature=1e-20,
                          eps=eps,
                          use_batch_norm=use_batch_norm,
                          q_func_type=q_func_type,
@@ -76,7 +76,7 @@ class AWACImpl(SACImpl):
         dist = self.policy.dist(obs_t)
 
         # unnormalize action via inverse tanh function
-        unnormalized_act_t = torch.atanh(act_t).clamp(-2.0, 2.0)
+        unnormalized_act_t = torch.atanh(act_t.clamp(-0.999999, 0.999999))
 
         # compute log probability
         _, log_probs = squash_action(dist, unnormalized_act_t)
