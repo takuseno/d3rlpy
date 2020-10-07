@@ -116,9 +116,7 @@ class NormalPolicy(nn.Module):
         h = self.encoder(x)
         mu = self.mu(h)
         if self.use_std_parameter:
-            logstd = torch.sigmoid(self.logstd)
-            base_logstd = self.max_logstd - self.min_logstd
-            clipped_logstd = self.min_logstd + logstd * base_logstd
+            clipped_logstd = self.get_logstd_parameter()
         else:
             logstd = self.logstd(h)
             clipped_logstd = logstd.clamp(self.min_logstd, self.max_logstd)
@@ -160,6 +158,12 @@ class NormalPolicy(nn.Module):
 
     def best_action(self, x):
         return self.forward(x, deterministic=True, with_log_prob=False)
+
+    def get_logstd_parameter(self):
+        assert self.use_std_parameter
+        logstd = torch.sigmoid(self.logstd)
+        base_logstd = self.max_logstd - self.min_logstd
+        return self.min_logstd + logstd * base_logstd
 
 
 class CategoricalPolicy(nn.Module):

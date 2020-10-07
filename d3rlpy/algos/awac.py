@@ -178,13 +178,13 @@ class AWAC(AlgoBase):
                                               batch.terminals)
         # delayed policy update
         if total_step % self.update_actor_interval == 0:
-            actor_loss = self.impl.update_actor(batch.observations,
-                                                batch.actions)
+            actor_loss, mean_std = self.impl.update_actor(
+                batch.observations, batch.actions)
             self.impl.update_critic_target()
             self.impl.update_actor_target()
         else:
-            actor_loss = None
-        return critic_loss, actor_loss
+            actor_loss, mean_std = None, None
+        return critic_loss, actor_loss, mean_std
 
     def _get_loss_labels(self):
-        return ['critic_loss', 'actor_loss']
+        return ['critic_loss', 'actor_loss', 'mean_std']

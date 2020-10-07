@@ -70,7 +70,10 @@ class AWACImpl(SACImpl):
         loss.backward()
         self.actor_optim.step()
 
-        return loss.cpu().detach().numpy()
+        # get current standard deviation for policy function for debug
+        mean_std = self.policy.get_logstd_parameter().exp().mean()
+
+        return loss.cpu().detach().numpy(), mean_std.cpu().detach().numpy()
 
     def _compute_actor_loss(self, obs_t, act_t):
         dist = self.policy.dist(obs_t)
