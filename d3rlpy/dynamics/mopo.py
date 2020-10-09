@@ -86,6 +86,7 @@ class MOPO(DynamicsBase):
 
     """
     def __init__(self,
+                 *,
                  n_epochs=30,
                  batch_size=100,
                  n_frames=1,
@@ -103,8 +104,14 @@ class MOPO(DynamicsBase):
                  use_gpu=False,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, n_frames, n_transitions,
-                         horizon, scaler, augmentation, use_gpu)
+        super().__init__(n_epochs=n_epochs,
+                         batch_size=batch_size,
+                         n_frames=n_frames,
+                         n_transitions=n_transitions,
+                         horizon=horizon,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         use_gpu=use_gpu)
         self.learning_rate = learning_rate
         self.eps = eps
         self.weight_decay = weight_decay

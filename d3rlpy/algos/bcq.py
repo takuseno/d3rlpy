@@ -156,6 +156,7 @@ class BCQ(AlgoBase):
 
     """
     def __init__(self,
+                 *,
                  actor_learning_rate=1e-3,
                  critic_learning_rate=1e-3,
                  imitator_learning_rate=1e-3,
@@ -185,8 +186,13 @@ class BCQ(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
-                         dynamics, use_gpu)
+        super().__init__(n_epochs=n_epochs,
+                         batch_size=batch_size,
+                         n_frames=n_frames,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         dynamics=dynamics,
+                         use_gpu=use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.imitator_learning_rate = imitator_learning_rate
@@ -367,6 +373,7 @@ class DiscreteBCQ(AlgoBase):
 
     """
     def __init__(self,
+                 *,
                  learning_rate=6.25e-5,
                  batch_size=32,
                  n_frames=1,
@@ -389,8 +396,13 @@ class DiscreteBCQ(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
-                         dynamics, use_gpu)
+        super().__init__(n_epochs=n_epochs,
+                         batch_size=batch_size,
+                         n_frames=n_frames,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         dynamics=dynamics,
+                         use_gpu=use_gpu)
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.n_critics = n_critics

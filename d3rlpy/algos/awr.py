@@ -107,6 +107,7 @@ class AWR(AlgoBase):
 
     """
     def __init__(self,
+                 *,
                  actor_learning_rate=5e-5,
                  critic_learning_rate=1e-4,
                  batch_size=2048,
@@ -130,8 +131,13 @@ class AWR(AlgoBase):
                  impl=None,
                  **kwargs):
         # batch_size in AWR has different semantic from Q learning algorithms.
-        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
-                         dynamics, use_gpu)
+        super().__init__(n_epochs=n_epochs,
+                         batch_size=batch_size,
+                         n_frames=n_frames,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         dynamics=dynamics,
+                         use_gpu=use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.batch_size_per_update = batch_size_per_update

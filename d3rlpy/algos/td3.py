@@ -101,6 +101,7 @@ class TD3(AlgoBase):
 
     """
     def __init__(self,
+                 *,
                  actor_learning_rate=3e-4,
                  critic_learning_rate=3e-4,
                  batch_size=100,
@@ -126,8 +127,13 @@ class TD3(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
-                         dynamics, use_gpu)
+        super().__init__(n_epochs=n_epochs,
+                         batch_size=batch_size,
+                         n_frames=n_frames,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         dynamics=dynamics,
+                         use_gpu=use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.gamma = gamma
