@@ -3,7 +3,7 @@ from .torch.awac_impl import AWACImpl
 
 
 class AWAC(AlgoBase):
-    """ Advantage Weighted Actor-Critic algorithm.
+    r""" Advantage Weighted Actor-Critic algorithm.
 
     AWAC is a TD3-based actor-critic algorithm that enables efficient
     fine-tuning where the policy is trained with offline datasets and is
@@ -13,12 +13,12 @@ class AWAC(AlgoBase):
 
     .. math::
 
-        J(\\phi) = \\mathbb{E}_{s_t, a_t \\sim D}
-            [\\log \\pi_\\phi(a_t|s_t)
-                \\exp(\\frac{1}{\\lambda} A^\\pi (s_t, a_t))]
+        J(\phi) = \mathbb{E}_{s_t, a_t \sim D}
+            [\log \pi_\phi(a_t|s_t)
+                \exp(\frac{1}{\lambda} A^\pi (s_t, a_t))]
 
-    where :math:`A^\\pi (s_t, a_t) = Q_\\theta(s_t, a_t) -
-    Q_\\theta(s_t, a'_t)` and :math:`a'_t \\sim \\pi_\\phi(\\cdot|s_t)`
+    where :math:`A^\pi (s_t, a_t) = Q_\theta(s_t, a_t) -
+    Q_\theta(s_t, a'_t)` and :math:`a'_t \sim \pi_\phi(\cdot|s_t)`
 
     The key difference from AWR is that AWAC uses Q-function trained via TD
     learning for the better sample-efficiency.
@@ -34,16 +34,16 @@ class AWAC(AlgoBase):
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
-        lam (float): :math:`\\lambda` for weight calculation.
+        lam (float): :math:`\lambda` for weight calculation.
         n_action_samples (int): the number of sampled actions to calculate
-            :math:`A^\\pi(s_t, a_t)`.
+            :math:`A^\pi(s_t, a_t)`.
         max_weight (float): maximum weight for cross-entropy loss.
         actor_weight_decay (float): decay factor for policy function.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
+        eps (float): :math:`\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
@@ -72,16 +72,16 @@ class AWAC(AlgoBase):
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
-        lam (float): :math:`\\lambda` for weight calculation.
+        lam (float): :math:`\lambda` for weight calculation.
         n_action_samples (int): the number of sampled actions to calculate
-            :math:`A^\\pi(s_t, a_t)`.
+            :math:`A^\pi(s_t, a_t)`.
         max_weight (float): maximum weight for cross-entropy loss.
         actor_weight_decay (float): decay factor for policy function.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
+        eps (float): :math:`\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function.
         n_epochs (int): the number of epochs to train.
