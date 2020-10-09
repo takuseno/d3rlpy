@@ -22,11 +22,24 @@ class BCQImpl(DDPGImpl):
                  action_flexibility, latent_size, beta, eps, use_batch_norm,
                  q_func_type, use_gpu, scaler, augmentation, n_augmentations,
                  encoder_params):
-        super().__init__(observation_shape, action_size, actor_learning_rate,
-                         critic_learning_rate, gamma, tau, n_critics,
-                         bootstrap, share_encoder, 0.0, eps, use_batch_norm,
-                         q_func_type, use_gpu, scaler, augmentation,
-                         n_augmentations, encoder_params)
+        super().__init__(observation_shape=observation_shape,
+                         action_size=action_size,
+                         actor_learning_rate=actor_learning_rate,
+                         critic_learning_rate=critic_learning_rate,
+                         gamma=gamma,
+                         tau=tau,
+                         n_critics=n_critics,
+                         bootstrap=bootstrap,
+                         share_encoder=share_encoder,
+                         reguralizing_rate=0.0,
+                         eps=eps,
+                         use_batch_norm=use_batch_norm,
+                         q_func_type=q_func_type,
+                         use_gpu=use_gpu,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         n_augmentations=n_augmentations,
+                         encoder_params=encoder_params)
         self.imitator_learning_rate = imitator_learning_rate
         self.n_critics = n_critics
         self.lam = lam
@@ -153,10 +166,21 @@ class DiscreteBCQImpl(DoubleDQNImpl):
                  n_critics, bootstrap, share_encoder, action_flexibility, beta,
                  eps, use_batch_norm, q_func_type, use_gpu, scaler,
                  augmentation, n_augmentations, encoder_params):
-        super().__init__(observation_shape, action_size, learning_rate, gamma,
-                         n_critics, bootstrap, share_encoder, eps,
-                         use_batch_norm, q_func_type, use_gpu, scaler,
-                         augmentation, n_augmentations, encoder_params)
+        super().__init__(observation_shape=observation_shape,
+                         action_size=action_size,
+                         learning_rate=learning_rate,
+                         gamma=gamma,
+                         n_critics=n_critics,
+                         bootstrap=bootstrap,
+                         share_encoder=share_encoder,
+                         eps=eps,
+                         use_batch_norm=use_batch_norm,
+                         q_func_type=q_func_type,
+                         use_gpu=use_gpu,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         n_augmentations=n_augmentations,
+                         encoder_params=encoder_params)
         self.action_flexibility = action_flexibility
         self.beta = beta
 
