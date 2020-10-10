@@ -11,6 +11,7 @@ def train(env,
           explorer=None,
           n_steps_per_epoch=4000,
           n_updates_per_epoch=100,
+          update_start_step=0,
           eval_env=None,
           eval_epsilon=0.05,
           experiment_name=None,
@@ -29,6 +30,7 @@ def train(env,
         explorer (d3rlpy.online.explorers.Explorer): action explorer.
         n_steps_per_epoch (int): the number of steps per epoch.
         n_updates_per_epoch (int): the number of updates per epoch.
+        update_start_step (int): the steps before starting updates.
         eval_env (gym.Env): gym-like environment. If None, evaluation is
             skipped.
         eval_epsilon (float): :math:`\\epsilon`-greedy factor during
@@ -116,12 +118,14 @@ def train(env,
             total_step += 1
 
         # update loop
-        for i in xrange(n_updates_per_epoch):
-            batch = buffer.sample(algo.batch_size, algo.n_frames)
-            loss = algo.update(epoch, epoch * n_updates_per_epoch + i, batch)
-            for name, val in zip(algo._get_loss_labels(), loss):
-                if val:
-                    logger.add_metric(name, val)
+        if total_step > update_start_step:
+            for i in xrange(n_updates_per_epoch):
+                batch = buffer.sample(algo.batch_size, algo.n_frames)
+                update_count = epoch * n_updates_per_epoch + i
+                loss = algo.update(epoch, update_count, batch)
+                for name, val in zip(algo._get_loss_labels(), loss):
+                    if val:
+                        logger.add_metric(name, val)
 
         # evaluation
         if scorer:
