@@ -10,11 +10,24 @@ class TD3Impl(DDPGImpl):
                  target_smoothing_clip, eps, use_batch_norm, q_func_type,
                  use_gpu, scaler, augmentation, n_augmentations,
                  encoder_params):
-        super().__init__(observation_shape, action_size, actor_learning_rate,
-                         critic_learning_rate, gamma, tau, n_critics,
-                         bootstrap, share_encoder, reguralizing_rate, eps,
-                         use_batch_norm, q_func_type, use_gpu, scaler,
-                         augmentation, n_augmentations, encoder_params)
+        super().__init__(observation_shape=observation_shape,
+                         action_size=action_size,
+                         actor_learning_rate=actor_learning_rate,
+                         critic_learning_rate=critic_learning_rate,
+                         gamma=gamma,
+                         tau=tau,
+                         n_critics=n_critics,
+                         bootstrap=bootstrap,
+                         share_encoder=share_encoder,
+                         reguralizing_rate=reguralizing_rate,
+                         eps=eps,
+                         use_batch_norm=use_batch_norm,
+                         q_func_type=q_func_type,
+                         use_gpu=use_gpu,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         n_augmentations=n_augmentations,
+                         encoder_params=encoder_params)
         self.target_smoothing_sigma = target_smoothing_sigma
         self.target_smoothing_clip = target_smoothing_clip
 

@@ -88,6 +88,12 @@ class LearnableBase:
         self.impl = None
         self.eval_results_ = {}
 
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        # propagate property updates to implementation object
+        if hasattr(self, 'impl') and self.impl and hasattr(self.impl, name):
+            setattr(self.impl, name, value)
+
     @classmethod
     def from_json(cls, fname, use_gpu=False):
         """ Returns algorithm configured with json file.

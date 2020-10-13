@@ -1,3 +1,4 @@
+import numpy as np
 import gym
 import os
 import urllib
@@ -35,7 +36,7 @@ def get_cartpole():
     # environment
     env = gym.make('CartPole-v0')
 
-    dataset = MDPDataset(observations=observations,
+    dataset = MDPDataset(observations=np.array(observations, dtype=np.float32),
                          actions=actions,
                          rewards=rewards,
                          terminals=terminals,
@@ -68,7 +69,7 @@ def get_pendulum():
     # environment
     env = gym.make('Pendulum-v0')
 
-    dataset = MDPDataset(observations=observations,
+    dataset = MDPDataset(observations=np.array(observations, dtype=np.float32),
                          actions=actions,
                          rewards=rewards,
                          terminals=terminals)

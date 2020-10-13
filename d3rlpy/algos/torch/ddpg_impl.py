@@ -165,6 +165,8 @@ class DDPGImpl(TorchImplBase):
 
         return mean_values
 
+    @eval_api
+    @torch_api
     def sample_action(self, x):
         return self.predict_best_action(x)
 

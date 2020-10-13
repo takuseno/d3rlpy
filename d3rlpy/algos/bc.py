@@ -61,6 +61,7 @@ class BC(AlgoBase):
 
     """
     def __init__(self,
+                 *,
                  learning_rate=1e-3,
                  batch_size=100,
                  n_frames=1,
@@ -75,8 +76,13 @@ class BC(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
-                         dynamics, use_gpu)
+        super().__init__(n_epochs=n_epochs,
+                         batch_size=batch_size,
+                         n_frames=n_frames,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         dynamics=dynamics,
+                         use_gpu=use_gpu)
         self.learning_rate = learning_rate
         self.eps = eps
         self.use_batch_norm = use_batch_norm
@@ -178,6 +184,7 @@ class DiscreteBC(BC):
 
     """
     def __init__(self,
+                 *,
                  learning_rate=1e-3,
                  batch_size=100,
                  n_frames=1,
@@ -193,10 +200,20 @@ class DiscreteBC(BC):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(learning_rate, batch_size, n_frames, eps,
-                         use_batch_norm, n_epochs, use_gpu, scaler,
-                         augmentation, n_augmentations, encoder_params,
-                         dynamics, impl, **kwargs)
+        super().__init__(learning_rate=learning_rate,
+                         batch_size=batch_size,
+                         n_frames=n_frames,
+                         eps=eps,
+                         use_batch_norm=use_batch_norm,
+                         n_epochs=n_epochs,
+                         use_gpu=use_gpu,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         n_augmentations=n_augmentations,
+                         encoder_params=encoder_params,
+                         dynamics=dynamics,
+                         impl=impl,
+                         **kwargs)
         self.beta = beta
 
     def create_impl(self, observation_shape, action_size):

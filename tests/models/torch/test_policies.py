@@ -131,10 +131,15 @@ def test_deterministic_residual_policy(feature_size, action_size, scale,
 @pytest.mark.parametrize('feature_size', [100])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize('min_logstd', [-20.0])
+@pytest.mark.parametrize('max_logstd', [2.0])
+@pytest.mark.parametrize('use_std_parameter', [True, False])
 @pytest.mark.parametrize('n', [10])
-def test_normal_policy(feature_size, action_size, batch_size, n):
+def test_normal_policy(feature_size, action_size, batch_size, min_logstd,
+                       max_logstd, use_std_parameter, n):
     encoder = DummyEncoder(feature_size)
-    policy = NormalPolicy(encoder, action_size)
+    policy = NormalPolicy(encoder, action_size, min_logstd, max_logstd,
+                          use_std_parameter)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)

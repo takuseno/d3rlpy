@@ -32,11 +32,18 @@ def create_deterministic_residual_policy(observation_shape,
 def create_normal_policy(observation_shape,
                          action_size,
                          use_batch_norm=False,
+                         min_logstd=-20.0,
+                         max_logstd=2.0,
+                         use_std_parameter=False,
                          encoder_params={}):
     encoder = create_encoder(observation_shape,
                              use_batch_norm=use_batch_norm,
                              **encoder_params)
-    return NormalPolicy(encoder, action_size)
+    return NormalPolicy(encoder,
+                        action_size,
+                        min_logstd=min_logstd,
+                        max_logstd=max_logstd,
+                        use_std_parameter=use_std_parameter)
 
 
 def create_categorical_policy(observation_shape,
@@ -49,7 +56,7 @@ def create_categorical_policy(observation_shape,
     return CategoricalPolicy(encoder, action_size)
 
 
-def _squash_action(dist, raw_action):
+def squash_action(dist, raw_action):
     squashed_action = torch.tanh(raw_action)
     jacob = 2 * (math.log(2) - raw_action - F.softplus(-2 * raw_action))
     log_prob = (dist.log_prob(raw_action) - jacob).sum(dim=-1, keepdims=True)
@@ -90,18 +97,29 @@ class DeterministicResidualPolicy(nn.Module):
 
 
 class NormalPolicy(nn.Module):
-    def __init__(self, encoder, action_size):
+    def __init__(self, encoder, action_size, min_logstd, max_logstd,
+                 use_std_parameter):
         super().__init__()
         self.action_size = action_size
         self.encoder = encoder
+        self.min_logstd = min_logstd
+        self.max_logstd = max_logstd
+        self.use_std_parameter = use_std_parameter
         self.mu = nn.Linear(encoder.feature_size, action_size)
-        self.logstd = nn.Linear(encoder.feature_size, action_size)
+        if self.use_std_parameter:
+            initial_logstd = torch.zeros(1, action_size, dtype=torch.float32)
+            self.logstd = nn.Parameter(initial_logstd)
+        else:
+            self.logstd = nn.Linear(encoder.feature_size, action_size)
 
     def dist(self, x):
         h = self.encoder(x)
         mu = self.mu(h)
-        logstd = self.logstd(h)
-        clipped_logstd = logstd.clamp(-20.0, 2.0)
+        if self.use_std_parameter:
+            clipped_logstd = self.get_logstd_parameter()
+        else:
+            logstd = self.logstd(h)
+            clipped_logstd = logstd.clamp(self.min_logstd, self.max_logstd)
         return Normal(mu, clipped_logstd.exp())
 
     def forward(self, x, deterministic=False, with_log_prob=False):
@@ -114,7 +132,7 @@ class NormalPolicy(nn.Module):
             action = dist.rsample()
 
         if with_log_prob:
-            return _squash_action(dist, action)
+            return squash_action(dist, action)
 
         return torch.tanh(action)
 
@@ -126,7 +144,7 @@ class NormalPolicy(nn.Module):
 
         action = dist.rsample((n, ))
 
-        squashed_action_T, log_prob_T = _squash_action(dist, action)
+        squashed_action_T, log_prob_T = squash_action(dist, action)
 
         # (n, batch, action) -> (batch, n, action)
         squashed_action = squashed_action_T.transpose(0, 1)
@@ -140,6 +158,12 @@ class NormalPolicy(nn.Module):
 
     def best_action(self, x):
         return self.forward(x, deterministic=True, with_log_prob=False)
+
+    def get_logstd_parameter(self):
+        assert self.use_std_parameter
+        logstd = torch.sigmoid(self.logstd)
+        base_logstd = self.max_logstd - self.min_logstd
+        return self.min_logstd + logstd * base_logstd
 
 
 class CategoricalPolicy(nn.Module):

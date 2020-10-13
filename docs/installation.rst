@@ -5,8 +5,8 @@ Recommended Platforms
 ---------------------
 
 d3rlpy is only tested on Linux and macOS.
-However, you can possibly run d3rlpy on Windows as long as PyTorch runs since
-it's the core dependency.
+However, you can possibly run d3rlpy on Windows as long as Cython compile is
+enabled.
 
 Install d3rlpy
 --------------

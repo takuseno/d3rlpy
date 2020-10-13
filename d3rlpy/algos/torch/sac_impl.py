@@ -4,7 +4,7 @@ import math
 
 from torch.optim import Adam
 from d3rlpy.models.torch.policies import create_normal_policy
-from .utility import torch_api, train_api
+from .utility import torch_api, train_api, eval_api
 from .ddpg_impl import DDPGImpl
 
 
@@ -14,11 +14,24 @@ class SACImpl(DDPGImpl):
                  n_critics, bootstrap, share_encoder, initial_temperature, eps,
                  use_batch_norm, q_func_type, use_gpu, scaler, augmentation,
                  n_augmentations, encoder_params):
-        super().__init__(observation_shape, action_size, actor_learning_rate,
-                         critic_learning_rate, gamma, tau, n_critics,
-                         bootstrap, share_encoder, 0.0, eps, use_batch_norm,
-                         q_func_type, use_gpu, scaler, augmentation,
-                         n_augmentations, encoder_params)
+        super().__init__(observation_shape=observation_shape,
+                         action_size=action_size,
+                         actor_learning_rate=actor_learning_rate,
+                         critic_learning_rate=critic_learning_rate,
+                         gamma=gamma,
+                         tau=tau,
+                         n_critics=n_critics,
+                         bootstrap=bootstrap,
+                         share_encoder=share_encoder,
+                         reguralizing_rate=0.0,
+                         eps=eps,
+                         use_batch_norm=use_batch_norm,
+                         q_func_type=q_func_type,
+                         use_gpu=use_gpu,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         n_augmentations=n_augmentations,
+                         encoder_params=encoder_params)
         self.temp_learning_rate = temp_learning_rate
         self.initial_temperature = initial_temperature
 
@@ -70,7 +83,7 @@ class SACImpl(DDPGImpl):
 
         return loss.cpu().detach().numpy(), cur_temp
 
-    @train_api
+    @eval_api
     @torch_api
     def sample_action(self, x):
         if self.scaler:

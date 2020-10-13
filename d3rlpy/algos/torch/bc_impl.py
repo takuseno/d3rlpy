@@ -80,9 +80,16 @@ class DiscreteBCImpl(BCImpl):
     def __init__(self, observation_shape, action_size, learning_rate, eps,
                  beta, use_batch_norm, use_gpu, scaler, augmentation,
                  n_augmentations, encoder_params):
-        super().__init__(observation_shape, action_size, learning_rate, eps,
-                         use_batch_norm, use_gpu, scaler, augmentation,
-                         n_augmentations, encoder_params)
+        super().__init__(observation_shape=observation_shape,
+                         action_size=action_size,
+                         learning_rate=learning_rate,
+                         eps=eps,
+                         use_batch_norm=use_batch_norm,
+                         use_gpu=use_gpu,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         n_augmentations=n_augmentations,
+                         encoder_params=encoder_params)
         self.beta = beta
 
     def _build_network(self):

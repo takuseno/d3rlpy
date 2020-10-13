@@ -1,8 +1,11 @@
 import os
 
 from setuptools import setup, Extension
-from Cython.Build import cythonize
 from numpy import get_include
+try:
+    from Cython.Build import cythonize
+except ImportError as e:
+    raise ImportError('Please install Cython before installing d3rlpy.') from e
 
 os.environ['CFLAGS'] = '-std=c++11'
 
@@ -11,7 +14,7 @@ ext = Extension('d3rlpy.dataset',
                 sources=['d3rlpy/dataset.pyx'],
                 include_dirs=[get_include(), 'd3rlpy/cpp/include'],
                 language='c++',
-                extra_compile_args=["-std=c++11"],
+                extra_compile_args=["-std=c++11", "-O3", "-ffast-math", "-march=native"],
                 extra_link_args=["-std=c++11"])
 
 setup(name="d3rlpy",

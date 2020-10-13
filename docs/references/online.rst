@@ -14,15 +14,13 @@ enough to be trained in an online manner with a few more utilities.
     from d3rlpy.algos import DQN
     from d3rlpy.online.buffers import ReplayBuffer
     from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
-    from d3rlpy.online.iterators import train
 
     # setup environment
     env = gym.make('CartPole-v0')
     eval_env = gym.make('CartPole-v0')
 
     # setup algorithm
-    dqn = DQN(n_epochs=30,
-              batch_size=32,
+    dqn = DQN(batch_size=32,
               learning_rate=2.5e-4,
               target_update_interval=100,
               use_gpu=True)
@@ -36,13 +34,13 @@ enough to be trained in an online manner with a few more utilities.
                                         duration=10000)
 
     # start training
-    train(env,
-          dqn,
-          buffer,
-          explorer=explorer, # you don't need this with probablistic policy algorithms
-          eval_env=eval_env,
-          n_steps_per_epoch=1000,
-          n_updates_per_epoch=100)
+    dqn.fit_online(env,
+                   buffer,
+                   explorer=explorer, # you don't need this with probablistic policy algorithms
+                   eval_env=eval_env,
+                   n_epochs=30,
+                   n_steps_per_epoch=1000,
+                   n_updates_per_epoch=100)
 
 
 Replay Buffer

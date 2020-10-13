@@ -67,6 +67,7 @@ $ pip install d3rlpy
 | [Advantage-Weighted Regression (AWR)](https://arxiv.org/abs/1910.00177) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | [Advantage-weighted Behavior Model (ABM)](https://arxiv.org/abs/2002.08396) | :construction: | :construction: | :white_check_mark: |
 | [Conservative Q-Learning (CQL)](https://arxiv.org/abs/2006.04779) (recommended) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| [Advantage Weighted Actor-Critic (AWAC)](https://arxiv.org/abs/2006.09359) | :no_entry: | :white_check_mark: | :white_check_mark: |
 
 ## supported Q functions
 - [x] standard Q function
@@ -205,20 +206,19 @@ import gym
 
 from d3rlpy.algos import SAC
 from d3rlpy.online.buffers import ReplayBuffer
-from d3rlpy.online.iterators import train
 
 # setup environment
 env = gym.make('HopperBulletEnv-v0')
 eval_env = gym.make('HopperBulletEnv-v0')
 
 # setup algorithm
-sac = SAC(n_epochs=100, use_gpu=True)
+sac = SAC(use_gpu=True)
 
 # setup replay buffer
 buffer = ReplayBuffer(maxlen=1000000, env=env)
 
 # start training
-train(env, sac, buffer, eval_env=eval_env)
+sac.fit_online(env, buffer, n_epochs=100, eval_env=eval_env)
 ```
 
 ## tutorials
