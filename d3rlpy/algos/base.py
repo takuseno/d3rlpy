@@ -1,5 +1,6 @@
-from ..base import ImplBase, LearnableBase
 from abc import ABCMeta, abstractmethod
+from ..base import ImplBase, LearnableBase
+from ..online.iterators import train
 
 
 class AlgoImplBase(ImplBase):
@@ -130,6 +131,70 @@ class AlgoBase(LearnableBase):
 
         """
         return self.impl.sample_action(x)
+
+    def fit_online(self,
+                   env,
+                   buffer,
+                   explorer=None,
+                   n_epochs=None,
+                   n_steps_per_epoch=4000,
+                   n_updates_per_epoch=100,
+                   update_start_step=0,
+                   eval_env=None,
+                   eval_epsilon=0.0,
+                   experiment_name=None,
+                   with_timestamp=True,
+                   logdir='d3rlpy_logs',
+                   verbose=True,
+                   show_progress=True,
+                   tensorboard=True,
+                   save_interval=1):
+        """ Start training loop of online deep reinforcement learning.
+
+        This method is a convenient alias to ``d3rlpy.online.iterators.train``.
+
+        Args:
+            env (gym.Env): gym-like environment.
+            buffer (d3rlpy.online.buffers.Buffer): replay buffer.
+            explorer (d3rlpy.online.explorers.Explorer): action explorer.
+            n_epochs (int): the number of epochs to train. If None is given,
+                ``n_epochs`` of algorithm object will be used.
+            n_steps_per_epoch (int): the number of steps per epoch.
+            n_updates_per_epoch (int): the number of updates per epoch.
+            update_start_step (int): the steps before starting updates.
+            eval_env (gym.Env): gym-like environment. If None, evaluation is
+                skipped.
+            eval_epsilon (float): :math:`\\epsilon`-greedy factor during
+                evaluation.
+            experiment_name (str): experiment name for logging. If not passed,
+                the directory name will be `{class name}_online_{timestamp}`.
+            with_timestamp (bool): flag to add timestamp string to the last of
+                directory name.
+            logdir (str): root directory name to save logs.
+            verbose (bool): flag to show logged information on stdout.
+            show_progress (bool): flag to show progress bar for iterations.
+            tensorboard (bool): flag to save logged information in tensorboard
+                (additional to the csv data)
+            save_interval (int): interval to save parameters.
+
+        """
+        train(env=env,
+              algo=self,
+              buffer=buffer,
+              explorer=explorer,
+              n_epochs=n_epochs,
+              n_steps_per_epoch=n_steps_per_epoch,
+              n_updates_per_epoch=n_updates_per_epoch,
+              update_start_step=update_start_step,
+              eval_env=eval_env,
+              eval_epsilon=eval_epsilon,
+              experiment_name=experiment_name,
+              with_timestamp=with_timestamp,
+              logdir=logdir,
+              verbose=verbose,
+              show_progress=show_progress,
+              tensorboard=tensorboard,
+              save_interval=save_interval)
 
     def _generate_new_data(self, transitions):
         new_data = []

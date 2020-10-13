@@ -28,12 +28,10 @@ awac.fit(train_episodes[:10000],
          })
 
 # fine-tuning
-awac.n_epochs = 1000
-buffer = ReplayBuffer(1000000, env, train_episodes[:10000])
-train(env,
-      awac,
-      buffer,
-      eval_env=eval_env,
-      eval_epsilon=0.0,
-      n_steps_per_epoch=1000,
-      n_updates_per_epoch=1000)
+awac.fit_online(env,
+                ReplayBuffer(1000000, env, train_episodes[:10000]),
+                n_epochs=1000,
+                eval_env=eval_env,
+                eval_epsilon=0.0,
+                n_steps_per_epoch=1000,
+                n_updates_per_epoch=1000)
