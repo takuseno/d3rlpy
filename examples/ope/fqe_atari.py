@@ -1,6 +1,6 @@
 from d3rlpy.datasets import get_atari
 from d3rlpy.algos import DiscreteCQL
-from d3rlpy.metrics.ope import FQE
+from d3rlpy.metrics.ope import DiscreteFQE
 from d3rlpy.metrics.scorer import evaluate_on_environment
 from d3rlpy.metrics.scorer import initial_state_value_estimation_scorer
 from d3rlpy.metrics.scorer import soft_opc_scorer
@@ -29,14 +29,14 @@ cql.fit(train_episodes,
 # cql.load_model('<path-to-model>/model.pt')
 
 # evaluate the trained policy
-fqe = FQE(algo=cql,
-          n_epochs=100,
-          q_func_type='qr',
-          learning_rate=1e-4,
-          scaler='pixel',
-          n_frames=4,
-          discrete_action=True,
-          use_gpu=True)
+fqe = DiscreteFQE(algo=cql,
+                  n_epochs=100,
+                  q_func_type='qr',
+                  learning_rate=1e-4,
+                  scaler='pixel',
+                  n_frames=4,
+                  discrete_action=True,
+                  use_gpu=True)
 fqe.fit(dataset.episodes,
         eval_episodes=dataset.episodes,
         scorers={
