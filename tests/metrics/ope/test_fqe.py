@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 from unittest.mock import Mock
-from d3rlpy.metrics.ope.fqe import FQE
+from d3rlpy.metrics.ope.fqe import FQE, DiscreteFQE
 from d3rlpy.algos import DDPG, DQN
 from tests.base_test import base_tester
 from tests.algos.algo_test import algo_update_tester
@@ -56,20 +56,21 @@ def ope_tester(ope, observation_shape, action_size=2):
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, 'standard'])
-@pytest.mark.parametrize('discrete_action', [False, True])
-def test_fqe(observation_shape, action_size, q_func_type, scaler,
-             discrete_action):
-    if discrete_action:
-        algo = DQN()
-    else:
-        algo = DDPG()
-    fqe = FQE(algo=algo,
-              discrete_action=discrete_action,
-              scaler=scaler,
-              q_func_type=q_func_type)
+def test_fqe(observation_shape, action_size, q_func_type, scaler):
+    algo = DDPG()
+    fqe = FQE(algo=algo, scaler=scaler, q_func_type=q_func_type)
     ope_tester(fqe, observation_shape)
     algo.create_impl(observation_shape, action_size)
-    algo_update_tester(fqe,
-                       observation_shape,
-                       action_size,
-                       discrete=discrete_action)
+    algo_update_tester(fqe, observation_shape, action_size, discrete=False)
+
+
+@pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
+@pytest.mark.parametrize('scaler', [None, 'standard'])
+def test_discrete_fqe(observation_shape, action_size, q_func_type, scaler):
+    algo = DQN()
+    fqe = DiscreteFQE(algo=algo, scaler=scaler, q_func_type=q_func_type)
+    ope_tester(fqe, observation_shape)
+    algo.create_impl(observation_shape, action_size)
+    algo_update_tester(fqe, observation_shape, action_size, discrete=True)

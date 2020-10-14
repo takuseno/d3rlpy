@@ -1,1 +1,1 @@
-from .fqe import FQE
+from .fqe import FQE, DiscreteFQE

@@ -13,14 +13,13 @@ from d3rlpy.algos.torch.base import TorchImplBase
 
 class FQEImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate, gamma,
-                 discrete_action, n_critics, bootstrap, share_encoder, eps,
-                 use_batch_norm, q_func_type, use_gpu, scaler, augmentation,
-                 n_augmentations, encoder_params):
+                 n_critics, bootstrap, share_encoder, eps, use_batch_norm,
+                 q_func_type, use_gpu, scaler, augmentation, n_augmentations,
+                 encoder_params):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.learning_rate = learning_rate
         self.gamma = gamma
-        self.discrete_action = discrete_action
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
@@ -46,26 +45,15 @@ class FQEImpl(TorchImplBase):
         self._build_critic_optim()
 
     def _build_critic(self):
-        if self.discrete_action:
-            self.q_func = create_discrete_q_function(
-                self.observation_shape,
-                self.action_size,
-                n_ensembles=self.n_critics,
-                use_batch_norm=self.use_batch_norm,
-                q_func_type=self.q_func_type,
-                bootstrap=self.bootstrap,
-                share_encoder=self.share_encoder,
-                encoder_params=self.encoder_params)
-        else:
-            self.q_func = create_continuous_q_function(
-                self.observation_shape,
-                self.action_size,
-                n_ensembles=self.n_critics,
-                use_batch_norm=self.use_batch_norm,
-                q_func_type=self.q_func_type,
-                bootstrap=self.bootstrap,
-                share_encoder=self.share_encoder,
-                encoder_params=self.encoder_params)
+        self.q_func = create_continuous_q_function(
+            self.observation_shape,
+            self.action_size,
+            n_ensembles=self.n_critics,
+            use_batch_norm=self.use_batch_norm,
+            q_func_type=self.q_func_type,
+            bootstrap=self.bootstrap,
+            share_encoder=self.share_encoder,
+            encoder_params=self.encoder_params)
 
     def _build_critic_optim(self):
         self.critic_optim = Adam(self.q_func.parameters(),
@@ -78,10 +66,6 @@ class FQEImpl(TorchImplBase):
         if self.scaler:
             obs_t = self.scaler.transform(obs_t)
             obs_tp1 = self.scaler.transform(obs_tp1)
-
-        if self.discrete_action:
-            act_t = act_t.long()
-            act_tp1 = act_tp1.long()
 
         q_tp1 = compute_augemtation_mean(self.augmentation,
                                          self.n_augmentations,
@@ -123,27 +107,11 @@ class FQEImpl(TorchImplBase):
             x = self.scaler.transform(x)
 
         with torch.no_grad():
-            if self.discrete_action:
-                values = self.q_func(x, 'none').cpu().detach().numpy()
-            else:
-                values = self.q_func(x, action, 'none').cpu().detach().numpy()
+            values = self.q_func(x, action, 'none').cpu().detach().numpy()
             values = np.transpose(values, [1, 0, 2])
 
-        mean_values = values.mean(axis=1)
-        stds = np.std(values, axis=1)
-
-        if self.discrete_action:
-            action = action.view(-1).long().cpu().detach().numpy()
-            ret_values = []
-            ret_stds = []
-            for v, std, a in zip(mean_values, stds, action):
-                ret_values.append(v[a])
-                ret_stds.append(std[a])
-            mean_values = np.array(ret_values)
-            stds = np.array(ret_stds)
-        else:
-            mean_values = mean_values.reshape(-1)
-            stds = stds.reshape(-1)
+        mean_values = values.mean(axis=1).reshape(-1)
+        stds = np.std(values, axis=1).reshape(-1)
 
         if with_std:
             return mean_values, stds
@@ -161,3 +129,52 @@ class FQEImpl(TorchImplBase):
 
     def save_policy(self):
         raise NotImplementedError
+
+
+class DiscreteFQEImpl(FQEImpl):
+    def _build_critic(self):
+        self.q_func = create_discrete_q_function(
+            self.observation_shape,
+            self.action_size,
+            n_ensembles=self.n_critics,
+            use_batch_norm=self.use_batch_norm,
+            q_func_type=self.q_func_type,
+            bootstrap=self.bootstrap,
+            share_encoder=self.share_encoder,
+            encoder_params=self.encoder_params)
+
+    @train_api
+    @torch_api
+    def update(self, obs_t, act_t, rew_tp1, act_tp1, obs_tp1, ter_tp1):
+        act_t = act_t.long()
+        act_tp1 = act_tp1.long()
+        return super().update(obs_t, act_t, rew_tp1, act_tp1, obs_tp1, ter_tp1)
+
+    @eval_api
+    @torch_api
+    def predict_value(self, x, action, with_std):
+        assert x.shape[0] == action.shape[0]
+
+        if self.scaler:
+            x = self.scaler.transform(x)
+
+        with torch.no_grad():
+            values = self.q_func(x, 'none').cpu().detach().numpy()
+            values = np.transpose(values, [1, 0, 2])
+
+        mean_values = values.mean(axis=1)
+        stds = np.std(values, axis=1)
+
+        action = action.view(-1).long().cpu().detach().numpy()
+        ret_values = []
+        ret_stds = []
+        for v, std, a in zip(mean_values, stds, action):
+            ret_values.append(v[a])
+            ret_stds.append(std[a])
+        mean_values = np.array(ret_values)
+        stds = np.array(ret_stds)
+
+        if with_std:
+            return mean_values, stds
+
+        return mean_values

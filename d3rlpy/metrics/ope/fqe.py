@@ -1,18 +1,18 @@
 from d3rlpy.algos.base import AlgoBase
-from .torch.fqe_impl import FQEImpl
+from .torch.fqe_impl import FQEImpl, DiscreteFQEImpl
 
 
 class FQE(AlgoBase):
-    """ Fitted Q Evaluation.
+    r""" Fitted Q Evaluation.
 
     FQE is an off-policy evaluation method that approximates a Q function
-    :math:`Q_\\thetta (s, a)` with the trained policy :math:`\\pi_\\phi(s)`.
+    :math:`Q_\theta (s, a)` with the trained policy :math:`\pi_\phi(s)`.
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{s_t, a_t, r_{t+1} s_{t+1} \\sim D}
-            [(Q_\\theta(s_t, a_t) - r_{t+1}
-                - \\gamma Q_{\\theta'}(s_{t+1}, \\pi_\\phi(s_{t+1})))^2]
+        L(\theta) = \mathbb{E}_{s_t, a_t, r_{t+1} s_{t+1} \sim D}
+            [(Q_\theta(s_t, a_t) - r_{t+1}
+                - \gamma Q_{\theta'}(s_{t+1}, \pi_\phi(s_{t+1})))^2]
 
     The trained Q function in FQE will estimate evaluation metrics more
     accurately than learned Q function during training.
@@ -27,11 +27,10 @@ class FQE(AlgoBase):
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
-        discrete_action (bool): flag to learn discrete action-space.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
+        eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
@@ -58,11 +57,10 @@ class FQE(AlgoBase):
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
-        discrete_action (bool): flag to learn discrete action-space.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
+        eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function.
@@ -77,12 +75,12 @@ class FQE(AlgoBase):
 
     """
     def __init__(self,
+                 *,
                  algo=None,
                  learning_rate=1e-4,
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
-                 discrete_action=False,
                  n_critics=1,
                  bootstrap=False,
                  share_encoder=False,
@@ -103,7 +101,6 @@ class FQE(AlgoBase):
         self.algo = algo
         self.learning_rate = learning_rate
         self.gamma = gamma
-        self.discrete_action = discrete_action
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
@@ -129,7 +126,6 @@ class FQE(AlgoBase):
                             action_size=action_size,
                             learning_rate=self.learning_rate,
                             gamma=self.gamma,
-                            discrete_action=self.discrete_action,
                             n_critics=self.n_critics,
                             bootstrap=self.bootstrap,
                             share_encoder=self.share_encoder,
@@ -154,3 +150,23 @@ class FQE(AlgoBase):
 
     def _get_loss_labels(self):
         return ['value_loss']
+
+
+class DiscreteFQE(FQE):
+    def create_impl(self, observation_shape, action_size):
+        self.impl = DiscreteFQEImpl(observation_shape=observation_shape,
+                                    action_size=action_size,
+                                    learning_rate=self.learning_rate,
+                                    gamma=self.gamma,
+                                    n_critics=self.n_critics,
+                                    bootstrap=self.bootstrap,
+                                    share_encoder=self.share_encoder,
+                                    eps=self.eps,
+                                    use_batch_norm=self.use_batch_norm,
+                                    q_func_type=self.q_func_type,
+                                    use_gpu=self.use_gpu,
+                                    augmentation=self.augmentation,
+                                    n_augmentations=self.n_augmentations,
+                                    scaler=self.scaler,
+                                    encoder_params=self.encoder_params)
+        self.impl.build()

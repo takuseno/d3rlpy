@@ -108,8 +108,21 @@ performance only with offline datasets.
 
 The evaluation during fitting is evaluating the trained policy.
 
+For continuous control algorithms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
    d3rlpy.metrics.ope.FQE
+
+
+For discrete control algorithms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   d3rlpy.metrics.ope.DiscreteFQE
