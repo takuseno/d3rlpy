@@ -153,6 +153,77 @@ class FQE(AlgoBase):
 
 
 class DiscreteFQE(FQE):
+    r""" Fitted Q Evaluation for discrete action-space.
+
+    FQE is an off-policy evaluation method that approximates a Q function
+    :math:`Q_\theta (s, a)` with the trained policy :math:`\pi_\phi(s)`.
+
+    .. math::
+
+        L(\theta) = \mathbb{E}_{s_t, a_t, r_{t+1} s_{t+1} \sim D}
+            [(Q_\theta(s_t, a_t) - r_{t+1}
+                - \gamma Q_{\theta'}(s_{t+1}, \pi_\phi(s_{t+1})))^2]
+
+    The trained Q function in FQE will estimate evaluation metrics more
+    accurately than learned Q function during training.
+
+    References:
+        * `Le et al., Batch Policy Learning under Constraints.
+          <https://arxiv.org/abs/1903.08738>`_
+
+    Args:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
+        learning_rate (float): learning rate.
+        batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
+        gamma (float): discount factor.
+        n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
+        eps (float): :math:`\epsilon` for Adam optimizer.
+        target_update_interval (int): interval to update the target network.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+        q_func_type (str): type of Q function. Available options are
+            `['mean', 'qr', 'iqn', 'fqf']`.
+        n_epochs (int): the number of epochs to train.
+        use_gpu (bool, int or d3rlpy.gpu.Device):
+            flag to use GPU, device ID or device.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+            The available options are `['pixel', 'min_max', 'standard']`
+        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
+            augmentation pipeline.
+        n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup. If the
+            observation is pixel, you can pass ``filters`` with list of tuples
+            consisting with ``(filter_size, kernel_size, stride)`` and
+            ``feature_size`` with an integer scaler for the last linear layer
+            size. If the observation is vector, you can pass ``hidden_units``
+            with list of hidden unit sizes.
+        impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
+
+    Attributes:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
+        learning_rate (float): learning rate.
+        batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
+        gamma (float): discount factor.
+        n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
+        eps (float): :math:`\epsilon` for Adam optimizer.
+        target_update_interval (int): interval to update the target network.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+        q_func_type (str): type of Q function.
+        n_epochs (int): the number of epochs to train.
+        use_gpu (d3rlpy.gpu.Device): GPU device.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+        augmentation (d3rlpy.augmentation.AugmentationPipeline):
+            augmentation pipeline.
+        n_augmentations (int): the number of data augmentations to update.
+        encoder_params (dict): optional arguments for encoder setup.
+        impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
+
+    """
     def create_impl(self, observation_shape, action_size):
         self.impl = DiscreteFQEImpl(observation_shape=observation_shape,
                                     action_size=action_size,
