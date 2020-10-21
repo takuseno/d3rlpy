@@ -2,7 +2,6 @@ import numpy as np
 
 from abc import ABCMeta, abstractmethod
 from collections import deque
-from random import sample
 from ..dataset import Transition, TransitionMiniBatch
 from .utility import get_action_size_from_env
 
@@ -159,7 +158,8 @@ class ReplayBuffer(Buffer):
             self.transitions.append(transition)
 
     def sample(self, batch_size, n_frames=1):
-        transitions = sample(self.transitions, batch_size)
+        indices = np.random.randint(self.size(), size=batch_size)
+        transitions = [self.transitions[index] for index in indices]
         return TransitionMiniBatch(transitions, n_frames)
 
     def size(self):
