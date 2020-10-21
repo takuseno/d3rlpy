@@ -20,10 +20,12 @@ def default_json_encoder(obj):
 class D3RLPyLogger:
     def __init__(self,
                  experiment_name,
+                 save_metrics=True,
                  root_dir='logs',
                  verbose=True,
                  tensorboard=True,
                  with_timestamp=True):
+        self.save_metrics = save_metrics
         self.verbose = verbose
 
         # add timestamp to prevent unintentional overwrites
@@ -34,16 +36,18 @@ class D3RLPyLogger:
             else:
                 self.experiment_name = experiment_name
 
-            self.logdir = os.path.join(root_dir, self.experiment_name)
-
-            if not os.path.exists(self.logdir):
-                os.makedirs(self.logdir)
-                break
-            else:
-                if with_timestamp:
-                    time.sleep(1.0)
+            if self.save_metrics:
+                self.logdir = os.path.join(root_dir, self.experiment_name)
+                if not os.path.exists(self.logdir):
+                    os.makedirs(self.logdir)
+                    break
                 else:
-                    raise ValueError('%s already exists.' % self.logdir)
+                    if with_timestamp:
+                        time.sleep(1.0)
+                    else:
+                        raise ValueError('%s already exists.' % self.logdir)
+            else:
+                break
 
         self.metrics_buffer = {}
 
@@ -59,9 +63,10 @@ class D3RLPyLogger:
     def add_params(self, params):
         assert self.params is None, 'add_params can be called only once.'
 
-        # save dictionary as json file
-        with open(os.path.join(self.logdir, 'params.json'), 'w') as f:
-            f.write(json.dumps(params, default=default_json_encoder))
+        if self.save_metrics:
+            # save dictionary as json file
+            with open(os.path.join(self.logdir, 'params.json'), 'w') as f:
+                f.write(json.dumps(params, default=default_json_encoder))
 
         if self.verbose:
             for key, val in params.items():
@@ -80,8 +85,9 @@ class D3RLPyLogger:
         for name, buffer in self.metrics_buffer.items():
             metric = sum(buffer) / len(buffer)
 
-            with open(os.path.join(self.logdir, name + '.csv'), 'a') as f:
-                print('%d,%d,%f' % (epoch, step, metric), file=f)
+            if self.save_metrics:
+                with open(os.path.join(self.logdir, name + '.csv'), 'a') as f:
+                    print('%d,%d,%f' % (epoch, step, metric), file=f)
 
             if self.verbose:
                 print('epoch=%d step=%d %s=%f' % (epoch, step, name, metric))
@@ -99,6 +105,7 @@ class D3RLPyLogger:
                                     global_step=epoch)
 
     def save_model(self, epoch, algo):
-        # save entire model
-        model_path = os.path.join(self.logdir, 'model_%d.pt' % epoch)
-        algo.save_model(model_path)
+        if self.save_metrics:
+            # save entire model
+            model_path = os.path.join(self.logdir, 'model_%d.pt' % epoch)
+            algo.save_model(model_path)

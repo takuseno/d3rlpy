@@ -23,9 +23,19 @@ You can designate the directory.
     # the directory will be `custom_logs/custom_YYYYMMDDHHmmss`
     dqn.fit(dataset.episodes, logdir='custom_logs', experiment_name='custom')
 
+If you want to disable all loggings, you can pass `save_metrics=False`.
+
+.. code-block:: python
+
+   dqn.fit(dataset.episodes, save_metrics=False)
+
+TensorBoard
+-----------
+
 The same information is also automatically saved for tensorboard under `runs`
 directory.
 You can interactively visualize training metrics easily.
+
 
 .. code-block:: shell
 

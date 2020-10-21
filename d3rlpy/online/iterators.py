@@ -15,6 +15,7 @@ def train(env,
           update_start_step=0,
           eval_env=None,
           eval_epsilon=0.05,
+          save_metrics=True,
           experiment_name=None,
           with_timestamp=True,
           logdir='d3rlpy_logs',
@@ -38,6 +39,8 @@ def train(env,
             skipped.
         eval_epsilon (float): :math:`\\epsilon`-greedy factor during
             evaluation.
+        save_metrics (bool): flag to record metrics. If False, the log
+            directory is not created and the model parameters are not saved.
         experiment_name (str): experiment name for logging. If not passed,
             the directory name will be `{class name}_online_{timestamp}`.
         with_timestamp (bool): flag to add timestamp string to the last of
@@ -55,6 +58,7 @@ def train(env,
     if experiment_name is None:
         experiment_name = algo.__class__.__name__ + '_online'
     logger = D3RLPyLogger(experiment_name,
+                          save_metrics=save_metrics,
                           root_dir=logdir,
                           verbose=verbose,
                           tensorboard=tensorboard,

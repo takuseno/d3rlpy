@@ -244,6 +244,7 @@ class LearnableBase:
 
     def fit(self,
             episodes,
+            save_metrics=True,
             experiment_name=None,
             with_timestamp=True,
             logdir='d3rlpy_logs',
@@ -261,6 +262,9 @@ class LearnableBase:
 
         Args:
             episodes (list(d3rlpy.dataset.Episode)): list of episodes to train.
+            save_metrics (bool): flag to record metrics in files. If False,
+                the log directory is not created and the model parameters are
+                not saved during training.
             experiment_name (str): experiment name for logging. If not passed,
                 the directory name will be `{class name}_{timestamp}`.
             with_timestamp (bool): flag to add timestamp string to the last of
@@ -298,8 +302,9 @@ class LearnableBase:
             self.create_impl(observation_shape, action_size)
 
         # setup logger
-        logger = self._prepare_logger(experiment_name, with_timestamp, logdir,
-                                      verbose, tensorboard)
+        logger = self._prepare_logger(save_metrics, experiment_name,
+                                      with_timestamp, logdir, verbose,
+                                      tensorboard)
 
         # save hyperparameters
         self._save_params(logger)
@@ -392,12 +397,13 @@ class LearnableBase:
     def _get_loss_labels(self):
         raise NotImplementedError
 
-    def _prepare_logger(self, experiment_name, with_timestamp, logdir, verbose,
-                        tensorboard):
+    def _prepare_logger(self, save_metrics, experiment_name, with_timestamp,
+                        logdir, verbose, tensorboard):
         if experiment_name is None:
             experiment_name = self.__class__.__name__
 
         logger = D3RLPyLogger(experiment_name,
+                              save_metrics=save_metrics,
                               root_dir=logdir,
                               verbose=verbose,
                               tensorboard=tensorboard,
