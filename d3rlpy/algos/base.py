@@ -142,6 +142,7 @@ class AlgoBase(LearnableBase):
                    update_start_step=0,
                    eval_env=None,
                    eval_epsilon=0.0,
+                   eval_interval=1,
                    experiment_name=None,
                    with_timestamp=True,
                    logdir='d3rlpy_logs',
@@ -166,6 +167,7 @@ class AlgoBase(LearnableBase):
                 skipped.
             eval_epsilon (float): :math:`\\epsilon`-greedy factor during
                 evaluation.
+            eval_interval (int): interval to perform evaluation.
             experiment_name (str): experiment name for logging. If not passed,
                 the directory name will be `{class name}_online_{timestamp}`.
             with_timestamp (bool): flag to add timestamp string to the last of
@@ -188,6 +190,7 @@ class AlgoBase(LearnableBase):
               update_start_step=update_start_step,
               eval_env=eval_env,
               eval_epsilon=eval_epsilon,
+              eval_interval=eval_interval,
               experiment_name=experiment_name,
               with_timestamp=with_timestamp,
               logdir=logdir,

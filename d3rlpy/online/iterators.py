@@ -15,6 +15,7 @@ def train(env,
           update_start_step=0,
           eval_env=None,
           eval_epsilon=0.05,
+          eval_interval=1,
           save_metrics=True,
           experiment_name=None,
           with_timestamp=True,
@@ -39,6 +40,7 @@ def train(env,
             skipped.
         eval_epsilon (float): :math:`\\epsilon`-greedy factor during
             evaluation.
+        eval_interval (int): interval to perform evaluation.
         save_metrics (bool): flag to record metrics. If False, the log
             directory is not created and the model parameters are not saved.
         experiment_name (str): experiment name for logging. If not passed,
@@ -90,9 +92,9 @@ def train(env,
 
     # setup evaluation scorer
     if eval_env:
-        scorer = evaluate_on_environment(eval_env, epsilon=eval_epsilon)
+        eval_scorer = evaluate_on_environment(eval_env, epsilon=eval_epsilon)
     else:
-        scorer = None
+        eval_scorer = None
 
     # start training loop
     observation, reward, terminal = env.reset(), 0.0, False
@@ -138,8 +140,8 @@ def train(env,
                         logger.add_metric(name, val)
 
         # evaluation
-        if scorer:
-            logger.add_metric('evaluation', scorer(algo))
+        if eval_scorer and epoch % eval_interval == 0:
+            logger.add_metric('evaluation', eval_scorer(algo))
 
         # save metrics
         logger.commit(epoch, total_step)
