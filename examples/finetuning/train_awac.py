@@ -1,7 +1,6 @@
 from d3rlpy.algos import AWAC
 from d3rlpy.datasets import get_pybullet
 from d3rlpy.online.buffers import ReplayBuffer
-from d3rlpy.online.iterators import train
 from d3rlpy.metrics.scorer import evaluate_on_environment
 from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
 from d3rlpy.metrics.scorer import average_value_estimation_scorer
