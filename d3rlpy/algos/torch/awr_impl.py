@@ -106,7 +106,7 @@ class AWRImpl(TorchImplBase):
         dist = self.policy.dist(observation)
 
         # unnormalize action via inverse tanh function
-        unnormalized_action = torch.atanh(action).clamp(-2.0, 2.0)
+        unnormalized_action = torch.atanh(action.clamp(-0.999999, 0.999999))
 
         # compute log probability
         _, log_probs = squash_action(dist, unnormalized_action)
