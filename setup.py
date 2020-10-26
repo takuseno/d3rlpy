@@ -18,7 +18,7 @@ ext = Extension('d3rlpy.dataset',
                 extra_link_args=["-std=c++11"])
 
 setup(name="d3rlpy",
-      version="0.23",
+      version="0.30",
       description="Data-driven Deep Reinforcement Learning Library as an Out-of-the-box Tool",
       long_description=open("README.md").read(),
       long_description_content_type="text/markdown",
