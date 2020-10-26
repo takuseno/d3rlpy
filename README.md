@@ -48,7 +48,10 @@ Therefore, d3rlpy enables every user to achieve professional-level
 performance just in a few lines of codes.
 
 ## installation
+This installation requires Cython and numpy to build native modules.
+Please make sure if you have installed them.
 ```
+$ pip install Cython numpy # if you have not installed them.
 $ pip install d3rlpy
 ```
 
