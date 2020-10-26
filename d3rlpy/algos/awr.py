@@ -164,7 +164,7 @@ class AWR(AlgoBase):
                                                   lam=self.lam,
                                                   n_frames=self.n_frames)
             lambda_returns.append(lambda_return)
-        return np.array(lambda_returns)
+        return np.array(lambda_returns).reshape((-1, 1))
 
     def _compute_advantages(self, returns, batch):
         baselines = self.predict_value(batch.observations).reshape((-1, 1))
