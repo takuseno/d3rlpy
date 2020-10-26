@@ -1,21 +1,8 @@
 import numpy as np
 
+from d3rlpy.dataset import compute_lambda_return
 from .base import AlgoBase
 from .torch.awr_impl import AWRImpl, DiscreteAWRImpl
-
-
-def _compute_lambda_return(returns, values, terminals, gamma, lam):
-    assert returns.shape == values.shape
-
-    gammas = gamma**(np.arange(returns.shape[0]) + 1)
-    # zero value for terminal transition
-    returns += gammas * values * (1.0 - terminals)
-
-    lambdas = lam**np.arange(returns.shape[0])
-    lambda_return = (1.0 - lam) * np.sum(lambdas[:-1] * returns[:-1])
-    lambda_return += lambdas[-1] * returns[-1]
-
-    return lambda_return
 
 
 class AWR(AlgoBase):
@@ -170,34 +157,13 @@ class AWR(AlgoBase):
     def _compute_lambda_returns(self, batch):
         # compute TD(lambda)
         lambda_returns = []
-        for i in range(len(batch)):
-            # gather consequent observations until the end of episode
-            observations = []
-            returns = []
-            terminals = []
-            R = 0.0
-            discount = 1.0
-            transition = batch.transitions[i]
-            while transition:
-                # compute Monte-Carlo return
-                R += discount * transition.next_reward
-                discount *= self.gamma
-                observations.append(transition.next_observation)
-                returns.append(R)
-                terminals.append(transition.terminal)
-                transition = transition.next_transition
-
-            values = self.predict_value(observations)
-
-            # compute lambda return
-            lambda_return = _compute_lambda_return(
-                returns=np.array(returns),
-                values=values,
-                terminals=np.array(terminals),
-                gamma=self.gamma,
-                lam=self.lam)
-
-            lambda_returns.append([lambda_return])
+        for transition in batch.transitions:
+            lambda_return = compute_lambda_return(transition=transition,
+                                                  algo=self,
+                                                  gamma=self.gamma,
+                                                  lam=self.lam,
+                                                  n_frames=self.n_frames)
+            lambda_returns.append(lambda_return)
         return np.array(lambda_returns)
 
     def _compute_advantages(self, returns, batch):

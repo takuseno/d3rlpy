@@ -862,7 +862,7 @@ cdef class Transition:
         """
         assert isinstance(transition, Transition)
         cdef TransitionPtr ptr
-        ptr = transition.get_ptr().get().prev_transition
+        ptr = transition.get_ptr()
         self._thisptr.get().prev_transition = ptr
         self._prev_transition = transition
 
@@ -888,7 +888,7 @@ cdef class Transition:
         """
         assert isinstance(transition, Transition)
         cdef TransitionPtr ptr
-        ptr = transition.get_ptr().get().next_transition
+        ptr = transition.get_ptr()
         self._thisptr.get().next_transition = ptr
         self._next_transition = transition
 
@@ -898,7 +898,9 @@ cdef class Transition:
 cdef void _stack_frames(TransitionPtr transition,
                         UINT8_t* stack,
                         UINT8_t* next_stack,
-                        int n_frames) nogil:
+                        int n_frames,
+                        bool stack_curr_frames=True,
+                        bool stack_next_frames=True) nogil:
     cdef int c = transition.get().observation_shape[0]
     cdef int h = transition.get().observation_shape[1]
     cdef int w = transition.get().observation_shape[2]
@@ -913,10 +915,15 @@ cdef void _stack_frames(TransitionPtr transition,
     for i in range(n_frames):
         tail_channel = n_frames * c - i * c
         head_channel = tail_channel - c
-        memcpy(stack + head_channel * h * w, t.get().observation_i, c * h * w)
-        memcpy(next_stack + head_channel * h * w, t.get().next_observation_i, c * h * w)
+
+        if stack_curr_frames:
+            memcpy(stack + head_channel * h * w, t.get().observation_i, c * h * w)
+
+        if stack_next_frames:
+            memcpy(next_stack + head_channel * h * w, t.get().next_observation_i, c * h * w)
+
         if t.get().prev_transition == nullptr:
-            if i != n_frames - 1:
+            if i != n_frames - 1 and stack_next_frames:
                 tail_channel -= c
                 head_channel -= c
                 memcpy(next_stack + head_channel * h * w, t.get().observation_i, c * h * w)
@@ -1049,10 +1056,10 @@ cdef class TransitionMiniBatch:
             # stack frames if necessary
             if n_frames > 1:
                 offset = n_frames * i * channel * height * width
-                _stack_frames(ptr,
-                             (<UINT8_t*> observations_ptr) + offset,
-                             (<UINT8_t*> next_observations_ptr) + offset,
-                             n_frames)
+                _stack_frames(transition=ptr,
+                              stack=(<UINT8_t*> observations_ptr) + offset,
+                              next_stack=(<UINT8_t*> next_observations_ptr) + offset,
+                              n_frames=n_frames)
             else:
                 offset = i * channel * height * width
                 memcpy((<UINT8_t*> observations_ptr) + offset,
@@ -1184,3 +1191,91 @@ cdef class TransitionMiniBatch:
 
     def __iter__(self):
         return iter(self._transitions)
+
+
+cdef _compute_returns(Transition transition, float gamma, int n_frames):
+    cdef vector[TransitionPtr] transitions
+    cdef TransitionPtr ptr
+    cdef int i, channel, width, height, offset
+    cdef bool is_image
+    cdef float R
+    cdef void* observations_ptr
+    cdef FLOAT_t* returns_ptr
+    cdef FLOAT_t* terminals_ptr
+    cdef np.ndarray observations, returns, terminals
+
+    # iterate through transitions
+    ptr = transition.get_ptr()
+    with nogil:
+        while True:
+            transitions.push_back(ptr)
+            ptr = ptr.get().next_transition
+            if ptr == nullptr:
+                break
+
+    # prepare observations and returns
+    is_image = len(transition.get_observation_shape()) == 3
+    if is_image and n_frames > 1:
+        channel, width, height = transition.get_observation_shape()
+        shape = (transitions.size(), channel * n_frames, width, height)
+    else:
+        shape = (transitions.size(), *transition.get_observation_shape())
+    dtype = np.uint8 if is_image else np.float32
+    observations = np.zeros(shape, dtype=dtype)
+    returns = np.empty(transitions.size(), dtype=np.float32)
+    terminals = np.empty(transitions.size(), dtype=np.float32)
+
+    observations_ptr = observations.data
+    returns_ptr = <FLOAT_t*> returns.data
+    terminals_ptr = <FLOAT_t*> terminals.data
+    R = 0.0
+    with nogil:
+        for i in range(transitions.size()):
+            ptr = transitions[i]
+
+            # compute discounted return
+            R += (gamma**i) * ptr.get().next_reward
+            returns_ptr[i] = R
+            terminals_ptr[i] = ptr.get().terminal
+
+            # append observation
+            if is_image:
+                channel = ptr.get().observation_shape[0]
+                height = ptr.get().observation_shape[1]
+                width = ptr.get().observation_shape[2]
+                # stack frames if necessary
+                if n_frames > 1:
+                    offset = n_frames * i * channel * height * width
+                    _stack_frames(transition=ptr,
+                                  stack=NULL,
+                                  next_stack=(<UINT8_t*> observations_ptr) + offset,
+                                  n_frames=n_frames,
+                                  stack_curr_frames=False)
+                else:
+                    offset = i * channel * height * width
+                    memcpy((<UINT8_t*> observations_ptr) + offset,
+                           ptr.get().next_observation_i,
+                           channel * height * width)
+            else:
+                offset = i * ptr.get().observation_shape[0]
+                memcpy((<FLOAT_t*> observations_ptr) + offset,
+                       ptr.get().next_observation_f,
+                       ptr.get().observation_shape[0] * sizeof(FLOAT_t))
+
+    return observations, returns, terminals
+
+
+def compute_lambda_return(transition, algo, gamma, lam, n_frames):
+    observations, returns, terminals = _compute_returns(transition,
+                                                        gamma,
+                                                        n_frames)
+
+    values = algo.predict_value(observations)
+    gammas = gamma ** (np.arange(returns.shape[0]) + 1)
+    returns += gammas * values * (1.0 - terminals)
+
+    lambdas = lam**np.arange(returns.shape[0])
+    lambda_return = (1.0 - lam) * np.sum(lambdas[:-1] * returns[:-1])
+    lambda_return += lambdas[-1] * returns[-1]
+
+    return lambda_return
