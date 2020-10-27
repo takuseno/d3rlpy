@@ -102,7 +102,7 @@ class AWR(AlgoBase):
                  n_actor_updates=1000,
                  n_critic_updates=200,
                  lam=0.95,
-                 beta=0.05,
+                 beta=1.0,
                  max_weight=20.0,
                  momentum=0.9,
                  use_batch_norm=False,
