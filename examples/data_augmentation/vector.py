@@ -10,12 +10,11 @@ dataset, env = get_pybullet('hopper-bullet-mixed-v0')
 
 train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
-cql = CQL(n_epochs=100,
-          augmentation=['single_amplitude_scaling'],
-          use_gpu=True)
+cql = CQL(augmentation=['single_amplitude_scaling'], use_gpu=True)
 
 cql.fit(train_episodes,
         eval_episodes=test_episodes,
+        n_epochs=100,
         scorers={
             'environment': evaluate_on_environment(env),
             'td_error': td_error_scorer,

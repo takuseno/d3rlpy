@@ -17,7 +17,7 @@ def test_bc(observation_shape, action_size, scaler):
 
 @performance_test
 def test_bc_performance():
-    bc = BC(n_epochs=1)
+    bc = BC()
     algo_pendulum_tester(bc)
 
 
@@ -32,5 +32,5 @@ def test_discrete_bc(observation_shape, action_size, scaler):
 
 @performance_test
 def test_discrete_bc_performance():
-    bc = DiscreteBC(n_epochs=1)
+    bc = DiscreteBC()
     algo_cartpole_tester(bc)

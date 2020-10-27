@@ -16,13 +16,13 @@ def main(args):
     train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
     bc = DiscreteBC(
-        n_epochs=100,
         n_frames=4,  # frame stacking
         scaler='pixel',
         use_gpu=args.gpu)
 
     bc.fit(train_episodes,
            eval_episodes=test_episodes,
+           n_epochs=100,
            scorers={'environment': evaluate_on_environment(env, epsilon=0.05)})
 
 

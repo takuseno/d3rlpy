@@ -6,10 +6,10 @@ from d3rlpy.metrics.scorer import evaluate_on_environment
 dataset, env = get_cartpole()
 
 # setup algorithm
-dqn = DQN(n_epochs=1)
+dqn = DQN()
 
 # train
-dqn.fit(dataset.episodes)
+dqn.fit(dataset.episodes, n_epochs=1)
 
 # evaluate trained algorithm
 evaluate_on_environment(env, render=True)(dqn)

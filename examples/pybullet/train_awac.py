@@ -22,13 +22,13 @@ def main(args):
 
     device = None if args.gpu is None else Device(args.gpu)
 
-    awac = AWAC(n_epochs=1000,
-                q_func_type=args.q_func_type,
+    awac = AWAC(q_func_type=args.q_func_type,
                 use_gpu=device,
                 encoder_params={'hidden_units': [256, 256, 256, 256]})
 
     awac.fit(train_episodes,
              eval_episodes=test_episodes,
+             n_epochs=1000,
              scorers={
                  'environment': evaluate_on_environment(env),
                  'td_error': td_error_scorer,

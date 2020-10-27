@@ -13,13 +13,13 @@ _, eval_env = get_pybullet('hopper-bullet-random-v0')
 train_episodes, test_episodes = train_test_split(dataset)
 
 # setup algorithm
-awac = AWAC(n_epochs=30,
-            encoder_params={'hidden_units': [256, 256, 256, 256]},
+awac = AWAC(encoder_params={'hidden_units': [256, 256, 256, 256]},
             use_gpu=True)
 
 ## pretrain
 awac.fit(train_episodes[:10000],
          eval_episodes=test_episodes,
+         n_epochs=30,
          scorers={
              'environment': evaluate_on_environment(env),
              'advantage': discounted_sum_of_advantage_scorer,

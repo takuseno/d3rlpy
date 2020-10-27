@@ -21,5 +21,5 @@ def test_sac_performance(q_func_type):
     if q_func_type == 'iqn' or q_func_type == 'fqf':
         pytest.skip('IQN is computationally expensive')
 
-    sac = SAC(n_epochs=5, q_func_type=q_func_type)
+    sac = SAC(q_func_type=q_func_type)
     algo_pendulum_tester(sac, n_trials=3)

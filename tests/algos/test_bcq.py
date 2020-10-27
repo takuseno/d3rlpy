@@ -18,7 +18,7 @@ def test_bcq(observation_shape, action_size, q_func_type, scaler):
 
 @pytest.mark.skip(reason='BCQ is computationally expensive.')
 def test_bcq_performance():
-    bcq = BCQ(n_epochs=5, use_batch_norm=False)
+    bcq = BCQ(use_batch_norm=False)
     algo_pendulum_tester(bcq, n_trials=5)
 
 
@@ -35,5 +35,5 @@ def test_discrete_bcq(observation_shape, action_size, q_func_type, scaler):
 @performance_test
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_discrete_bcq_performance(q_func_type):
-    bcq = DiscreteBCQ(n_epochs=1, q_func_type=q_func_type)
+    bcq = DiscreteBCQ(q_func_type=q_func_type)
     algo_cartpole_tester(bcq)

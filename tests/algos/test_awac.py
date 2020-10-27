@@ -18,5 +18,5 @@ def test_awac(observation_shape, action_size, q_func_type, scaler):
 @performance_test
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_awac_performance(q_func_type):
-    awac = AWAC(n_epochs=1, q_func_type=q_func_type)
+    awac = AWAC(q_func_type=q_func_type)
     algo_pendulum_tester(awac, n_trials=1)

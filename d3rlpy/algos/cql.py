@@ -69,7 +69,6 @@ class CQL(AlgoBase):
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
-        n_epochs (int): the number of epochs to train.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -109,7 +108,6 @@ class CQL(AlgoBase):
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function.
-        n_epochs (int): the number of epochs to train.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -142,7 +140,6 @@ class CQL(AlgoBase):
                  eps=1e-8,
                  use_batch_norm=False,
                  q_func_type='mean',
-                 n_epochs=1000,
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
@@ -151,8 +148,7 @@ class CQL(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs=n_epochs,
-                         batch_size=batch_size,
+        super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
                          scaler=scaler,
                          augmentation=augmentation,
@@ -177,7 +173,6 @@ class CQL(AlgoBase):
         self.q_func_type = q_func_type
         self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
-        self.n_epochs = n_epochs
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -270,7 +265,6 @@ class DiscreteCQL(DoubleDQN):
         use_batch_norm (bool): flag to insert batch normalization layers
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
-        n_epochs (int): the number of epochs to train.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -301,7 +295,6 @@ class DiscreteCQL(DoubleDQN):
             network.
         use_batch_norm (bool): flag to insert batch normalization layers
         q_func_type (str): type of Q function.
-        n_epochs (int): the number of epochs to train.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):

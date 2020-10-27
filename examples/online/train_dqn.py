@@ -8,8 +8,7 @@ env = gym.make('CartPole-v0')
 eval_env = gym.make('CartPole-v0')
 
 # setup algorithm
-dqn = DQN(n_epochs=30,
-          batch_size=32,
+dqn = DQN(batch_size=32,
           learning_rate=2.5e-4,
           target_update_interval=100,
           use_gpu=False)
@@ -26,6 +25,7 @@ explorer = LinearDecayEpsilonGreedy(start_epsilon=1.0,
 dqn.fit_online(env,
                buffer,
                explorer,
+               n_epochs=30,
                eval_env=eval_env,
                n_steps_per_epoch=1000,
                n_updates_per_epoch=100)

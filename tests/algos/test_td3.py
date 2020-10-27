@@ -21,5 +21,5 @@ def test_td3_performance(q_func_type):
     if q_func_type == 'iqn' or q_func_type == 'fqf':
         pytest.skip('IQN is computationally expensive')
 
-    td3 = TD3(n_epochs=5, q_func_type=q_func_type)
+    td3 = TD3(q_func_type=q_func_type)
     algo_pendulum_tester(td3, n_trials=3)

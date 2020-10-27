@@ -18,7 +18,7 @@ def test_cql(observation_shape, action_size, q_func_type, scaler):
 
 @pytest.mark.skip(reason='CQL is computationally expensive.')
 def test_cql_performance():
-    cql = CQL(n_epochs=5)
+    cql = CQL()
     algo_pendulum_tester(cql, n_trials=3)
 
 
@@ -35,5 +35,5 @@ def test_discrete_cql(observation_shape, action_size, q_func_type, scaler):
 @performance_test
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_discrete_cql_performance(q_func_type):
-    cql = DiscreteCQL(n_epochs=1, q_func_type=q_func_type)
+    cql = DiscreteCQL(q_func_type=q_func_type)
     algo_cartpole_tester(cql)

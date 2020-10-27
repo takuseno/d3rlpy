@@ -11,8 +11,8 @@ save_model and load_model
 
     dataset, env = get_cartpole()
 
-    dqn = DQN(n_epochs=1)
-    dqn.fit(dataset.episodes)
+    dqn = DQN()
+    dqn.fit(dataset.episodes, n_epochs=1)
 
     # save entire model parameters.
     dqn.save_model('model.pt')
@@ -58,8 +58,8 @@ and traced via `torch.jit.trace` function.
 
     dataset, env = get_cartpole()
 
-    dqn = DQN(n_epochs=1)
-    dqn.fit(dataset.episodes)
+    dqn = DQN()
+    dqn.fit(dataset.episodes, n_epochs=1)
 
     # save greedy-policy as TorchScript
     dqn.save_policy('policy.pt')

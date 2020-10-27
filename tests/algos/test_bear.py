@@ -18,5 +18,5 @@ def test_bear(observation_shape, action_size, q_func_type, scaler):
 
 @pytest.mark.skip(reason='BEAR is computationally expensive.')
 def test_bear_performance():
-    bear = BEAR(n_epochs=5)
+    bear = BEAR()
     algo_pendulum_tester(bear, n_trials=3)

@@ -20,7 +20,7 @@ def test_ddpg(observation_shape, action_size, q_func_type, scaler):
 def test_ddpg_performance(q_func_type):
     # not good enough for batch RL, but check if it works without errors.
     try:
-        ddpg = DDPG(n_epochs=1, q_func_type=q_func_type)
+        ddpg = DDPG(q_func_type=q_func_type)
         algo_pendulum_tester(ddpg, n_trials=1)
     except AssertionError:
         pass

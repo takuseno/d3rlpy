@@ -45,7 +45,6 @@ class MOPO(DynamicsBase):
           <https://arxiv.org/abs/2005.13239>`_
 
     Args:
-        n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         learning_rate (float): learning rate for dynamics model.
@@ -65,7 +64,6 @@ class MOPO(DynamicsBase):
         impl (d3rlpy.dynamics.base.DynamicsImplBase): dynamics implementation.
 
     Attributes:
-        n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         learning_rate (float): learning rate for dynamics model.
@@ -87,7 +85,6 @@ class MOPO(DynamicsBase):
     """
     def __init__(self,
                  *,
-                 n_epochs=30,
                  batch_size=100,
                  n_frames=1,
                  learning_rate=1e-3,
@@ -104,8 +101,7 @@ class MOPO(DynamicsBase):
                  use_gpu=False,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs=n_epochs,
-                         batch_size=batch_size,
+        super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
                          n_transitions=n_transitions,
                          horizon=horizon,

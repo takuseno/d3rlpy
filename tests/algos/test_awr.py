@@ -18,7 +18,7 @@ def test_awr(observation_shape, action_size, scaler):
 
 @performance_test
 def test_awr_performance():
-    awr = AWR(n_epochs=5)
+    awr = AWR()
     algo_pendulum_tester(awr, n_trials=3)
 
 
@@ -33,5 +33,5 @@ def test_discrete_awr(observation_shape, action_size, scaler):
 
 @performance_test
 def test_discrete_awr_performance():
-    awr = DiscreteAWR(n_epochs=1)
+    awr = DiscreteAWR()
     algo_cartpole_tester(awr, n_trials=3)

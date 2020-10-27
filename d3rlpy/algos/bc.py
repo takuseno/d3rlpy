@@ -22,7 +22,6 @@ class BC(AlgoBase):
         n_frames (int): the number of frames to stack for image observation.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        n_epochs (int): the number of epochs to train.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -42,7 +41,6 @@ class BC(AlgoBase):
             implemenation of the algorithm.
 
     Attributes:
-        n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         learning_rate (float): learing rate.
@@ -67,7 +65,6 @@ class BC(AlgoBase):
                  n_frames=1,
                  eps=1e-8,
                  use_batch_norm=False,
-                 n_epochs=1000,
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
@@ -76,8 +73,7 @@ class BC(AlgoBase):
                  dynamics=None,
                  impl=None,
                  **kwargs):
-        super().__init__(n_epochs=n_epochs,
-                         batch_size=batch_size,
+        super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
                          scaler=scaler,
                          augmentation=augmentation,
@@ -138,7 +134,6 @@ class DiscreteBC(BC):
     where :math:`p(a|s_t)` is implemented as a one-hot vector.
 
     Args:
-        n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         learning_rate (float): learing rate.
@@ -164,7 +159,6 @@ class DiscreteBC(BC):
             implemenation of the algorithm.
 
     Attributes:
-        n_epochs (int): the number of epochs to train.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         learning_rate (float): learing rate.
@@ -191,7 +185,6 @@ class DiscreteBC(BC):
                  eps=1e-8,
                  beta=0.5,
                  use_batch_norm=False,
-                 n_epochs=1000,
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
@@ -205,7 +198,6 @@ class DiscreteBC(BC):
                          n_frames=n_frames,
                          eps=eps,
                          use_batch_norm=use_batch_norm,
-                         n_epochs=n_epochs,
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,

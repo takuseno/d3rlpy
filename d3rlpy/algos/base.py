@@ -26,10 +26,9 @@ class AlgoImplBase(ImplBase):
 
 
 class AlgoBase(LearnableBase):
-    def __init__(self, n_epochs, batch_size, n_frames, scaler, augmentation,
-                 dynamics, use_gpu):
-        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
-                         use_gpu)
+    def __init__(self, batch_size, n_frames, scaler, augmentation, dynamics,
+                 use_gpu):
+        super().__init__(batch_size, n_frames, scaler, augmentation, use_gpu)
         self.dynamics = dynamics
 
     def save_policy(self, fname, as_onnx=False):
@@ -136,7 +135,7 @@ class AlgoBase(LearnableBase):
                    env,
                    buffer,
                    explorer=None,
-                   n_epochs=None,
+                   n_epochs=1000,
                    n_steps_per_epoch=4000,
                    n_updates_per_epoch=100,
                    update_start_step=0,
@@ -158,8 +157,7 @@ class AlgoBase(LearnableBase):
             env (gym.Env): gym-like environment.
             buffer (d3rlpy.online.buffers.Buffer): replay buffer.
             explorer (d3rlpy.online.explorers.Explorer): action explorer.
-            n_epochs (int): the number of epochs to train. If None is given,
-                ``n_epochs`` of algorithm object will be used.
+            n_epochs (int): the number of epochs to train.
             n_steps_per_epoch (int): the number of steps per epoch.
             n_updates_per_epoch (int): the number of updates per epoch.
             update_start_step (int): the steps before starting updates.

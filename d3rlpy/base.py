@@ -29,7 +29,6 @@ class LearnableBase:
     All algorithms have the shared interfaces same as scikit-learn.
 
     Attributes:
-        n_epochs (int): the number of epochs to train.
         batch_size (int): the batch size of training.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor
         augmentation (list(str or d3rlpy.augmentation.base.Augmentation)):
@@ -39,12 +38,10 @@ class LearnableBase:
         eval_results_ (dict): evaluation results.
 
     """
-    def __init__(self, n_epochs, batch_size, n_frames, scaler, augmentation,
-                 use_gpu):
+    def __init__(self, batch_size, n_frames, scaler, augmentation, use_gpu):
         """ __init__ method.
 
         Args:
-            n_epochs (int): the number of epochs to train.
             batch_size (int): mini-batch size.
             scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
                 The available options are `['pixel', 'min_max', 'standard']`
@@ -54,7 +51,6 @@ class LearnableBase:
                 flag to use GPU, device ID or device.
 
         """
-        self.n_epochs = n_epochs
         self.batch_size = batch_size
         self.n_frames = n_frames
 
@@ -163,7 +159,7 @@ class LearnableBase:
 
         .. code-block:: python
 
-            algo.set_params(n_epochs=10, batch_size=100)
+            algo.set_params(batch_size=100)
 
         Args:
             **params: arbitrary inputs to set as attributes.
@@ -244,6 +240,7 @@ class LearnableBase:
 
     def fit(self,
             episodes,
+            n_epochs=1000,
             save_metrics=True,
             experiment_name=None,
             with_timestamp=True,
@@ -262,6 +259,7 @@ class LearnableBase:
 
         Args:
             episodes (list(d3rlpy.dataset.Episode)): list of episodes to train.
+            n_epochs (int): the number of epochs to train.
             save_metrics (bool): flag to record metrics in files. If False,
                 the log directory is not created and the model parameters are
                 not saved during training.
@@ -317,7 +315,7 @@ class LearnableBase:
 
         # training loop
         total_step = 0
-        for epoch in range(self.n_epochs):
+        for epoch in range(n_epochs):
 
             # data augmentation
             new_transitions = self._generate_new_data(env_transitions)

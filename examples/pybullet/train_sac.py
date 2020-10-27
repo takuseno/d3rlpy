@@ -22,10 +22,11 @@ def main(args):
 
     device = None if args.gpu is None else Device(args.gpu)
 
-    sac = SAC(n_epochs=100, q_func_type=args.q_func_type, use_gpu=device)
+    sac = SAC(q_func_type=args.q_func_type, use_gpu=device)
 
     sac.fit(train_episodes,
             eval_episodes=test_episodes,
+            n_epochs=100,
             scorers={
                 'environment': evaluate_on_environment(env),
                 'td_error': td_error_scorer,

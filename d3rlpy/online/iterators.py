@@ -9,7 +9,7 @@ def train(env,
           algo,
           buffer,
           explorer=None,
-          n_epochs=None,
+          n_epochs=1000,
           n_steps_per_epoch=4000,
           n_updates_per_epoch=100,
           update_start_step=0,
@@ -31,8 +31,7 @@ def train(env,
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
         buffer (d3rlpy.online.buffers.Buffer): replay buffer.
         explorer (d3rlpy.online.explorers.Explorer): action explorer.
-        n_epochs (int): the number of epochs to train. If None is given,
-            ``n_epochs`` of algorithm object will be used.
+        n_epochs (int): the number of epochs to train.
         n_steps_per_epoch (int): the number of steps per epoch.
         n_updates_per_epoch (int): the number of updates per epoch.
         update_start_step (int): the steps before starting updates.
@@ -83,9 +82,6 @@ def train(env,
 
     # save hyperparameters
     algo._save_params(logger)
-
-    # set n_epochs
-    n_epochs = n_epochs if n_epochs else algo.n_epochs
 
     # switch based on show_progress flag
     xrange = trange if show_progress else range

@@ -137,8 +137,7 @@ dataset, env = get_atari('breakout-expert-v0')
 train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
 # setup algorithm
-cql = DiscreteCQL(n_epochs=100,
-                  n_frames=4,
+cql = DiscreteCQL(n_frames=4,
                   n_critics=3,
                   bootstrap=True,
                   q_func_type='qr',
@@ -148,6 +147,7 @@ cql = DiscreteCQL(n_epochs=100,
 # start training
 cql.fit(train_episodes,
         eval_episodes=test_episodes,
+        n_epochs=100,
         scorers={
             'environment': evaluate_on_environment(env),
             'advantage': discounted_sum_of_advantage_scorer
@@ -174,8 +174,7 @@ dataset, env = get_pybullet('hopper-bullet-mixed-v0')
 train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
 # setup algorithm
-cql = CQL(n_epochs=300,
-          actor_learning_rate=1e-3,
+cql = CQL(actor_learning_rate=1e-3,
           critic_learning_rate=1e-3,
           temp_learning_rate=1e-3,
           alpha_learning_rate=1e-3,
@@ -188,6 +187,7 @@ cql = CQL(n_epochs=300,
 # start training
 cql.fit(train_episodes,
         eval_episodes=test_episodes,
+        n_epochs=300,
         scorers={
             'environment': evaluate_on_environment(env),
             'advantage': discounted_sum_of_advantage_scorer

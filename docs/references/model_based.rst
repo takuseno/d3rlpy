@@ -20,11 +20,12 @@ which can boost performance potentially beyond the model-free algorithms.
 
   train_episodes, test_episodes = train_test_split(dataset)
 
-  mopo = MOPO(n_epochs=100, learning_rate=1e-4, use_gpu=True)
+  mopo = MOPO(learning_rate=1e-4, use_gpu=True)
 
   # same as algorithms
   mopo.fit(train_episodes,
            eval_episodes=test_episodes,
+           n_epochs=100,
            scorers={
               'observation_error': dynamics_observation_prediction_error_scorer,
               'reward_error': dynamics_reward_prediction_error_scorer,

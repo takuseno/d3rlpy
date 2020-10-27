@@ -49,7 +49,6 @@ class AWR(AlgoBase):
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
         momentum (float): momentum for stochastic gradient descent.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        n_epochs (int): the number of epochs to train.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -81,7 +80,6 @@ class AWR(AlgoBase):
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
         momentum (float): momentum for stochastic gradient descent.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        n_epochs (int): the number of epochs to train.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -108,7 +106,6 @@ class AWR(AlgoBase):
                  max_weight=20.0,
                  momentum=0.9,
                  use_batch_norm=False,
-                 n_epochs=1000,
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
@@ -118,8 +115,7 @@ class AWR(AlgoBase):
                  impl=None,
                  **kwargs):
         # batch_size in AWR has different semantic from Q learning algorithms.
-        super().__init__(n_epochs=n_epochs,
-                         batch_size=batch_size,
+        super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
                          scaler=scaler,
                          augmentation=augmentation,
@@ -277,7 +273,6 @@ class DiscreteAWR(AWR):
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
         momentum (float): momentum for stochastic gradient descent.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        n_epochs (int): the number of epochs to train.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -310,7 +305,6 @@ class DiscreteAWR(AWR):
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
         momentum (float): momentum for stochastic gradient descent.
         use_batch_norm (bool): flag to insert batch normalization layers.
-        n_epochs (int): the number of epochs to train.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):

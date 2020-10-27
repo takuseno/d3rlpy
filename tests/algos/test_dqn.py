@@ -18,7 +18,7 @@ def test_dqn(observation_shape, action_size, q_func_type, scaler):
 @performance_test
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_dqn_performance(q_func_type):
-    dqn = DQN(n_epochs=1, q_func_type=q_func_type)
+    dqn = DQN(q_func_type=q_func_type)
     algo_cartpole_tester(dqn)
 
 
@@ -35,5 +35,5 @@ def test_double_dqn(observation_shape, action_size, q_func_type, scaler):
 @performance_test
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_double_dqn_performance(q_func_type):
-    double_dqn = DoubleDQN(n_epochs=1, q_func_type=q_func_type)
+    double_dqn = DoubleDQN(q_func_type=q_func_type)
     algo_cartpole_tester(double_dqn)
