@@ -132,7 +132,7 @@ from d3rlpy.dataset import MDPDataset
 
 # offline data
 observations = np.random.random((100000, 100)).astype('f4') # 100-dim feature observations
-actions = np.random.random((100000, 4)).astype('f4') # 4-dim continuous actions
+actions = np.random.random((100000, 4)) # 4-dim continuous actions
 rewards = np.random.random(100000)
 terminals = np.random.randint(2, size=100000)
 
@@ -179,7 +179,7 @@ rewards = np.random.random(100000)
 terminals = np.random.randint(2, size=100000)
 
 # builds MDPDataset from offline data
-dataset = MDPDataset(observations, actions, rewards, terminals)
+dataset = MDPDataset(observations, actions, rewards, terminals, discrete_action=True)
 
 # samples transitions
 transitions = sample(dataset.episodes[0].transitions, 32)
