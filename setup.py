@@ -6,10 +6,7 @@ os.environ['CFLAGS'] = '-std=c++11'
 
 if __name__ == "__main__":
     from numpy import get_include
-    try:
-        from Cython.Build import cythonize
-    except ImportError as e:
-        raise ImportError('Please install Cython before installing d3rlpy.') from e
+    from Cython.Build import cythonize
 
     # setup Cython build
     ext = Extension('d3rlpy.dataset',
@@ -19,6 +16,13 @@ if __name__ == "__main__":
                     extra_compile_args=["-std=c++11", "-O3", "-ffast-math", "-march=native"],
                     extra_link_args=["-std=c++11"])
 
+    ext_modules = cythonize([ext],
+                            compiler_directives={
+                                'linetrace': True,
+                                'binding': True
+                            })
+
+    # main setup
     setup(name="d3rlpy",
           version="0.30",
           description="Data-driven Deep Reinforcement Learning Library as an Out-of-the-box Tool",
@@ -38,7 +42,6 @@ if __name__ == "__main__":
                        "Programming Language :: Python :: Implementation :: CPython",
                        "Operating System :: POSIX :: Linux",
                        "Operating System :: MacOS :: MacOS X"],
-          setup_requires=["Cython", "numpy"],
           install_requires=["torch",
                             "scikit-learn",
                             "tensorboardX",
@@ -46,7 +49,8 @@ if __name__ == "__main__":
                             "GPUtil",
                             "h5py",
                             "gym",
-                            "kornia"],
+                            "kornia",
+                            "Cython"],
           packages=["d3rlpy",
                     "d3rlpy.algos",
                     "d3rlpy.algos.torch",
@@ -61,8 +65,4 @@ if __name__ == "__main__":
           python_requires=">=3.5.0",
           zip_safe=False,
           package_data={'d3rlpy': ['*.pyx', '*.pxd', '*.h']},
-          ext_modules=cythonize([ext],
-                                compiler_directives={
-                                    'linetrace': True,
-                                    'binding': True
-                                }))
+          ext_modules=ext_modules)

@@ -8,7 +8,6 @@ Install
 
 First of all, let's install ``d3rlpy`` on your machine::
 
-  $ pip install Cython numpy # if you have not installed them.
   $ pip install d3rlpy
 
 .. note::
