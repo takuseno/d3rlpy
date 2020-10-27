@@ -54,8 +54,11 @@ class RandomShift(Augmentation):
         """
         return 'random_shift'
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -104,8 +107,11 @@ class Cutout(Augmentation):
         """
         return 'cutout'
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -154,8 +160,11 @@ class HorizontalFlip(Augmentation):
         """
         return 'horizontal_flip'
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -204,8 +213,11 @@ class VerticalFlip(Augmentation):
         """
         return 'vertical_flip'
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -254,8 +266,11 @@ class RandomRotation(Augmentation):
         """
         return 'random_rotation'
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -311,8 +326,11 @@ class Intensity(Augmentation):
         """
         return 'intensity'
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -444,8 +462,11 @@ class ColorJitter(Augmentation):
         """
         return 'color_jitter'
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.

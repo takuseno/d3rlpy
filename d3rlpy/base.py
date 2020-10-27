@@ -451,8 +451,8 @@ class LearnableBase:
 
         # save augmentations
         params['augmentation'] = []
-        aug_types = self.augmentation.get_type()
-        aug_params = self.augmentation.get_params()
+        aug_types = self.augmentation.get_augmentation_types()
+        aug_params = self.augmentation.get_augmentation_params()
         for aug_type, aug_param in zip(aug_types, aug_params):
             params['augmentation'].append({
                 'type': aug_type,

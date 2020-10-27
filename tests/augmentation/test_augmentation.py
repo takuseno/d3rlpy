@@ -37,5 +37,5 @@ def test_augmentation_pipeline(batch_size, observation_shape):
     aug2.transform.assert_called_once()
     assert np.allclose(y, x + 0.3)
 
-    assert aug.get_type() == ['dummy', 'dummy']
-    assert aug.get_params() == [{'param': 0.1}, {'param': 0.1}]
+    assert aug.get_augmentation_types() == ['dummy', 'dummy']
+    assert aug.get_augmentation_params() == [{'param': 0.1}, {'param': 0.1}]

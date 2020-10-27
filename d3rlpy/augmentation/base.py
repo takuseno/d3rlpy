@@ -11,5 +11,5 @@ class Augmentation(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_params(self):
+    def get_params(self, deep=False):
         pass

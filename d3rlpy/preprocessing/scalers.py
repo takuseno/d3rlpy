@@ -22,7 +22,7 @@ class Scaler(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_params(self):
+    def get_params(self, deep=False):
         pass
 
 
@@ -83,10 +83,13 @@ class PixelScaler(Scaler):
         """
         return (x * 255.0).long()
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns scaling parameters.
 
         PixelScaler returns empty dictiornary.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: empty dictionary.
@@ -220,14 +223,27 @@ class MinMaxScaler(Scaler):
                                device=x.device)
         return ((maximum - minimum) * x) + minimum
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns scaling parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: `maximum` and `minimum`.
 
         """
-        return {'maximum': self.maximum, 'minimum': self.minimum}
+        if self.maximum is not None:
+            maximum = self.maximum.copy() if deep else self.maximum
+        else:
+            maximum = None
+
+        if self.minimum is not None:
+            minimum = self.minimum.copy() if deep else self.minimum
+        else:
+            minimum = None
+
+        return {'maximum': maximum, 'minimum': minimum}
 
     def get_type(self):
         """ Returns scaler type.
@@ -355,14 +371,27 @@ class StandardScaler(Scaler):
         std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
         return (std * x) + mean
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns scaling parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: `mean` and `std`.
 
         """
-        return {'mean': self.mean, 'std': self.std}
+        if self.mean is not None:
+            mean = self.mean.copy() if deep else self.mean
+        else:
+            mean = None
+
+        if self.std is not None:
+            std = self.std.copy() if deep else self.std
+        else:
+            std = None
+
+        return {'mean': mean, 'std': std}
 
     def get_type(self):
         """ Returns scaler type.

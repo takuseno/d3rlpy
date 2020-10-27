@@ -32,7 +32,7 @@ def create_augmentation(augmentation_type, **kwargs):
     raise ValueError('invalid augmentation_type.')
 
 
-class AugmentationPipeline(Augmentation):
+class AugmentationPipeline:
     """ Augmentation pipeline.
 
     Args:
@@ -74,7 +74,7 @@ class AugmentationPipeline(Augmentation):
 
         return x
 
-    def get_type(self):
+    def get_augmentation_types(self):
         """ Returns augmentation types.
 
         Returns:
@@ -83,8 +83,11 @@ class AugmentationPipeline(Augmentation):
         """
         return [aug.get_type() for aug in self.augmentations]
 
-    def get_params(self):
+    def get_augmentation_params(self):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             list(dict): list of augmentation parameters.

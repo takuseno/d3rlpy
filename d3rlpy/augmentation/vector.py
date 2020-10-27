@@ -52,8 +52,11 @@ class SingleAmplitudeScaling(Augmentation):
         """
         return 'single_amplitude_scaling'
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
