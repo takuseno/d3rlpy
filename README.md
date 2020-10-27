@@ -121,6 +121,75 @@ gscv = GridSearchCV(estimator=cql,
 gscv.fit(train_episodes)
 ```
 
+## MDPDataset
+d3rlpy introduces `MDPDataset`, a convenient data structure for reinforcement
+learning.
+`MDPDataset` splits sequential data into transitions that includes a tuple of
+data observed at `t` and `t+1`, which is usually used for training.
+
+```py
+from d3rlpy.dataset import MDPDataset
+
+# offline data
+observations = np.random.random((100000, 100)).astype('f4') # 100-dim feature observations
+actions = np.random.random((100000, 4)).astype('f4') # 4-dim continuous actions
+rewards = np.random.random(100000)
+terminals = np.random.randint(2, size=100000)
+
+# builds MDPDataset from offline data
+dataset = MDPDataset(observations, actions, rewards, terminals)
+
+# splits offline data into episodes
+dataset.episodes[0].observations
+
+# splits episodes into transitions
+dataset.episodes[0].transitions[0].observation
+dataset.episodes[0].transitions[0].action
+dataset.episodes[0].transitions[0].next_reward
+dataset.episodes[0].transitions[0].next_observation
+dataset.episodes[0].transitions[0].terminal
+```
+
+`TransitionMiniBatch` is also a convenient class to make a mini-batch of
+sampled transitions.
+And, memory copies done in `TransitionMiniBatch` are implemented with Cython,
+which provides extremely fast computation.
+
+```py
+from random import sample
+from d3rlpy.dataset import TransitionMiniBatch
+
+transitions = sample(dataset.episodes[0].transitions, 100)
+
+# fast batching up with efficient-memory copy
+batch = TransitionMiniBatch(transitions)
+
+batch.observations.shape == (100, 100)
+```
+
+One more interesting feature in the dataset structure is that each transition
+has pointers to its next and previous transition.
+This feature enables JIT frame stacking just as serveral works do with Atari
+tasks, which is also implemented with Cython for reducing bottlenecks.
+
+```py
+observations = np.random.randint(256, size=(100000, 1, 84, 84), dtype=np.uint8) # 1x84x84 pixel images
+actions = np.random.randint(4, size=100000) # discrete actions with 4 options
+rewards = np.random.random(100000)
+terminals = np.random.randint(2, size=100000)
+
+# builds MDPDataset from offline data
+dataset = MDPDataset(observations, actions, rewards, terminals)
+
+# samples transitions
+transitions = sample(dataset.episodes[0].transitions, 32)
+
+# makes mini-batch with frame stacking
+batch = TransitionMiniBatch(transitions, n_frames=4)
+
+batch.observations.shape == (32, 4, 84, 84)
+```
+
 ## examples
 ### Atari 2600
 ```py
