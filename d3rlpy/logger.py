@@ -96,13 +96,15 @@ class D3RLPyLogger:
                 self.writer.add_scalar('metrics/' + name, metric, epoch)
 
             metrics[name] = metric
-            self.metrics_buffer[name] = []
 
         if self.params and self.writer:
             self.writer.add_hparams(self.params,
                                     metrics,
                                     name=self.experiment_name,
                                     global_step=epoch)
+
+        # initialize metrics buffer
+        self.metrics_buffer = {}
 
     def save_model(self, epoch, algo):
         if self.save_metrics:
