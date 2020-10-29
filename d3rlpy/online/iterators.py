@@ -117,11 +117,11 @@ def train(env,
             # get next observation
             if terminal:
                 observation, reward, terminal = env.reset(), 0.0, False
-            else:
-                observation, reward, terminal, _ = env.step(action)
                 # for image observation
                 if is_image:
                     stacked_frame.clear()
+            else:
+                observation, reward, terminal, _ = env.step(action)
 
             total_step += 1
 
