@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
+from abc import ABCMeta, abstractmethod
 from .encoders import create_encoder
 
 
@@ -132,7 +133,23 @@ def _reduce(value, reduction_type):
     raise ValueError('invalid reduction type.')
 
 
-class DiscreteQRQFunction(nn.Module):
+class QFunction(metaclass=ABCMeta):
+    @abstractmethod
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
+        pass
+
+    @abstractmethod
+    def compute_target(self, x, action):
+        pass
+
+
+class DiscreteQRQFunction(QFunction, nn.Module):
     def __init__(self, encoder, action_size, n_quantiles):
         super().__init__()
         self.encoder = encoder
@@ -176,7 +193,7 @@ class DiscreteQRQFunction(nn.Module):
         return _pick_value_by_action(self.forward(x, True), action)
 
 
-class ContinuousQRQFunction(nn.Module):
+class ContinuousQRQFunction(QFunction, nn.Module):
     def __init__(self, encoder, n_quantiles):
         super().__init__()
         self.encoder = encoder
@@ -219,7 +236,7 @@ class ContinuousQRQFunction(nn.Module):
         return self.forward(x, action, as_quantiles=True)
 
 
-class DiscreteIQNQFunction(nn.Module):
+class DiscreteIQNQFunction(QFunction, nn.Module):
     def __init__(self, encoder, action_size, n_quantiles, embed_size):
         super().__init__()
         self.encoder = encoder
@@ -295,7 +312,7 @@ class DiscreteIQNQFunction(nn.Module):
         return _pick_value_by_action(quantiles, action)
 
 
-class ContinuousIQNQFunction(nn.Module):
+class ContinuousIQNQFunction(QFunction, nn.Module):
     def __init__(self, encoder, n_quantiles, embed_size):
         super().__init__()
         self.encoder = encoder
@@ -565,7 +582,7 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         return _reduce(loss, reduction)
 
 
-class DiscreteQFunction(nn.Module):
+class DiscreteQFunction(QFunction, nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.action_size = action_size
@@ -593,7 +610,7 @@ class DiscreteQFunction(nn.Module):
         return _pick_value_by_action(self.forward(x), action, keepdims=True)
 
 
-class ContinuousQFunction(nn.Module):
+class ContinuousQFunction(QFunction, nn.Module):
     def __init__(self, encoder):
         super().__init__()
         self.encoder = encoder
