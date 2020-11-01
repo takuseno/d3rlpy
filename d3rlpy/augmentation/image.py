@@ -395,7 +395,7 @@ class ColorJitter(Augmentation):
 
         if is_transforming_rgb_first:
             # transform contrast
-            flag_rgb = self._transform_contrast(flat_rgb)
+            flat_rgb = self._transform_contrast(flat_rgb)
 
         # (batch, stack, 3, W, H) -> (batch * stack, 3, W, H)
         rgb_images = flat_rgb.view(-1, 3, x.shape[2], x.shape[3])
