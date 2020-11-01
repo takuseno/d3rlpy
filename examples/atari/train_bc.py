@@ -4,7 +4,6 @@ import d3rlpy
 from d3rlpy.algos import DiscreteBC
 from d3rlpy.datasets import get_atari
 from d3rlpy.metrics.scorer import evaluate_on_environment
-from d3rlpy.gpu import Device
 from sklearn.model_selection import train_test_split
 
 

@@ -5,7 +5,7 @@ from torch.optim import Adam
 from d3rlpy.models.torch.policies import squash_action, create_normal_policy
 from .sac_impl import SACImpl
 from .utility import compute_augemtation_mean
-from .utility import torch_api, train_api, eval_api
+from .utility import torch_api, train_api
 
 
 class AWACImpl(SACImpl):

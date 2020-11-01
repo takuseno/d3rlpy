@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from ..base import ImplBase, LearnableBase
 from ..online.iterators import train
 

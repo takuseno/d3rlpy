@@ -4,7 +4,6 @@ import math
 from torch.optim import Adam
 from d3rlpy.models.torch.encoders import PixelEncoder
 from d3rlpy.models.torch.policies import create_deterministic_residual_policy
-from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
 from d3rlpy.models.torch.imitators import create_conditional_vae
 from d3rlpy.models.torch.imitators import create_discrete_imitator
