@@ -61,9 +61,6 @@ class CQLImpl(SACImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_alpha(self, obs_t, act_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
         loss = -self._compute_conservative_loss(obs_t, act_t)
 
         self.alpha_optim.zero_grad()
