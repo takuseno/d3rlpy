@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
+from abc import ABCMeta, abstractmethod
 from torch.distributions import Normal, Categorical
 from .encoders import create_encoder
 
@@ -63,7 +64,21 @@ def squash_action(dist, raw_action):
     return squashed_action, log_prob
 
 
-class DeterministicPolicy(nn.Module):
+class Policy(metaclass=ABCMeta):
+    @abstractmethod
+    def sample(self, x, with_log_prob=False):
+        pass
+
+    @abstractmethod
+    def sample_n(self, x, n, with_log_prob=False):
+        pass
+
+    @abstractmethod
+    def best_action(self, x):
+        pass
+
+
+class DeterministicPolicy(Policy, nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.encoder = encoder
@@ -75,6 +90,14 @@ class DeterministicPolicy(nn.Module):
         if with_raw:
             return torch.tanh(raw_action), raw_action
         return torch.tanh(raw_action)
+
+    def sample(self, x, with_log_prob=False):
+        raise NotImplementedError(
+            'deterministic policy does not support sample')
+
+    def sample_n(self, x, n, with_log_prob=False):
+        raise NotImplementedError(
+            'deterministic policy does not support sample_n')
 
     def best_action(self, x):
         return self.forward(x)
@@ -96,7 +119,7 @@ class DeterministicResidualPolicy(nn.Module):
         return self.forward(x, action)
 
 
-class NormalPolicy(nn.Module):
+class NormalPolicy(Policy, nn.Module):
     def __init__(self, encoder, action_size, min_logstd, max_logstd,
                  use_std_parameter):
         super().__init__()
@@ -166,7 +189,7 @@ class NormalPolicy(nn.Module):
         return self.min_logstd + logstd * base_logstd
 
 
-class CategoricalPolicy(nn.Module):
+class CategoricalPolicy(Policy, nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.encoder = encoder
@@ -190,8 +213,24 @@ class CategoricalPolicy(nn.Module):
 
         return action
 
-    def sample(self, x):
-        return self.forward(x)
+    def sample(self, x, with_log_prob=False):
+        return self.forward(x, with_log_prob=with_log_prob)
+
+    def sample_n(self, x, n, with_log_prob=False):
+        dist = self.dist(x)
+
+        action_T = dist.sample((n, ))
+        log_prob_T = dist.log_prob(action_T)
+
+        # (n, batch) -> (batch, n)
+        action = action_T.transpose(0, 1)
+        # (n, batch) -> (batch, n)
+        log_prob = log_prob_T.transpose(0, 1)
+
+        if with_log_prob:
+            return action, log_prob
+
+        return action
 
     def best_action(self, x):
         return self.forward(x, deterministic=True)

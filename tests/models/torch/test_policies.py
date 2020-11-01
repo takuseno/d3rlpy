@@ -164,7 +164,8 @@ def test_normal_policy(feature_size, action_size, batch_size, min_logstd,
 @pytest.mark.parametrize('feature_size', [100])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-def test_categorical_policy(feature_size, action_size, batch_size):
+@pytest.mark.parametrize('n', [10])
+def test_categorical_policy(feature_size, action_size, batch_size, n):
     encoder = DummyEncoder(feature_size)
     policy = CategoricalPolicy(encoder, action_size)
 
@@ -182,6 +183,11 @@ def test_categorical_policy(feature_size, action_size, batch_size):
 
     # check if sampled action is not identical to the bset action
     assert not torch.all(policy.sample(x) == policy.best_action(x))
+
+    # check sample_n
+    y_n, log_prob_n = policy.sample_n(x, n, True)
+    assert y_n.shape == (batch_size, n)
+    assert log_prob_n.shape == (batch_size, n)
 
     # check layer connection
     check_parameter_updates(policy, output=log_prob)
