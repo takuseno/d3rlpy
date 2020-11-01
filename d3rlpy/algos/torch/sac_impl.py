@@ -63,11 +63,8 @@ class SACImpl(DDPGImpl):
         return (entropy - q_t).mean()
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t'])
     def update_temp(self, obs_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
         with torch.no_grad():
             _, log_prob = self.policy.sample(obs_t, with_log_prob=True)
             targ_temp = log_prob - self.action_size
@@ -84,11 +81,8 @@ class SACImpl(DDPGImpl):
         return loss.cpu().detach().numpy(), cur_temp
 
     @eval_api
-    @torch_api
+    @torch_api(scaler_targets=['x'])
     def sample_action(self, x):
-        if self.scaler:
-            x = self.scaler.transform(x)
-
         with torch.no_grad():
             return self.policy.sample(x).cpu().detach().numpy()
 

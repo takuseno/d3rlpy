@@ -54,11 +54,8 @@ class AWACImpl(SACImpl):
                                 weight_decay=self.actor_weight_decay)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t, act_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
         loss = compute_augemtation_mean(self.augmentation,
                                         self.n_augmentations,
                                         self._compute_actor_loss, {

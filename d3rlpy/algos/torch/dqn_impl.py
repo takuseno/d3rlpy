@@ -63,12 +63,8 @@ class DQNImpl(TorchImplBase):
                           eps=self.eps)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t', 'obs_tp1'])
     def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-            obs_tp1 = self.scaler.transform(obs_tp1)
-
         q_tp1 = compute_augemtation_mean(self.augmentation,
                                          self.n_augmentations,
                                          self.compute_target, {'x': obs_tp1},
@@ -102,12 +98,9 @@ class DQNImpl(TorchImplBase):
         return self.q_func(x).argmax(dim=1)
 
     @eval_api
-    @torch_api
+    @torch_api(scaler_targets=['x'])
     def predict_value(self, x, action, with_std):
         assert x.shape[0] == action.shape[0]
-
-        if self.scaler:
-            x = self.scaler.transform(x)
 
         action = action.view(-1).long().cpu().detach().numpy()
         with torch.no_grad():

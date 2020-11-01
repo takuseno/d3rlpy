@@ -11,11 +11,8 @@ from .utility import get_state_dict, set_state_dict
 
 class TorchImplBase(AlgoImplBase):
     @eval_api
-    @torch_api
+    @torch_api(scaler_targets=['x'])
     def predict_best_action(self, x):
-        if self.scaler:
-            x = self.scaler.transform(x)
-
         with torch.no_grad():
             return self._predict_best_action(x).cpu().detach().numpy()
 

@@ -1,5 +1,7 @@
 import torch
 
+from inspect import signature
+
 
 def soft_sync(targ_model, model, tau):
     with torch.no_grad():
@@ -97,23 +99,33 @@ def map_location(device):
     raise ValueError('invalid device={}'.format(device))
 
 
-def torch_api(f):
-    def wrapper(self, *args, **kwargs):
-        # convert all args to torch.Tensor
-        tensors = []
-        for val in args:
-            if isinstance(val, torch.Tensor):
-                tensors.append(val)
-            elif isinstance(val, list) and isinstance(val[0], torch.Tensor):
-                tensors.append(torch.stack(val))
-            else:
-                tensor = torch.tensor(data=val,
-                                      dtype=torch.float32,
-                                      device=self.device)
-                tensors.append(tensor)
-        return f(self, *tensors, **kwargs)
+def torch_api(scaler_targets=[]):
+    def _torch_api(f):
+        # get argument names
+        sig = signature(f)
+        arg_keys = list(sig.parameters.keys())[1:]
 
-    return wrapper
+        def wrapper(self, *args, **kwargs):
+            # convert all args to torch.Tensor
+            tensors = []
+            for i, val in enumerate(args):
+                if isinstance(val, torch.Tensor):
+                    tensor = val
+                else:
+                    tensor = torch.tensor(data=val,
+                                          dtype=torch.float32,
+                                          device=self.device)
+
+                # preprocess
+                if self.scaler and arg_keys[i] in scaler_targets:
+                    tensor = self.scaler.transform(tensor)
+
+                tensors.append(tensor)
+            return f(self, *tensors, **kwargs)
+
+        return wrapper
+
+    return _torch_api
 
 
 def eval_api(f):

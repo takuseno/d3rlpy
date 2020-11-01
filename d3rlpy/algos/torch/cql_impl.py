@@ -59,7 +59,7 @@ class CQLImpl(SACImpl):
         return loss + conservative_loss
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t'])
     def update_alpha(self, obs_t, act_t):
         if self.scaler:
             obs_t = self.scaler.transform(obs_t)

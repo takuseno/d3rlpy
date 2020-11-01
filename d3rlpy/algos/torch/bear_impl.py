@@ -84,11 +84,8 @@ class BEARImpl(SACImpl):
         return loss + mmd_loss
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t'])
     def update_imitator(self, obs_t, act_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
         loss = compute_augemtation_mean(self.augmentation,
                                         self.n_augmentations,
                                         self.imitator.compute_error, {
@@ -103,11 +100,8 @@ class BEARImpl(SACImpl):
         return loss.cpu().detach().numpy()
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t'])
     def update_alpha(self, obs_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
         loss = -self._compute_mmd(obs_t)
 
         self.alpha_optim.zero_grad()

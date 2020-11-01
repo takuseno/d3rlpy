@@ -83,12 +83,8 @@ class DDPGImpl(TorchImplBase):
                                 eps=self.eps)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t', 'obs_tp1'])
     def update_critic(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-            obs_tp1 = self.scaler.transform(obs_tp1)
-
         q_tp1 = compute_augemtation_mean(self.augmentation,
                                          self.n_augmentations,
                                          self.compute_target, {'x': obs_tp1},
@@ -115,11 +111,8 @@ class DDPGImpl(TorchImplBase):
                                          self.gamma)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
         loss = compute_augemtation_mean(self.augmentation,
                                         self.n_augmentations,
                                         self._compute_actor_loss,
@@ -146,12 +139,9 @@ class DDPGImpl(TorchImplBase):
         return self.policy.best_action(x)
 
     @eval_api
-    @torch_api
+    @torch_api(scaler_targets=['x'])
     def predict_value(self, x, action, with_std):
         assert x.shape[0] == action.shape[0]
-
-        if self.scaler:
-            x = self.scaler.transform(x)
 
         with torch.no_grad():
             values = self.q_func(x, action, 'none').cpu().detach().numpy()
@@ -165,8 +155,6 @@ class DDPGImpl(TorchImplBase):
 
         return mean_values
 
-    @eval_api
-    @torch_api
     def sample_action(self, x):
         return self.predict_best_action(x)
 

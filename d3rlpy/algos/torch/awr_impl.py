@@ -61,11 +61,8 @@ class AWRImpl(TorchImplBase):
                                momentum=self.momentum)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['observation'])
     def update_critic(self, observation, value):
-        if self.scaler:
-            observation = self.scaler.transform(observation)
-
         loss = compute_augemtation_mean(self.augmentation,
                                         self.n_augmentations,
                                         self._compute_critic_loss, {
@@ -83,11 +80,8 @@ class AWRImpl(TorchImplBase):
         return self.v_func.compute_error(observation, value)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['observation'])
     def update_actor(self, observation, action, weight):
-        if self.scaler:
-            observation = self.scaler.transform(observation)
-
         loss = compute_augemtation_mean(self.augmentation,
                                         self.n_augmentations,
                                         self._compute_actor_loss, {
@@ -117,20 +111,14 @@ class AWRImpl(TorchImplBase):
         return self.policy.best_action(x)
 
     @eval_api
-    @torch_api
+    @torch_api(scaler_targets=['x'])
     def predict_value(self, x, *args, **kwargs):
-        if self.scaler:
-            x = self.scaler.transform(x)
-
         with torch.no_grad():
             return self.v_func(x).view(-1).cpu().detach().numpy()
 
     @eval_api
-    @torch_api
+    @torch_api(scaler_targets=['x'])
     def sample_action(self, x):
-        if self.scaler:
-            x = self.scaler.transform(x)
-
         with torch.no_grad():
             return self.policy.sample(x).cpu().detach().numpy()
 

@@ -53,12 +53,8 @@ class MOPOImpl(TorchImplBase):
         return observations, rewards - self.lam * variances
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t', 'obs_tp1'])
     def update(self, obs_t, act_t, rew_tp1, obs_tp1):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-            obs_tp1 = self.scaler.transform(obs_tp1)
-
         loss = self.dynamics.compute_error(obs_t, act_t, rew_tp1, obs_tp1)
 
         self.optim.zero_grad()
