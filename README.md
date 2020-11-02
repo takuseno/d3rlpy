@@ -191,6 +191,25 @@ batch = TransitionMiniBatch(transitions, n_frames=4)
 batch.observations.shape == (32, 4, 84, 84)
 ```
 
+## Docker
+d3prl can be run on docker container with [nvidia-docker](https://github.com/NVIDIA/nvidia-docker).
+
+Now use the docker command directly to build the image.
+```sh
+$ IMAGE_NAME="d3rlpy"
+$ docker build -t ${IMAGE_NAME} "$(pwd)"/docker
+```
+
+Now run the new image and test it
+```sh
+$ docker run -it --rm \
+             --gpus 0 \
+             -v "$(pwd)":/workdir \
+             -w /workdir \
+             ${IMAGE_NAME} \
+             /bin/bash -c "python examples/atari/train_cql.py"
+```
+
 ## examples
 ### Atari 2600
 ```py

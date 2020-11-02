@@ -18,4 +18,5 @@ COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
 # clearn
+WORKDIR /workdir
 RUN rm -rf /var/lib/apt/lists/*
