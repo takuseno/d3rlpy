@@ -1,0 +1,6 @@
+matplotlib
+scipy
+h5py
+pandas
+tqdm
+scikit-learn
