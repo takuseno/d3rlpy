@@ -200,7 +200,7 @@ $ IMAGE_NAME="d3rlpy"
 $ docker build -t ${IMAGE_NAME} "$(pwd)"/docker
 ```
 
-Now run the new image and test it
+Now run the built image and test it
 ```sh
 $ docker run -it --rm \
              --gpus 0 \
