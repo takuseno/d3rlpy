@@ -189,5 +189,9 @@ def test_categorical_policy(feature_size, action_size, batch_size, n):
     assert y_n.shape == (batch_size, n)
     assert log_prob_n.shape == (batch_size, n)
 
+    # check log_probs
+    log_probs = policy.log_probs(x)
+    assert log_probs.shape == (batch_size, action_size)
+
     # check layer connection
-    check_parameter_updates(policy, output=log_prob)
+    check_parameter_updates(policy, output=log_probs)

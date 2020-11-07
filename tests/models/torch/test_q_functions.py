@@ -242,11 +242,16 @@ def test_discrete_qr_q_function(feature_size, action_size, n_quantiles,
     y = q_func(x)
     assert y.shape == (batch_size, action_size)
 
+    # check compute_target
     action = torch.randint(high=action_size, size=(batch_size, ))
     target = q_func.compute_target(x, action)
     quantiles = q_func(x, as_quantiles=True)
     assert target.shape == (batch_size, n_quantiles)
     assert (quantiles[torch.arange(batch_size), action] == target).all()
+
+    # check compute_target with action=None
+    targets = q_func.compute_target(x)
+    assert targets.shape == (batch_size, action_size, n_quantiles)
 
     # check quantile huber loss
     obs_t = torch.rand(batch_size, feature_size)
@@ -340,9 +345,14 @@ def test_discrete_iqn_q_function(feature_size, action_size, n_quantiles,
     y = q_func(x)
     assert y.shape == (batch_size, action_size)
 
+    # check compute_target
     action = torch.randint(high=action_size, size=(batch_size, ))
     target = q_func.compute_target(x, action)
     assert target.shape == (batch_size, n_quantiles)
+
+    # check compute_target with action=None
+    targets = q_func.compute_target(x)
+    assert targets.shape == (batch_size, action_size, n_quantiles)
 
     # TODO: check quantile huber loss
     obs_t = torch.rand(batch_size, feature_size)
@@ -411,9 +421,14 @@ def test_discrete_fqf_q_function(feature_size, action_size, n_quantiles,
     y = q_func(x)
     assert y.shape == (batch_size, action_size)
 
+    # check compute_target
     action = torch.randint(high=action_size, size=(batch_size, ))
     target = q_func.compute_target(x, action)
     assert target.shape == (batch_size, n_quantiles)
+
+    # check compute_target
+    targets = q_func.compute_target(x)
+    assert targets.shape == (batch_size, action_size, n_quantiles)
 
     # TODO: check quantile huber loss
     obs_t = torch.rand(batch_size, feature_size)
@@ -498,6 +513,10 @@ def test_discrete_q_function(feature_size, action_size, batch_size, gamma):
     assert target.shape == (batch_size, 1)
     assert torch.allclose(y[torch.arange(batch_size), action], target.view(-1))
 
+    # check compute_target with action=None
+    targets = q_func.compute_target(x)
+    assert targets.shape == (batch_size, action_size)
+
     # check td calculation
     q_tp1 = np.random.random((batch_size, 1))
     rew_tp1 = np.random.random((batch_size, 1))
@@ -562,6 +581,13 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
                               target.view(-1))
     else:
         assert target.shape == (batch_size, n_quantiles)
+
+    # check compute_target with action=None
+    targets = q_func.compute_target(x)
+    if q_func_type == 'mean':
+        assert targets.shape == (batch_size, action_size)
+    else:
+        assert targets.shape == (batch_size, action_size, n_quantiles)
 
     # check reductions
     if q_func_type != 'iqn':

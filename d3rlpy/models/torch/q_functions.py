@@ -189,7 +189,9 @@ class DiscreteQRQFunction(QFunction, nn.Module):
 
         return _reduce(loss, reduction)
 
-    def compute_target(self, x, action):
+    def compute_target(self, x, action=None):
+        if action is None:
+            return self.forward(x, True)
         return _pick_value_by_action(self.forward(x, True), action)
 
 
@@ -307,8 +309,10 @@ class DiscreteIQNQFunction(QFunction, nn.Module):
 
         return _reduce(loss, reduction)
 
-    def compute_target(self, x, action):
+    def compute_target(self, x, action=None):
         quantiles = self.forward(x, as_quantiles=True)
+        if action is None:
+            return quantiles
         return _pick_value_by_action(quantiles, action)
 
 
@@ -606,7 +610,9 @@ class DiscreteQFunction(QFunction, nn.Module):
         loss = _huber_loss(q_t, y)
         return _reduce(loss, reduction)
 
-    def compute_target(self, x, action):
+    def compute_target(self, x, action=None):
+        if action is None:
+            return self.forward(x)
         return _pick_value_by_action(self.forward(x), action, keepdims=True)
 
 
@@ -650,29 +656,45 @@ def _reduce_ensemble(y, reduction='min', dim=0, lam=0.75):
         max_values = y.max(dim=dim).values
         min_values = y.min(dim=dim).values
         return lam * min_values + (1.0 - lam) * max_values
-    else:
-        raise ValueError
+    raise ValueError
+
+
+def _gather_quantiles_by_indices(y, indices):
+    # TODO: implement this in general case
+    if y.ndim == 3:
+        # (N, batch, n_quantiles) -> (batch, n_quantiles)
+        return y.transpose(0, 1)[torch.arange(y.shape[1]), indices]
+    elif y.ndim == 4:
+        # (N, batch, action, n_quantiles) -> (batch, action, N, n_quantiles)
+        transposed_y = y.transpose(0, 1).transpose(1, 2)
+        # (batch, action, N, n_quantiles) -> (batch * action, N, n_quantiles)
+        flat_y = transposed_y.reshape(-1, y.shape[0], y.shape[3])
+        head_indices = torch.arange(y.shape[1] * y.shape[2])
+        # (batch * action, N, n_quantiles) -> (batch * action, n_quantiles)
+        gathered_y = flat_y[head_indices, indices.view(-1)]
+        # (batch * action, n_quantiles) -> (batch, action, n_quantiles)
+        return gathered_y.view(y.shape[1], y.shape[2], -1)
+    raise ValueError
 
 
 def _reduce_quantile_ensemble(y, reduction='min', dim=0, lam=0.75):
     # reduction beased on expectation
-    mean = y.mean(dim=2)
+    mean = y.mean(dim=-1)
     if reduction == 'min':
         indices = mean.min(dim=dim).indices
-        return y.transpose(0, 1)[torch.arange(y.shape[1]), indices]
+        return _gather_quantiles_by_indices(y, indices)
     elif reduction == 'max':
         indices = mean.max(dim=dim).indices
-        return y.transpose(0, 1)[torch.arange(y.shape[1]), indices]
+        return _gather_quantiles_by_indices(y, indices)
     elif reduction == 'none':
         return y
     elif reduction == 'mix':
         min_indices = mean.min(dim=dim).indices
         max_indices = mean.max(dim=dim).indices
-        min_values = y.transpose(0, 1)[torch.arange(y.shape[1]), min_indices]
-        max_values = y.transpose(0, 1)[torch.arange(y.shape[1]), max_indices]
+        min_values = _gather_quantiles_by_indices(y, min_indices)
+        max_values = _gather_quantiles_by_indices(y, max_indices)
         return lam * min_values + (1.0 - lam) * max_values
-    else:
-        raise ValueError
+    raise ValueError
 
 
 class EnsembleQFunction(nn.Module):
@@ -700,13 +722,22 @@ class EnsembleQFunction(nn.Module):
 
         return td_sum
 
-    def compute_target(self, x, action, reduction='min'):
+    def compute_target(self, x, action=None, reduction='min'):
         values = []
         for q_func in self.q_funcs:
             target = q_func.compute_target(x, action)
-            values.append(target.view(1, x.shape[0], -1))
+            values.append(target.reshape(1, x.shape[0], -1))
 
         values = torch.cat(values, dim=0)
+
+        if action is None:
+            # mean Q function
+            if values.shape[2] == self.action_size:
+                return _reduce_ensemble(values, reduction)
+            # distributional Q function
+            n_q_funcs = values.shape[0]
+            values = values.view(n_q_funcs, x.shape[0], self.action_size, -1)
+            return _reduce_quantile_ensemble(values, reduction)
 
         if values.shape[2] == 1:
             return _reduce_ensemble(values, reduction)

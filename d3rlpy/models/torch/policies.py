@@ -198,7 +198,7 @@ class CategoricalPolicy(Policy, nn.Module):
     def dist(self, x):
         h = self.encoder(x)
         h = self.fc(h)
-        return Categorical(torch.softmax(h, dim=1))
+        return Categorical(logits=h)
 
     def forward(self, x, deterministic=False, with_log_prob=False):
         dist = self.dist(x)
@@ -234,3 +234,7 @@ class CategoricalPolicy(Policy, nn.Module):
 
     def best_action(self, x):
         return self.forward(x, deterministic=True)
+
+    def log_probs(self, x):
+        dist = self.dist(x)
+        return dist.logits
