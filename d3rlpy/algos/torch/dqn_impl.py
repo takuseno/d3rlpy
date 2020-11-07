@@ -65,19 +65,23 @@ class DQNImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t', 'obs_tp1'])
     def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        q_tp1 = compute_augemtation_mean(self.augmentation,
-                                         self.n_augmentations,
-                                         self.compute_target, {'x': obs_tp1},
-                                         ['x'])
+        q_tp1 = compute_augemtation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self.compute_target,
+                                         inputs={'x': obs_tp1},
+                                         targets=['x'])
         q_tp1 *= (1.0 - ter_tp1)
 
-        loss = compute_augemtation_mean(
-            self.augmentation, self.n_augmentations, self._compute_loss, {
-                'obs_t': obs_t,
-                'act_t': act_t.long(),
-                'rew_tp1': rew_tp1,
-                'q_tp1': q_tp1
-            }, ['obs_t'])
+        loss = compute_augemtation_mean(augmentation=self.augmentation,
+                                        n_augmentations=self.n_augmentations,
+                                        func=self._compute_loss,
+                                        inputs={
+                                            'obs_t': obs_t,
+                                            'act_t': act_t.long(),
+                                            'rew_tp1': rew_tp1,
+                                            'q_tp1': q_tp1
+                                        },
+                                        targets=['obs_t'])
 
         self.optim.zero_grad()
         loss.backward()

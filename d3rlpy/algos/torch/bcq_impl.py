@@ -87,12 +87,14 @@ class BCQImpl(DDPGImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_imitator(self, obs_t, act_t):
-        loss = compute_augemtation_mean(self.augmentation,
-                                        self.n_augmentations,
-                                        self.imitator.compute_error, {
+        loss = compute_augemtation_mean(augmentation=self.augmentation,
+                                        n_augmentations=self.n_augmentations,
+                                        func=self.imitator.compute_error,
+                                        inputs={
                                             'x': obs_t,
                                             'action': act_t
-                                        }, ['x'])
+                                        },
+                                        targets=['x'])
 
         self.imitator_optim.zero_grad()
         loss.backward()

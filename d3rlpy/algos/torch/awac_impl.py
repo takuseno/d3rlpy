@@ -56,12 +56,14 @@ class AWACImpl(SACImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t, act_t):
-        loss = compute_augemtation_mean(self.augmentation,
-                                        self.n_augmentations,
-                                        self._compute_actor_loss, {
+        loss = compute_augemtation_mean(augmentation=self.augmentation,
+                                        n_augmentations=self.n_augmentations,
+                                        func=self._compute_actor_loss,
+                                        inputs={
                                             'obs_t': obs_t,
                                             'act_t': act_t
-                                        }, ['obs_t'])
+                                        },
+                                        targets=['obs_t'])
 
         self.actor_optim.zero_grad()
         loss.backward()

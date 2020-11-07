@@ -63,12 +63,14 @@ class AWRImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['observation'])
     def update_critic(self, observation, value):
-        loss = compute_augemtation_mean(self.augmentation,
-                                        self.n_augmentations,
-                                        self._compute_critic_loss, {
+        loss = compute_augemtation_mean(augmentation=self.augmentation,
+                                        n_augmentations=self.n_augmentations,
+                                        func=self._compute_critic_loss,
+                                        inputs={
                                             'observation': observation,
                                             'value': value
-                                        }, ['observation'])
+                                        },
+                                        targets=['observation'])
 
         self.critic_optim.zero_grad()
         loss.backward()
@@ -82,13 +84,15 @@ class AWRImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['observation'])
     def update_actor(self, observation, action, weight):
-        loss = compute_augemtation_mean(self.augmentation,
-                                        self.n_augmentations,
-                                        self._compute_actor_loss, {
+        loss = compute_augemtation_mean(augmentation=self.augmentation,
+                                        n_augmentations=self.n_augmentations,
+                                        func=self._compute_actor_loss,
+                                        inputs={
                                             'observation': observation,
                                             'action': action,
                                             'weight': weight
-                                        }, ['observation'])
+                                        },
+                                        targets=['observation'])
 
         self.actor_optim.zero_grad()
         loss.backward()
