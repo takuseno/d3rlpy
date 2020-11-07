@@ -250,10 +250,12 @@ class DiscreteSACImpl(TorchImplBase):
     def update_temp(self, obs_t):
         with torch.no_grad():
             log_probs = self.policy.log_probs(obs_t)
-            targ_temp = log_probs + 0.98 * (-math.log(1 / self.action_size))
             probs = log_probs.exp()
+            expct_log_probs = (probs * log_probs).sum(dim=1, keepdims=True)
+            entropy_target = 0.98 * (-math.log(1 / self.action_size))
+            targ_temp = expct_log_probs + entropy_target
 
-        loss = -((self.log_temp.exp() * targ_temp) * probs).sum(dim=1).mean()
+        loss = -(self.log_temp.exp() * targ_temp).mean()
 
         self.temp_optim.zero_grad()
         loss.backward()
