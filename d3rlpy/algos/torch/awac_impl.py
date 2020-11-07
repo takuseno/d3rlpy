@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.optim import Adam
 from d3rlpy.models.torch.policies import squash_action, create_normal_policy
 from .sac_impl import SACImpl
-from .utility import compute_augemtation_mean
+from .utility import compute_augmentation_mean
 from .utility import torch_api, train_api
 
 
@@ -56,14 +56,14 @@ class AWACImpl(SACImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t, act_t):
-        loss = compute_augemtation_mean(augmentation=self.augmentation,
-                                        n_augmentations=self.n_augmentations,
-                                        func=self._compute_actor_loss,
-                                        inputs={
-                                            'obs_t': obs_t,
-                                            'act_t': act_t
-                                        },
-                                        targets=['obs_t'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self._compute_actor_loss,
+                                         inputs={
+                                             'obs_t': obs_t,
+                                             'act_t': act_t
+                                         },
+                                         targets=['obs_t'])
 
         self.actor_optim.zero_grad()
         loss.backward()

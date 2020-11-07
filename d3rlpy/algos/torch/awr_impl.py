@@ -5,7 +5,7 @@ from d3rlpy.models.torch.v_functions import create_value_function
 from d3rlpy.models.torch.policies import squash_action, create_normal_policy
 from d3rlpy.models.torch.policies import create_categorical_policy
 from .utility import torch_api, train_api, eval_api
-from .utility import compute_augemtation_mean
+from .utility import compute_augmentation_mean
 from .base import TorchImplBase
 
 
@@ -63,14 +63,14 @@ class AWRImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['observation'])
     def update_critic(self, observation, value):
-        loss = compute_augemtation_mean(augmentation=self.augmentation,
-                                        n_augmentations=self.n_augmentations,
-                                        func=self._compute_critic_loss,
-                                        inputs={
-                                            'observation': observation,
-                                            'value': value
-                                        },
-                                        targets=['observation'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self._compute_critic_loss,
+                                         inputs={
+                                             'observation': observation,
+                                             'value': value
+                                         },
+                                         targets=['observation'])
 
         self.critic_optim.zero_grad()
         loss.backward()
@@ -84,15 +84,15 @@ class AWRImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['observation'])
     def update_actor(self, observation, action, weight):
-        loss = compute_augemtation_mean(augmentation=self.augmentation,
-                                        n_augmentations=self.n_augmentations,
-                                        func=self._compute_actor_loss,
-                                        inputs={
-                                            'observation': observation,
-                                            'action': action,
-                                            'weight': weight
-                                        },
-                                        targets=['observation'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self._compute_actor_loss,
+                                         inputs={
+                                             'observation': observation,
+                                             'action': action,
+                                             'weight': weight
+                                         },
+                                         targets=['observation'])
 
         self.actor_optim.zero_grad()
         loss.backward()

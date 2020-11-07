@@ -3,7 +3,7 @@ from d3rlpy.models.torch.imitators import create_deterministic_regressor
 from d3rlpy.models.torch.imitators import create_discrete_imitator
 from .base import TorchImplBase
 from .utility import torch_api, train_api
-from .utility import compute_augemtation_mean
+from .utility import compute_augmentation_mean
 
 
 class BCImpl(TorchImplBase):
@@ -45,14 +45,14 @@ class BCImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_imitator(self, obs_t, act_t):
-        loss = compute_augemtation_mean(augmentation=self.augmentation,
-                                        n_augmentations=self.n_augmentations,
-                                        func=self._compute_loss,
-                                        inputs={
-                                            'obs_t': obs_t,
-                                            'act_t': act_t
-                                        },
-                                        targets=['obs_t'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self._compute_loss,
+                                         inputs={
+                                             'obs_t': obs_t,
+                                             'act_t': act_t
+                                         },
+                                         targets=['obs_t'])
 
         self.optim.zero_grad()
         loss.backward()

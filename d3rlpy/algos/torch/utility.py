@@ -64,8 +64,8 @@ def unfreeze(impl):
                 p.requires_grad = True
 
 
-def compute_augemtation_mean(augmentation, n_augmentations, func, inputs,
-                             targets):
+def compute_augmentation_mean(augmentation, n_augmentations, func, inputs,
+                              targets):
     ret = 0.0
     for _ in range(n_augmentations):
         kwargs = dict(inputs)

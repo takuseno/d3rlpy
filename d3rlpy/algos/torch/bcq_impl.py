@@ -9,7 +9,7 @@ from d3rlpy.models.torch.imitators import create_conditional_vae
 from d3rlpy.models.torch.imitators import create_discrete_imitator
 from d3rlpy.models.torch.imitators import DiscreteImitator
 from .utility import torch_api, train_api
-from .utility import compute_augemtation_mean
+from .utility import compute_augmentation_mean
 from .ddpg_impl import DDPGImpl
 from .dqn_impl import DoubleDQNImpl
 
@@ -87,14 +87,14 @@ class BCQImpl(DDPGImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_imitator(self, obs_t, act_t):
-        loss = compute_augemtation_mean(augmentation=self.augmentation,
-                                        n_augmentations=self.n_augmentations,
-                                        func=self.imitator.compute_error,
-                                        inputs={
-                                            'x': obs_t,
-                                            'action': act_t
-                                        },
-                                        targets=['x'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self.imitator.compute_error,
+                                         inputs={
+                                             'x': obs_t,
+                                             'action': act_t
+                                         },
+                                         targets=['x'])
 
         self.imitator_optim.zero_grad()
         loss.backward()
