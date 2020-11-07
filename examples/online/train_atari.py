@@ -4,10 +4,11 @@ from d3rlpy.algos import DoubleDQN
 from d3rlpy.datasets import get_atari
 from d3rlpy.online.buffers import ReplayBuffer
 from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
+from d4rl_atari.envs import AtariEnv
 
 # get wrapped atari environment
-_, env = get_atari('breakout-mixed-v0')
-eval_env = copy.deepcopy(env)
+env = AtariEnv('Breakout', stack=False, clip_reward=True)
+eval_env = AtariEnv('Breakout', stack=False, clip_reward=False)
 
 # setup algorithm
 dqn = DoubleDQN(batch_size=32,
