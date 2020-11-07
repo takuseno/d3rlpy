@@ -189,7 +189,6 @@ class DiscreteSACImpl(TorchImplBase):
                                          self.n_augmentations,
                                          self.compute_target, {'x': obs_tp1},
                                          ['x'])
-        print(q_tp1.shape, ter_tp1.shape)
         q_tp1 *= (1.0 - ter_tp1)
 
         loss = compute_augemtation_mean(
