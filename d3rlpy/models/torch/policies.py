@@ -198,7 +198,7 @@ class CategoricalPolicy(Policy, nn.Module):
     def dist(self, x):
         h = self.encoder(x)
         h = self.fc(h)
-        return Categorical(logits=h)
+        return Categorical(torch.softmax(h, dim=1))
 
     def forward(self, x, deterministic=False, with_log_prob=False):
         dist = self.dist(x)
