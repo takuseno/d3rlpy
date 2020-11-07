@@ -243,7 +243,7 @@ class DiscreteSACImpl(TorchImplBase):
         log_probs = self.policy.log_probs(obs_t)
         probs = log_probs.exp()
         entropy = self.log_temp.exp() * log_probs
-        return -(probs * (entropy * log_probs - q_t)).sum(dim=1).mean()
+        return (probs * (entropy * log_probs - q_t)).sum(dim=1).mean()
 
     @train_api
     @torch_api(scaler_targets=['obs_t'])
