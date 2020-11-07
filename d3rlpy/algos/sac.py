@@ -238,7 +238,6 @@ class DiscreteSAC(AlgoBase):
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
-        update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
@@ -271,7 +270,6 @@ class DiscreteSAC(AlgoBase):
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
-        update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
@@ -298,7 +296,6 @@ class DiscreteSAC(AlgoBase):
                  n_critics=2,
                  bootstrap=False,
                  share_encoder=False,
-                 update_actor_interval=2,
                  initial_temperature=1.0,
                  target_update_interval=8000,
                  eps=1e-8,
@@ -325,7 +322,6 @@ class DiscreteSAC(AlgoBase):
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
-        self.update_actor_interval = update_actor_interval
         self.initial_temperature = initial_temperature
         self.target_update_interval = target_update_interval
         self.eps = eps
