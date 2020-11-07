@@ -298,7 +298,7 @@ class DiscreteSAC(AlgoBase):
                  share_encoder=False,
                  initial_temperature=1.0,
                  target_update_interval=8000,
-                 eps=1e-8,
+                 eps=1e-4,
                  use_batch_norm=False,
                  q_func_type='mean',
                  use_gpu=False,
