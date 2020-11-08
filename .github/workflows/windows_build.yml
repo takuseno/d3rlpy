@@ -29,6 +29,7 @@ jobs:
           pip install -e .
       - name: Unit tests
         run: |
-          pip install pytest-cov gym flask msgpack onnxruntime
+          pip install pytest gym flask msgpack onnxruntime
           pip install git+https://github.com/takuseno/d4rl-atari
-          ./scripts/test
+          mkdir -p test_data
+          pytest tests -p no:warnings -v
