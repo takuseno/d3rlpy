@@ -21,7 +21,7 @@ def test_train_cartpole_with_dqn():
           algo,
           buffer,
           explorer,
-          n_epochs=1,
+          n_steps=100,
           eval_env=eval_env,
           logdir='test_data',
           tensorboard=False)
@@ -40,7 +40,7 @@ def test_fit_online_cartpole_with_dqn():
     algo.fit_online(env,
                     buffer,
                     explorer,
-                    n_epochs=1,
+                    n_steps=100,
                     eval_env=eval_env,
                     logdir='test_data',
                     tensorboard=False)
@@ -61,10 +61,8 @@ def test_train_atari_with_dqn():
           algo,
           buffer,
           explorer,
-          n_epochs=1,
+          n_steps=100,
           eval_env=eval_env,
-          n_steps_per_epoch=1000,
-          n_updates_per_epoch=1,
           logdir='test_data',
           tensorboard=False)
 
@@ -82,7 +80,7 @@ def test_train_pendulum_with_sac():
     train(env,
           algo,
           buffer,
-          n_epochs=1,
+          n_steps=500,
           eval_env=eval_env,
           logdir='test_data',
           tensorboard=False)
@@ -98,7 +96,7 @@ def test_fit_online_pendulum_with_sac():
 
     algo.fit_online(env,
                     buffer,
-                    n_epochs=1,
+                    n_steps=500,
                     eval_env=eval_env,
                     logdir='test_data',
                     tensorboard=False)

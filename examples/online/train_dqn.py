@@ -25,7 +25,7 @@ explorer = LinearDecayEpsilonGreedy(start_epsilon=1.0,
 dqn.fit_online(env,
                buffer,
                explorer,
-               n_epochs=30,
+               n_steps=30000,
                eval_env=eval_env,
                n_steps_per_epoch=1000,
-               n_updates_per_epoch=100)
+               update_start_step=1000)

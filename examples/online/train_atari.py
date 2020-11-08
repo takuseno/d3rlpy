@@ -10,8 +10,9 @@ eval_env = AtariEnv('Breakout', stack=False, clip_reward=False)
 # setup algorithm
 dqn = DoubleDQN(batch_size=32,
                 learning_rate=2.5e-4,
-                target_update_interval=10000 / 4,
-                q_func_type='qr',
+                target_update_interval=10000,
+                eps=1e-2 / 32,
+                q_func_type='mean',
                 scaler='pixel',
                 n_frames=4,
                 use_gpu=True)
@@ -30,9 +31,7 @@ dqn.fit_online(env,
                explorer,
                eval_env=eval_env,
                eval_epsilon=0.01,
-               eval_interval=100,
-               n_epochs=50000,
-               n_steps_per_epoch=1000,
-               n_updates_per_epoch=250,
-               update_start_step=50000,
-               save_interval=1000)
+               n_steps=50000000,
+               n_steps_per_epoch=100000,
+               update_interval=4,
+               update_start_step=50000)

@@ -9,21 +9,19 @@ def train(env,
           algo,
           buffer,
           explorer=None,
-          n_epochs=1000,
-          n_steps_per_epoch=4000,
-          n_updates_per_epoch=100,
+          n_steps=1000000,
+          n_steps_per_epoch=10000,
+          update_interval=1,
           update_start_step=0,
           eval_env=None,
           eval_epsilon=0.05,
-          eval_interval=1,
           save_metrics=True,
           experiment_name=None,
           with_timestamp=True,
           logdir='d3rlpy_logs',
           verbose=True,
           show_progress=True,
-          tensorboard=True,
-          save_interval=1):
+          tensorboard=True):
     """ Start training loop of online deep reinforcement learning.
 
     Args:
@@ -31,15 +29,14 @@ def train(env,
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
         buffer (d3rlpy.online.buffers.Buffer): replay buffer.
         explorer (d3rlpy.online.explorers.Explorer): action explorer.
-        n_epochs (int): the number of epochs to train.
+        n_steps (int): the number of total steps to train.
         n_steps_per_epoch (int): the number of steps per epoch.
-        n_updates_per_epoch (int): the number of updates per epoch.
+        update_interval (int): the number of steps per update.
         update_start_step (int): the steps before starting updates.
         eval_env (gym.Env): gym-like environment. If None, evaluation is
             skipped.
         eval_epsilon (float): :math:`\\epsilon`-greedy factor during
             evaluation.
-        eval_interval (int): interval to perform evaluation.
         save_metrics (bool): flag to record metrics. If False, the log
             directory is not created and the model parameters are not saved.
         experiment_name (str): experiment name for logging. If not passed,
@@ -51,7 +48,6 @@ def train(env,
         show_progress (bool): flag to show progress bar for iterations.
         tensorboard (bool): flag to save logged information in tensorboard
             (additional to the csv data)
-        save_interval (int): interval to save parameters.
 
     """
 
@@ -94,53 +90,50 @@ def train(env,
 
     # start training loop
     observation, reward, terminal = env.reset(), 0.0, False
-    total_step = 0
-    for epoch in range(n_epochs):
-        for _ in range(n_steps_per_epoch):
-            # stack observation if necessary
+    for total_step in xrange(n_steps):
+        # stack observation if necessary
+        if is_image:
+            stacked_frame.append(observation)
+            fed_observation = stacked_frame.eval()
+        else:
+            observation = observation.astype('f4')
+            fed_observation = observation
+
+        # sample exploration action
+        if explorer:
+            action = explorer.sample(algo, fed_observation, total_step)
+        else:
+            action = algo.sample_action([fed_observation])[0]
+
+        # store observation
+        buffer.append(observation, action, reward, terminal)
+
+        # get next observation
+        if terminal:
+            observation, reward, terminal = env.reset(), 0.0, False
+            # for image observation
             if is_image:
-                stacked_frame.append(observation)
-                fed_observation = stacked_frame.eval()
-            else:
-                observation = observation.astype('f4')
-                fed_observation = observation
+                stacked_frame.clear()
+        else:
+            observation, reward, terminal, _ = env.step(action)
 
-            # sample exploration action
-            if explorer:
-                action = explorer.sample(algo, fed_observation, total_step)
-            else:
-                action = algo.sample_action([fed_observation])[0]
-
-            # store observation
-            buffer.append(observation, action, reward, terminal)
-
-            # get next observation
-            if terminal:
-                observation, reward, terminal = env.reset(), 0.0, False
-                # for image observation
-                if is_image:
-                    stacked_frame.clear()
-            else:
-                observation, reward, terminal, _ = env.step(action)
-
-            total_step += 1
+        # psuedo epoch count
+        epoch = total_step // n_steps_per_epoch
 
         # update loop
-        if total_step > update_start_step:
-            for i in xrange(n_updates_per_epoch):
+        if total_step > update_start_step and len(buffer) > algo.batch_size:
+            if total_step % update_interval == 0:
                 batch = buffer.sample(algo.batch_size, algo.n_frames)
-                update_count = epoch * n_updates_per_epoch + i
-                loss = algo.update(epoch, update_count, batch)
+                loss = algo.update(epoch, total_step, batch)
                 for name, val in zip(algo._get_loss_labels(), loss):
                     if val:
                         logger.add_metric(name, val)
 
-        # evaluation
-        if eval_scorer and epoch % eval_interval == 0:
-            logger.add_metric('evaluation', eval_scorer(algo))
+        if total_step % n_steps_per_epoch == 0:
+            # evaluation
+            if eval_scorer:
+                logger.add_metric('evaluation', eval_scorer(algo))
 
-        # save metrics
-        logger.commit(epoch, total_step)
-
-        if epoch % save_interval == 0:
-            logger.save_model(epoch, algo)
+            # save metrics
+            logger.commit(epoch, total_step)
+            logger.save_model(total_step, algo)
