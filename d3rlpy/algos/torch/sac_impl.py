@@ -180,7 +180,9 @@ class DiscreteSACImpl(TorchImplBase):
         self.log_temp = nn.Parameter(data)
 
     def _build_temperature_optim(self):
-        self.temp_optim = Adam([self.log_temp], self.temp_learning_rate)
+        self.temp_optim = Adam([self.log_temp],
+                               lr=self.temp_learning_rate,
+                               eps=self.eps)
 
     @train_api
     @torch_api(scaler_targets=['obs_t', 'obs_tp1'])
