@@ -41,6 +41,7 @@ if __name__ == "__main__":
                        "Programming Language :: Python :: 3.6",
                        "Programming Language :: Python :: Implementation :: CPython",
                        "Operating System :: POSIX :: Linux",
+                       'Operating System :: Microsoft :: Windows',
                        "Operating System :: MacOS :: MacOS X"],
           install_requires=["torch",
                             "scikit-learn",

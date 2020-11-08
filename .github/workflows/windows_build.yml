@@ -33,3 +33,7 @@ jobs:
           pip install git+https://github.com/takuseno/d4rl-atari
           mkdir -p test_data
           pytest tests -p no:warnings -v
+      - name: Build distribution package
+        run: |
+          python setup.py test
+          python setup.py sdist bdist_wheel
