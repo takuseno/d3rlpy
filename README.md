@@ -1,8 +1,8 @@
 # d3rlpy: A data-driven deep reinforcement learning library as an out-of-the-box tool
 
 [![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
-![format check](https://github.com/takuseno/d3rlpy/workflows/format%20check/badge.svg)
 ![test](https://github.com/takuseno/d3rlpy/workflows/test/badge.svg)
+![build](https://github.com/takuseno/d3rlpy/workflows/build/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/d3rlpy/badge/?version=latest)](https://d3rlpy.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/takuseno/d3rlpy/branch/master/graph/badge.svg?token=AQ02USKN6Y)](https://codecov.io/gh/takuseno/d3rlpy)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/takuseno/d3rlpy.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/takuseno/d3rlpy/context:python)
