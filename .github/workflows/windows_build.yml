@@ -27,3 +27,8 @@ jobs:
       - name: Build Cython
         run: |
           pip install -e .
+      - name: Unit tests
+        run: |
+          pip install pytest-cov gym flask msgpack onnxruntime
+          pip install git+https://github.com/takuseno/d4rl-atari
+          ./scripts/test
