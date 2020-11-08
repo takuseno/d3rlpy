@@ -1,0 +1,28 @@
+name: windows_build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python.3.6.x
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.6.x
+      - name: Cache pip
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+            ${{ runner.os }}-
+      - name: Install packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install Cython
+      - name: Build Cython
+        run: |
+          pip install -e .
