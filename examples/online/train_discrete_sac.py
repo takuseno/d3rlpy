@@ -3,14 +3,18 @@ from d3rlpy.online.buffers import ReplayBuffer
 from d4rl_atari.envs import AtariEnv
 
 # get wrapped atari environment
-env = AtariEnv('Breakout', stack=False, clip_reward=True)
-eval_env = AtariEnv('Breakout', stack=False, clip_reward=False)
+env = AtariEnv('Breakout',
+               stack=False,
+               clip_reward=True,
+               terminate_on_life_loss=True)
+
+eval_env = AtariEnv('Breakout',
+                    stack=False,
+                    clip_reward=False,
+                    terminate_on_life_loss=False)
 
 # setup algorithm
-sac = DiscreteSAC(target_update_interval=8000,
-                  scaler='pixel',
-                  n_frames=4,
-                  use_gpu=True)
+sac = DiscreteSAC(scaler='pixel', n_frames=4, use_gpu=True)
 
 # replay buffer for experience replay
 buffer = ReplayBuffer(maxlen=1000000, env=env)

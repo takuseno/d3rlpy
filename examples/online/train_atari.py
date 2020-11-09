@@ -4,8 +4,15 @@ from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
 from d4rl_atari.envs import AtariEnv
 
 # get wrapped atari environment
-env = AtariEnv('Breakout', stack=False, clip_reward=True)
-eval_env = AtariEnv('Breakout', stack=False, clip_reward=False)
+env = AtariEnv('Breakout',
+               stack=False,
+               clip_reward=True,
+               terminate_on_life_loss=True)
+
+eval_env = AtariEnv('Breakout',
+                    stack=False,
+                    clip_reward=False,
+                    terminate_on_life_loss=False)
 
 # setup algorithm
 dqn = DoubleDQN(batch_size=32,
