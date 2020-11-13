@@ -49,8 +49,13 @@ Therefore, d3rlpy enables every user to achieve professional-level
 performance just in a few lines of codes.
 
 ## installation
+### PyPI
 ```
 $ pip install d3rlpy
+```
+### Anaconda
+```
+$ conda install -c conda-forge d3rlpy
 ```
 
 ## supported algorithms
