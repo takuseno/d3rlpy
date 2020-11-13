@@ -22,7 +22,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
-      - name: Install PyTorch for Windows
+      - name: Install dependencies for Windows
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           pip install torch==1.6.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
@@ -41,8 +41,10 @@ jobs:
           python setup.py build_ext --inplace --define CYTHON_TRACE
       - name: Unit tests
         run: |
-          ./scripts/test
+          mkdir -p test_data
+          pytest --cov-report=xml --cov=d3rlpy --cov-config=.coveragerc tests -p no:warnings -v
       - name: Upload coverage
+        if: ${{ matrix.os == 'ubuntu-16.04' }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
