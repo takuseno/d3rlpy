@@ -23,7 +23,7 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
       - name: Install PyTorch
-        if: ${{ matrix.os == windows-latest }}
+        if: ${{ matrix.os == 'windows-latest' }}
         run: |
           pip install torch==1.6.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
       - name: Install packages
