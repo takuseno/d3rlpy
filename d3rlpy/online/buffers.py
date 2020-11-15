@@ -2,8 +2,65 @@ import numpy as np
 
 from abc import ABCMeta, abstractmethod
 from collections import deque
-from ..dataset import Transition, TransitionMiniBatch
+from ..dataset import Transition, TransitionMiniBatch, trace_back_and_clear
 from .utility import get_action_size_from_env
+
+
+class TransitionQueue:
+    """ A queue for transition objects.
+
+    This class is a replacement for deque for Transition objects.
+
+    Args:
+        maxlen (int): the maximum size of buffer.
+
+    Attributes:
+        maxlen (int): the maximum size of buffer.
+        buffer (list): buffer for transitions.
+        cursor (int): the current cursor pointing to the position to insert.
+
+    """
+    def __init__(self, maxlen=None):
+        self.maxlen = maxlen
+        self.buffer = []
+        self.cursor = 0
+
+    def append(self, transition):
+        """ Appends a transition to buffer.
+
+        Args:
+            transition (d3rlpy.dataset.Transition): transition.
+
+        """
+        assert isinstance(transition, Transition)
+        if self.maxlen is None or self.size() < self.maxlen:
+            self.buffer.append(transition)
+        else:
+            if self.buffer[self.cursor].terminal:
+                # clear links to correctly free memories
+                trace_back_and_clear(self.buffer[self.cursor])
+            self.buffer[self.cursor] = transition
+            self.cursor += 1
+            if self.cursor == self.maxlen:
+                self.cursor = 0
+
+    def __len__(self):
+        return self.size()
+
+    def __getitem__(self, index):
+        return self.buffer[index]
+
+    def __iter__(self):
+        return iter(self.buffer)
+
+    def size(self):
+        """ Returns the size of buffer.
+
+        Returns:
+            int: the size of buffer.
+
+        """
+        return len(self.buffer)
 
 
 class Buffer(metaclass=ABCMeta):
@@ -86,7 +143,8 @@ class ReplayBuffer(Buffer):
         prev_reward (float): previously appended reward.
         prev_transition (d3rlpy.dataset.Transition):
             previously appended transition.
-        transitions (collections.deque): list of transitions.
+        transitions (d3rlpy.online.buffers.TransitionQueue):
+            queue of transitions.
         observation_shape (tuple): observation shape.
         action_size (int): action size.
 
@@ -98,7 +156,7 @@ class ReplayBuffer(Buffer):
         self.prev_reward = None
         self.prev_transition = None
 
-        self.transitions = deque(maxlen=maxlen)
+        self.transitions = TransitionQueue(maxlen=maxlen)
 
         # extract shape information
         self.observation_shape = env.observation_space.shape
