@@ -751,9 +751,7 @@ cdef class Transition:
 
     def __dealloc__(self):
         self._observation = None
-        self._action = None
         self._next_observation = None
-        self._next_action = None
         self._thisptr = <TransitionPtr> nullptr
 
     cdef TransitionPtr get_ptr(self):
@@ -1067,13 +1065,6 @@ cdef class TransitionMiniBatch:
 
     def __dealloc__(self):
         self._transitions = None
-        self._observations = None
-        self._actions = None
-        self._rewards = None
-        self._next_observations = None
-        self._next_actions = None
-        self._next_rewards = None
-        self._terminals = None
 
     cdef void _assign_to_batch(self,
                                int i,
