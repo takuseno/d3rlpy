@@ -37,9 +37,9 @@ class LearnableBase:
             list of data augmentations.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         impl (d3rlpy.base.ImplBase): implementation object.
-        eval_results_ (dict): evaluation results.
-        self.loss_history_ (dict): history of loss values.
-        self.active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method
+        eval_results_ (collections.defaultdict): evaluation results.
+        self.loss_history_ (collections.defaultdict): history of loss values.
+        self.active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
 
     """
     def __init__(self, batch_size, n_frames, scaler, augmentation, use_gpu):
@@ -86,8 +86,8 @@ class LearnableBase:
             self.use_gpu = None
 
         self.impl = None
-        self.eval_results_ = {}
-        self.loss_history_ = {}
+        self.eval_results_ = defaultdict(list)
+        self.loss_history_ = defaultdict(list)
         self.active_logger_ = None
 
     def __setattr__(self, name, value):
@@ -317,7 +317,7 @@ class LearnableBase:
         self._save_params(logger)
 
         # refresh evaluation metrics
-        self.eval_results_ = {}
+        self.eval_results_ = defaultdict(list)
 
         # hold original dataset
         env_transitions = transitions
@@ -350,9 +350,6 @@ class LearnableBase:
                         logger.add_metric(name, val)
 
                         # save loss to loss history dict
-                        if name not in self.loss_history_:
-                            self.loss_history_[name] = list()
-
                         self.loss_history_[name].append(val)
 
                 total_step += 1
@@ -442,9 +439,8 @@ class LearnableBase:
             logger.add_metric(name, test_score)
 
             # store metric locally
-            if name not in self.eval_results_ and test_score is not None:
-                self.eval_results_[name] = []
-            self.eval_results_[name].append(test_score)
+            if test_score is not None:
+                self.eval_results_[name].append(test_score)
 
     def _save_params(self, logger):
         # get hyperparameters without impl
