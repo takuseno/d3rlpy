@@ -17,3 +17,4 @@ coverage.xml
 .coverage
 build
 dist
+/.idea/

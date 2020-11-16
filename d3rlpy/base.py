@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numpy as np
 import copy
 import json
@@ -36,6 +38,8 @@ class LearnableBase:
         use_gpu (d3rlpy.gpu.Device): GPU device.
         impl (d3rlpy.base.ImplBase): implementation object.
         eval_results_ (dict): evaluation results.
+        self.loss_history_ (dict): history of loss values.
+        self.active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method
 
     """
     def __init__(self, batch_size, n_frames, scaler, augmentation, use_gpu):
@@ -83,6 +87,8 @@ class LearnableBase:
 
         self.impl = None
         self.eval_results_ = {}
+        self.loss_history_ = {}
+        self.active_logger_ = None
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
@@ -304,6 +310,9 @@ class LearnableBase:
                                       with_timestamp, logdir, verbose,
                                       tensorboard)
 
+        # add reference to active logger to algo class during fit
+        self.active_logger_ = logger
+
         # save hyperparameters
         self._save_params(logger)
 
@@ -340,6 +349,12 @@ class LearnableBase:
                     if val is not None:
                         logger.add_metric(name, val)
 
+                        # save loss to loss history dict
+                        if name not in self.loss_history_:
+                            self.loss_history_[name] = list()
+
+                        self.loss_history_[name].append(val)
+
                 total_step += 1
 
             if scorers and eval_episodes:
@@ -351,6 +366,10 @@ class LearnableBase:
             # save model parameters and greedy policy
             if epoch % save_interval == 0:
                 logger.save_model(epoch, self)
+
+        # drop reference to active logger since out of fit there is no active
+        # logger
+        self.active_logger_ = None
 
     def create_impl(self, observation_shape, action_size):
         """ Instantiate implementation objects with the dataset shapes.
@@ -423,7 +442,7 @@ class LearnableBase:
             logger.add_metric(name, test_score)
 
             # store metric locally
-            if name not in self.eval_results_:
+            if name not in self.eval_results_ and test_score is not None:
                 self.eval_results_[name] = []
             self.eval_results_[name].append(test_score)
 
