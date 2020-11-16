@@ -135,7 +135,8 @@ class MDPDataset:
         if len(observations.shape) == 4:
             assert observations.dtype == np.uint8
         else:
-            assert observations.dtype == np.float32
+            if observations.dtype != np.float32:
+                observations = np.asarray(observations, dtype=np.float32)
 
         self._observations = observations
         self._rewards = np.asarray(rewards, dtype=np.float32).reshape(-1)
@@ -517,7 +518,8 @@ class Episode:
         if len(observation_shape) == 3:
             assert observations.dtype == np.uint8
         else:
-            assert observations.dtype == np.float32
+            if observations.dtype != np.float32:
+                observations = np.asarray(observations, dtype=np.float32)
 
         # fix action dtype and shape
         if len(actions.shape) == 1:
@@ -697,8 +699,11 @@ cdef class Transition:
             assert observation.dtype == np.uint8
             assert next_observation.dtype == np.uint8
         else:
-            assert observation.dtype == np.float32
-            assert next_observation.dtype == np.float32
+            if observation.dtype != np.float32:
+                observation = np.asarray(observation, dtype=np.float32)
+            if next_observation.dtype != np.float32:
+                next_observation = np.asarray(next_observation,
+                                              dtype=np.float32)
 
         if prev_transition:
             prev_ptr = prev_transition.get_ptr()
