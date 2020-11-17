@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from inspect import signature
 
@@ -111,6 +112,14 @@ def torch_api(scaler_targets=[]):
             for i, val in enumerate(args):
                 if isinstance(val, torch.Tensor):
                     tensor = val
+                elif isinstance(val, np.ndarray):
+                    if val.dtype == np.uint8:
+                        dtype = torch.uint8
+                    else:
+                        dtype = torch.float32
+                    tensor = torch.tensor(data=val,
+                                          dtype=dtype,
+                                          device=self.device)
                 else:
                     tensor = torch.tensor(data=val,
                                           dtype=torch.float32,
