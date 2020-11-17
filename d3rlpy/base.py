@@ -1,10 +1,9 @@
-from collections import defaultdict
-
 import numpy as np
 import copy
 import json
 
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from tqdm import trange
 from .preprocessing import create_scaler
 from .augmentation import create_augmentation, AugmentationPipeline
@@ -38,8 +37,8 @@ class LearnableBase:
         use_gpu (d3rlpy.gpu.Device): GPU device.
         impl (d3rlpy.base.ImplBase): implementation object.
         eval_results_ (collections.defaultdict): evaluation results.
-        self.loss_history_ (collections.defaultdict): history of loss values.
-        self.active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
+        loss_history_ (collections.defaultdict): history of loss values.
+        active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
 
     """
     def __init__(self, batch_size, n_frames, scaler, augmentation, use_gpu):
@@ -318,6 +317,9 @@ class LearnableBase:
 
         # refresh evaluation metrics
         self.eval_results_ = defaultdict(list)
+
+        # refresh loss history
+        self.loss_history_ = defaultdict(list)
 
         # hold original dataset
         env_transitions = transitions
