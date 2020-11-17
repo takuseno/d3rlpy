@@ -10,6 +10,9 @@ class TransitionQueue:
     """ A queue for transition objects.
 
     This class is a replacement for deque for Transition objects.
+    When the last transition of an episode is removed from the buffer,
+    the all links between the transition in the same episode will be cleared to
+    make GC properly free transitions objects.
 
     Args:
         maxlen (int): the maximum size of buffer.
