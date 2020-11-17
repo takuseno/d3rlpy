@@ -749,11 +749,6 @@ cdef class Transition:
         self._prev_transition = prev_transition
         self._next_transition = next_transition
 
-    def __dealloc__(self):
-        self._observation = None
-        self._next_observation = None
-        self._thisptr = <TransitionPtr> nullptr
-
     cdef TransitionPtr get_ptr(self):
         return self._thisptr
 
@@ -1062,9 +1057,6 @@ cdef class TransitionMiniBatch:
                                   next_actions_ptr, next_rewards_ptr,
                                   terminals_ptr, n_frames, is_image,
                                   is_discrete)
-
-    def __dealloc__(self):
-        self._transitions = None
 
     cdef void _assign_to_batch(self,
                                int i,
