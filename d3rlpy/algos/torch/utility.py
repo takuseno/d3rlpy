@@ -129,6 +129,10 @@ def torch_api(scaler_targets=[]):
                 if self.scaler and arg_keys[i] in scaler_targets:
                     tensor = self.scaler.transform(tensor)
 
+                # make sure if the tensor is float32 type
+                if tensor.dtype != torch.float32:
+                    tensor = tensor.float()
+
                 tensors.append(tensor)
             return f(self, *tensors, **kwargs)
 
