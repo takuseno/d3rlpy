@@ -897,6 +897,32 @@ cdef class Transition:
         self._thisptr.get().next_transition = ptr
         self._next_transition = transition
 
+    def clear_links(self):
+        """ Clears links to the next and previous transitions.
+
+        This method is necessary to call when freeing this instance by GC.
+
+        """
+        self._prev_transition = None
+        self._next_transition = None
+        self._thisptr.get().prev_transition = <TransitionPtr> nullptr
+        self._thisptr.get().next_transition = <TransitionPtr> nullptr
+
+
+def trace_back_and_clear(transition):
+    """ Traces transitions and clear all links.
+
+    Args:
+        transition (d3rlpy.dataset.Transition): transition.
+
+    """
+    while True:
+        if transition is None:
+            break
+        prev_transition = transition.prev_transition
+        transition.clear_links()
+        transition = prev_transition
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
