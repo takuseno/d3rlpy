@@ -3,6 +3,7 @@ import copy
 import json
 
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from tqdm import trange
 from .preprocessing import create_scaler
 from .augmentation import create_augmentation, AugmentationPipeline
@@ -35,7 +36,9 @@ class LearnableBase:
             list of data augmentations.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         impl (d3rlpy.base.ImplBase): implementation object.
-        eval_results_ (dict): evaluation results.
+        eval_results_ (collections.defaultdict): evaluation results.
+        loss_history_ (collections.defaultdict): history of loss values.
+        active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
 
     """
     def __init__(self, batch_size, n_frames, scaler, augmentation, use_gpu):
@@ -82,7 +85,9 @@ class LearnableBase:
             self.use_gpu = None
 
         self.impl = None
-        self.eval_results_ = {}
+        self.eval_results_ = defaultdict(list)
+        self.loss_history_ = defaultdict(list)
+        self.active_logger_ = None
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
@@ -304,11 +309,17 @@ class LearnableBase:
                                       with_timestamp, logdir, verbose,
                                       tensorboard)
 
+        # add reference to active logger to algo class during fit
+        self.active_logger_ = logger
+
         # save hyperparameters
         self._save_params(logger)
 
         # refresh evaluation metrics
-        self.eval_results_ = {}
+        self.eval_results_ = defaultdict(list)
+
+        # refresh loss history
+        self.loss_history_ = defaultdict(list)
 
         # hold original dataset
         env_transitions = transitions
@@ -340,6 +351,9 @@ class LearnableBase:
                     if val is not None:
                         logger.add_metric(name, val)
 
+                        # save loss to loss history dict
+                        self.loss_history_[name].append(val)
+
                 total_step += 1
 
             if scorers and eval_episodes:
@@ -351,6 +365,10 @@ class LearnableBase:
             # save model parameters and greedy policy
             if epoch % save_interval == 0:
                 logger.save_model(epoch, self)
+
+        # drop reference to active logger since out of fit there is no active
+        # logger
+        self.active_logger_ = None
 
     def create_impl(self, observation_shape, action_size):
         """ Instantiate implementation objects with the dataset shapes.
@@ -423,9 +441,8 @@ class LearnableBase:
             logger.add_metric(name, test_score)
 
             # store metric locally
-            if name not in self.eval_results_:
-                self.eval_results_[name] = []
-            self.eval_results_[name].append(test_score)
+            if test_score is not None:
+                self.eval_results_[name].append(test_score)
 
     def _save_params(self, logger):
         # get hyperparameters without impl
