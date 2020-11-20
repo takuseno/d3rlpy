@@ -1,5 +1,4 @@
 from gym.spaces import Discrete
-from stable_baselines3.common.buffers import ReplayBuffer
 from d3rlpy.dataset import MDPDataset
 
 
@@ -47,6 +46,15 @@ class SB3Wrapper:
 
 
 def to_mdp_dataset(replay_buffer):
+    """ Returns d3rlpy's MDPDataset from SB3's ReplayBuffer
+
+    Args:
+        replay_buffer (stable_baselines3.common.buffers.ReplayBuffer):
+            SB3's replay buffer.
+    Returns:
+        d3rlpy.dataset.MDPDataset: d3rlpy's MDPDataset.
+
+    """
     pos = replay_buffer.size()
     discrete_action = isinstance(replay_buffer.action_space, Discrete)
     dataset = MDPDataset(observations=replay_buffer.observations[:pos, 0],
