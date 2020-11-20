@@ -4,18 +4,26 @@ Installation
 Recommended Platforms
 ---------------------
 
-d3rlpy only supports Linux and macOS.
+d3rlpy supports Linux, macOS and also Windows.
 
 
 Install d3rlpy
 --------------
 
 Install via PyPI
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 `pip` is a recommended way to install d3rlpy::
 
   $ pip install d3rlpy
+
+Install via Anaconda
+~~~~~~~~~~~~~~~~~~~~
+
+d3rlpy is also available on `conda-forge`::
+
+  $ conda install -c conda-forge d3rlpy
+
 
 Install from source
 ~~~~~~~~~~~~~~~~~~~

@@ -135,7 +135,8 @@ class MDPDataset:
         if len(observations.shape) == 4:
             assert observations.dtype == np.uint8
         else:
-            assert observations.dtype == np.float32
+            if observations.dtype != np.float32:
+                observations = np.asarray(observations, dtype=np.float32)
 
         self._observations = observations
         self._rewards = np.asarray(rewards, dtype=np.float32).reshape(-1)
@@ -517,7 +518,8 @@ class Episode:
         if len(observation_shape) == 3:
             assert observations.dtype == np.uint8
         else:
-            assert observations.dtype == np.float32
+            if observations.dtype != np.float32:
+                observations = np.asarray(observations, dtype=np.float32)
 
         # fix action dtype and shape
         if len(actions.shape) == 1:
@@ -697,8 +699,11 @@ cdef class Transition:
             assert observation.dtype == np.uint8
             assert next_observation.dtype == np.uint8
         else:
-            assert observation.dtype == np.float32
-            assert next_observation.dtype == np.float32
+            if observation.dtype != np.float32:
+                observation = np.asarray(observation, dtype=np.float32)
+            if next_observation.dtype != np.float32:
+                next_observation = np.asarray(next_observation,
+                                              dtype=np.float32)
 
         if prev_transition:
             prev_ptr = prev_transition.get_ptr()
@@ -891,6 +896,32 @@ cdef class Transition:
         ptr = transition.get_ptr()
         self._thisptr.get().next_transition = ptr
         self._next_transition = transition
+
+    def clear_links(self):
+        """ Clears links to the next and previous transitions.
+
+        This method is necessary to call when freeing this instance by GC.
+
+        """
+        self._prev_transition = None
+        self._next_transition = None
+        self._thisptr.get().prev_transition = <TransitionPtr> nullptr
+        self._thisptr.get().next_transition = <TransitionPtr> nullptr
+
+
+def trace_back_and_clear(transition):
+    """ Traces transitions and clear all links.
+
+    Args:
+        transition (d3rlpy.dataset.Transition): transition.
+
+    """
+    while True:
+        if transition is None:
+            break
+        prev_transition = transition.prev_transition
+        transition.clear_links()
+        transition = prev_transition
 
 
 @cython.boundscheck(False)

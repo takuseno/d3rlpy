@@ -49,8 +49,13 @@ Therefore, d3rlpy enables every user to achieve professional-level
 performance just in a few lines of codes.
 
 ## installation
+### PyPI
 ```
 $ pip install d3rlpy
+```
+### Anaconda
+```
+$ conda install -c conda-forge d3rlpy
 ```
 
 ## supported algorithms
@@ -80,15 +85,101 @@ $ pip install d3rlpy
 Basically, all features are available with every algorithm.
 
 - [x] evaluation metrics in a scikit-learn scorer function style
-- [x] embedded preprocessors
 - [x] export greedy-policy as TorchScript or ONNX
-- [x] ensemble Q function with bootstrapping
-- [x] [delayed policy updates](https://arxiv.org/abs/1802.09477)
+- [x] ensemble Q function
 - [x] parallel cross validation with multiple GPU
 - [x] online training
 - [x] [data augmentation](https://arxiv.org/abs/2004.13649)
 - [x] [model-based algorithm](https://arxiv.org/abs/2005.13239)
-- [ ] user-defined custom network
+
+## examples
+### Atari 2600
+<p align="center"><img align="center" width="160px" src="assets/breakout.gif"></p>
+
+```py
+from d3rlpy.datasets import get_atari
+from d3rlpy.algos import DiscreteCQL
+from d3rlpy.metrics.scorer import evaluate_on_environment
+from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
+from sklearn.model_selection import train_test_split
+
+# get data-driven RL dataset
+dataset, env = get_atari('breakout-expert-v0')
+
+# split dataset
+train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
+
+# setup algorithm
+cql = DiscreteCQL(n_frames=4, q_func_type='qr', scaler='pixel', use_gpu=True)
+
+# start training
+cql.fit(train_episodes,
+        eval_episodes=test_episodes,
+        n_epochs=100,
+        scorers={
+            'environment': evaluate_on_environment(env),
+            'advantage': discounted_sum_of_advantage_scorer
+        })
+```
+
+See more Atari datasets at [d4rl-atari](https://github.com/takuseno/d4rl-atari).
+
+### PyBullet
+<p align="center"><img align="center" width="160px" src="assets/hopper.gif"></p>
+
+```py
+from d3rlpy.datasets import get_pybullet
+from d3rlpy.algos import CQL
+from d3rlpy.metrics.scorer import evaluate_on_environment
+from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
+from sklearn.model_selection import train_test_split
+
+# get data-driven RL dataset
+dataset, env = get_pybullet('hopper-bullet-mixed-v0')
+
+# split dataset
+train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
+
+# setup algorithm
+cql = CQL(q_func_type='qr', use_gpu=True)
+
+# start training
+cql.fit(train_episodes,
+        eval_episodes=test_episodes,
+        n_epochs=300,
+        scorers={
+            'environment': evaluate_on_environment(env),
+            'advantage': discounted_sum_of_advantage_scorer
+        })
+```
+
+See more PyBullet datasets at [d4rl-pybullet](https://github.com/takuseno/d4rl-pybullet).
+
+### Online Training
+```py
+import gym
+
+from d3rlpy.algos import SAC
+from d3rlpy.online.buffers import ReplayBuffer
+
+# setup environment
+env = gym.make('HopperBulletEnv-v0')
+eval_env = gym.make('HopperBulletEnv-v0')
+
+# setup algorithm
+sac = SAC(use_gpu=True)
+
+# setup replay buffer
+buffer = ReplayBuffer(maxlen=1000000, env=env)
+
+# start training
+sac.fit_online(env, buffer, n_steps=1000000, eval_env=eval_env)
+```
+
+## tutorials
+Try a cartpole example on Google Colaboratory!
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/takuseno/d3rlpy/blob/master/tutorials/cartpole.ipynb)
 
 ## scikit-learn compatibility
 This library is designed as if born from scikit-learn.
@@ -190,112 +281,6 @@ batch = TransitionMiniBatch(transitions, n_frames=4)
 
 batch.observations.shape == (32, 4, 84, 84)
 ```
-
-## examples
-### Atari 2600
-```py
-from d3rlpy.datasets import get_atari
-from d3rlpy.algos import DiscreteCQL
-from d3rlpy.metrics.scorer import evaluate_on_environment
-from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
-from sklearn.model_selection import train_test_split
-
-# get data-driven RL dataset
-dataset, env = get_atari('breakout-expert-v0')
-
-# split dataset
-train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
-
-# setup algorithm
-cql = DiscreteCQL(n_frames=4,
-                  n_critics=3,
-                  bootstrap=True,
-                  q_func_type='qr',
-                  scaler='pixel',
-                  use_gpu=True)
-
-# start training
-cql.fit(train_episodes,
-        eval_episodes=test_episodes,
-        n_epochs=100,
-        scorers={
-            'environment': evaluate_on_environment(env),
-            'advantage': discounted_sum_of_advantage_scorer
-        })
-```
-| performance | demo |
-|:-:|:-:|
-|![breakout](assets/breakout.png)|![breakout](assets/breakout.gif)|
-
-See more Atari datasets at [d4rl-atari](https://github.com/takuseno/d4rl-atari).
-
-### PyBullet
-```py
-from d3rlpy.datasets import get_pybullet
-from d3rlpy.algos import CQL
-from d3rlpy.metrics.scorer import evaluate_on_environment
-from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
-from sklearn.model_selection import train_test_split
-
-# get data-driven RL dataset
-dataset, env = get_pybullet('hopper-bullet-mixed-v0')
-
-# split dataset
-train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
-
-# setup algorithm
-cql = CQL(actor_learning_rate=1e-3,
-          critic_learning_rate=1e-3,
-          temp_learning_rate=1e-3,
-          alpha_learning_rate=1e-3,
-          n_critics=10,
-          bootstrap=True,
-          update_actor_interval=2,
-          q_func_type='qr',
-          use_gpu=True)
-
-# start training
-cql.fit(train_episodes,
-        eval_episodes=test_episodes,
-        n_epochs=300,
-        scorers={
-            'environment': evaluate_on_environment(env),
-            'advantage': discounted_sum_of_advantage_scorer
-        })
-```
-| performance | demo |
-|:-:|:-:|
-|![hopper](assets/hopper.png)|![hopper](assets/hopper.gif)|
-
-
-See more PyBullet datasets at [d4rl-pybullet](https://github.com/takuseno/d4rl-pybullet).
-
-### Online Training
-```py
-import gym
-
-from d3rlpy.algos import SAC
-from d3rlpy.online.buffers import ReplayBuffer
-
-# setup environment
-env = gym.make('HopperBulletEnv-v0')
-eval_env = gym.make('HopperBulletEnv-v0')
-
-# setup algorithm
-sac = SAC(use_gpu=True)
-
-# setup replay buffer
-buffer = ReplayBuffer(maxlen=1000000, env=env)
-
-# start training
-sac.fit_online(env, buffer, n_epochs=100, eval_env=eval_env)
-```
-
-## tutorials
-Try a cartpole example on Google Colaboratory!
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/takuseno/d3rlpy/blob/master/tutorials/cartpole.ipynb)
-
 
 ## contributions
 ### coding style
