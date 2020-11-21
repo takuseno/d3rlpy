@@ -4,6 +4,7 @@ import json
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from more_itertools import chunked
 from tqdm.auto import tqdm
 from .preprocessing import create_scaler
 from .augmentation import create_augmentation, AugmentationPipeline
@@ -336,22 +337,24 @@ class LearnableBase:
             if new_transitions:
                 transitions = env_transitions + new_transitions
 
+            # user should decide if shuffling or not
             if shuffle:
-                indices = np.random.permutation(np.arange(len(transitions)))
-            else:
-                indices = np.arange(len(transitions))
+                transitions = np.random.permutation(transitions)
 
-            n_iters = len(transitions) // self.batch_size
+            batches = list(chunked(transitions, self.batch_size))
+            # Epoch progress bar
+            tqdm_epoch = tqdm(batches,
+                              disable=not show_progress,
+                              desc=f'Epoch {epoch+1}'
+                              )
 
-            for itr in tqdm(range(n_iters), disable=not show_progress, desc=f'Epoch {epoch}'):
-                # pick transitions
-                batch = []
-                head_index = itr * self.batch_size
-                for index in indices[head_index:head_index + self.batch_size]:
-                    batch.append(transitions[index])
+            # dict to add mean losses to epoch progress bar
+            progress_description = {}
 
-                loss = self.update(epoch, total_step,
-                                   TransitionMiniBatch(batch, self.n_frames))
+            for itr, batch in enumerate(tqdm_epoch, start=1):
+
+                mini_batch = TransitionMiniBatch(batch, self.n_frames)
+                loss = self.update(epoch, total_step, mini_batch)
 
                 # record metrics
                 for name, val in zip(self._get_loss_labels(), loss):
@@ -360,6 +363,13 @@ class LearnableBase:
 
                         # save loss to loss history dict
                         self.loss_history_[name].append(val)
+
+                        # update progress bar with partial means of losses
+                        partial_mean_loss = np.mean(logger.metrics_buffer[name])
+                        progress_description[name] = partial_mean_loss
+
+                # update progress postfix with losses
+                tqdm_epoch.set_postfix(progress_description)
 
                 total_step += 1
 
