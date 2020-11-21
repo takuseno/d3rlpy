@@ -345,8 +345,7 @@ class LearnableBase:
             # Epoch progress bar
             tqdm_epoch = tqdm(batches,
                               disable=not show_progress,
-                              desc=f'Epoch {epoch+1}'
-                              )
+                              desc=f'Epoch {epoch+1}')
 
             # dict to add mean losses to epoch progress bar
             progress_description = {}
