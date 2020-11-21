@@ -4,7 +4,7 @@ import json
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-from tqdm import trange
+from tqdm.auto import tqdm
 from .preprocessing import create_scaler
 from .augmentation import create_augmentation, AugmentationPipeline
 from .dataset import TransitionMiniBatch
@@ -335,8 +335,8 @@ class LearnableBase:
 
             indices = np.random.permutation(np.arange(len(transitions)))
             n_iters = len(transitions) // self.batch_size
-            range_gen = trange(n_iters) if show_progress else range(n_iters)
-            for itr in range_gen:
+
+            for itr in tqdm(range(n_iters), disable=not show_progress, desc=f'Epoch {epoch}'):
                 # pick transitions
                 batch = []
                 head_index = itr * self.batch_size
