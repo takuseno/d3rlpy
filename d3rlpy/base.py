@@ -365,7 +365,8 @@ class LearnableBase:
                         self.loss_history_[name].append(val)
 
                         # update progress bar with partial means of losses
-                        partial_mean_loss = np.mean(logger.metrics_buffer[name])
+                        partial_mean_loss = np.mean(
+                            logger.metrics_buffer[name])
                         progress_description[name] = partial_mean_loss
 
                 # update progress postfix with losses
