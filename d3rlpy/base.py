@@ -255,7 +255,8 @@ class LearnableBase:
             tensorboard=True,
             eval_episodes=None,
             save_interval=1,
-            scorers=None):
+            scorers=None,
+            shuffle=True):
         """ Trains with the given dataset.
 
         .. code-block:: python
@@ -282,6 +283,8 @@ class LearnableBase:
             save_interval (int): interval to save parameters.
             scorers (list(callable)):
                 list of scorer functions used with `eval_episodes`.
+            shuffle (bool): whether or not to shuffle transitions on each
+                epoch.
 
         """
 
@@ -333,7 +336,11 @@ class LearnableBase:
             if new_transitions:
                 transitions = env_transitions + new_transitions
 
-            indices = np.random.permutation(np.arange(len(transitions)))
+            if shuffle:
+                indices = np.random.permutation(np.arange(len(transitions)))
+            else:
+                indices = np.arange(len(transitions))
+
             n_iters = len(transitions) // self.batch_size
 
             for itr in tqdm(range(n_iters), disable=not show_progress, desc=f'Epoch {epoch}'):
