@@ -1,5 +1,6 @@
 from .base import AlgoBase
 from .torch.td3_impl import TD3Impl
+from ..optimizers import AdamFactory
 
 
 class TD3(AlgoBase):
@@ -11,7 +12,7 @@ class TD3(AlgoBase):
     * TD3 has twin Q functions to reduce overestimation bias at TD learning.
       The number of Q functions can be designated by `n_critics`.
     * TD3 adds noise to target value estimation to avoid overfitting with the
-      deterministic policy. 
+      deterministic policy.
     * TD3 updates the policy function after several Q function updates in order
       to reduce variance of action-value estimation. The interval of the policy
       function update can be designated by `update_actor_interval`.
@@ -36,6 +37,10 @@ class TD3(AlgoBase):
     Args:
         actor_learning_rate (float): learning rate for a policy function.
         critic_learning_rate (float): learning rate for Q functions.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -48,7 +53,6 @@ class TD3(AlgoBase):
         target_smoothing_clip (float): clipping range for target noise.
         update_actor_interval (int): interval to update policy function
             described as `delayed policy update` in the paper.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
@@ -72,6 +76,10 @@ class TD3(AlgoBase):
     Attributes:
         actor_learning_rate (float): learning rate for a policy function.
         critic_learning_rate (float): learning rate for Q functions.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -84,7 +92,6 @@ class TD3(AlgoBase):
         target_smoothing_clip (float): clipping range for target noise.
         update_actor_interval (int): interval to update policy function
             described as `delayed policy update` in the paper.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function..
         use_gpu (d3rlpy.gpu.Device): GPU device.
@@ -102,6 +109,8 @@ class TD3(AlgoBase):
                  *,
                  actor_learning_rate=3e-4,
                  critic_learning_rate=3e-4,
+                 actor_optim_factory=AdamFactory(),
+                 critic_optim_factory=AdamFactory(),
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -113,7 +122,6 @@ class TD3(AlgoBase):
                  target_smoothing_sigma=0.2,
                  target_smoothing_clip=0.5,
                  update_actor_interval=2,
-                 eps=1e-8,
                  use_batch_norm=False,
                  q_func_type='mean',
                  use_gpu=False,
@@ -132,6 +140,8 @@ class TD3(AlgoBase):
                          use_gpu=use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
         self.gamma = gamma
         self.tau = tau
         self.reguralizing_rate = reguralizing_rate
@@ -141,7 +151,6 @@ class TD3(AlgoBase):
         self.target_smoothing_sigma = target_smoothing_sigma
         self.target_smoothing_clip = target_smoothing_clip
         self.update_actor_interval = update_actor_interval
-        self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.n_augmentations = n_augmentations
@@ -153,6 +162,8 @@ class TD3(AlgoBase):
                             action_size=action_size,
                             actor_learning_rate=self.actor_learning_rate,
                             critic_learning_rate=self.critic_learning_rate,
+                            actor_optim_factory=self.actor_optim_factory,
+                            critic_optim_factory=self.critic_optim_factory,
                             gamma=self.gamma,
                             tau=self.tau,
                             reguralizing_rate=self.reguralizing_rate,
@@ -161,7 +172,6 @@ class TD3(AlgoBase):
                             share_encoder=self.share_encoder,
                             target_smoothing_sigma=self.target_smoothing_sigma,
                             target_smoothing_clip=self.target_smoothing_clip,
-                            eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu,

@@ -12,6 +12,7 @@ from .logger import D3RLPyLogger
 from .metrics.scorer import NEGATED_SCORER
 from .context import disable_parallel
 from .gpu import Device
+from .optimizers import OptimizerFactory
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -146,6 +147,11 @@ class LearnableBase:
             augmentation = create_augmentation(aug_type, **aug_params)
             augmentations.append(augmentation)
         params['augmentation'] = AugmentationPipeline(augmentations)
+
+        # optimizer factory
+        for key, value in params.items():
+            if 'optim_factory' in key:
+                params[key] = OptimizerFactory(**value)
 
         # overwrite use_gpu flag
         params['use_gpu'] = use_gpu
@@ -473,6 +479,11 @@ class LearnableBase:
                 'type': aug_type,
                 'params': aug_param
             })
+
+        # optimizer factory
+        for key, value in params.items():
+            if 'optim_factory' in key:
+                params[key] = value.get_params()
 
         # save GPU device id
         if self.use_gpu:

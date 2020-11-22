@@ -1,5 +1,6 @@
 from .base import AlgoBase
 from .torch.bc_impl import BCImpl, DiscreteBCImpl
+from ..optimizers import AdamFactory
 
 
 class BC(AlgoBase):
@@ -18,9 +19,9 @@ class BC(AlgoBase):
 
     Args:
         learning_rate (float): learing rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -41,10 +42,10 @@ class BC(AlgoBase):
             implemenation of the algorithm.
 
     Attributes:
+        learning_rate (float): learing rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        learning_rate (float): learing rate.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
@@ -61,9 +62,9 @@ class BC(AlgoBase):
     def __init__(self,
                  *,
                  learning_rate=1e-3,
+                 optim_factory=AdamFactory(),
                  batch_size=100,
                  n_frames=1,
-                 eps=1e-8,
                  use_batch_norm=False,
                  use_gpu=False,
                  scaler=None,
@@ -80,7 +81,7 @@ class BC(AlgoBase):
                          dynamics=dynamics,
                          use_gpu=use_gpu)
         self.learning_rate = learning_rate
-        self.eps = eps
+        self.optim_factory = optim_factory
         self.use_batch_norm = use_batch_norm
         self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
@@ -90,7 +91,7 @@ class BC(AlgoBase):
         self.impl = BCImpl(observation_shape=observation_shape,
                            action_size=action_size,
                            learning_rate=self.learning_rate,
-                           eps=self.eps,
+                           optim_factory=self.optim_factory,
                            use_batch_norm=self.use_batch_norm,
                            use_gpu=self.use_gpu,
                            scaler=self.scaler,
@@ -134,10 +135,10 @@ class DiscreteBC(BC):
     where :math:`p(a|s_t)` is implemented as a one-hot vector.
 
     Args:
+        learning_rate (float): learing rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        learning_rate (float): learing rate.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         beta (float): reguralization factor.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -159,10 +160,10 @@ class DiscreteBC(BC):
             implemenation of the algorithm.
 
     Attributes:
+        learning_rate (float): learing rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        learning_rate (float): learing rate.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         beta (float): reguralization factor.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (d3rlpy.gpu.Device): GPU device.
@@ -180,9 +181,9 @@ class DiscreteBC(BC):
     def __init__(self,
                  *,
                  learning_rate=1e-3,
+                 optim_factory=AdamFactory(),
                  batch_size=100,
                  n_frames=1,
-                 eps=1e-8,
                  beta=0.5,
                  use_batch_norm=False,
                  use_gpu=False,
@@ -194,9 +195,9 @@ class DiscreteBC(BC):
                  impl=None,
                  **kwargs):
         super().__init__(learning_rate=learning_rate,
+                         optim_factory=optim_factory,
                          batch_size=batch_size,
                          n_frames=n_frames,
-                         eps=eps,
                          use_batch_norm=use_batch_norm,
                          use_gpu=use_gpu,
                          scaler=scaler,
@@ -212,7 +213,7 @@ class DiscreteBC(BC):
         self.impl = DiscreteBCImpl(observation_shape=observation_shape,
                                    action_size=action_size,
                                    learning_rate=self.learning_rate,
-                                   eps=self.eps,
+                                   optim_factory=self.optim_factory,
                                    beta=self.beta,
                                    use_batch_norm=self.use_batch_norm,
                                    use_gpu=self.use_gpu,

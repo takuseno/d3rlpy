@@ -7,13 +7,13 @@ from .utility import compute_augmentation_mean
 
 
 class BCImpl(TorchImplBase):
-    def __init__(self, observation_shape, action_size, learning_rate, eps,
-                 use_batch_norm, use_gpu, scaler, augmentation,
+    def __init__(self, observation_shape, action_size, learning_rate,
+                 optim_factory, use_batch_norm, use_gpu, scaler, augmentation,
                  n_augmentations, encoder_params):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.learning_rate = learning_rate
-        self.eps = eps
+        self.optim_factory = optim_factory
         self.use_batch_norm = use_batch_norm
         self.scaler = scaler
         self.augmentation = augmentation
@@ -38,9 +38,8 @@ class BCImpl(TorchImplBase):
             encoder_params=self.encoder_params)
 
     def _build_optim(self):
-        self.optim = Adam(self.imitator.parameters(),
-                          lr=self.learning_rate,
-                          eps=self.eps)
+        self.optim = self.optim_factory.create(self.imitator.parameters(),
+                                               lr=self.learning_rate)
 
     @train_api
     @torch_api(scaler_targets=['obs_t'])
@@ -74,13 +73,13 @@ class BCImpl(TorchImplBase):
 
 
 class DiscreteBCImpl(BCImpl):
-    def __init__(self, observation_shape, action_size, learning_rate, eps,
-                 beta, use_batch_norm, use_gpu, scaler, augmentation,
-                 n_augmentations, encoder_params):
+    def __init__(self, observation_shape, action_size, learning_rate,
+                 optim_factory, beta, use_batch_norm, use_gpu, scaler,
+                 augmentation, n_augmentations, encoder_params):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          learning_rate=learning_rate,
-                         eps=eps,
+                         optim_factory=optim_factory,
                          use_batch_norm=use_batch_norm,
                          use_gpu=use_gpu,
                          scaler=scaler,

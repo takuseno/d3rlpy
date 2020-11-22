@@ -1,5 +1,6 @@
 from .base import AlgoBase
 from .torch.sac_impl import SACImpl, DiscreteSACImpl
+from ..optimizers import AdamFactory
 
 
 class SAC(AlgoBase):
@@ -49,6 +50,12 @@ class SAC(AlgoBase):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         temp_learning_rate (float): learning rate for temperature parameter.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the temperature.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -58,7 +65,6 @@ class SAC(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
@@ -83,6 +89,12 @@ class SAC(AlgoBase):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         temp_learning_rate (float): learning rate for temperature parameter.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the temperature.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -92,7 +104,6 @@ class SAC(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
@@ -111,6 +122,9 @@ class SAC(AlgoBase):
                  actor_learning_rate=3e-4,
                  critic_learning_rate=3e-4,
                  temp_learning_rate=3e-4,
+                 actor_optim_factory=AdamFactory(),
+                 critic_optim_factory=AdamFactory(),
+                 temp_optim_factory=AdamFactory(),
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -120,7 +134,6 @@ class SAC(AlgoBase):
                  share_encoder=False,
                  update_actor_interval=2,
                  initial_temperature=1.0,
-                 eps=1e-8,
                  use_batch_norm=False,
                  q_func_type='mean',
                  use_gpu=False,
@@ -140,6 +153,9 @@ class SAC(AlgoBase):
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.temp_learning_rate = temp_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
+        self.temp_optim_factory = temp_optim_factory
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
@@ -147,7 +163,6 @@ class SAC(AlgoBase):
         self.share_encoder = share_encoder
         self.update_actor_interval = update_actor_interval
         self.initial_temperature = initial_temperature
-        self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.n_augmentations = n_augmentations
@@ -160,13 +175,15 @@ class SAC(AlgoBase):
                             actor_learning_rate=self.actor_learning_rate,
                             critic_learning_rate=self.critic_learning_rate,
                             temp_learning_rate=self.temp_learning_rate,
+                            actor_optim_factory=self.actor_optim_factory,
+                            critic_optim_factory=self.critic_optim_factory,
+                            temp_optim_factory=self.temp_optim_factory,
                             gamma=self.gamma,
                             tau=self.tau,
                             n_critics=self.n_critics,
                             bootstrap=self.bootstrap,
                             share_encoder=self.share_encoder,
                             initial_temperature=self.initial_temperature,
-                            eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu,
@@ -232,6 +249,12 @@ class DiscreteSAC(AlgoBase):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         temp_learning_rate (float): learning rate for temperature parameter.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the temperature.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -239,7 +262,6 @@ class DiscreteSAC(AlgoBase):
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         initial_temperature (float): initial temperature value.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
@@ -264,6 +286,12 @@ class DiscreteSAC(AlgoBase):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         temp_learning_rate (float): learning rate for temperature parameter.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the temperature.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -271,7 +299,6 @@ class DiscreteSAC(AlgoBase):
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         initial_temperature (float): initial temperature value.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
@@ -290,6 +317,9 @@ class DiscreteSAC(AlgoBase):
                  actor_learning_rate=3e-4,
                  critic_learning_rate=3e-4,
                  temp_learning_rate=3e-4,
+                 actor_optim_factory=AdamFactory(eps=1e-4),
+                 critic_optim_factory=AdamFactory(eps=1e-4),
+                 temp_optim_factory=AdamFactory(eps=1e-4),
                  batch_size=64,
                  n_frames=1,
                  gamma=0.99,
@@ -298,7 +328,6 @@ class DiscreteSAC(AlgoBase):
                  share_encoder=False,
                  initial_temperature=1.0,
                  target_update_interval=8000,
-                 eps=1e-4,
                  use_batch_norm=False,
                  q_func_type='mean',
                  use_gpu=False,
@@ -318,13 +347,15 @@ class DiscreteSAC(AlgoBase):
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.temp_learning_rate = temp_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
+        self.temp_optim_factory = temp_optim_factory
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.initial_temperature = initial_temperature
         self.target_update_interval = target_update_interval
-        self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.n_augmentations = n_augmentations
@@ -338,12 +369,14 @@ class DiscreteSAC(AlgoBase):
             actor_learning_rate=self.actor_learning_rate,
             critic_learning_rate=self.critic_learning_rate,
             temp_learning_rate=self.temp_learning_rate,
+            actor_optim_factory=self.actor_optim_factory,
+            critic_optim_factory=self.critic_optim_factory,
+            temp_optim_factory=self.temp_optim_factory,
             gamma=self.gamma,
             n_critics=self.n_critics,
             bootstrap=self.bootstrap,
             share_encoder=self.share_encoder,
             initial_temperature=self.initial_temperature,
-            eps=self.eps,
             use_batch_norm=self.use_batch_norm,
             q_func_type=self.q_func_type,
             use_gpu=self.use_gpu,

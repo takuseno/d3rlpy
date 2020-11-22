@@ -3,6 +3,7 @@ import torch
 
 from d3rlpy.algos.torch.bear_impl import BEARImpl
 from d3rlpy.augmentation import AugmentationPipeline
+from d3rlpy.optimizers import AdamFactory
 from tests.algos.algo_test import torch_impl_tester, DummyScaler
 
 
@@ -13,6 +14,11 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('imitator_learning_rate', [1e-3])
 @pytest.mark.parametrize('temp_learning_rate', [1e-3])
 @pytest.mark.parametrize('alpha_learning_rate', [1e-3])
+@pytest.mark.parametrize('actor_optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('critic_optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('imitator_optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('temp_optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('alpha_optim_factory', [AdamFactory()])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('tau', [0.05])
 @pytest.mark.parametrize('n_critics', [2])
@@ -24,7 +30,6 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('lam', [0.75])
 @pytest.mark.parametrize('n_action_samples', [4])
 @pytest.mark.parametrize('mmd_sigma', [20.0])
-@pytest.mark.parametrize('eps', [1e-8])
 @pytest.mark.parametrize('use_batch_norm', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
@@ -33,11 +38,14 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('encoder_params', [{}])
 def test_bear_impl(observation_shape, action_size, actor_learning_rate,
                    critic_learning_rate, imitator_learning_rate,
-                   temp_learning_rate, alpha_learning_rate, gamma, tau,
-                   n_critics, bootstrap, share_encoder, initial_temperature,
-                   initial_alpha, alpha_threshold, lam, n_action_samples,
-                   mmd_sigma, eps, use_batch_norm, q_func_type, scaler,
-                   augmentation, n_augmentations, encoder_params):
+                   temp_learning_rate, alpha_learning_rate,
+                   actor_optim_factory, critic_optim_factory,
+                   imitator_optim_factory, temp_optim_factory,
+                   alpha_optim_factory, gamma, tau, n_critics, bootstrap,
+                   share_encoder, initial_temperature, initial_alpha,
+                   alpha_threshold, lam, n_action_samples, mmd_sigma,
+                   use_batch_norm, q_func_type, scaler, augmentation,
+                   n_augmentations, encoder_params):
     impl = BEARImpl(observation_shape,
                     action_size,
                     actor_learning_rate,
@@ -45,6 +53,11 @@ def test_bear_impl(observation_shape, action_size, actor_learning_rate,
                     imitator_learning_rate,
                     temp_learning_rate,
                     alpha_learning_rate,
+                    actor_optim_factory,
+                    critic_optim_factory,
+                    imitator_optim_factory,
+                    temp_optim_factory,
+                    alpha_optim_factory,
                     gamma,
                     tau,
                     n_critics,
@@ -56,7 +69,6 @@ def test_bear_impl(observation_shape, action_size, actor_learning_rate,
                     lam,
                     n_action_samples,
                     mmd_sigma,
-                    eps,
                     use_batch_norm,
                     q_func_type,
                     use_gpu=False,

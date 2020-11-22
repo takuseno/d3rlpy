@@ -110,7 +110,7 @@ class AdamFactory(OptimizerFactory):
         amsgrad (bool): flag to use the AMSGrad variant of this algorithm.
 
     Attributes:
-        optim_cls (type): ``torch.optim.SGD`` class.
+        optim_cls (type): ``torch.optim.Adam`` class.
         optim_kwargs (dict): given parameters for an optimizer.
 
     """
@@ -146,7 +146,7 @@ class RMSpropFactory(OptimizerFactory):
             normalized by an estimation of its variance.
 
     Attributes:
-        optim_cls (type): ``torch.optim.SGD`` class.
+        optim_cls (type): ``torch.optim.RMSprop`` class.
         optim_kwargs (dict): given parameters for an optimizer.
 
     """

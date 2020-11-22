@@ -16,22 +16,24 @@ from .dqn_impl import DoubleDQNImpl
 
 class BCQImpl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, imitator_learning_rate, gamma, tau,
-                 n_critics, bootstrap, share_encoder, lam, n_action_samples,
-                 action_flexibility, latent_size, beta, eps, use_batch_norm,
-                 q_func_type, use_gpu, scaler, augmentation, n_augmentations,
-                 encoder_params):
+                 critic_learning_rate, imitator_learning_rate,
+                 actor_optim_factory, critic_optim_factory,
+                 imitator_optim_factory, gamma, tau, n_critics, bootstrap,
+                 share_encoder, lam, n_action_samples, action_flexibility,
+                 latent_size, beta, use_batch_norm, q_func_type, use_gpu,
+                 scaler, augmentation, n_augmentations, encoder_params):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
                          critic_learning_rate=critic_learning_rate,
+                         actor_optim_factory=actor_optim_factory,
+                         critic_optim_factory=critic_optim_factory,
                          gamma=gamma,
                          tau=tau,
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
                          reguralizing_rate=0.0,
-                         eps=eps,
                          use_batch_norm=use_batch_norm,
                          q_func_type=q_func_type,
                          use_gpu=use_gpu,
@@ -40,6 +42,7 @@ class BCQImpl(DDPGImpl):
                          n_augmentations=n_augmentations,
                          encoder_params=encoder_params)
         self.imitator_learning_rate = imitator_learning_rate
+        self.imitator_optim_factory = imitator_optim_factory
         self.n_critics = n_critics
         self.lam = lam
         self.n_action_samples = n_action_samples
@@ -71,9 +74,8 @@ class BCQImpl(DDPGImpl):
             encoder_params=self.encoder_params)
 
     def _build_imitator_optim(self):
-        self.imitator_optim = Adam(self.imitator.parameters(),
-                                   self.imitator_learning_rate,
-                                   eps=self.eps)
+        self.imitator_optim = self.imitator_optim_factory.create(
+            self.imitator.parameters(), lr=self.imitator_learning_rate)
 
     def _compute_actor_loss(self, obs_t):
         latent = torch.randn(obs_t.shape[0],
@@ -160,18 +162,19 @@ class BCQImpl(DDPGImpl):
 
 
 class DiscreteBCQImpl(DoubleDQNImpl):
-    def __init__(self, observation_shape, action_size, learning_rate, gamma,
-                 n_critics, bootstrap, share_encoder, action_flexibility, beta,
-                 eps, use_batch_norm, q_func_type, use_gpu, scaler,
-                 augmentation, n_augmentations, encoder_params):
+    def __init__(self, observation_shape, action_size, learning_rate,
+                 optim_factory, gamma, n_critics, bootstrap, share_encoder,
+                 action_flexibility, beta, use_batch_norm, q_func_type,
+                 use_gpu, scaler, augmentation, n_augmentations,
+                 encoder_params):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          learning_rate=learning_rate,
+                         optim_factory=optim_factory,
                          gamma=gamma,
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
-                         eps=eps,
                          use_batch_norm=use_batch_norm,
                          q_func_type=q_func_type,
                          use_gpu=use_gpu,
@@ -201,7 +204,8 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         imitator_params = list(self.imitator.parameters())
         # retrieve unique elements
         unique_params = list(set(q_func_params + imitator_params))
-        self.optim = Adam(unique_params, lr=self.learning_rate, eps=self.eps)
+        self.optim = self.optim_factory.create(unique_params,
+                                               lr=self.learning_rate)
 
     def _compute_loss(self, obs_t, act_t, rew_tp1, q_tp1):
         loss = super()._compute_loss(obs_t, act_t, rew_tp1, q_tp1)

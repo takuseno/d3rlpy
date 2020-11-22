@@ -1,8 +1,9 @@
 import numpy as np
 
-from d3rlpy.dataset import compute_lambda_return
 from .base import AlgoBase
 from .torch.awr_impl import AWRImpl, DiscreteAWRImpl
+from ..dataset import compute_lambda_return
+from ..optimizers import SGDFactory
 
 
 class AWR(AlgoBase):
@@ -38,6 +39,10 @@ class AWR(AlgoBase):
     Args:
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for value function.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
         batch_size (int): batch size per iteration.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -47,7 +52,6 @@ class AWR(AlgoBase):
         lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
         beta (float): :math:`B` for weight scale.
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
-        momentum (float): momentum for stochastic gradient descent.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -69,6 +73,10 @@ class AWR(AlgoBase):
     Attributes:
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for value function.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
         batch_size (int): batch size per iteration.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -78,7 +86,6 @@ class AWR(AlgoBase):
         lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
         beta (float): :math:`B` for weight scale.
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
-        momentum (float): momentum for stochastic gradient descent.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
@@ -95,6 +102,8 @@ class AWR(AlgoBase):
                  *,
                  actor_learning_rate=5e-5,
                  critic_learning_rate=1e-4,
+                 actor_optim_factory=SGDFactory(momentum=0.9),
+                 critic_optim_factory=SGDFactory(momentum=0.9),
                  batch_size=2048,
                  n_frames=1,
                  gamma=0.99,
@@ -104,7 +113,6 @@ class AWR(AlgoBase):
                  lam=0.95,
                  beta=1.0,
                  max_weight=20.0,
-                 momentum=0.9,
                  use_batch_norm=False,
                  use_gpu=False,
                  scaler=None,
@@ -123,6 +131,8 @@ class AWR(AlgoBase):
                          use_gpu=use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
         self.batch_size_per_update = batch_size_per_update
         self.n_actor_updates = n_actor_updates
         self.n_critic_updates = n_critic_updates
@@ -131,7 +141,6 @@ class AWR(AlgoBase):
         self.beta = beta
         self.max_weight = max_weight
         self.use_batch_norm = use_batch_norm
-        self.momentum = momentum
         self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
         self.impl = impl
@@ -141,8 +150,9 @@ class AWR(AlgoBase):
                             action_size=action_size,
                             actor_learning_rate=self.actor_learning_rate,
                             critic_learning_rate=self.critic_learning_rate,
+                            actor_optim_factory=self.actor_optim_factory,
+                            critic_optim_factory=self.critic_optim_factory,
                             use_batch_norm=self.use_batch_norm,
-                            momentum=self.momentum,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
                             augmentation=self.augmentation,
@@ -262,6 +272,10 @@ class DiscreteAWR(AWR):
     Args:
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for value function.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
         batch_size (int): batch size per iteration.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -271,7 +285,6 @@ class DiscreteAWR(AWR):
         lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
         beta (float): :math:`B` for weight scale.
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
-        momentum (float): momentum for stochastic gradient descent.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -294,6 +307,10 @@ class DiscreteAWR(AWR):
     Attributes:
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for value function.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
         batch_size (int): batch size per iteration.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -303,7 +320,6 @@ class DiscreteAWR(AWR):
         lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
         beta (float): :math:`B` for weight scale.
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
-        momentum (float): momentum for stochastic gradient descent.
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
@@ -323,8 +339,9 @@ class DiscreteAWR(AWR):
             action_size=action_size,
             actor_learning_rate=self.actor_learning_rate,
             critic_learning_rate=self.critic_learning_rate,
+            actor_optim_factory=self.actor_optim_factory,
+            critic_optim_factory=self.critic_optim_factory,
             use_batch_norm=self.use_batch_norm,
-            momentum=self.momentum,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
             augmentation=self.augmentation,
