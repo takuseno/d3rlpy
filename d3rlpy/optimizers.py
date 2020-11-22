@@ -19,9 +19,6 @@ class OptimizerFactory:
 
         dqn = DQN(optim_factory=factory)
 
-    Note:
-        Please check more details at :doc:`references/optimizers`.
-
     Args:
         optim_cls (type or str): An optimizer class.
         kwargs (any): arbitrary keyword-arguments.
