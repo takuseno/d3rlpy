@@ -472,7 +472,7 @@ class LearnableBase:
         params = {}
         with disable_parallel():
             for k, v in self.get_params(deep=False).items():
-                if isinstance(v, (ImplBase, LearnableBase)):
+                if isinstance(v, (ImplBase, LearnableBase)) or k == 'impl':
                     continue
                 params[k] = v
 
