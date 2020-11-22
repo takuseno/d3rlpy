@@ -17,7 +17,10 @@ class OptimizerFactory:
 
         factory = OptimizerFactory(Adam, eps=0.001)
 
-        dqn = DQN(optim=factory)
+        dqn = DQN(optim_factory=factory)
+
+    Note:
+        Please check more details at :doc:`references/optimizers`.
 
     Args:
         optim_cls (type or str): An optimizer class.
