@@ -482,7 +482,7 @@ class LearnableBase:
 
         # optimizer factory
         for key, value in params.items():
-            if 'optim_factory' in key:
+            if isinstance(value, OptimizerFactory):
                 params[key] = value.get_params()
 
         # save GPU device id
