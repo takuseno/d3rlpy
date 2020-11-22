@@ -1,4 +1,5 @@
 from .base import DynamicsBase
+from ..optimizers import AdamFactory
 
 
 class MOPO(DynamicsBase):
@@ -45,11 +46,10 @@ class MOPO(DynamicsBase):
           <https://arxiv.org/abs/2005.13239>`_
 
     Args:
+        learning_rate (float): learning rate for dynamics model.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        learning_rate (float): learning rate for dynamics model.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
-        weight_decay (float): weight decay rate.
         n_ensembles (int): the number of dynamics model for ensemble.
         n_transitions (int): the number of parallel trajectories to generate.
         horizon (int): the number of steps to generate.
@@ -64,11 +64,10 @@ class MOPO(DynamicsBase):
         impl (d3rlpy.dynamics.base.DynamicsImplBase): dynamics implementation.
 
     Attributes:
+        learning_rate (float): learning rate for dynamics model.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        learning_rate (float): learning rate for dynamics model.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
-        weight_decay (float): weight decay rate.
         n_ensembles (int): the number of dynamics model for ensemble.
         n_transitions (int): the number of parallel trajectories to generate.
         horizon (int): the number of steps to generate.
@@ -85,11 +84,10 @@ class MOPO(DynamicsBase):
     """
     def __init__(self,
                  *,
+                 learning_rate=1e-3,
+                 optim_factory=AdamFactory(weight_decay=1e-4),
                  batch_size=100,
                  n_frames=1,
-                 learning_rate=1e-3,
-                 eps=1e-8,
-                 weight_decay=1e-4,
                  n_ensembles=5,
                  n_transitions=400,
                  horizon=5,
@@ -109,8 +107,7 @@ class MOPO(DynamicsBase):
                          augmentation=augmentation,
                          use_gpu=use_gpu)
         self.learning_rate = learning_rate
-        self.eps = eps
-        self.weight_decay = weight_decay
+        self.optim_factory = optim_factory
         self.n_ensembles = n_ensembles
         self.lam = lam
         self.use_batch_norm = use_batch_norm
@@ -122,8 +119,7 @@ class MOPO(DynamicsBase):
         self.impl = MOPOImpl(observation_shape=observation_shape,
                              action_size=action_size,
                              learning_rate=self.learning_rate,
-                             eps=self.eps,
-                             weight_decay=self.weight_decay,
+                             optim_factory=self.optim_factory,
                              n_ensembles=self.n_ensembles,
                              lam=self.lam,
                              use_batch_norm=self.use_batch_norm,
