@@ -1,5 +1,6 @@
 from .base import AlgoBase
 from .torch.ddpg_impl import DDPGImpl
+from ..optimizers import AdamFactory
 
 
 class DDPG(AlgoBase):
@@ -36,6 +37,10 @@ class DDPG(AlgoBase):
     Args:
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q function.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -44,7 +49,6 @@ class DDPG(AlgoBase):
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         reguralizing_rate (float): reguralizing term for policy function.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
@@ -68,6 +72,10 @@ class DDPG(AlgoBase):
     Attributes:
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q function.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -76,7 +84,6 @@ class DDPG(AlgoBase):
         bootstrap (bool): flag to bootstraep Q functions.
         share_encoder (bool): flag to share encoder network.
         reguralizing_rate (float): reguralizing term for policy function.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
@@ -94,6 +101,8 @@ class DDPG(AlgoBase):
                  *,
                  actor_learning_rate=3e-4,
                  critic_learning_rate=3e-4,
+                 actor_optim_factory=AdamFactory(),
+                 critic_optim_factory=AdamFactory(),
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -102,7 +111,6 @@ class DDPG(AlgoBase):
                  bootstrap=False,
                  share_encoder=False,
                  reguralizing_rate=1e-10,
-                 eps=1e-8,
                  use_batch_norm=False,
                  q_func_type='mean',
                  use_gpu=False,
@@ -121,13 +129,14 @@ class DDPG(AlgoBase):
                          use_gpu=use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.reguralizing_rate = reguralizing_rate
-        self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.n_augmentations = n_augmentations
@@ -139,13 +148,14 @@ class DDPG(AlgoBase):
                              action_size=action_size,
                              actor_learning_rate=self.actor_learning_rate,
                              critic_learning_rate=self.critic_learning_rate,
+                             actor_optim_factory=self.actor_optim_factory,
+                             critic_optim_factory=self.critic_optim_factory,
                              gamma=self.gamma,
                              tau=self.tau,
                              n_critics=self.n_critics,
                              bootstrap=self.bootstrap,
                              share_encoder=self.share_encoder,
                              reguralizing_rate=self.reguralizing_rate,
-                             eps=self.eps,
                              use_batch_norm=self.use_batch_norm,
                              q_func_type=self.q_func_type,
                              use_gpu=self.use_gpu,

@@ -17,23 +17,27 @@ def _gaussian_kernel(x, y, sigma):
 class BEARImpl(SACImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, imitator_learning_rate,
-                 temp_learning_rate, alpha_learning_rate, gamma, tau,
+                 temp_learning_rate, alpha_learning_rate, actor_optim_factory,
+                 critic_optim_factory, imitator_optim_factory,
+                 temp_optim_factory, alpha_optim_factory, gamma, tau,
                  n_critics, bootstrap, share_encoder, initial_temperature,
                  initial_alpha, alpha_threshold, lam, n_action_samples,
-                 mmd_sigma, eps, use_batch_norm, q_func_type, use_gpu, scaler,
+                 mmd_sigma, use_batch_norm, q_func_type, use_gpu, scaler,
                  augmentation, n_augmentations, encoder_params):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
                          critic_learning_rate=critic_learning_rate,
                          temp_learning_rate=temp_learning_rate,
+                         actor_optim_factory=actor_optim_factory,
+                         critic_optim_factory=critic_optim_factory,
+                         temp_optim_factory=temp_optim_factory,
                          gamma=gamma,
                          tau=tau,
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
                          initial_temperature=initial_temperature,
-                         eps=eps,
                          use_batch_norm=use_batch_norm,
                          q_func_type=q_func_type,
                          use_gpu=use_gpu,
@@ -43,6 +47,8 @@ class BEARImpl(SACImpl):
                          encoder_params=encoder_params)
         self.imitator_learning_rate = imitator_learning_rate
         self.alpha_learning_rate = alpha_learning_rate
+        self.imitator_optim_factory = imitator_optim_factory
+        self.alpha_optim_factory = alpha_optim_factory
         self.initial_alpha = initial_alpha
         self.alpha_threshold = alpha_threshold
         self.lam = lam
@@ -64,9 +70,8 @@ class BEARImpl(SACImpl):
             encoder_params=self.encoder_params)
 
     def _build_imitator_optim(self):
-        self.imitator_optim = Adam(self.imitator.parameters(),
-                                   self.imitator_learning_rate,
-                                   eps=self.eps)
+        self.imitator_optim = self.imitator_optim_factory.create(
+            self.imitator.parameters(), lr=self.imitator_learning_rate)
 
     def _build_alpha(self):
         initial_val = math.log(self.initial_alpha)
@@ -74,9 +79,8 @@ class BEARImpl(SACImpl):
         self.log_alpha = nn.Parameter(data)
 
     def _build_alpha_optim(self):
-        self.alpha_optim = Adam([self.log_alpha],
-                                self.alpha_learning_rate,
-                                eps=self.eps)
+        self.alpha_optim = self.alpha_optim_factory.create(
+            [self.log_alpha], lr=self.alpha_learning_rate)
 
     def _compute_actor_loss(self, obs_t):
         loss = super()._compute_actor_loss(obs_t)

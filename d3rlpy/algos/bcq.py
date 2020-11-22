@@ -1,11 +1,12 @@
 from .base import AlgoBase
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
+from ..optimizers import AdamFactory
 
 
 class BCQ(AlgoBase):
     """ Batch-Constrained Q-learning algorithm.
 
-    BCQ is the very first practical data-driven deep reinforcement learning 
+    BCQ is the very first practical data-driven deep reinforcement learning
     lgorithm.
     The major difference from DDPG is that the policy function is represented
     as combination of conditional VAE and perturbation function in order to
@@ -81,6 +82,12 @@ class BCQ(AlgoBase):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         imitator_learning_rate (float): learning rate for Conditional VAE.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the conditional VAE.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -98,7 +105,6 @@ class BCQ(AlgoBase):
             functions. If this is large, RL training would be more stabilized.
         latent_size (int): size of latent vector for Conditional VAE.
         beta (float): KL reguralization term for Conditional VAE.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
@@ -123,6 +129,12 @@ class BCQ(AlgoBase):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         imitator_learning_rate (float): learning rate for Conditional VAE.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the conditional VAE.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -139,7 +151,6 @@ class BCQ(AlgoBase):
             functions.
         latent_size (int): size of latent vector for Conditional VAE.
         beta (float): KL reguralization term for Conditional VAE.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
@@ -158,6 +169,9 @@ class BCQ(AlgoBase):
                  actor_learning_rate=1e-3,
                  critic_learning_rate=1e-3,
                  imitator_learning_rate=1e-3,
+                 actor_optim_factory=AdamFactory(),
+                 critic_optim_factory=AdamFactory(),
+                 imitator_optim_factory=AdamFactory(),
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -172,7 +186,6 @@ class BCQ(AlgoBase):
                  rl_start_epoch=0,
                  latent_size=32,
                  beta=0.5,
-                 eps=1e-8,
                  use_batch_norm=False,
                  q_func_type='mean',
                  use_gpu=False,
@@ -192,6 +205,9 @@ class BCQ(AlgoBase):
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.imitator_learning_rate = imitator_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
+        self.imitator_optim_factory = imitator_optim_factory
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
@@ -204,7 +220,6 @@ class BCQ(AlgoBase):
         self.rl_start_epoch = rl_start_epoch
         self.latent_size = latent_size
         self.beta = beta
-        self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.n_augmentations = n_augmentations
@@ -217,6 +232,9 @@ class BCQ(AlgoBase):
                             actor_learning_rate=self.actor_learning_rate,
                             critic_learning_rate=self.critic_learning_rate,
                             imitator_learning_rate=self.imitator_learning_rate,
+                            actor_optim_factory=self.actor_optim_factory,
+                            critic_optim_factory=self.critic_optim_factory,
+                            imitator_optim_factory=self.imitator_optim_factory,
                             gamma=self.gamma,
                             tau=self.tau,
                             n_critics=self.n_critics,
@@ -227,7 +245,6 @@ class BCQ(AlgoBase):
                             action_flexibility=self.action_flexibility,
                             latent_size=self.latent_size,
                             beta=self.beta,
-                            eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu,
@@ -307,6 +324,7 @@ class DiscreteBCQ(AlgoBase):
 
     Args:
         learning_rate (float): learning rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -316,7 +334,6 @@ class DiscreteBCQ(AlgoBase):
         action_flexibility (float): probability threshold represented as
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
@@ -341,6 +358,7 @@ class DiscreteBCQ(AlgoBase):
 
     Attributes:
         learning_rate (float): learning rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -350,7 +368,6 @@ class DiscreteBCQ(AlgoBase):
         action_flexibility (float): probability threshold represented as
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function.
@@ -369,6 +386,7 @@ class DiscreteBCQ(AlgoBase):
     def __init__(self,
                  *,
                  learning_rate=6.25e-5,
+                 optim_factory=AdamFactory(),
                  batch_size=32,
                  n_frames=1,
                  gamma=0.99,
@@ -377,7 +395,6 @@ class DiscreteBCQ(AlgoBase):
                  share_encoder=False,
                  action_flexibility=0.3,
                  beta=0.5,
-                 eps=1.5e-4,
                  target_update_interval=8e3,
                  use_batch_norm=False,
                  q_func_type='mean',
@@ -396,13 +413,13 @@ class DiscreteBCQ(AlgoBase):
                          dynamics=dynamics,
                          use_gpu=use_gpu)
         self.learning_rate = learning_rate
+        self.optim_factory = optim_factory
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.action_flexibility = action_flexibility
         self.beta = beta
-        self.eps = eps
         self.target_update_interval = target_update_interval
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
@@ -414,13 +431,13 @@ class DiscreteBCQ(AlgoBase):
         self.impl = DiscreteBCQImpl(observation_shape=observation_shape,
                                     action_size=action_size,
                                     learning_rate=self.learning_rate,
+                                    optim_factory=self.optim_factory,
                                     gamma=self.gamma,
                                     n_critics=self.n_critics,
                                     bootstrap=self.bootstrap,
                                     share_encoder=self.share_encoder,
                                     action_flexibility=self.action_flexibility,
                                     beta=self.beta,
-                                    eps=self.eps,
                                     use_batch_norm=self.use_batch_norm,
                                     q_func_type=self.q_func_type,
                                     use_gpu=self.use_gpu,

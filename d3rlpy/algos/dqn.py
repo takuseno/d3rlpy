@@ -1,5 +1,6 @@
 from .base import AlgoBase
 from .torch.dqn_impl import DQNImpl, DoubleDQNImpl
+from ..optimizers import AdamFactory
 
 
 class DQN(AlgoBase):
@@ -19,13 +20,13 @@ class DQN(AlgoBase):
 
     Args:
         learning_rate (float): learning rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
-        eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers
         q_func_type (str): type of Q function. Available options are
@@ -49,13 +50,13 @@ class DQN(AlgoBase):
 
     Attributes:
         learning_rate (float): learning rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
-        eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to update the target network.
         use_batch_norm (bool): flag to insert batch normalization layers
         q_func_type (str): type of Q function.
@@ -73,6 +74,7 @@ class DQN(AlgoBase):
     def __init__(self,
                  *,
                  learning_rate=6.25e-5,
+                 optim_factory=AdamFactory(),
                  batch_size=32,
                  n_frames=1,
                  gamma=0.99,
@@ -98,11 +100,11 @@ class DQN(AlgoBase):
                          dynamics=dynamics,
                          use_gpu=use_gpu)
         self.learning_rate = learning_rate
+        self.optim_factory = optim_factory
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
-        self.eps = eps
         self.target_update_interval = target_update_interval
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
@@ -114,11 +116,11 @@ class DQN(AlgoBase):
         self.impl = DQNImpl(observation_shape=observation_shape,
                             action_size=action_size,
                             learning_rate=self.learning_rate,
+                            optim_factory=self.optim_factory,
                             gamma=self.gamma,
                             n_critics=self.n_critics,
                             bootstrap=self.bootstrap,
                             share_encoder=self.share_encoder,
-                            eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu,
@@ -163,13 +165,13 @@ class DoubleDQN(DQN):
 
     Args:
         learning_rate (float): learning rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
-        eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
         use_batch_norm (bool): flag to insert batch normalization layers
@@ -195,13 +197,13 @@ class DoubleDQN(DQN):
 
     Attributes:
         learning_rate (float): learning rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
-        eps (float): :math:`\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
         use_batch_norm (bool): flag to insert batch normalization layers
@@ -221,11 +223,11 @@ class DoubleDQN(DQN):
         self.impl = DoubleDQNImpl(observation_shape=observation_shape,
                                   action_size=action_size,
                                   learning_rate=self.learning_rate,
+                                  optim_factory=self.optim_factory,
                                   gamma=self.gamma,
                                   n_critics=self.n_critics,
                                   bootstrap=self.bootstrap,
                                   share_encoder=self.share_encoder,
-                                  eps=self.eps,
                                   use_batch_norm=self.use_batch_norm,
                                   q_func_type=self.q_func_type,
                                   use_gpu=self.use_gpu,

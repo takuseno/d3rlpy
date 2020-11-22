@@ -7,4 +7,5 @@ h5py==2.10.0
 gym==0.17.2
 kornia==0.4.0
 Cython==0.29.21
+stable-baselines3>=0.10.0
 more-itertools==8.6.0

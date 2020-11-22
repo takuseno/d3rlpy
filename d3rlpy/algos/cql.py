@@ -1,6 +1,7 @@
 from .base import AlgoBase
 from .dqn import DoubleDQN
 from .torch.cql_impl import CQLImpl, DiscreteCQLImpl
+from ..optimizers import AdamFactory
 
 
 class CQL(AlgoBase):
@@ -52,6 +53,14 @@ class CQL(AlgoBase):
         temp_learning_rate (float):
             learning rate for temperature parameter of SAC.
         alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the temperature.
+        alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for :math:`\\alpha`.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -65,7 +74,6 @@ class CQL(AlgoBase):
         alpha_threshold (float): threshold value described as :math:`\\tau`.
         n_action_samples (int): the number of sampled actions to compute
             :math:`\\log{\\sum_a \\exp{Q(s, a)}}`.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
@@ -92,6 +100,14 @@ class CQL(AlgoBase):
         temp_learning_rate (float):
             learning rate for temperature parameter of SAC.
         alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the temperature.
+        alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for :math:`\\alpha`.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -105,7 +121,6 @@ class CQL(AlgoBase):
         alpha_threshold (float): threshold value described as :math:`\\tau`.
         n_action_samples (int): the number of sampled actions to compute
             :math:`\\log{\\sum_a \\exp{Q(s, a)}}`.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
@@ -125,6 +140,10 @@ class CQL(AlgoBase):
                  critic_learning_rate=3e-4,
                  temp_learning_rate=3e-5,
                  alpha_learning_rate=3e-4,
+                 actor_optim_factory=AdamFactory(),
+                 critic_optim_factory=AdamFactory(),
+                 temp_optim_factory=AdamFactory(),
+                 alpha_optim_factory=AdamFactory(),
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -137,7 +156,6 @@ class CQL(AlgoBase):
                  initial_alpha=5.0,
                  alpha_threshold=10.0,
                  n_action_samples=10,
-                 eps=1e-8,
                  use_batch_norm=False,
                  q_func_type='mean',
                  use_gpu=False,
@@ -158,6 +176,10 @@ class CQL(AlgoBase):
         self.critic_learning_rate = critic_learning_rate
         self.temp_learning_rate = temp_learning_rate
         self.alpha_learning_rate = alpha_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
+        self.temp_optim_factory = temp_optim_factory
+        self.alpha_optim_factory = alpha_optim_factory
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
@@ -168,7 +190,6 @@ class CQL(AlgoBase):
         self.initial_alpha = initial_alpha
         self.alpha_threshold = alpha_threshold
         self.n_action_samples = n_action_samples
-        self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.n_augmentations = n_augmentations
@@ -182,6 +203,10 @@ class CQL(AlgoBase):
                             critic_learning_rate=self.critic_learning_rate,
                             temp_learning_rate=self.temp_learning_rate,
                             alpha_learning_rate=self.alpha_learning_rate,
+                            actor_optim_factory=self.actor_optim_factory,
+                            critic_optim_factory=self.critic_optim_factory,
+                            temp_optim_factory=self.temp_optim_factory,
+                            alpha_optim_factory=self.alpha_optim_factory,
                             gamma=self.gamma,
                             tau=self.tau,
                             n_critics=self.n_critics,
@@ -191,7 +216,6 @@ class CQL(AlgoBase):
                             initial_alpha=self.initial_alpha,
                             alpha_threshold=self.alpha_threshold,
                             n_action_samples=self.n_action_samples,
-                            eps=self.eps,
                             use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu,
@@ -254,12 +278,12 @@ class DiscreteCQL(DoubleDQN):
 
     Args:
         learning_rate (float): learning rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
         use_batch_norm (bool): flag to insert batch normalization layers
@@ -285,12 +309,12 @@ class DiscreteCQL(DoubleDQN):
 
     Attributes:
         learning_rate (float): learning rate.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         target_update_interval (int): interval to synchronize the target
             network.
         use_batch_norm (bool): flag to insert batch normalization layers
@@ -311,11 +335,11 @@ class DiscreteCQL(DoubleDQN):
         self.impl = DiscreteCQLImpl(observation_shape=observation_shape,
                                     action_size=action_size,
                                     learning_rate=self.learning_rate,
+                                    optim_factory=self.optim_factory,
                                     gamma=self.gamma,
                                     n_critics=self.n_critics,
                                     bootstrap=self.bootstrap,
                                     share_encoder=self.share_encoder,
-                                    eps=self.eps,
                                     use_batch_norm=self.use_batch_norm,
                                     q_func_type=self.q_func_type,
                                     use_gpu=self.use_gpu,

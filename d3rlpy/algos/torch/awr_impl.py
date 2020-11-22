@@ -11,14 +11,16 @@ from .base import TorchImplBase
 
 class AWRImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, momentum, use_batch_norm, use_gpu,
-                 scaler, augmentation, n_augmentations, encoder_params):
+                 critic_learning_rate, actor_optim_factory,
+                 critic_optim_factory, use_batch_norm, use_gpu, scaler,
+                 augmentation, n_augmentations, encoder_params):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
         self.use_batch_norm = use_batch_norm
-        self.momentum = momentum
         self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
@@ -45,9 +47,8 @@ class AWRImpl(TorchImplBase):
                                             encoder_params=self.encoder_params)
 
     def _build_critic_optim(self):
-        self.critic_optim = SGD(self.v_func.parameters(),
-                                lr=self.critic_learning_rate,
-                                momentum=self.momentum)
+        self.critic_optim = self.critic_optim_factory.create(
+            self.v_func.parameters(), lr=self.critic_learning_rate)
 
     def _build_actor(self):
         self.policy = create_normal_policy(self.observation_shape,
@@ -56,9 +57,8 @@ class AWRImpl(TorchImplBase):
                                            encoder_params=self.encoder_params)
 
     def _build_actor_optim(self):
-        self.actor_optim = SGD(self.policy.parameters(),
-                               lr=self.actor_learning_rate,
-                               momentum=self.momentum)
+        self.actor_optim = self.actor_optim_factory.create(
+            self.policy.parameters(), lr=self.actor_learning_rate)
 
     @train_api
     @torch_api(scaler_targets=['observation'])

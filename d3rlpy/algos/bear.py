@@ -1,5 +1,6 @@
 from .base import AlgoBase
 from .torch.bear_impl import BEARImpl
+from ..optimizers import AdamFactory
 
 
 class BEAR(AlgoBase):
@@ -51,6 +52,16 @@ class BEAR(AlgoBase):
             function.
         temp_learning_rate (float): learning rate for temperature parameter.
         alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the behavior policy.
+        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the temperature.
+        alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for :math:`\\alpha`.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -70,7 +81,6 @@ class BEAR(AlgoBase):
             calculation.
         rl_start_epoch (int): epoch to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Avaiable options are
             `['mean', 'qr', 'iqn', 'fqf']`.
@@ -98,6 +108,16 @@ class BEAR(AlgoBase):
             function.
         temp_learning_rate (float): learning rate for temperature parameter.
         alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the behavior policy.
+        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the temperature.
+        alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for :math:`\\alpha`.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -117,7 +137,6 @@ class BEAR(AlgoBase):
             calculation.
         rl_start_epoch (int): epoch to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
-        eps (float): :math:`\\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function..
         use_gpu (d3rlpy.gpu.Device): GPU device.
@@ -138,6 +157,11 @@ class BEAR(AlgoBase):
                  imitator_learning_rate=1e-3,
                  temp_learning_rate=3e-4,
                  alpha_learning_rate=1e-3,
+                 actor_optim_factory=AdamFactory(),
+                 critic_optim_factory=AdamFactory(),
+                 imitator_optim_factory=AdamFactory(),
+                 temp_optim_factory=AdamFactory(),
+                 alpha_optim_factory=AdamFactory(),
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -153,7 +177,6 @@ class BEAR(AlgoBase):
                  n_action_samples=4,
                  mmd_sigma=20.0,
                  rl_start_epoch=0,
-                 eps=1e-8,
                  use_batch_norm=False,
                  q_func_type='mean',
                  use_gpu=False,
@@ -175,6 +198,11 @@ class BEAR(AlgoBase):
         self.imitator_learning_rate = imitator_learning_rate
         self.temp_learning_rate = temp_learning_rate
         self.alpha_learning_rate = alpha_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
+        self.imitator_optim_factory = imitator_optim_factory
+        self.temp_optim_factory = temp_optim_factory
+        self.alpha_optim_factory = alpha_optim_factory
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
@@ -188,7 +216,6 @@ class BEAR(AlgoBase):
         self.n_action_samples = n_action_samples
         self.mmd_sigma = mmd_sigma
         self.rl_start_epoch = rl_start_epoch
-        self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.n_augmentations = n_augmentations
@@ -204,6 +231,11 @@ class BEAR(AlgoBase):
             imitator_learning_rate=self.imitator_learning_rate,
             temp_learning_rate=self.temp_learning_rate,
             alpha_learning_rate=self.alpha_learning_rate,
+            actor_optim_factory=self.actor_optim_factory,
+            critic_optim_factory=self.critic_optim_factory,
+            imitator_optim_factory=self.imitator_optim_factory,
+            temp_optim_factory=self.temp_optim_factory,
+            alpha_optim_factory=self.alpha_optim_factory,
             gamma=self.gamma,
             tau=self.tau,
             n_critics=self.n_critics,
@@ -215,7 +247,6 @@ class BEAR(AlgoBase):
             lam=self.lam,
             n_action_samples=self.n_action_samples,
             mmd_sigma=self.mmd_sigma,
-            eps=self.eps,
             use_batch_norm=self.use_batch_norm,
             q_func_type=self.q_func_type,
             use_gpu=self.use_gpu,

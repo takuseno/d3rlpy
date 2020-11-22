@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import copy
 
-from torch.optim import Adam
 from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from d3rlpy.models.torch.policies import create_deterministic_policy
 from .utility import soft_sync, torch_api
@@ -13,21 +12,23 @@ from .base import TorchImplBase
 
 class DDPGImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, gamma, tau, n_critics, bootstrap,
-                 share_encoder, reguralizing_rate, eps, use_batch_norm,
-                 q_func_type, use_gpu, scaler, augmentation, n_augmentations,
+                 critic_learning_rate, actor_optim_factory,
+                 critic_optim_factory, gamma, tau, n_critics, bootstrap,
+                 share_encoder, reguralizing_rate, use_batch_norm, q_func_type,
+                 use_gpu, scaler, augmentation, n_augmentations,
                  encoder_params):
         self.observation_shape = observation_shape
         self.action_size = action_size
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.reguralizing_rate = reguralizing_rate
-        self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.scaler = scaler
@@ -66,9 +67,8 @@ class DDPGImpl(TorchImplBase):
             encoder_params=self.encoder_params)
 
     def _build_critic_optim(self):
-        self.critic_optim = Adam(self.q_func.parameters(),
-                                 lr=self.critic_learning_rate,
-                                 eps=self.eps)
+        self.critic_optim = self.critic_optim_factory.create(
+            self.q_func.parameters(), lr=self.critic_learning_rate)
 
     def _build_actor(self):
         self.policy = create_deterministic_policy(
@@ -78,9 +78,8 @@ class DDPGImpl(TorchImplBase):
             encoder_params=self.encoder_params)
 
     def _build_actor_optim(self):
-        self.actor_optim = Adam(self.policy.parameters(),
-                                lr=self.actor_learning_rate,
-                                eps=self.eps)
+        self.actor_optim = self.actor_optim_factory.create(
+            self.policy.parameters(), lr=self.actor_learning_rate)
 
     @train_api
     @torch_api(scaler_targets=['obs_t', 'obs_tp1'])

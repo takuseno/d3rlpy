@@ -1,5 +1,6 @@
 from .base import AlgoBase
 from .torch.awac_impl import AWACImpl
+from ..optimizers import AdamFactory
 
 
 class AWAC(AlgoBase):
@@ -30,6 +31,10 @@ class AWAC(AlgoBase):
     Args:
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -38,12 +43,10 @@ class AWAC(AlgoBase):
         n_action_samples (int): the number of sampled actions to calculate
             :math:`A^\pi(s_t, a_t)`.
         max_weight (float): maximum weight for cross-entropy loss.
-        actor_weight_decay (float): decay factor for policy function.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
-        eps (float): :math:`\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
@@ -67,6 +70,10 @@ class AWAC(AlgoBase):
     Attributes:
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -75,12 +82,10 @@ class AWAC(AlgoBase):
         n_action_samples (int): the number of sampled actions to calculate
             :math:`A^\pi(s_t, a_t)`.
         max_weight (float): maximum weight for cross-entropy loss.
-        actor_weight_decay (float): decay factor for policy function.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
-        eps (float): :math:`\epsilon` for Adam optimizer.
         use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -99,6 +104,8 @@ class AWAC(AlgoBase):
                  *,
                  actor_learning_rate=3e-4,
                  critic_learning_rate=3e-4,
+                 actor_optim_factory=AdamFactory(weight_decay=1e-4),
+                 critic_optim_factory=AdamFactory(),
                  batch_size=1024,
                  n_frames=1,
                  gamma=0.99,
@@ -106,12 +113,10 @@ class AWAC(AlgoBase):
                  lam=1.0,
                  n_action_samples=1,
                  max_weight=20.0,
-                 actor_weight_decay=1e-4,
                  n_critics=2,
                  bootstrap=False,
                  share_encoder=False,
                  update_actor_interval=1,
-                 eps=1e-8,
                  use_batch_norm=False,
                  q_func_type='mean',
                  use_gpu=False,
@@ -130,17 +135,17 @@ class AWAC(AlgoBase):
                          use_gpu=use_gpu)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
         self.gamma = gamma
         self.tau = tau
         self.lam = lam
         self.n_action_samples = n_action_samples
         self.max_weight = max_weight
-        self.actor_weight_decay = actor_weight_decay
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.update_actor_interval = update_actor_interval
-        self.eps = eps
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.n_augmentations = n_augmentations
@@ -152,16 +157,16 @@ class AWAC(AlgoBase):
                              action_size=action_size,
                              actor_learning_rate=self.actor_learning_rate,
                              critic_learning_rate=self.critic_learning_rate,
+                             actor_optim_factory=self.actor_optim_factory,
+                             critic_optim_factory=self.critic_optim_factory,
                              gamma=self.gamma,
                              tau=self.tau,
                              lam=self.lam,
                              n_action_samples=self.n_action_samples,
                              max_weight=self.max_weight,
-                             actor_weight_decay=self.actor_weight_decay,
                              n_critics=self.n_critics,
                              bootstrap=self.bootstrap,
                              share_encoder=self.share_encoder,
-                             eps=self.eps,
                              use_batch_norm=self.use_batch_norm,
                              q_func_type=self.q_func_type,
                              use_gpu=self.use_gpu,
