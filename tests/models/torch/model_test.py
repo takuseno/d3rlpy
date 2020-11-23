@@ -2,18 +2,6 @@ import torch
 import copy
 
 from torch.optim import SGD
-from d3rlpy.encoders import PixelEncoderFactory, VectorEncoderFactory
-
-
-def create_encoder_factory(use_encoder_factory, observation_shape):
-    if use_encoder_factory:
-        if len(observation_shape) == 3:
-            encoder_factory = PixelEncoderFactory()
-        else:
-            encoder_factory = VectorEncoderFactory()
-    else:
-        encoder_factory = None
-    return encoder_factory
 
 
 def check_parameter_updates(model, inputs=None, output=None):

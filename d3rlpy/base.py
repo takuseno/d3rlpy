@@ -13,6 +13,7 @@ from .metrics.scorer import NEGATED_SCORER
 from .context import disable_parallel
 from .gpu import Device
 from .optimizers import OptimizerFactory
+from .encoders import EncoderFactory, create_encoder_factory
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -152,6 +153,11 @@ class LearnableBase:
         for key, value in params.items():
             if 'optim_factory' in key:
                 params[key] = OptimizerFactory(**value)
+
+        for key, value in params.items():
+            if 'encoder_factory' in key and value is not None:
+                params[key] = create_encoder_factory(value['type'],
+                                                     **value['params'])
 
         # overwrite use_gpu flag
         params['use_gpu'] = use_gpu
@@ -484,6 +490,14 @@ class LearnableBase:
         for key, value in params.items():
             if isinstance(value, OptimizerFactory):
                 params[key] = value.get_params()
+
+        # encoder factory
+        for key, value in params.items():
+            if isinstance(value, EncoderFactory):
+                params[key] = {
+                    'type': value.get_type(),
+                    'params': value.get_params()
+                }
 
         # save GPU device id
         if self.use_gpu:

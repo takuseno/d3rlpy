@@ -8,15 +8,14 @@ from .utility import compute_augmentation_mean
 
 class BCImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate,
-                 optim_factory, use_batch_norm, use_gpu, scaler, augmentation,
-                 n_augmentations, encoder_params):
+                 optim_factory, encoder_factory, use_gpu, scaler, augmentation,
+                 n_augmentations):
         super().__init__(observation_shape, action_size, scaler)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
-        self.use_batch_norm = use_batch_norm
+        self.encoder_factory = encoder_factory
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
-        self.encoder_params = encoder_params
         self.use_gpu = use_gpu
 
         # initialized in build
@@ -34,10 +33,9 @@ class BCImpl(TorchImplBase):
         self._build_optim()
 
     def _build_network(self):
-        self.imitator = create_deterministic_regressor(
-            self.observation_shape,
-            self.action_size,
-            encoder_params=self.encoder_params)
+        self.imitator = create_deterministic_regressor(self.observation_shape,
+                                                       self.action_size,
+                                                       self.encoder_factory)
 
     def _build_optim(self):
         self.optim = self.optim_factory.create(self.imitator.parameters(),
@@ -76,26 +74,23 @@ class BCImpl(TorchImplBase):
 
 class DiscreteBCImpl(BCImpl):
     def __init__(self, observation_shape, action_size, learning_rate,
-                 optim_factory, beta, use_batch_norm, use_gpu, scaler,
-                 augmentation, n_augmentations, encoder_params):
+                 optim_factory, encoder_factory, beta, use_gpu, scaler,
+                 augmentation, n_augmentations):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          learning_rate=learning_rate,
                          optim_factory=optim_factory,
-                         use_batch_norm=use_batch_norm,
+                         encoder_factory=encoder_factory,
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,
-                         n_augmentations=n_augmentations,
-                         encoder_params=encoder_params)
+                         n_augmentations=n_augmentations)
         self.beta = beta
 
     def _build_network(self):
-        self.imitator = create_discrete_imitator(
-            self.observation_shape,
-            self.action_size,
-            self.beta,
-            encoder_params=self.encoder_params)
+        self.imitator = create_discrete_imitator(self.observation_shape,
+                                                 self.action_size, self.beta,
+                                                 self.encoder_factory)
 
     def _predict_best_action(self, x):
         return self.imitator(x).argmax(dim=1)

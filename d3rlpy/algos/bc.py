@@ -20,9 +20,9 @@ class BC(AlgoBase):
     Args:
         learning_rate (float): learing rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -30,12 +30,6 @@ class BC(AlgoBase):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup. If the
-            observation is pixel, you can pass ``filters`` with list of tuples
-            consisting with ``(filter_size, kernel_size, stride)`` and
-            ``feature_size`` with an integer scaler for the last linear layer
-            size. If the observation is vector, you can pass ``hidden_units``
-            with list of hidden unit sizes.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bc_impl.BCImpl):
@@ -44,15 +38,14 @@ class BC(AlgoBase):
     Attributes:
         learning_rate (float): learing rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bc_impl.BCImpl):
             implemenation of the algorithm.
@@ -63,14 +56,13 @@ class BC(AlgoBase):
                  *,
                  learning_rate=1e-3,
                  optim_factory=AdamFactory(),
+                 encoder_factory=None,
                  batch_size=100,
                  n_frames=1,
-                 use_batch_norm=False,
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
                  n_augmentations=1,
-                 encoder_params={},
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -82,9 +74,8 @@ class BC(AlgoBase):
                          use_gpu=use_gpu)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
-        self.use_batch_norm = use_batch_norm
+        self.encoder_factory = encoder_factory
         self.n_augmentations = n_augmentations
-        self.encoder_params = encoder_params
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -92,12 +83,11 @@ class BC(AlgoBase):
                            action_size=action_size,
                            learning_rate=self.learning_rate,
                            optim_factory=self.optim_factory,
-                           use_batch_norm=self.use_batch_norm,
+                           encoder_factory=self.encoder_factory,
                            use_gpu=self.use_gpu,
                            scaler=self.scaler,
                            augmentation=self.augmentation,
-                           n_augmentations=self.n_augmentations,
-                           encoder_params=self.encoder_params)
+                           n_augmentations=self.n_augmentations)
         self.impl.build()
 
     def update(self, epoch, itr, batch):
@@ -137,10 +127,10 @@ class DiscreteBC(BC):
     Args:
         learning_rate (float): learing rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         beta (float): reguralization factor.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -148,12 +138,6 @@ class DiscreteBC(BC):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup. If the
-            observation is pixel, you can pass ``filters`` with list of tuples
-            consisting with ``(filter_size, kernel_size, stride)`` and
-            ``feature_size`` with an integer scaler for the last linear layer
-            size. If the observation is vector, you can pass ``hidden_units``
-            with list of hidden unit sizes.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
@@ -162,16 +146,15 @@ class DiscreteBC(BC):
     Attributes:
         learning_rate (float): learing rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         beta (float): reguralization factor.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
             implemenation of the algorithm.
@@ -182,28 +165,26 @@ class DiscreteBC(BC):
                  *,
                  learning_rate=1e-3,
                  optim_factory=AdamFactory(),
+                 encoder_factory=None,
                  batch_size=100,
                  n_frames=1,
                  beta=0.5,
-                 use_batch_norm=False,
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
                  n_augmentations=1,
-                 encoder_params={},
                  dynamics=None,
                  impl=None,
                  **kwargs):
         super().__init__(learning_rate=learning_rate,
                          optim_factory=optim_factory,
+                         encoder_factory=encoder_factory,
                          batch_size=batch_size,
                          n_frames=n_frames,
-                         use_batch_norm=use_batch_norm,
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,
                          n_augmentations=n_augmentations,
-                         encoder_params=encoder_params,
                          dynamics=dynamics,
                          impl=impl,
                          **kwargs)
@@ -214,11 +195,10 @@ class DiscreteBC(BC):
                                    action_size=action_size,
                                    learning_rate=self.learning_rate,
                                    optim_factory=self.optim_factory,
+                                   encoder_factory=self.encoder_factory,
                                    beta=self.beta,
-                                   use_batch_norm=self.use_batch_norm,
                                    use_gpu=self.use_gpu,
                                    scaler=self.scaler,
                                    augmentation=self.augmentation,
-                                   n_augmentations=self.n_augmentations,
-                                   encoder_params=self.encoder_params)
+                                   n_augmentations=self.n_augmentations)
         self.impl.build()

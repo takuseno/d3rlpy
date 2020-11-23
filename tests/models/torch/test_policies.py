@@ -10,7 +10,7 @@ from d3rlpy.models.torch.policies import DeterministicPolicy
 from d3rlpy.models.torch.policies import DeterministicResidualPolicy
 from d3rlpy.models.torch.policies import NormalPolicy
 from d3rlpy.models.torch.policies import CategoricalPolicy
-from .model_test import create_encoder_factory
+from tests import create_encoder_factory
 from .model_test import check_parameter_updates, DummyEncoder
 
 

@@ -21,6 +21,7 @@ class DQN(AlgoBase):
     Args:
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -28,7 +29,6 @@ class DQN(AlgoBase):
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         target_update_interval (int): interval to update the target network.
-        use_batch_norm (bool): flag to insert batch normalization layers
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -38,12 +38,6 @@ class DQN(AlgoBase):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup. If the
-            observation is pixel, you can pass ``filters`` with list of tuples
-            consisting with ``(filter_size, kernel_size, stride)`` and
-            ``feature_size`` with an integer scaler for the last linear layer
-            size. If the observation is vector, you can pass ``hidden_units``
-            with list of hidden unit sizes.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.dqn_impl.DQNImpl): algorithm implementation.
@@ -51,6 +45,7 @@ class DQN(AlgoBase):
     Attributes:
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -58,14 +53,12 @@ class DQN(AlgoBase):
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         target_update_interval (int): interval to update the target network.
-        use_batch_norm (bool): flag to insert batch normalization layers
         q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.dqn_impl.DQNImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -75,21 +68,19 @@ class DQN(AlgoBase):
                  *,
                  learning_rate=6.25e-5,
                  optim_factory=AdamFactory(),
+                 encoder_factory=None,
                  batch_size=32,
                  n_frames=1,
                  gamma=0.99,
                  n_critics=1,
                  bootstrap=False,
                  share_encoder=False,
-                 eps=1.5e-4,
                  target_update_interval=8e3,
-                 use_batch_norm=False,
                  q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
                  n_augmentations=1,
-                 encoder_params={},
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -101,15 +92,14 @@ class DQN(AlgoBase):
                          use_gpu=use_gpu)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
+        self.encoder_factory = encoder_factory
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.target_update_interval = target_update_interval
-        self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.n_augmentations = n_augmentations
-        self.encoder_params = encoder_params
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -117,17 +107,16 @@ class DQN(AlgoBase):
                             action_size=action_size,
                             learning_rate=self.learning_rate,
                             optim_factory=self.optim_factory,
+                            encoder_factory=self.encoder_factory,
                             gamma=self.gamma,
                             n_critics=self.n_critics,
                             bootstrap=self.bootstrap,
                             share_encoder=self.share_encoder,
-                            use_batch_norm=self.use_batch_norm,
                             q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
                             augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations,
-                            encoder_params=self.encoder_params)
+                            n_augmentations=self.n_augmentations)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
@@ -166,6 +155,7 @@ class DoubleDQN(DQN):
     Args:
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -174,7 +164,6 @@ class DoubleDQN(DQN):
         share_encoder (bool): flag to share encoder network.
         target_update_interval (int): interval to synchronize the target
             network.
-        use_batch_norm (bool): flag to insert batch normalization layers
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -184,12 +173,6 @@ class DoubleDQN(DQN):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup. If the
-            observation is pixel, you can pass ``filters`` with list of tuples
-            consisting with ``(filter_size, kernel_size, stride)`` and
-            ``feature_size`` with an integer scaler for the last linear layer
-            size. If the observation is vector, you can pass ``hidden_units``
-            with list of hidden unit sizes.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.dqn_impl.DoubleDQNImpl):
@@ -198,6 +181,7 @@ class DoubleDQN(DQN):
     Attributes:
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -206,14 +190,12 @@ class DoubleDQN(DQN):
         share_encoder (bool): flag to share encoder network.
         target_update_interval (int): interval to synchronize the target
             network.
-        use_batch_norm (bool): flag to insert batch normalization layers
         q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynaics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.dqn_impl.DoubleDQNImpl):
             algorithm implementation.
@@ -224,15 +206,14 @@ class DoubleDQN(DQN):
                                   action_size=action_size,
                                   learning_rate=self.learning_rate,
                                   optim_factory=self.optim_factory,
+                                  encoder_factory=self.encoder_factory,
                                   gamma=self.gamma,
                                   n_critics=self.n_critics,
                                   bootstrap=self.bootstrap,
                                   share_encoder=self.share_encoder,
-                                  use_batch_norm=self.use_batch_norm,
                                   q_func_type=self.q_func_type,
                                   use_gpu=self.use_gpu,
                                   scaler=self.scaler,
                                   augmentation=self.augmentation,
-                                  n_augmentations=self.n_augmentations,
-                                  encoder_params=self.encoder_params)
+                                  n_augmentations=self.n_augmentations)
         self.impl.build()

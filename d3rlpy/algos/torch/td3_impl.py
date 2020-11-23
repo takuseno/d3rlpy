@@ -6,29 +6,30 @@ from .ddpg_impl import DDPGImpl
 class TD3Impl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, actor_optim_factory,
-                 critic_optim_factory, gamma, tau, reguralizing_rate,
+                 critic_optim_factory, actor_encoder_factory,
+                 critic_encoder_factory, gamma, tau, reguralizing_rate,
                  n_critics, bootstrap, share_encoder, target_smoothing_sigma,
-                 target_smoothing_clip, use_batch_norm, q_func_type, use_gpu,
-                 scaler, augmentation, n_augmentations, encoder_params):
+                 target_smoothing_clip, q_func_type, use_gpu, scaler,
+                 augmentation, n_augmentations):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
                          critic_learning_rate=critic_learning_rate,
                          actor_optim_factory=actor_optim_factory,
                          critic_optim_factory=critic_optim_factory,
+                         actor_encoder_factory=actor_encoder_factory,
+                         critic_encoder_factory=critic_encoder_factory,
                          gamma=gamma,
                          tau=tau,
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
                          reguralizing_rate=reguralizing_rate,
-                         use_batch_norm=use_batch_norm,
                          q_func_type=q_func_type,
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,
-                         n_augmentations=n_augmentations,
-                         encoder_params=encoder_params)
+                         n_augmentations=n_augmentations)
         self.target_smoothing_sigma = target_smoothing_sigma
         self.target_smoothing_clip = target_smoothing_clip
 

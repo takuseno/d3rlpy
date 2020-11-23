@@ -41,6 +41,10 @@ class DDPG(AlgoBase):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the critic.
+        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
+            encoder factory for the actor.
+        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
+            encoder factory for the critic.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -49,7 +53,6 @@ class DDPG(AlgoBase):
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         reguralizing_rate (float): reguralizing term for policy function.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function. Available options are
             `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -59,12 +62,6 @@ class DDPG(AlgoBase):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup. If the
-            observation is pixel, you can pass ``filters`` with list of tuples
-            consisting with ``(filter_size, kernel_size, stride)`` and
-            ``feature_size`` with an integer scaler for the last linear layer
-            size. If the observation is vector, you can pass ``hidden_units``
-            with list of hidden unit sizes.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.ddpg_impl.DDPGImpl): algorithm implementation.
@@ -76,6 +73,10 @@ class DDPG(AlgoBase):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the critic.
+        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
+            encoder factory for the actor.
+        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
+            encoder factory for the critic.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -84,14 +85,12 @@ class DDPG(AlgoBase):
         bootstrap (bool): flag to bootstraep Q functions.
         share_encoder (bool): flag to share encoder network.
         reguralizing_rate (float): reguralizing term for policy function.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.ddpg_impl.DDPGImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -103,6 +102,8 @@ class DDPG(AlgoBase):
                  critic_learning_rate=3e-4,
                  actor_optim_factory=AdamFactory(),
                  critic_optim_factory=AdamFactory(),
+                 actor_encoder_factory=None,
+                 critic_encoder_factory=None,
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -131,6 +132,8 @@ class DDPG(AlgoBase):
         self.critic_learning_rate = critic_learning_rate
         self.actor_optim_factory = actor_optim_factory
         self.critic_optim_factory = critic_optim_factory
+        self.actor_encoder_factory = actor_encoder_factory
+        self.critic_encoder_factory = critic_encoder_factory
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
@@ -144,25 +147,26 @@ class DDPG(AlgoBase):
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
-        self.impl = DDPGImpl(observation_shape=observation_shape,
-                             action_size=action_size,
-                             actor_learning_rate=self.actor_learning_rate,
-                             critic_learning_rate=self.critic_learning_rate,
-                             actor_optim_factory=self.actor_optim_factory,
-                             critic_optim_factory=self.critic_optim_factory,
-                             gamma=self.gamma,
-                             tau=self.tau,
-                             n_critics=self.n_critics,
-                             bootstrap=self.bootstrap,
-                             share_encoder=self.share_encoder,
-                             reguralizing_rate=self.reguralizing_rate,
-                             use_batch_norm=self.use_batch_norm,
-                             q_func_type=self.q_func_type,
-                             use_gpu=self.use_gpu,
-                             scaler=self.scaler,
-                             augmentation=self.augmentation,
-                             n_augmentations=self.n_augmentations,
-                             encoder_params=self.encoder_params)
+        self.impl = DDPGImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            actor_learning_rate=self.actor_learning_rate,
+            critic_learning_rate=self.critic_learning_rate,
+            actor_optim_factory=self.actor_optim_factory,
+            critic_optim_factory=self.critic_optim_factory,
+            actor_encoder_factory=self.actor_encoder_factory,
+            critic_encoder_factory=self.critic_encoder_factory,
+            gamma=self.gamma,
+            tau=self.tau,
+            n_critics=self.n_critics,
+            bootstrap=self.bootstrap,
+            share_encoder=self.share_encoder,
+            reguralizing_rate=self.reguralizing_rate,
+            q_func_type=self.q_func_type,
+            use_gpu=self.use_gpu,
+            scaler=self.scaler,
+            augmentation=self.augmentation,
+            n_augmentations=self.n_augmentations)
         self.impl.build()
 
     def update(self, epoch, itr, batch):

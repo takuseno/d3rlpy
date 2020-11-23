@@ -48,13 +48,13 @@ class MOPO(DynamicsBase):
     Args:
         learning_rate (float): learning rate for dynamics model.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         n_ensembles (int): the number of dynamics model for ensemble.
         n_transitions (int): the number of parallel trajectories to generate.
         horizon (int): the number of steps to generate.
         lam (float): :math:`\\lambda` for uncertainty penalties.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         discrete_action (bool): flag to take discrete actions.
         scaler (d3rlpy.preprocessing.scalers.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`.
@@ -66,13 +66,13 @@ class MOPO(DynamicsBase):
     Attributes:
         learning_rate (float): learning rate for dynamics model.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         n_ensembles (int): the number of dynamics model for ensemble.
         n_transitions (int): the number of parallel trajectories to generate.
         horizon (int): the number of steps to generate.
         lam (float): :math:`\\lambda` for uncertainty penalties.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         discrete_action (bool): flag to take discrete actions.
         scaler (d3rlpy.preprocessing.scalers.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -86,13 +86,13 @@ class MOPO(DynamicsBase):
                  *,
                  learning_rate=1e-3,
                  optim_factory=AdamFactory(weight_decay=1e-4),
+                 encoder_factory=None,
                  batch_size=100,
                  n_frames=1,
                  n_ensembles=5,
                  n_transitions=400,
                  horizon=5,
                  lam=1.0,
-                 use_batch_norm=False,
                  discrete_action=False,
                  scaler=None,
                  augmentation=[],
@@ -108,9 +108,9 @@ class MOPO(DynamicsBase):
                          use_gpu=use_gpu)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
+        self.encoder_factory = encoder_factory
         self.n_ensembles = n_ensembles
         self.lam = lam
-        self.use_batch_norm = use_batch_norm
         self.discrete_action = discrete_action
         self.impl = impl
 
@@ -120,9 +120,9 @@ class MOPO(DynamicsBase):
                              action_size=action_size,
                              learning_rate=self.learning_rate,
                              optim_factory=self.optim_factory,
+                             encoder_factory=self.encoder_factory,
                              n_ensembles=self.n_ensembles,
                              lam=self.lam,
-                             use_batch_norm=self.use_batch_norm,
                              discrete_action=self.discrete_action,
                              scaler=self.scaler,
                              use_gpu=self.use_gpu)

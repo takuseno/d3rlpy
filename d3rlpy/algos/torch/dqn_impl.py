@@ -11,21 +11,20 @@ from .base import TorchImplBase
 
 class DQNImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate,
-                 optim_factory, gamma, n_critics, bootstrap, share_encoder,
-                 use_batch_norm, q_func_type, use_gpu, scaler, augmentation,
-                 n_augmentations, encoder_params):
+                 optim_factory, encoder_factory, gamma, n_critics, bootstrap,
+                 share_encoder, q_func_type, use_gpu, scaler, augmentation,
+                 n_augmentations):
         super().__init__(observation_shape, action_size, scaler)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
+        self.encoder_factory = encoder_factory
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
-        self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
-        self.encoder_params = encoder_params
         self.use_gpu = use_gpu
 
         # initialized in build
@@ -52,12 +51,11 @@ class DQNImpl(TorchImplBase):
         self.q_func = create_discrete_q_function(
             self.observation_shape,
             self.action_size,
+            self.encoder_factory,
             n_ensembles=self.n_critics,
-            use_batch_norm=self.use_batch_norm,
             q_func_type=self.q_func_type,
             bootstrap=self.bootstrap,
-            share_encoder=self.share_encoder,
-            encoder_params=self.encoder_params)
+            share_encoder=self.share_encoder)
 
     def _build_optim(self):
         self.optim = self.optim_factory.create(self.q_func.parameters(),

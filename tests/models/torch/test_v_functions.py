@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from d3rlpy.models.torch.v_functions import create_value_function
 from d3rlpy.models.torch.v_functions import ValueFunction
-from .model_test import create_encoder_factory
+from tests import create_encoder_factory
 from .model_test import check_parameter_updates, DummyEncoder
 
 

@@ -10,7 +10,7 @@ from d3rlpy.models.torch.imitators import ConditionalVAE
 from d3rlpy.models.torch.imitators import DiscreteImitator
 from d3rlpy.models.torch.imitators import DeterministicRegressor
 from d3rlpy.models.torch.imitators import ProbablisticRegressor
-from .model_test import create_encoder_factory
+from tests import create_encoder_factory
 from .model_test import check_parameter_updates, DummyEncoder
 
 

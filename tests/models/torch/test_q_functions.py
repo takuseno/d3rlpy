@@ -20,7 +20,7 @@ from d3rlpy.models.torch.q_functions import EnsembleDiscreteQFunction
 from d3rlpy.models.torch.q_functions import ContinuousQFunction
 from d3rlpy.models.torch.q_functions import EnsembleContinuousQFunction
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
-from .model_test import create_encoder_factory
+from tests import create_encoder_factory
 from .model_test import check_parameter_updates, DummyEncoder
 
 

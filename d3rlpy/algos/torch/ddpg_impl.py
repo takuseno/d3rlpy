@@ -13,26 +13,26 @@ from .base import TorchImplBase
 class DDPGImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, actor_optim_factory,
-                 critic_optim_factory, gamma, tau, n_critics, bootstrap,
-                 share_encoder, reguralizing_rate, use_batch_norm, q_func_type,
-                 use_gpu, scaler, augmentation, n_augmentations,
-                 encoder_params):
+                 critic_optim_factory, actor_encoder_factory,
+                 critic_encoder_factory, gamma, tau, n_critics, bootstrap,
+                 share_encoder, reguralizing_rate, q_func_type, use_gpu,
+                 scaler, augmentation, n_augmentations):
         super().__init__(observation_shape, action_size, scaler)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.actor_optim_factory = actor_optim_factory
         self.critic_optim_factory = critic_optim_factory
+        self.actor_encoder_factory = actor_encoder_factory
+        self.critic_encoder_factory = critic_encoder_factory
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.reguralizing_rate = reguralizing_rate
-        self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
-        self.encoder_params = encoder_params
         self.use_gpu = use_gpu
 
         # initialized in build
@@ -65,23 +65,20 @@ class DDPGImpl(TorchImplBase):
         self.q_func = create_continuous_q_function(
             self.observation_shape,
             self.action_size,
+            self.critic_encoder_factory,
             n_ensembles=self.n_critics,
-            use_batch_norm=self.use_batch_norm,
             q_func_type=self.q_func_type,
             bootstrap=self.bootstrap,
-            share_encoder=self.share_encoder,
-            encoder_params=self.encoder_params)
+            share_encoder=self.share_encoder)
 
     def _build_critic_optim(self):
         self.critic_optim = self.critic_optim_factory.create(
             self.q_func.parameters(), lr=self.critic_learning_rate)
 
     def _build_actor(self):
-        self.policy = create_deterministic_policy(
-            self.observation_shape,
-            self.action_size,
-            self.use_batch_norm,
-            encoder_params=self.encoder_params)
+        self.policy = create_deterministic_policy(self.observation_shape,
+                                                  self.action_size,
+                                                  self.actor_encoder_factory)
 
     def _build_actor_optim(self):
         self.actor_optim = self.actor_optim_factory.create(

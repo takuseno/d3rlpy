@@ -3,6 +3,7 @@ import pytest
 from d3rlpy.algos.torch.cql_impl import CQLImpl, DiscreteCQLImpl
 from d3rlpy.augmentation import AugmentationPipeline
 from d3rlpy.optimizers import AdamFactory
+from tests import create_encoder_factory
 from tests.algos.algo_test import torch_impl_tester, DummyScaler
 
 
@@ -25,21 +26,21 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('initial_alpha', [5.0])
 @pytest.mark.parametrize('alpha_threshold', [10.0])
 @pytest.mark.parametrize('n_action_samples', [10])
-@pytest.mark.parametrize('use_batch_norm', [True, False])
+@pytest.mark.parametrize('use_encoder_factory', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
-@pytest.mark.parametrize('encoder_params', [{}])
 def test_cql_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, temp_learning_rate,
                   alpha_learning_rate, actor_optim_factory,
                   critic_optim_factory, temp_optim_factory,
                   alpha_optim_factory, gamma, tau, n_critics, bootstrap,
                   share_encoder, initial_temperature, initial_alpha,
-                  alpha_threshold, n_action_samples, use_batch_norm,
-                  q_func_type, scaler, augmentation, n_augmentations,
-                  encoder_params):
+                  alpha_threshold, n_action_samples, use_encoder_factory,
+                  q_func_type, scaler, augmentation, n_augmentations):
+    encoder_factory = create_encoder_factory(use_encoder_factory,
+                                             observation_shape)
     impl = CQLImpl(observation_shape,
                    action_size,
                    actor_learning_rate,
@@ -50,6 +51,8 @@ def test_cql_impl(observation_shape, action_size, actor_learning_rate,
                    critic_optim_factory,
                    temp_optim_factory,
                    alpha_optim_factory,
+                   encoder_factory,
+                   encoder_factory,
                    gamma,
                    tau,
                    n_critics,
@@ -59,13 +62,11 @@ def test_cql_impl(observation_shape, action_size, actor_learning_rate,
                    initial_alpha,
                    alpha_threshold,
                    n_action_samples,
-                   use_batch_norm,
                    q_func_type,
                    use_gpu=False,
                    scaler=scaler,
                    augmentation=augmentation,
-                   n_augmentations=n_augmentations,
-                   encoder_params=encoder_params)
+                   n_augmentations=n_augmentations)
     torch_impl_tester(impl,
                       discrete=False,
                       deterministic_best_action=q_func_type != 'iqn')
@@ -79,31 +80,31 @@ def test_cql_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('n_critics', [1])
 @pytest.mark.parametrize('bootstrap', [False])
 @pytest.mark.parametrize('share_encoder', [False, True])
-@pytest.mark.parametrize('use_batch_norm', [True, False])
+@pytest.mark.parametrize('use_encoder_factory', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
-@pytest.mark.parametrize('encoder_params', [{}])
 def test_double_dqn_impl(observation_shape, action_size, learning_rate,
                          optim_factory, gamma, n_critics, bootstrap,
-                         share_encoder, use_batch_norm, q_func_type, scaler,
-                         augmentation, n_augmentations, encoder_params):
+                         share_encoder, use_encoder_factory, q_func_type,
+                         scaler, augmentation, n_augmentations):
+    encoder_factory = create_encoder_factory(use_encoder_factory,
+                                             observation_shape)
     impl = DiscreteCQLImpl(observation_shape,
                            action_size,
                            learning_rate,
                            optim_factory,
+                           encoder_factory,
                            gamma,
                            n_critics,
                            bootstrap,
                            share_encoder,
-                           use_batch_norm,
                            q_func_type=q_func_type,
                            use_gpu=False,
                            scaler=scaler,
                            augmentation=augmentation,
-                           n_augmentations=n_augmentations,
-                           encoder_params=encoder_params)
+                           n_augmentations=n_augmentations)
     torch_impl_tester(impl,
                       discrete=True,
                       deterministic_best_action=q_func_type != 'iqn')
