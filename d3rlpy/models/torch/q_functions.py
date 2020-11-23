@@ -9,19 +9,19 @@ from .encoders import create_encoder
 
 def create_discrete_q_function(observation_shape,
                                action_size,
+                               encoder_factory=None,
                                n_ensembles=1,
                                n_quantiles=32,
                                embed_size=64,
-                               use_batch_norm=False,
                                q_func_type='mean',
                                bootstrap=False,
-                               share_encoder=False,
-                               encoder_params={}):
+                               share_encoder=False):
 
     if share_encoder:
-        encoder = create_encoder(observation_shape,
-                                 use_batch_norm=use_batch_norm,
-                                 **encoder_params)
+        if encoder_factory:
+            encoder = encoder_factory.create(observation_shape)
+        else:
+            encoder = create_encoder(observation_shape)
         # normalize gradient scale by ensemble size
         for p in encoder.parameters():
             p.register_hook(lambda grad: grad / n_ensembles)
@@ -29,9 +29,10 @@ def create_discrete_q_function(observation_shape,
     q_funcs = []
     for _ in range(n_ensembles):
         if not share_encoder:
-            encoder = create_encoder(observation_shape,
-                                     use_batch_norm=use_batch_norm,
-                                     **encoder_params)
+            if encoder_factory:
+                encoder = encoder_factory.create(observation_shape)
+            else:
+                encoder = create_encoder(observation_shape)
         if q_func_type == 'mean':
             q_func = DiscreteQFunction(encoder, action_size)
         elif q_func_type == 'qr':
@@ -50,20 +51,19 @@ def create_discrete_q_function(observation_shape,
 
 def create_continuous_q_function(observation_shape,
                                  action_size,
+                                 encoder_factory=None,
                                  n_ensembles=1,
                                  n_quantiles=32,
                                  embed_size=64,
-                                 use_batch_norm=False,
                                  q_func_type='mean',
                                  bootstrap=False,
-                                 share_encoder=False,
-                                 encoder_params={}):
+                                 share_encoder=False):
 
     if share_encoder:
-        encoder = create_encoder(observation_shape,
-                                 action_size,
-                                 use_batch_norm=use_batch_norm,
-                                 **encoder_params)
+        if encoder_factory:
+            encoder = encoder_factory.create(observation_shape, action_size)
+        else:
+            encoder = create_encoder(observation_shape, action_size)
         # normalize gradient scale by ensemble size
         for p in encoder.parameters():
             p.register_hook(lambda grad: grad / n_ensembles)
@@ -71,10 +71,11 @@ def create_continuous_q_function(observation_shape,
     q_funcs = []
     for _ in range(n_ensembles):
         if not share_encoder:
-            encoder = create_encoder(observation_shape,
-                                     action_size,
-                                     use_batch_norm=use_batch_norm,
-                                     **encoder_params)
+            if encoder_factory:
+                encoder = encoder_factory.create(observation_shape,
+                                                 action_size)
+            else:
+                encoder = create_encoder(observation_shape, action_size)
         if q_func_type == 'mean':
             q_func = ContinuousQFunction(encoder)
         elif q_func_type == 'qr':

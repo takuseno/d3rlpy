@@ -4,12 +4,11 @@ import torch.nn.functional as F
 from .encoders import create_encoder
 
 
-def create_value_function(observation_shape,
-                          use_batch_norm,
-                          encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+def create_value_function(observation_shape, encoder_factory=None):
+    if encoder_factory:
+        encoder = encoder_factory.create(observation_shape)
+    else:
+        encoder = create_encoder(observation_shape)
     return ValueFunction(encoder)
 
 

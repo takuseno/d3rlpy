@@ -9,19 +9,20 @@ from .encoders import create_encoder
 
 def create_probablistic_dynamics(observation_shape,
                                  action_size,
+                                 encoder_factory=None,
                                  n_ensembles=5,
-                                 use_batch_norm=False,
-                                 discrete_action=False,
-                                 encoder_params={}):
+                                 discrete_action=False):
     models = []
     for _ in range(n_ensembles):
-        encoder = create_encoder(observation_shape,
-                                 action_size,
-                                 use_batch_norm=use_batch_norm,
-                                 discrete_action=discrete_action,
-                                 activation_type='swish',
-                                 hidden_units=[200, 200, 200, 200],
-                                 **encoder_params)
+        if encoder_factory:
+            encoder = encoder_factory.create(observation_shape, action_size,
+                                             discrete_action)
+        else:
+            encoder = create_encoder(observation_shape,
+                                     action_size,
+                                     discrete_action=discrete_action,
+                                     activation_type='swish',
+                                     hidden_units=[200, 200, 200, 200])
         model = ProbablisticDynamics(encoder)
         models.append(model)
     return EnsembleDynamics(models)

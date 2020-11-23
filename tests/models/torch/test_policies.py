@@ -10,17 +10,21 @@ from d3rlpy.models.torch.policies import DeterministicPolicy
 from d3rlpy.models.torch.policies import DeterministicResidualPolicy
 from d3rlpy.models.torch.policies import NormalPolicy
 from d3rlpy.models.torch.policies import CategoricalPolicy
+from .model_test import create_encoder_factory
 from .model_test import check_parameter_updates, DummyEncoder
 
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('use_encoder_factory', [False, True])
 def test_create_deterministic_policy(observation_shape, action_size,
-                                     batch_size, use_batch_norm):
+                                     batch_size, use_encoder_factory):
+    encoder_factory = create_encoder_factory(use_encoder_factory,
+                                             observation_shape)
+
     policy = create_deterministic_policy(observation_shape, action_size,
-                                         use_batch_norm)
+                                         encoder_factory)
 
     assert isinstance(policy, DeterministicPolicy)
 
@@ -33,13 +37,16 @@ def test_create_deterministic_policy(observation_shape, action_size,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('scale', [0.05])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('use_encoder_factory', [False, True])
 def test_create_deterministic_residual_policy(observation_shape, action_size,
                                               scale, batch_size,
-                                              use_batch_norm):
+                                              use_encoder_factory):
+    encoder_factory = create_encoder_factory(use_encoder_factory,
+                                             observation_shape)
+
     policy = create_deterministic_residual_policy(observation_shape,
                                                   action_size, scale,
-                                                  use_batch_norm)
+                                                  encoder_factory)
 
     assert isinstance(policy, DeterministicResidualPolicy)
 
@@ -52,11 +59,14 @@ def test_create_deterministic_residual_policy(observation_shape, action_size,
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('use_encoder_factory', [False, True])
 def test_create_normal_policy(observation_shape, action_size, batch_size,
-                              use_batch_norm):
+                              use_encoder_factory):
+    encoder_factory = create_encoder_factory(use_encoder_factory,
+                                             observation_shape)
+
     policy = create_normal_policy(observation_shape, action_size,
-                                  use_batch_norm)
+                                  encoder_factory)
 
     assert isinstance(policy, NormalPolicy)
 
@@ -68,11 +78,14 @@ def test_create_normal_policy(observation_shape, action_size, batch_size,
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('use_encoder_factory', [False, True])
 def test_create_categorical_policy(observation_shape, action_size, batch_size,
-                                   use_batch_norm):
+                                   use_encoder_factory):
+    encoder_factory = create_encoder_factory(use_encoder_factory,
+                                             observation_shape)
+
     policy = create_categorical_policy(observation_shape, action_size,
-                                       use_batch_norm)
+                                       encoder_factory)
 
     assert isinstance(policy, CategoricalPolicy)
 

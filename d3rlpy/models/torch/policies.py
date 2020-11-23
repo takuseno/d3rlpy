@@ -10,36 +10,35 @@ from .encoders import create_encoder
 
 def create_deterministic_policy(observation_shape,
                                 action_size,
-                                use_batch_norm=False,
-                                encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+                                encoder_factory=None):
+    if encoder_factory:
+        encoder = encoder_factory.create(observation_shape)
+    else:
+        encoder = create_encoder(observation_shape)
     return DeterministicPolicy(encoder, action_size)
 
 
 def create_deterministic_residual_policy(observation_shape,
                                          action_size,
                                          scale,
-                                         use_batch_norm=False,
-                                         encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             action_size,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+                                         encoder_factory=None):
+    if encoder_factory:
+        encoder = encoder_factory.create(observation_shape, action_size)
+    else:
+        encoder = create_encoder(observation_shape, action_size)
     return DeterministicResidualPolicy(encoder, scale)
 
 
 def create_normal_policy(observation_shape,
                          action_size,
-                         use_batch_norm=False,
+                         encoder_factory=None,
                          min_logstd=-20.0,
                          max_logstd=2.0,
-                         use_std_parameter=False,
-                         encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+                         use_std_parameter=False):
+    if encoder_factory:
+        encoder = encoder_factory.create(observation_shape)
+    else:
+        encoder = create_encoder(observation_shape)
     return NormalPolicy(encoder,
                         action_size,
                         min_logstd=min_logstd,
@@ -49,11 +48,11 @@ def create_normal_policy(observation_shape,
 
 def create_categorical_policy(observation_shape,
                               action_size,
-                              use_batch_norm=False,
-                              encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+                              encoder_factory=None):
+    if encoder_factory:
+        encoder = encoder_factory.create(observation_shape)
+    else:
+        encoder = create_encoder(observation_shape)
     return CategoricalPolicy(encoder, action_size)
 
 
