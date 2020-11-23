@@ -66,10 +66,13 @@ class ConditionalVAE(nn.Module):
         self.latent_size = decoder_encoder.action_size
 
         # encoder
-        self.mu = nn.Linear(encoder_encoder.feature_size, self.latent_size)
-        self.logstd = nn.Linear(encoder_encoder.feature_size, self.latent_size)
+        self.mu = nn.Linear(encoder_encoder.get_feature_size(),
+                            self.latent_size)
+        self.logstd = nn.Linear(encoder_encoder.get_feature_size(),
+                                self.latent_size)
         # decoder
-        self.fc = nn.Linear(decoder_encoder.feature_size, self.action_size)
+        self.fc = nn.Linear(decoder_encoder.get_feature_size(),
+                            self.action_size)
 
     def forward(self, x, action):
         dist = self.encode(x, action)
@@ -98,7 +101,7 @@ class DiscreteImitator(nn.Module):
         super().__init__()
         self.encoder = encoder
         self.beta = beta
-        self.fc = nn.Linear(encoder.feature_size, action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def forward(self, x, with_logits=False):
         h = self.encoder(x)
@@ -118,7 +121,7 @@ class DeterministicRegressor(nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.encoder = encoder
-        self.fc = nn.Linear(encoder.feature_size, action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def forward(self, x):
         h = self.encoder(x)
@@ -133,8 +136,8 @@ class ProbablisticRegressor(nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.encoder = encoder
-        self.mu = nn.Linear(encoder.feature_size, action_size)
-        self.logstd = nn.Linear(encoder.feature_size, action_size)
+        self.mu = nn.Linear(encoder.get_feature_size(), action_size)
+        self.logstd = nn.Linear(encoder.get_feature_size(), action_size)
 
     def dist(self, x):
         h = self.encoder(x)

@@ -112,6 +112,9 @@ class PixelEncoder(nn.Module):
 
         return h
 
+    def get_feature_size(self):
+        return self.feature_size
+
 
 class PixelEncoderWithAction(PixelEncoder):
     def __init__(self,
@@ -178,6 +181,9 @@ class VectorEncoder(nn.Module):
             if self.use_batch_norm:
                 h = self.bns[i](h)
         return h
+
+    def get_feature_size(self):
+        return self.feature_size
 
 
 class VectorEncoderWithAction(VectorEncoder):

@@ -114,7 +114,7 @@ class ProbablisticDynamics(nn.Module):
         _apply_spectral_norm_recursively(encoder)
         self.encoder = encoder
 
-        feature_size = encoder.feature_size
+        feature_size = encoder.get_feature_size()
         observation_size = encoder.observation_shape[0]
         out_size = observation_size + 1
 

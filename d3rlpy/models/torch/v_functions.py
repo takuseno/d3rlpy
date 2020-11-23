@@ -17,7 +17,7 @@ class ValueFunction(nn.Module):
     def __init__(self, encoder):
         super().__init__()
         self.encoder = encoder
-        self.fc = nn.Linear(encoder.feature_size, 1)
+        self.fc = nn.Linear(encoder.get_feature_size(), 1)
 
     def forward(self, x):
         h = self.encoder(x)

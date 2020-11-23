@@ -155,7 +155,8 @@ class DiscreteQRQFunction(QFunction, nn.Module):
         self.encoder = encoder
         self.action_size = action_size
         self.n_quantiles = n_quantiles
-        self.fc = nn.Linear(encoder.feature_size, action_size * n_quantiles)
+        self.fc = nn.Linear(encoder.get_feature_size(),
+                            action_size * n_quantiles)
 
     def forward(self, x, as_quantiles=False):
         h = self.encoder(x)
@@ -201,7 +202,7 @@ class ContinuousQRQFunction(QFunction, nn.Module):
         self.encoder = encoder
         self.action_size = encoder.action_size
         self.n_quantiles = n_quantiles
-        self.fc = nn.Linear(encoder.feature_size, n_quantiles)
+        self.fc = nn.Linear(encoder.get_feature_size(), n_quantiles)
 
     def forward(self, x, action, as_quantiles=False):
         h = self.encoder(x, action)
@@ -245,8 +246,8 @@ class DiscreteIQNQFunction(QFunction, nn.Module):
         self.action_size = action_size
         self.embed_size = embed_size
         self.n_quantiles = n_quantiles
-        self.embed = nn.Linear(embed_size, encoder.feature_size)
-        self.fc = nn.Linear(encoder.feature_size, self.action_size)
+        self.embed = nn.Linear(embed_size, encoder.get_feature_size())
+        self.fc = nn.Linear(encoder.get_feature_size(), self.action_size)
 
     def _make_taus(self, h):
         taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
@@ -323,8 +324,8 @@ class ContinuousIQNQFunction(QFunction, nn.Module):
         self.action_size = encoder.action_size
         self.embed_size = embed_size
         self.n_quantiles = n_quantiles
-        self.embed = nn.Linear(embed_size, encoder.feature_size)
-        self.fc = nn.Linear(encoder.feature_size, 1)
+        self.embed = nn.Linear(embed_size, encoder.get_feature_size())
+        self.fc = nn.Linear(encoder.get_feature_size(), 1)
 
     def _make_taus(self, h):
         taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
@@ -397,7 +398,7 @@ class ContinuousIQNQFunction(QFunction, nn.Module):
 class DiscreteFQFQFunction(DiscreteIQNQFunction):
     def __init__(self, encoder, action_size, n_quantiles, embed_size):
         super().__init__(encoder, action_size, n_quantiles, embed_size)
-        self.proposal = nn.Linear(encoder.feature_size, n_quantiles)
+        self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
 
     def _make_taus(self, h):
         # compute taus without making backward path
@@ -493,7 +494,7 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
 class ContinuousFQFQFunction(ContinuousIQNQFunction):
     def __init__(self, encoder, n_quantiles, embed_size):
         super().__init__(encoder, n_quantiles, embed_size)
-        self.proposal = nn.Linear(encoder.feature_size, n_quantiles)
+        self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
 
     def _make_taus(self, h):
         # compute taus without making backward path
@@ -591,7 +592,7 @@ class DiscreteQFunction(QFunction, nn.Module):
         super().__init__()
         self.action_size = action_size
         self.encoder = encoder
-        self.fc = nn.Linear(encoder.feature_size, action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def forward(self, x):
         h = self.encoder(x)
@@ -621,7 +622,7 @@ class ContinuousQFunction(QFunction, nn.Module):
         super().__init__()
         self.encoder = encoder
         self.action_size = encoder.action_size
-        self.fc = nn.Linear(encoder.feature_size, 1)
+        self.fc = nn.Linear(encoder.get_feature_size(), 1)
 
     def forward(self, x, action):
         h = self.encoder(x, action)

@@ -82,7 +82,7 @@ class DeterministicPolicy(Policy, nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.encoder = encoder
-        self.fc = nn.Linear(encoder.feature_size, action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def forward(self, x, with_raw=False):
         h = self.encoder(x)
@@ -108,7 +108,7 @@ class DeterministicResidualPolicy(nn.Module):
         super().__init__()
         self.scale = scale
         self.encoder = encoder
-        self.fc = nn.Linear(encoder.feature_size, encoder.action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), encoder.action_size)
 
     def forward(self, x, action):
         h = self.encoder(x, action)
@@ -128,12 +128,12 @@ class NormalPolicy(Policy, nn.Module):
         self.min_logstd = min_logstd
         self.max_logstd = max_logstd
         self.use_std_parameter = use_std_parameter
-        self.mu = nn.Linear(encoder.feature_size, action_size)
+        self.mu = nn.Linear(encoder.get_feature_size(), action_size)
         if self.use_std_parameter:
             initial_logstd = torch.zeros(1, action_size, dtype=torch.float32)
             self.logstd = nn.Parameter(initial_logstd)
         else:
-            self.logstd = nn.Linear(encoder.feature_size, action_size)
+            self.logstd = nn.Linear(encoder.get_feature_size(), action_size)
 
     def dist(self, x):
         h = self.encoder(x)
@@ -193,7 +193,7 @@ class CategoricalPolicy(Policy, nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.encoder = encoder
-        self.fc = nn.Linear(encoder.feature_size, action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def dist(self, x):
         h = self.encoder(x)
