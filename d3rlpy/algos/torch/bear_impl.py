@@ -55,6 +55,12 @@ class BEARImpl(SACImpl):
         self.n_action_samples = n_action_samples
         self.mmd_sigma = mmd_sigma
 
+        # initialized in build
+        self.imitator = None
+        self.imitator_optim = None
+        self.log_alpha = None
+        self.alpha_optim = None
+
     def build(self):
         self._build_imitator()
         super().build()

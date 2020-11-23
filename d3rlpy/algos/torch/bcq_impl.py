@@ -50,6 +50,10 @@ class BCQImpl(DDPGImpl):
         self.latent_size = latent_size
         self.beta = beta
 
+        # initialized in build
+        self.imitator = None
+        self.imitator_optim = None
+
     def build(self):
         self._build_imitator()
         super().build()
@@ -184,6 +188,9 @@ class DiscreteBCQImpl(DoubleDQNImpl):
                          encoder_params=encoder_params)
         self.action_flexibility = action_flexibility
         self.beta = beta
+
+        # initialized in build
+        self.imitator = None
 
     def _build_network(self):
         super()._build_network()

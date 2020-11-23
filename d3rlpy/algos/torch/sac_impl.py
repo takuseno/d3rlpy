@@ -43,6 +43,10 @@ class SACImpl(DDPGImpl):
         self.temp_optim_factory = temp_optim_factory
         self.initial_temperature = initial_temperature
 
+        # initialized in build
+        self.log_temp = None
+        self.temp_optim = None
+
     def build(self):
         super().build()
         # TODO: save and load temperature parameter

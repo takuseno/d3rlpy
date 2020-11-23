@@ -45,6 +45,10 @@ class CQLImpl(SACImpl):
         self.alpha_threshold = alpha_threshold
         self.n_action_samples = n_action_samples
 
+        # initialized in build
+        self.log_alpha = None
+        self.alpha_optim = None
+
     def build(self):
         super().build()
         self._build_alpha()

@@ -17,8 +17,7 @@ class DDPGImpl(TorchImplBase):
                  share_encoder, reguralizing_rate, use_batch_norm, q_func_type,
                  use_gpu, scaler, augmentation, n_augmentations,
                  encoder_params):
-        self.observation_shape = observation_shape
-        self.action_size = action_size
+        super().__init__(observation_shape, action_size, scaler)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.actor_optim_factory = actor_optim_factory
@@ -31,11 +30,18 @@ class DDPGImpl(TorchImplBase):
         self.reguralizing_rate = reguralizing_rate
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
-        self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
         self.use_gpu = use_gpu
+
+        # initialized in build
+        self.q_func = None
+        self.policy = None
+        self.targ_q_func = None
+        self.targ_policy = None
+        self.actor_optim = None
+        self.critic_optim = None
 
     def build(self):
         # setup torch models

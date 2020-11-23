@@ -14,18 +14,22 @@ class AWRImpl(TorchImplBase):
                  critic_learning_rate, actor_optim_factory,
                  critic_optim_factory, use_batch_norm, use_gpu, scaler,
                  augmentation, n_augmentations, encoder_params):
-        self.observation_shape = observation_shape
-        self.action_size = action_size
+        super().__init__(observation_shape, action_size, scaler)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.actor_optim_factory = actor_optim_factory
         self.critic_optim_factory = critic_optim_factory
         self.use_batch_norm = use_batch_norm
-        self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
         self.use_gpu = use_gpu
+
+        # initialized in build
+        self.v_func = None
+        self.policy = None
+        self.critic_optim = None
+        self.actor_optim = None
 
     def build(self):
         # setup torch models

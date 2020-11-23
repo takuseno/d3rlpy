@@ -8,15 +8,13 @@ class MOPOImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate,
                  optim_factory, n_ensembles, lam, use_batch_norm,
                  discrete_action, scaler, use_gpu):
-        self.observation_shape = observation_shape
-        self.action_size = action_size
+        super().__init__(observation_shape, action_size, scaler)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
         self.n_ensembles = n_ensembles
         self.lam = lam
         self.use_batch_norm = use_batch_norm
         self.discrete_action = discrete_action
-        self.scaler = scaler
         self.use_gpu = use_gpu
 
         self._build_dynamics()
