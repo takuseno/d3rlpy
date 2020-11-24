@@ -350,7 +350,8 @@ class LearnableBase:
             batches = [
                 transitions[i * self.batch_size:(i + 1) * self.batch_size]
                 for i in range((len(transitions) + self.batch_size - 1) //
-                               self.batch_size)]
+                               self.batch_size)
+            ]
 
             # Epoch progress bar
             tqdm_epoch = tqdm(batches,
