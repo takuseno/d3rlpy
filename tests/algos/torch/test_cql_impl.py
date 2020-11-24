@@ -3,7 +3,7 @@ import pytest
 from d3rlpy.algos.torch.cql_impl import CQLImpl, DiscreteCQLImpl
 from d3rlpy.augmentation import AugmentationPipeline
 from d3rlpy.optimizers import AdamFactory
-from tests import create_encoder_factory
+from d3rlpy.encoders import DefaultEncoderFactory
 from tests.algos.algo_test import torch_impl_tester, DummyScaler
 
 
@@ -17,6 +17,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('critic_optim_factory', [AdamFactory()])
 @pytest.mark.parametrize('temp_optim_factory', [AdamFactory()])
 @pytest.mark.parametrize('alpha_optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('tau', [0.05])
 @pytest.mark.parametrize('n_critics', [2])
@@ -26,7 +27,6 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('initial_alpha', [5.0])
 @pytest.mark.parametrize('alpha_threshold', [10.0])
 @pytest.mark.parametrize('n_action_samples', [10])
-@pytest.mark.parametrize('use_encoder_factory', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
@@ -35,12 +35,10 @@ def test_cql_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, temp_learning_rate,
                   alpha_learning_rate, actor_optim_factory,
                   critic_optim_factory, temp_optim_factory,
-                  alpha_optim_factory, gamma, tau, n_critics, bootstrap,
-                  share_encoder, initial_temperature, initial_alpha,
-                  alpha_threshold, n_action_samples, use_encoder_factory,
-                  q_func_type, scaler, augmentation, n_augmentations):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
+                  alpha_optim_factory, encoder_factory, gamma, tau, n_critics,
+                  bootstrap, share_encoder, initial_temperature, initial_alpha,
+                  alpha_threshold, n_action_samples, q_func_type, scaler,
+                  augmentation, n_augmentations):
     impl = CQLImpl(observation_shape,
                    action_size,
                    actor_learning_rate,
@@ -76,21 +74,19 @@ def test_cql_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [2.5e-4])
 @pytest.mark.parametrize('optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('n_critics', [1])
 @pytest.mark.parametrize('bootstrap', [False])
 @pytest.mark.parametrize('share_encoder', [False, True])
-@pytest.mark.parametrize('use_encoder_factory', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
 def test_double_dqn_impl(observation_shape, action_size, learning_rate,
-                         optim_factory, gamma, n_critics, bootstrap,
-                         share_encoder, use_encoder_factory, q_func_type,
-                         scaler, augmentation, n_augmentations):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
+                         optim_factory, encoder_factory, gamma, n_critics,
+                         bootstrap, share_encoder, q_func_type, scaler,
+                         augmentation, n_augmentations):
     impl = DiscreteCQLImpl(observation_shape,
                            action_size,
                            learning_rate,

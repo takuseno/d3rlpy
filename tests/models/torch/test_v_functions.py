@@ -2,20 +2,16 @@ import pytest
 import torch
 import torch.nn.functional as F
 
+from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.v_functions import create_value_function
 from d3rlpy.models.torch.v_functions import ValueFunction
-from tests import create_encoder_factory
 from .model_test import check_parameter_updates, DummyEncoder
 
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
-@pytest.mark.parametrize('use_encoder_factory', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('batch_size', [32])
-def test_create_value_function(observation_shape, use_encoder_factory,
-                               batch_size):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
-
+def test_create_value_function(observation_shape, encoder_factory, batch_size):
     v_func = create_value_function(observation_shape, encoder_factory)
 
     assert isinstance(v_func, ValueFunction)

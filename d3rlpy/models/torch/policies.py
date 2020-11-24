@@ -5,40 +5,27 @@ import math
 
 from abc import ABCMeta, abstractmethod
 from torch.distributions import Normal, Categorical
-from .encoders import create_encoder
 
 
-def create_deterministic_policy(observation_shape,
-                                action_size,
-                                encoder_factory=None):
-    if encoder_factory:
-        encoder = encoder_factory.create(observation_shape)
-    else:
-        encoder = create_encoder(observation_shape)
+def create_deterministic_policy(observation_shape, action_size,
+                                encoder_factory):
+    encoder = encoder_factory.create(observation_shape)
     return DeterministicPolicy(encoder, action_size)
 
 
-def create_deterministic_residual_policy(observation_shape,
-                                         action_size,
-                                         scale,
-                                         encoder_factory=None):
-    if encoder_factory:
-        encoder = encoder_factory.create(observation_shape, action_size)
-    else:
-        encoder = create_encoder(observation_shape, action_size)
+def create_deterministic_residual_policy(observation_shape, action_size, scale,
+                                         encoder_factory):
+    encoder = encoder_factory.create(observation_shape, action_size)
     return DeterministicResidualPolicy(encoder, scale)
 
 
 def create_normal_policy(observation_shape,
                          action_size,
-                         encoder_factory=None,
+                         encoder_factory,
                          min_logstd=-20.0,
                          max_logstd=2.0,
                          use_std_parameter=False):
-    if encoder_factory:
-        encoder = encoder_factory.create(observation_shape)
-    else:
-        encoder = create_encoder(observation_shape)
+    encoder = encoder_factory.create(observation_shape)
     return NormalPolicy(encoder,
                         action_size,
                         min_logstd=min_logstd,
@@ -46,13 +33,8 @@ def create_normal_policy(observation_shape,
                         use_std_parameter=use_std_parameter)
 
 
-def create_categorical_policy(observation_shape,
-                              action_size,
-                              encoder_factory=None):
-    if encoder_factory:
-        encoder = encoder_factory.create(observation_shape)
-    else:
-        encoder = create_encoder(observation_shape)
+def create_categorical_policy(observation_shape, action_size, encoder_factory):
+    encoder = encoder_factory.create(observation_shape)
     return CategoricalPolicy(encoder, action_size)
 
 

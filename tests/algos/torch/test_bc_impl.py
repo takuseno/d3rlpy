@@ -3,7 +3,7 @@ import pytest
 from d3rlpy.algos.torch.bc_impl import BCImpl, DiscreteBCImpl
 from d3rlpy.augmentation import AugmentationPipeline
 from d3rlpy.optimizers import AdamFactory
-from tests import create_encoder_factory
+from d3rlpy.encoders import DefaultEncoderFactory
 from tests.algos.algo_test import torch_impl_tester, DummyScaler
 
 
@@ -11,14 +11,12 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [1e-3])
 @pytest.mark.parametrize('optim_factory', [AdamFactory()])
-@pytest.mark.parametrize('use_encoder_factory', [True, False])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
 def test_bc_impl(observation_shape, action_size, learning_rate, optim_factory,
-                 use_encoder_factory, scaler, augmentation, n_augmentations):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
+                 encoder_factory, scaler, augmentation, n_augmentations):
     impl = BCImpl(observation_shape,
                   action_size,
                   learning_rate,
@@ -35,16 +33,14 @@ def test_bc_impl(observation_shape, action_size, learning_rate, optim_factory,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [1e-3])
 @pytest.mark.parametrize('optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('beta', [0.5])
-@pytest.mark.parametrize('use_encoder_factory', [True, False])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
 def test_discrete_bc_impl(observation_shape, action_size, learning_rate,
-                          optim_factory, beta, use_encoder_factory, scaler,
+                          optim_factory, encoder_factory, beta, scaler,
                           augmentation, n_augmentations):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
     impl = DiscreteBCImpl(observation_shape,
                           action_size,
                           learning_rate,

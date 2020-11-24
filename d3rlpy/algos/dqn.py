@@ -1,6 +1,7 @@
 from .base import AlgoBase
 from .torch.dqn_impl import DQNImpl, DoubleDQNImpl
 from ..optimizers import AdamFactory
+from ..encoders import DefaultEncoderFactory
 
 
 class DQN(AlgoBase):
@@ -68,7 +69,7 @@ class DQN(AlgoBase):
                  *,
                  learning_rate=6.25e-5,
                  optim_factory=AdamFactory(),
-                 encoder_factory=None,
+                 encoder_factory=DefaultEncoderFactory(),
                  batch_size=32,
                  n_frames=1,
                  gamma=0.99,

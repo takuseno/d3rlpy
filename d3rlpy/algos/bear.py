@@ -1,6 +1,7 @@
 from .base import AlgoBase
 from .torch.bear_impl import BEARImpl
 from ..optimizers import AdamFactory
+from ..encoders import DefaultEncoderFactory
 
 
 class BEAR(AlgoBase):
@@ -165,9 +166,9 @@ class BEAR(AlgoBase):
                  imitator_optim_factory=AdamFactory(),
                  temp_optim_factory=AdamFactory(),
                  alpha_optim_factory=AdamFactory(),
-                 actor_encoder_factory=None,
-                 critic_encoder_factory=None,
-                 imitator_encoder_factory=None,
+                 actor_encoder_factory=DefaultEncoderFactory(),
+                 critic_encoder_factory=DefaultEncoderFactory(),
+                 imitator_encoder_factory=DefaultEncoderFactory(),
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,

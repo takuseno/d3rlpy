@@ -2,6 +2,7 @@ from .base import AlgoBase
 from .dqn import DoubleDQN
 from .torch.cql_impl import CQLImpl, DiscreteCQLImpl
 from ..optimizers import AdamFactory
+from ..encoders import DefaultEncoderFactory
 
 
 class CQL(AlgoBase):
@@ -143,8 +144,8 @@ class CQL(AlgoBase):
                  critic_optim_factory=AdamFactory(),
                  temp_optim_factory=AdamFactory(),
                  alpha_optim_factory=AdamFactory(),
-                 actor_encoder_factory=None,
-                 critic_encoder_factory=None,
+                 actor_encoder_factory=DefaultEncoderFactory(),
+                 critic_encoder_factory=DefaultEncoderFactory(),
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,

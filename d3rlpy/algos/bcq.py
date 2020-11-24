@@ -1,6 +1,7 @@
 from .base import AlgoBase
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 from ..optimizers import AdamFactory
+from ..encoders import DefaultEncoderFactory
 
 
 class BCQ(AlgoBase):
@@ -175,9 +176,9 @@ class BCQ(AlgoBase):
                  actor_optim_factory=AdamFactory(),
                  critic_optim_factory=AdamFactory(),
                  imitator_optim_factory=AdamFactory(),
-                 actor_encoder_factory=None,
-                 critic_encoder_factory=None,
-                 imitator_encoder_factory=None,
+                 actor_encoder_factory=DefaultEncoderFactory(),
+                 critic_encoder_factory=DefaultEncoderFactory(),
+                 imitator_encoder_factory=DefaultEncoderFactory(),
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -387,7 +388,7 @@ class DiscreteBCQ(AlgoBase):
                  *,
                  learning_rate=6.25e-5,
                  optim_factory=AdamFactory(),
-                 encoder_factory=None,
+                 encoder_factory=DefaultEncoderFactory(),
                  batch_size=32,
                  n_frames=1,
                  gamma=0.99,

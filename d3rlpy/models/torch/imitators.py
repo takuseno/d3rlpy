@@ -4,52 +4,30 @@ import torch.nn.functional as F
 
 from torch.distributions import Normal
 from torch.distributions.kl import kl_divergence
-from .encoders import create_encoder
 
 
-def create_conditional_vae(observation_shape,
-                           action_size,
-                           latent_size,
-                           beta,
-                           encoder_factory=None):
-    if encoder_factory:
-        encoder_encoder = encoder_factory.create(observation_shape,
-                                                 action_size)
-        decoder_encoder = encoder_factory.create(observation_shape,
-                                                 latent_size)
-    else:
-        encoder_encoder = create_encoder(observation_shape, action_size)
-        decoder_encoder = create_encoder(observation_shape, latent_size)
+def create_conditional_vae(observation_shape, action_size, latent_size, beta,
+                           encoder_factory):
+    encoder_encoder = encoder_factory.create(observation_shape, action_size)
+    decoder_encoder = encoder_factory.create(observation_shape, latent_size)
     return ConditionalVAE(encoder_encoder, decoder_encoder, beta)
 
 
-def create_discrete_imitator(observation_shape,
-                             action_size,
-                             beta,
-                             encoder_factory=None):
-    if encoder_factory:
-        encoder = encoder_factory.create(observation_shape)
-    else:
-        encoder = create_encoder(observation_shape)
+def create_discrete_imitator(observation_shape, action_size, beta,
+                             encoder_factory):
+    encoder = encoder_factory.create(observation_shape)
     return DiscreteImitator(encoder, action_size, beta)
 
 
 def create_deterministic_regressor(observation_shape, action_size,
                                    encoder_factory):
-    if encoder_factory:
-        encoder = encoder_factory.create(observation_shape)
-    else:
-        encoder = create_encoder(observation_shape)
+    encoder = encoder_factory.create(observation_shape)
     return DeterministicRegressor(encoder, action_size)
 
 
-def create_probablistic_regressor(observation_shape,
-                                  action_size,
-                                  encoder_factory=None):
-    if encoder_factory:
-        encoder = encoder_factory.create(observation_shape)
-    else:
-        encoder = create_encoder(observation_shape)
+def create_probablistic_regressor(observation_shape, action_size,
+                                  encoder_factory):
+    encoder = encoder_factory.create(observation_shape)
     return ProbablisticRegressor(encoder, action_size)
 
 

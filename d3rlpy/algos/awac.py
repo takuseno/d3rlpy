@@ -1,6 +1,7 @@
 from .base import AlgoBase
 from .torch.awac_impl import AWACImpl
 from ..optimizers import AdamFactory
+from ..encoders import DefaultEncoderFactory
 
 
 class AWAC(AlgoBase):
@@ -105,8 +106,8 @@ class AWAC(AlgoBase):
                  critic_learning_rate=3e-4,
                  actor_optim_factory=AdamFactory(weight_decay=1e-4),
                  critic_optim_factory=AdamFactory(),
-                 actor_encoder_factory=None,
-                 critic_encoder_factory=None,
+                 actor_encoder_factory=DefaultEncoderFactory(),
+                 critic_encoder_factory=DefaultEncoderFactory(),
                  batch_size=1024,
                  n_frames=1,
                  gamma=0.99,

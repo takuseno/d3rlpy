@@ -4,6 +4,7 @@ from .base import AlgoBase
 from .torch.awr_impl import AWRImpl, DiscreteAWRImpl
 from ..dataset import compute_lambda_return
 from ..optimizers import SGDFactory
+from ..encoders import DefaultEncoderFactory
 
 
 class AWR(AlgoBase):
@@ -103,8 +104,8 @@ class AWR(AlgoBase):
                  critic_learning_rate=1e-4,
                  actor_optim_factory=SGDFactory(momentum=0.9),
                  critic_optim_factory=SGDFactory(momentum=0.9),
-                 actor_encoder_factory=None,
-                 critic_encoder_factory=None,
+                 actor_encoder_factory=DefaultEncoderFactory(),
+                 critic_encoder_factory=DefaultEncoderFactory(),
                  batch_size=2048,
                  n_frames=1,
                  gamma=0.99,

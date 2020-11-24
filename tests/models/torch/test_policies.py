@@ -2,6 +2,7 @@ import pytest
 import torch
 import copy
 
+from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.policies import create_deterministic_policy
 from d3rlpy.models.torch.policies import create_deterministic_residual_policy
 from d3rlpy.models.torch.policies import create_normal_policy
@@ -10,19 +11,15 @@ from d3rlpy.models.torch.policies import DeterministicPolicy
 from d3rlpy.models.torch.policies import DeterministicResidualPolicy
 from d3rlpy.models.torch.policies import NormalPolicy
 from d3rlpy.models.torch.policies import CategoricalPolicy
-from tests import create_encoder_factory
 from .model_test import check_parameter_updates, DummyEncoder
 
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_encoder_factory', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_deterministic_policy(observation_shape, action_size,
-                                     batch_size, use_encoder_factory):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
-
+                                     batch_size, encoder_factory):
     policy = create_deterministic_policy(observation_shape, action_size,
                                          encoder_factory)
 
@@ -37,13 +34,10 @@ def test_create_deterministic_policy(observation_shape, action_size,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('scale', [0.05])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_encoder_factory', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_deterministic_residual_policy(observation_shape, action_size,
                                               scale, batch_size,
-                                              use_encoder_factory):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
-
+                                              encoder_factory):
     policy = create_deterministic_residual_policy(observation_shape,
                                                   action_size, scale,
                                                   encoder_factory)
@@ -59,12 +53,9 @@ def test_create_deterministic_residual_policy(observation_shape, action_size,
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_encoder_factory', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_normal_policy(observation_shape, action_size, batch_size,
-                              use_encoder_factory):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
-
+                              encoder_factory):
     policy = create_normal_policy(observation_shape, action_size,
                                   encoder_factory)
 
@@ -78,12 +69,9 @@ def test_create_normal_policy(observation_shape, action_size, batch_size,
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_encoder_factory', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_categorical_policy(observation_shape, action_size, batch_size,
-                                   use_encoder_factory):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
-
+                                   encoder_factory):
     policy = create_categorical_policy(observation_shape, action_size,
                                        encoder_factory)
 

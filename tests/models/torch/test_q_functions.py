@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import torch
 
+from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.q_functions import create_discrete_q_function
 from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from d3rlpy.models.torch.q_functions import _pick_value_by_action
@@ -20,7 +21,6 @@ from d3rlpy.models.torch.q_functions import EnsembleDiscreteQFunction
 from d3rlpy.models.torch.q_functions import ContinuousQFunction
 from d3rlpy.models.torch.q_functions import EnsembleContinuousQFunction
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
-from tests import create_encoder_factory
 from .model_test import check_parameter_updates, DummyEncoder
 
 
@@ -30,17 +30,13 @@ from .model_test import check_parameter_updates, DummyEncoder
 @pytest.mark.parametrize('n_ensembles', [1, 5])
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('embed_size', [64])
-@pytest.mark.parametrize('use_encoder_factory', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_create_discrete_q_function(observation_shape, action_size, batch_size,
                                     n_ensembles, n_quantiles, embed_size,
-                                    use_encoder_factory, share_encoder,
+                                    encoder_factory, share_encoder,
                                     q_func_type):
-
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
-
     q_func = create_discrete_q_function(observation_shape,
                                         action_size,
                                         encoder_factory,
@@ -80,16 +76,13 @@ def test_create_discrete_q_function(observation_shape, action_size, batch_size,
 @pytest.mark.parametrize('n_ensembles', [1, 2])
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('embed_size', [64])
-@pytest.mark.parametrize('use_encoder_factory', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_create_continuous_q_function(observation_shape, action_size,
                                       batch_size, n_ensembles, n_quantiles,
-                                      embed_size, use_encoder_factory,
+                                      embed_size, encoder_factory,
                                       share_encoder, q_func_type):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
-
     q_func = create_continuous_q_function(observation_shape,
                                           action_size,
                                           encoder_factory,
@@ -735,6 +728,7 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [3])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('n_ensembles', [2])
 @pytest.mark.parametrize('batch_size', [100])
 @pytest.mark.parametrize('n_quantiles', [32])
@@ -742,10 +736,11 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
 @pytest.mark.parametrize('lam', [0.75])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr'])
 def test_compute_max_with_n_actions(observation_shape, action_size,
-                                    n_ensembles, batch_size, n_quantiles,
-                                    n_actions, lam, q_func_type):
+                                    encoder_factory, n_ensembles, batch_size,
+                                    n_quantiles, n_actions, lam, q_func_type):
     q_func = create_continuous_q_function(observation_shape,
                                           action_size,
+                                          encoder_factory,
                                           n_ensembles=n_ensembles,
                                           n_quantiles=n_quantiles,
                                           q_func_type=q_func_type)

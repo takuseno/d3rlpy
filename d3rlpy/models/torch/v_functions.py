@@ -1,14 +1,9 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .encoders import create_encoder
 
-
-def create_value_function(observation_shape, encoder_factory=None):
-    if encoder_factory:
-        encoder = encoder_factory.create(observation_shape)
-    else:
-        encoder = create_encoder(observation_shape)
+def create_value_function(observation_shape, encoder_factory):
+    encoder = encoder_factory.create(observation_shape)
     return ValueFunction(encoder)
 
 

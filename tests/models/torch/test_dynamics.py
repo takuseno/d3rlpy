@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from d3rlpy.encoders import VectorEncoderFactory
+from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.dynamics import create_probablistic_dynamics
 from d3rlpy.models.torch.dynamics import _compute_ensemble_variance
 from d3rlpy.models.torch.dynamics import ProbablisticDynamics
@@ -11,7 +11,7 @@ from .model_test import check_parameter_updates, DummyEncoder
 
 @pytest.mark.parametrize('observation_shape', [(100, )])
 @pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('encoder_factory', [None, VectorEncoderFactory()])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('n_ensembles', [5])
 @pytest.mark.parametrize('discrete_action', [False, True])
 @pytest.mark.parametrize('batch_size', [32])

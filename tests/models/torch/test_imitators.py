@@ -2,6 +2,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 
+from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.imitators import create_conditional_vae
 from d3rlpy.models.torch.imitators import create_discrete_imitator
 from d3rlpy.models.torch.imitators import create_deterministic_regressor
@@ -10,7 +11,6 @@ from d3rlpy.models.torch.imitators import ConditionalVAE
 from d3rlpy.models.torch.imitators import DiscreteImitator
 from d3rlpy.models.torch.imitators import DeterministicRegressor
 from d3rlpy.models.torch.imitators import ProbablisticRegressor
-from tests import create_encoder_factory
 from .model_test import check_parameter_updates, DummyEncoder
 
 
@@ -19,12 +19,9 @@ from .model_test import check_parameter_updates, DummyEncoder
 @pytest.mark.parametrize('latent_size', [32])
 @pytest.mark.parametrize('beta', [1.0])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_encoder_factory', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_conditional_vae(observation_shape, action_size, latent_size,
-                                beta, batch_size, use_encoder_factory):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
-
+                                beta, batch_size, encoder_factory):
     vae = create_conditional_vae(observation_shape, action_size, latent_size,
                                  beta, encoder_factory)
 
@@ -40,12 +37,9 @@ def test_create_conditional_vae(observation_shape, action_size, latent_size,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('beta', [1e-2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_encoder_factory', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_discrete_imitator(observation_shape, action_size, beta,
-                                  batch_size, use_encoder_factory):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
-
+                                  batch_size, encoder_factory):
     imitator = create_discrete_imitator(observation_shape, action_size, beta,
                                         encoder_factory)
 
@@ -59,12 +53,9 @@ def test_create_discrete_imitator(observation_shape, action_size, beta,
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_encoder_factory', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_deterministic_regressor(observation_shape, action_size,
-                                        batch_size, use_encoder_factory):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
-
+                                        batch_size, encoder_factory):
     imitator = create_deterministic_regressor(observation_shape, action_size,
                                               encoder_factory)
 
@@ -78,12 +69,9 @@ def test_create_deterministic_regressor(observation_shape, action_size,
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_encoder_factory', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_probablistic_regressor(observation_shape, action_size,
-                                       batch_size, use_encoder_factory):
-    encoder_factory = create_encoder_factory(use_encoder_factory,
-                                             observation_shape)
-
+                                       batch_size, encoder_factory):
     imitator = create_probablistic_regressor(observation_shape, action_size,
                                              encoder_factory)
 

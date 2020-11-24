@@ -1,6 +1,7 @@
 from .base import AlgoBase
 from .torch.td3_impl import TD3Impl
 from ..optimizers import AdamFactory
+from ..encoders import DefaultEncoderFactory
 
 
 class TD3(AlgoBase):
@@ -110,8 +111,8 @@ class TD3(AlgoBase):
                  critic_learning_rate=3e-4,
                  actor_optim_factory=AdamFactory(),
                  critic_optim_factory=AdamFactory(),
-                 actor_encoder_factory=None,
-                 critic_encoder_factory=None,
+                 actor_encoder_factory=DefaultEncoderFactory(),
+                 critic_encoder_factory=DefaultEncoderFactory(),
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,

@@ -204,6 +204,38 @@ class VectorEncoderFactory(EncoderFactory):
         return params
 
 
+class DefaultEncoderFactory(EncoderFactory):
+    """ Default encoder factory class.
+
+    This encoder factory returns an encoder based on observation shape.
+
+    Args:
+        use_batch_norm (bool): flag to insert batch normalization layers.
+
+    Attributes:
+        use_batch_norm (bool): flag to insert batch normalization layers.
+
+    """
+
+    TYPE = 'default'
+
+    def __init__(self, use_batch_norm=False):
+        self.use_batch_norm = use_batch_norm
+
+    def create(self,
+               observation_shape,
+               action_size=None,
+               discrete_action=False):
+        if len(observation_shape) == 3:
+            factory = PixelEncoderFactory(use_batch_norm=self.use_batch_norm)
+        else:
+            factory = VectorEncoderFactory(use_batch_norm=self.use_batch_norm)
+        return factory.create(observation_shape, action_size, discrete_action)
+
+    def get_params(self, deep=False):
+        return {'use_batch_norm': self.use_batch_norm}
+
+
 ENCODER_LIST = {}
 
 
@@ -238,3 +270,4 @@ def create_encoder_factory(name, **kwargs):
 
 register_encoder_factory(VectorEncoderFactory)
 register_encoder_factory(PixelEncoderFactory)
+register_encoder_factory(DefaultEncoderFactory)

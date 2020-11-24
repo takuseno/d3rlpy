@@ -1,6 +1,7 @@
 from .base import AlgoBase
 from .torch.sac_impl import SACImpl, DiscreteSACImpl
 from ..optimizers import AdamFactory
+from ..encoders import DefaultEncoderFactory
 
 
 class SAC(AlgoBase):
@@ -124,8 +125,8 @@ class SAC(AlgoBase):
                  actor_optim_factory=AdamFactory(),
                  critic_optim_factory=AdamFactory(),
                  temp_optim_factory=AdamFactory(),
-                 actor_encoder_factory=None,
-                 critic_encoder_factory=None,
+                 actor_encoder_factory=DefaultEncoderFactory(),
+                 critic_encoder_factory=DefaultEncoderFactory(),
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -318,8 +319,8 @@ class DiscreteSAC(AlgoBase):
                  actor_optim_factory=AdamFactory(eps=1e-4),
                  critic_optim_factory=AdamFactory(eps=1e-4),
                  temp_optim_factory=AdamFactory(eps=1e-4),
-                 actor_encoder_factory=None,
-                 critic_encoder_factory=None,
+                 actor_encoder_factory=DefaultEncoderFactory(),
+                 critic_encoder_factory=DefaultEncoderFactory(),
                  batch_size=64,
                  n_frames=1,
                  gamma=0.99,

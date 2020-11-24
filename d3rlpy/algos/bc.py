@@ -1,6 +1,7 @@
 from .base import AlgoBase
 from .torch.bc_impl import BCImpl, DiscreteBCImpl
 from ..optimizers import AdamFactory
+from ..encoders import DefaultEncoderFactory
 
 
 class BC(AlgoBase):
@@ -56,7 +57,7 @@ class BC(AlgoBase):
                  *,
                  learning_rate=1e-3,
                  optim_factory=AdamFactory(),
-                 encoder_factory=None,
+                 encoder_factory=DefaultEncoderFactory(),
                  batch_size=100,
                  n_frames=1,
                  use_gpu=False,
@@ -165,7 +166,7 @@ class DiscreteBC(BC):
                  *,
                  learning_rate=1e-3,
                  optim_factory=AdamFactory(),
-                 encoder_factory=None,
+                 encoder_factory=DefaultEncoderFactory(),
                  batch_size=100,
                  n_frames=1,
                  beta=0.5,

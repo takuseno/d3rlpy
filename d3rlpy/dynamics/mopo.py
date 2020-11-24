@@ -1,5 +1,6 @@
 from .base import DynamicsBase
 from ..optimizers import AdamFactory
+from ..encoders import DefaultEncoderFactory
 
 
 class MOPO(DynamicsBase):
@@ -86,7 +87,7 @@ class MOPO(DynamicsBase):
                  *,
                  learning_rate=1e-3,
                  optim_factory=AdamFactory(weight_decay=1e-4),
-                 encoder_factory=None,
+                 encoder_factory=DefaultEncoderFactory(),
                  batch_size=100,
                  n_frames=1,
                  n_ensembles=5,
