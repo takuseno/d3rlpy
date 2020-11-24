@@ -66,6 +66,26 @@ class EncoderFactory(metaclass=ABCMeta):
 
 
 class PixelEncoderFactory(EncoderFactory):
+    """ Pixel encoder factory class.
+
+    This is the default encoder factory for image observation.
+
+    Args:
+        filters (list): list of tuples consisting with
+            ``(filter_size, kernel_size, stride)``. If None,
+            ``Nature DQN``-based architecture is used.
+        feature_size (int): the last linear layer size.
+        activation (str): activation function name.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+
+    Attributes:
+        filters (list): list of tuples consisting with
+            ``(filter_size, kernel_size, stride)``.
+        feature_size (int): the last linear layer size.
+        activation (str): activation function name.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+
+    """
 
     TYPE = 'pixel'
 
@@ -120,6 +140,23 @@ class PixelEncoderFactory(EncoderFactory):
 
 
 class VectorEncoderFactory(EncoderFactory):
+    """ Vector encoder factory class.
+
+    This is the default encoder factory for vector observation.
+
+    Args:
+        hidden_units (list): list of hidden unit sizes. If ``None``, the
+            standard architecture with ``[256, 256]`` is used.
+        activation (str): activation function name.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+
+    Attributes:
+        hidden_units (list): list of hidden unit sizes.
+        activation (str): activation function name.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+
+    """
+
     TYPE = 'vector'
 
     def __init__(self,
@@ -177,6 +214,8 @@ def register_encoder_factory(cls):
         cls (type): encoder factory class inheriting ``EncoderFactory``.
 
     """
+    is_registered = cls.TYPE in ENCODER_LIST
+    assert not is_registered, '%s seems to be already registered' % cls.TYPE
     ENCODER_LIST[cls.TYPE] = cls
 
 
@@ -191,6 +230,7 @@ def create_encoder_factory(name, **kwargs):
         d3rlpy.encoders.EncoderFactory: encoder factory object.
 
     """
+    assert name in ENCODER_LIST, '%s seems not to be registered.' % name
     factory = ENCODER_LIST[name](**kwargs)
     assert isinstance(factory, EncoderFactory)
     return factory
