@@ -1,10 +1,10 @@
 import numpy as np
 import copy
+import random
 import json
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-from more_itertools import chunked
 from tqdm.auto import tqdm
 from .preprocessing import create_scaler
 from .augmentation import create_augmentation, AugmentationPipeline
@@ -343,11 +343,15 @@ class LearnableBase:
             if new_transitions:
                 transitions = env_transitions + new_transitions
 
-            # user should decide if shuffling or not
+            # shuffle data
             if shuffle:
-                transitions = np.random.permutation(transitions)
+                random.shuffle(transitions)
 
-            batches = list(chunked(transitions, self.batch_size))
+            batches = [
+                transitions[i * self.batch_size:(i + 1) * self.batch_size]
+                for i in range((len(transitions) + self.batch_size - 1) //
+                               self.batch_size)]
+
             # Epoch progress bar
             tqdm_epoch = tqdm(batches,
                               disable=not show_progress,
