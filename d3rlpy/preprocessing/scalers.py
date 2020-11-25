@@ -5,6 +5,9 @@ from abc import ABCMeta, abstractmethod
 
 
 class Scaler(metaclass=ABCMeta):
+
+    TYPE = 'none'
+
     @abstractmethod
     def fit(self, episodes):
         pass
@@ -17,23 +20,18 @@ class Scaler(metaclass=ABCMeta):
     def reverse_transform(self, x):
         pass
 
-    @abstractmethod
     def get_type(self):
-        pass
+        """ Returns a scaler type.
+
+        Returns:
+            str: scaler type.
+
+        """
+        return self.TYPE
 
     @abstractmethod
     def get_params(self, deep=False):
         pass
-
-
-def create_scaler(scaler_type, **kwargs):
-    if scaler_type == 'pixel':
-        return PixelScaler()
-    elif scaler_type == 'min_max':
-        return MinMaxScaler(**kwargs)
-    elif scaler_type == 'standard':
-        return StandardScaler(**kwargs)
-    raise ValueError
 
 
 class PixelScaler(Scaler):
@@ -56,6 +54,9 @@ class PixelScaler(Scaler):
         cql.fit(dataset.episodes)
 
     """
+
+    TYPE = 'pixel'
+
     def fit(self, episodes):
         pass
 
@@ -96,15 +97,6 @@ class PixelScaler(Scaler):
 
         """
         return {}
-
-    def get_type(self):
-        """ Returns scaler type.
-
-        Returns:
-            str: `pixel`.
-
-        """
-        return 'pixel'
 
 
 class MinMaxScaler(Scaler):
@@ -154,6 +146,9 @@ class MinMaxScaler(Scaler):
         maximum (numpy.ndarray): maximum values at each entry.
 
     """
+
+    TYPE = 'min_max'
+
     def __init__(self, dataset=None, maximum=None, minimum=None):
         self.minimum = None
         self.maximum = None
@@ -245,15 +240,6 @@ class MinMaxScaler(Scaler):
 
         return {'maximum': maximum, 'minimum': minimum}
 
-    def get_type(self):
-        """ Returns scaler type.
-
-        Returns:
-            str: `min_max`.
-
-        """
-        return 'min_max'
-
 
 class StandardScaler(Scaler):
     """ Standardization preprocessing.
@@ -302,6 +288,9 @@ class StandardScaler(Scaler):
         std (numpy.ndarray): standard deviation values at each entry.
 
     """
+
+    TYPE = 'standard'
+
     def __init__(self, dataset=None, mean=None, std=None):
         self.mean = None
         self.std = None
@@ -393,11 +382,39 @@ class StandardScaler(Scaler):
 
         return {'mean': mean, 'std': std}
 
-    def get_type(self):
-        """ Returns scaler type.
 
-        Returns:
-            str: `standard`.
+SCALER_LIST = {}
 
-        """
-        return 'standard'
+
+def register_scaler(cls):
+    """ Registers scaler class.
+
+    Args:
+        cls (type): scaler class inheriting ``Scaler``.
+
+    """
+    is_registered = cls.TYPE in SCALER_LIST
+    assert not is_registered, '%s seems to be already registered' % cls.TYPE
+    SCALER_LIST[cls.TYPE] = cls
+
+
+def create_scaler(name, **kwargs):
+    """ Returns registered scaler object.
+
+    Args:
+        name (str): regsitered scaler type name.
+        kwargs (any): scaler arguments.
+
+    Returns:
+        d3rlpy.preprocessing.scalers: scaler object.
+
+    """
+    assert name in SCALER_LIST, '%s seems not to be registered.' % name
+    scaler = SCALER_LIST[name](**kwargs)
+    assert isinstance(scaler, Scaler)
+    return scaler
+
+
+register_scaler(PixelScaler)
+register_scaler(MinMaxScaler)
+register_scaler(StandardScaler)

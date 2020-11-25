@@ -1,7 +1,7 @@
 from .base import AlgoBase
 from .torch.td3_impl import TD3Impl
 from ..optimizers import AdamFactory
-from ..encoders import DefaultEncoderFactory
+from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
 
 
 class TD3(AlgoBase):
@@ -42,9 +42,9 @@ class TD3(AlgoBase):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the critic.
-        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
+        actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
+        critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the critic.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
@@ -111,8 +111,8 @@ class TD3(AlgoBase):
                  critic_learning_rate=3e-4,
                  actor_optim_factory=AdamFactory(),
                  critic_optim_factory=AdamFactory(),
-                 actor_encoder_factory=DefaultEncoderFactory(),
-                 critic_encoder_factory=DefaultEncoderFactory(),
+                 actor_encoder_factory='default',
+                 critic_encoder_factory='default',
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -137,15 +137,13 @@ class TD3(AlgoBase):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         dynamics=dynamics,
-                         use_gpu=use_gpu)
+                         dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.actor_optim_factory = actor_optim_factory
         self.critic_optim_factory = critic_optim_factory
-        self.actor_encoder_factory = actor_encoder_factory
-        self.critic_encoder_factory = critic_encoder_factory
+        self.actor_encoder_factory = check_encoder(actor_encoder_factory)
+        self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.gamma = gamma
         self.tau = tau
         self.reguralizing_rate = reguralizing_rate
@@ -157,8 +155,10 @@ class TD3(AlgoBase):
         self.update_actor_interval = update_actor_interval
         self.use_batch_norm = use_batch_norm
         self.q_func_type = q_func_type
+        self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
+        self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):

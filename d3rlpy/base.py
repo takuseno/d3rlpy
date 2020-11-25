@@ -5,7 +5,7 @@ import json
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from tqdm import trange
-from .preprocessing import create_scaler
+from .preprocessing import create_scaler, Scaler
 from .augmentation import create_augmentation, AugmentationPipeline
 from .dataset import TransitionMiniBatch
 from .logger import D3RLPyLogger
@@ -14,6 +14,7 @@ from .context import disable_parallel
 from .gpu import Device
 from .optimizers import OptimizerFactory
 from .encoders import EncoderFactory, create_encoder_factory
+from .argument_utils import check_scaler
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -24,6 +25,54 @@ class ImplBase(metaclass=ABCMeta):
     @abstractmethod
     def load_model(self, fname):
         pass
+
+
+def _serialize_params(params):
+    for key, value in params.items():
+        if isinstance(value, Device):
+            params[key] = value.get_id()
+        elif isinstance(value, Scaler):
+            params['scaler'] = {
+                'type': value.get_type(),
+                'params': value.get_params()
+            }
+        elif isinstance(value, EncoderFactory):
+            params[key] = {
+                'type': value.get_type(),
+                'params': value.get_params()
+            }
+        elif isinstance(value, OptimizerFactory):
+            params[key] = value.get_params()
+        elif isinstance(value, AugmentationPipeline):
+            aug_types = value.get_augmentation_types()
+            aug_params = value.get_augmentation_params()
+            params[key] = []
+            for aug_type, aug_param in zip(aug_types, aug_params):
+                params[value].append({'type': aug_type, 'params': aug_param})
+    return params
+
+
+def _deseriealize_params(params):
+    for key, value in params.items():
+        if key == 'scaler' and params['scaler']:
+            scaler_type = params['scaler']['type']
+            scaler_params = params['scaler']['params']
+            scaler = create_scaler(scaler_type, **scaler_params)
+            params[key] = scaler
+        elif key == 'augmentation' and params['augmentation']:
+            augmentations = []
+            for param in params[key]:
+                aug_type = param['type']
+                aug_params = param['params']
+                augmentation = create_augmentation(aug_type, **aug_params)
+                augmentations.append(augmentation)
+            params[key] = AugmentationPipeline(augmentations)
+        elif 'optim_factory' in key:
+            params[key] = OptimizerFactory(**value)
+        elif 'encoder_factory' in key:
+            params[key] = create_encoder_factory(value['type'],
+                                                 **value['params'])
+    return params
 
 
 class LearnableBase:
@@ -43,48 +92,10 @@ class LearnableBase:
         active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
 
     """
-    def __init__(self, batch_size, n_frames, scaler, augmentation, use_gpu):
-        """ __init__ method.
-
-        Args:
-            batch_size (int): mini-batch size.
-            scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-                The available options are `['pixel', 'min_max', 'standard']`
-            augmentation (list(str or d3rlpy.augmentation.base.Augmentation)):
-                list of data augmentations.
-            use_gpu (bool, int or d3rlpy.gpu.Device):
-                flag to use GPU, device ID or device.
-
-        """
+    def __init__(self, batch_size, n_frames, scaler):
         self.batch_size = batch_size
         self.n_frames = n_frames
-
-        # prepare preprocessor
-        if isinstance(scaler, str):
-            self.scaler = create_scaler(scaler)
-        else:
-            self.scaler = scaler
-
-        # prepare augmentations
-        if isinstance(augmentation, AugmentationPipeline):
-            self.augmentation = augmentation
-        else:
-            self.augmentation = AugmentationPipeline()
-            for aug in augmentation:
-                if isinstance(aug, str):
-                    aug = create_augmentation(aug)
-                self.augmentation.append(aug)
-
-        # prepare GPU device
-        # isinstance cannot tell difference between bool and int
-        if type(use_gpu) == bool and use_gpu:
-            self.use_gpu = Device(0)
-        elif type(use_gpu) == int:
-            self.use_gpu = Device(use_gpu)
-        elif isinstance(use_gpu, Device):
-            self.use_gpu = use_gpu
-        else:
-            self.use_gpu = None
+        self.scaler = check_scaler(scaler)
 
         self.impl = None
         self.eval_results_ = defaultdict(list)
@@ -133,31 +144,8 @@ class LearnableBase:
         del params['observation_shape']
         del params['action_size']
 
-        # create scaler object
-        if params['scaler']:
-            scaler_type = params['scaler']['type']
-            scaler_params = params['scaler']['params']
-            scaler = create_scaler(scaler_type, **scaler_params)
-            params['scaler'] = scaler
-
-        # create augmentation objects
-        augmentations = []
-        for param in params['augmentation']:
-            aug_type = param['type']
-            aug_params = param['params']
-            augmentation = create_augmentation(aug_type, **aug_params)
-            augmentations.append(augmentation)
-        params['augmentation'] = AugmentationPipeline(augmentations)
-
-        # optimizer factory
-        for key, value in params.items():
-            if 'optim_factory' in key:
-                params[key] = OptimizerFactory(**value)
-
-        for key, value in params.items():
-            if 'encoder_factory' in key and value is not None:
-                params[key] = create_encoder_factory(value['type'],
-                                                     **value['params'])
+        # reconstruct objects from json
+        params = _deseriealize_params(params)
 
         # overwrite use_gpu flag
         params['use_gpu'] = use_gpu
@@ -469,38 +457,7 @@ class LearnableBase:
         params['observation_shape'] = self.impl.observation_shape
         params['action_size'] = self.impl.action_size
 
-        # save scaler
-        if self.scaler:
-            params['scaler'] = {
-                'type': self.scaler.get_type(),
-                'params': self.scaler.get_params()
-            }
-
-        # save augmentations
-        params['augmentation'] = []
-        aug_types = self.augmentation.get_augmentation_types()
-        aug_params = self.augmentation.get_augmentation_params()
-        for aug_type, aug_param in zip(aug_types, aug_params):
-            params['augmentation'].append({
-                'type': aug_type,
-                'params': aug_param
-            })
-
-        # optimizer factory
-        for key, value in params.items():
-            if isinstance(value, OptimizerFactory):
-                params[key] = value.get_params()
-
-        # encoder factory
-        for key, value in params.items():
-            if isinstance(value, EncoderFactory):
-                params[key] = {
-                    'type': value.get_type(),
-                    'params': value.get_params()
-                }
-
-        # save GPU device id
-        if self.use_gpu:
-            params['use_gpu'] = self.use_gpu.get_id()
+        # serialize objects
+        params = _serialize_params(params)
 
         logger.add_params(params)

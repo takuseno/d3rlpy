@@ -1,7 +1,7 @@
 from .base import AlgoBase
 from .torch.dqn_impl import DQNImpl, DoubleDQNImpl
 from ..optimizers import AdamFactory
-from ..encoders import DefaultEncoderFactory
+from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
 
 
 class DQN(AlgoBase):
@@ -21,7 +21,8 @@ class DQN(AlgoBase):
 
     Args:
         learning_rate (float): learning rate.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory or str):
+            optimizer factory.
         encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
@@ -69,7 +70,7 @@ class DQN(AlgoBase):
                  *,
                  learning_rate=6.25e-5,
                  optim_factory=AdamFactory(),
-                 encoder_factory=DefaultEncoderFactory(),
+                 encoder_factory='default',
                  batch_size=32,
                  n_frames=1,
                  gamma=0.99,
@@ -80,7 +81,7 @@ class DQN(AlgoBase):
                  q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
-                 augmentation=[],
+                 augmentation=None,
                  n_augmentations=1,
                  dynamics=None,
                  impl=None,
@@ -88,19 +89,19 @@ class DQN(AlgoBase):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         dynamics=dynamics,
-                         use_gpu=use_gpu)
+                         dynamics=dynamics)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
-        self.encoder_factory = encoder_factory
+        self.encoder_factory = check_encoder(encoder_factory)
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.target_update_interval = target_update_interval
         self.q_func_type = q_func_type
+        self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
+        self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -156,7 +157,8 @@ class DoubleDQN(DQN):
     Args:
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.

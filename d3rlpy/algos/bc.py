@@ -1,7 +1,7 @@
 from .base import AlgoBase
 from .torch.bc_impl import BCImpl, DiscreteBCImpl
 from ..optimizers import AdamFactory
-from ..encoders import DefaultEncoderFactory
+from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
 
 
 class BC(AlgoBase):
@@ -21,7 +21,8 @@ class BC(AlgoBase):
     Args:
         learning_rate (float): learing rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -57,12 +58,12 @@ class BC(AlgoBase):
                  *,
                  learning_rate=1e-3,
                  optim_factory=AdamFactory(),
-                 encoder_factory=DefaultEncoderFactory(),
+                 encoder_factory='default',
                  batch_size=100,
                  n_frames=1,
                  use_gpu=False,
                  scaler=None,
-                 augmentation=[],
+                 augmentation=None,
                  n_augmentations=1,
                  dynamics=None,
                  impl=None,
@@ -70,13 +71,13 @@ class BC(AlgoBase):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         dynamics=dynamics,
-                         use_gpu=use_gpu)
+                         dynamics=dynamics)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
-        self.encoder_factory = encoder_factory
+        self.encoder_factory = check_encoder(encoder_factory)
+        self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
+        self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -128,7 +129,8 @@ class DiscreteBC(BC):
     Args:
         learning_rate (float): learing rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         beta (float): reguralization factor.
@@ -166,13 +168,13 @@ class DiscreteBC(BC):
                  *,
                  learning_rate=1e-3,
                  optim_factory=AdamFactory(),
-                 encoder_factory=DefaultEncoderFactory(),
+                 encoder_factory='default',
                  batch_size=100,
                  n_frames=1,
                  beta=0.5,
                  use_gpu=False,
                  scaler=None,
-                 augmentation=[],
+                 augmentation=None,
                  n_augmentations=1,
                  dynamics=None,
                  impl=None,

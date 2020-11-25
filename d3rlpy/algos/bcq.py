@@ -1,7 +1,7 @@
 from .base import AlgoBase
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 from ..optimizers import AdamFactory
-from ..encoders import DefaultEncoderFactory
+from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
 
 
 class BCQ(AlgoBase):
@@ -89,11 +89,11 @@ class BCQ(AlgoBase):
             optimizer factory for the critic.
         imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the conditional VAE.
-        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
+        actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
+        critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the critic.
-        imitator_encoder_factory (d3rlpy.encoders.EncoderFactory):
+        imitator_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the conditional VAE.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
@@ -176,9 +176,9 @@ class BCQ(AlgoBase):
                  actor_optim_factory=AdamFactory(),
                  critic_optim_factory=AdamFactory(),
                  imitator_optim_factory=AdamFactory(),
-                 actor_encoder_factory=DefaultEncoderFactory(),
-                 critic_encoder_factory=DefaultEncoderFactory(),
-                 imitator_encoder_factory=DefaultEncoderFactory(),
+                 actor_encoder_factory='default',
+                 critic_encoder_factory='default',
+                 imitator_encoder_factory='default',
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -196,7 +196,7 @@ class BCQ(AlgoBase):
                  q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
-                 augmentation=[],
+                 augmentation=None,
                  n_augmentations=1,
                  dynamics=None,
                  impl=None,
@@ -204,18 +204,16 @@ class BCQ(AlgoBase):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         dynamics=dynamics,
-                         use_gpu=use_gpu)
+                         dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.imitator_learning_rate = imitator_learning_rate
         self.actor_optim_factory = actor_optim_factory
         self.critic_optim_factory = critic_optim_factory
         self.imitator_optim_factory = imitator_optim_factory
-        self.actor_encoder_factory = actor_encoder_factory
-        self.critic_encoder_factory = critic_encoder_factory
-        self.imitator_encoder_factory = imitator_encoder_factory
+        self.actor_encoder_factory = check_encoder(actor_encoder_factory)
+        self.critic_encoder_factory = check_encoder(critic_encoder_factory)
+        self.imitator_encoder_factory = check_encoder(imitator_encoder_factory)
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
@@ -229,7 +227,9 @@ class BCQ(AlgoBase):
         self.latent_size = latent_size
         self.beta = beta
         self.q_func_type = q_func_type
+        self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
+        self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -333,7 +333,8 @@ class DiscreteBCQ(AlgoBase):
     Args:
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -388,7 +389,7 @@ class DiscreteBCQ(AlgoBase):
                  *,
                  learning_rate=6.25e-5,
                  optim_factory=AdamFactory(),
-                 encoder_factory=DefaultEncoderFactory(),
+                 encoder_factory='default',
                  batch_size=32,
                  n_frames=1,
                  gamma=0.99,
@@ -401,7 +402,7 @@ class DiscreteBCQ(AlgoBase):
                  q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
-                 augmentation=[],
+                 augmentation=None,
                  n_augmentations=1,
                  dynamics=None,
                  impl=None,
@@ -409,12 +410,10 @@ class DiscreteBCQ(AlgoBase):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         dynamics=dynamics,
-                         use_gpu=use_gpu)
+                         dynamics=dynamics)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
-        self.encoder_factory = encoder_factory
+        self.encoder_factory = check_encoder(encoder_factory)
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
@@ -423,7 +422,9 @@ class DiscreteBCQ(AlgoBase):
         self.beta = beta
         self.target_update_interval = target_update_interval
         self.q_func_type = q_func_type
+        self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
+        self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
