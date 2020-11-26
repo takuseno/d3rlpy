@@ -6,7 +6,7 @@ import json
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from tqdm.auto import tqdm
-from .preprocessing import create_scaler
+from .preprocessing import create_scaler, Scaler
 from .augmentation import create_augmentation, AugmentationPipeline
 from .dataset import TransitionMiniBatch
 from .logger import D3RLPyLogger
