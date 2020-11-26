@@ -4,24 +4,20 @@ import torch.nn.functional as F
 import math
 
 from abc import ABCMeta, abstractmethod
-from .encoders import create_encoder
 
 
 def create_discrete_q_function(observation_shape,
                                action_size,
+                               encoder_factory,
                                n_ensembles=1,
                                n_quantiles=32,
                                embed_size=64,
-                               use_batch_norm=False,
                                q_func_type='mean',
                                bootstrap=False,
-                               share_encoder=False,
-                               encoder_params={}):
+                               share_encoder=False):
 
     if share_encoder:
-        encoder = create_encoder(observation_shape,
-                                 use_batch_norm=use_batch_norm,
-                                 **encoder_params)
+        encoder = encoder_factory.create(observation_shape)
         # normalize gradient scale by ensemble size
         for p in encoder.parameters():
             p.register_hook(lambda grad: grad / n_ensembles)
@@ -29,9 +25,7 @@ def create_discrete_q_function(observation_shape,
     q_funcs = []
     for _ in range(n_ensembles):
         if not share_encoder:
-            encoder = create_encoder(observation_shape,
-                                     use_batch_norm=use_batch_norm,
-                                     **encoder_params)
+            encoder = encoder_factory.create(observation_shape)
         if q_func_type == 'mean':
             q_func = DiscreteQFunction(encoder, action_size)
         elif q_func_type == 'qr':
@@ -50,20 +44,16 @@ def create_discrete_q_function(observation_shape,
 
 def create_continuous_q_function(observation_shape,
                                  action_size,
+                                 encoder_factory,
                                  n_ensembles=1,
                                  n_quantiles=32,
                                  embed_size=64,
-                                 use_batch_norm=False,
                                  q_func_type='mean',
                                  bootstrap=False,
-                                 share_encoder=False,
-                                 encoder_params={}):
+                                 share_encoder=False):
 
     if share_encoder:
-        encoder = create_encoder(observation_shape,
-                                 action_size,
-                                 use_batch_norm=use_batch_norm,
-                                 **encoder_params)
+        encoder = encoder_factory.create(observation_shape, action_size)
         # normalize gradient scale by ensemble size
         for p in encoder.parameters():
             p.register_hook(lambda grad: grad / n_ensembles)
@@ -71,10 +61,7 @@ def create_continuous_q_function(observation_shape,
     q_funcs = []
     for _ in range(n_ensembles):
         if not share_encoder:
-            encoder = create_encoder(observation_shape,
-                                     action_size,
-                                     use_batch_norm=use_batch_norm,
-                                     **encoder_params)
+            encoder = encoder_factory.create(observation_shape, action_size)
         if q_func_type == 'mean':
             q_func = ContinuousQFunction(encoder)
         elif q_func_type == 'qr':
@@ -155,7 +142,8 @@ class DiscreteQRQFunction(QFunction, nn.Module):
         self.encoder = encoder
         self.action_size = action_size
         self.n_quantiles = n_quantiles
-        self.fc = nn.Linear(encoder.feature_size, action_size * n_quantiles)
+        self.fc = nn.Linear(encoder.get_feature_size(),
+                            action_size * n_quantiles)
 
     def forward(self, x, as_quantiles=False):
         h = self.encoder(x)
@@ -201,7 +189,7 @@ class ContinuousQRQFunction(QFunction, nn.Module):
         self.encoder = encoder
         self.action_size = encoder.action_size
         self.n_quantiles = n_quantiles
-        self.fc = nn.Linear(encoder.feature_size, n_quantiles)
+        self.fc = nn.Linear(encoder.get_feature_size(), n_quantiles)
 
     def forward(self, x, action, as_quantiles=False):
         h = self.encoder(x, action)
@@ -245,8 +233,8 @@ class DiscreteIQNQFunction(QFunction, nn.Module):
         self.action_size = action_size
         self.embed_size = embed_size
         self.n_quantiles = n_quantiles
-        self.embed = nn.Linear(embed_size, encoder.feature_size)
-        self.fc = nn.Linear(encoder.feature_size, self.action_size)
+        self.embed = nn.Linear(embed_size, encoder.get_feature_size())
+        self.fc = nn.Linear(encoder.get_feature_size(), self.action_size)
 
     def _make_taus(self, h):
         taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
@@ -323,8 +311,8 @@ class ContinuousIQNQFunction(QFunction, nn.Module):
         self.action_size = encoder.action_size
         self.embed_size = embed_size
         self.n_quantiles = n_quantiles
-        self.embed = nn.Linear(embed_size, encoder.feature_size)
-        self.fc = nn.Linear(encoder.feature_size, 1)
+        self.embed = nn.Linear(embed_size, encoder.get_feature_size())
+        self.fc = nn.Linear(encoder.get_feature_size(), 1)
 
     def _make_taus(self, h):
         taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
@@ -397,7 +385,7 @@ class ContinuousIQNQFunction(QFunction, nn.Module):
 class DiscreteFQFQFunction(DiscreteIQNQFunction):
     def __init__(self, encoder, action_size, n_quantiles, embed_size):
         super().__init__(encoder, action_size, n_quantiles, embed_size)
-        self.proposal = nn.Linear(encoder.feature_size, n_quantiles)
+        self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
 
     def _make_taus(self, h):
         # compute taus without making backward path
@@ -493,7 +481,7 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
 class ContinuousFQFQFunction(ContinuousIQNQFunction):
     def __init__(self, encoder, n_quantiles, embed_size):
         super().__init__(encoder, n_quantiles, embed_size)
-        self.proposal = nn.Linear(encoder.feature_size, n_quantiles)
+        self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
 
     def _make_taus(self, h):
         # compute taus without making backward path
@@ -591,7 +579,7 @@ class DiscreteQFunction(QFunction, nn.Module):
         super().__init__()
         self.action_size = action_size
         self.encoder = encoder
-        self.fc = nn.Linear(encoder.feature_size, action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def forward(self, x):
         h = self.encoder(x)
@@ -621,7 +609,7 @@ class ContinuousQFunction(QFunction, nn.Module):
         super().__init__()
         self.encoder = encoder
         self.action_size = encoder.action_size
-        self.fc = nn.Linear(encoder.feature_size, 1)
+        self.fc = nn.Linear(encoder.get_feature_size(), 1)
 
     def forward(self, x, action):
         h = self.encoder(x, action)

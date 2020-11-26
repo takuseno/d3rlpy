@@ -3,53 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def _create_activation(activation_type):
-    if activation_type == 'relu':
-        return torch.relu
-    elif activation_type == 'swish':
-        return lambda x: x * torch.sigmoid(x)
-    raise ValueError('invalid activation_type.')
-
-
-def create_encoder(observation_shape,
-                   action_size=None,
-                   use_batch_norm=False,
-                   discrete_action=False,
-                   activation_type='relu',
-                   **kwargs):
-
-    activation = _create_activation(activation_type)
-
-    if len(observation_shape) == 3:
-        # pixel input
-        if action_size is not None:
-            return PixelEncoderWithAction(observation_shape,
-                                          action_size,
-                                          use_batch_norm=use_batch_norm,
-                                          discrete_action=discrete_action,
-                                          activation=activation,
-                                          **kwargs)
-        return PixelEncoder(observation_shape,
-                            use_batch_norm=use_batch_norm,
-                            activation=activation,
-                            **kwargs)
-    elif len(observation_shape) == 1:
-        # vector input
-        if action_size is not None:
-            return VectorEncoderWithAction(observation_shape,
-                                           action_size,
-                                           use_batch_norm=use_batch_norm,
-                                           discrete_action=discrete_action,
-                                           activation=activation,
-                                           **kwargs)
-        return VectorEncoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             activation=activation,
-                             **kwargs)
-    else:
-        raise ValueError('observation_shape must be 1d or 3d.')
-
-
 class PixelEncoder(nn.Module):
     def __init__(self,
                  observation_shape,
@@ -111,6 +64,9 @@ class PixelEncoder(nn.Module):
             h = self.fc_bn(h)
 
         return h
+
+    def get_feature_size(self):
+        return self.feature_size
 
 
 class PixelEncoderWithAction(PixelEncoder):
@@ -178,6 +134,9 @@ class VectorEncoder(nn.Module):
             if self.use_batch_norm:
                 h = self.bns[i](h)
         return h
+
+    def get_feature_size(self):
+        return self.feature_size
 
 
 class VectorEncoderWithAction(VectorEncoder):

@@ -51,6 +51,7 @@ def to_mdp_dataset(replay_buffer):
     Args:
         replay_buffer (stable_baselines3.common.buffers.ReplayBuffer):
             SB3's replay buffer.
+
     Returns:
         d3rlpy.dataset.MDPDataset: d3rlpy's MDPDataset.
 

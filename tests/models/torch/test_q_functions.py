@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import torch
 
+from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.q_functions import create_discrete_q_function
 from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from d3rlpy.models.torch.q_functions import _pick_value_by_action
@@ -29,26 +30,24 @@ from .model_test import check_parameter_updates, DummyEncoder
 @pytest.mark.parametrize('n_ensembles', [1, 5])
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('embed_size', [64])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_create_discrete_q_function(observation_shape, action_size, batch_size,
                                     n_ensembles, n_quantiles, embed_size,
-                                    use_batch_norm, share_encoder,
+                                    encoder_factory, share_encoder,
                                     q_func_type):
-
     q_func = create_discrete_q_function(observation_shape,
                                         action_size,
+                                        encoder_factory,
                                         n_ensembles,
                                         n_quantiles,
                                         embed_size,
-                                        use_batch_norm,
                                         q_func_type,
                                         share_encoder=share_encoder)
 
     assert isinstance(q_func, EnsembleDiscreteQFunction)
     for f in q_func.q_funcs:
-        assert f.encoder.use_batch_norm == use_batch_norm
         if q_func_type == 'mean':
             assert isinstance(f, DiscreteQFunction)
         elif q_func_type == 'qr':
@@ -77,20 +76,19 @@ def test_create_discrete_q_function(observation_shape, action_size, batch_size,
 @pytest.mark.parametrize('n_ensembles', [1, 2])
 @pytest.mark.parametrize('n_quantiles', [200])
 @pytest.mark.parametrize('embed_size', [64])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 def test_create_continuous_q_function(observation_shape, action_size,
                                       batch_size, n_ensembles, n_quantiles,
-                                      embed_size, use_batch_norm,
+                                      embed_size, encoder_factory,
                                       share_encoder, q_func_type):
-
     q_func = create_continuous_q_function(observation_shape,
                                           action_size,
+                                          encoder_factory,
                                           n_ensembles,
                                           n_quantiles,
                                           embed_size,
-                                          use_batch_norm,
                                           q_func_type,
                                           share_encoder=share_encoder)
 
@@ -104,7 +102,6 @@ def test_create_continuous_q_function(observation_shape, action_size,
             assert isinstance(f, ContinuousIQNQFunction)
         elif q_func_type == 'fqf':
             assert isinstance(f, ContinuousFQFQFunction)
-        assert f.encoder.use_batch_norm == use_batch_norm
 
     # check share_encoder
     encoder = q_func.q_funcs[0].encoder
@@ -731,6 +728,7 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
 
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [3])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('n_ensembles', [2])
 @pytest.mark.parametrize('batch_size', [100])
 @pytest.mark.parametrize('n_quantiles', [32])
@@ -738,12 +736,13 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
 @pytest.mark.parametrize('lam', [0.75])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr'])
 def test_compute_max_with_n_actions(observation_shape, action_size,
-                                    n_ensembles, batch_size, n_quantiles,
-                                    n_actions, lam, q_func_type):
+                                    encoder_factory, n_ensembles, batch_size,
+                                    n_quantiles, n_actions, lam, q_func_type):
     q_func = create_continuous_q_function(observation_shape,
                                           action_size,
-                                          n_ensembles,
-                                          n_quantiles,
+                                          encoder_factory,
+                                          n_ensembles=n_ensembles,
+                                          n_quantiles=n_quantiles,
                                           q_func_type=q_func_type)
     x = torch.rand(batch_size, *observation_shape)
     actions = torch.rand(batch_size, n_actions, action_size)

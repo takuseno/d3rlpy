@@ -3,6 +3,7 @@ import pytest
 from d3rlpy.algos.torch.bc_impl import BCImpl, DiscreteBCImpl
 from d3rlpy.augmentation import AugmentationPipeline
 from d3rlpy.optimizers import AdamFactory
+from d3rlpy.encoders import DefaultEncoderFactory
 from tests.algos.algo_test import torch_impl_tester, DummyScaler
 
 
@@ -10,24 +11,21 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [1e-3])
 @pytest.mark.parametrize('optim_factory', [AdamFactory()])
-@pytest.mark.parametrize('use_batch_norm', [True, False])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
-@pytest.mark.parametrize('encoder_params', [{}])
 def test_bc_impl(observation_shape, action_size, learning_rate, optim_factory,
-                 use_batch_norm, scaler, augmentation, n_augmentations,
-                 encoder_params):
+                 encoder_factory, scaler, augmentation, n_augmentations):
     impl = BCImpl(observation_shape,
                   action_size,
                   learning_rate,
                   optim_factory,
-                  use_batch_norm,
+                  encoder_factory,
                   use_gpu=False,
                   scaler=scaler,
                   augmentation=augmentation,
-                  n_augmentations=n_augmentations,
-                  encoder_params=encoder_params)
+                  n_augmentations=n_augmentations)
     torch_impl_tester(impl, discrete=False, imitator=True)
 
 
@@ -35,24 +33,22 @@ def test_bc_impl(observation_shape, action_size, learning_rate, optim_factory,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [1e-3])
 @pytest.mark.parametrize('optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('beta', [0.5])
-@pytest.mark.parametrize('use_batch_norm', [True, False])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
-@pytest.mark.parametrize('encoder_params', [{}])
 def test_discrete_bc_impl(observation_shape, action_size, learning_rate,
-                          optim_factory, beta, use_batch_norm, scaler,
-                          augmentation, n_augmentations, encoder_params):
+                          optim_factory, encoder_factory, beta, scaler,
+                          augmentation, n_augmentations):
     impl = DiscreteBCImpl(observation_shape,
                           action_size,
                           learning_rate,
                           optim_factory,
+                          encoder_factory,
                           beta,
-                          use_batch_norm,
                           use_gpu=False,
                           scaler=scaler,
                           augmentation=augmentation,
-                          n_augmentations=n_augmentations,
-                          encoder_params=encoder_params)
+                          n_augmentations=n_augmentations)
     torch_impl_tester(impl, discrete=True, imitator=True)

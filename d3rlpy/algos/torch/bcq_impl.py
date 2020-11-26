@@ -18,37 +18,43 @@ class BCQImpl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, imitator_learning_rate,
                  actor_optim_factory, critic_optim_factory,
-                 imitator_optim_factory, gamma, tau, n_critics, bootstrap,
-                 share_encoder, lam, n_action_samples, action_flexibility,
-                 latent_size, beta, use_batch_norm, q_func_type, use_gpu,
-                 scaler, augmentation, n_augmentations, encoder_params):
+                 imitator_optim_factory, actor_encoder_factory,
+                 critic_encoder_factory, imitator_encoder_factory, gamma, tau,
+                 n_critics, bootstrap, share_encoder, lam, n_action_samples,
+                 action_flexibility, latent_size, beta, q_func_type, use_gpu,
+                 scaler, augmentation, n_augmentations):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
                          critic_learning_rate=critic_learning_rate,
                          actor_optim_factory=actor_optim_factory,
                          critic_optim_factory=critic_optim_factory,
+                         actor_encoder_factory=actor_encoder_factory,
+                         critic_encoder_factory=critic_encoder_factory,
                          gamma=gamma,
                          tau=tau,
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
                          reguralizing_rate=0.0,
-                         use_batch_norm=use_batch_norm,
                          q_func_type=q_func_type,
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,
-                         n_augmentations=n_augmentations,
-                         encoder_params=encoder_params)
+                         n_augmentations=n_augmentations)
         self.imitator_learning_rate = imitator_learning_rate
         self.imitator_optim_factory = imitator_optim_factory
+        self.imitator_encoder_factory = imitator_encoder_factory
         self.n_critics = n_critics
         self.lam = lam
         self.n_action_samples = n_action_samples
         self.action_flexibility = action_flexibility
         self.latent_size = latent_size
         self.beta = beta
+
+        # initialized in build
+        self.imitator = None
+        self.imitator_optim = None
 
     def build(self):
         self._build_imitator()
@@ -58,20 +64,14 @@ class BCQImpl(DDPGImpl):
 
     def _build_actor(self):
         self.policy = create_deterministic_residual_policy(
-            self.observation_shape,
-            self.action_size,
-            self.action_flexibility,
-            self.use_batch_norm,
-            encoder_params=self.encoder_params)
+            self.observation_shape, self.action_size, self.action_flexibility,
+            self.actor_encoder_factory)
 
     def _build_imitator(self):
-        self.imitator = create_conditional_vae(
-            self.observation_shape,
-            self.action_size,
-            self.latent_size,
-            self.beta,
-            self.use_batch_norm,
-            encoder_params=self.encoder_params)
+        self.imitator = create_conditional_vae(self.observation_shape,
+                                               self.action_size,
+                                               self.latent_size, self.beta,
+                                               self.imitator_encoder_factory)
 
     def _build_imitator_optim(self):
         self.imitator_optim = self.imitator_optim_factory.create(
@@ -163,27 +163,28 @@ class BCQImpl(DDPGImpl):
 
 class DiscreteBCQImpl(DoubleDQNImpl):
     def __init__(self, observation_shape, action_size, learning_rate,
-                 optim_factory, gamma, n_critics, bootstrap, share_encoder,
-                 action_flexibility, beta, use_batch_norm, q_func_type,
-                 use_gpu, scaler, augmentation, n_augmentations,
-                 encoder_params):
+                 optim_factory, encoder_factory, gamma, n_critics, bootstrap,
+                 share_encoder, action_flexibility, beta, q_func_type, use_gpu,
+                 scaler, augmentation, n_augmentations):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          learning_rate=learning_rate,
                          optim_factory=optim_factory,
+                         encoder_factory=encoder_factory,
                          gamma=gamma,
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
-                         use_batch_norm=use_batch_norm,
                          q_func_type=q_func_type,
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,
-                         n_augmentations=n_augmentations,
-                         encoder_params=encoder_params)
+                         n_augmentations=n_augmentations)
         self.action_flexibility = action_flexibility
         self.beta = beta
+
+        # initialized in build
+        self.imitator = None
 
     def _build_network(self):
         super()._build_network()
@@ -192,12 +193,10 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             self.imitator = DiscreteImitator(self.q_func.q_funcs[0].encoder,
                                              self.action_size, self.beta)
         else:
-            self.imitator = create_discrete_imitator(
-                self.observation_shape,
-                self.action_size,
-                self.beta,
-                self.use_batch_norm,
-                encoder_params=self.encoder_params)
+            self.imitator = create_discrete_imitator(self.observation_shape,
+                                                     self.action_size,
+                                                     self.beta,
+                                                     self.encoder_factory)
 
     def _build_optim(self):
         q_func_params = list(self.q_func.parameters())

@@ -19,11 +19,12 @@ class BEARImpl(SACImpl):
                  critic_learning_rate, imitator_learning_rate,
                  temp_learning_rate, alpha_learning_rate, actor_optim_factory,
                  critic_optim_factory, imitator_optim_factory,
-                 temp_optim_factory, alpha_optim_factory, gamma, tau,
-                 n_critics, bootstrap, share_encoder, initial_temperature,
-                 initial_alpha, alpha_threshold, lam, n_action_samples,
-                 mmd_sigma, use_batch_norm, q_func_type, use_gpu, scaler,
-                 augmentation, n_augmentations, encoder_params):
+                 temp_optim_factory, alpha_optim_factory,
+                 actor_encoder_factory, critic_encoder_factory,
+                 imitator_encoder_factory, gamma, tau, n_critics, bootstrap,
+                 share_encoder, initial_temperature, initial_alpha,
+                 alpha_threshold, lam, n_action_samples, mmd_sigma,
+                 q_func_type, use_gpu, scaler, augmentation, n_augmentations):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
@@ -32,28 +33,35 @@ class BEARImpl(SACImpl):
                          actor_optim_factory=actor_optim_factory,
                          critic_optim_factory=critic_optim_factory,
                          temp_optim_factory=temp_optim_factory,
+                         actor_encoder_factory=actor_encoder_factory,
+                         critic_encoder_factory=critic_encoder_factory,
                          gamma=gamma,
                          tau=tau,
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
                          initial_temperature=initial_temperature,
-                         use_batch_norm=use_batch_norm,
                          q_func_type=q_func_type,
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,
-                         n_augmentations=n_augmentations,
-                         encoder_params=encoder_params)
+                         n_augmentations=n_augmentations)
         self.imitator_learning_rate = imitator_learning_rate
         self.alpha_learning_rate = alpha_learning_rate
         self.imitator_optim_factory = imitator_optim_factory
         self.alpha_optim_factory = alpha_optim_factory
+        self.imitator_encoder_factory = imitator_encoder_factory
         self.initial_alpha = initial_alpha
         self.alpha_threshold = alpha_threshold
         self.lam = lam
         self.n_action_samples = n_action_samples
         self.mmd_sigma = mmd_sigma
+
+        # initialized in build
+        self.imitator = None
+        self.imitator_optim = None
+        self.log_alpha = None
+        self.alpha_optim = None
 
     def build(self):
         self._build_imitator()
@@ -64,10 +72,8 @@ class BEARImpl(SACImpl):
 
     def _build_imitator(self):
         self.imitator = create_probablistic_regressor(
-            self.observation_shape,
-            self.action_size,
-            self.use_batch_norm,
-            encoder_params=self.encoder_params)
+            self.observation_shape, self.action_size,
+            self.imitator_encoder_factory)
 
     def _build_imitator_optim(self):
         self.imitator_optim = self.imitator_optim_factory.create(

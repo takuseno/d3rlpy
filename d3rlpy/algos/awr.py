@@ -4,6 +4,7 @@ from .base import AlgoBase
 from .torch.awr_impl import AWRImpl, DiscreteAWRImpl
 from ..dataset import compute_lambda_return
 from ..optimizers import SGDFactory
+from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
 
 
 class AWR(AlgoBase):
@@ -43,6 +44,10 @@ class AWR(AlgoBase):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the critic.
+        actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory for the actor.
+        critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory for the critic.
         batch_size (int): batch size per iteration.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -52,7 +57,6 @@ class AWR(AlgoBase):
         lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
         beta (float): :math:`B` for weight scale.
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -60,12 +64,6 @@ class AWR(AlgoBase):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup. If the
-            observation is pixel, you can pass ``filters`` with list of tuples
-            consisting with ``(filter_size, kernel_size, stride)`` and
-            ``feature_size`` with an integer scaler for the last linear layer
-            size. If the observation is vector, you can pass ``hidden_units``
-            with list of hidden unit sizes.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.awr_impl.AWRImpl): algorithm implementation.
@@ -77,6 +75,10 @@ class AWR(AlgoBase):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the critic.
+        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
+            encoder factory for the actor.
+        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
+            encoder factory for the critic.
         batch_size (int): batch size per iteration.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -86,13 +88,11 @@ class AWR(AlgoBase):
         lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
         beta (float): :math:`B` for weight scale.
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.awr_impl.AWRImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -104,6 +104,8 @@ class AWR(AlgoBase):
                  critic_learning_rate=1e-4,
                  actor_optim_factory=SGDFactory(momentum=0.9),
                  critic_optim_factory=SGDFactory(momentum=0.9),
+                 actor_encoder_factory='default',
+                 critic_encoder_factory='default',
                  batch_size=2048,
                  n_frames=1,
                  gamma=0.99,
@@ -113,12 +115,10 @@ class AWR(AlgoBase):
                  lam=0.95,
                  beta=1.0,
                  max_weight=20.0,
-                 use_batch_norm=False,
                  use_gpu=False,
                  scaler=None,
-                 augmentation=[],
+                 augmentation=None,
                  n_augmentations=1,
-                 encoder_params={},
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -126,13 +126,13 @@ class AWR(AlgoBase):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         dynamics=dynamics,
-                         use_gpu=use_gpu)
+                         dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
         self.actor_optim_factory = actor_optim_factory
         self.critic_optim_factory = critic_optim_factory
+        self.actor_encoder_factory = check_encoder(actor_encoder_factory)
+        self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.batch_size_per_update = batch_size_per_update
         self.n_actor_updates = n_actor_updates
         self.n_critic_updates = n_critic_updates
@@ -140,9 +140,9 @@ class AWR(AlgoBase):
         self.lam = lam
         self.beta = beta
         self.max_weight = max_weight
-        self.use_batch_norm = use_batch_norm
+        self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
-        self.encoder_params = encoder_params
+        self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
     def create_impl(self, observation_shape, action_size):
@@ -152,12 +152,12 @@ class AWR(AlgoBase):
                             critic_learning_rate=self.critic_learning_rate,
                             actor_optim_factory=self.actor_optim_factory,
                             critic_optim_factory=self.critic_optim_factory,
-                            use_batch_norm=self.use_batch_norm,
+                            actor_encoder_factory=self.actor_encoder_factory,
+                            critic_encoder_factory=self.critic_encoder_factory,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
                             augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations,
-                            encoder_params=self.encoder_params)
+                            n_augmentations=self.n_augmentations)
         self.impl.build()
 
     def _compute_lambda_returns(self, batch):
@@ -276,6 +276,10 @@ class DiscreteAWR(AWR):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the critic.
+        actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory for the actor.
+        critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory for the critic.
         batch_size (int): batch size per iteration.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -285,7 +289,6 @@ class DiscreteAWR(AWR):
         lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
         beta (float): :math:`B` for weight scale.
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -293,12 +296,6 @@ class DiscreteAWR(AWR):
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup. If the
-            observation is pixel, you can pass ``filters`` with list of tuples
-            consisting with ``(filter_size, kernel_size, stride)`` and
-            ``feature_size`` with an integer scaler for the last linear layer
-            size. If the observation is vector, you can pass ``hidden_units``
-            with list of hidden unit sizes.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.awr_impl.DiscreteAWRImpl):
@@ -311,6 +308,10 @@ class DiscreteAWR(AWR):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the critic.
+        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
+            encoder factory for the actor.
+        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
+            encoder factory for the critic.
         batch_size (int): batch size per iteration.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -320,13 +321,11 @@ class DiscreteAWR(AWR):
         lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
         beta (float): :math:`B` for weight scale.
         max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
-        use_batch_norm (bool): flag to insert batch normalization layers.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
         n_augmentations (int): the number of data augmentations to update.
-        encoder_params (dict): optional arguments for encoder setup.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.awr_impl.DiscreteAWRImpl):
             algorithm implementation.
@@ -341,10 +340,10 @@ class DiscreteAWR(AWR):
             critic_learning_rate=self.critic_learning_rate,
             actor_optim_factory=self.actor_optim_factory,
             critic_optim_factory=self.critic_optim_factory,
-            use_batch_norm=self.use_batch_norm,
+            actor_encoder_factory=self.actor_encoder_factory,
+            critic_encoder_factory=self.critic_encoder_factory,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
             augmentation=self.augmentation,
-            n_augmentations=self.n_augmentations,
-            encoder_params=self.encoder_params)
+            n_augmentations=self.n_augmentations)
         self.impl.build()

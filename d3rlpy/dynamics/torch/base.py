@@ -9,6 +9,12 @@ from d3rlpy.algos.torch.utility import get_state_dict, set_state_dict
 
 
 class TorchImplBase(DynamicsImplBase):
+    def __init__(self, observation_shape, action_size, scaler):
+        self.observation_shape = observation_shape
+        self.action_size = action_size
+        self.scaler = scaler
+        self.device = 'cpu:0'
+
     @eval_api
     @torch_api(scaler_targets=['x'])
     def predict(self, x, action):

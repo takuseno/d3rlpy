@@ -4,6 +4,7 @@ import torch
 from d3rlpy.algos.torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 from d3rlpy.augmentation import AugmentationPipeline
 from d3rlpy.optimizers import AdamFactory
+from d3rlpy.encoders import DefaultEncoderFactory
 from tests.algos.algo_test import torch_impl_tester, DummyScaler
 
 
@@ -15,6 +16,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('actor_optim_factory', [AdamFactory()])
 @pytest.mark.parametrize('critic_optim_factory', [AdamFactory()])
 @pytest.mark.parametrize('imitator_optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('tau', [0.05])
 @pytest.mark.parametrize('n_critics', [2])
@@ -25,19 +27,17 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('action_flexibility', [0.05])
 @pytest.mark.parametrize('latent_size', [32])
 @pytest.mark.parametrize('beta', [0.5])
-@pytest.mark.parametrize('use_batch_norm', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
-@pytest.mark.parametrize('encoder_params', [{}])
 def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, imitator_learning_rate,
                   actor_optim_factory, critic_optim_factory,
-                  imitator_optim_factory, gamma, tau, n_critics, bootstrap,
-                  share_encoder, lam, n_action_samples, action_flexibility,
-                  latent_size, beta, use_batch_norm, q_func_type, scaler,
-                  augmentation, n_augmentations, encoder_params):
+                  imitator_optim_factory, encoder_factory, gamma, tau,
+                  n_critics, bootstrap, share_encoder, lam, n_action_samples,
+                  action_flexibility, latent_size, beta, q_func_type, scaler,
+                  augmentation, n_augmentations):
     impl = BCQImpl(observation_shape,
                    action_size,
                    actor_learning_rate,
@@ -46,6 +46,9 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                    actor_optim_factory,
                    critic_optim_factory,
                    imitator_optim_factory,
+                   encoder_factory,
+                   encoder_factory,
+                   encoder_factory,
                    gamma,
                    tau,
                    n_critics,
@@ -56,13 +59,11 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                    action_flexibility,
                    latent_size,
                    beta,
-                   use_batch_norm,
                    q_func_type,
                    use_gpu=False,
                    scaler=scaler,
                    augmentation=augmentation,
-                   n_augmentations=n_augmentations,
-                   encoder_params=encoder_params)
+                   n_augmentations=n_augmentations)
     impl.build()
 
     # test internal methods
@@ -101,40 +102,37 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [2.5e-4])
 @pytest.mark.parametrize('optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('n_critics', [1])
 @pytest.mark.parametrize('bootstrap', [False])
 @pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('action_flexibility', [0.3])
 @pytest.mark.parametrize('beta', [1e-2])
-@pytest.mark.parametrize('use_batch_norm', [True, False])
 @pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
-@pytest.mark.parametrize('encoder_params', [{}])
 def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
-                           optim_factory, gamma, n_critics, bootstrap,
-                           share_encoder, action_flexibility, beta,
-                           use_batch_norm, q_func_type, scaler, augmentation,
-                           n_augmentations, encoder_params):
+                           optim_factory, encoder_factory, gamma, n_critics,
+                           bootstrap, share_encoder, action_flexibility, beta,
+                           q_func_type, scaler, augmentation, n_augmentations):
     impl = DiscreteBCQImpl(observation_shape,
                            action_size,
                            learning_rate,
                            optim_factory,
+                           encoder_factory,
                            gamma,
                            n_critics,
                            bootstrap,
                            share_encoder,
                            action_flexibility,
                            beta,
-                           use_batch_norm,
                            q_func_type,
                            use_gpu=False,
                            scaler=scaler,
                            augmentation=augmentation,
-                           n_augmentations=n_augmentations,
-                           encoder_params=encoder_params)
+                           n_augmentations=n_augmentations)
     torch_impl_tester(impl,
                       discrete=True,
                       deterministic_best_action=q_func_type != 'iqn')
