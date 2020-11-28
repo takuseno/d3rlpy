@@ -345,14 +345,11 @@ class LearnableBase:
                 random.shuffle(transitions)
 
             # minibatch generator
-            batches = (
-                transitions[i * self.batch_size:(i + 1) * self.batch_size]
-                for i in range((len(transitions) + self.batch_size - 1) //
-                               self.batch_size)
-            )
-
             total_batches = ((len(transitions) + self.batch_size - 1) //
                              self.batch_size)
+            batches = (
+                transitions[i * self.batch_size:(i + 1) * self.batch_size]
+                for i in range(total_batches))
 
             # Epoch progress bar
             tqdm_epoch = tqdm(batches, total=total_batches,
