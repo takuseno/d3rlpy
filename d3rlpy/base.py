@@ -35,12 +35,12 @@ def _serialize_params(params):
             params[key] = value.get_id()
         elif isinstance(value, Scaler):
             params['scaler'] = {
-                'type':   value.get_type(),
+                'type': value.get_type(),
                 'params': value.get_params()
             }
         elif isinstance(value, EncoderFactory):
             params[key] = {
-                'type':   value.get_type(),
+                'type': value.get_type(),
                 'params': value.get_params()
             }
         elif isinstance(value, OptimizerFactory):
@@ -347,12 +347,13 @@ class LearnableBase:
             # minibatch generator
             total_batches = ((len(transitions) + self.batch_size - 1) //
                              self.batch_size)
-            batches = (
-                transitions[i * self.batch_size:(i + 1) * self.batch_size]
-                for i in range(total_batches))
+            batches = (transitions[i * self.batch_size:(i + 1) *
+                                   self.batch_size]
+                       for i in range(total_batches))
 
             # Epoch progress bar
-            tqdm_epoch = tqdm(batches, total=total_batches,
+            tqdm_epoch = tqdm(batches,
+                              total=total_batches,
                               disable=not show_progress,
                               desc=f'Epoch {epoch + 1}')
 
