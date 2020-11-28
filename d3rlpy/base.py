@@ -1,21 +1,22 @@
-import numpy as np
 import copy
-import random
 import json
-
+import random
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+
+import numpy as np
 from tqdm.auto import tqdm
-from .preprocessing import create_scaler, Scaler
-from .augmentation import create_augmentation, AugmentationPipeline
+
+from .argument_utils import check_scaler
+from .augmentation import AugmentationPipeline, create_augmentation
+from .context import disable_parallel
 from .dataset import TransitionMiniBatch
+from .encoders import EncoderFactory, create_encoder_factory
+from .gpu import Device
 from .logger import D3RLPyLogger
 from .metrics.scorer import NEGATED_SCORER
-from .context import disable_parallel
-from .gpu import Device
 from .optimizers import OptimizerFactory
-from .encoders import EncoderFactory, create_encoder_factory
-from .argument_utils import check_scaler
+from .preprocessing import Scaler, create_scaler
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -34,12 +35,12 @@ def _serialize_params(params):
             params[key] = value.get_id()
         elif isinstance(value, Scaler):
             params['scaler'] = {
-                'type': value.get_type(),
+                'type':   value.get_type(),
                 'params': value.get_params()
             }
         elif isinstance(value, EncoderFactory):
             params[key] = {
-                'type': value.get_type(),
+                'type':   value.get_type(),
                 'params': value.get_params()
             }
         elif isinstance(value, OptimizerFactory):
@@ -93,6 +94,7 @@ class LearnableBase:
         active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
 
     """
+
     def __init__(self, batch_size, n_frames, scaler):
         self.batch_size = batch_size
         self.n_frames = n_frames
@@ -305,6 +307,7 @@ class LearnableBase:
             image_size = observation_shape[1:]
             observation_shape = (self.n_frames * n_channels, *image_size)
         action_size = transitions[0].get_action_size()
+
         if self.impl is None:
             self.create_impl(observation_shape, action_size)
 
@@ -341,19 +344,23 @@ class LearnableBase:
             if shuffle:
                 random.shuffle(transitions)
 
-            batches = [
+            # minibatch generator
+            batches = (
                 transitions[i * self.batch_size:(i + 1) * self.batch_size]
                 for i in range((len(transitions) + self.batch_size - 1) //
                                self.batch_size)
-            ]
+            )
+
+            total_batches = ((len(transitions) + self.batch_size - 1) //
+                             self.batch_size)
 
             # Epoch progress bar
-            tqdm_epoch = tqdm(batches,
+            tqdm_epoch = tqdm(batches, total=total_batches,
                               disable=not show_progress,
-                              desc=f'Epoch {epoch+1}')
+                              desc=f'Epoch {epoch + 1}')
 
-            # dict to add mean losses to epoch progress bar
-            progress_description = {}
+            # dict to add incremental mean losses to epoch
+            step_incremental_losses = {}
 
             for itr, batch in enumerate(tqdm_epoch, start=1):
 
@@ -365,18 +372,21 @@ class LearnableBase:
                     if val is not None:
                         logger.add_metric(name, val)
 
-                        # save loss to loss history dict
-                        self.loss_history_[name].append(val)
-
                         # update progress bar with partial means of losses
-                        partial_mean_loss = np.mean(
+                        incremental_mean_loss = np.mean(
                             logger.metrics_buffer[name])
-                        progress_description[name] = partial_mean_loss
+                        step_incremental_losses[name] = incremental_mean_loss
 
                 # update progress postfix with losses
-                tqdm_epoch.set_postfix(progress_description)
+                tqdm_epoch.set_postfix(step_incremental_losses)
 
                 total_step += 1
+
+            # save loss to loss history dict
+            self.loss_history_['epoch'].append(epoch)
+            self.loss_history_['step'].append(total_step)
+            for name in self._get_loss_labels():
+                self.loss_history_[name].append(step_incremental_losses[name])
 
             if scorers and eval_episodes:
                 self._evaluate(eval_episodes, scorers, logger)
