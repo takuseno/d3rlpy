@@ -225,7 +225,7 @@ data observed at `t` and `t+1`, which is usually used for training.
 from d3rlpy.dataset import MDPDataset
 
 # offline data
-observations = np.random.random((100000, 100)).astype('f4') # 100-dim feature observations
+observations = np.random.random((100000, 100)) # 100-dim feature observations
 actions = np.random.random((100000, 4)) # 4-dim continuous actions
 rewards = np.random.random(100000)
 terminals = np.random.randint(2, size=100000)
