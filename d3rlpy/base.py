@@ -94,7 +94,6 @@ class LearnableBase:
         active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
 
     """
-
     def __init__(self, batch_size, n_frames, scaler):
         self.batch_size = batch_size
         self.n_frames = n_frames
@@ -307,7 +306,6 @@ class LearnableBase:
             image_size = observation_shape[1:]
             observation_shape = (self.n_frames * n_channels, *image_size)
         action_size = transitions[0].get_action_size()
-
         if self.impl is None:
             self.create_impl(observation_shape, action_size)
 
