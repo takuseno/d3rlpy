@@ -27,7 +27,7 @@ def create_discrete_q_function(observation_shape,
         if not share_encoder:
             encoder = encoder_factory.create(observation_shape)
         if q_func_type == 'mean':
-            q_func = DiscreteQFunction(encoder, action_size)
+            q_func = DiscreteMeanQFunction(encoder, action_size)
         elif q_func_type == 'qr':
             q_func = DiscreteQRQFunction(encoder, action_size, n_quantiles)
         elif q_func_type == 'iqn':
@@ -63,7 +63,7 @@ def create_continuous_q_function(observation_shape,
         if not share_encoder:
             encoder = encoder_factory.create(observation_shape, action_size)
         if q_func_type == 'mean':
-            q_func = ContinuousQFunction(encoder)
+            q_func = ContinuousMeanQFunction(encoder)
         elif q_func_type == 'qr':
             q_func = ContinuousQRQFunction(encoder, n_quantiles)
         elif q_func_type == 'iqn':
@@ -103,13 +103,6 @@ def _quantile_huber_loss(y, target, taus):
     return element_wise_loss.sum(dim=2).mean(dim=1)
 
 
-def _make_taus_prime(n_quantiles, device):
-    steps = torch.arange(n_quantiles, dtype=torch.float32, device=device)
-    taus = ((steps + 1).float() / n_quantiles).view(1, -1)
-    taus_dot = (steps.float() / n_quantiles).view(1, -1)
-    return (taus + taus_dot) / 2.0
-
-
 def _reduce(value, reduction_type):
     if reduction_type == 'mean':
         return value.mean()
@@ -136,445 +129,19 @@ class QFunction(metaclass=ABCMeta):
         pass
 
 
-class DiscreteQRQFunction(QFunction, nn.Module):
-    def __init__(self, encoder, action_size, n_quantiles):
-        super().__init__()
-        self.encoder = encoder
-        self.action_size = action_size
-        self.n_quantiles = n_quantiles
-        self.fc = nn.Linear(encoder.get_feature_size(),
-                            action_size * n_quantiles)
+class DiscreteQFunction(QFunction):
+    @abstractmethod
+    def forward(self, x):
+        pass
 
-    def forward(self, x, as_quantiles=False):
-        h = self.encoder(x)
-        quantiles = self.fc(h).view(-1, self.action_size, self.n_quantiles)
 
-        if as_quantiles:
-            return quantiles
+class ContinuousQFunction(QFunction):
+    @abstractmethod
+    def forward(self, x, action):
+        pass
 
-        return quantiles.mean(dim=2)
 
-    def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
-
-        # extraect quantiles corresponding to act_t
-        quantiles_t = _pick_value_by_action(self.forward(obs_t, True), act_t)
-
-        # prepare taus for probabilities
-        taus = _make_taus_prime(self.n_quantiles, obs_t.device)
-
-        # compute quantile huber loss
-        y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
-        quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
-        taus = taus.view(1, 1, -1)
-        loss = _quantile_huber_loss(quantiles_t, y, taus)
-
-        return _reduce(loss, reduction)
-
-    def compute_target(self, x, action=None):
-        if action is None:
-            return self.forward(x, True)
-        return _pick_value_by_action(self.forward(x, True), action)
-
-
-class ContinuousQRQFunction(QFunction, nn.Module):
-    def __init__(self, encoder, n_quantiles):
-        super().__init__()
-        self.encoder = encoder
-        self.action_size = encoder.action_size
-        self.n_quantiles = n_quantiles
-        self.fc = nn.Linear(encoder.get_feature_size(), n_quantiles)
-
-    def forward(self, x, action, as_quantiles=False):
-        h = self.encoder(x, action)
-        quantiles = self.fc(h)
-
-        if as_quantiles:
-            return quantiles
-
-        return quantiles.mean(dim=1, keepdims=True)
-
-    def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
-
-        quantiles_t = self.forward(obs_t, act_t, as_quantiles=True)
-
-        # prepare taus for probabilities
-        taus = _make_taus_prime(self.n_quantiles, obs_t.device)
-
-        # compute quantile huber loss
-        y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
-        quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
-        taus = taus.view(1, 1, -1)
-        loss = _quantile_huber_loss(quantiles_t, y, taus)
-
-        return _reduce(loss, reduction)
-
-    def compute_target(self, x, action):
-        return self.forward(x, action, as_quantiles=True)
-
-
-class DiscreteIQNQFunction(QFunction, nn.Module):
-    def __init__(self, encoder, action_size, n_quantiles, embed_size):
-        super().__init__()
-        self.encoder = encoder
-        self.action_size = action_size
-        self.embed_size = embed_size
-        self.n_quantiles = n_quantiles
-        self.embed = nn.Linear(embed_size, encoder.get_feature_size())
-        self.fc = nn.Linear(encoder.get_feature_size(), self.action_size)
-
-    def _make_taus(self, h):
-        taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
-        return taus
-
-    def _compute_quantiles(self, h, taus):
-        # compute embedding
-        steps = torch.arange(self.embed_size, device=h.device).float() + 1
-        # (batch, quantile, embedding)
-        expanded_taus = taus.view(h.shape[0], self.n_quantiles, 1)
-        prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
-        # (batch, quantile, embedding) -> (batch, quantile, feature)
-        phi = torch.relu(self.embed(prior))
-
-        # (batch, 1, feature) -> (batch,  quantile, feature)
-        prod = h.view(h.shape[0], 1, -1) * phi
-
-        # (batch, quantile, feature) -> (batch, action, quantile)
-        return self.fc(prod).transpose(1, 2)
-
-    def forward(self, x, as_quantiles=False, with_taus=False):
-        h = self.encoder(x)
-
-        taus = self._make_taus(h)
-
-        quantiles = self._compute_quantiles(h, taus)
-
-        rets = []
-
-        if as_quantiles:
-            rets.append(quantiles)
-        else:
-            rets.append(quantiles.mean(dim=2))
-
-        if with_taus:
-            rets.append(taus)
-
-        if len(rets) == 1:
-            return rets[0]
-        return rets
-
-    def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
-
-        # extraect quantiles corresponding to act_t
-        values, taus = self.forward(obs_t, as_quantiles=True, with_taus=True)
-        quantiles_t = _pick_value_by_action(values, act_t)
-
-        # compute errors with all combination
-        y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
-        quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
-        taus = taus.view(obs_t.shape[0], 1, -1)
-        loss = _quantile_huber_loss(quantiles_t, y, taus)
-
-        return _reduce(loss, reduction)
-
-    def compute_target(self, x, action=None):
-        quantiles = self.forward(x, as_quantiles=True)
-        if action is None:
-            return quantiles
-        return _pick_value_by_action(quantiles, action)
-
-
-class ContinuousIQNQFunction(QFunction, nn.Module):
-    def __init__(self, encoder, n_quantiles, embed_size):
-        super().__init__()
-        self.encoder = encoder
-        self.action_size = encoder.action_size
-        self.embed_size = embed_size
-        self.n_quantiles = n_quantiles
-        self.embed = nn.Linear(embed_size, encoder.get_feature_size())
-        self.fc = nn.Linear(encoder.get_feature_size(), 1)
-
-    def _make_taus(self, h):
-        taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
-        return taus
-
-    def _compute_quantiles(self, h, taus):
-        # compute embedding
-        steps = torch.arange(self.embed_size, device=h.device).float() + 1
-        # (batch, quantile, embedding)
-        expanded_taus = taus.view(h.shape[0], -1, 1)
-        prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
-        # (batch, quantile, embedding) -> (batch, quantile, feature)
-        phi = torch.relu(self.embed(prior))
-
-        # (batch, 1, feature) -> (batch, quantile, feature)
-        prod = h.view(h.shape[0], 1, -1) * phi
-
-        # (batch, quantile, feature) -> (batch, quantile)
-        quantiles = self.fc(prod).view(h.shape[0], -1)
-
-        return quantiles
-
-    def forward(self, x, action, as_quantiles=False, with_taus=False):
-        h = self.encoder(x, action)
-
-        taus = self._make_taus(h)
-
-        quantiles = self._compute_quantiles(h, taus)
-
-        rets = []
-
-        if as_quantiles:
-            rets.append(quantiles)
-        else:
-            rets.append(quantiles.mean(dim=1, keepdims=True))
-
-        if with_taus:
-            rets.append(taus)
-
-        if len(rets) == 1:
-            return rets[0]
-        return rets
-
-    def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
-
-        quantiles_t, taus = self.forward(obs_t,
-                                         act_t,
-                                         as_quantiles=True,
-                                         with_taus=True)
-
-        # compute errors with all combination
-        y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
-        quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
-        taus = taus.view(obs_t.shape[0], 1, -1)
-        loss = _quantile_huber_loss(quantiles_t, y, taus)
-
-        return _reduce(loss, reduction)
-
-    def compute_target(self, x, action):
-        return self.forward(x, action, as_quantiles=True)
-
-
-class DiscreteFQFQFunction(DiscreteIQNQFunction):
-    def __init__(self, encoder, action_size, n_quantiles, embed_size):
-        super().__init__(encoder, action_size, n_quantiles, embed_size)
-        self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
-
-    def _make_taus(self, h):
-        # compute taus without making backward path
-        proposals = self.proposal(h.detach())
-        # tau_i+1
-        log_probs = torch.log_softmax(proposals, dim=1)
-        probs = log_probs.exp()
-        taus = torch.cumsum(probs, dim=1)
-
-        # tau_i
-        pads = torch.zeros(h.shape[0], 1, device=h.device)
-        taus_minus = torch.cat([pads, taus[:, :-1]], dim=1)
-
-        # tau^
-        taus_prime = (taus + taus_minus) / 2
-
-        # entropy for penalty
-        entropies = -(log_probs * probs).sum(dim=1)
-
-        return taus, taus_minus, taus_prime, entropies
-
-    def forward(self, x, as_quantiles=False, with_taus=False, with_h=False):
-        h = self.encoder(x)
-
-        taus, taus_minus, taus_prime, entropies = self._make_taus(h)
-
-        # compute quantiles without making backward path to proposal net
-        quantiles = self._compute_quantiles(h, taus_prime.detach())
-
-        rets = []
-
-        if as_quantiles:
-            rets.append(quantiles)
-        else:
-            weight = (taus - taus_minus).view(-1, 1, self.n_quantiles).detach()
-            rets.append((weight * quantiles).sum(dim=2))
-
-        if with_taus:
-            rets.append([taus, taus_prime, entropies])
-
-        if with_h:
-            rets.append(h)
-
-        if len(rets) == 1:
-            return rets[0]
-        return rets
-
-    def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
-
-        # extraect quantiles corresponding to act_t
-        values, taus, h = self.forward(obs_t,
-                                       as_quantiles=True,
-                                       with_taus=True,
-                                       with_h=True)
-        taus, taus_prime, entropies = taus
-
-        quantiles_t = _pick_value_by_action(values, act_t)
-
-        # compute errors with all combination
-        y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
-        quantiles_t = quantiles_t.view(obs_t.shape[0], 1, -1)
-        taus_prime = taus_prime.view(obs_t.shape[0], 1, -1).detach()
-        quantile_loss = _quantile_huber_loss(quantiles_t, y, taus_prime)
-
-        # compute proposal network loss
-        # original paper explicitly separates the optimization process
-        # but, it's combined here
-        q_taus = self._compute_quantiles(h.detach(), taus)
-        q_taus_prime = self._compute_quantiles(h.detach(), taus_prime)
-        batch_steps = torch.arange(obs_t.shape[0])
-        # (batch, n_quantiles - 1)
-        q_taus = q_taus[batch_steps, act_t.view(-1)][:, :-1]
-        # (batch, n_quantiles)
-        q_taus_prime = q_taus_prime[batch_steps, act_t.view(-1)]
-
-        # compute gradients
-        proposal_grad = 2 * q_taus - q_taus_prime[:, :-1] - q_taus_prime[:, 1:]
-        proposal_loss = (proposal_grad.detach() * taus[:, :-1]).sum(dim=1)
-
-        # small learning rate for prpposal network
-        loss = quantile_loss + 1e-5 * (proposal_loss - 1e-3 * entropies)
-
-        return _reduce(loss, reduction)
-
-
-class ContinuousFQFQFunction(ContinuousIQNQFunction):
-    def __init__(self, encoder, n_quantiles, embed_size):
-        super().__init__(encoder, n_quantiles, embed_size)
-        self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
-
-    def _make_taus(self, h):
-        # compute taus without making backward path
-        proposals = self.proposal(h.detach())
-        # tau_i+1
-        log_probs = torch.log_softmax(proposals, dim=1)
-        probs = log_probs.exp()
-        taus = torch.cumsum(probs, dim=1)
-
-        # tau_i
-        pads = torch.zeros(h.shape[0], 1, device=h.device)
-        taus_minus = torch.cat([pads, taus[:, :-1]], dim=1)
-
-        # tau^
-        taus_prime = (taus + taus_minus) / 2
-
-        # entropy for penalty
-        entropies = -(log_probs * probs).sum(dim=1)
-
-        return taus, taus_minus, taus_prime, entropies
-
-    def forward(self,
-                x,
-                action,
-                as_quantiles=False,
-                with_taus=False,
-                with_h=False):
-        h = self.encoder(x, action)
-
-        taus, taus_minus, taus_prime, entropies = self._make_taus(h)
-
-        # compute quantiles without making backward path to proposal net
-        quantiles = self._compute_quantiles(h, taus_prime.detach())
-
-        rets = []
-
-        if as_quantiles:
-            rets.append(quantiles)
-        else:
-            weight = (taus - taus_minus).detach()
-            rets.append((weight * quantiles).sum(dim=1, keepdims=True))
-
-        if with_taus:
-            rets.append([taus, taus_prime, entropies])
-
-        if with_h:
-            rets.append(h)
-
-        if len(rets) == 1:
-            return rets[0]
-        return rets
-
-    def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
-
-        values, taus, h = self.forward(obs_t,
-                                       act_t,
-                                       as_quantiles=True,
-                                       with_taus=True,
-                                       with_h=True)
-        taus, taus_prime, entropies = taus
-
-        # compute errors with all combination
-        y = (rew_tp1 + gamma * q_tp1).view(obs_t.shape[0], -1, 1)
-        quantiles_t = values.view(obs_t.shape[0], 1, -1)
-        taus_prime_t = taus_prime.view(obs_t.shape[0], 1, -1).detach()
-        quantile_loss = _quantile_huber_loss(quantiles_t, y, taus_prime_t)
-
-        # compute proposal network loss
-        # original paper explicitly separates the optimization process
-        # but, it's combined here
-        # (batch, n_quantiles - 1)
-        q_taus = self._compute_quantiles(h.detach(), taus)[:, :-1]
-        # (batch, n_quantiles)
-        q_taus_prime = self._compute_quantiles(h.detach(), taus_prime)
-
-        # compute gradients
-        proposal_grad = 2 * q_taus - q_taus_prime[:, :-1] - q_taus_prime[:, 1:]
-        proposal_loss = (proposal_grad.detach() * taus[:, :-1]).sum(dim=1)
-
-        # small lerarning rate for proposal network
-        loss = quantile_loss + 1e-5 * (proposal_loss - 1e-3 * entropies)
-
-        return _reduce(loss, reduction)
-
-
-class DiscreteQFunction(QFunction, nn.Module):
+class DiscreteMeanQFunction(DiscreteQFunction, nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.action_size = action_size
@@ -582,8 +149,7 @@ class DiscreteQFunction(QFunction, nn.Module):
         self.fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def forward(self, x):
-        h = self.encoder(x)
-        return self.fc(h)
+        return self.fc(self.encoder(x))
 
     def compute_error(self,
                       obs_t,
@@ -604,7 +170,7 @@ class DiscreteQFunction(QFunction, nn.Module):
         return _pick_value_by_action(self.forward(x), action, keepdims=True)
 
 
-class ContinuousQFunction(QFunction, nn.Module):
+class ContinuousMeanQFunction(ContinuousQFunction, nn.Module):
     def __init__(self, encoder):
         super().__init__()
         self.encoder = encoder
@@ -612,8 +178,7 @@ class ContinuousQFunction(QFunction, nn.Module):
         self.fc = nn.Linear(encoder.get_feature_size(), 1)
 
     def forward(self, x, action):
-        h = self.encoder(x, action)
-        return self.fc(h)
+        return self.fc(self.encoder(x, action))
 
     def compute_error(self,
                       obs_t,
@@ -629,6 +194,398 @@ class ContinuousQFunction(QFunction, nn.Module):
 
     def compute_target(self, x, action):
         return self.forward(x, action)
+
+
+class QRQFunction(nn.Module):
+    def __init__(self, n_quantiles):
+        super().__init__()
+        self.n_quantiles = n_quantiles
+
+    def _make_taus(self, h):
+        n_quantiles = self.n_quantiles
+        steps = torch.arange(n_quantiles, dtype=torch.float32, device=h.device)
+        taus = ((steps + 1).float() / n_quantiles).view(1, -1)
+        taus_dot = (steps.float() / n_quantiles).view(1, -1)
+        return (taus + taus_dot) / 2.0
+
+    def _compute_quantile_loss(self, quantiles_t, rew_tp1, q_tp1, taus, gamma):
+        batch_size = rew_tp1.shape[0]
+        y = (rew_tp1 + gamma * q_tp1).view(batch_size, -1, 1)
+        quantiles_t = quantiles_t.view(batch_size, 1, -1)
+        expanded_taus = taus.view(-1, 1, self.n_quantiles)
+        return _quantile_huber_loss(quantiles_t, y, expanded_taus)
+
+
+class DiscreteQRQFunction(DiscreteQFunction, QRQFunction):
+    def __init__(self, encoder, action_size, n_quantiles):
+        super().__init__(n_quantiles)
+        self.encoder = encoder
+        self.action_size = action_size
+        self.fc = nn.Linear(encoder.get_feature_size(),
+                            action_size * n_quantiles)
+
+    def _compute_quantiles(self, h, taus):
+        return self.fc(h).view(-1, self.action_size, self.n_quantiles)
+
+    def forward(self, x):
+        h = self.encoder(x)
+        taus = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus)
+        return quantiles.mean(dim=2)
+
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
+        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+
+        # extraect quantiles corresponding to act_t
+        h = self.encoder(obs_t)
+        taus = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus)
+        quantiles_t = _pick_value_by_action(quantiles, act_t)
+
+        loss = self._compute_quantile_loss(quantiles_t=quantiles_t,
+                                           rew_tp1=rew_tp1,
+                                           q_tp1=q_tp1,
+                                           taus=taus,
+                                           gamma=gamma)
+
+        return _reduce(loss, reduction)
+
+    def compute_target(self, x, action=None):
+        h = self.encoder(x)
+        taus = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus)
+        if action is None:
+            return quantiles
+        return _pick_value_by_action(quantiles, action)
+
+
+class ContinuousQRQFunction(ContinuousQFunction, QRQFunction):
+    def __init__(self, encoder, n_quantiles):
+        super().__init__(n_quantiles)
+        self.encoder = encoder
+        self.action_size = encoder.action_size
+        self.fc = nn.Linear(encoder.get_feature_size(), n_quantiles)
+
+    def _compute_quantiles(self, h, taus):
+        return self.fc(h)
+
+    def forward(self, x, action):
+        h = self.encoder(x, action)
+        taus = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus)
+        return quantiles.mean(dim=1, keepdims=True)
+
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
+        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+
+        h = self.encoder(obs_t, act_t)
+        taus = self._make_taus(h)
+        quantiles_t = self._compute_quantiles(h, taus)
+
+        loss = self._compute_quantile_loss(quantiles_t=quantiles_t,
+                                           rew_tp1=rew_tp1,
+                                           q_tp1=q_tp1,
+                                           taus=taus,
+                                           gamma=gamma)
+
+        return _reduce(loss, reduction)
+
+    def compute_target(self, x, action):
+        h = self.encoder(x, action)
+        taus = self._make_taus(h)
+        return self._compute_quantiles(h, taus)
+
+
+class IQNQFunction(QRQFunction):
+    def __init__(self, encoder, n_quantiles, embed_size):
+        super().__init__(n_quantiles)
+        self.embed_size = embed_size
+        self.embed = nn.Linear(embed_size, encoder.get_feature_size())
+
+    def _make_taus(self, h):
+        return torch.rand(h.shape[0], self.n_quantiles, device=h.device)
+
+    def _compute_last_feature(self, h, taus):
+        # compute embedding
+        steps = torch.arange(self.embed_size, device=h.device).float() + 1
+        # (batch, quantile, embedding)
+        expanded_taus = taus.view(h.shape[0], self.n_quantiles, 1)
+        prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
+        # (batch, quantile, embedding) -> (batch, quantile, feature)
+        phi = torch.relu(self.embed(prior))
+
+        # (batch, 1, feature) -> (batch,  quantile, feature)
+        return h.view(h.shape[0], 1, -1) * phi
+
+
+class DiscreteIQNQFunction(DiscreteQFunction, IQNQFunction):
+    def __init__(self, encoder, action_size, n_quantiles, embed_size):
+        super().__init__(encoder, n_quantiles, embed_size)
+        self.encoder = encoder
+        self.action_size = action_size
+        self.fc = nn.Linear(encoder.get_feature_size(), self.action_size)
+
+    def _compute_quantiles(self, h, taus):
+        # element-wise product on feature and phi (batch, quantile, feature)
+        prod = self._compute_last_feature(h, taus)
+
+        # (batch, quantile, feature) -> (batch, action, quantile)
+        return self.fc(prod).transpose(1, 2)
+
+    def forward(self, x):
+        h = self.encoder(x)
+        taus = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus)
+        return quantiles.mean(dim=2)
+
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
+        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+
+        # extraect quantiles corresponding to act_t
+        h = self.encoder(obs_t)
+        taus = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus)
+        quantiles_t = _pick_value_by_action(quantiles, act_t)
+
+        loss = self._compute_quantile_loss(quantiles_t=quantiles_t,
+                                           rew_tp1=rew_tp1,
+                                           q_tp1=q_tp1,
+                                           taus=taus,
+                                           gamma=gamma)
+
+        return _reduce(loss, reduction)
+
+    def compute_target(self, x, action=None):
+        h = self.encoder(x)
+        taus = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus)
+        if action is None:
+            return quantiles
+        return _pick_value_by_action(quantiles, action)
+
+
+class ContinuousIQNQFunction(ContinuousQFunction, IQNQFunction):
+    def __init__(self, encoder, n_quantiles, embed_size):
+        super().__init__(encoder, n_quantiles, embed_size)
+        self.encoder = encoder
+        self.action_size = encoder.action_size
+        self.fc = nn.Linear(encoder.get_feature_size(), 1)
+
+    def _compute_quantiles(self, h, taus):
+        # element-wise product on feature and phi (batch, quantile, feature)
+        prod = self._compute_last_feature(h, taus)
+
+        # (batch, quantile, feature) -> (batch, quantile)
+        return self.fc(prod).view(h.shape[0], -1)
+
+    def forward(self, x, action):
+        h = self.encoder(x, action)
+        taus = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus)
+        return quantiles.mean(dim=1, keepdims=True)
+
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
+        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+
+        h = self.encoder(obs_t, act_t)
+        taus = self._make_taus(h)
+        quantiles_t = self._compute_quantiles(h, taus)
+
+        loss = self._compute_quantile_loss(quantiles_t=quantiles_t,
+                                           rew_tp1=rew_tp1,
+                                           q_tp1=q_tp1,
+                                           taus=taus,
+                                           gamma=gamma)
+
+        return _reduce(loss, reduction)
+
+    def compute_target(self, x, action):
+        h = self.encoder(x, action)
+        taus = self._make_taus(h)
+        return self._compute_quantiles(h, taus)
+
+
+def _compute_fqf_taus(h, proposals):
+    # tau_i+1
+    log_probs = torch.log_softmax(proposals, dim=1)
+    probs = log_probs.exp()
+    taus = torch.cumsum(probs, dim=1)
+
+    # tau_i
+    pads = torch.zeros(h.shape[0], 1, device=h.device)
+    taus_minus = torch.cat([pads, taus[:, :-1]], dim=1)
+
+    # tau^
+    taus_prime = (taus + taus_minus) / 2
+
+    # entropy for penalty
+    entropies = -(log_probs * probs).sum(dim=1)
+
+    return taus, taus_minus, taus_prime, entropies
+
+
+class DiscreteFQFQFunction(DiscreteIQNQFunction):
+    def __init__(self,
+                 encoder,
+                 action_size,
+                 n_quantiles,
+                 embed_size,
+                 entropy_coeff=0.0):
+        super().__init__(encoder, action_size, n_quantiles, embed_size)
+        self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
+        self.entropy_coeff = entropy_coeff
+
+    def _make_taus(self, h):
+        proposals = self.proposal(h.detach())
+        return _compute_fqf_taus(h.detach(), proposals)
+
+    def forward(self, x):
+        h = self.encoder(x)
+        taus, taus_minus, taus_prime, _ = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus_prime.detach())
+        weight = (taus - taus_minus).view(-1, 1, self.n_quantiles).detach()
+        return (weight * quantiles).sum(dim=2)
+
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
+        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+
+        # compute quantiles
+        h = self.encoder(obs_t)
+        taus, _, taus_prime, entropies = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus_prime.detach())
+        quantiles_t = _pick_value_by_action(quantiles, act_t)
+
+        quantile_loss = self._compute_quantile_loss(quantiles_t=quantiles_t,
+                                                    rew_tp1=rew_tp1,
+                                                    q_tp1=q_tp1,
+                                                    taus=taus_prime.detach(),
+                                                    gamma=gamma)
+
+        # compute proposal network loss
+        # original paper explicitly separates the optimization process
+        # but, it's combined here
+        proposal_loss = self._compute_proposal_loss(h, act_t, taus, taus_prime)
+
+        # small learning rate for prpposal network
+        entropy_peanlty = self.entropy_coeff * entropies
+        loss = quantile_loss + 1e-5 * (proposal_loss - entropy_peanlty)
+
+        return _reduce(loss, reduction)
+
+    def _compute_proposal_loss(self, h, action, taus, taus_prime):
+        q_taus = self._compute_quantiles(h.detach(), taus)
+        q_taus_prime = self._compute_quantiles(h.detach(), taus_prime)
+        batch_steps = torch.arange(h.shape[0])
+        # (batch, n_quantiles - 1)
+        q_taus = q_taus[batch_steps, action.view(-1)][:, :-1]
+        # (batch, n_quantiles)
+        q_taus_prime = q_taus_prime[batch_steps, action.view(-1)]
+
+        # compute gradients
+        proposal_grad = 2 * q_taus - q_taus_prime[:, :-1] - q_taus_prime[:, 1:]
+
+        return (proposal_grad.detach() * taus[:, :-1]).sum(dim=1)
+
+    def compute_target(self, x, action=None):
+        h = self.encoder(x)
+        _, _, taus_prime, _ = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus_prime.detach())
+        if action is None:
+            return quantiles
+        return _pick_value_by_action(quantiles, action)
+
+
+class ContinuousFQFQFunction(ContinuousIQNQFunction):
+    def __init__(self, encoder, n_quantiles, embed_size, entropy_coeff=0.0):
+        super().__init__(encoder, n_quantiles, embed_size)
+        self.entropy_coeff = entropy_coeff
+        self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
+
+    def _make_taus(self, h):
+        proposals = self.proposal(h.detach())
+        return _compute_fqf_taus(h.detach(), proposals)
+
+    def forward(self, x, action):
+        h = self.encoder(x, action)
+        taus, taus_minus, taus_prime, _ = self._make_taus(h)
+        quantiles = self._compute_quantiles(h, taus_prime.detach())
+        weight = (taus - taus_minus).detach()
+        return ((weight * quantiles).sum(dim=1, keepdims=True))
+
+    def compute_error(self,
+                      obs_t,
+                      act_t,
+                      rew_tp1,
+                      q_tp1,
+                      gamma=0.99,
+                      reduction='mean'):
+        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+
+        h = self.encoder(obs_t, act_t)
+        taus, _, taus_prime, entropies = self._make_taus(h)
+        quantiles_t = self._compute_quantiles(h, taus_prime.detach())
+
+        quantile_loss = self._compute_quantile_loss(quantiles_t=quantiles_t,
+                                                    rew_tp1=rew_tp1,
+                                                    q_tp1=q_tp1,
+                                                    taus=taus_prime.detach(),
+                                                    gamma=gamma)
+
+        # compute proposal network loss
+        # original paper explicitly separates the optimization process
+        # but, it's combined here
+        proposal_loss = self._compute_proposal_loss(h, taus, taus_prime)
+
+        # small lerarning rate for proposal network
+        entropy_penalty = self.entropy_coeff * entropies
+        loss = quantile_loss + 1e-5 * (proposal_loss - entropy_penalty)
+
+        return _reduce(loss, reduction)
+
+    def _compute_proposal_loss(self, h, taus, taus_prime):
+        # (batch, n_quantiles - 1)
+        q_taus = self._compute_quantiles(h.detach(), taus)[:, :-1]
+        # (batch, n_quantiles)
+        q_taus_prime = self._compute_quantiles(h.detach(), taus_prime)
+
+        # compute gradients
+        proposal_grad = 2 * q_taus - q_taus_prime[:, :-1] - q_taus_prime[:, 1:]
+        return (proposal_grad.detach() * taus[:, :-1]).sum(dim=1)
+
+    def compute_target(self, x, action):
+        h = self.encoder(x, action)
+        _, _, taus_prime, _ = self._make_taus(h)
+        return self._compute_quantiles(h, taus_prime.detach())
 
 
 def _reduce_ensemble(y, reduction='min', dim=0, lam=0.75):
