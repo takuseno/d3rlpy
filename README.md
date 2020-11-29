@@ -306,6 +306,18 @@ If you give `-p` option, the performance tests with toy tasks are also run
 $ ./scripts/test -p
 ```
 
+## citation
+```
+@misc{seno2020d3rlpy,
+  author = {Takuma Seno},
+  title = {d3rlpy: A data-driven deep reinforcement library as an out-of-the-box tool},
+  year = {2020},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/takuseno/d3rlpy}}
+}
+```
+
 ## acknowledgement
 This work is supported by Information-technology Promotion Agency, Japan
 (IPA), Exploratory IT Human Resources Project (MITOU Program) in the fiscal
