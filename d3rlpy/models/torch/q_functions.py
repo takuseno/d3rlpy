@@ -340,7 +340,6 @@ class DiscreteIQNQFunction(DiscreteQFunction, IQNQFunction):
     def _compute_quantiles(self, h, taus):
         # element-wise product on feature and phi (batch, quantile, feature)
         prod = self._compute_last_feature(h, taus)
-
         # (batch, quantile, feature) -> (batch, action, quantile)
         return self.fc(prod).transpose(1, 2)
 
@@ -392,7 +391,6 @@ class ContinuousIQNQFunction(ContinuousQFunction, IQNQFunction):
     def _compute_quantiles(self, h, taus):
         # element-wise product on feature and phi (batch, quantile, feature)
         prod = self._compute_last_feature(h, taus)
-
         # (batch, quantile, feature) -> (batch, quantile)
         return self.fc(prod).view(h.shape[0], -1)
 
