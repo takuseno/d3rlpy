@@ -1,7 +1,10 @@
 from .base import AlgoBase
 from .torch.ddpg_impl import DDPGImpl
 from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
+from ..argument_utils import check_encoder
+from ..argument_utils import check_use_gpu
+from ..argument_utils import check_q_func
+from ..argument_utils import check_augmentation
 
 
 class DDPG(AlgoBase):
@@ -46,6 +49,8 @@ class DDPG(AlgoBase):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the critic.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -54,8 +59,6 @@ class DDPG(AlgoBase):
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         reguralizing_rate (float): reguralizing term for policy function.
-        q_func_type (str): type of Q function. Available options are
-            `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -78,6 +81,8 @@ class DDPG(AlgoBase):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
             encoder factory for the critic.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -86,7 +91,6 @@ class DDPG(AlgoBase):
         bootstrap (bool): flag to bootstraep Q functions.
         share_encoder (bool): flag to share encoder network.
         reguralizing_rate (float): reguralizing term for policy function.
-        q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -105,6 +109,7 @@ class DDPG(AlgoBase):
                  critic_optim_factory=AdamFactory(),
                  actor_encoder_factory='default',
                  critic_encoder_factory='default',
+                 q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -114,7 +119,6 @@ class DDPG(AlgoBase):
                  share_encoder=False,
                  reguralizing_rate=1e-10,
                  use_batch_norm=False,
-                 q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
@@ -133,6 +137,7 @@ class DDPG(AlgoBase):
         self.critic_optim_factory = critic_optim_factory
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
+        self.q_func_factory = check_q_func(q_func_factory)
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
@@ -140,7 +145,6 @@ class DDPG(AlgoBase):
         self.share_encoder = share_encoder
         self.reguralizing_rate = reguralizing_rate
         self.use_batch_norm = use_batch_norm
-        self.q_func_type = q_func_type
         self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
@@ -157,13 +161,13 @@ class DDPG(AlgoBase):
             critic_optim_factory=self.critic_optim_factory,
             actor_encoder_factory=self.actor_encoder_factory,
             critic_encoder_factory=self.critic_encoder_factory,
+            q_func_factory=self.q_func_factory,
             gamma=self.gamma,
             tau=self.tau,
             n_critics=self.n_critics,
             bootstrap=self.bootstrap,
             share_encoder=self.share_encoder,
             reguralizing_rate=self.reguralizing_rate,
-            q_func_type=self.q_func_type,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
             augmentation=self.augmentation,

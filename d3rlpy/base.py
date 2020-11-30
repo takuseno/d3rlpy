@@ -14,6 +14,7 @@ from .context import disable_parallel
 from .gpu import Device
 from .optimizers import OptimizerFactory
 from .encoders import EncoderFactory, create_encoder_factory
+from .q_functions import QFunctionFactory, create_q_func_factory
 from .argument_utils import check_scaler
 
 
@@ -31,12 +32,7 @@ def _serialize_params(params):
     for key, value in params.items():
         if isinstance(value, Device):
             params[key] = value.get_id()
-        elif isinstance(value, Scaler):
-            params['scaler'] = {
-                'type': value.get_type(),
-                'params': value.get_params()
-            }
-        elif isinstance(value, EncoderFactory):
+        elif isinstance(value, (Scaler, EncoderFactory, QFunctionFactory)):
             params[key] = {
                 'type': value.get_type(),
                 'params': value.get_params()
@@ -72,6 +68,9 @@ def _deseriealize_params(params):
         elif 'encoder_factory' in key:
             params[key] = create_encoder_factory(value['type'],
                                                  **value['params'])
+        elif key == 'q_func_factory':
+            params[key] = create_q_func_factory(value['type'],
+                                                **value['params'])
     return params
 
 

@@ -1,7 +1,10 @@
 from .base import AlgoBase
 from .torch.sac_impl import SACImpl, DiscreteSACImpl
 from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
+from ..argument_utils import check_encoder
+from ..argument_utils import check_use_gpu
+from ..argument_utils import check_augmentation
+from ..argument_utils import check_q_func
 
 
 class SAC(AlgoBase):
@@ -61,6 +64,8 @@ class SAC(AlgoBase):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the critic.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -70,8 +75,6 @@ class SAC(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        q_func_type (str): type of Q function. Available options are
-            `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -97,6 +100,8 @@ class SAC(AlgoBase):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
             encoder factory for the critic.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -127,6 +132,7 @@ class SAC(AlgoBase):
                  temp_optim_factory=AdamFactory(),
                  actor_encoder_factory='default',
                  critic_encoder_factory='default',
+                 q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -136,7 +142,6 @@ class SAC(AlgoBase):
                  share_encoder=False,
                  update_actor_interval=2,
                  initial_temperature=1.0,
-                 q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
@@ -156,6 +161,7 @@ class SAC(AlgoBase):
         self.temp_optim_factory = temp_optim_factory
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
+        self.q_func_factory = check_q_func(q_func_factory)
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
@@ -163,7 +169,6 @@ class SAC(AlgoBase):
         self.share_encoder = share_encoder
         self.update_actor_interval = update_actor_interval
         self.initial_temperature = initial_temperature
-        self.q_func_type = q_func_type
         self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
@@ -180,13 +185,13 @@ class SAC(AlgoBase):
                             temp_optim_factory=self.temp_optim_factory,
                             actor_encoder_factory=self.actor_encoder_factory,
                             critic_encoder_factory=self.critic_encoder_factory,
+                            q_func_factory=self.q_func_factory,
                             gamma=self.gamma,
                             tau=self.tau,
                             n_critics=self.n_critics,
                             bootstrap=self.bootstrap,
                             share_encoder=self.share_encoder,
                             initial_temperature=self.initial_temperature,
-                            q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
                             augmentation=self.augmentation,
@@ -259,6 +264,8 @@ class DiscreteSAC(AlgoBase):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the critic.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -266,8 +273,6 @@ class DiscreteSAC(AlgoBase):
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         initial_temperature (float): initial temperature value.
-        q_func_type (str): type of Q function. Available options are
-            `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -293,6 +298,8 @@ class DiscreteSAC(AlgoBase):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
             encoder factory for the critic.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -300,7 +307,6 @@ class DiscreteSAC(AlgoBase):
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         initial_temperature (float): initial temperature value.
-        q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -321,6 +327,7 @@ class DiscreteSAC(AlgoBase):
                  temp_optim_factory=AdamFactory(eps=1e-4),
                  actor_encoder_factory='default',
                  critic_encoder_factory='default',
+                 q_func_factory='mean',
                  batch_size=64,
                  n_frames=1,
                  gamma=0.99,
@@ -329,7 +336,6 @@ class DiscreteSAC(AlgoBase):
                  share_encoder=False,
                  initial_temperature=1.0,
                  target_update_interval=8000,
-                 q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
@@ -349,13 +355,13 @@ class DiscreteSAC(AlgoBase):
         self.temp_optim_factory = temp_optim_factory
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
+        self.q_func_factory = check_q_func(q_func_factory)
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.initial_temperature = initial_temperature
         self.target_update_interval = target_update_interval
-        self.q_func_type = q_func_type
         self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
@@ -373,12 +379,12 @@ class DiscreteSAC(AlgoBase):
             temp_optim_factory=self.temp_optim_factory,
             actor_encoder_factory=self.actor_encoder_factory,
             critic_encoder_factory=self.critic_encoder_factory,
+            q_func_factory=self.q_func_factory,
             gamma=self.gamma,
             n_critics=self.n_critics,
             bootstrap=self.bootstrap,
             share_encoder=self.share_encoder,
             initial_temperature=self.initial_temperature,
-            q_func_type=self.q_func_type,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
             augmentation=self.augmentation,

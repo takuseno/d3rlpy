@@ -1,7 +1,10 @@
 from .base import AlgoBase
 from .torch.dqn_impl import DQNImpl, DoubleDQNImpl
 from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
+from ..argument_utils import check_encoder
+from ..argument_utils import check_use_gpu
+from ..argument_utils import check_q_func
+from ..argument_utils import check_augmentation
 
 
 class DQN(AlgoBase):
@@ -23,7 +26,10 @@ class DQN(AlgoBase):
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory or str):
             optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
+        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -31,8 +37,6 @@ class DQN(AlgoBase):
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         target_update_interval (int): interval to update the target network.
-        q_func_type (str): type of Q function. Available options are
-            `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -48,6 +52,8 @@ class DQN(AlgoBase):
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -55,7 +61,6 @@ class DQN(AlgoBase):
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
         target_update_interval (int): interval to update the target network.
-        q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -71,6 +76,7 @@ class DQN(AlgoBase):
                  learning_rate=6.25e-5,
                  optim_factory=AdamFactory(),
                  encoder_factory='default',
+                 q_func_factory='mean',
                  batch_size=32,
                  n_frames=1,
                  gamma=0.99,
@@ -78,7 +84,6 @@ class DQN(AlgoBase):
                  bootstrap=False,
                  share_encoder=False,
                  target_update_interval=8e3,
-                 q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
@@ -93,12 +98,12 @@ class DQN(AlgoBase):
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
         self.encoder_factory = check_encoder(encoder_factory)
+        self.q_func_factory = check_q_func(q_func_factory)
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.target_update_interval = target_update_interval
-        self.q_func_type = q_func_type
         self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
@@ -110,11 +115,11 @@ class DQN(AlgoBase):
                             learning_rate=self.learning_rate,
                             optim_factory=self.optim_factory,
                             encoder_factory=self.encoder_factory,
+                            q_func_factory=self.q_func_factory,
                             gamma=self.gamma,
                             n_critics=self.n_critics,
                             bootstrap=self.bootstrap,
                             share_encoder=self.share_encoder,
-                            q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
                             augmentation=self.augmentation,
@@ -159,6 +164,8 @@ class DoubleDQN(DQN):
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -185,6 +192,8 @@ class DoubleDQN(DQN):
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -210,11 +219,11 @@ class DoubleDQN(DQN):
                                   learning_rate=self.learning_rate,
                                   optim_factory=self.optim_factory,
                                   encoder_factory=self.encoder_factory,
+                                  q_func_factory=self.q_func_factory,
                                   gamma=self.gamma,
                                   n_critics=self.n_critics,
                                   bootstrap=self.bootstrap,
                                   share_encoder=self.share_encoder,
-                                  q_func_type=self.q_func_type,
                                   use_gpu=self.use_gpu,
                                   scaler=self.scaler,
                                   augmentation=self.augmentation,

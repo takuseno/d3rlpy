@@ -1,7 +1,10 @@
 from .base import AlgoBase
 from .torch.td3_impl import TD3Impl
 from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
+from ..argument_utils import check_encoder
+from ..argument_utils import check_use_gpu
+from ..argument_utils import check_augmentation
+from ..argument_utils import check_q_func
 
 
 class TD3(AlgoBase):
@@ -46,6 +49,8 @@ class TD3(AlgoBase):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the critic.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -58,8 +63,6 @@ class TD3(AlgoBase):
         target_smoothing_clip (float): clipping range for target noise.
         update_actor_interval (int): interval to update policy function
             described as `delayed policy update` in the paper.
-        q_func_type (str): type of Q function. Available options are
-            `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -82,6 +85,8 @@ class TD3(AlgoBase):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
             encoder factory for the critic.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -94,7 +99,6 @@ class TD3(AlgoBase):
         target_smoothing_clip (float): clipping range for target noise.
         update_actor_interval (int): interval to update policy function
             described as `delayed policy update` in the paper.
-        q_func_type (str): type of Q function..
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -113,6 +117,7 @@ class TD3(AlgoBase):
                  critic_optim_factory=AdamFactory(),
                  actor_encoder_factory='default',
                  critic_encoder_factory='default',
+                 q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -125,7 +130,6 @@ class TD3(AlgoBase):
                  target_smoothing_clip=0.5,
                  update_actor_interval=2,
                  use_batch_norm=False,
-                 q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
@@ -144,6 +148,7 @@ class TD3(AlgoBase):
         self.critic_optim_factory = critic_optim_factory
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
+        self.q_func_factory = check_q_func(q_func_factory)
         self.gamma = gamma
         self.tau = tau
         self.reguralizing_rate = reguralizing_rate
@@ -154,7 +159,6 @@ class TD3(AlgoBase):
         self.target_smoothing_clip = target_smoothing_clip
         self.update_actor_interval = update_actor_interval
         self.use_batch_norm = use_batch_norm
-        self.q_func_type = q_func_type
         self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
@@ -170,6 +174,7 @@ class TD3(AlgoBase):
                             critic_optim_factory=self.critic_optim_factory,
                             actor_encoder_factory=self.actor_encoder_factory,
                             critic_encoder_factory=self.critic_encoder_factory,
+                            q_func_factory=self.q_func_factory,
                             gamma=self.gamma,
                             tau=self.tau,
                             reguralizing_rate=self.reguralizing_rate,
@@ -178,7 +183,6 @@ class TD3(AlgoBase):
                             share_encoder=self.share_encoder,
                             target_smoothing_sigma=self.target_smoothing_sigma,
                             target_smoothing_clip=self.target_smoothing_clip,
-                            q_func_type=self.q_func_type,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
                             augmentation=self.augmentation,

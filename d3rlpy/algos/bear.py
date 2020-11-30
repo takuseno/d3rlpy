@@ -1,7 +1,10 @@
 from .base import AlgoBase
 from .torch.bear_impl import BEARImpl
 from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
+from ..argument_utils import check_encoder
+from ..argument_utils import check_use_gpu
+from ..argument_utils import check_augmentation
+from ..argument_utils import check_q_func
 
 
 class BEAR(AlgoBase):
@@ -69,6 +72,8 @@ class BEAR(AlgoBase):
             encoder factory for the critic.
         imitator_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the behavior policy.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -88,8 +93,6 @@ class BEAR(AlgoBase):
             calculation.
         rl_start_epoch (int): epoch to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
-        q_func_type (str): type of Q function. Avaiable options are
-            `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device iD or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -124,6 +127,8 @@ class BEAR(AlgoBase):
             encoder factory for the critic.
         imitator_encoder_factory (d3rlpy.encoders.EncoderFactory):
             encoder factory for the behavior policy.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -143,7 +148,6 @@ class BEAR(AlgoBase):
             calculation.
         rl_start_epoch (int): epoch to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
-        q_func_type (str): type of Q function..
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -169,6 +173,7 @@ class BEAR(AlgoBase):
                  actor_encoder_factory='default',
                  critic_encoder_factory='default',
                  imitator_encoder_factory='default',
+                 q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -184,7 +189,6 @@ class BEAR(AlgoBase):
                  n_action_samples=4,
                  mmd_sigma=20.0,
                  rl_start_epoch=0,
-                 q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
@@ -209,6 +213,7 @@ class BEAR(AlgoBase):
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.imitator_encoder_factory = check_encoder(imitator_encoder_factory)
+        self.q_func_factory = check_q_func(q_func_factory)
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
@@ -222,7 +227,6 @@ class BEAR(AlgoBase):
         self.n_action_samples = n_action_samples
         self.mmd_sigma = mmd_sigma
         self.rl_start_epoch = rl_start_epoch
-        self.q_func_type = q_func_type
         self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
@@ -245,6 +249,7 @@ class BEAR(AlgoBase):
             actor_encoder_factory=self.actor_encoder_factory,
             critic_encoder_factory=self.critic_encoder_factory,
             imitator_encoder_factory=self.imitator_encoder_factory,
+            q_func_factory=self.q_func_factory,
             gamma=self.gamma,
             tau=self.tau,
             n_critics=self.n_critics,
@@ -256,7 +261,6 @@ class BEAR(AlgoBase):
             lam=self.lam,
             n_action_samples=self.n_action_samples,
             mmd_sigma=self.mmd_sigma,
-            q_func_type=self.q_func_type,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
             augmentation=self.augmentation,

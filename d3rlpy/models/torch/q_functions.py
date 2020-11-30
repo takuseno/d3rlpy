@@ -9,10 +9,8 @@ from abc import ABCMeta, abstractmethod
 def create_discrete_q_function(observation_shape,
                                action_size,
                                encoder_factory,
+                               q_func_factory,
                                n_ensembles=1,
-                               n_quantiles=32,
-                               embed_size=64,
-                               q_func_type='mean',
                                bootstrap=False,
                                share_encoder=False):
 
@@ -26,29 +24,15 @@ def create_discrete_q_function(observation_shape,
     for _ in range(n_ensembles):
         if not share_encoder:
             encoder = encoder_factory.create(observation_shape)
-        if q_func_type == 'mean':
-            q_func = DiscreteMeanQFunction(encoder, action_size)
-        elif q_func_type == 'qr':
-            q_func = DiscreteQRQFunction(encoder, action_size, n_quantiles)
-        elif q_func_type == 'iqn':
-            q_func = DiscreteIQNQFunction(encoder, action_size, n_quantiles,
-                                          embed_size)
-        elif q_func_type == 'fqf':
-            q_func = DiscreteFQFQFunction(encoder, action_size, n_quantiles,
-                                          embed_size)
-        else:
-            raise ValueError('invalid quantile regression type')
-        q_funcs.append(q_func)
+        q_funcs.append(q_func_factory.create(encoder, action_size))
     return EnsembleDiscreteQFunction(q_funcs, bootstrap)
 
 
 def create_continuous_q_function(observation_shape,
                                  action_size,
                                  encoder_factory,
+                                 q_func_factory,
                                  n_ensembles=1,
-                                 n_quantiles=32,
-                                 embed_size=64,
-                                 q_func_type='mean',
                                  bootstrap=False,
                                  share_encoder=False):
 
@@ -62,17 +46,7 @@ def create_continuous_q_function(observation_shape,
     for _ in range(n_ensembles):
         if not share_encoder:
             encoder = encoder_factory.create(observation_shape, action_size)
-        if q_func_type == 'mean':
-            q_func = ContinuousMeanQFunction(encoder)
-        elif q_func_type == 'qr':
-            q_func = ContinuousQRQFunction(encoder, n_quantiles)
-        elif q_func_type == 'iqn':
-            q_func = ContinuousIQNQFunction(encoder, n_quantiles, embed_size)
-        elif q_func_type == 'fqf':
-            q_func = ContinuousFQFQFunction(encoder, n_quantiles, embed_size)
-        else:
-            raise ValueError('invalid quantile regression type')
-        q_funcs.append(q_func)
+        q_funcs.append(q_func_factory.create(encoder))
     return EnsembleContinuousQFunction(q_funcs, bootstrap)
 
 
