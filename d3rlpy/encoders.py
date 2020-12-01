@@ -149,11 +149,13 @@ class VectorEncoderFactory(EncoderFactory):
             standard architecture with ``[256, 256]`` is used.
         activation (str): activation function name.
         use_batch_norm (bool): flag to insert batch normalization layers.
+        use_dense (bool): flag to use DenseNet architecture.
 
     Attributes:
         hidden_units (list): list of hidden unit sizes.
         activation (str): activation function name.
         use_batch_norm (bool): flag to insert batch normalization layers.
+        use_dense (bool): flag to use DenseNet architecture.
 
     """
 
@@ -162,13 +164,15 @@ class VectorEncoderFactory(EncoderFactory):
     def __init__(self,
                  hidden_units=None,
                  activation='relu',
-                 use_batch_norm=False):
+                 use_batch_norm=False,
+                 use_dense=False):
         if hidden_units is None:
             self.hidden_units = [256, 256]
         else:
             self.hidden_units = hidden_units
         self.activation = activation
         self.use_batch_norm = use_batch_norm
+        self.use_dense = use_dense
 
     def create(self,
                observation_shape,
@@ -182,12 +186,14 @@ class VectorEncoderFactory(EncoderFactory):
                 action_size=action_size,
                 hidden_units=self.hidden_units,
                 use_batch_norm=self.use_batch_norm,
+                use_dense=self.use_dense,
                 discrete_action=discrete_action,
                 activation=activation_fn)
         else:
             encoder = VectorEncoder(observation_shape=observation_shape,
                                     hidden_units=self.hidden_units,
                                     use_batch_norm=self.use_batch_norm,
+                                    use_dense=self.use_dense,
                                     activation=activation_fn)
         return encoder
 
@@ -199,7 +205,8 @@ class VectorEncoderFactory(EncoderFactory):
         params = {
             'hidden_units': hidden_units,
             'activation': self.activation,
-            'use_batch_norm': self.use_batch_norm
+            'use_batch_norm': self.use_batch_norm,
+            'use_dense': self.use_dense
         }
         return params
 
@@ -210,16 +217,19 @@ class DefaultEncoderFactory(EncoderFactory):
     This encoder factory returns an encoder based on observation shape.
 
     Args:
+        activation (str): activation function name.
         use_batch_norm (bool): flag to insert batch normalization layers.
 
     Attributes:
+        activation (str): activation function name.
         use_batch_norm (bool): flag to insert batch normalization layers.
 
     """
 
     TYPE = 'default'
 
-    def __init__(self, use_batch_norm=False):
+    def __init__(self, activation='relu', use_batch_norm=False):
+        self.activation = activation
         self.use_batch_norm = use_batch_norm
 
     def create(self,
@@ -227,13 +237,73 @@ class DefaultEncoderFactory(EncoderFactory):
                action_size=None,
                discrete_action=False):
         if len(observation_shape) == 3:
-            factory = PixelEncoderFactory(use_batch_norm=self.use_batch_norm)
+            factory = PixelEncoderFactory(activation=self.activation,
+                                          use_batch_norm=self.use_batch_norm)
         else:
-            factory = VectorEncoderFactory(use_batch_norm=self.use_batch_norm)
+            factory = VectorEncoderFactory(activation=self.activation,
+                                           use_batch_norm=self.use_batch_norm)
         return factory.create(observation_shape, action_size, discrete_action)
 
     def get_params(self, deep=False):
-        return {'use_batch_norm': self.use_batch_norm}
+        return {
+            'activation': self.activation,
+            'use_batch_norm': self.use_batch_norm
+        }
+
+
+class DenseEncoderFactory(EncoderFactory):
+    """ DenseNet encoder factory class.
+
+    This is an alias for DenseNet architecture proposed in D2RL.
+    This class does exactly same as follows.
+
+    .. code-block:: python
+
+       from d3rlpy.encoders import VectorEncoderFactory
+
+       factory = VectorEncoderFactory(hidden_units=[256, 256, 256, 256],
+                                      use_dense=True)
+
+    For now, this only supports vector observations.
+
+    References:
+        * `Sinha et al., D2RL: Deep Dense Architectures in Reinforcement
+          Learning. <https://arxiv.org/abs/2010.09163>`_
+
+    Args:
+        activation (str): activation function name.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+
+    Attributes:
+        activation (str): activation function name.
+        use_batch_norm (bool): flag to insert batch normalization layers.
+
+    """
+
+    TYPE = 'dense'
+
+    def __init__(self, activation='relu', use_batch_norm=False):
+        self.activation = activation
+        self.use_batch_norm = use_batch_norm
+
+    def create(self,
+               observation_shape,
+               action_size=None,
+               discrete_action=False):
+        if len(observation_shape) == 3:
+            raise NotImplementedError('pixel observation is not supported.')
+        else:
+            factory = VectorEncoderFactory(hidden_units=[256, 256, 256, 256],
+                                           activation=self.activation,
+                                           use_dense=True,
+                                           use_batch_norm=self.use_batch_norm)
+        return factory.create(observation_shape, action_size, discrete_action)
+
+    def get_params(self, deep=False):
+        return {
+            'activation': self.activation,
+            'use_batch_norm': self.use_batch_norm
+        }
 
 
 ENCODER_LIST = {}
@@ -271,3 +341,4 @@ def create_encoder_factory(name, **kwargs):
 register_encoder_factory(VectorEncoderFactory)
 register_encoder_factory(PixelEncoderFactory)
 register_encoder_factory(DefaultEncoderFactory)
+register_encoder_factory(DenseEncoderFactory)
