@@ -22,7 +22,7 @@ def main(args):
 
     device = None if args.gpu is None else Device(args.gpu)
 
-    cql = CQL(q_func_type=args.q_func_type, use_gpu=device)
+    cql = CQL(q_func_factory=args.q_func, use_gpu=device)
 
     cql.fit(train_episodes,
             eval_episodes=test_episodes,
@@ -43,7 +43,7 @@ if __name__ == '__main__':
                         type=str,
                         default='hopper-bullet-mixed-v0')
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--q-func-type',
+    parser.add_argument('--q-func',
                         type=str,
                         default='mean',
                         choices=['mean', 'qr', 'iqn', 'fqf'])

@@ -1,10 +1,8 @@
 from abc import ABCMeta, abstractmethod
-from d3rlpy.models.torch.q_functions import DiscreteQFunction
 from d3rlpy.models.torch.q_functions import DiscreteMeanQFunction
 from d3rlpy.models.torch.q_functions import DiscreteQRQFunction
 from d3rlpy.models.torch.q_functions import DiscreteIQNQFunction
 from d3rlpy.models.torch.q_functions import DiscreteFQFQFunction
-from d3rlpy.models.torch.q_functions import ContinuousQFunction
 from d3rlpy.models.torch.q_functions import ContinuousMeanQFunction
 from d3rlpy.models.torch.q_functions import ContinuousQRQFunction
 from d3rlpy.models.torch.q_functions import ContinuousIQNQFunction
@@ -26,8 +24,7 @@ class QFunctionFactory(metaclass=ABCMeta):
                 action-space is continous, ``None`` will be passed.
 
         Returns:
-            d3rlpy.q_functions.DiscreteQFunction or d3rlpy.q_functions.ContinuousQFunction:
-                Q function object.
+            torch.nn.Module: Q function object.
 
         """
         pass

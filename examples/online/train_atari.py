@@ -20,7 +20,7 @@ dqn = DoubleDQN(batch_size=32,
                 learning_rate=2.5e-4,
                 optim_factory=AdamFactory(eps=1e-2 / 32),
                 target_update_interval=10000,
-                q_func_type='mean',
+                q_func_factory='mean',
                 scaler='pixel',
                 n_frames=4,
                 use_gpu=True)

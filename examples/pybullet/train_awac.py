@@ -3,6 +3,7 @@ import d3rlpy
 
 from d3rlpy.algos import AWAC
 from d3rlpy.datasets import get_pybullet
+from d3rlpy.encoders import VectorEncoderFactory
 from d3rlpy.metrics.scorer import evaluate_on_environment
 from d3rlpy.metrics.scorer import td_error_scorer
 from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
@@ -22,9 +23,12 @@ def main(args):
 
     device = None if args.gpu is None else Device(args.gpu)
 
-    awac = AWAC(q_func_type=args.q_func_type,
-                use_gpu=device,
-                encoder_params={'hidden_units': [256, 256, 256, 256]})
+    encoder_factory = VectorEncoderFactory(hidden_units=[256, 256, 256, 256])
+
+    awac = AWAC(actor_encoder_factory=encoder_factory,
+                critic_encoder_factory=encoder_factory,
+                q_func_factory=args.q_func,
+                use_gpu=device)
 
     awac.fit(train_episodes,
              eval_episodes=test_episodes,
@@ -45,7 +49,7 @@ if __name__ == '__main__':
                         type=str,
                         default='hopper-bullet-mixed-v0')
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--q-func-type',
+    parser.add_argument('--q-func',
                         type=str,
                         default='mean',
                         choices=['mean', 'qr', 'iqn', 'fqf'])
