@@ -16,6 +16,7 @@ from .optimizers import OptimizerFactory
 from .encoders import EncoderFactory, create_encoder_factory
 from .q_functions import QFunctionFactory, create_q_func_factory
 from .argument_utils import check_scaler
+from .online.utility import get_action_size_from_env
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -293,15 +294,12 @@ class LearnableBase:
             self.scaler.fit(episodes)
 
         # instantiate implementation
-        observation_shape = tuple(transitions[0].get_observation_shape())
-        # frame stacking for image observation
-        if len(observation_shape) == 3:
-            n_channels = observation_shape[0]
-            image_size = observation_shape[1:]
-            observation_shape = (self.n_frames * n_channels, *image_size)
-        action_size = transitions[0].get_action_size()
         if self.impl is None:
-            self.create_impl(observation_shape, action_size)
+            action_size = transitions[0].get_action_size()
+            observation_shape = tuple(transitions[0].get_observation_shape())
+            self.create_impl(
+                self._process_observation_shape(observation_shape),
+                action_size)
 
         # setup logger
         logger = self._prepare_logger(save_metrics, experiment_name,
@@ -380,6 +378,36 @@ class LearnableBase:
 
         """
         raise NotImplementedError
+
+    def build_with_dataset(self, dataset):
+        """ Instantiate implementation object with MDPDataset object.
+
+        Args:
+            dataset (d3rlpy.dataset.MDPDataset): dataset.
+
+        """
+        observation_shape = dataset.get_observation_shape()
+        self.create_impl(self._process_observation_shape(observation_shape),
+                         dataset.get_action_size())
+
+    def build_with_env(self, env):
+        """ Instantiate implementation object with OpenAI Gym object.
+
+        Args:
+            env (gym.Env): gym-like environment.
+
+        """
+        observation_shape = env.observation_space.shape
+        self.create_impl(self._process_observation_shape(observation_shape),
+                         get_action_size_from_env(env))
+
+    def _process_observation_shape(self, observation_shape):
+        if len(observation_shape) == 3:
+            n_channels = observation_shape[0]
+            image_size = observation_shape[1:]
+            # frame stacking for image observation
+            observation_shape = (self.n_frames * n_channels, *image_size)
+        return observation_shape
 
     def update(self, epoch, total_step, batch):
         """ Update parameters with mini-batch of data.

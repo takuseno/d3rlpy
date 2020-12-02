@@ -236,10 +236,6 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
     else:
         batched_observation_shape = (data_size - 1, *observation_shape)
 
-    # create padded observations for check stacking
-    padding = np.zeros((n_frames - 1, *observation_shape), dtype=np.uint8)
-    padded_observations = np.vstack([padding, observations])
-
     batch = TransitionMiniBatch(episode.transitions, n_frames)
     assert batch.observations.shape == batched_observation_shape
     assert batch.next_observations.shape == batched_observation_shape
@@ -248,6 +244,10 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
         next_observation = batch.next_observations[i]
 
         if n_frames > 1 and len(observation_shape) == 3:
+            # create padded observations for check stacking
+            pad = ((n_frames - 1, 0), (0, 0), (0, 0), (0, 0))
+            padded_observations = np.pad(observations, pad, 'edge')
+
             # check frame stacking
             head_index = i
             tail_index = head_index + n_frames
