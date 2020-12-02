@@ -100,6 +100,12 @@ def base_tester(model, impl, observation_shape, action_size=2):
     model.batch_size = prev_batch_size + 1
     assert model.impl.batch_size == model.batch_size
 
+    # check builds
+    model.impl = None
+    model.build_with_dataset(dataset)
+    assert model.impl.observation_shape == dataset.get_observation_shape()
+    assert model.impl.action_size == dataset.get_action_size()
+
     # set backed up methods
     model.impl = None
     model.update = update_backup
