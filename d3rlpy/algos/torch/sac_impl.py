@@ -17,9 +17,10 @@ class SACImpl(DDPGImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, temp_learning_rate, actor_optim_factory,
                  critic_optim_factory, temp_optim_factory,
-                 actor_encoder_factory, critic_encoder_factory, gamma, tau,
-                 n_critics, bootstrap, share_encoder, initial_temperature,
-                 q_func_type, use_gpu, scaler, augmentation, n_augmentations):
+                 actor_encoder_factory, critic_encoder_factory, q_func_factory,
+                 gamma, tau, n_critics, bootstrap, share_encoder,
+                 initial_temperature, use_gpu, scaler, augmentation,
+                 n_augmentations):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
@@ -28,13 +29,13 @@ class SACImpl(DDPGImpl):
                          critic_optim_factory=critic_optim_factory,
                          actor_encoder_factory=actor_encoder_factory,
                          critic_encoder_factory=critic_encoder_factory,
+                         q_func_factory=q_func_factory,
                          gamma=gamma,
                          tau=tau,
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
                          reguralizing_rate=0.0,
-                         q_func_type=q_func_type,
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,
@@ -109,9 +110,10 @@ class DiscreteSACImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, temp_learning_rate, actor_optim_factory,
                  critic_optim_factory, temp_optim_factory,
-                 actor_encoder_factory, critic_encoder_factory, gamma,
-                 n_critics, bootstrap, share_encoder, initial_temperature,
-                 q_func_type, use_gpu, scaler, augmentation, n_augmentations):
+                 actor_encoder_factory, critic_encoder_factory, q_func_factory,
+                 gamma, n_critics, bootstrap, share_encoder,
+                 initial_temperature, use_gpu, scaler, augmentation,
+                 n_augmentations):
         super().__init__(observation_shape, action_size, scaler)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
@@ -121,12 +123,12 @@ class DiscreteSACImpl(TorchImplBase):
         self.temp_optim_factory = temp_optim_factory
         self.actor_encoder_factory = actor_encoder_factory
         self.critic_encoder_factory = critic_encoder_factory
+        self.q_func_factory = q_func_factory
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.initial_temperature = initial_temperature
-        self.q_func_type = q_func_type
         self.use_gpu = use_gpu
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
@@ -158,8 +160,8 @@ class DiscreteSACImpl(TorchImplBase):
             self.observation_shape,
             self.action_size,
             self.critic_encoder_factory,
+            self.q_func_factory,
             n_ensembles=self.n_critics,
-            q_func_type=self.q_func_type,
             bootstrap=self.bootstrap,
             share_encoder=self.share_encoder)
 

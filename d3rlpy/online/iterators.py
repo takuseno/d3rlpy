@@ -73,8 +73,7 @@ def train(env,
 
     # setup algorithm
     if algo.impl is None:
-        action_size = get_action_size_from_env(env)
-        algo.create_impl(observation_shape, action_size)
+        algo.build_with_env(env)
 
     # save hyperparameters
     algo._save_params(logger)

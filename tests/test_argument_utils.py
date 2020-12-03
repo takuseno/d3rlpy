@@ -1,11 +1,13 @@
 import pytest
 
 from d3rlpy.encoders import DefaultEncoderFactory
+from d3rlpy.q_functions import MeanQFunctionFactory
 from d3rlpy.preprocessing.scalers import MinMaxScaler
 from d3rlpy.augmentation import AugmentationPipeline, RandomShift
 from d3rlpy.augmentation.base import Augmentation
 from d3rlpy.gpu import Device
 from d3rlpy.argument_utils import check_encoder
+from d3rlpy.argument_utils import check_q_func
 from d3rlpy.argument_utils import check_scaler
 from d3rlpy.argument_utils import check_augmentation
 from d3rlpy.argument_utils import check_use_gpu
@@ -14,6 +16,11 @@ from d3rlpy.argument_utils import check_use_gpu
 @pytest.mark.parametrize('value', ['default', DefaultEncoderFactory()])
 def test_check_encoder(value):
     assert isinstance(check_encoder(value), DefaultEncoderFactory)
+
+
+@pytest.mark.parametrize('value', ['mean', MeanQFunctionFactory()])
+def test_check_q_func(value):
+    assert isinstance(check_q_func(value), MeanQFunctionFactory)
 
 
 @pytest.mark.parametrize('value', ['min_max', MinMaxScaler(), None])

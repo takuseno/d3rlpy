@@ -151,8 +151,8 @@ class RMSpropFactory(OptimizerFactory):
 
     """
     def __init__(self,
-                 alpha=0.99,
-                 eps=1e-8,
+                 alpha=0.95,
+                 eps=1e-2,
                  weight_decay=0,
                  momentum=0,
                  centered=True,

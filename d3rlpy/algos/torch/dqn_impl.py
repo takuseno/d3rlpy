@@ -11,18 +11,18 @@ from .base import TorchImplBase
 
 class DQNImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate,
-                 optim_factory, encoder_factory, gamma, n_critics, bootstrap,
-                 share_encoder, q_func_type, use_gpu, scaler, augmentation,
-                 n_augmentations):
+                 optim_factory, encoder_factory, q_func_factory, gamma,
+                 n_critics, bootstrap, share_encoder, use_gpu, scaler,
+                 augmentation, n_augmentations):
         super().__init__(observation_shape, action_size, scaler)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
         self.encoder_factory = encoder_factory
+        self.q_func_factory = q_func_factory
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
-        self.q_func_type = q_func_type
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
         self.use_gpu = use_gpu
@@ -52,8 +52,8 @@ class DQNImpl(TorchImplBase):
             self.observation_shape,
             self.action_size,
             self.encoder_factory,
+            self.q_func_factory,
             n_ensembles=self.n_critics,
-            q_func_type=self.q_func_type,
             bootstrap=self.bootstrap,
             share_encoder=self.share_encoder)
 

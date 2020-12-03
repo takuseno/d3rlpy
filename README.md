@@ -50,12 +50,14 @@ performance just in a few lines of codes.
 d3rlpy supports Linux, macOS and Windows.
 ### PyPI
 [![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/d3rlpy)
 ```
 $ pip install d3rlpy
 ```
 ### Anaconda
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/d3rlpy/badges/version.svg)](https://anaconda.org/conda-forge/d3rlpy)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/d3rlpy/badges/platforms.svg)](https://anaconda.org/conda-forge/d3rlpy)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/d3rlpy/badges/downloads.svg)](https://anaconda.org/conda-forge/d3rlpy)
 ```
 $ conda install -c conda-forge d3rlpy
 ```

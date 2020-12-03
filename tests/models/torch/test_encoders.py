@@ -74,11 +74,12 @@ def test_pixel_encoder_with_action(shapes, action_size, filters, feature_size,
 @pytest.mark.parametrize('hidden_units', [[256, 256]])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('use_dense', [False, True])
 @pytest.mark.parametrize('activation', [torch.relu])
 def test_vector_encoder(observation_shape, hidden_units, batch_size,
-                        use_batch_norm, activation):
+                        use_batch_norm, use_dense, activation):
     encoder = VectorEncoder(observation_shape, hidden_units, use_batch_norm,
-                            activation)
+                            use_dense, activation)
 
     x = torch.rand((batch_size, ) + observation_shape)
     y = encoder(x)
@@ -101,13 +102,14 @@ def test_vector_encoder(observation_shape, hidden_units, batch_size,
 @pytest.mark.parametrize('hidden_units', [[256, 256]])
 @pytest.mark.parametrize('batch_size', [32])
 @pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('use_dense', [False, True])
 @pytest.mark.parametrize('discrete_action', [False, True])
 @pytest.mark.parametrize('activation', [torch.relu])
 def test_vector_encoder(observation_shape, action_size, hidden_units,
-                        batch_size, use_batch_norm, discrete_action,
+                        batch_size, use_batch_norm, use_dense, discrete_action,
                         activation):
     encoder = VectorEncoderWithAction(observation_shape, action_size,
-                                      hidden_units, use_batch_norm,
+                                      hidden_units, use_batch_norm, use_dense,
                                       discrete_action, activation)
 
     x = torch.rand((batch_size, ) + observation_shape)

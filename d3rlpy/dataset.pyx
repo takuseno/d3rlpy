@@ -935,10 +935,11 @@ cdef void _stack_frames(TransitionPtr transition,
     cdef int c = transition.get().observation_shape[0]
     cdef int h = transition.get().observation_shape[1]
     cdef int w = transition.get().observation_shape[2]
+    cdef int image_size = c * h * w
 
     # stack frames
     cdef TransitionPtr t = transition
-    cdef int i, j, k, l
+    cdef int i, j
     cdef int head_channel
     cdef int tail_channel
     cdef int offset
@@ -948,16 +949,22 @@ cdef void _stack_frames(TransitionPtr transition,
         head_channel = tail_channel - c
 
         if stack_curr_frames:
-            memcpy(stack + head_channel * h * w, t.get().observation_i, c * h * w)
+            memcpy(stack + head_channel * h * w, t.get().observation_i, image_size)
 
         if stack_next_frames:
-            memcpy(next_stack + head_channel * h * w, t.get().next_observation_i, c * h * w)
+            memcpy(next_stack + head_channel * h * w, t.get().next_observation_i, image_size)
 
         if t.get().prev_transition == nullptr:
-            if i != n_frames - 1 and stack_next_frames:
-                tail_channel -= c
-                head_channel -= c
-                memcpy(next_stack + head_channel * h * w, t.get().observation_i, c * h * w)
+            # fill rests with the last frame
+            for j in range(n_frames - i - 1):
+                tail_channel = n_frames * c - (i + j + 1) * c
+                head_channel = tail_channel - c
+
+                if stack_curr_frames:
+                    memcpy(stack + head_channel * h * w, t.get().observation_i, image_size)
+
+                if stack_next_frames:
+                    memcpy(next_stack + head_channel * h * w, t.get().observation_i, image_size)
             break
         t = t.get().prev_transition
 
@@ -1022,10 +1029,10 @@ cdef class TransitionMiniBatch:
 
         # allocate batch data
         cdef int size = len(transitions)
-        self._observations = np.zeros((size,) + observation_shape, dtype=observation_dtype)
+        self._observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
         self._actions = np.empty((size,) + action_shape, dtype=action_dtype)
         self._rewards = np.empty((size, 1), dtype=np.float32)
-        self._next_observations = np.zeros((size,) + observation_shape, dtype=observation_dtype)
+        self._next_observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
         self._next_actions = np.empty((size,) + action_shape, dtype=action_dtype)
         self._next_rewards = np.empty((size, 1), dtype=np.float32)
         self._terminals = np.empty((size, 1), dtype=np.float32)

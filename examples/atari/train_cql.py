@@ -19,7 +19,7 @@ def main(args):
 
     cql = DiscreteCQL(
         n_frames=4,  # frame stacking
-        q_func_type=args.q_func_type,
+        q_func_factory=args.q_func,
         scaler='pixel',
         use_gpu=args.gpu)
 
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='breakout-mixed-v0')
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--q-func-type',
+    parser.add_argument('--q-func',
                         type=str,
                         default='mean',
                         choices=['mean', 'qr', 'iqn', 'fqf'])

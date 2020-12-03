@@ -1,22 +1,23 @@
+import numpy as np
 import copy
 import json
 import random
+
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-
-import numpy as np
 from tqdm.auto import tqdm
-
-from .argument_utils import check_scaler
-from .augmentation import AugmentationPipeline, create_augmentation
-from .context import disable_parallel
+from .preprocessing import create_scaler, Scaler
+from .augmentation import create_augmentation, AugmentationPipeline
 from .dataset import TransitionMiniBatch
-from .encoders import EncoderFactory, create_encoder_factory
-from .gpu import Device
 from .logger import D3RLPyLogger
 from .metrics.scorer import NEGATED_SCORER
+from .context import disable_parallel
+from .gpu import Device
 from .optimizers import OptimizerFactory
-from .preprocessing import Scaler, create_scaler
+from .encoders import EncoderFactory, create_encoder_factory
+from .q_functions import QFunctionFactory, create_q_func_factory
+from .argument_utils import check_scaler
+from .online.utility import get_action_size_from_env
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -33,12 +34,7 @@ def _serialize_params(params):
     for key, value in params.items():
         if isinstance(value, Device):
             params[key] = value.get_id()
-        elif isinstance(value, Scaler):
-            params['scaler'] = {
-                'type': value.get_type(),
-                'params': value.get_params()
-            }
-        elif isinstance(value, EncoderFactory):
+        elif isinstance(value, (Scaler, EncoderFactory, QFunctionFactory)):
             params[key] = {
                 'type': value.get_type(),
                 'params': value.get_params()
@@ -74,6 +70,9 @@ def _deseriealize_params(params):
         elif 'encoder_factory' in key:
             params[key] = create_encoder_factory(value['type'],
                                                  **value['params'])
+        elif key == 'q_func_factory':
+            params[key] = create_q_func_factory(value['type'],
+                                                **value['params'])
     return params
 
 
@@ -299,15 +298,12 @@ class LearnableBase:
             self.scaler.fit(episodes)
 
         # instantiate implementation
-        observation_shape = tuple(transitions[0].get_observation_shape())
-        # frame stacking for image observation
-        if len(observation_shape) == 3:
-            n_channels = observation_shape[0]
-            image_size = observation_shape[1:]
-            observation_shape = (self.n_frames * n_channels, *image_size)
-        action_size = transitions[0].get_action_size()
         if self.impl is None:
-            self.create_impl(observation_shape, action_size)
+            action_size = transitions[0].get_action_size()
+            observation_shape = tuple(transitions[0].get_observation_shape())
+            self.create_impl(
+                self._process_observation_shape(observation_shape),
+                action_size)
 
         # setup logger
         logger = self._prepare_logger(save_metrics, experiment_name,
@@ -409,6 +405,36 @@ class LearnableBase:
 
         """
         raise NotImplementedError
+
+    def build_with_dataset(self, dataset):
+        """ Instantiate implementation object with MDPDataset object.
+
+        Args:
+            dataset (d3rlpy.dataset.MDPDataset): dataset.
+
+        """
+        observation_shape = dataset.get_observation_shape()
+        self.create_impl(self._process_observation_shape(observation_shape),
+                         dataset.get_action_size())
+
+    def build_with_env(self, env):
+        """ Instantiate implementation object with OpenAI Gym object.
+
+        Args:
+            env (gym.Env): gym-like environment.
+
+        """
+        observation_shape = env.observation_space.shape
+        self.create_impl(self._process_observation_shape(observation_shape),
+                         get_action_size_from_env(env))
+
+    def _process_observation_shape(self, observation_shape):
+        if len(observation_shape) == 3:
+            n_channels = observation_shape[0]
+            image_size = observation_shape[1:]
+            # frame stacking for image observation
+            observation_shape = (self.n_frames * n_channels, *image_size)
+        return observation_shape
 
     def update(self, epoch, total_step, batch):
         """ Update parameters with mini-batch of data.

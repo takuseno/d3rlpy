@@ -1,7 +1,10 @@
 from .base import AlgoBase
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
+from ..argument_utils import check_encoder
+from ..argument_utils import check_use_gpu
+from ..argument_utils import check_augmentation
+from ..argument_utils import check_q_func
 
 
 class BCQ(AlgoBase):
@@ -95,6 +98,8 @@ class BCQ(AlgoBase):
             encoder factory for the critic.
         imitator_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the conditional VAE.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -112,8 +117,6 @@ class BCQ(AlgoBase):
             functions. If this is large, RL training would be more stabilized.
         latent_size (int): size of latent vector for Conditional VAE.
         beta (float): KL reguralization term for Conditional VAE.
-        q_func_type (str): type of Q function. Available options are
-            `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -141,6 +144,8 @@ class BCQ(AlgoBase):
             encoder factory for the critic.
         imitator_encoder_factory (d3rlpy.encoders.EncoderFactory):
             encoder factory for the conditional VAE.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -157,7 +162,6 @@ class BCQ(AlgoBase):
             functions.
         latent_size (int): size of latent vector for Conditional VAE.
         beta (float): KL reguralization term for Conditional VAE.
-        q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -179,6 +183,7 @@ class BCQ(AlgoBase):
                  actor_encoder_factory='default',
                  critic_encoder_factory='default',
                  imitator_encoder_factory='default',
+                 q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
                  gamma=0.99,
@@ -193,7 +198,6 @@ class BCQ(AlgoBase):
                  rl_start_epoch=0,
                  latent_size=32,
                  beta=0.5,
-                 q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
@@ -214,6 +218,7 @@ class BCQ(AlgoBase):
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.imitator_encoder_factory = check_encoder(imitator_encoder_factory)
+        self.q_func_factory = check_q_func(q_func_factory)
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
@@ -226,7 +231,6 @@ class BCQ(AlgoBase):
         self.rl_start_epoch = rl_start_epoch
         self.latent_size = latent_size
         self.beta = beta
-        self.q_func_type = q_func_type
         self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
@@ -245,6 +249,7 @@ class BCQ(AlgoBase):
             actor_encoder_factory=self.actor_encoder_factory,
             critic_encoder_factory=self.critic_encoder_factory,
             imitator_encoder_factory=self.imitator_encoder_factory,
+            q_func_factory=self.q_func_factory,
             gamma=self.gamma,
             tau=self.tau,
             n_critics=self.n_critics,
@@ -255,7 +260,6 @@ class BCQ(AlgoBase):
             action_flexibility=self.action_flexibility,
             latent_size=self.latent_size,
             beta=self.beta,
-            q_func_type=self.q_func_type,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
             augmentation=self.augmentation,
@@ -335,6 +339,8 @@ class DiscreteBCQ(AlgoBase):
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -345,8 +351,6 @@ class DiscreteBCQ(AlgoBase):
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
         target_update_interval (int): interval to update the target network.
-        q_func_type (str): type of Q function. Available options are
-            `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -363,6 +367,8 @@ class DiscreteBCQ(AlgoBase):
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
+            Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
@@ -373,7 +379,6 @@ class DiscreteBCQ(AlgoBase):
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
         target_update_interval (int): interval to update the target network.
-        q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -390,6 +395,7 @@ class DiscreteBCQ(AlgoBase):
                  learning_rate=6.25e-5,
                  optim_factory=AdamFactory(),
                  encoder_factory='default',
+                 q_func_factory='mean',
                  batch_size=32,
                  n_frames=1,
                  gamma=0.99,
@@ -399,7 +405,6 @@ class DiscreteBCQ(AlgoBase):
                  action_flexibility=0.3,
                  beta=0.5,
                  target_update_interval=8e3,
-                 q_func_type='mean',
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
@@ -414,6 +419,7 @@ class DiscreteBCQ(AlgoBase):
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
         self.encoder_factory = check_encoder(encoder_factory)
+        self.q_func_factory = check_q_func(q_func_factory)
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
@@ -421,7 +427,6 @@ class DiscreteBCQ(AlgoBase):
         self.action_flexibility = action_flexibility
         self.beta = beta
         self.target_update_interval = target_update_interval
-        self.q_func_type = q_func_type
         self.augmentation = check_augmentation(augmentation)
         self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
@@ -433,13 +438,13 @@ class DiscreteBCQ(AlgoBase):
                                     learning_rate=self.learning_rate,
                                     optim_factory=self.optim_factory,
                                     encoder_factory=self.encoder_factory,
+                                    q_func_factory=self.q_func_factory,
                                     gamma=self.gamma,
                                     n_critics=self.n_critics,
                                     bootstrap=self.bootstrap,
                                     share_encoder=self.share_encoder,
                                     action_flexibility=self.action_flexibility,
                                     beta=self.beta,
-                                    q_func_type=self.q_func_type,
                                     use_gpu=self.use_gpu,
                                     scaler=self.scaler,
                                     augmentation=self.augmentation,

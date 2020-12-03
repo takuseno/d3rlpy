@@ -140,3 +140,4 @@ Once you register your encoder factory, you can specify it via ``TYPE`` value.
    d3rlpy.encoders.DefaultEncoderFactory
    d3rlpy.encoders.PixelEncoderFactory
    d3rlpy.encoders.VectorEncoderFactory
+   d3rlpy.encoders.DenseEncoderFactory
