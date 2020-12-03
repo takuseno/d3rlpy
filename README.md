@@ -1,11 +1,11 @@
 # d3rlpy: A data-driven deep reinforcement learning library as an out-of-the-box tool
 
-[![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
 ![test](https://github.com/takuseno/d3rlpy/workflows/test/badge.svg)
 ![build](https://github.com/takuseno/d3rlpy/workflows/build/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/d3rlpy/badge/?version=latest)](https://d3rlpy.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/takuseno/d3rlpy/branch/master/graph/badge.svg?token=AQ02USKN6Y)](https://codecov.io/gh/takuseno/d3rlpy)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/takuseno/d3rlpy.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/takuseno/d3rlpy/context:python)
+[![Gitter](https://img.shields.io/gitter/room/d3rlpy/d3rlpy)](https://gitter.im/d3rlpy/d3rlpy)
 ![MIT](https://img.shields.io/badge/license-MIT-blue)
 
 d3rlpy is a data-driven deep reinforcement learning library as an out-of-the-box tool.
@@ -27,8 +27,6 @@ actions = cql.predict(x)
 
 Documentation: https://d3rlpy.readthedocs.io
 
-Chat: [![Gitter](https://img.shields.io/gitter/room/d3rlpy/d3rlpy)](https://gitter.im/d3rlpy/d3rlpy)
-
 ## key features
 
 ### :zap: Designed for Data-Driven Deep Reinforcement Learning
@@ -49,11 +47,15 @@ Therefore, d3rlpy enables every user to achieve professional-level
 performance just in a few lines of codes.
 
 ## installation
+d3rlpy supports Linux, macOS and Windows.
 ### PyPI
+[![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
 ```
 $ pip install d3rlpy
 ```
 ### Anaconda
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/d3rlpy/badges/version.svg)](https://anaconda.org/conda-forge/d3rlpy)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/d3rlpy/badges/platforms.svg)](https://anaconda.org/conda-forge/d3rlpy)
 ```
 $ conda install -c conda-forge d3rlpy
 ```
@@ -223,7 +225,7 @@ data observed at `t` and `t+1`, which is usually used for training.
 from d3rlpy.dataset import MDPDataset
 
 # offline data
-observations = np.random.random((100000, 100)).astype('f4') # 100-dim feature observations
+observations = np.random.random((100000, 100)) # 100-dim feature observations
 actions = np.random.random((100000, 4)) # 4-dim continuous actions
 rewards = np.random.random(100000)
 terminals = np.random.randint(2, size=100000)
@@ -302,6 +304,18 @@ If you give `-p` option, the performance tests with toy tasks are also run
 (this will take minutes).
 ```
 $ ./scripts/test -p
+```
+
+## citation
+```
+@misc{seno2020d3rlpy,
+  author = {Takuma Seno},
+  title = {d3rlpy: A data-driven deep reinforcement library as an out-of-the-box tool},
+  year = {2020},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/takuseno/d3rlpy}}
+}
 ```
 
 ## acknowledgement
