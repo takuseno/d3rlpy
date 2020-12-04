@@ -4,6 +4,9 @@ import os
 
 from d3rlpy.metrics.ope.torch.fqe_impl import FQEImpl, DiscreteFQEImpl
 from d3rlpy.augmentation import AugmentationPipeline
+from d3rlpy.optimizers import AdamFactory
+from d3rlpy.encoders import DefaultEncoderFactory
+from d3rlpy.q_functions import create_q_func_factory
 from tests.algos.algo_test import DummyScaler
 
 
@@ -34,36 +37,33 @@ def torch_impl_tester(impl, discrete):
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [1e-3])
+@pytest.mark.parametrize('optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
+@pytest.mark.parametrize('q_func_factory', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('n_critics', [1])
 @pytest.mark.parametrize('bootstrap', [False])
 @pytest.mark.parametrize('share_encoder', [True])
-@pytest.mark.parametrize('eps', [1e-8])
-@pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
-@pytest.mark.parametrize('encoder_params', [{}])
-def test_fqe_impl(observation_shape, action_size, learning_rate, gamma,
-                  n_critics, bootstrap, share_encoder, eps, use_batch_norm,
-                  q_func_type, scaler, augmentation, n_augmentations,
-                  encoder_params):
+def test_fqe_impl(observation_shape, action_size, learning_rate, optim_factory,
+                  encoder_factory, q_func_factory, gamma, n_critics, bootstrap,
+                  share_encoder, scaler, augmentation, n_augmentations):
     fqe = FQEImpl(observation_shape,
                   action_size,
                   learning_rate,
+                  optim_factory,
+                  encoder_factory,
+                  create_q_func_factory(q_func_factory),
                   gamma,
                   n_critics,
                   bootstrap,
                   share_encoder,
-                  eps,
-                  use_batch_norm,
-                  q_func_type,
                   use_gpu=False,
                   scaler=scaler,
                   augmentation=augmentation,
-                  n_augmentations=n_augmentations,
-                  encoder_params=encoder_params)
+                  n_augmentations=n_augmentations)
 
     torch_impl_tester(fqe, False)
 
@@ -71,35 +71,33 @@ def test_fqe_impl(observation_shape, action_size, learning_rate, gamma,
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('learning_rate', [1e-3])
+@pytest.mark.parametrize('optim_factory', [AdamFactory()])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
+@pytest.mark.parametrize('q_func_factory', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('n_critics', [1])
 @pytest.mark.parametrize('bootstrap', [False])
 @pytest.mark.parametrize('share_encoder', [True])
-@pytest.mark.parametrize('eps', [1e-8])
-@pytest.mark.parametrize('use_batch_norm', [True, False])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
 @pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
 @pytest.mark.parametrize('n_augmentations', [1])
-@pytest.mark.parametrize('encoder_params', [{}])
 def test_discrete_fqe_impl(observation_shape, action_size, learning_rate,
-                           gamma, n_critics, bootstrap, share_encoder, eps,
-                           use_batch_norm, q_func_type, scaler, augmentation,
-                           n_augmentations, encoder_params):
+                           optim_factory, encoder_factory, q_func_factory,
+                           gamma, n_critics, bootstrap, share_encoder, scaler,
+                           augmentation, n_augmentations):
     fqe = DiscreteFQEImpl(observation_shape,
                           action_size,
                           learning_rate,
+                          optim_factory,
+                          encoder_factory,
+                          create_q_func_factory(q_func_factory),
                           gamma,
                           n_critics,
                           bootstrap,
                           share_encoder,
-                          eps,
-                          use_batch_norm,
-                          q_func_type,
                           use_gpu=False,
                           scaler=scaler,
                           augmentation=augmentation,
-                          n_augmentations=n_augmentations,
-                          encoder_params=encoder_params)
+                          n_augmentations=n_augmentations)
 
     torch_impl_tester(fqe, True)

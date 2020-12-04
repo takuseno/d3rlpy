@@ -2,38 +2,39 @@ import numpy as np
 import torch
 import copy
 
-from torch.optim import Adam
 from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from d3rlpy.models.torch.q_functions import create_discrete_q_function
 from d3rlpy.algos.torch.utility import torch_api, train_api, eval_api
 from d3rlpy.algos.torch.utility import soft_sync, hard_sync
-from d3rlpy.algos.torch.utility import compute_augemtation_mean
+from d3rlpy.algos.torch.utility import compute_augmentation_mean
 from d3rlpy.algos.torch.base import TorchImplBase
 
 
 class FQEImpl(TorchImplBase):
-    def __init__(self, observation_shape, action_size, learning_rate, gamma,
-                 n_critics, bootstrap, share_encoder, eps, use_batch_norm,
-                 q_func_type, use_gpu, scaler, augmentation, n_augmentations,
-                 encoder_params):
-        self.observation_shape = observation_shape
-        self.action_size = action_size
+    def __init__(self, observation_shape, action_size, learning_rate,
+                 optim_factory, encoder_factory, q_func_factory, gamma,
+                 n_critics, bootstrap, share_encoder, use_gpu, scaler,
+                 augmentation, n_augmentations):
+        super().__init__(observation_shape, action_size, scaler)
         self.learning_rate = learning_rate
+        self.optim_factory = optim_factory
+        self.encoder_factory = encoder_factory
+        self.q_func_factory = q_func_factory
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
-        self.eps = eps
-        self.use_batch_norm = use_batch_norm
-        self.q_func_type = q_func_type
         self.use_gpu = use_gpu
-        self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
-        self.encoder_params = encoder_params
+
+        # initialized in build
+        self.q_func = None
+        self.targ_q_func = None
+        self.optim = None
 
     def build(self):
-        self._build_critic()
+        self._build_network()
 
         self.targ_q_func = copy.deepcopy(self.q_func)
 
@@ -42,51 +43,45 @@ class FQEImpl(TorchImplBase):
         else:
             self.to_cpu()
 
-        self._build_critic_optim()
+        self._build_optim()
 
-    def _build_critic(self):
+    def _build_network(self):
         self.q_func = create_continuous_q_function(
             self.observation_shape,
             self.action_size,
+            self.encoder_factory,
+            self.q_func_factory,
             n_ensembles=self.n_critics,
-            use_batch_norm=self.use_batch_norm,
-            q_func_type=self.q_func_type,
             bootstrap=self.bootstrap,
-            share_encoder=self.share_encoder,
-            encoder_params=self.encoder_params)
+            share_encoder=self.share_encoder)
 
-    def _build_critic_optim(self):
-        self.critic_optim = Adam(self.q_func.parameters(),
-                                 lr=self.learning_rate,
-                                 eps=self.eps)
+    def _build_optim(self):
+        self.optim = self.optim_factory.create(self.q_func.parameters(),
+                                               lr=self.learning_rate)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t', 'obs_tp1'])
     def update(self, obs_t, act_t, rew_tp1, act_tp1, obs_tp1, ter_tp1):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-            obs_tp1 = self.scaler.transform(obs_tp1)
-
-        q_tp1 = compute_augemtation_mean(self.augmentation,
-                                         self.n_augmentations,
-                                         self.compute_target, {
-                                             'x': obs_tp1,
-                                             'action': act_tp1
-                                         }, ['x'])
+        q_tp1 = compute_augmentation_mean(self.augmentation,
+                                          self.n_augmentations,
+                                          self.compute_target, {
+                                              'x': obs_tp1,
+                                              'action': act_tp1
+                                          }, ['x'])
         q_tp1 *= (1.0 - ter_tp1)
 
-        loss = compute_augemtation_mean(self.augmentation,
-                                        self.n_augmentations,
-                                        self._compute_loss, {
-                                            'obs_t': obs_t,
-                                            'act_t': act_t,
-                                            'rew_tp1': rew_tp1,
-                                            'q_tp1': q_tp1
-                                        }, ['obs_t'])
+        loss = compute_augmentation_mean(self.augmentation,
+                                         self.n_augmentations,
+                                         self._compute_loss, {
+                                             'obs_t': obs_t,
+                                             'act_t': act_t,
+                                             'rew_tp1': rew_tp1,
+                                             'q_tp1': q_tp1
+                                         }, ['obs_t'])
 
-        self.critic_optim.zero_grad()
+        self.optim.zero_grad()
         loss.backward()
-        self.critic_optim.step()
+        self.optim.step()
 
         return loss.cpu().detach().numpy()
 
@@ -99,12 +94,9 @@ class FQEImpl(TorchImplBase):
             return self.targ_q_func.compute_target(x, action)
 
     @eval_api
-    @torch_api
-    def predict_value(self, x, action, with_std):
+    @torch_api(scaler_targets=['x'])
+    def predict_value(self, x, action, with_std=False):
         assert x.shape[0] == action.shape[0]
-
-        if self.scaler:
-            x = self.scaler.transform(x)
 
         with torch.no_grad():
             values = self.q_func(x, action, 'none').cpu().detach().numpy()
@@ -132,31 +124,26 @@ class FQEImpl(TorchImplBase):
 
 
 class DiscreteFQEImpl(FQEImpl):
-    def _build_critic(self):
+    def _build_network(self):
         self.q_func = create_discrete_q_function(
             self.observation_shape,
             self.action_size,
+            self.encoder_factory,
+            self.q_func_factory,
             n_ensembles=self.n_critics,
-            use_batch_norm=self.use_batch_norm,
-            q_func_type=self.q_func_type,
             bootstrap=self.bootstrap,
-            share_encoder=self.share_encoder,
-            encoder_params=self.encoder_params)
+            share_encoder=self.share_encoder)
 
-    @train_api
-    @torch_api
-    def update(self, obs_t, act_t, rew_tp1, act_tp1, obs_tp1, ter_tp1):
-        act_t = act_t.long()
-        act_tp1 = act_tp1.long()
-        return super().update(obs_t, act_t, rew_tp1, act_tp1, obs_tp1, ter_tp1)
+    def _compute_loss(self, obs_t, act_t, rew_tp1, q_tp1):
+        return super()._compute_loss(obs_t, act_t.long(), rew_tp1, q_tp1)
+
+    def compute_target(self, x, action):
+        return super().compute_target(x, action.long())
 
     @eval_api
-    @torch_api
-    def predict_value(self, x, action, with_std):
+    @torch_api(scaler_targets=['x'])
+    def predict_value(self, x, action, with_std=False):
         assert x.shape[0] == action.shape[0]
-
-        if self.scaler:
-            x = self.scaler.transform(x)
 
         with torch.no_grad():
             values = self.q_func(x, 'none').cpu().detach().numpy()

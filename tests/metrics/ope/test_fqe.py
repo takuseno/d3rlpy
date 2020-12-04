@@ -54,11 +54,11 @@ def ope_tester(ope, observation_shape, action_size=2):
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
+@pytest.mark.parametrize('q_func_factory', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, 'standard'])
-def test_fqe(observation_shape, action_size, q_func_type, scaler):
+def test_fqe(observation_shape, action_size, q_func_factory, scaler):
     algo = DDPG()
-    fqe = FQE(algo=algo, scaler=scaler, q_func_type=q_func_type)
+    fqe = FQE(algo=algo, scaler=scaler, q_func_factory=q_func_factory)
     ope_tester(fqe, observation_shape)
     algo.create_impl(observation_shape, action_size)
     algo_update_tester(fqe, observation_shape, action_size, discrete=False)
@@ -66,11 +66,11 @@ def test_fqe(observation_shape, action_size, q_func_type, scaler):
 
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
+@pytest.mark.parametrize('q_func_factory', ['mean', 'qr', 'iqn', 'fqf'])
 @pytest.mark.parametrize('scaler', [None, 'standard'])
-def test_discrete_fqe(observation_shape, action_size, q_func_type, scaler):
+def test_discrete_fqe(observation_shape, action_size, q_func_factory, scaler):
     algo = DQN()
-    fqe = DiscreteFQE(algo=algo, scaler=scaler, q_func_type=q_func_type)
+    fqe = DiscreteFQE(algo=algo, scaler=scaler, q_func_factory=q_func_factory)
     ope_tester(fqe, observation_shape)
     algo.create_impl(observation_shape, action_size)
     algo_update_tester(fqe, observation_shape, action_size, discrete=True)
