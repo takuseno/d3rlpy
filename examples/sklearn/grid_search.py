@@ -8,7 +8,7 @@ from sklearn.model_selection import GridSearchCV
 dataset, env = get_cartpole()
 
 # setup algowithm with GPU enabled
-dqn = DQN(n_epochs=1, use_gpu=True)
+dqn = DQN(use_gpu=True)
 
 # grid search with multiple GPUs assigned to individual processs
 with parallel():
@@ -21,6 +21,6 @@ with parallel():
                         scoring={'environment': env_score},
                         refit=False,
                         n_jobs=3)
-    gscv.fit(dataset.episodes, show_progress=False)
+    gscv.fit(dataset.episodes, n_epochs=1, show_progress=False)
 
 print(gscv.grid_scores_)

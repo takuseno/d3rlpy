@@ -25,6 +25,9 @@ class SingleAmplitudeScaling(Augmentation):
         maximum (float): maximum amplitude scale.
 
     """
+
+    TYPE = 'single_amplitude_scaling'
+
     def __init__(self, minimum=0.8, maximum=1.2):
         self.minimum = minimum
         self.maximum = maximum
@@ -43,17 +46,11 @@ class SingleAmplitudeScaling(Augmentation):
         z.uniform_(self.minimum, self.maximum)
         return x * z
 
-    def get_type(self):
-        """ Returns augmentation type.
-
-        Returns:
-            str: `single_amplitude_scaling`.
-
-        """
-        return 'single_amplitude_scaling'
-
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -85,16 +82,10 @@ class MultipleAmplitudeScaling(SingleAmplitudeScaling):
         maximum (float): maximum amplitude scale.
 
     """
+
+    TYPE = 'multiple_amplitude_scaling'
+
     def transform(self, x):
         z = torch.empty(*x.shape, device=x.device)
         z.uniform_(self.minimum, self.maximum)
         return x * z
-
-    def get_type(self):
-        """ Returns augmentation type.
-
-        Returns:
-            str: `multiple_amplitude_scaling`.
-
-        """
-        return 'multiple_amplitude_scaling'

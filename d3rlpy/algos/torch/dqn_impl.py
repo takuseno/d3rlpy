@@ -2,34 +2,35 @@ import numpy as np
 import torch
 import copy
 
-from torch.optim import Adam
 from d3rlpy.models.torch.q_functions import create_discrete_q_function
 from .utility import hard_sync
 from .utility import torch_api, train_api, eval_api
-from .utility import compute_augemtation_mean
+from .utility import compute_augmentation_mean
 from .base import TorchImplBase
 
 
 class DQNImpl(TorchImplBase):
-    def __init__(self, observation_shape, action_size, learning_rate, gamma,
-                 n_critics, bootstrap, share_encoder, eps, use_batch_norm,
-                 q_func_type, use_gpu, scaler, augmentation, n_augmentations,
-                 encoder_params):
-        self.observation_shape = observation_shape
-        self.action_size = action_size
+    def __init__(self, observation_shape, action_size, learning_rate,
+                 optim_factory, encoder_factory, q_func_factory, gamma,
+                 n_critics, bootstrap, share_encoder, use_gpu, scaler,
+                 augmentation, n_augmentations):
+        super().__init__(observation_shape, action_size, scaler)
         self.learning_rate = learning_rate
+        self.optim_factory = optim_factory
+        self.encoder_factory = encoder_factory
+        self.q_func_factory = q_func_factory
         self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
-        self.eps = eps
-        self.use_batch_norm = use_batch_norm
-        self.q_func_type = q_func_type
-        self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
-        self.encoder_params = encoder_params
         self.use_gpu = use_gpu
+
+        # initialized in build
+        self.q_func = None
+        self.targ_q_func = None
+        self.optim = None
 
     def build(self):
         # setup torch models
@@ -50,38 +51,36 @@ class DQNImpl(TorchImplBase):
         self.q_func = create_discrete_q_function(
             self.observation_shape,
             self.action_size,
+            self.encoder_factory,
+            self.q_func_factory,
             n_ensembles=self.n_critics,
-            use_batch_norm=self.use_batch_norm,
-            q_func_type=self.q_func_type,
             bootstrap=self.bootstrap,
-            share_encoder=self.share_encoder,
-            encoder_params=self.encoder_params)
+            share_encoder=self.share_encoder)
 
     def _build_optim(self):
-        self.optim = Adam(self.q_func.parameters(),
-                          lr=self.learning_rate,
-                          eps=self.eps)
+        self.optim = self.optim_factory.create(self.q_func.parameters(),
+                                               lr=self.learning_rate)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t', 'obs_tp1'])
     def update(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-            obs_tp1 = self.scaler.transform(obs_tp1)
-
-        q_tp1 = compute_augemtation_mean(self.augmentation,
-                                         self.n_augmentations,
-                                         self.compute_target, {'x': obs_tp1},
-                                         ['x'])
+        q_tp1 = compute_augmentation_mean(augmentation=self.augmentation,
+                                          n_augmentations=self.n_augmentations,
+                                          func=self.compute_target,
+                                          inputs={'x': obs_tp1},
+                                          targets=['x'])
         q_tp1 *= (1.0 - ter_tp1)
 
-        loss = compute_augemtation_mean(
-            self.augmentation, self.n_augmentations, self._compute_loss, {
-                'obs_t': obs_t,
-                'act_t': act_t.long(),
-                'rew_tp1': rew_tp1,
-                'q_tp1': q_tp1
-            }, ['obs_t'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self._compute_loss,
+                                         inputs={
+                                             'obs_t': obs_t,
+                                             'act_t': act_t.long(),
+                                             'rew_tp1': rew_tp1,
+                                             'q_tp1': q_tp1
+                                         },
+                                         targets=['obs_t'])
 
         self.optim.zero_grad()
         loss.backward()
@@ -102,12 +101,9 @@ class DQNImpl(TorchImplBase):
         return self.q_func(x).argmax(dim=1)
 
     @eval_api
-    @torch_api
+    @torch_api(scaler_targets=['x'])
     def predict_value(self, x, action, with_std):
         assert x.shape[0] == action.shape[0]
-
-        if self.scaler:
-            x = self.scaler.transform(x)
 
         action = action.view(-1).long().cpu().detach().numpy()
         with torch.no_grad():

@@ -1,4 +1,7 @@
 import torch
+import numpy as np
+
+from inspect import signature
 
 
 def soft_sync(targ_model, model, tau):
@@ -62,8 +65,8 @@ def unfreeze(impl):
                 p.requires_grad = True
 
 
-def compute_augemtation_mean(augmentation, n_augmentations, func, inputs,
-                             targets):
+def compute_augmentation_mean(augmentation, n_augmentations, func, inputs,
+                              targets):
     ret = 0.0
     for _ in range(n_augmentations):
         kwargs = dict(inputs)
@@ -97,23 +100,45 @@ def map_location(device):
     raise ValueError('invalid device={}'.format(device))
 
 
-def torch_api(f):
-    def wrapper(self, *args, **kwargs):
-        # convert all args to torch.Tensor
-        tensors = []
-        for val in args:
-            if isinstance(val, torch.Tensor):
-                tensors.append(val)
-            elif isinstance(val, list) and isinstance(val[0], torch.Tensor):
-                tensors.append(torch.stack(val))
-            else:
-                tensor = torch.tensor(data=val,
-                                      dtype=torch.float32,
-                                      device=self.device)
-                tensors.append(tensor)
-        return f(self, *tensors, **kwargs)
+def torch_api(scaler_targets=[]):
+    def _torch_api(f):
+        # get argument names
+        sig = signature(f)
+        arg_keys = list(sig.parameters.keys())[1:]
 
-    return wrapper
+        def wrapper(self, *args, **kwargs):
+            # convert all args to torch.Tensor
+            tensors = []
+            for i, val in enumerate(args):
+                if isinstance(val, torch.Tensor):
+                    tensor = val
+                elif isinstance(val, np.ndarray):
+                    if val.dtype == np.uint8:
+                        dtype = torch.uint8
+                    else:
+                        dtype = torch.float32
+                    tensor = torch.tensor(data=val,
+                                          dtype=dtype,
+                                          device=self.device)
+                else:
+                    tensor = torch.tensor(data=val,
+                                          dtype=torch.float32,
+                                          device=self.device)
+
+                # preprocess
+                if self.scaler and arg_keys[i] in scaler_targets:
+                    tensor = self.scaler.transform(tensor)
+
+                # make sure if the tensor is float32 type
+                if tensor.dtype != torch.float32:
+                    tensor = tensor.float()
+
+                tensors.append(tensor)
+            return f(self, *tensors, **kwargs)
+
+        return wrapper
+
+    return _torch_api
 
 
 def eval_api(f):

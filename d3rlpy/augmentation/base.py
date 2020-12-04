@@ -2,14 +2,22 @@ from abc import ABCMeta, abstractmethod
 
 
 class Augmentation(metaclass=ABCMeta):
+
+    TYPE = 'none'
+
     @abstractmethod
     def transform(self, x):
         pass
 
-    @abstractmethod
     def get_type(self):
-        pass
+        """ Returns augmentation type.
+
+        Returns:
+            str: augmentation type.
+
+        """
+        return self.TYPE
 
     @abstractmethod
-    def get_params(self):
+    def get_params(self, deep=False):
         pass

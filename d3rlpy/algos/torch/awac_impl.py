@@ -3,68 +3,64 @@ import torch.nn.functional as F
 
 from torch.optim import Adam
 from d3rlpy.models.torch.policies import squash_action, create_normal_policy
+from d3rlpy.optimizers import AdamFactory
 from .sac_impl import SACImpl
-from .utility import compute_augemtation_mean
-from .utility import torch_api, train_api, eval_api
+from .utility import compute_augmentation_mean
+from .utility import torch_api, train_api
 
 
 class AWACImpl(SACImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, gamma, tau, lam, n_action_samples,
-                 max_weight, actor_weight_decay, n_critics, bootstrap,
-                 share_encoder, eps, use_batch_norm, q_func_type, use_gpu,
-                 scaler, augmentation, n_augmentations, encoder_params):
+                 critic_learning_rate, actor_optim_factory,
+                 critic_optim_factory, actor_encoder_factory,
+                 critic_encoder_factory, q_func_factory, gamma, tau, lam,
+                 n_action_samples, max_weight, n_critics, bootstrap,
+                 share_encoder, use_gpu, scaler, augmentation,
+                 n_augmentations):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
                          critic_learning_rate=critic_learning_rate,
                          temp_learning_rate=0.0,
+                         actor_optim_factory=actor_optim_factory,
+                         critic_optim_factory=critic_optim_factory,
+                         temp_optim_factory=AdamFactory(),
+                         actor_encoder_factory=actor_encoder_factory,
+                         critic_encoder_factory=critic_encoder_factory,
+                         q_func_factory=q_func_factory,
                          gamma=gamma,
                          tau=tau,
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
                          initial_temperature=1e-20,
-                         eps=eps,
-                         use_batch_norm=use_batch_norm,
-                         q_func_type=q_func_type,
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,
-                         n_augmentations=n_augmentations,
-                         encoder_params=encoder_params)
+                         n_augmentations=n_augmentations)
         self.lam = lam
         self.n_action_samples = n_action_samples
         self.max_weight = max_weight
-        self.actor_weight_decay = actor_weight_decay
 
     def _build_actor(self):
         self.policy = create_normal_policy(self.observation_shape,
                                            self.action_size,
-                                           self.use_batch_norm,
+                                           self.actor_encoder_factory,
                                            min_logstd=-6.0,
                                            max_logstd=0.0,
-                                           use_std_parameter=True,
-                                           encoder_params=self.encoder_params)
-
-    def _build_actor_optim(self):
-        self.actor_optim = Adam(self.policy.parameters(),
-                                lr=self.actor_learning_rate,
-                                eps=self.eps,
-                                weight_decay=self.actor_weight_decay)
+                                           use_std_parameter=True)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t, act_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
-        loss = compute_augemtation_mean(self.augmentation,
-                                        self.n_augmentations,
-                                        self._compute_actor_loss, {
-                                            'obs_t': obs_t,
-                                            'act_t': act_t
-                                        }, ['obs_t'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self._compute_actor_loss,
+                                         inputs={
+                                             'obs_t': obs_t,
+                                             'act_t': act_t
+                                         },
+                                         targets=['obs_t'])
 
         self.actor_optim.zero_grad()
         loss.backward()

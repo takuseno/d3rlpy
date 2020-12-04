@@ -8,14 +8,17 @@ from sklearn.model_selection import cross_validate
 dataset, env = get_cartpole()
 
 # setup algowithm with GPU enabled
-dqn = DQN(n_epochs=1, use_gpu=True)
+dqn = DQN(use_gpu=True)
 
 # cross validation with multiple GPUs assigned to individual processs
 with parallel():
     env_score = evaluate_on_environment(env)
     scores = cross_validate(dqn,
                             dataset,
-                            fit_params={'show_progress': False},
+                            fit_params={
+                                'n_epochs': 1,
+                                'show_progress': False
+                            },
                             scoring={'environment': env_score},
                             n_jobs=3)  # 3 parallel training processes
 

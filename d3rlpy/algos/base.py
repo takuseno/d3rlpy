@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from ..base import ImplBase, LearnableBase
 from ..online.iterators import train
 
@@ -26,10 +26,8 @@ class AlgoImplBase(ImplBase):
 
 
 class AlgoBase(LearnableBase):
-    def __init__(self, n_epochs, batch_size, n_frames, scaler, augmentation,
-                 dynamics, use_gpu):
-        super().__init__(n_epochs, batch_size, n_frames, scaler, augmentation,
-                         use_gpu)
+    def __init__(self, batch_size, n_frames, scaler, dynamics):
+        super().__init__(batch_size, n_frames, scaler)
         self.dynamics = dynamics
 
     def save_policy(self, fname, as_onnx=False):
@@ -136,19 +134,19 @@ class AlgoBase(LearnableBase):
                    env,
                    buffer,
                    explorer=None,
-                   n_epochs=None,
-                   n_steps_per_epoch=4000,
-                   n_updates_per_epoch=100,
+                   n_steps=1000000,
+                   n_steps_per_epoch=10000,
+                   update_interval=1,
                    update_start_step=0,
                    eval_env=None,
                    eval_epsilon=0.0,
+                   save_metrics=True,
                    experiment_name=None,
                    with_timestamp=True,
                    logdir='d3rlpy_logs',
                    verbose=True,
                    show_progress=True,
-                   tensorboard=True,
-                   save_interval=1):
+                   tensorboard=True):
         """ Start training loop of online deep reinforcement learning.
 
         This method is a convenient alias to ``d3rlpy.online.iterators.train``.
@@ -157,15 +155,16 @@ class AlgoBase(LearnableBase):
             env (gym.Env): gym-like environment.
             buffer (d3rlpy.online.buffers.Buffer): replay buffer.
             explorer (d3rlpy.online.explorers.Explorer): action explorer.
-            n_epochs (int): the number of epochs to train. If None is given,
-                ``n_epochs`` of algorithm object will be used.
+            n_steps (int): the number of total steps to train.
             n_steps_per_epoch (int): the number of steps per epoch.
-            n_updates_per_epoch (int): the number of updates per epoch.
+            update_interval (int): the number of steps per update.
             update_start_step (int): the steps before starting updates.
             eval_env (gym.Env): gym-like environment. If None, evaluation is
                 skipped.
             eval_epsilon (float): :math:`\\epsilon`-greedy factor during
                 evaluation.
+            save_metrics (bool): flag to record metrics. If False, the log
+                directory is not created and the model parameters are not saved.
             experiment_name (str): experiment name for logging. If not passed,
                 the directory name will be `{class name}_online_{timestamp}`.
             with_timestamp (bool): flag to add timestamp string to the last of
@@ -175,26 +174,25 @@ class AlgoBase(LearnableBase):
             show_progress (bool): flag to show progress bar for iterations.
             tensorboard (bool): flag to save logged information in tensorboard
                 (additional to the csv data)
-            save_interval (int): interval to save parameters.
 
         """
         train(env=env,
               algo=self,
               buffer=buffer,
               explorer=explorer,
-              n_epochs=n_epochs,
+              n_steps=n_steps,
               n_steps_per_epoch=n_steps_per_epoch,
-              n_updates_per_epoch=n_updates_per_epoch,
+              update_interval=update_interval,
               update_start_step=update_start_step,
               eval_env=eval_env,
               eval_epsilon=eval_epsilon,
+              save_metrics=save_metrics,
               experiment_name=experiment_name,
               with_timestamp=with_timestamp,
               logdir=logdir,
               verbose=verbose,
               show_progress=show_progress,
-              tensorboard=tensorboard,
-              save_interval=save_interval)
+              tensorboard=tensorboard)
 
     def _generate_new_data(self, transitions):
         new_data = []

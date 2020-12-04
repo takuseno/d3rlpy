@@ -5,6 +5,9 @@ from abc import ABCMeta, abstractmethod
 
 
 class Scaler(metaclass=ABCMeta):
+
+    TYPE = 'none'
+
     @abstractmethod
     def fit(self, episodes):
         pass
@@ -17,23 +20,18 @@ class Scaler(metaclass=ABCMeta):
     def reverse_transform(self, x):
         pass
 
-    @abstractmethod
     def get_type(self):
-        pass
+        """ Returns a scaler type.
+
+        Returns:
+            str: scaler type.
+
+        """
+        return self.TYPE
 
     @abstractmethod
-    def get_params(self):
+    def get_params(self, deep=False):
         pass
-
-
-def create_scaler(scaler_type, **kwargs):
-    if scaler_type == 'pixel':
-        return PixelScaler()
-    elif scaler_type == 'min_max':
-        return MinMaxScaler(**kwargs)
-    elif scaler_type == 'standard':
-        return StandardScaler(**kwargs)
-    raise ValueError
 
 
 class PixelScaler(Scaler):
@@ -56,6 +54,9 @@ class PixelScaler(Scaler):
         cql.fit(dataset.episodes)
 
     """
+
+    TYPE = 'pixel'
+
     def fit(self, episodes):
         pass
 
@@ -83,25 +84,19 @@ class PixelScaler(Scaler):
         """
         return (x * 255.0).long()
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns scaling parameters.
 
         PixelScaler returns empty dictiornary.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: empty dictionary.
 
         """
         return {}
-
-    def get_type(self):
-        """ Returns scaler type.
-
-        Returns:
-            str: `pixel`.
-
-        """
-        return 'pixel'
 
 
 class MinMaxScaler(Scaler):
@@ -151,6 +146,9 @@ class MinMaxScaler(Scaler):
         maximum (numpy.ndarray): maximum values at each entry.
 
     """
+
+    TYPE = 'min_max'
+
     def __init__(self, dataset=None, maximum=None, minimum=None):
         self.minimum = None
         self.maximum = None
@@ -220,23 +218,27 @@ class MinMaxScaler(Scaler):
                                device=x.device)
         return ((maximum - minimum) * x) + minimum
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns scaling parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: `maximum` and `minimum`.
 
         """
-        return {'maximum': self.maximum, 'minimum': self.minimum}
+        if self.maximum is not None:
+            maximum = self.maximum.copy() if deep else self.maximum
+        else:
+            maximum = None
 
-    def get_type(self):
-        """ Returns scaler type.
+        if self.minimum is not None:
+            minimum = self.minimum.copy() if deep else self.minimum
+        else:
+            minimum = None
 
-        Returns:
-            str: `min_max`.
-
-        """
-        return 'min_max'
+        return {'maximum': maximum, 'minimum': minimum}
 
 
 class StandardScaler(Scaler):
@@ -286,6 +288,9 @@ class StandardScaler(Scaler):
         std (numpy.ndarray): standard deviation values at each entry.
 
     """
+
+    TYPE = 'standard'
+
     def __init__(self, dataset=None, mean=None, std=None):
         self.mean = None
         self.std = None
@@ -355,20 +360,61 @@ class StandardScaler(Scaler):
         std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
         return (std * x) + mean
 
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns scaling parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: `mean` and `std`.
 
         """
-        return {'mean': self.mean, 'std': self.std}
+        if self.mean is not None:
+            mean = self.mean.copy() if deep else self.mean
+        else:
+            mean = None
 
-    def get_type(self):
-        """ Returns scaler type.
+        if self.std is not None:
+            std = self.std.copy() if deep else self.std
+        else:
+            std = None
 
-        Returns:
-            str: `standard`.
+        return {'mean': mean, 'std': std}
 
-        """
-        return 'standard'
+
+SCALER_LIST = {}
+
+
+def register_scaler(cls):
+    """ Registers scaler class.
+
+    Args:
+        cls (type): scaler class inheriting ``Scaler``.
+
+    """
+    is_registered = cls.TYPE in SCALER_LIST
+    assert not is_registered, '%s seems to be already registered' % cls.TYPE
+    SCALER_LIST[cls.TYPE] = cls
+
+
+def create_scaler(name, **kwargs):
+    """ Returns registered scaler object.
+
+    Args:
+        name (str): regsitered scaler type name.
+        kwargs (any): scaler arguments.
+
+    Returns:
+        d3rlpy.preprocessing.scalers: scaler object.
+
+    """
+    assert name in SCALER_LIST, '%s seems not to be registered.' % name
+    scaler = SCALER_LIST[name](**kwargs)
+    assert isinstance(scaler, Scaler)
+    return scaler
+
+
+register_scaler(PixelScaler)
+register_scaler(MinMaxScaler)
+register_scaler(StandardScaler)

@@ -9,43 +9,66 @@ from .image import ColorJitter
 from .vector import SingleAmplitudeScaling
 from .vector import MultipleAmplitudeScaling
 
-
-def create_augmentation(augmentation_type, **kwargs):
-    if augmentation_type == 'random_shift':
-        return RandomShift(**kwargs)
-    elif augmentation_type == 'cutout':
-        return Cutout(**kwargs)
-    elif augmentation_type == 'horizontal_flip':
-        return HorizontalFlip(**kwargs)
-    elif augmentation_type == 'vertical_flip':
-        return VerticalFlip(**kwargs)
-    elif augmentation_type == 'random_rotation':
-        return RandomRotation(**kwargs)
-    elif augmentation_type == 'intensity':
-        return Intensity(**kwargs)
-    elif augmentation_type == 'color_jitter':
-        return ColorJitter(**kwargs)
-    elif augmentation_type == 'single_amplitude_scaling':
-        return SingleAmplitudeScaling(**kwargs)
-    elif augmentation_type == 'multiple_amplitude_scaling':
-        return MultipleAmplitudeScaling(**kwargs)
-    raise ValueError('invalid augmentation_type.')
+AUGMENTATION_LIST = {}
 
 
-class AugmentationPipeline(Augmentation):
+def register_augmentation(cls):
+    """ Registers augmentation class.
+
+    Args:
+        cls (type): augmentation class inheriting ``Augmentation``.
+
+    """
+    is_registered = cls.TYPE in AUGMENTATION_LIST
+    assert not is_registered, '%s seems to be already registered' % cls.TYPE
+    AUGMENTATION_LIST[cls.TYPE] = cls
+
+
+def create_augmentation(name, **kwargs):
+    """ Returns registered encoder factory object.
+
+    Args:
+        name (str): regsitered encoder factory type name.
+        kwargs (any): encoder arguments.
+
+    Returns:
+        d3rlpy.encoders.EncoderFactory: encoder factory object.
+
+    """
+    assert name in AUGMENTATION_LIST, '%s seems not to be registered.' % name
+    augmentation = AUGMENTATION_LIST[name](**kwargs)
+    assert isinstance(augmentation, Augmentation)
+    return augmentation
+
+
+register_augmentation(RandomShift)
+register_augmentation(Cutout)
+register_augmentation(HorizontalFlip)
+register_augmentation(VerticalFlip)
+register_augmentation(RandomRotation)
+register_augmentation(Intensity)
+register_augmentation(ColorJitter)
+register_augmentation(SingleAmplitudeScaling)
+register_augmentation(MultipleAmplitudeScaling)
+
+
+class AugmentationPipeline:
     """ Augmentation pipeline.
 
     Args:
-        augmentations (list(d3rlpy.augmentation.base.Augmentation)):
-            list of augmentations.
+        augmentations (list(d3rlpy.augmentation.base.Augmentation or str)):
+            list of augmentations or augmentation types.
 
     Attributes:
         augmentations (list(d3rlpy.augmentation.base.Augmentation)):
             list of augmentations.
 
     """
-    def __init__(self, augmentations=[]):
-        self.augmentations = list(augmentations)
+    def __init__(self, augmentations=None):
+        if augmentations is None:
+            self.augmentations = []
+        else:
+            self.augmentations = augmentations
 
     def append(self, augmentation):
         """ Append augmentation to pipeline.
@@ -74,7 +97,7 @@ class AugmentationPipeline(Augmentation):
 
         return x
 
-    def get_type(self):
+    def get_augmentation_types(self):
         """ Returns augmentation types.
 
         Returns:
@@ -83,8 +106,11 @@ class AugmentationPipeline(Augmentation):
         """
         return [aug.get_type() for aug in self.augmentations]
 
-    def get_params(self):
+    def get_augmentation_params(self):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             list(dict): list of augmentation parameters.

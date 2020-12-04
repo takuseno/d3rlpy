@@ -4,54 +4,30 @@ import torch.nn.functional as F
 
 from torch.distributions import Normal
 from torch.distributions.kl import kl_divergence
-from .encoders import create_encoder
 
 
-def create_conditional_vae(observation_shape,
-                           action_size,
-                           latent_size,
-                           beta,
-                           use_batch_norm=False,
-                           encoder_params={}):
-    encoder_encoder = create_encoder(observation_shape,
-                                     action_size,
-                                     use_batch_norm=use_batch_norm,
-                                     **encoder_params)
-    decoder_encoder = create_encoder(observation_shape,
-                                     latent_size,
-                                     use_batch_norm=use_batch_norm,
-                                     **encoder_params)
+def create_conditional_vae(observation_shape, action_size, latent_size, beta,
+                           encoder_factory):
+    encoder_encoder = encoder_factory.create(observation_shape, action_size)
+    decoder_encoder = encoder_factory.create(observation_shape, latent_size)
     return ConditionalVAE(encoder_encoder, decoder_encoder, beta)
 
 
-def create_discrete_imitator(observation_shape,
-                             action_size,
-                             beta,
-                             use_batch_norm=False,
-                             encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+def create_discrete_imitator(observation_shape, action_size, beta,
+                             encoder_factory):
+    encoder = encoder_factory.create(observation_shape)
     return DiscreteImitator(encoder, action_size, beta)
 
 
-def create_deterministic_regressor(observation_shape,
-                                   action_size,
-                                   use_batch_norm=False,
-                                   encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+def create_deterministic_regressor(observation_shape, action_size,
+                                   encoder_factory):
+    encoder = encoder_factory.create(observation_shape)
     return DeterministicRegressor(encoder, action_size)
 
 
-def create_probablistic_regressor(observation_shape,
-                                  action_size,
-                                  use_batch_norm=False,
-                                  encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+def create_probablistic_regressor(observation_shape, action_size,
+                                  encoder_factory):
+    encoder = encoder_factory.create(observation_shape)
     return ProbablisticRegressor(encoder, action_size)
 
 
@@ -66,10 +42,13 @@ class ConditionalVAE(nn.Module):
         self.latent_size = decoder_encoder.action_size
 
         # encoder
-        self.mu = nn.Linear(encoder_encoder.feature_size, self.latent_size)
-        self.logstd = nn.Linear(encoder_encoder.feature_size, self.latent_size)
+        self.mu = nn.Linear(encoder_encoder.get_feature_size(),
+                            self.latent_size)
+        self.logstd = nn.Linear(encoder_encoder.get_feature_size(),
+                                self.latent_size)
         # decoder
-        self.fc = nn.Linear(decoder_encoder.feature_size, self.action_size)
+        self.fc = nn.Linear(decoder_encoder.get_feature_size(),
+                            self.action_size)
 
     def forward(self, x, action):
         dist = self.encode(x, action)
@@ -98,7 +77,7 @@ class DiscreteImitator(nn.Module):
         super().__init__()
         self.encoder = encoder
         self.beta = beta
-        self.fc = nn.Linear(encoder.feature_size, action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def forward(self, x, with_logits=False):
         h = self.encoder(x)
@@ -118,7 +97,7 @@ class DeterministicRegressor(nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.encoder = encoder
-        self.fc = nn.Linear(encoder.feature_size, action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def forward(self, x):
         h = self.encoder(x)
@@ -133,8 +112,8 @@ class ProbablisticRegressor(nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.encoder = encoder
-        self.mu = nn.Linear(encoder.feature_size, action_size)
-        self.logstd = nn.Linear(encoder.feature_size, action_size)
+        self.mu = nn.Linear(encoder.get_feature_size(), action_size)
+        self.logstd = nn.Linear(encoder.get_feature_size(), action_size)
 
     def dist(self, x):
         h = self.encoder(x)

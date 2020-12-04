@@ -9,12 +9,15 @@ from d3rlpy.algos.torch.utility import get_state_dict, set_state_dict
 
 
 class TorchImplBase(DynamicsImplBase):
-    @eval_api
-    @torch_api
-    def predict(self, x, action):
-        if self.scaler:
-            x = self.scaler.transform(x)
+    def __init__(self, observation_shape, action_size, scaler):
+        self.observation_shape = observation_shape
+        self.action_size = action_size
+        self.scaler = scaler
+        self.device = 'cpu:0'
 
+    @eval_api
+    @torch_api(scaler_targets=['x'])
+    def predict(self, x, action):
         with torch.no_grad():
             observation, reward, variance = self._predict(x, action)
 
@@ -31,11 +34,8 @@ class TorchImplBase(DynamicsImplBase):
         raise NotImplementedError
 
     @eval_api
-    @torch_api
+    @torch_api(scaler_targets=['x'])
     def generate(self, x, action):
-        if self.scaler:
-            x = self.scaler.transform(x)
-
         with torch.no_grad():
             observation, reward = self._generate(x, action)
 

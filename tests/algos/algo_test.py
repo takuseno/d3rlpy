@@ -118,6 +118,7 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
 
         # train
         algo.fit(dataset.episodes[:n_episodes],
+                 n_epochs=3,
                  logdir='test_data',
                  verbose=False,
                  tensorboard=False)
@@ -159,6 +160,7 @@ def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
 
         # train
         algo.fit(dataset.episodes[:n_episodes],
+                 n_epochs=3,
                  logdir='test_data',
                  verbose=False,
                  tensorboard=False)

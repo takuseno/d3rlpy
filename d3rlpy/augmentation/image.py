@@ -22,6 +22,9 @@ class RandomShift(Augmentation):
         shift_size (int): size to shift image.
 
     """
+
+    TYPE = 'random_shift'
+
     def __init__(self, shift_size=4):
         self.shift_size = shift_size
         self._operation = None
@@ -45,17 +48,11 @@ class RandomShift(Augmentation):
             self._setup(x)
         return self._operation(x)
 
-    def get_type(self):
-        """ Returns augmentation type.
-
-        Returns:
-            str: `random_shift`.
-
-        """
-        return 'random_shift'
-
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -79,6 +76,9 @@ class Cutout(Augmentation):
         probability (float): probability to cutout.
 
     """
+
+    TYPE = 'cutout'
+
     def __init__(self, probability=0.5):
         self.probability = probability
         self._operation = aug.RandomErasing(p=probability)
@@ -95,17 +95,11 @@ class Cutout(Augmentation):
         """
         return self._operation(x)
 
-    def get_type(self):
-        """ Returns augmentation type.
-
-        Returns:
-            str: `cutout`.
-
-        """
-        return 'cutout'
-
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -129,6 +123,9 @@ class HorizontalFlip(Augmentation):
         probability (float): probability to flip horizontally.
 
     """
+
+    TYPE = 'horizontal_flip'
+
     def __init__(self, probability=0.1):
         self.probability = probability
         self._operation = aug.RandomHorizontalFlip(p=probability)
@@ -145,17 +142,11 @@ class HorizontalFlip(Augmentation):
         """
         return self._operation(x)
 
-    def get_type(self):
-        """ Returns augmentation type.
-
-        Returns:
-            str: `horizontal_flip`.
-
-        """
-        return 'horizontal_flip'
-
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -179,6 +170,9 @@ class VerticalFlip(Augmentation):
         probability (float): probability to flip vertically.
 
     """
+
+    TYPE = 'vertical_flip'
+
     def __init__(self, probability=0.1):
         self.probability = probability
         self._operation = aug.RandomVerticalFlip(p=probability)
@@ -195,17 +189,11 @@ class VerticalFlip(Augmentation):
         """
         return self._operation(x)
 
-    def get_type(self):
-        """ Returns augmentation type.
-
-        Returns:
-            str: `vertical_flip`.
-
-        """
-        return 'vertical_flip'
-
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -229,6 +217,9 @@ class RandomRotation(Augmentation):
         degree (float): range of degrees to rotate image.
 
     """
+
+    TYPE = 'random_rotation'
+
     def __init__(self, degree=5.0):
         self.degree = degree
         self._operation = aug.RandomRotation(degrees=degree)
@@ -245,17 +236,11 @@ class RandomRotation(Augmentation):
         """
         return self._operation(x)
 
-    def get_type(self):
-        """ Returns augmentation type.
-
-        Returns:
-            str: `random_rotation`.
-
-        """
-        return 'random_rotation'
-
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -285,6 +270,9 @@ class Intensity(Augmentation):
         scale (float): scale of multiplier.
 
     """
+
+    TYPE = 'intensity'
+
     def __init__(self, scale=0.1):
         self.scale = scale
 
@@ -302,17 +290,11 @@ class Intensity(Augmentation):
         noise = 1.0 + (self.scale * r.clamp(-2.0, 2.0))
         return x * noise
 
-    def get_type(self):
-        """ Returns augmentation type.
-
-        Returns:
-            str: `intensity`.
-
-        """
-        return 'intensity'
-
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.
@@ -345,6 +327,9 @@ class ColorJitter(Augmentation):
         hue (tuple): hue scale range.
 
     """
+
+    TYPE = 'color_jitter'
+
     def __init__(self,
                  brightness=(0.6, 1.4),
                  contrast=(0.6, 1.4),
@@ -377,7 +362,7 @@ class ColorJitter(Augmentation):
 
         if is_transforming_rgb_first:
             # transform contrast
-            flag_rgb = self._transform_contrast(flat_rgb)
+            flat_rgb = self._transform_contrast(flat_rgb)
 
         # (batch, stack, 3, W, H) -> (batch * stack, 3, W, H)
         rgb_images = flat_rgb.view(-1, 3, x.shape[2], x.shape[3])
@@ -435,17 +420,11 @@ class ColorJitter(Augmentation):
         means = rgb.mean(dim=(3, 4), keepdims=True)
         return ((rgb - means) * (scale + means)).clamp(0, 1)
 
-    def get_type(self):
-        """ Returns augmentation type.
-
-        Returns:
-            str: `color_jitter`.
-
-        """
-        return 'color_jitter'
-
-    def get_params(self):
+    def get_params(self, deep=False):
         """ Returns augmentation parameters.
+
+        Args:
+            deep (bool): flag to deeply copy objects.
 
         Returns:
             dict: augmentation parameters.

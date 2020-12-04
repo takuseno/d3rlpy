@@ -65,7 +65,7 @@ Q-learnig algorithm proposed as the first deep reinforcement learning algorithm.
   from d3rlpy.algos import DQN
 
   # if you don't use GPU, set use_gpu=False instead.
-  dqn = DQN(n_epochs=10, use_gpu=True)
+  dqn = DQN(use_gpu=True)
 
 See more algorithms and configurations at :doc:`references/algos`.
 
@@ -109,6 +109,7 @@ Now, you have all to start data-driven training.
 
   dqn.fit(train_episodes,
           eval_episodes=test_episodes,
+          n_epochs=10,
           scorers={
               'td_error': td_error_scorer,
               'value_scale': average_value_estimation_scorer,
@@ -127,7 +128,6 @@ Then, you will see training progress in the console like below::
   learning_rate=6.25e-05
   n_augmentations=1
   n_critics=1
-  n_epochs=10
   n_frames=1
   q_func_type=mean
   scaler=None

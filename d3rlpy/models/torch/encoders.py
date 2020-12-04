@@ -3,53 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def _create_activation(activation_type):
-    if activation_type == 'relu':
-        return torch.relu
-    elif activation_type == 'swish':
-        return lambda x: x * torch.sigmoid(x)
-    raise ValueError('invalid activation_type.')
-
-
-def create_encoder(observation_shape,
-                   action_size=None,
-                   use_batch_norm=False,
-                   discrete_action=False,
-                   activation_type='relu',
-                   **kwargs):
-
-    activation = _create_activation(activation_type)
-
-    if len(observation_shape) == 3:
-        # pixel input
-        if action_size is not None:
-            return PixelEncoderWithAction(observation_shape,
-                                          action_size,
-                                          use_batch_norm=use_batch_norm,
-                                          discrete_action=discrete_action,
-                                          activation=activation,
-                                          **kwargs)
-        return PixelEncoder(observation_shape,
-                            use_batch_norm=use_batch_norm,
-                            activation=activation,
-                            **kwargs)
-    elif len(observation_shape) == 1:
-        # vector input
-        if action_size is not None:
-            return VectorEncoderWithAction(observation_shape,
-                                           action_size,
-                                           use_batch_norm=use_batch_norm,
-                                           discrete_action=discrete_action,
-                                           activation=activation,
-                                           **kwargs)
-        return VectorEncoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             activation=activation,
-                             **kwargs)
-    else:
-        raise ValueError('observation_shape must be 1d or 3d.')
-
-
 class PixelEncoder(nn.Module):
     def __init__(self,
                  observation_shape,
@@ -112,6 +65,9 @@ class PixelEncoder(nn.Module):
 
         return h
 
+    def get_feature_size(self):
+        return self.feature_size
+
 
 class PixelEncoderWithAction(PixelEncoder):
     def __init__(self,
@@ -152,6 +108,7 @@ class VectorEncoder(nn.Module):
                  observation_shape,
                  hidden_units=None,
                  use_batch_norm=False,
+                 use_dense=False,
                  activation=torch.relu):
         super().__init__()
         self.observation_shape = observation_shape
@@ -162,11 +119,14 @@ class VectorEncoder(nn.Module):
         self.use_batch_norm = use_batch_norm
         self.feature_size = hidden_units[-1]
         self.activation = activation
+        self.use_dense = use_dense
 
         in_units = [observation_shape[0]] + hidden_units[:-1]
         self.fcs = nn.ModuleList()
         self.bns = nn.ModuleList()
-        for in_unit, out_unit in zip(in_units, hidden_units):
+        for i, (in_unit, out_unit) in enumerate(zip(in_units, hidden_units)):
+            if use_dense and i > 0:
+                in_unit += observation_shape[0]
             self.fcs.append(nn.Linear(in_unit, out_unit))
             if use_batch_norm:
                 self.bns.append(nn.BatchNorm1d(out_unit))
@@ -174,10 +134,15 @@ class VectorEncoder(nn.Module):
     def forward(self, x):
         h = x
         for i in range(len(self.fcs)):
+            if self.use_dense and i > 0:
+                h = torch.cat([h, x], dim=1)
             h = self.activation(self.fcs[i](h))
             if self.use_batch_norm:
                 h = self.bns[i](h)
         return h
+
+    def get_feature_size(self):
+        return self.feature_size
 
 
 class VectorEncoderWithAction(VectorEncoder):
@@ -186,12 +151,13 @@ class VectorEncoderWithAction(VectorEncoder):
                  action_size,
                  hidden_units=None,
                  use_batch_norm=False,
+                 use_dense=False,
                  discrete_action=False,
                  activation=torch.relu):
         self.action_size = action_size
         self.discrete_action = discrete_action
         concat_shape = (observation_shape[0] + action_size, )
-        super().__init__(concat_shape, hidden_units, use_batch_norm,
+        super().__init__(concat_shape, hidden_units, use_batch_norm, use_dense,
                          activation)
         self.observation_shape = observation_shape
 

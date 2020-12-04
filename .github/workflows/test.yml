@@ -4,7 +4,10 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-16.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-16.04, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v2
       - name: Setup Python.3.6.x
@@ -19,18 +22,30 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
+      - name: Install dependencies for Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          pip install torch==1.6.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+      - name: Install dependencies for macOS
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: |
+          brew install libomp
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest-cov gym flask msgpack onnxruntime
+          pip install numpy Cython pytest-cov gym flask onnxruntime stable-baselines3
           pip install git+https://github.com/takuseno/d4rl-atari
       - name: Build Cython
         run: |
+          pip install -e .
           python setup.py build_ext --inplace --define CYTHON_TRACE
       - name: Unit tests
+        run: |
+          mkdir -p test_data
+          pytest --cov-report=xml --cov=d3rlpy --cov-config=.coveragerc tests -p no:warnings -v
+      - name: Upload coverage
+        if: ${{ matrix.os == 'ubuntu-16.04' }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
-          ./scripts/test
           bash <(curl -s https://codecov.io/bash)

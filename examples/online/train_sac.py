@@ -7,7 +7,7 @@ env = gym.make('Pendulum-v0')
 eval_env = gym.make('Pendulum-v0')
 
 # setup algorithm
-sac = SAC(n_epochs=100, batch_size=100, use_gpu=False)
+sac = SAC(batch_size=100, use_gpu=False)
 
 # replay buffer for experience replay
 buffer = ReplayBuffer(maxlen=100000, env=env)
@@ -16,6 +16,7 @@ buffer = ReplayBuffer(maxlen=100000, env=env)
 # probablistic policies does not need explorers
 sac.fit_online(env,
                buffer,
+               n_steps=100000,
                eval_env=eval_env,
                n_steps_per_epoch=1000,
-               n_updates_per_epoch=100)
+               update_start_step=1000)

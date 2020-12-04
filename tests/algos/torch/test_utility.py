@@ -10,7 +10,7 @@ from d3rlpy.algos.torch.utility import freeze, unfreeze
 from d3rlpy.algos.torch.utility import torch_api, train_api, eval_api
 from d3rlpy.algos.torch.utility import map_location
 from d3rlpy.algos.torch.utility import get_state_dict, set_state_dict
-from d3rlpy.algos.torch.utility import compute_augemtation_mean
+from d3rlpy.algos.torch.utility import compute_augmentation_mean
 
 
 @pytest.mark.parametrize('tau', [0.05])
@@ -63,9 +63,15 @@ class DummyImpl:
         self.optim = torch.optim.Adam(self.fc1.parameters())
         self.device = 'cpu:0'
 
-    @torch_api
+    @torch_api()
     def torch_api_func(self, x):
         assert isinstance(x, torch.Tensor)
+
+    @torch_api(scaler_targets=['x'])
+    def torch_api_func_with_scaler(self, x, y, ref_x, ref_y):
+        assert isinstance(x, torch.Tensor)
+        assert torch.allclose(x, torch.tensor(ref_x, dtype=torch.float32))
+        assert torch.allclose(y, torch.tensor(ref_y, dtype=torch.float32))
 
     @train_api
     def train_api_func(self):
@@ -189,16 +195,32 @@ def test_compute_augmentation_mean():
 
     x = np.random.random((100, 100))
 
-    y = compute_augemtation_mean(aug, 2, func, {'x': x}, 'x')
+    y = compute_augmentation_mean(aug, 2, func, {'x': x}, 'x')
 
     assert np.allclose(y, x + 1.5)
 
 
 def test_torch_api():
     impl = DummyImpl()
+    impl.scaler = None
 
     x = np.random.random((100, 100))
     impl.torch_api_func(x)
+
+
+def test_torch_api_with_scaler():
+    impl = DummyImpl()
+
+    class DummyScaler:
+        def transform(self, x):
+            return x + 0.1
+
+    scaler = DummyScaler()
+    impl.scaler = scaler
+
+    x = np.random.random((100, 100))
+    y = np.random.random((100, 100))
+    impl.torch_api_func_with_scaler(x, y, ref_x=x + 0.1, ref_y=y)
 
 
 def test_train_api():

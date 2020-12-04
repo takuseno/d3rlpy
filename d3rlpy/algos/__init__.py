@@ -7,7 +7,7 @@ from .bear import BEAR
 from .cql import CQL, DiscreteCQL
 from .ddpg import DDPG
 from .dqn import DQN, DoubleDQN
-from .sac import SAC
+from .sac import SAC, DiscreteSAC
 from .td3 import TD3
 
 
@@ -66,7 +66,7 @@ def create_algo(name, discrete, **params):
                 'DoubleDQN does not support continuous action-space.')
     elif name == 'sac':
         if discrete:
-            raise ValueError('SAC does not support discrete action-space.')
+            return DiscreteSAC(**params)
         else:
             return SAC(**params)
     elif name == 'td3':

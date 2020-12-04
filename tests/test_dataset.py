@@ -5,6 +5,7 @@ import os
 from collections import deque
 from sklearn.model_selection import train_test_split
 from d3rlpy.dataset import MDPDataset, Episode, Transition, TransitionMiniBatch
+from d3rlpy.dataset import compute_lambda_return
 
 
 @pytest.mark.parametrize('data_size', [100])
@@ -235,10 +236,6 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
     else:
         batched_observation_shape = (data_size - 1, *observation_shape)
 
-    # create padded observations for check stacking
-    padding = np.zeros((n_frames - 1, *observation_shape), dtype=np.uint8)
-    padded_observations = np.vstack([padding, observations])
-
     batch = TransitionMiniBatch(episode.transitions, n_frames)
     assert batch.observations.shape == batched_observation_shape
     assert batch.next_observations.shape == batched_observation_shape
@@ -247,6 +244,10 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
         next_observation = batch.next_observations[i]
 
         if n_frames > 1 and len(observation_shape) == 3:
+            # create padded observations for check stacking
+            pad = ((n_frames - 1, 0), (0, 0), (0, 0), (0, 0))
+            padded_observations = np.pad(observations, pad, 'edge')
+
             # check frame stacking
             head_index = i
             tail_index = head_index + n_frames
@@ -274,6 +275,69 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
     for i, transition in enumerate(batch):
         assert isinstance(transition, Transition)
         assert transition is episode.transitions[i]
+
+
+@pytest.mark.parametrize('data_size', [100])
+@pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
+@pytest.mark.parametrize('action_size', [2])
+@pytest.mark.parametrize('n_frames', [1, 4])
+@pytest.mark.parametrize('gamma', [0.99])
+@pytest.mark.parametrize('lam', [0.95])
+def test_compute_lambda_return(data_size, observation_shape, action_size,
+                               n_frames, gamma, lam):
+    if len(observation_shape) == 3:
+        observations = np.random.randint(256,
+                                         size=(data_size, *observation_shape),
+                                         dtype=np.uint8)
+    else:
+        observations = np.random.random((data_size, ) +
+                                        observation_shape).astype('f4')
+    actions = np.random.random((data_size, action_size)).astype('f4')
+    rewards = np.random.random((data_size, 1)).astype('f4')
+
+    episode = Episode(observation_shape=observation_shape,
+                      action_size=action_size,
+                      observations=observations,
+                      actions=actions,
+                      rewards=rewards)
+
+    class DummyAlgo:
+        def predict_value(self, observations):
+            batch_size = observations.shape[0]
+            return np.mean(observations.reshape((batch_size, -1)), axis=1)
+
+    algo = DummyAlgo()
+
+    transitions = episode.transitions
+    transition = transitions[3]
+
+    # compute reference naively
+    t = transition
+    observations = []
+    returns = []
+    R = 0.0
+    for i in range(data_size):
+        observation = TransitionMiniBatch([t], n_frames).next_observations[0]
+        observations.append(observation)
+        R += (gamma**i) * t.next_reward
+        returns.append(R)
+        t = t.next_transition
+        if t is None:
+            break
+    values = algo.predict_value(np.array(observations))
+    values[-1] = 0.0
+    gammas = gamma**(np.arange(len(observations)) + 1)
+    returns += gammas * values
+
+    lambdas = lam**np.arange(len(observations))
+    ref_lambda_return = (1.0 - lam) * np.sum(lambdas[:-1] * returns[:-1])
+    ref_lambda_return += lambdas[-1] * returns[-1]
+
+    # compute lambda return
+    lambda_return = compute_lambda_return(transition, algo, gamma, lam,
+                                          n_frames)
+
+    assert np.allclose(ref_lambda_return, lambda_return)
 
 
 @pytest.mark.parametrize('data_size', [100])

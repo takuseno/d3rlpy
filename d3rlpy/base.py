@@ -3,14 +3,20 @@ import copy
 import json
 
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from tqdm import trange
-from .preprocessing import create_scaler
+from .preprocessing import create_scaler, Scaler
 from .augmentation import create_augmentation, AugmentationPipeline
 from .dataset import TransitionMiniBatch
 from .logger import D3RLPyLogger
 from .metrics.scorer import NEGATED_SCORER
 from .context import disable_parallel
 from .gpu import Device
+from .optimizers import OptimizerFactory
+from .encoders import EncoderFactory, create_encoder_factory
+from .q_functions import QFunctionFactory, create_q_func_factory
+from .argument_utils import check_scaler
+from .online.utility import get_action_size_from_env
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -23,70 +29,78 @@ class ImplBase(metaclass=ABCMeta):
         pass
 
 
+def _serialize_params(params):
+    for key, value in params.items():
+        if isinstance(value, Device):
+            params[key] = value.get_id()
+        elif isinstance(value, (Scaler, EncoderFactory, QFunctionFactory)):
+            params[key] = {
+                'type': value.get_type(),
+                'params': value.get_params()
+            }
+        elif isinstance(value, OptimizerFactory):
+            params[key] = value.get_params()
+        elif isinstance(value, AugmentationPipeline):
+            aug_types = value.get_augmentation_types()
+            aug_params = value.get_augmentation_params()
+            params[key] = []
+            for aug_type, aug_param in zip(aug_types, aug_params):
+                params[value].append({'type': aug_type, 'params': aug_param})
+    return params
+
+
+def _deseriealize_params(params):
+    for key, value in params.items():
+        if key == 'scaler' and params['scaler']:
+            scaler_type = params['scaler']['type']
+            scaler_params = params['scaler']['params']
+            scaler = create_scaler(scaler_type, **scaler_params)
+            params[key] = scaler
+        elif key == 'augmentation' and params['augmentation']:
+            augmentations = []
+            for param in params[key]:
+                aug_type = param['type']
+                aug_params = param['params']
+                augmentation = create_augmentation(aug_type, **aug_params)
+                augmentations.append(augmentation)
+            params[key] = AugmentationPipeline(augmentations)
+        elif 'optim_factory' in key:
+            params[key] = OptimizerFactory(**value)
+        elif 'encoder_factory' in key:
+            params[key] = create_encoder_factory(value['type'],
+                                                 **value['params'])
+        elif key == 'q_func_factory':
+            params[key] = create_q_func_factory(value['type'],
+                                                **value['params'])
+    return params
+
+
 class LearnableBase:
     """ Algorithm base class.
 
     All algorithms have the shared interfaces same as scikit-learn.
 
     Attributes:
-        n_epochs (int): the number of epochs to train.
         batch_size (int): the batch size of training.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor
         augmentation (list(str or d3rlpy.augmentation.base.Augmentation)):
             list of data augmentations.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         impl (d3rlpy.base.ImplBase): implementation object.
-        eval_results_ (dict): evaluation results.
+        eval_results_ (collections.defaultdict): evaluation results.
+        loss_history_ (collections.defaultdict): history of loss values.
+        active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
 
     """
-    def __init__(self, n_epochs, batch_size, n_frames, scaler, augmentation,
-                 use_gpu):
-        """ __init__ method.
-
-        Args:
-            n_epochs (int): the number of epochs to train.
-            batch_size (int): mini-batch size.
-            scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-                The available options are `['pixel', 'min_max', 'standard']`
-            augmentation (list(str or d3rlpy.augmentation.base.Augmentation)):
-                list of data augmentations.
-            use_gpu (bool, int or d3rlpy.gpu.Device):
-                flag to use GPU, device ID or device.
-
-        """
-        self.n_epochs = n_epochs
+    def __init__(self, batch_size, n_frames, scaler):
         self.batch_size = batch_size
         self.n_frames = n_frames
-
-        # prepare preprocessor
-        if isinstance(scaler, str):
-            self.scaler = create_scaler(scaler)
-        else:
-            self.scaler = scaler
-
-        # prepare augmentations
-        if isinstance(augmentation, AugmentationPipeline):
-            self.augmentation = augmentation
-        else:
-            self.augmentation = AugmentationPipeline()
-            for aug in augmentation:
-                if isinstance(aug, str):
-                    aug = create_augmentation(aug)
-                self.augmentation.append(aug)
-
-        # prepare GPU device
-        # isinstance cannot tell difference between bool and int
-        if type(use_gpu) == bool and use_gpu:
-            self.use_gpu = Device(0)
-        elif type(use_gpu) == int:
-            self.use_gpu = Device(use_gpu)
-        elif isinstance(use_gpu, Device):
-            self.use_gpu = use_gpu
-        else:
-            self.use_gpu = None
+        self.scaler = check_scaler(scaler)
 
         self.impl = None
-        self.eval_results_ = {}
+        self.eval_results_ = defaultdict(list)
+        self.loss_history_ = defaultdict(list)
+        self.active_logger_ = None
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
@@ -130,21 +144,8 @@ class LearnableBase:
         del params['observation_shape']
         del params['action_size']
 
-        # create scaler object
-        if params['scaler']:
-            scaler_type = params['scaler']['type']
-            scaler_params = params['scaler']['params']
-            scaler = create_scaler(scaler_type, **scaler_params)
-            params['scaler'] = scaler
-
-        # create augmentation objects
-        augmentations = []
-        for param in params['augmentation']:
-            aug_type = param['type']
-            aug_params = param['params']
-            augmentation = create_augmentation(aug_type, **aug_params)
-            augmentations.append(augmentation)
-        params['augmentation'] = AugmentationPipeline(augmentations)
+        # reconstruct objects from json
+        params = _deseriealize_params(params)
 
         # overwrite use_gpu flag
         params['use_gpu'] = use_gpu
@@ -163,7 +164,7 @@ class LearnableBase:
 
         .. code-block:: python
 
-            algo.set_params(n_epochs=10, batch_size=100)
+            algo.set_params(batch_size=100)
 
         Args:
             **params: arbitrary inputs to set as attributes.
@@ -244,6 +245,8 @@ class LearnableBase:
 
     def fit(self,
             episodes,
+            n_epochs=1000,
+            save_metrics=True,
             experiment_name=None,
             with_timestamp=True,
             logdir='d3rlpy_logs',
@@ -261,6 +264,10 @@ class LearnableBase:
 
         Args:
             episodes (list(d3rlpy.dataset.Episode)): list of episodes to train.
+            n_epochs (int): the number of epochs to train.
+            save_metrics (bool): flag to record metrics in files. If False,
+                the log directory is not created and the model parameters are
+                not saved during training.
             experiment_name (str): experiment name for logging. If not passed,
                 the directory name will be `{class name}_{timestamp}`.
             with_timestamp (bool): flag to add timestamp string to the last of
@@ -287,32 +294,36 @@ class LearnableBase:
             self.scaler.fit(episodes)
 
         # instantiate implementation
-        observation_shape = tuple(transitions[0].get_observation_shape())
-        # frame stacking for image observation
-        if len(observation_shape) == 3:
-            n_channels = observation_shape[0]
-            image_size = observation_shape[1:]
-            observation_shape = (self.n_frames * n_channels, *image_size)
-        action_size = transitions[0].get_action_size()
         if self.impl is None:
-            self.create_impl(observation_shape, action_size)
+            action_size = transitions[0].get_action_size()
+            observation_shape = tuple(transitions[0].get_observation_shape())
+            self.create_impl(
+                self._process_observation_shape(observation_shape),
+                action_size)
 
         # setup logger
-        logger = self._prepare_logger(experiment_name, with_timestamp, logdir,
-                                      verbose, tensorboard)
+        logger = self._prepare_logger(save_metrics, experiment_name,
+                                      with_timestamp, logdir, verbose,
+                                      tensorboard)
+
+        # add reference to active logger to algo class during fit
+        self.active_logger_ = logger
 
         # save hyperparameters
         self._save_params(logger)
 
         # refresh evaluation metrics
-        self.eval_results_ = {}
+        self.eval_results_ = defaultdict(list)
+
+        # refresh loss history
+        self.loss_history_ = defaultdict(list)
 
         # hold original dataset
         env_transitions = transitions
 
         # training loop
         total_step = 0
-        for epoch in range(self.n_epochs):
+        for epoch in range(n_epochs):
 
             # data augmentation
             new_transitions = self._generate_new_data(env_transitions)
@@ -337,6 +348,9 @@ class LearnableBase:
                     if val is not None:
                         logger.add_metric(name, val)
 
+                        # save loss to loss history dict
+                        self.loss_history_[name].append(val)
+
                 total_step += 1
 
             if scorers and eval_episodes:
@@ -349,6 +363,10 @@ class LearnableBase:
             if epoch % save_interval == 0:
                 logger.save_model(epoch, self)
 
+        # drop reference to active logger since out of fit there is no active
+        # logger
+        self.active_logger_ = None
+
     def create_impl(self, observation_shape, action_size):
         """ Instantiate implementation objects with the dataset shapes.
 
@@ -360,6 +378,36 @@ class LearnableBase:
 
         """
         raise NotImplementedError
+
+    def build_with_dataset(self, dataset):
+        """ Instantiate implementation object with MDPDataset object.
+
+        Args:
+            dataset (d3rlpy.dataset.MDPDataset): dataset.
+
+        """
+        observation_shape = dataset.get_observation_shape()
+        self.create_impl(self._process_observation_shape(observation_shape),
+                         dataset.get_action_size())
+
+    def build_with_env(self, env):
+        """ Instantiate implementation object with OpenAI Gym object.
+
+        Args:
+            env (gym.Env): gym-like environment.
+
+        """
+        observation_shape = env.observation_space.shape
+        self.create_impl(self._process_observation_shape(observation_shape),
+                         get_action_size_from_env(env))
+
+    def _process_observation_shape(self, observation_shape):
+        if len(observation_shape) == 3:
+            n_channels = observation_shape[0]
+            image_size = observation_shape[1:]
+            # frame stacking for image observation
+            observation_shape = (self.n_frames * n_channels, *image_size)
+        return observation_shape
 
     def update(self, epoch, total_step, batch):
         """ Update parameters with mini-batch of data.
@@ -392,12 +440,13 @@ class LearnableBase:
     def _get_loss_labels(self):
         raise NotImplementedError
 
-    def _prepare_logger(self, experiment_name, with_timestamp, logdir, verbose,
-                        tensorboard):
+    def _prepare_logger(self, save_metrics, experiment_name, with_timestamp,
+                        logdir, verbose, tensorboard):
         if experiment_name is None:
             experiment_name = self.__class__.__name__
 
         logger = D3RLPyLogger(experiment_name,
+                              save_metrics=save_metrics,
                               root_dir=logdir,
                               verbose=verbose,
                               tensorboard=tensorboard,
@@ -419,9 +468,8 @@ class LearnableBase:
             logger.add_metric(name, test_score)
 
             # store metric locally
-            if name not in self.eval_results_:
-                self.eval_results_[name] = []
-            self.eval_results_[name].append(test_score)
+            if test_score is not None:
+                self.eval_results_[name].append(test_score)
 
     def _save_params(self, logger):
         # get hyperparameters without impl
@@ -436,25 +484,7 @@ class LearnableBase:
         params['observation_shape'] = self.impl.observation_shape
         params['action_size'] = self.impl.action_size
 
-        # save scaler
-        if self.scaler:
-            params['scaler'] = {
-                'type': self.scaler.get_type(),
-                'params': self.scaler.get_params()
-            }
-
-        # save augmentations
-        params['augmentation'] = []
-        aug_types = self.augmentation.get_type()
-        aug_params = self.augmentation.get_params()
-        for aug_type, aug_param in zip(aug_types, aug_params):
-            params['augmentation'].append({
-                'type': aug_type,
-                'params': aug_param
-            })
-
-        # save GPU device id
-        if self.use_gpu:
-            params['use_gpu'] = self.use_gpu.get_id()
+        # serialize objects
+        params = _serialize_params(params)
 
         logger.add_params(params)

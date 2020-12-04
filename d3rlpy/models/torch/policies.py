@@ -3,42 +3,29 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
+from abc import ABCMeta, abstractmethod
 from torch.distributions import Normal, Categorical
-from .encoders import create_encoder
 
 
-def create_deterministic_policy(observation_shape,
-                                action_size,
-                                use_batch_norm=False,
-                                encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+def create_deterministic_policy(observation_shape, action_size,
+                                encoder_factory):
+    encoder = encoder_factory.create(observation_shape)
     return DeterministicPolicy(encoder, action_size)
 
 
-def create_deterministic_residual_policy(observation_shape,
-                                         action_size,
-                                         scale,
-                                         use_batch_norm=False,
-                                         encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             action_size,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+def create_deterministic_residual_policy(observation_shape, action_size, scale,
+                                         encoder_factory):
+    encoder = encoder_factory.create(observation_shape, action_size)
     return DeterministicResidualPolicy(encoder, scale)
 
 
 def create_normal_policy(observation_shape,
                          action_size,
-                         use_batch_norm=False,
+                         encoder_factory,
                          min_logstd=-20.0,
                          max_logstd=2.0,
-                         use_std_parameter=False,
-                         encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+                         use_std_parameter=False):
+    encoder = encoder_factory.create(observation_shape)
     return NormalPolicy(encoder,
                         action_size,
                         min_logstd=min_logstd,
@@ -46,13 +33,8 @@ def create_normal_policy(observation_shape,
                         use_std_parameter=use_std_parameter)
 
 
-def create_categorical_policy(observation_shape,
-                              action_size,
-                              use_batch_norm=False,
-                              encoder_params={}):
-    encoder = create_encoder(observation_shape,
-                             use_batch_norm=use_batch_norm,
-                             **encoder_params)
+def create_categorical_policy(observation_shape, action_size, encoder_factory):
+    encoder = encoder_factory.create(observation_shape)
     return CategoricalPolicy(encoder, action_size)
 
 
@@ -63,11 +45,25 @@ def squash_action(dist, raw_action):
     return squashed_action, log_prob
 
 
-class DeterministicPolicy(nn.Module):
+class Policy(metaclass=ABCMeta):
+    @abstractmethod
+    def sample(self, x, with_log_prob=False):
+        pass
+
+    @abstractmethod
+    def sample_n(self, x, n, with_log_prob=False):
+        pass
+
+    @abstractmethod
+    def best_action(self, x):
+        pass
+
+
+class DeterministicPolicy(Policy, nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.encoder = encoder
-        self.fc = nn.Linear(encoder.feature_size, action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def forward(self, x, with_raw=False):
         h = self.encoder(x)
@@ -75,6 +71,14 @@ class DeterministicPolicy(nn.Module):
         if with_raw:
             return torch.tanh(raw_action), raw_action
         return torch.tanh(raw_action)
+
+    def sample(self, x, with_log_prob=False):
+        raise NotImplementedError(
+            'deterministic policy does not support sample')
+
+    def sample_n(self, x, n, with_log_prob=False):
+        raise NotImplementedError(
+            'deterministic policy does not support sample_n')
 
     def best_action(self, x):
         return self.forward(x)
@@ -85,7 +89,7 @@ class DeterministicResidualPolicy(nn.Module):
         super().__init__()
         self.scale = scale
         self.encoder = encoder
-        self.fc = nn.Linear(encoder.feature_size, encoder.action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), encoder.action_size)
 
     def forward(self, x, action):
         h = self.encoder(x, action)
@@ -96,7 +100,7 @@ class DeterministicResidualPolicy(nn.Module):
         return self.forward(x, action)
 
 
-class NormalPolicy(nn.Module):
+class NormalPolicy(Policy, nn.Module):
     def __init__(self, encoder, action_size, min_logstd, max_logstd,
                  use_std_parameter):
         super().__init__()
@@ -105,12 +109,12 @@ class NormalPolicy(nn.Module):
         self.min_logstd = min_logstd
         self.max_logstd = max_logstd
         self.use_std_parameter = use_std_parameter
-        self.mu = nn.Linear(encoder.feature_size, action_size)
+        self.mu = nn.Linear(encoder.get_feature_size(), action_size)
         if self.use_std_parameter:
             initial_logstd = torch.zeros(1, action_size, dtype=torch.float32)
             self.logstd = nn.Parameter(initial_logstd)
         else:
-            self.logstd = nn.Linear(encoder.feature_size, action_size)
+            self.logstd = nn.Linear(encoder.get_feature_size(), action_size)
 
     def dist(self, x):
         h = self.encoder(x)
@@ -166,11 +170,11 @@ class NormalPolicy(nn.Module):
         return self.min_logstd + logstd * base_logstd
 
 
-class CategoricalPolicy(nn.Module):
+class CategoricalPolicy(Policy, nn.Module):
     def __init__(self, encoder, action_size):
         super().__init__()
         self.encoder = encoder
-        self.fc = nn.Linear(encoder.feature_size, action_size)
+        self.fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def dist(self, x):
         h = self.encoder(x)
@@ -190,8 +194,28 @@ class CategoricalPolicy(nn.Module):
 
         return action
 
-    def sample(self, x):
-        return self.forward(x)
+    def sample(self, x, with_log_prob=False):
+        return self.forward(x, with_log_prob=with_log_prob)
+
+    def sample_n(self, x, n, with_log_prob=False):
+        dist = self.dist(x)
+
+        action_T = dist.sample((n, ))
+        log_prob_T = dist.log_prob(action_T)
+
+        # (n, batch) -> (batch, n)
+        action = action_T.transpose(0, 1)
+        # (n, batch) -> (batch, n)
+        log_prob = log_prob_T.transpose(0, 1)
+
+        if with_log_prob:
+            return action, log_prob
+
+        return action
 
     def best_action(self, x):
         return self.forward(x, deterministic=True)
+
+    def log_probs(self, x):
+        dist = self.dist(x)
+        return dist.logits

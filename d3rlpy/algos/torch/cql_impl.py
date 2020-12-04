@@ -12,33 +12,42 @@ from .dqn_impl import DoubleDQNImpl
 class CQLImpl(SACImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, temp_learning_rate, alpha_learning_rate,
-                 gamma, tau, n_critics, bootstrap, share_encoder,
-                 initial_temperature, initial_alpha, alpha_threshold,
-                 n_action_samples, eps, use_batch_norm, q_func_type, use_gpu,
-                 scaler, augmentation, n_augmentations, encoder_params):
+                 actor_optim_factory, critic_optim_factory, temp_optim_factory,
+                 alpha_optim_factory, actor_encoder_factory,
+                 critic_encoder_factory, q_func_factory, gamma, tau, n_critics,
+                 bootstrap, share_encoder, initial_temperature, initial_alpha,
+                 alpha_threshold, n_action_samples, use_gpu, scaler,
+                 augmentation, n_augmentations):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
                          critic_learning_rate=critic_learning_rate,
                          temp_learning_rate=temp_learning_rate,
+                         actor_optim_factory=actor_optim_factory,
+                         critic_optim_factory=critic_optim_factory,
+                         temp_optim_factory=temp_optim_factory,
+                         actor_encoder_factory=actor_encoder_factory,
+                         critic_encoder_factory=critic_encoder_factory,
+                         q_func_factory=q_func_factory,
                          gamma=gamma,
                          tau=tau,
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
                          initial_temperature=initial_temperature,
-                         eps=eps,
-                         use_batch_norm=use_batch_norm,
-                         q_func_type=q_func_type,
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,
-                         n_augmentations=n_augmentations,
-                         encoder_params=encoder_params)
+                         n_augmentations=n_augmentations)
         self.alpha_learning_rate = alpha_learning_rate
+        self.alpha_optim_factory = alpha_optim_factory
         self.initial_alpha = initial_alpha
         self.alpha_threshold = alpha_threshold
         self.n_action_samples = n_action_samples
+
+        # initialized in build
+        self.log_alpha = None
+        self.alpha_optim = None
 
     def build(self):
         super().build()
@@ -51,7 +60,8 @@ class CQLImpl(SACImpl):
         self.log_alpha = nn.Parameter(data)
 
     def _build_alpha_optim(self):
-        self.alpha_optim = Adam([self.log_alpha], self.alpha_learning_rate)
+        self.alpha_optim = self.alpha_optim_factory.create(
+            [self.log_alpha], lr=self.alpha_learning_rate)
 
     def _compute_critic_loss(self, obs_t, act_t, rew_tp1, q_tp1):
         loss = super()._compute_critic_loss(obs_t, act_t, rew_tp1, q_tp1)
@@ -59,11 +69,8 @@ class CQLImpl(SACImpl):
         return loss + conservative_loss
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t'])
     def update_alpha(self, obs_t, act_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
         loss = -self._compute_conservative_loss(obs_t, act_t)
 
         self.alpha_optim.zero_grad()

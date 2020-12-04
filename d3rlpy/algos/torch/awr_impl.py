@@ -5,25 +5,32 @@ from d3rlpy.models.torch.v_functions import create_value_function
 from d3rlpy.models.torch.policies import squash_action, create_normal_policy
 from d3rlpy.models.torch.policies import create_categorical_policy
 from .utility import torch_api, train_api, eval_api
-from .utility import compute_augemtation_mean
+from .utility import compute_augmentation_mean
 from .base import TorchImplBase
 
 
 class AWRImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, momentum, use_batch_norm, use_gpu,
-                 scaler, augmentation, n_augmentations, encoder_params):
-        self.observation_shape = observation_shape
-        self.action_size = action_size
+                 critic_learning_rate, actor_optim_factory,
+                 critic_optim_factory, actor_encoder_factory,
+                 critic_encoder_factory, use_gpu, scaler, augmentation,
+                 n_augmentations):
+        super().__init__(observation_shape, action_size, scaler)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
-        self.use_batch_norm = use_batch_norm
-        self.momentum = momentum
-        self.scaler = scaler
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
+        self.actor_encoder_factory = actor_encoder_factory
+        self.critic_encoder_factory = critic_encoder_factory
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
-        self.encoder_params = encoder_params
         self.use_gpu = use_gpu
+
+        # initialized in build
+        self.v_func = None
+        self.policy = None
+        self.critic_optim = None
+        self.actor_optim = None
 
     def build(self):
         # setup torch models
@@ -41,37 +48,32 @@ class AWRImpl(TorchImplBase):
 
     def _build_critic(self):
         self.v_func = create_value_function(self.observation_shape,
-                                            use_batch_norm=self.use_batch_norm,
-                                            encoder_params=self.encoder_params)
+                                            self.critic_encoder_factory)
 
     def _build_critic_optim(self):
-        self.critic_optim = SGD(self.v_func.parameters(),
-                                lr=self.critic_learning_rate,
-                                momentum=self.momentum)
+        self.critic_optim = self.critic_optim_factory.create(
+            self.v_func.parameters(), lr=self.critic_learning_rate)
 
     def _build_actor(self):
         self.policy = create_normal_policy(self.observation_shape,
                                            self.action_size,
-                                           self.use_batch_norm,
-                                           encoder_params=self.encoder_params)
+                                           self.actor_encoder_factory)
 
     def _build_actor_optim(self):
-        self.actor_optim = SGD(self.policy.parameters(),
-                               lr=self.actor_learning_rate,
-                               momentum=self.momentum)
+        self.actor_optim = self.actor_optim_factory.create(
+            self.policy.parameters(), lr=self.actor_learning_rate)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['observation'])
     def update_critic(self, observation, value):
-        if self.scaler:
-            observation = self.scaler.transform(observation)
-
-        loss = compute_augemtation_mean(self.augmentation,
-                                        self.n_augmentations,
-                                        self._compute_critic_loss, {
-                                            'observation': observation,
-                                            'value': value
-                                        }, ['observation'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self._compute_critic_loss,
+                                         inputs={
+                                             'observation': observation,
+                                             'value': value
+                                         },
+                                         targets=['observation'])
 
         self.critic_optim.zero_grad()
         loss.backward()
@@ -83,18 +85,17 @@ class AWRImpl(TorchImplBase):
         return self.v_func.compute_error(observation, value)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['observation'])
     def update_actor(self, observation, action, weight):
-        if self.scaler:
-            observation = self.scaler.transform(observation)
-
-        loss = compute_augemtation_mean(self.augmentation,
-                                        self.n_augmentations,
-                                        self._compute_actor_loss, {
-                                            'observation': observation,
-                                            'action': action,
-                                            'weight': weight
-                                        }, ['observation'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self._compute_actor_loss,
+                                         inputs={
+                                             'observation': observation,
+                                             'action': action,
+                                             'weight': weight
+                                         },
+                                         targets=['observation'])
 
         self.actor_optim.zero_grad()
         loss.backward()
@@ -106,7 +107,7 @@ class AWRImpl(TorchImplBase):
         dist = self.policy.dist(observation)
 
         # unnormalize action via inverse tanh function
-        unnormalized_action = torch.atanh(action).clamp(-2.0, 2.0)
+        unnormalized_action = torch.atanh(action.clamp(-0.999999, 0.999999))
 
         # compute log probability
         _, log_probs = squash_action(dist, unnormalized_action)
@@ -117,31 +118,23 @@ class AWRImpl(TorchImplBase):
         return self.policy.best_action(x)
 
     @eval_api
-    @torch_api
+    @torch_api(scaler_targets=['x'])
     def predict_value(self, x, *args, **kwargs):
-        if self.scaler:
-            x = self.scaler.transform(x)
-
         with torch.no_grad():
             return self.v_func(x).view(-1).cpu().detach().numpy()
 
     @eval_api
-    @torch_api
+    @torch_api(scaler_targets=['x'])
     def sample_action(self, x):
-        if self.scaler:
-            x = self.scaler.transform(x)
-
         with torch.no_grad():
             return self.policy.sample(x).cpu().detach().numpy()
 
 
 class DiscreteAWRImpl(AWRImpl):
     def _build_actor(self):
-        self.policy = create_categorical_policy(
-            self.observation_shape,
-            self.action_size,
-            self.use_batch_norm,
-            encoder_params=self.encoder_params)
+        self.policy = create_categorical_policy(self.observation_shape,
+                                                self.action_size,
+                                                self.actor_encoder_factory)
 
     def _compute_actor_loss(self, observation, action, weight):
         dist = self.policy.dist(observation)

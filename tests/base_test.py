@@ -49,7 +49,6 @@ def base_tester(model, impl, observation_shape, action_size=2):
     n_epochs = 3
     data_size = n_episodes * episode_length
     model.batch_size = n_batch
-    model.n_epochs = n_epochs
     shape = (data_size, ) + observation_shape
     if len(observation_shape) == 3:
         observations = np.random.randint(256, size=shape, dtype=np.uint8)
@@ -63,6 +62,7 @@ def base_tester(model, impl, observation_shape, action_size=2):
     dataset = MDPDataset(observations, actions, rewards, terminals)
 
     model.fit(dataset.episodes,
+              n_epochs=n_epochs,
               logdir='test_data',
               verbose=False,
               show_progress=False,
@@ -99,6 +99,12 @@ def base_tester(model, impl, observation_shape, action_size=2):
     prev_batch_size = model.impl.batch_size
     model.batch_size = prev_batch_size + 1
     assert model.impl.batch_size == model.batch_size
+
+    # check builds
+    model.impl = None
+    model.build_with_dataset(dataset)
+    assert model.impl.observation_shape == dataset.get_observation_shape()
+    assert model.impl.action_size == dataset.get_action_size()
 
     # set backed up methods
     model.impl = None

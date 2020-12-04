@@ -2,6 +2,7 @@ import pytest
 import torch
 import copy
 
+from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.policies import create_deterministic_policy
 from d3rlpy.models.torch.policies import create_deterministic_residual_policy
 from d3rlpy.models.torch.policies import create_normal_policy
@@ -16,11 +17,11 @@ from .model_test import check_parameter_updates, DummyEncoder
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_deterministic_policy(observation_shape, action_size,
-                                     batch_size, use_batch_norm):
+                                     batch_size, encoder_factory):
     policy = create_deterministic_policy(observation_shape, action_size,
-                                         use_batch_norm)
+                                         encoder_factory)
 
     assert isinstance(policy, DeterministicPolicy)
 
@@ -33,13 +34,13 @@ def test_create_deterministic_policy(observation_shape, action_size,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('scale', [0.05])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_deterministic_residual_policy(observation_shape, action_size,
                                               scale, batch_size,
-                                              use_batch_norm):
+                                              encoder_factory):
     policy = create_deterministic_residual_policy(observation_shape,
                                                   action_size, scale,
-                                                  use_batch_norm)
+                                                  encoder_factory)
 
     assert isinstance(policy, DeterministicResidualPolicy)
 
@@ -52,11 +53,11 @@ def test_create_deterministic_residual_policy(observation_shape, action_size,
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_normal_policy(observation_shape, action_size, batch_size,
-                              use_batch_norm):
+                              encoder_factory):
     policy = create_normal_policy(observation_shape, action_size,
-                                  use_batch_norm)
+                                  encoder_factory)
 
     assert isinstance(policy, NormalPolicy)
 
@@ -68,11 +69,11 @@ def test_create_normal_policy(observation_shape, action_size, batch_size,
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_categorical_policy(observation_shape, action_size, batch_size,
-                                   use_batch_norm):
+                                   encoder_factory):
     policy = create_categorical_policy(observation_shape, action_size,
-                                       use_batch_norm)
+                                       encoder_factory)
 
     assert isinstance(policy, CategoricalPolicy)
 
@@ -164,7 +165,8 @@ def test_normal_policy(feature_size, action_size, batch_size, min_logstd,
 @pytest.mark.parametrize('feature_size', [100])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-def test_categorical_policy(feature_size, action_size, batch_size):
+@pytest.mark.parametrize('n', [10])
+def test_categorical_policy(feature_size, action_size, batch_size, n):
     encoder = DummyEncoder(feature_size)
     policy = CategoricalPolicy(encoder, action_size)
 
@@ -183,5 +185,15 @@ def test_categorical_policy(feature_size, action_size, batch_size):
     # check if sampled action is not identical to the bset action
     assert not torch.all(policy.sample(x) == policy.best_action(x))
 
+    # check sample_n
+    y_n, log_prob_n = policy.sample_n(x, n, True)
+    assert y_n.shape == (batch_size, n)
+    assert log_prob_n.shape == (batch_size, n)
+
+    # check log_probs
+    log_probs = policy.log_probs(x)
+    assert log_probs.shape == (batch_size, action_size)
+    assert torch.allclose(log_probs.exp().sum(dim=1), torch.ones(batch_size))
+
     # check layer connection
-    check_parameter_updates(policy, output=log_prob)
+    check_parameter_updates(policy, output=log_probs)

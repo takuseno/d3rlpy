@@ -40,3 +40,6 @@ class DummyEncoder(torch.nn.Module):
             h = torch.cat([args[0][:, :-args[1].shape[1]], args[1]], dim=1)
             return h
         return args[0]
+
+    def get_feature_size(self):
+        return self.feature_size

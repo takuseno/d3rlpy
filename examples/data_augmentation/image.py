@@ -10,14 +10,14 @@ dataset, env = get_atari('breakout-expert-v0')
 
 train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
-cql = DiscreteCQL(n_epochs=100,
-                  scaler='pixel',
+cql = DiscreteCQL(scaler='pixel',
                   n_frames=4,
                   augmentation=['random_shift', 'intensity'],
                   use_gpu=True)
 
 cql.fit(train_episodes,
         eval_episodes=test_episodes,
+        n_epochs=100,
         scorers={
             'environment': evaluate_on_environment(env, epsilon=0.05),
             'td_error': td_error_scorer,

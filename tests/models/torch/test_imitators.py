@@ -2,6 +2,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 
+from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.imitators import create_conditional_vae
 from d3rlpy.models.torch.imitators import create_discrete_imitator
 from d3rlpy.models.torch.imitators import create_deterministic_regressor
@@ -16,12 +17,13 @@ from .model_test import check_parameter_updates, DummyEncoder
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('latent_size', [32])
+@pytest.mark.parametrize('beta', [1.0])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_conditional_vae(observation_shape, action_size, latent_size,
-                                batch_size, use_batch_norm):
+                                beta, batch_size, encoder_factory):
     vae = create_conditional_vae(observation_shape, action_size, latent_size,
-                                 use_batch_norm)
+                                 beta, encoder_factory)
 
     assert isinstance(vae, ConditionalVAE)
 
@@ -35,11 +37,11 @@ def test_create_conditional_vae(observation_shape, action_size, latent_size,
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('beta', [1e-2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_discrete_imitator(observation_shape, action_size, beta,
-                                  batch_size, use_batch_norm):
+                                  batch_size, encoder_factory):
     imitator = create_discrete_imitator(observation_shape, action_size, beta,
-                                        use_batch_norm)
+                                        encoder_factory)
 
     assert isinstance(imitator, DiscreteImitator)
 
@@ -51,11 +53,11 @@ def test_create_discrete_imitator(observation_shape, action_size, beta,
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_deterministic_regressor(observation_shape, action_size,
-                                        batch_size, use_batch_norm):
+                                        batch_size, encoder_factory):
     imitator = create_deterministic_regressor(observation_shape, action_size,
-                                              use_batch_norm)
+                                              encoder_factory)
 
     assert isinstance(imitator, DeterministicRegressor)
 
@@ -67,11 +69,11 @@ def test_create_deterministic_regressor(observation_shape, action_size,
 @pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('use_batch_norm', [False, True])
+@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
 def test_create_probablistic_regressor(observation_shape, action_size,
-                                       batch_size, use_batch_norm):
+                                       batch_size, encoder_factory):
     imitator = create_probablistic_regressor(observation_shape, action_size,
-                                             use_batch_norm)
+                                             encoder_factory)
 
     assert isinstance(imitator, ProbablisticRegressor)
 

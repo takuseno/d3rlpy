@@ -2,39 +2,46 @@ import numpy as np
 import torch
 import copy
 
-from torch.optim import Adam
 from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from d3rlpy.models.torch.policies import create_deterministic_policy
 from .utility import soft_sync, torch_api
 from .utility import train_api, eval_api
-from .utility import compute_augemtation_mean
+from .utility import compute_augmentation_mean
 from .base import TorchImplBase
 
 
 class DDPGImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, gamma, tau, n_critics, bootstrap,
-                 share_encoder, reguralizing_rate, eps, use_batch_norm,
-                 q_func_type, use_gpu, scaler, augmentation, n_augmentations,
-                 encoder_params):
-        self.observation_shape = observation_shape
-        self.action_size = action_size
+                 critic_learning_rate, actor_optim_factory,
+                 critic_optim_factory, actor_encoder_factory,
+                 critic_encoder_factory, q_func_factory, gamma, tau, n_critics,
+                 bootstrap, share_encoder, reguralizing_rate, use_gpu, scaler,
+                 augmentation, n_augmentations):
+        super().__init__(observation_shape, action_size, scaler)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
+        self.actor_optim_factory = actor_optim_factory
+        self.critic_optim_factory = critic_optim_factory
+        self.actor_encoder_factory = actor_encoder_factory
+        self.critic_encoder_factory = critic_encoder_factory
+        self.q_func_factory = q_func_factory
         self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.reguralizing_rate = reguralizing_rate
-        self.eps = eps
-        self.use_batch_norm = use_batch_norm
-        self.q_func_type = q_func_type
-        self.scaler = scaler
         self.augmentation = augmentation
         self.n_augmentations = n_augmentations
-        self.encoder_params = encoder_params
         self.use_gpu = use_gpu
+
+        # initialized in build
+        self.q_func = None
+        self.policy = None
+        self.targ_q_func = None
+        self.targ_policy = None
+        self.actor_optim = None
+        self.critic_optim = None
 
     def build(self):
         # setup torch models
@@ -58,51 +65,45 @@ class DDPGImpl(TorchImplBase):
         self.q_func = create_continuous_q_function(
             self.observation_shape,
             self.action_size,
+            self.critic_encoder_factory,
+            self.q_func_factory,
             n_ensembles=self.n_critics,
-            use_batch_norm=self.use_batch_norm,
-            q_func_type=self.q_func_type,
             bootstrap=self.bootstrap,
-            share_encoder=self.share_encoder,
-            encoder_params=self.encoder_params)
+            share_encoder=self.share_encoder)
 
     def _build_critic_optim(self):
-        self.critic_optim = Adam(self.q_func.parameters(),
-                                 lr=self.critic_learning_rate,
-                                 eps=self.eps)
+        self.critic_optim = self.critic_optim_factory.create(
+            self.q_func.parameters(), lr=self.critic_learning_rate)
 
     def _build_actor(self):
-        self.policy = create_deterministic_policy(
-            self.observation_shape,
-            self.action_size,
-            self.use_batch_norm,
-            encoder_params=self.encoder_params)
+        self.policy = create_deterministic_policy(self.observation_shape,
+                                                  self.action_size,
+                                                  self.actor_encoder_factory)
 
     def _build_actor_optim(self):
-        self.actor_optim = Adam(self.policy.parameters(),
-                                lr=self.actor_learning_rate,
-                                eps=self.eps)
+        self.actor_optim = self.actor_optim_factory.create(
+            self.policy.parameters(), lr=self.actor_learning_rate)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t', 'obs_tp1'])
     def update_critic(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-            obs_tp1 = self.scaler.transform(obs_tp1)
-
-        q_tp1 = compute_augemtation_mean(self.augmentation,
-                                         self.n_augmentations,
-                                         self.compute_target, {'x': obs_tp1},
-                                         ['x'])
+        q_tp1 = compute_augmentation_mean(augmentation=self.augmentation,
+                                          n_augmentations=self.n_augmentations,
+                                          func=self.compute_target,
+                                          inputs={'x': obs_tp1},
+                                          targets=['x'])
         q_tp1 *= (1.0 - ter_tp1)
 
-        loss = compute_augemtation_mean(self.augmentation,
-                                        self.n_augmentations,
-                                        self._compute_critic_loss, {
-                                            'obs_t': obs_t,
-                                            'act_t': act_t,
-                                            'rew_tp1': rew_tp1,
-                                            'q_tp1': q_tp1
-                                        }, ['obs_t'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self._compute_critic_loss,
+                                         inputs={
+                                             'obs_t': obs_t,
+                                             'act_t': act_t,
+                                             'rew_tp1': rew_tp1,
+                                             'q_tp1': q_tp1
+                                         },
+                                         targets=['obs_t'])
 
         self.critic_optim.zero_grad()
         loss.backward()
@@ -115,15 +116,13 @@ class DDPGImpl(TorchImplBase):
                                          self.gamma)
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
-        loss = compute_augemtation_mean(self.augmentation,
-                                        self.n_augmentations,
-                                        self._compute_actor_loss,
-                                        {'obs_t': obs_t}, ['obs_t'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self._compute_actor_loss,
+                                         inputs={'obs_t': obs_t},
+                                         targets=['obs_t'])
 
         self.actor_optim.zero_grad()
         loss.backward()
@@ -146,12 +145,9 @@ class DDPGImpl(TorchImplBase):
         return self.policy.best_action(x)
 
     @eval_api
-    @torch_api
+    @torch_api(scaler_targets=['x'])
     def predict_value(self, x, action, with_std):
         assert x.shape[0] == action.shape[0]
-
-        if self.scaler:
-            x = self.scaler.transform(x)
 
         with torch.no_grad():
             values = self.q_func(x, action, 'none').cpu().detach().numpy()
@@ -165,8 +161,6 @@ class DDPGImpl(TorchImplBase):
 
         return mean_values
 
-    @eval_api
-    @torch_api
     def sample_action(self, x):
         return self.predict_best_action(x)
 

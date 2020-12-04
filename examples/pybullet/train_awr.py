@@ -20,10 +20,11 @@ def main(args):
 
     device = None if args.gpu is None else Device(args.gpu)
 
-    awr = AWR(n_epochs=100, use_gpu=device)
+    awr = AWR(use_gpu=device)
 
     awr.fit(train_episodes,
             eval_episodes=test_episodes,
+            n_epochs=100,
             scorers={
                 'environment': evaluate_on_environment(env),
                 'td_error': td_error_scorer,

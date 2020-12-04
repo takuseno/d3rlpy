@@ -20,9 +20,10 @@ scikit-learn.
 
     train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
-    dqn = DQN(n_epochs=1)
+    dqn = DQN()
     dqn.fit(train_episodes,
             eval_episodes=test_episodes,
+            n_epochs=1,
             scorers={'td_error': td_error_scorer})
 
 cross_validate
@@ -39,9 +40,12 @@ cross validation is also easily performed.
 
     dataset, env = get_cartpole()
 
-    dqn = DQN(n_epochs=1)
+    dqn = DQN()
 
-    scores = cross_validate(dqn, dataset, scoring={'td_error': td_error_scorer})
+    scores = cross_validate(dqn,
+                            dataset,
+                            scoring={'td_error': td_error_scorer},
+                            fit_params={'n_epochs': 1})
 
 GridSearchCV
 ------------
@@ -57,14 +61,14 @@ You can also perform grid search to find good hyperparameters.
 
     dataset, env = get_cartpole()
 
-    dqn = DQN(n_epochs=1)
+    dqn = DQN()
 
     gscv = GridSearchCV(estimator=dqn,
                         param_grid={'learning_rate': [1e-4, 3e-4, 1e-3]},
                         scoring={'td_error': td_error_scorer},
                         refit=False)
 
-    gscv.fit(dataset.episodes)
+    gscv.fit(dataset.episodes, n_epochs=1)
 
 
 parallel execution with multiple GPUs
@@ -88,13 +92,14 @@ d3rlpy provides special device assignment mechanism to realize this.
     dataset, env = get_cartpole()
 
     # enable GPU
-    dqn = DQN(n_epochs=1, use_gpu=True)
+    dqn = DQN(use_gpu=True)
 
     # automatically assign different GPUs for the 4 processes.
     with parallel():
         scores = cross_validate(dqn,
                                 dataset,
                                 scoring={'td_error': td_error_scorer},
+                                fit_params={'n_epochs': 1},
                                 n_jobs=4)
 
 If `use_gpu=True` is passed, d3rlpy internally manages GPU device id via

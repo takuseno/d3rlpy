@@ -12,6 +12,8 @@ API Reference
    dataset
    datasets
    preprocessing
+   optimizers
+   network_architectures
    data_augmentation
    metrics
    save_and_load

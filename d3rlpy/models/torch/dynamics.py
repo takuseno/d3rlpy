@@ -4,24 +4,18 @@ import torch.nn.functional as F
 
 from torch.distributions import Normal
 from torch.nn.utils import spectral_norm
-from .encoders import create_encoder
 
 
 def create_probablistic_dynamics(observation_shape,
                                  action_size,
+                                 encoder_factory,
                                  n_ensembles=5,
-                                 use_batch_norm=False,
-                                 discrete_action=False,
-                                 encoder_params={}):
+                                 discrete_action=False):
     models = []
     for _ in range(n_ensembles):
-        encoder = create_encoder(observation_shape,
-                                 action_size,
-                                 use_batch_norm=use_batch_norm,
-                                 discrete_action=discrete_action,
-                                 activation_type='swish',
-                                 hidden_units=[200, 200, 200, 200],
-                                 **encoder_params)
+        encoder = encoder_factory.create(observation_shape=observation_shape,
+                                         action_size=action_size,
+                                         discrete_action=discrete_action)
         model = ProbablisticDynamics(encoder)
         models.append(model)
     return EnsembleDynamics(models)
@@ -114,7 +108,7 @@ class ProbablisticDynamics(nn.Module):
         _apply_spectral_norm_recursively(encoder)
         self.encoder = encoder
 
-        feature_size = encoder.feature_size
+        feature_size = encoder.get_feature_size()
         observation_size = encoder.observation_shape[0]
         out_size = observation_size + 1
 

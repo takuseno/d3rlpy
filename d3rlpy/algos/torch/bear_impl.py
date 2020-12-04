@@ -6,7 +6,7 @@ from torch.optim import Adam
 from d3rlpy.models.torch.imitators import create_probablistic_regressor
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
 from .utility import torch_api, train_api
-from .utility import compute_augemtation_mean
+from .utility import compute_augmentation_mean
 from .sac_impl import SACImpl
 
 
@@ -17,37 +17,51 @@ def _gaussian_kernel(x, y, sigma):
 class BEARImpl(SACImpl):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, imitator_learning_rate,
-                 temp_learning_rate, alpha_learning_rate, gamma, tau,
+                 temp_learning_rate, alpha_learning_rate, actor_optim_factory,
+                 critic_optim_factory, imitator_optim_factory,
+                 temp_optim_factory, alpha_optim_factory,
+                 actor_encoder_factory, critic_encoder_factory,
+                 imitator_encoder_factory, q_func_factory, gamma, tau,
                  n_critics, bootstrap, share_encoder, initial_temperature,
                  initial_alpha, alpha_threshold, lam, n_action_samples,
-                 mmd_sigma, eps, use_batch_norm, q_func_type, use_gpu, scaler,
-                 augmentation, n_augmentations, encoder_params):
+                 mmd_sigma, use_gpu, scaler, augmentation, n_augmentations):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
                          critic_learning_rate=critic_learning_rate,
                          temp_learning_rate=temp_learning_rate,
+                         actor_optim_factory=actor_optim_factory,
+                         critic_optim_factory=critic_optim_factory,
+                         temp_optim_factory=temp_optim_factory,
+                         actor_encoder_factory=actor_encoder_factory,
+                         critic_encoder_factory=critic_encoder_factory,
+                         q_func_factory=q_func_factory,
                          gamma=gamma,
                          tau=tau,
                          n_critics=n_critics,
                          bootstrap=bootstrap,
                          share_encoder=share_encoder,
                          initial_temperature=initial_temperature,
-                         eps=eps,
-                         use_batch_norm=use_batch_norm,
-                         q_func_type=q_func_type,
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,
-                         n_augmentations=n_augmentations,
-                         encoder_params=encoder_params)
+                         n_augmentations=n_augmentations)
         self.imitator_learning_rate = imitator_learning_rate
         self.alpha_learning_rate = alpha_learning_rate
+        self.imitator_optim_factory = imitator_optim_factory
+        self.alpha_optim_factory = alpha_optim_factory
+        self.imitator_encoder_factory = imitator_encoder_factory
         self.initial_alpha = initial_alpha
         self.alpha_threshold = alpha_threshold
         self.lam = lam
         self.n_action_samples = n_action_samples
         self.mmd_sigma = mmd_sigma
+
+        # initialized in build
+        self.imitator = None
+        self.imitator_optim = None
+        self.log_alpha = None
+        self.alpha_optim = None
 
     def build(self):
         self._build_imitator()
@@ -58,15 +72,12 @@ class BEARImpl(SACImpl):
 
     def _build_imitator(self):
         self.imitator = create_probablistic_regressor(
-            self.observation_shape,
-            self.action_size,
-            self.use_batch_norm,
-            encoder_params=self.encoder_params)
+            self.observation_shape, self.action_size,
+            self.imitator_encoder_factory)
 
     def _build_imitator_optim(self):
-        self.imitator_optim = Adam(self.imitator.parameters(),
-                                   self.imitator_learning_rate,
-                                   eps=self.eps)
+        self.imitator_optim = self.imitator_optim_factory.create(
+            self.imitator.parameters(), lr=self.imitator_learning_rate)
 
     def _build_alpha(self):
         initial_val = math.log(self.initial_alpha)
@@ -74,9 +85,8 @@ class BEARImpl(SACImpl):
         self.log_alpha = nn.Parameter(data)
 
     def _build_alpha_optim(self):
-        self.alpha_optim = Adam([self.log_alpha],
-                                self.alpha_learning_rate,
-                                eps=self.eps)
+        self.alpha_optim = self.alpha_optim_factory.create(
+            [self.log_alpha], lr=self.alpha_learning_rate)
 
     def _compute_actor_loss(self, obs_t):
         loss = super()._compute_actor_loss(obs_t)
@@ -84,17 +94,16 @@ class BEARImpl(SACImpl):
         return loss + mmd_loss
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t'])
     def update_imitator(self, obs_t, act_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
-        loss = compute_augemtation_mean(self.augmentation,
-                                        self.n_augmentations,
-                                        self.imitator.compute_error, {
-                                            'x': obs_t,
-                                            'action': act_t
-                                        }, ['x'])
+        loss = compute_augmentation_mean(augmentation=self.augmentation,
+                                         n_augmentations=self.n_augmentations,
+                                         func=self.imitator.compute_error,
+                                         inputs={
+                                             'x': obs_t,
+                                             'action': act_t
+                                         },
+                                         targets=['x'])
 
         self.imitator_optim.zero_grad()
         loss.backward()
@@ -103,11 +112,8 @@ class BEARImpl(SACImpl):
         return loss.cpu().detach().numpy()
 
     @train_api
-    @torch_api
+    @torch_api(scaler_targets=['obs_t'])
     def update_alpha(self, obs_t):
-        if self.scaler:
-            obs_t = self.scaler.transform(obs_t)
-
         loss = -self._compute_mmd(obs_t)
 
         self.alpha_optim.zero_grad()

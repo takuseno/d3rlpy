@@ -18,10 +18,11 @@ def main(args):
 
     device = None if args.gpu is None else Device(args.gpu)
 
-    bc = BC(n_epochs=100, use_gpu=device)
+    bc = BC(use_gpu=device)
 
     bc.fit(train_episodes,
            eval_episodes=test_episodes,
+           n_epochs=100,
            scorers={
                'environment': evaluate_on_environment(env),
                'action_diff': continuous_action_diff_scorer
