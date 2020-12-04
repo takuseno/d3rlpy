@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 from unittest.mock import Mock
-from d3rlpy.metrics.ope.fqe import FQE, DiscreteFQE
+from d3rlpy.ope.fqe import FQE, DiscreteFQE
 from d3rlpy.algos import DDPG, DQN
 from tests.base_test import base_tester
 from tests.algos.algo_test import algo_update_tester

@@ -16,6 +16,7 @@ API Reference
    network_architectures
    data_augmentation
    metrics
+   off_policy_evaluation
    save_and_load
    logging
    sklearn

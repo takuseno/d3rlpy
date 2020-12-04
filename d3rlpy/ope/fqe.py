@@ -1,9 +1,9 @@
-from d3rlpy.algos.base import AlgoBase
-from d3rlpy.optimizers import AdamFactory
-from d3rlpy.argument_utils import check_encoder
-from d3rlpy.argument_utils import check_use_gpu
-from d3rlpy.argument_utils import check_q_func
-from d3rlpy.argument_utils import check_augmentation
+from ..algos.base import AlgoBase
+from ..optimizers import AdamFactory
+from ..argument_utils import check_encoder
+from ..argument_utils import check_use_gpu
+from ..argument_utils import check_q_func
+from ..argument_utils import check_augmentation
 from .torch.fqe_impl import FQEImpl, DiscreteFQEImpl
 
 

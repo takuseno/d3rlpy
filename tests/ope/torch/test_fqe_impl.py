@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import os
 
-from d3rlpy.metrics.ope.torch.fqe_impl import FQEImpl, DiscreteFQEImpl
+from d3rlpy.ope.torch.fqe_impl import FQEImpl, DiscreteFQEImpl
 from d3rlpy.augmentation import AugmentationPipeline
 from d3rlpy.optimizers import AdamFactory
 from d3rlpy.encoders import DefaultEncoderFactory
