@@ -8,7 +8,7 @@ from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
 
 
 class AWR(AlgoBase):
-    """ Advantage-Weighted Regression algorithm.
+    r""" Advantage-Weighted Regression algorithm.
 
     AWR is an actor-critic algorithm that trains via supervised regression way,
     and has shown strong performance in online and offline settings.
@@ -17,18 +17,18 @@ class AWR(AlgoBase):
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{s_t, R_t \\sim D} [(R_t - V(s_t|\\theta))^2]
+        L(\theta) = \mathbb{E}_{s_t, R_t \sim D} [(R_t - V(s_t|\theta))^2]
 
-    where :math:`R_t` is approximated using TD(:math:`\\lambda`) to mitigate
+    where :math:`R_t` is approximated using TD(:math:`\lambda`) to mitigate
     high variance issue.
 
     The policy function is also trained as a supervised regression problem.
 
     .. math::
 
-        J(\\phi) = \\mathbb{E}_{s_t, a_t, R_t \\sim D}
-            [\\log \\pi(a_t|s_t, \\phi)
-                \\exp (\\frac{1}{B} (R_t - V(s_t|\\theta)))]
+        J(\phi) = \mathbb{E}_{s_t, a_t, R_t \sim D}
+            [\log \pi(a_t|s_t, \phi)
+                \exp (\frac{1}{B} (R_t - V(s_t|\theta)))]
 
     where :math:`B` is a constant factor.
 
@@ -54,9 +54,9 @@ class AWR(AlgoBase):
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.
         n_critic_updates (int): critic gradient steps per iteration.
-        lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
+        lam (float): :math:`\lambda`  for TD(:math:`\lambda`).
         beta (float): :math:`B` for weight scale.
-        max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
+        max_weight (float): :math:`w_{\text{max}}` for weight clipping.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -85,9 +85,9 @@ class AWR(AlgoBase):
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.
         n_critic_updates (int): critic gradient steps per iteration.
-        lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
+        lam (float): :math:`\lambda`  for TD(:math:`\lambda`).
         beta (float): :math:`B` for weight scale.
-        max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
+        max_weight (float): :math:`w_{\text{max}}` for weight clipping.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -240,7 +240,7 @@ class AWR(AlgoBase):
 
 
 class DiscreteAWR(AWR):
-    """ Discrete veriosn of Advantage-Weighted Regression algorithm.
+    r""" Discrete veriosn of Advantage-Weighted Regression algorithm.
 
     AWR is an actor-critic algorithm that trains via supervised regression way,
     and has shown strong performance in online and offline settings.
@@ -249,18 +249,18 @@ class DiscreteAWR(AWR):
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{s_t, R_t \\sim D} [(R_t - V(s_t|\\theta))^2]
+        L(\theta) = \mathbb{E}_{s_t, R_t \sim D} [(R_t - V(s_t|\theta))^2]
 
-    where :math:`R_t` is approximated using TD(:math:`\\lambda`) to mitigate
+    where :math:`R_t` is approximated using TD(:math:`\lambda`) to mitigate
     high variance issue.
 
     The policy function is also trained as a supervised regression problem.
 
     .. math::
 
-        J(\\phi) = \\mathbb{E}_{s_t, a_t, R_t \\sim D}
-            [\\log \\pi(a_t|s_t, \\phi)
-                \\exp (\\frac{1}{B} (R_t - V(s_t|\\theta)))]
+        J(\phi) = \mathbb{E}_{s_t, a_t, R_t \sim D}
+            [\log \pi(a_t|s_t, \phi)
+                \exp (\frac{1}{B} (R_t - V(s_t|\theta)))]
 
     where :math:`B` is a constant factor.
 
@@ -286,9 +286,9 @@ class DiscreteAWR(AWR):
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.
         n_critic_updates (int): critic gradient steps per iteration.
-        lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
+        lam (float): :math:`\lambda`  for TD(:math:`\lambda`).
         beta (float): :math:`B` for weight scale.
-        max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
+        max_weight (float): :math:`w_{\text{max}}` for weight clipping.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -318,9 +318,9 @@ class DiscreteAWR(AWR):
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.
         n_critic_updates (int): critic gradient steps per iteration.
-        lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
+        lam (float): :math:`\lambda`  for TD(:math:`\lambda`).
         beta (float): :math:`B` for weight scale.
-        max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
+        max_weight (float): :math:`w_{\text{max}}` for weight clipping.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):

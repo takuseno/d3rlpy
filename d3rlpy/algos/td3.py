@@ -8,7 +8,7 @@ from ..argument_utils import check_q_func
 
 
 class TD3(AlgoBase):
-    """ Twin Delayed Deep Deterministic Policy Gradients algorithm.
+    r""" Twin Delayed Deep Deterministic Policy Gradients algorithm.
 
     TD3 is an improved DDPG-based algorithm.
     Major differences from DDPG are as follows.
@@ -23,16 +23,16 @@ class TD3(AlgoBase):
 
     .. math::
 
-        L(\\theta_i) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
-            + \gamma \min_j Q_{\\theta_j'}(s_{t+1}, \pi_{\phi'}(s_{t+1}) +
-            \epsilon) - Q_{\\theta_i}(s_t, a_t))^2]
+        L(\theta_i) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
+            + \gamma \min_j Q_{\theta_j'}(s_{t+1}, \pi_{\phi'}(s_{t+1}) +
+            \epsilon) - Q_{\theta_i}(s_t, a_t))^2]
 
     .. math::
 
-        J(\\phi) = \mathbb{E}_{s_t \sim D}
-            [\min_i Q_{\\theta_i}(s_t, \pi_\phi(s_t))]
+        J(\phi) = \mathbb{E}_{s_t \sim D}
+            [\min_i Q_{\theta_i}(s_t, \pi_\phi(s_t))]
 
-    where :math:`\\epsilon \sim clip (N(0, \\sigma), -c, c)`
+    where :math:`\epsilon \sim clip (N(0, \sigma), -c, c)`
 
     References:
         * `Fujimoto et al., Addressing Function Approximation Error in

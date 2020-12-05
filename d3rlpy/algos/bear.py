@@ -8,42 +8,42 @@ from ..argument_utils import check_q_func
 
 
 class BEAR(AlgoBase):
-    """ Bootstrapping Error Accumulation Reduction algorithm.
+    r""" Bootstrapping Error Accumulation Reduction algorithm.
 
     BEAR is a SAC-based data-driven deep reinforcement learning algorithm.
 
     BEAR constrains the support of the policy function within data distribution
     by minimizing Maximum Mean Discreptancy (MMD) between the policy function
-    and the approximated beahvior policy function :math:`\\pi_\\beta(a|s)`
+    and the approximated beahvior policy function :math:`\pi_\beta(a|s)`
     which is optimized through L2 loss.
 
     .. math::
 
-        L(\\beta) = \\mathbb{E}_{s_t, a_t \\sim D, a \\sim
-            \\pi_\\beta(\\cdot|s_t)} [(a - a_t)^2]
+        L(\beta) = \mathbb{E}_{s_t, a_t \sim D, a \sim
+            \pi_\beta(\cdot|s_t)} [(a - a_t)^2]
 
     The policy objective is a combination of SAC's objective and MMD penalty.
 
     .. math::
 
-        J(\\phi) = J_{SAC}(\\phi) - \\mathbb{E}_{s_t \sim D} \\alpha (
-            \\text{MMD}(\\pi_\\beta(\\cdot|s_t), \\pi_\\phi(\\cdot|s_t))
-            - \\epsilon)
+        J(\phi) = J_{SAC}(\phi) - \mathbb{E}_{s_t \sim D} \alpha (
+            \text{MMD}(\pi_\beta(\cdot|s_t), \pi_\phi(\cdot|s_t))
+            - \epsilon)
 
     where MMD is computed as follows.
 
     .. math::
 
-        \\text{MMD}(x, y) = \\frac{1}{N^2} \\sum_{i, i'} k(x_i, x_{i'})
-            - \\frac{2}{NM} \\sum_{i, j} k(x_i, y_j)
-            + \\frac{1}{M^2} \\sum_{j, j'} k(y_j, y_{j'})
+        \text{MMD}(x, y) = \frac{1}{N^2} \sum_{i, i'} k(x_i, x_{i'})
+            - \frac{2}{NM} \sum_{i, j} k(x_i, y_j)
+            + \frac{1}{M^2} \sum_{j, j'} k(y_j, y_{j'})
 
     where :math:`k(x, y)` is a gaussian kernel
-    :math:`k(x, y) = \\exp{((x - y)^2 / (2 \\sigma^2))}`.
+    :math:`k(x, y) = \exp{((x - y)^2 / (2 \sigma^2))}`.
 
-    :math:`\\alpha` is also adjustable through dual gradient decsent where
-    :math:`\\alpha` becomes smaller if MMD is smaller than the threshold
-    :math:`\\epsilon`.
+    :math:`\alpha` is also adjustable through dual gradient decsent where
+    :math:`\alpha` becomes smaller if MMD is smaller than the threshold
+    :math:`\epsilon`.
 
     References:
         * `Kumar et al., Stabilizing Off-Policy Q-Learning via Bootstrapping
@@ -55,7 +55,7 @@ class BEAR(AlgoBase):
         imitator_learning_rate (float): learning rate for behavior policy
             function.
         temp_learning_rate (float): learning rate for temperature parameter.
-        alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        alpha_learning_rate (float): learning rate for :math:`\alpha`.
         actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
@@ -65,7 +65,7 @@ class BEAR(AlgoBase):
         temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the temperature.
         alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for :math:`\\alpha`.
+            optimizer factory for :math:`\alpha`.
         actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
@@ -83,13 +83,13 @@ class BEAR(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        initial_alpha (float): initial :math:`\\alpha` value.
+        initial_alpha (float): initial :math:`\alpha` value.
         alpha_threshold (float): threshold value described as
-            :math:`\\epsilon`.
+            :math:`\epsilon`.
         lam (float): weight for critic ensemble.
         n_action_samples (int): the number of action samples to estimate
             action-values.
-        mmd_sigma (float): :math:`\\sigma` for gaussian kernel in MMD
+        mmd_sigma (float): :math:`\sigma` for gaussian kernel in MMD
             calculation.
         rl_start_epoch (int): epoch to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
@@ -110,7 +110,7 @@ class BEAR(AlgoBase):
         imitator_learning_rate (float): learning rate for behavior policy
             function.
         temp_learning_rate (float): learning rate for temperature parameter.
-        alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        alpha_learning_rate (float): learning rate for :math:`\alpha`.
         actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
@@ -120,7 +120,7 @@ class BEAR(AlgoBase):
         temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the temperature.
         alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for :math:`\\alpha`.
+            optimizer factory for :math:`\alpha`.
         actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
@@ -138,13 +138,13 @@ class BEAR(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        initial_alpha (float): initial :math:`\\alpha` value.
+        initial_alpha (float): initial :math:`\alpha` value.
         alpha_threshold (float): threshold value described as
-            :math:`\\epsilon`.
+            :math:`\epsilon`.
         lam (float): weight for critic ensemble.
         n_action_samples (int): the number of action samples to estimate
             action-values.
-        mmd_sigma (float): :math:`\\sigma` for gaussian kernel in MMD
+        mmd_sigma (float): :math:`\sigma` for gaussian kernel in MMD
             calculation.
         rl_start_epoch (int): epoch to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.

@@ -250,13 +250,13 @@ class RandomRotation(Augmentation):
 
 
 class Intensity(Augmentation):
-    """ Intensity augmentation.
+    r""" Intensity augmentation.
 
     .. math::
 
         x' = x + n
 
-    where :math:`n \\sim N(0, scale)`.
+    where :math:`n \sim N(0, scale)`.
 
     References:
         * `Kostrikov et al., Image Augmentation Is All You Need: Regularizing

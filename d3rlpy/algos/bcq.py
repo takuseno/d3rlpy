@@ -8,7 +8,7 @@ from ..argument_utils import check_q_func
 
 
 class BCQ(AlgoBase):
-    """ Batch-Constrained Q-learning algorithm.
+    r""" Batch-Constrained Q-learning algorithm.
 
     BCQ is the very first practical data-driven deep reinforcement learning
     lgorithm.
@@ -21,19 +21,19 @@ class BCQ(AlgoBase):
 
     .. math::
 
-        L(\omega) = E_{s_t, a_t \sim D} [(a - \\tilde{a})^2
+        L(\omega) = E_{s_t, a_t \sim D} [(a - \tilde{a})^2
             + D_{KL}(N(\mu, \sigma)|N(0, 1))]
 
     where :math:`\mu, \sigma = E_\omega(s_t, a_t)`,
-    :math:`\\tilde{a} = D_\omega(s_t, z)` and :math:`z \sim N(\mu, \sigma)`.
+    :math:`\tilde{a} = D_\omega(s_t, z)` and :math:`z \sim N(\mu, \sigma)`.
 
     The policy function is represented as a residual function
     with the VAE and the perturbation function represented as
-    :math:`\\xi_\phi (s, a)`.
+    :math:`\xi_\phi (s, a)`.
 
     .. math::
 
-        \pi(s, a) = a + \Phi \\xi_\phi (s, a)
+        \pi(s, a) = a + \Phi \xi_\phi (s, a)
 
     where :math:`a = D_\omega (s, z)`, :math:`z \sim N(0, 0.5)` and
     :math:`\Phi` is a perturbation scale designated by `action_flexibility`.
@@ -45,14 +45,14 @@ class BCQ(AlgoBase):
 
     .. math::
 
-        L(\\theta_i) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D}
-            [(y - Q_{\\theta_i}(s_t, a_t))^2]
+        L(\theta_i) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D}
+            [(y - Q_{\theta_i}(s_t, a_t))^2]
 
     .. math::
 
         y = r_{t+1} + \gamma \max_{a_i} [
-            \lambda \min_j Q_{\\theta_j'}(s_{t+1}, a_i)
-            + (1 - \lambda) \max_j Q_{\\theta_j'}(s_{t+1}, a_i)]
+            \lambda \min_j Q_{\theta_j'}(s_{t+1}, a_i)
+            + (1 - \lambda) \max_j Q_{\theta_j'}(s_{t+1}, a_i)]
 
     where :math:`\{a_i \sim D(s_{t+1}, z), z \sim N(0, 0.5)\}_{i=1}^n`.
     The number of sampled actions is designated with `n_action_samples`.
@@ -64,14 +64,14 @@ class BCQ(AlgoBase):
 
         J(\phi) = \mathbb{E}_{s_t \sim D, a_t \sim D_\omega(s_t, z),
                               z \sim N(0, 0.5)}
-            [Q_{\\theta_1} (s_t, \pi(s_t, a_t))]
+            [Q_{\theta_1} (s_t, \pi(s_t, a_t))]
 
     At inference time, action candidates are sampled as many as
     `n_action_samples`, and the action with highest value estimation is taken.
 
     .. math::
 
-        \pi'(s) = \\text{argmax}_{\pi(s, a_i)} Q_{\\theta_1} (s, \pi(s, a_i))
+        \pi'(s) = \text{argmax}_{\pi(s, a_i)} Q_{\theta_1} (s, \pi(s, a_i))
 
     Note:
         The greedy action is not deterministic because the action candidates
@@ -296,7 +296,7 @@ class BCQ(AlgoBase):
 
 
 class DiscreteBCQ(AlgoBase):
-    """ Discrete version of Batch-Constrained Q-learning algorithm.
+    r""" Discrete version of Batch-Constrained Q-learning algorithm.
 
     Discrete version takes theories from the continuous version, but the
     algorithm is much simpler than that.
@@ -312,11 +312,11 @@ class DiscreteBCQ(AlgoBase):
 
     .. math::
 
-        \pi(s_t) = \\text{argmax}_{a|G_\omega(a|s_t)
-                / \max_{\\tilde{a}} G_\omega(\\tilde{a}|s_t) > \\tau}
-            Q_\\theta (s_t, a)
+        \pi(s_t) = \text{argmax}_{a|G_\omega(a|s_t)
+                / \max_{\tilde{a}} G_\omega(\tilde{a}|s_t) > \tau}
+            Q_\theta (s_t, a)
 
-    which eliminates actions with probabilities :math:`\\tau` times smaller
+    which eliminates actions with probabilities :math:`\tau` times smaller
     than the maximum one.
 
     Finally, the loss function is computed in Double DQN style with the above
@@ -324,9 +324,9 @@ class DiscreteBCQ(AlgoBase):
 
     .. math::
 
-        L(\\theta) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
-            + \gamma Q_{\\theta'}(s_{t+1}, \pi(s_{t+1}))
-            - Q_\\theta(s_t, a_t))^2]
+        L(\theta) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
+            + \gamma Q_{\theta'}(s_{t+1}, \pi(s_{t+1}))
+            - Q_\theta(s_t, a_t))^2]
 
     References:
         * `Fujimoto et al., Off-Policy Deep Reinforcement Learning without

@@ -9,7 +9,7 @@ from ..argument_utils import check_q_func
 
 
 class CQL(AlgoBase):
-    """ Conservative Q-Learning algorithm.
+    r""" Conservative Q-Learning algorithm.
 
     CQL is a SAC-based data-driven deep reinforcement learning algorithm, which
     achieves state-of-the-art performance in offline RL problems.
@@ -20,28 +20,28 @@ class CQL(AlgoBase):
 
     .. math::
 
-        L(\\theta_i) = \\alpha \\mathbb{E}_{s_t \\sim D}
-            [\\log{\\sum_a \\exp{Q_{\\theta_i}(s_t, a)}}
-             - \\mathbb{E}_{a \\sim D} [Q_{\\theta_i}(s, a)] - \\tau]
-            + L_{SAC}(\\theta_i)
+        L(\theta_i) = \alpha \mathbb{E}_{s_t \sim D}
+            [\log{\sum_a \exp{Q_{\theta_i}(s_t, a)}}
+             - \mathbb{E}_{a \sim D} [Q_{\theta_i}(s, a)] - \tau]
+            + L_{SAC}(\theta_i)
 
-    where :math:`\\alpha` is an automatically adjustable value via Lagrangian
-    dual gradient descent and :math:`\\tau` is a threshold value.
-    If the action-value difference is smaller than :math:`\\tau`, the
-    :math:`\\alpha` will become smaller.
-    Otherwise, the :math:`\\alpha` will become larger to aggressively penalize
+    where :math:`\alpha` is an automatically adjustable value via Lagrangian
+    dual gradient descent and :math:`\tau` is a threshold value.
+    If the action-value difference is smaller than :math:`\tau`, the
+    :math:`\alpha` will become smaller.
+    Otherwise, the :math:`\alpha` will become larger to aggressively penalize
     action-values.
 
-    In continuous control, :math:`\\log{\\sum_a \\exp{Q(s, a)}}` is computed as
+    In continuous control, :math:`\log{\sum_a \exp{Q(s, a)}}` is computed as
     follows.
 
     .. math::
 
-        \\log{\\sum_a \\exp{Q(s, a)}} \\approx \\log{(
-            \\frac{1}{2N} \\sum_{a_i \\sim \\text{Unif}(a)}^N
-                [\\frac{\\exp{Q(s, a_i)}}{\\text{Unif}(a)}]
-            + \\frac{1}{2N} \\sum_{a_i \\sim \\pi_\\phi(a|s)}^N
-                [\\frac{\\exp{Q(s, a_i)}}{\\pi_\\phi(a_i|s)}])}
+        \log{\sum_a \exp{Q(s, a)}} \approx \log{(
+            \frac{1}{2N} \sum_{a_i \sim \text{Unif}(a)}^N
+                [\frac{\exp{Q(s, a_i)}}{\text{Unif}(a)}]
+            + \frac{1}{2N} \sum_{a_i \sim \pi_\phi(a|s)}^N
+                [\frac{\exp{Q(s, a_i)}}{\pi_\phi(a_i|s)}])}
 
     where :math:`N` is the number of sampled actions.
 
@@ -56,7 +56,7 @@ class CQL(AlgoBase):
         critic_learning_rate (float): learning rate for Q functions.
         temp_learning_rate (float):
             learning rate for temperature parameter of SAC.
-        alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        alpha_learning_rate (float): learning rate for :math:`\alpha`.
         actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
@@ -64,7 +64,7 @@ class CQL(AlgoBase):
         temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the temperature.
         alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for :math:`\\alpha`.
+            optimizer factory for :math:`\alpha`.
         actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
@@ -80,10 +80,10 @@ class CQL(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        initial_alpha (float): initial :math:`\\alpha` value.
-        alpha_threshold (float): threshold value described as :math:`\\tau`.
+        initial_alpha (float): initial :math:`\alpha` value.
+        alpha_threshold (float): threshold value described as :math:`\tau`.
         n_action_samples (int): the number of sampled actions to compute
-            :math:`\\log{\\sum_a \\exp{Q(s, a)}}`.
+            :math:`\log{\sum_a \exp{Q(s, a)}}`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -100,7 +100,7 @@ class CQL(AlgoBase):
         critic_learning_rate (float): learning rate for Q functions.
         temp_learning_rate (float):
             learning rate for temperature parameter of SAC.
-        alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        alpha_learning_rate (float): learning rate for :math:`\alpha`.
         actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
@@ -108,7 +108,7 @@ class CQL(AlgoBase):
         temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the temperature.
         alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for :math:`\\alpha`.
+            optimizer factory for :math:`\alpha`.
         actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
@@ -124,10 +124,10 @@ class CQL(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        initial_alpha (float): initial :math:`\\alpha` value.
-        alpha_threshold (float): threshold value described as :math:`\\tau`.
+        initial_alpha (float): initial :math:`\alpha` value.
+        alpha_threshold (float): threshold value described as :math:`\tau`.
         n_action_samples (int): the number of sampled actions to compute
-            :math:`\\log{\\sum_a \\exp{Q(s, a)}}`.
+            :math:`\log{\sum_a \exp{Q(s, a)}}`.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
@@ -259,7 +259,7 @@ class CQL(AlgoBase):
 
 
 class DiscreteCQL(DoubleDQN):
-    """ Discrete version of Conservative Q-Learning algorithm.
+    r""" Discrete version of Conservative Q-Learning algorithm.
 
     Discrete version of CQL is a DoubleDQN-based data-driven deep reinforcement
     learning algorithm (the original paper uses DQN), which achieves
@@ -271,10 +271,10 @@ class DiscreteCQL(DoubleDQN):
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{s_t \\sim D}
-            [\\log{\\sum_a \\exp{Q_{\\theta}(s_t, a)}}
-             - \\mathbb{E}_{a \\sim D} [Q_{\\theta}(s, a)]]
-            + L_{DoubleDQN}(\\theta)
+        L(\theta) = \mathbb{E}_{s_t \sim D}
+            [\log{\sum_a \exp{Q_{\theta}(s_t, a)}}
+             - \mathbb{E}_{a \sim D} [Q_{\theta}(s, a)]]
+            + L_{DoubleDQN}(\theta)
 
     References:
         * `Kumar et al., Conservative Q-Learning for Offline Reinforcement

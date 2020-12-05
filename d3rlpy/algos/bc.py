@@ -5,7 +5,7 @@ from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
 
 
 class BC(AlgoBase):
-    """ Behavior Cloning algorithm.
+    r""" Behavior Cloning algorithm.
 
     Behavior Cloning (BC) is to imitate actions in the dataset via a supervised
     learning approach.
@@ -15,8 +15,8 @@ class BC(AlgoBase):
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{a_t, s_t \\sim D}
-            [(a_t - \\pi_\\theta(s_t))^2]
+        L(\theta) = \mathbb{E}_{a_t, s_t \sim D}
+            [(a_t - \pi_\theta(s_t))^2]
 
     Args:
         learning_rate (float): learing rate.
@@ -111,7 +111,7 @@ class BC(AlgoBase):
 
 
 class DiscreteBC(BC):
-    """ Behavior Cloning algorithm for discrete control.
+    r""" Behavior Cloning algorithm for discrete control.
 
     Behavior Cloning (BC) is to imitate actions in the dataset via a supervised
     learning approach.
@@ -121,8 +121,8 @@ class DiscreteBC(BC):
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{a_t, s_t \\sim D}
-            [-\\sum_a p(a|s_t) \\log \\pi_\\theta(a|s_t)]
+        L(\theta) = \mathbb{E}_{a_t, s_t \sim D}
+            [-\sum_a p(a|s_t) \log \pi_\theta(a|s_t)]
 
     where :math:`p(a|s_t)` is implemented as a one-hot vector.
 

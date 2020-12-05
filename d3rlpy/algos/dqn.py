@@ -8,14 +8,14 @@ from ..argument_utils import check_augmentation
 
 
 class DQN(AlgoBase):
-    """ Deep Q-Network algorithm.
+    r""" Deep Q-Network algorithm.
 
     .. math::
 
-        L(\\theta) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
-            + \gamma \max_a Q_{\\theta'}(s_{t+1}, a) - Q_\\theta(s_t, a_t))^2]
+        L(\theta) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
+            + \gamma \max_a Q_{\theta'}(s_{t+1}, a) - Q_\theta(s_t, a_t))^2]
 
-    where :math:`\\theta'` is the target network parameter. The target network
+    where :math:`\theta'` is the target network parameter. The target network
     parameter is synchronized every `target_update_interval` iterations.
 
     References:
@@ -139,7 +139,7 @@ class DQN(AlgoBase):
 
 
 class DoubleDQN(DQN):
-    """ Double Deep Q-Network algorithm.
+    r""" Double Deep Q-Network algorithm.
 
     The difference from DQN is that the action is taken from the current Q
     function instead of the target Q function.
@@ -148,11 +148,11 @@ class DoubleDQN(DQN):
 
     .. math::
 
-        L(\\theta) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
-            + \gamma Q_{\\theta'}(s_{t+1}, \\text{argmax}_a
-            Q_\\theta(s_{t+1}, a)) - Q_\\theta(s_t, a_t))^2]
+        L(\theta) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
+            + \gamma Q_{\theta'}(s_{t+1}, \text{argmax}_a
+            Q_\theta(s_{t+1}, a)) - Q_\theta(s_t, a_t))^2]
 
-    where :math:`\\theta'` is the target network parameter. The target network
+    where :math:`\theta'` is the target network parameter. The target network
     parameter is synchronized every `target_update_interval` iterations.
 
     References:
@@ -174,8 +174,6 @@ class DoubleDQN(DQN):
         share_encoder (bool): flag to share encoder network.
         target_update_interval (int): interval to synchronize the target
             network.
-        q_func_type (str): type of Q function. Available options are
-            `['mean', 'qr', 'iqn', 'fqf']`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -202,7 +200,6 @@ class DoubleDQN(DQN):
         share_encoder (bool): flag to share encoder network.
         target_update_interval (int): interval to synchronize the target
             network.
-        q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
