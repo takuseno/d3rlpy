@@ -32,7 +32,7 @@ class DQN(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): the number of steps before the next observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -57,7 +57,7 @@ class DQN(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): the number of steps before the next observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -172,7 +172,7 @@ class DoubleDQN(DQN):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): the number of steps before the next observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -199,7 +199,7 @@ class DoubleDQN(DQN):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): the number of steps before the next observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions.
         bootstrap (bool): flag to bootstrap Q functions.
