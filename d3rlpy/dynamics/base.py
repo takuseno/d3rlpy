@@ -17,7 +17,7 @@ class DynamicsImplBase(ImplBase):
 
 class DynamicsBase(LearnableBase):
     def __init__(self, batch_size, n_frames, n_transitions, horizon, scaler):
-        super().__init__(batch_size, n_frames, scaler)
+        super().__init__(batch_size, n_frames, 1, 1.0, scaler)
         self.n_transitions = n_transitions
         self.horizon = horizon
 

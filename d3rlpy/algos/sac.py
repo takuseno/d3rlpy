@@ -8,7 +8,7 @@ from ..argument_utils import check_q_func
 
 
 class SAC(AlgoBase):
-    """ Soft Actor-Critic algorithm.
+    r""" Soft Actor-Critic algorithm.
 
     SAC is a DDPG-based maximum entropy RL algorithm, which produces
     state-of-the-art performance in online RL settings.
@@ -18,27 +18,27 @@ class SAC(AlgoBase):
 
     .. math::
 
-        L(\\theta_i) = \\mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \\sim D,
-                                   a_{t+1} \\sim \\pi_\\phi(\\cdot|s_{t+1})} [
-            (y - Q_{\\theta_i}(s_t, a_t))^2]
+        L(\theta_i) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D,
+                                   a_{t+1} \sim \pi_\phi(\cdot|s_{t+1})} [
+            (y - Q_{\theta_i}(s_t, a_t))^2]
 
     .. math::
 
-        y = r_{t+1} + \\gamma (\\min_j Q_{\\theta_j}(s_{t+1}, a_{t+1})
-            - \\alpha \\log (\\pi_\\phi(a_{t+1}|s_{t+1})))
+        y = r_{t+1} + \gamma (\min_j Q_{\theta_j}(s_{t+1}, a_{t+1})
+            - \alpha \log (\pi_\phi(a_{t+1}|s_{t+1})))
 
     .. math::
 
-        J(\\phi) = \\mathbb{E}_{s_t \\sim D, a_t \\sim \\pi_\\phi(\\cdot|s_t)}
-            [\\alpha \\log (\\pi_\\phi (a_t|s_t))
-              - \\min_i Q_{\\theta_i}(s_t, \\pi_\\phi(a_t|s_t))]
+        J(\phi) = \mathbb{E}_{s_t \sim D, a_t \sim \pi_\phi(\cdot|s_t)}
+            [\alpha \log (\pi_\phi (a_t|s_t))
+              - \min_i Q_{\theta_i}(s_t, \pi_\phi(a_t|s_t))]
 
-    The temperature parameter :math:`\\alpha` is also automatically adjustable.
+    The temperature parameter :math:`\alpha` is also automatically adjustable.
 
     .. math::
 
-        J(\\alpha) = \\mathbb{E}_{s_t \\sim D, a_t \\sim \\pi_\\phi\(\cdot|s_t)}
-            [-\\alpha (\\log (\\pi_\\phi(a_t|s_t)) + H)]
+        J(\alpha) = \mathbb{E}_{s_t \sim D, a_t \sim \pi_\phi\(\cdot|s_t)}
+            [-\alpha (\log (\pi_\phi(a_t|s_t)) + H)]
 
     where :math:`H` is a target
     entropy, which is defined as :math:`\dim a`.
@@ -68,6 +68,7 @@ class SAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -81,7 +82,6 @@ class SAC(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
@@ -104,6 +104,7 @@ class SAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -111,12 +112,10 @@ class SAC(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        q_func_type (str): type of Q function.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -135,6 +134,7 @@ class SAC(AlgoBase):
                  q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  tau=0.005,
                  n_critics=2,
@@ -145,12 +145,13 @@ class SAC(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -162,7 +163,6 @@ class SAC(AlgoBase):
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
@@ -170,7 +170,6 @@ class SAC(AlgoBase):
         self.update_actor_interval = update_actor_interval
         self.initial_temperature = initial_temperature
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -194,8 +193,7 @@ class SAC(AlgoBase):
                             initial_temperature=self.initial_temperature,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
-                            augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations)
+                            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
@@ -203,7 +201,7 @@ class SAC(AlgoBase):
                                               batch.actions,
                                               batch.next_rewards,
                                               batch.next_observations,
-                                              batch.terminals)
+                                              batch.terminals, batch.n_steps)
         # delayed policy update
         if total_step % self.update_actor_interval == 0:
             actor_loss = self.impl.update_actor(batch.observations)
@@ -268,6 +266,7 @@ class DiscreteSAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -279,7 +278,6 @@ class DiscreteSAC(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
@@ -302,6 +300,7 @@ class DiscreteSAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -311,7 +310,6 @@ class DiscreteSAC(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -330,6 +328,7 @@ class DiscreteSAC(AlgoBase):
                  q_func_factory='mean',
                  batch_size=64,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  n_critics=2,
                  bootstrap=False,
@@ -339,12 +338,13 @@ class DiscreteSAC(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -356,14 +356,12 @@ class DiscreteSAC(AlgoBase):
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.initial_temperature = initial_temperature
         self.target_update_interval = target_update_interval
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -387,8 +385,7 @@ class DiscreteSAC(AlgoBase):
             initial_temperature=self.initial_temperature,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
-            augmentation=self.augmentation,
-            n_augmentations=self.n_augmentations)
+            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
@@ -396,7 +393,7 @@ class DiscreteSAC(AlgoBase):
                                               batch.actions,
                                               batch.next_rewards,
                                               batch.next_observations,
-                                              batch.terminals)
+                                              batch.terminals, batch.n_steps)
         actor_loss = self.impl.update_actor(batch.observations)
         temp_loss, temp = self.impl.update_temp(batch.observations)
         if total_step % self.target_update_interval == 0:

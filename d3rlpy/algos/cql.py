@@ -9,7 +9,7 @@ from ..argument_utils import check_q_func
 
 
 class CQL(AlgoBase):
-    """ Conservative Q-Learning algorithm.
+    r""" Conservative Q-Learning algorithm.
 
     CQL is a SAC-based data-driven deep reinforcement learning algorithm, which
     achieves state-of-the-art performance in offline RL problems.
@@ -20,28 +20,28 @@ class CQL(AlgoBase):
 
     .. math::
 
-        L(\\theta_i) = \\alpha \\mathbb{E}_{s_t \\sim D}
-            [\\log{\\sum_a \\exp{Q_{\\theta_i}(s_t, a)}}
-             - \\mathbb{E}_{a \\sim D} [Q_{\\theta_i}(s, a)] - \\tau]
-            + L_{SAC}(\\theta_i)
+        L(\theta_i) = \alpha \mathbb{E}_{s_t \sim D}
+            [\log{\sum_a \exp{Q_{\theta_i}(s_t, a)}}
+             - \mathbb{E}_{a \sim D} [Q_{\theta_i}(s, a)] - \tau]
+            + L_{SAC}(\theta_i)
 
-    where :math:`\\alpha` is an automatically adjustable value via Lagrangian
-    dual gradient descent and :math:`\\tau` is a threshold value.
-    If the action-value difference is smaller than :math:`\\tau`, the
-    :math:`\\alpha` will become smaller.
-    Otherwise, the :math:`\\alpha` will become larger to aggressively penalize
+    where :math:`\alpha` is an automatically adjustable value via Lagrangian
+    dual gradient descent and :math:`\tau` is a threshold value.
+    If the action-value difference is smaller than :math:`\tau`, the
+    :math:`\alpha` will become smaller.
+    Otherwise, the :math:`\alpha` will become larger to aggressively penalize
     action-values.
 
-    In continuous control, :math:`\\log{\\sum_a \\exp{Q(s, a)}}` is computed as
+    In continuous control, :math:`\log{\sum_a \exp{Q(s, a)}}` is computed as
     follows.
 
     .. math::
 
-        \\log{\\sum_a \\exp{Q(s, a)}} \\approx \\log{(
-            \\frac{1}{2N} \\sum_{a_i \\sim \\text{Unif}(a)}^N
-                [\\frac{\\exp{Q(s, a_i)}}{\\text{Unif}(a)}]
-            + \\frac{1}{2N} \\sum_{a_i \\sim \\pi_\\phi(a|s)}^N
-                [\\frac{\\exp{Q(s, a_i)}}{\\pi_\\phi(a_i|s)}])}
+        \log{\sum_a \exp{Q(s, a)}} \approx \log{(
+            \frac{1}{2N} \sum_{a_i \sim \text{Unif}(a)}^N
+                [\frac{\exp{Q(s, a_i)}}{\text{Unif}(a)}]
+            + \frac{1}{2N} \sum_{a_i \sim \pi_\phi(a|s)}^N
+                [\frac{\exp{Q(s, a_i)}}{\pi_\phi(a_i|s)}])}
 
     where :math:`N` is the number of sampled actions.
 
@@ -56,7 +56,7 @@ class CQL(AlgoBase):
         critic_learning_rate (float): learning rate for Q functions.
         temp_learning_rate (float):
             learning rate for temperature parameter of SAC.
-        alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        alpha_learning_rate (float): learning rate for :math:`\alpha`.
         actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
@@ -64,7 +64,7 @@ class CQL(AlgoBase):
         temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the temperature.
         alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for :math:`\\alpha`.
+            optimizer factory for :math:`\alpha`.
         actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
@@ -73,6 +73,7 @@ class CQL(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -80,17 +81,16 @@ class CQL(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        initial_alpha (float): initial :math:`\\alpha` value.
-        alpha_threshold (float): threshold value described as :math:`\\tau`.
+        initial_alpha (float): initial :math:`\alpha` value.
+        alpha_threshold (float): threshold value described as :math:`\tau`.
         n_action_samples (int): the number of sampled actions to compute
-            :math:`\\log{\\sum_a \\exp{Q(s, a)}}`.
+            :math:`\log{\sum_a \exp{Q(s, a)}}`.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.cql_impl.CQLImpl): algorithm implementation.
@@ -100,7 +100,7 @@ class CQL(AlgoBase):
         critic_learning_rate (float): learning rate for Q functions.
         temp_learning_rate (float):
             learning rate for temperature parameter of SAC.
-        alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        alpha_learning_rate (float): learning rate for :math:`\alpha`.
         actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
@@ -108,7 +108,7 @@ class CQL(AlgoBase):
         temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the temperature.
         alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for :math:`\\alpha`.
+            optimizer factory for :math:`\alpha`.
         actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
@@ -117,6 +117,7 @@ class CQL(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -124,15 +125,14 @@ class CQL(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        initial_alpha (float): initial :math:`\\alpha` value.
-        alpha_threshold (float): threshold value described as :math:`\\tau`.
+        initial_alpha (float): initial :math:`\alpha` value.
+        alpha_threshold (float): threshold value described as :math:`\tau`.
         n_action_samples (int): the number of sampled actions to compute
-            :math:`\\log{\\sum_a \\exp{Q(s, a)}}`.
+            :math:`\log{\sum_a \exp{Q(s, a)}}`.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.cql_impl.CQLImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -153,6 +153,7 @@ class CQL(AlgoBase):
                  q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  tau=0.005,
                  n_critics=2,
@@ -166,12 +167,13 @@ class CQL(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -185,7 +187,6 @@ class CQL(AlgoBase):
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
@@ -196,7 +197,6 @@ class CQL(AlgoBase):
         self.alpha_threshold = alpha_threshold
         self.n_action_samples = n_action_samples
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -225,8 +225,7 @@ class CQL(AlgoBase):
                             n_action_samples=self.n_action_samples,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
-                            augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations)
+                            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
@@ -234,7 +233,7 @@ class CQL(AlgoBase):
                                               batch.actions,
                                               batch.next_rewards,
                                               batch.next_observations,
-                                              batch.terminals)
+                                              batch.terminals, batch.n_steps)
         if total_step % self.update_actor_interval == 0:
             actor_loss = self.impl.update_actor(batch.observations)
             temp_loss, temp = self.impl.update_temp(batch.observations)
@@ -259,7 +258,7 @@ class CQL(AlgoBase):
 
 
 class DiscreteCQL(DoubleDQN):
-    """ Discrete version of Conservative Q-Learning algorithm.
+    r""" Discrete version of Conservative Q-Learning algorithm.
 
     Discrete version of CQL is a DoubleDQN-based data-driven deep reinforcement
     learning algorithm (the original paper uses DQN), which achieves
@@ -271,10 +270,10 @@ class DiscreteCQL(DoubleDQN):
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{s_t \\sim D}
-            [\\log{\\sum_a \\exp{Q_{\\theta}(s_t, a)}}
-             - \\mathbb{E}_{a \\sim D} [Q_{\\theta}(s, a)]]
-            + L_{DoubleDQN}(\\theta)
+        L(\theta) = \mathbb{E}_{s_t \sim D}
+            [\log{\sum_a \exp{Q_{\theta}(s_t, a)}}
+             - \mathbb{E}_{a \sim D} [Q_{\theta}(s, a)]]
+            + L_{DoubleDQN}(\theta)
 
     References:
         * `Kumar et al., Conservative Q-Learning for Offline Reinforcement
@@ -288,6 +287,7 @@ class DiscreteCQL(DoubleDQN):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -299,7 +299,6 @@ class DiscreteCQL(DoubleDQN):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.cql_impl.DiscreteCQLImpl):
@@ -313,6 +312,7 @@ class DiscreteCQL(DoubleDQN):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -322,7 +322,6 @@ class DiscreteCQL(DoubleDQN):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.CQLImpl.DiscreteCQLImpl):
             algorithm implementation.
@@ -342,6 +341,5 @@ class DiscreteCQL(DoubleDQN):
                                     share_encoder=self.share_encoder,
                                     use_gpu=self.use_gpu,
                                     scaler=self.scaler,
-                                    augmentation=self.augmentation,
-                                    n_augmentations=self.n_augmentations)
+                                    augmentation=self.augmentation)
         self.impl.build()

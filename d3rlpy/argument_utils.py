@@ -2,7 +2,7 @@ from .encoders import create_encoder_factory, EncoderFactory
 from .q_functions import create_q_func_factory, QFunctionFactory
 from .preprocessing.scalers import create_scaler, Scaler
 from .augmentation import create_augmentation, AugmentationPipeline
-from .augmentation.base import Augmentation
+from .augmentation import DrQPipeline, Augmentation
 from .gpu import Device
 
 
@@ -67,9 +67,9 @@ def check_augmentation(value):
             elif not isinstance(v, Augmentation):
                 raise ValueError('str or Augmentation is expected.')
             augmentations.append(v)
-        return AugmentationPipeline(augmentations)
+        return DrQPipeline(augmentations)
     if value is None:
-        return AugmentationPipeline([])
+        return DrQPipeline([])
     raise ValueError('This argument must be list or AugmentationPipeline.')
 
 

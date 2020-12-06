@@ -17,7 +17,7 @@ class CQLImpl(SACImpl):
                  critic_encoder_factory, q_func_factory, gamma, tau, n_critics,
                  bootstrap, share_encoder, initial_temperature, initial_alpha,
                  alpha_threshold, n_action_samples, use_gpu, scaler,
-                 augmentation, n_augmentations):
+                 augmentation):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
@@ -37,8 +37,7 @@ class CQLImpl(SACImpl):
                          initial_temperature=initial_temperature,
                          use_gpu=use_gpu,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         n_augmentations=n_augmentations)
+                         augmentation=augmentation)
         self.alpha_learning_rate = alpha_learning_rate
         self.alpha_optim_factory = alpha_optim_factory
         self.initial_alpha = initial_alpha
@@ -63,8 +62,9 @@ class CQLImpl(SACImpl):
         self.alpha_optim = self.alpha_optim_factory.create(
             [self.log_alpha], lr=self.alpha_learning_rate)
 
-    def _compute_critic_loss(self, obs_t, act_t, rew_tp1, q_tp1):
-        loss = super()._compute_critic_loss(obs_t, act_t, rew_tp1, q_tp1)
+    def _compute_critic_loss(self, obs_t, act_t, rew_tpn, q_tpn, n_steps):
+        loss = super()._compute_critic_loss(obs_t, act_t, rew_tpn, q_tpn,
+                                            n_steps)
         conservative_loss = self._compute_conservative_loss(obs_t, act_t)
         return loss + conservative_loss
 
@@ -129,8 +129,8 @@ class CQLImpl(SACImpl):
 
 
 class DiscreteCQLImpl(DoubleDQNImpl):
-    def _compute_loss(self, obs_t, act_t, rew_tp1, q_tp1):
-        loss = super()._compute_loss(obs_t, act_t, rew_tp1, q_tp1)
+    def _compute_loss(self, obs_t, act_t, rew_tpn, q_tpn, n_steps):
+        loss = super()._compute_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
         conservative_loss = self._compute_conservative_loss(obs_t, act_t)
         return loss + conservative_loss
 

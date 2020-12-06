@@ -47,6 +47,7 @@ class AWAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         lam (float): :math:`\lambda` for weight calculation.
@@ -63,7 +64,6 @@ class AWAC(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
@@ -83,6 +83,7 @@ class AWAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         lam (float): :math:`\lambda` for weight calculation.
@@ -98,7 +99,6 @@ class AWAC(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
@@ -115,6 +115,7 @@ class AWAC(AlgoBase):
                  q_func_factory='mean',
                  batch_size=1024,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  tau=0.005,
                  lam=1.0,
@@ -127,12 +128,13 @@ class AWAC(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -142,7 +144,6 @@ class AWAC(AlgoBase):
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.tau = tau
         self.lam = lam
         self.n_action_samples = n_action_samples
@@ -152,7 +153,6 @@ class AWAC(AlgoBase):
         self.share_encoder = share_encoder
         self.update_actor_interval = update_actor_interval
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -177,8 +177,7 @@ class AWAC(AlgoBase):
             share_encoder=self.share_encoder,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
-            augmentation=self.augmentation,
-            n_augmentations=self.n_augmentations)
+            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
@@ -186,7 +185,7 @@ class AWAC(AlgoBase):
                                               batch.actions,
                                               batch.next_rewards,
                                               batch.next_observations,
-                                              batch.terminals)
+                                              batch.terminals, batch.n_steps)
         # delayed policy update
         if total_step % self.update_actor_interval == 0:
             actor_loss, mean_std = self.impl.update_actor(

@@ -17,16 +17,16 @@ def _make_batches(episode, window_size, n_frames):
 
 
 def td_error_scorer(algo, episodes, window_size=1024):
-    """ Returns average TD error (in negative scale).
+    r""" Returns average TD error (in negative scale).
 
     This metics suggests how Q functions overfit to training sets.
     If the TD error is large, the Q functions are overfitting.
 
     .. math::
 
-        \\mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \\sim D}
-            [Q_\\theta (s_t, a_t)
-             - (r_t + \\gamma \\max_a Q_\\theta (s_{t+1}, a))^2]
+        \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D}
+            [Q_\theta (s_t, a_t)
+             - (r_t + \gamma \max_a Q_\theta (s_{t+1}, a))^2]
 
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
@@ -59,7 +59,7 @@ def td_error_scorer(algo, episodes, window_size=1024):
 
 
 def discounted_sum_of_advantage_scorer(algo, episodes, window_size=1024):
-    """ Returns average of discounted sum of advantage (in negative scale).
+    r""" Returns average of discounted sum of advantage (in negative scale).
 
     This metrics suggests how the greedy-policy selects different actions in
     action-value space.
@@ -68,11 +68,11 @@ def discounted_sum_of_advantage_scorer(algo, episodes, window_size=1024):
 
     .. math::
 
-        \\mathbb{E}_{s_t, a_t \\sim D}
-            [\\sum_{t' = t} \\gamma^{t' - t} A(s_{t'}, a_{t'})]
+        \mathbb{E}_{s_t, a_t \sim D}
+            [\sum_{t' = t} \gamma^{t' - t} A(s_{t'}, a_{t'})]
 
-    where :math:`A(s_t, a_t) = Q_\\theta (s_t, a_t)
-    - \\max_a Q_\\theta (s_t, a)`.
+    where :math:`A(s_t, a_t) = Q_\theta (s_t, a_t)
+    - \max_a Q_\theta (s_t, a)`.
 
     References:
         * `Murphy., A generalization error for Q-Learning.
@@ -115,7 +115,7 @@ def discounted_sum_of_advantage_scorer(algo, episodes, window_size=1024):
 
 
 def average_value_estimation_scorer(algo, episodes, window_size=1024):
-    """ Returns average value estimation (in negative scale).
+    r""" Returns average value estimation (in negative scale).
 
     This metrics suggests the scale for estimation of Q functions.
     If average value estimation is too large, the Q functions overestimate
@@ -123,7 +123,7 @@ def average_value_estimation_scorer(algo, episodes, window_size=1024):
 
     .. math::
 
-        \\mathbb{E}_{s_t \\sim D} [ \\max_a Q_\\theta (s_t, a)]
+        \mathbb{E}_{s_t \sim D} [ \max_a Q_\theta (s_t, a)]
 
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
@@ -145,7 +145,7 @@ def average_value_estimation_scorer(algo, episodes, window_size=1024):
 
 
 def value_estimation_std_scorer(algo, episodes, window_size=1024):
-    """ Returns standard deviation of value estimation (in negative scale).
+    r""" Returns standard deviation of value estimation (in negative scale).
 
     This metrics suggests how confident Q functions are for the given
     episodes.
@@ -156,10 +156,10 @@ def value_estimation_std_scorer(algo, episodes, window_size=1024):
 
     .. math::
 
-        \\mathbb{E}_{s_t \\sim D, a \\sim \\text{argmax}_a Q_\\theta(s_t, a)}
-            [Q_{\\text{std}}(s_t, a)]
+        \mathbb{E}_{s_t \sim D, a \sim \text{argmax}_a Q_\theta(s_t, a)}
+            [Q_{\text{std}}(s_t, a)]
 
-    where :math:`Q_{\\text{std}}(s, a)` is a standard deviation of action-value
+    where :math:`Q_{\text{std}}(s, a)` is a standard deviation of action-value
     estimation over ensemble functions.
 
     Args:
@@ -182,7 +182,7 @@ def value_estimation_std_scorer(algo, episodes, window_size=1024):
 
 
 def initial_state_value_estimation_scorer(algo, episodes, window_size=1024):
-    """ Returns mean estimated action-values at the initial states.
+    r""" Returns mean estimated action-values at the initial states.
 
     This metrics suggests how much return the trained policy would get from
     the initial states by deploying the policy to the states.
@@ -191,7 +191,7 @@ def initial_state_value_estimation_scorer(algo, episodes, window_size=1024):
 
     .. math::
 
-        \\mathbb{E}_{s_0 \\sim D} [Q(s_0, \\pi(s_0))]
+        \mathbb{E}_{s_0 \sim D} [Q(s_0, \pi(s_0))]
 
     References:
         * `Paine et al., Hyperparameter Selection for Offline Reinforcement
@@ -217,7 +217,7 @@ def initial_state_value_estimation_scorer(algo, episodes, window_size=1024):
 
 
 def soft_opc_scorer(return_threshold):
-    """ Returns Soft Off-Policy Classification metrics.
+    r""" Returns Soft Off-Policy Classification metrics.
 
     This function returns scorer function, which is suitable to the standard
     scikit-learn scorer function style.
@@ -230,8 +230,8 @@ def soft_opc_scorer(return_threshold):
 
     .. math::
 
-        \\mathbb{E}_{s, a \\sim D_{success}} [Q(s, a)]
-            - \\mathbb{E}_{s, a \\sim D} [Q(s, a)]
+        \mathbb{E}_{s, a \sim D_{success}} [Q(s, a)]
+            - \mathbb{E}_{s, a \sim D} [Q(s, a)]
 
     .. code-block:: python
 
@@ -277,7 +277,7 @@ def soft_opc_scorer(return_threshold):
 
 
 def continuous_action_diff_scorer(algo, episodes, window_size=1024):
-    """ Returns squared difference of actions between algorithm and dataset.
+    r""" Returns squared difference of actions between algorithm and dataset.
 
     This metrics suggests how different the greedy-policy is from the given
     episodes in continuous action-space.
@@ -286,7 +286,7 @@ def continuous_action_diff_scorer(algo, episodes, window_size=1024):
 
     .. math::
 
-        \\mathbb{E}_{s_t, a_t \\sim D} [(a_t - \\pi_\\phi (s_t))^2]
+        \mathbb{E}_{s_t, a_t \sim D} [(a_t - \pi_\phi (s_t))^2]
 
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
@@ -308,7 +308,7 @@ def continuous_action_diff_scorer(algo, episodes, window_size=1024):
 
 
 def discrete_action_match_scorer(algo, episodes, window_size=1024):
-    """ Returns percentage of identical actions between algorithm and dataset.
+    r""" Returns percentage of identical actions between algorithm and dataset.
 
     This metrics suggests how different the greedy-policy is from the given
     episodes in discrete action-space.
@@ -317,8 +317,8 @@ def discrete_action_match_scorer(algo, episodes, window_size=1024):
 
     .. math::
 
-        \\frac{1}{N} \\sum^N \\parallel
-            \\{a_t = \\text{argmax}_a Q_\\theta (s_t, a)\\}
+        \frac{1}{N} \sum^N \parallel
+            \{a_t = \text{argmax}_a Q_\theta (s_t, a)\}
 
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
@@ -424,16 +424,16 @@ def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
 def dynamics_observation_prediction_error_scorer(dynamics,
                                                  episodes,
                                                  window_size=1024):
-    """ Returns MSE of observation prediction (in negative scale).
+    r""" Returns MSE of observation prediction (in negative scale).
 
     This metrics suggests how dynamics model is generalized to test sets.
     If the MSE is large, the dynamics model are overfitting.
 
     .. math::
 
-        \\mathbb{E}_{s_t, a_t, s_{t+1} \\sim D} [(s_{t+1} - s')^2]
+        \mathbb{E}_{s_t, a_t, s_{t+1} \sim D} [(s_{t+1} - s')^2]
 
-    where :math:`s' \\sim T(s_t, a_t)`.
+    where :math:`s' \sim T(s_t, a_t)`.
 
     Args:
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
@@ -457,16 +457,16 @@ def dynamics_observation_prediction_error_scorer(dynamics,
 def dynamics_reward_prediction_error_scorer(dynamics,
                                             episodes,
                                             window_size=1024):
-    """ Returns MSE of reward prediction (in negative scale).
+    r""" Returns MSE of reward prediction (in negative scale).
 
     This metrics suggests how dynamics model is generalized to test sets.
     If the MSE is large, the dynamics model are overfitting.
 
     .. math::
 
-        \\mathbb{E}_{s_t, a_t, r_{t+1} \\sim D} [(r_{t+1} - r')^2]
+        \mathbb{E}_{s_t, a_t, r_{t+1} \sim D} [(r_{t+1} - r')^2]
 
-    where :math:`r' \\sim T(s_t, a_t)`.
+    where :math:`r' \sim T(s_t, a_t)`.
 
     Args:
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.

@@ -5,7 +5,7 @@ from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
 
 
 class BC(AlgoBase):
-    """ Behavior Cloning algorithm.
+    r""" Behavior Cloning algorithm.
 
     Behavior Cloning (BC) is to imitate actions in the dataset via a supervised
     learning approach.
@@ -15,8 +15,8 @@ class BC(AlgoBase):
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{a_t, s_t \\sim D}
-            [(a_t - \\pi_\\theta(s_t))^2]
+        L(\theta) = \mathbb{E}_{a_t, s_t \sim D}
+            [(a_t - \pi_\theta(s_t))^2]
 
     Args:
         learning_rate (float): learing rate.
@@ -31,7 +31,6 @@ class BC(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bc_impl.BCImpl):
@@ -47,7 +46,6 @@ class BC(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bc_impl.BCImpl):
             implemenation of the algorithm.
@@ -64,19 +62,19 @@ class BC(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=1,
+                         gamma=1.0,
                          scaler=scaler,
                          dynamics=dynamics)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
         self.encoder_factory = check_encoder(encoder_factory)
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -88,8 +86,7 @@ class BC(AlgoBase):
                            encoder_factory=self.encoder_factory,
                            use_gpu=self.use_gpu,
                            scaler=self.scaler,
-                           augmentation=self.augmentation,
-                           n_augmentations=self.n_augmentations)
+                           augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, itr, batch):
@@ -111,7 +108,7 @@ class BC(AlgoBase):
 
 
 class DiscreteBC(BC):
-    """ Behavior Cloning algorithm for discrete control.
+    r""" Behavior Cloning algorithm for discrete control.
 
     Behavior Cloning (BC) is to imitate actions in the dataset via a supervised
     learning approach.
@@ -121,8 +118,8 @@ class DiscreteBC(BC):
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{a_t, s_t \\sim D}
-            [-\\sum_a p(a|s_t) \\log \\pi_\\theta(a|s_t)]
+        L(\theta) = \mathbb{E}_{a_t, s_t \sim D}
+            [-\sum_a p(a|s_t) \log \pi_\theta(a|s_t)]
 
     where :math:`p(a|s_t)` is implemented as a one-hot vector.
 
@@ -140,7 +137,6 @@ class DiscreteBC(BC):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
@@ -157,7 +153,6 @@ class DiscreteBC(BC):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
             implemenation of the algorithm.
@@ -175,7 +170,6 @@ class DiscreteBC(BC):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -187,7 +181,6 @@ class DiscreteBC(BC):
                          use_gpu=use_gpu,
                          scaler=scaler,
                          augmentation=augmentation,
-                         n_augmentations=n_augmentations,
                          dynamics=dynamics,
                          impl=impl,
                          **kwargs)
@@ -202,6 +195,5 @@ class DiscreteBC(BC):
                                    beta=self.beta,
                                    use_gpu=self.use_gpu,
                                    scaler=self.scaler,
-                                   augmentation=self.augmentation,
-                                   n_augmentations=self.n_augmentations)
+                                   augmentation=self.augmentation)
         self.impl.build()

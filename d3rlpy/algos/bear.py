@@ -8,42 +8,42 @@ from ..argument_utils import check_q_func
 
 
 class BEAR(AlgoBase):
-    """ Bootstrapping Error Accumulation Reduction algorithm.
+    r""" Bootstrapping Error Accumulation Reduction algorithm.
 
     BEAR is a SAC-based data-driven deep reinforcement learning algorithm.
 
     BEAR constrains the support of the policy function within data distribution
     by minimizing Maximum Mean Discreptancy (MMD) between the policy function
-    and the approximated beahvior policy function :math:`\\pi_\\beta(a|s)`
+    and the approximated beahvior policy function :math:`\pi_\beta(a|s)`
     which is optimized through L2 loss.
 
     .. math::
 
-        L(\\beta) = \\mathbb{E}_{s_t, a_t \\sim D, a \\sim
-            \\pi_\\beta(\\cdot|s_t)} [(a - a_t)^2]
+        L(\beta) = \mathbb{E}_{s_t, a_t \sim D, a \sim
+            \pi_\beta(\cdot|s_t)} [(a - a_t)^2]
 
     The policy objective is a combination of SAC's objective and MMD penalty.
 
     .. math::
 
-        J(\\phi) = J_{SAC}(\\phi) - \\mathbb{E}_{s_t \sim D} \\alpha (
-            \\text{MMD}(\\pi_\\beta(\\cdot|s_t), \\pi_\\phi(\\cdot|s_t))
-            - \\epsilon)
+        J(\phi) = J_{SAC}(\phi) - \mathbb{E}_{s_t \sim D} \alpha (
+            \text{MMD}(\pi_\beta(\cdot|s_t), \pi_\phi(\cdot|s_t))
+            - \epsilon)
 
     where MMD is computed as follows.
 
     .. math::
 
-        \\text{MMD}(x, y) = \\frac{1}{N^2} \\sum_{i, i'} k(x_i, x_{i'})
-            - \\frac{2}{NM} \\sum_{i, j} k(x_i, y_j)
-            + \\frac{1}{M^2} \\sum_{j, j'} k(y_j, y_{j'})
+        \text{MMD}(x, y) = \frac{1}{N^2} \sum_{i, i'} k(x_i, x_{i'})
+            - \frac{2}{NM} \sum_{i, j} k(x_i, y_j)
+            + \frac{1}{M^2} \sum_{j, j'} k(y_j, y_{j'})
 
     where :math:`k(x, y)` is a gaussian kernel
-    :math:`k(x, y) = \\exp{((x - y)^2 / (2 \\sigma^2))}`.
+    :math:`k(x, y) = \exp{((x - y)^2 / (2 \sigma^2))}`.
 
-    :math:`\\alpha` is also adjustable through dual gradient decsent where
-    :math:`\\alpha` becomes smaller if MMD is smaller than the threshold
-    :math:`\\epsilon`.
+    :math:`\alpha` is also adjustable through dual gradient decsent where
+    :math:`\alpha` becomes smaller if MMD is smaller than the threshold
+    :math:`\epsilon`.
 
     References:
         * `Kumar et al., Stabilizing Off-Policy Q-Learning via Bootstrapping
@@ -55,7 +55,7 @@ class BEAR(AlgoBase):
         imitator_learning_rate (float): learning rate for behavior policy
             function.
         temp_learning_rate (float): learning rate for temperature parameter.
-        alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        alpha_learning_rate (float): learning rate for :math:`\alpha`.
         actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
@@ -65,7 +65,7 @@ class BEAR(AlgoBase):
         temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the temperature.
         alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for :math:`\\alpha`.
+            optimizer factory for :math:`\alpha`.
         actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
@@ -76,6 +76,7 @@ class BEAR(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -83,13 +84,13 @@ class BEAR(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        initial_alpha (float): initial :math:`\\alpha` value.
+        initial_alpha (float): initial :math:`\alpha` value.
         alpha_threshold (float): threshold value described as
-            :math:`\\epsilon`.
+            :math:`\epsilon`.
         lam (float): weight for critic ensemble.
         n_action_samples (int): the number of action samples to estimate
             action-values.
-        mmd_sigma (float): :math:`\\sigma` for gaussian kernel in MMD
+        mmd_sigma (float): :math:`\sigma` for gaussian kernel in MMD
             calculation.
         rl_start_epoch (int): epoch to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
@@ -99,7 +100,6 @@ class BEAR(AlgoBase):
             The avaiable options are `['pixel', 'min_max', 'standard']`.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bear_impl.BEARImpl): algorithm implementation.
@@ -110,7 +110,7 @@ class BEAR(AlgoBase):
         imitator_learning_rate (float): learning rate for behavior policy
             function.
         temp_learning_rate (float): learning rate for temperature parameter.
-        alpha_learning_rate (float): learning rate for :math:`\\alpha`.
+        alpha_learning_rate (float): learning rate for :math:`\alpha`.
         actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
@@ -120,7 +120,7 @@ class BEAR(AlgoBase):
         temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             optimizer factory for the temperature.
         alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for :math:`\\alpha`.
+            optimizer factory for :math:`\alpha`.
         actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
@@ -131,6 +131,7 @@ class BEAR(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -138,13 +139,13 @@ class BEAR(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
-        initial_alpha (float): initial :math:`\\alpha` value.
+        initial_alpha (float): initial :math:`\alpha` value.
         alpha_threshold (float): threshold value described as
-            :math:`\\epsilon`.
+            :math:`\epsilon`.
         lam (float): weight for critic ensemble.
         n_action_samples (int): the number of action samples to estimate
             action-values.
-        mmd_sigma (float): :math:`\\sigma` for gaussian kernel in MMD
+        mmd_sigma (float): :math:`\sigma` for gaussian kernel in MMD
             calculation.
         rl_start_epoch (int): epoch to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
@@ -152,7 +153,6 @@ class BEAR(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bear_impl.BEARImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -176,6 +176,7 @@ class BEAR(AlgoBase):
                  q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  tau=0.005,
                  n_critics=2,
@@ -192,12 +193,13 @@ class BEAR(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -214,7 +216,6 @@ class BEAR(AlgoBase):
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.imitator_encoder_factory = check_encoder(imitator_encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
@@ -228,7 +229,6 @@ class BEAR(AlgoBase):
         self.mmd_sigma = mmd_sigma
         self.rl_start_epoch = rl_start_epoch
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -263,19 +263,16 @@ class BEAR(AlgoBase):
             mmd_sigma=self.mmd_sigma,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
-            augmentation=self.augmentation,
-            n_augmentations=self.n_augmentations)
+            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
         imitator_loss = self.impl.update_imitator(batch.observations,
                                                   batch.actions)
         if epoch >= self.rl_start_epoch:
-            critic_loss = self.impl.update_critic(batch.observations,
-                                                  batch.actions,
-                                                  batch.next_rewards,
-                                                  batch.next_observations,
-                                                  batch.terminals)
+            critic_loss = self.impl.update_critic(
+                batch.observations, batch.actions, batch.next_rewards,
+                batch.next_observations, batch.terminals, batch.n_steps)
             if total_step % self.update_actor_interval == 0:
                 actor_loss = self.impl.update_actor(batch.observations)
                 temp_loss, temp = self.impl.update_temp(batch.observations)

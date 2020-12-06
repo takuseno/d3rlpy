@@ -1,6 +1,6 @@
 import pytest
 
-from d3rlpy.augmentation import AugmentationPipeline
+from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.algos.torch.dqn_impl import DQNImpl, DoubleDQNImpl
 from d3rlpy.optimizers import AdamFactory
 from d3rlpy.encoders import DefaultEncoderFactory
@@ -19,11 +19,10 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('bootstrap', [False])
 @pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
-@pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
-@pytest.mark.parametrize('n_augmentations', [1])
+@pytest.mark.parametrize('augmentation', [DrQPipeline()])
 def test_dqn_impl(observation_shape, action_size, learning_rate, optim_factory,
                   encoder_factory, q_func_factory, gamma, n_critics, bootstrap,
-                  share_encoder, scaler, augmentation, n_augmentations):
+                  share_encoder, scaler, augmentation):
     impl = DQNImpl(observation_shape,
                    action_size,
                    learning_rate,
@@ -36,8 +35,7 @@ def test_dqn_impl(observation_shape, action_size, learning_rate, optim_factory,
                    share_encoder,
                    use_gpu=False,
                    scaler=scaler,
-                   augmentation=augmentation,
-                   n_augmentations=n_augmentations)
+                   augmentation=augmentation)
     torch_impl_tester(impl,
                       discrete=True,
                       deterministic_best_action=q_func_factory != 'iqn')
@@ -54,12 +52,11 @@ def test_dqn_impl(observation_shape, action_size, learning_rate, optim_factory,
 @pytest.mark.parametrize('bootstrap', [False])
 @pytest.mark.parametrize('share_encoder', [False, True])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
-@pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
-@pytest.mark.parametrize('n_augmentations', [1])
+@pytest.mark.parametrize('augmentation', [DrQPipeline()])
 def test_double_dqn_impl(observation_shape, action_size, learning_rate,
                          optim_factory, encoder_factory, q_func_factory, gamma,
                          n_critics, bootstrap, share_encoder, scaler,
-                         augmentation, n_augmentations):
+                         augmentation):
     impl = DoubleDQNImpl(observation_shape,
                          action_size,
                          learning_rate,
@@ -72,8 +69,7 @@ def test_double_dqn_impl(observation_shape, action_size, learning_rate,
                          share_encoder,
                          use_gpu=False,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         n_augmentations=n_augmentations)
+                         augmentation=augmentation)
     torch_impl_tester(impl,
                       discrete=True,
                       deterministic_best_action=q_func_factory != 'iqn')
