@@ -207,9 +207,11 @@ def test_episode(data_size, observation_size, action_size):
 @pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
 @pytest.mark.parametrize('action_size', [2])
 @pytest.mark.parametrize('n_frames', [1, 4])
+@pytest.mark.parametrize('n_steps', [1, 3])
+@pytest.mark.parametrize('gamma', [0.99])
 @pytest.mark.parametrize('discrete_action', [False, True])
 def test_transition_minibatch(data_size, observation_shape, action_size,
-                              n_frames, discrete_action):
+                              n_frames, n_steps, gamma, discrete_action):
     if len(observation_shape) == 3:
         observations = np.random.randint(256,
                                          size=(data_size, *observation_shape),
@@ -236,12 +238,17 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
     else:
         batched_observation_shape = (data_size - 1, *observation_shape)
 
-    batch = TransitionMiniBatch(episode.transitions, n_frames)
+    batch = TransitionMiniBatch(episode.transitions, n_frames, n_steps, gamma)
     assert batch.observations.shape == batched_observation_shape
     assert batch.next_observations.shape == batched_observation_shape
+
     for i, t in enumerate(episode.transitions):
         observation = batch.observations[i]
         next_observation = batch.next_observations[i]
+        n = int(batch.n_steps[i][0])
+        print(i)
+
+        assert n == min(data_size - i - 1, n_steps)
 
         if n_frames > 1 and len(observation_shape) == 3:
             # create padded observations for check stacking
@@ -252,7 +259,7 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
             head_index = i
             tail_index = head_index + n_frames
             window = padded_observations[head_index:tail_index]
-            next_window = padded_observations[head_index + 1:tail_index + 1]
+            next_window = padded_observations[head_index + n:tail_index + n]
             ref_observation = np.vstack(window)
             ref_next_observation = np.vstack(next_window)
             assert observation.shape == ref_observation.shape
@@ -260,14 +267,27 @@ def test_transition_minibatch(data_size, observation_shape, action_size,
             assert np.all(observation == ref_observation)
             assert np.all(next_observation == ref_next_observation)
         else:
+            next_t = t
+            for _ in range(n - 1):
+                next_t = next_t.next_transition
             assert np.allclose(observation, t.observation)
-            assert np.allclose(next_observation, t.next_observation)
+            assert np.allclose(next_observation, next_t.next_observation)
+
+        next_reward = 0.0
+        next_action = 0.0
+        terminal = 0.0
+        next_t = t
+        for j in range(n):
+            next_reward += next_t.next_reward * gamma**j
+            next_action = next_t.next_action
+            terminal = next_t.terminal
+            next_t = next_t.next_transition
 
         assert np.all(batch.actions[i] == t.action)
         assert np.all(batch.rewards[i][0] == t.reward)
-        assert np.all(batch.next_actions[i] == t.next_action)
-        assert np.all(batch.next_rewards[i][0] == t.next_reward)
-        assert np.all(batch.terminals[i][0] == t.terminal)
+        assert np.all(batch.next_actions[i] == next_action)
+        assert np.allclose(batch.next_rewards[i][0], next_reward)
+        assert np.all(batch.terminals[i][0] == terminal)
 
     # check list-like behavior
     assert len(batch) == data_size - 1
