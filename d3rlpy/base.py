@@ -92,9 +92,11 @@ class LearnableBase:
         active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
 
     """
-    def __init__(self, batch_size, n_frames, scaler):
+    def __init__(self, batch_size, n_frames, n_steps, gamma, scaler):
         self.batch_size = batch_size
         self.n_frames = n_frames
+        self.n_steps = n_steps
+        self.gamma = gamma
         self.scaler = check_scaler(scaler)
 
         self.impl = None
@@ -335,13 +337,17 @@ class LearnableBase:
             range_gen = trange(n_iters) if show_progress else range(n_iters)
             for itr in range_gen:
                 # pick transitions
-                batch = []
+                sampled_transitions = []
                 head_index = itr * self.batch_size
                 for index in indices[head_index:head_index + self.batch_size]:
-                    batch.append(transitions[index])
+                    sampled_transitions.append(transitions[index])
 
-                loss = self.update(epoch, total_step,
-                                   TransitionMiniBatch(batch, self.n_frames))
+                batch = TransitionMiniBatch(transitions=sampled_transitions,
+                                            n_frames=self.n_frames,
+                                            n_steps=self.n_steps,
+                                            gamma=self.gamma)
+
+                loss = self.update(epoch, total_step, batch)
 
                 # record metrics
                 for name, val in zip(self._get_loss_labels(), loss):

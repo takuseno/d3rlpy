@@ -70,6 +70,8 @@ class BC(AlgoBase):
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=1,
+                         gamma=1.0,
                          scaler=scaler,
                          dynamics=dynamics)
         self.learning_rate = learning_rate

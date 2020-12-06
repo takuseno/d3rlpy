@@ -125,6 +125,8 @@ class AWR(AlgoBase):
         # batch_size in AWR has different semantic from Q learning algorithms.
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=1,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -136,7 +138,6 @@ class AWR(AlgoBase):
         self.batch_size_per_update = batch_size_per_update
         self.n_actor_updates = n_actor_updates
         self.n_critic_updates = n_critic_updates
-        self.gamma = gamma
         self.lam = lam
         self.beta = beta
         self.max_weight = max_weight

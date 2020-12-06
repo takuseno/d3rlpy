@@ -68,6 +68,7 @@ class SAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -104,6 +105,7 @@ class SAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -134,6 +136,7 @@ class SAC(AlgoBase):
                  q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  tau=0.005,
                  n_critics=2,
@@ -150,6 +153,8 @@ class SAC(AlgoBase):
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -161,7 +166,6 @@ class SAC(AlgoBase):
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
@@ -202,7 +206,7 @@ class SAC(AlgoBase):
                                               batch.actions,
                                               batch.next_rewards,
                                               batch.next_observations,
-                                              batch.terminals)
+                                              batch.terminals, batch.n_steps)
         # delayed policy update
         if total_step % self.update_actor_interval == 0:
             actor_loss = self.impl.update_actor(batch.observations)
@@ -267,6 +271,7 @@ class DiscreteSAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -301,6 +306,7 @@ class DiscreteSAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -329,6 +335,7 @@ class DiscreteSAC(AlgoBase):
                  q_func_factory='mean',
                  batch_size=64,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  n_critics=2,
                  bootstrap=False,
@@ -344,6 +351,8 @@ class DiscreteSAC(AlgoBase):
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -355,7 +364,6 @@ class DiscreteSAC(AlgoBase):
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
@@ -395,7 +403,7 @@ class DiscreteSAC(AlgoBase):
                                               batch.actions,
                                               batch.next_rewards,
                                               batch.next_observations,
-                                              batch.terminals)
+                                              batch.terminals, batch.n_steps)
         actor_loss = self.impl.update_actor(batch.observations)
         temp_loss, temp = self.impl.update_temp(batch.observations)
         if total_step % self.target_update_interval == 0:

@@ -37,6 +37,7 @@ class FQE(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -60,6 +61,7 @@ class FQE(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -82,6 +84,7 @@ class FQE(AlgoBase):
                  q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  n_critics=1,
                  bootstrap=False,
@@ -95,6 +98,8 @@ class FQE(AlgoBase):
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=None)
         self.algo = algo
@@ -102,7 +107,6 @@ class FQE(AlgoBase):
         self.optim_factory = optim_factory
         self.encoder_factory = check_encoder(encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
@@ -142,7 +146,8 @@ class FQE(AlgoBase):
         next_actions = self.algo.predict(batch.observations)
         loss = self.impl.update(batch.observations, batch.actions,
                                 batch.next_rewards, next_actions,
-                                batch.next_observations, batch.terminals)
+                                batch.next_observations, batch.terminals,
+                                batch.n_steps)
         if total_step % self.target_update_interval == 0:
             self.impl.update_target()
         return (loss, )
@@ -181,6 +186,7 @@ class DiscreteFQE(FQE):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -204,6 +210,7 @@ class DiscreteFQE(FQE):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.

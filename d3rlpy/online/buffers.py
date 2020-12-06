@@ -94,7 +94,7 @@ class Buffer(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def sample(self, batch_size, n_frames=1):
+    def sample(self, batch_size, n_frames=1, n_steps=1, gamma=0.99):
         """ Returns sampled mini-batch of transitions.
 
         If observation is image, you can stack arbitrary frames via
@@ -113,6 +113,8 @@ class Buffer(metaclass=ABCMeta):
             batch_size (int): mini-batch size.
             n_frames (int):
                 the number of frames to stack for image observation.
+            n_steps (int): the number of steps before the next observation.
+            gamma: discount factor used in N-step return calculation.
 
         Returns:
             d3rlpy.dataset.TransitionMiniBatch: mini-batch.
@@ -218,10 +220,10 @@ class ReplayBuffer(Buffer):
         for transition in episode.transitions:
             self.transitions.append(transition)
 
-    def sample(self, batch_size, n_frames=1):
+    def sample(self, batch_size, n_frames=1, n_steps=1, gamma=0.99):
         indices = np.random.randint(self.size(), size=batch_size)
         transitions = [self.transitions[index] for index in indices]
-        return TransitionMiniBatch(transitions, n_frames)
+        return TransitionMiniBatch(transitions, n_frames, n_steps, gamma)
 
     def size(self):
         return len(self.transitions)

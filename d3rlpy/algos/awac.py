@@ -47,6 +47,7 @@ class AWAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         lam (float): :math:`\lambda` for weight calculation.
@@ -83,6 +84,7 @@ class AWAC(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         lam (float): :math:`\lambda` for weight calculation.
@@ -115,6 +117,7 @@ class AWAC(AlgoBase):
                  q_func_factory='mean',
                  batch_size=1024,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  tau=0.005,
                  lam=1.0,
@@ -133,6 +136,8 @@ class AWAC(AlgoBase):
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -142,7 +147,6 @@ class AWAC(AlgoBase):
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.tau = tau
         self.lam = lam
         self.n_action_samples = n_action_samples
@@ -186,7 +190,7 @@ class AWAC(AlgoBase):
                                               batch.actions,
                                               batch.next_rewards,
                                               batch.next_observations,
-                                              batch.terminals)
+                                              batch.terminals, batch.n_steps)
         # delayed policy update
         if total_step % self.update_actor_interval == 0:
             actor_loss, mean_std = self.impl.update_actor(

@@ -207,8 +207,8 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         self.optim = self.optim_factory.create(unique_params,
                                                lr=self.learning_rate)
 
-    def _compute_loss(self, obs_t, act_t, rew_tp1, q_tp1):
-        loss = super()._compute_loss(obs_t, act_t, rew_tp1, q_tp1)
+    def _compute_loss(self, obs_t, act_t, rew_tpn, q_tpn, n_steps):
+        loss = super()._compute_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
         imitator_loss = self.imitator.compute_error(obs_t, act_t.long())
         return loss + imitator_loss
 

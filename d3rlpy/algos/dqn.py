@@ -32,6 +32,7 @@ class DQN(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -56,6 +57,7 @@ class DQN(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -79,6 +81,7 @@ class DQN(AlgoBase):
                  q_func_factory='mean',
                  batch_size=32,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  n_critics=1,
                  bootstrap=False,
@@ -93,13 +96,14 @@ class DQN(AlgoBase):
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
         self.encoder_factory = check_encoder(encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.n_critics = n_critics
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
@@ -129,7 +133,7 @@ class DQN(AlgoBase):
     def update(self, epoch, total_step, batch):
         loss = self.impl.update(batch.observations, batch.actions,
                                 batch.next_rewards, batch.next_observations,
-                                batch.terminals)
+                                batch.terminals, batch.n_steps)
         if total_step % self.target_update_interval == 0:
             self.impl.update_target()
         return (loss, )
@@ -168,6 +172,7 @@ class DoubleDQN(DQN):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions.
         bootstrap (bool): flag to bootstrap Q functions.
@@ -194,6 +199,7 @@ class DoubleDQN(DQN):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): the number of steps before the next observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions.
         bootstrap (bool): flag to bootstrap Q functions.

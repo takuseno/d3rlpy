@@ -188,14 +188,14 @@ class DiscreteSACImpl(TorchImplBase):
             [self.log_temp], lr=self.temp_learning_rate)
 
     @train_api
-    @torch_api(scaler_targets=['obs_t', 'obs_tp1'])
-    def update_critic(self, obs_t, act_t, rew_tp1, obs_tp1, ter_tp1):
-        q_tp1 = compute_augmentation_mean(augmentation=self.augmentation,
+    @torch_api(scaler_targets=['obs_t', 'obs_tpn'])
+    def update_critic(self, obs_t, act_t, rew_tpn, obs_tpn, ter_tpn, n_steps):
+        q_tpn = compute_augmentation_mean(augmentation=self.augmentation,
                                           n_augmentations=self.n_augmentations,
                                           func=self.compute_target,
-                                          inputs={'x': obs_tp1},
+                                          inputs={'x': obs_tpn},
                                           targets=['x'])
-        q_tp1 *= (1.0 - ter_tp1)
+        q_tpn *= (1.0 - ter_tpn)
 
         loss = compute_augmentation_mean(augmentation=self.augmentation,
                                          n_augmentations=self.n_augmentations,
@@ -203,8 +203,9 @@ class DiscreteSACImpl(TorchImplBase):
                                          inputs={
                                              'obs_t': obs_t,
                                              'act_t': act_t.long(),
-                                             'rew_tp1': rew_tp1,
-                                             'q_tp1': q_tp1
+                                             'rew_tpn': rew_tpn,
+                                             'q_tpn': q_tpn,
+                                             'n_steps': n_steps,
                                          },
                                          targets=['obs_t'])
 
@@ -227,9 +228,9 @@ class DiscreteSACImpl(TorchImplBase):
                 keepdims = False
             return (probs * (target - entropy)).sum(dim=1, keepdims=keepdims)
 
-    def _compute_critic_loss(self, obs_t, act_t, rew_tp1, q_tp1):
-        return self.q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1,
-                                         self.gamma)
+    def _compute_critic_loss(self, obs_t, act_t, rew_tpn, q_tpn, n_steps):
+        return self.q_func.compute_error(obs_t, act_t, rew_tpn, q_tpn,
+                                         self.gamma**n_steps)
 
     @train_api
     @torch_api(scaler_targets=['obs_t'])
