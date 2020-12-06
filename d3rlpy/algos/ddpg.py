@@ -66,7 +66,6 @@ class DDPG(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.ddpg_impl.DDPGImpl): algorithm implementation.
@@ -97,7 +96,6 @@ class DDPG(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.ddpg_impl.DDPGImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -125,7 +123,6 @@ class DDPG(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  encoder_params={},
                  dynamics=None,
                  impl=None,
@@ -150,7 +147,6 @@ class DDPG(AlgoBase):
         self.reguralizing_rate = reguralizing_rate
         self.use_batch_norm = use_batch_norm
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
@@ -174,8 +170,7 @@ class DDPG(AlgoBase):
             reguralizing_rate=self.reguralizing_rate,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
-            augmentation=self.augmentation,
-            n_augmentations=self.n_augmentations)
+            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, itr, batch):

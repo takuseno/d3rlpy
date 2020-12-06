@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from d3rlpy.algos.torch.bear_impl import BEARImpl
-from d3rlpy.augmentation import AugmentationPipeline
+from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.optimizers import AdamFactory
 from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.q_functions import create_q_func_factory
@@ -35,8 +35,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('n_action_samples', [4])
 @pytest.mark.parametrize('mmd_sigma', [20.0])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
-@pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
-@pytest.mark.parametrize('n_augmentations', [1])
+@pytest.mark.parametrize('augmentation', [DrQPipeline()])
 def test_bear_impl(observation_shape, action_size, actor_learning_rate,
                    critic_learning_rate, imitator_learning_rate,
                    temp_learning_rate, alpha_learning_rate,
@@ -45,8 +44,7 @@ def test_bear_impl(observation_shape, action_size, actor_learning_rate,
                    alpha_optim_factory, encoder_factory, q_func_factory, gamma,
                    tau, n_critics, bootstrap, share_encoder,
                    initial_temperature, initial_alpha, alpha_threshold, lam,
-                   n_action_samples, mmd_sigma, scaler, augmentation,
-                   n_augmentations):
+                   n_action_samples, mmd_sigma, scaler, augmentation):
     impl = BEARImpl(observation_shape,
                     action_size,
                     actor_learning_rate,
@@ -76,8 +74,7 @@ def test_bear_impl(observation_shape, action_size, actor_learning_rate,
                     mmd_sigma,
                     use_gpu=False,
                     scaler=scaler,
-                    augmentation=augmentation,
-                    n_augmentations=n_augmentations)
+                    augmentation=augmentation)
     impl.build()
 
     x = torch.rand(32, *observation_shape)

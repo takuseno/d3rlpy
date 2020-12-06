@@ -9,7 +9,6 @@ from d3rlpy.models.torch.imitators import create_conditional_vae
 from d3rlpy.models.torch.imitators import create_discrete_imitator
 from d3rlpy.models.torch.imitators import DiscreteImitator
 from .utility import torch_api, train_api
-from .utility import compute_augmentation_mean
 from .ddpg_impl import DDPGImpl
 from .dqn_impl import DoubleDQNImpl
 
@@ -22,8 +21,7 @@ class BCQImpl(DDPGImpl):
                  critic_encoder_factory, imitator_encoder_factory,
                  q_func_factory, gamma, tau, n_critics, bootstrap,
                  share_encoder, lam, n_action_samples, action_flexibility,
-                 latent_size, beta, use_gpu, scaler, augmentation,
-                 n_augmentations):
+                 latent_size, beta, use_gpu, scaler, augmentation):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
@@ -41,8 +39,7 @@ class BCQImpl(DDPGImpl):
                          reguralizing_rate=0.0,
                          use_gpu=use_gpu,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         n_augmentations=n_augmentations)
+                         augmentation=augmentation)
         self.imitator_learning_rate = imitator_learning_rate
         self.imitator_optim_factory = imitator_optim_factory
         self.imitator_encoder_factory = imitator_encoder_factory
@@ -90,9 +87,7 @@ class BCQImpl(DDPGImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_imitator(self, obs_t, act_t):
-        loss = compute_augmentation_mean(augmentation=self.augmentation,
-                                         n_augmentations=self.n_augmentations,
-                                         func=self.imitator.compute_error,
+        loss = self.augmentation.process(func=self.imitator.compute_error,
                                          inputs={
                                              'x': obs_t,
                                              'action': act_t
@@ -166,7 +161,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
     def __init__(self, observation_shape, action_size, learning_rate,
                  optim_factory, encoder_factory, q_func_factory, gamma,
                  n_critics, bootstrap, share_encoder, action_flexibility, beta,
-                 use_gpu, scaler, augmentation, n_augmentations):
+                 use_gpu, scaler, augmentation):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          learning_rate=learning_rate,
@@ -179,8 +174,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
                          share_encoder=share_encoder,
                          use_gpu=use_gpu,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         n_augmentations=n_augmentations)
+                         augmentation=augmentation)
         self.action_flexibility = action_flexibility
         self.beta = beta
 

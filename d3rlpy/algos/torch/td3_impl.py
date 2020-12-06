@@ -10,7 +10,7 @@ class TD3Impl(DDPGImpl):
                  critic_encoder_factory, q_func_factory, gamma, tau,
                  reguralizing_rate, n_critics, bootstrap, share_encoder,
                  target_smoothing_sigma, target_smoothing_clip, use_gpu,
-                 scaler, augmentation, n_augmentations):
+                 scaler, augmentation):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
@@ -28,8 +28,7 @@ class TD3Impl(DDPGImpl):
                          reguralizing_rate=reguralizing_rate,
                          use_gpu=use_gpu,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         n_augmentations=n_augmentations)
+                         augmentation=augmentation)
         self.target_smoothing_sigma = target_smoothing_sigma
         self.target_smoothing_clip = target_smoothing_clip
 

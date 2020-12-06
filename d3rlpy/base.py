@@ -6,7 +6,8 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from tqdm import trange
 from .preprocessing import create_scaler, Scaler
-from .augmentation import create_augmentation, AugmentationPipeline
+from .augmentation import create_augmentation, AugmentationPipeline, DrQPipeline
+from .augmentation import DrQPipeline
 from .dataset import TransitionMiniBatch
 from .logger import D3RLPyLogger
 from .metrics.scorer import NEGATED_SCORER
@@ -43,9 +44,12 @@ def _serialize_params(params):
         elif isinstance(value, AugmentationPipeline):
             aug_types = value.get_augmentation_types()
             aug_params = value.get_augmentation_params()
-            params[key] = []
+            params[key] = {'params': value.get_params(), 'augmentations': []}
             for aug_type, aug_param in zip(aug_types, aug_params):
-                params[value].append({'type': aug_type, 'params': aug_param})
+                params[key]['augmentations'].append({
+                    'type': aug_type,
+                    'params': aug_param
+                })
     return params
 
 
@@ -58,12 +62,12 @@ def _deseriealize_params(params):
             params[key] = scaler
         elif key == 'augmentation' and params['augmentation']:
             augmentations = []
-            for param in params[key]:
+            for param in params[key]['augmentations']:
                 aug_type = param['type']
                 aug_params = param['params']
                 augmentation = create_augmentation(aug_type, **aug_params)
                 augmentations.append(augmentation)
-            params[key] = AugmentationPipeline(augmentations)
+            params[key] = DrQPipeline(augmentations, **params[key]['params'])
         elif 'optim_factory' in key:
             params[key] = OptimizerFactory(**value)
         elif 'encoder_factory' in key:

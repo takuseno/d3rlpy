@@ -6,7 +6,6 @@ from d3rlpy.models.torch.q_functions import create_continuous_q_function
 from d3rlpy.models.torch.q_functions import create_discrete_q_function
 from d3rlpy.algos.torch.utility import torch_api, train_api, eval_api
 from d3rlpy.algos.torch.utility import soft_sync, hard_sync
-from d3rlpy.algos.torch.utility import compute_augmentation_mean
 from d3rlpy.algos.torch.base import TorchImplBase
 
 
@@ -14,7 +13,7 @@ class FQEImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate,
                  optim_factory, encoder_factory, q_func_factory, gamma,
                  n_critics, bootstrap, share_encoder, use_gpu, scaler,
-                 augmentation, n_augmentations):
+                 augmentation):
         super().__init__(observation_shape, action_size, scaler)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
@@ -26,7 +25,6 @@ class FQEImpl(TorchImplBase):
         self.share_encoder = share_encoder
         self.use_gpu = use_gpu
         self.augmentation = augmentation
-        self.n_augmentations = n_augmentations
 
         # initialized in build
         self.q_func = None
@@ -63,22 +61,23 @@ class FQEImpl(TorchImplBase):
     @torch_api(scaler_targets=['obs_t', 'obs_tpn'])
     def update(self, obs_t, act_t, rew_tpn, act_tpn, obs_tpn, ter_tpn,
                n_steps):
-        q_tpn = compute_augmentation_mean(self.augmentation,
-                                          self.n_augmentations,
-                                          self.compute_target, {
+        q_tpn = self.augmentation.process(func=self.compute_target,
+                                          inputs={
                                               'x': obs_tpn,
                                               'action': act_tpn
-                                          }, ['x'])
+                                          },
+                                          targets=['x'])
         q_tpn *= (1.0 - ter_tpn)
 
-        loss = compute_augmentation_mean(
-            self.augmentation, self.n_augmentations, self._compute_loss, {
-                'obs_t': obs_t,
-                'act_t': act_t,
-                'rew_tpn': rew_tpn,
-                'q_tpn': q_tpn,
-                'n_steps': n_steps
-            }, ['obs_t'])
+        loss = self.augmentation.process(func=self._compute_loss,
+                                         inputs={
+                                             'obs_t': obs_t,
+                                             'act_t': act_t,
+                                             'rew_tpn': rew_tpn,
+                                             'q_tpn': q_tpn,
+                                             'n_steps': n_steps
+                                         },
+                                         targets=['obs_t'])
 
         self.optim.zero_grad()
         loss.backward()

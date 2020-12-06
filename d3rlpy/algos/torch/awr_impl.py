@@ -5,7 +5,6 @@ from d3rlpy.models.torch.v_functions import create_value_function
 from d3rlpy.models.torch.policies import squash_action, create_normal_policy
 from d3rlpy.models.torch.policies import create_categorical_policy
 from .utility import torch_api, train_api, eval_api
-from .utility import compute_augmentation_mean
 from .base import TorchImplBase
 
 
@@ -13,8 +12,7 @@ class AWRImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, actor_learning_rate,
                  critic_learning_rate, actor_optim_factory,
                  critic_optim_factory, actor_encoder_factory,
-                 critic_encoder_factory, use_gpu, scaler, augmentation,
-                 n_augmentations):
+                 critic_encoder_factory, use_gpu, scaler, augmentation):
         super().__init__(observation_shape, action_size, scaler)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
@@ -23,7 +21,6 @@ class AWRImpl(TorchImplBase):
         self.actor_encoder_factory = actor_encoder_factory
         self.critic_encoder_factory = critic_encoder_factory
         self.augmentation = augmentation
-        self.n_augmentations = n_augmentations
         self.use_gpu = use_gpu
 
         # initialized in build
@@ -66,9 +63,7 @@ class AWRImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['observation'])
     def update_critic(self, observation, value):
-        loss = compute_augmentation_mean(augmentation=self.augmentation,
-                                         n_augmentations=self.n_augmentations,
-                                         func=self._compute_critic_loss,
+        loss = self.augmentation.process(func=self._compute_critic_loss,
                                          inputs={
                                              'observation': observation,
                                              'value': value
@@ -87,9 +82,7 @@ class AWRImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['observation'])
     def update_actor(self, observation, action, weight):
-        loss = compute_augmentation_mean(augmentation=self.augmentation,
-                                         n_augmentations=self.n_augmentations,
-                                         func=self._compute_actor_loss,
+        loss = self.augmentation.process(func=self._compute_actor_loss,
                                          inputs={
                                              'observation': observation,
                                              'action': action,

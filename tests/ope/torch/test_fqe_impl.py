@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 from d3rlpy.ope.torch.fqe_impl import FQEImpl, DiscreteFQEImpl
-from d3rlpy.augmentation import AugmentationPipeline
+from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.optimizers import AdamFactory
 from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.q_functions import create_q_func_factory
@@ -45,11 +45,10 @@ def torch_impl_tester(impl, discrete):
 @pytest.mark.parametrize('bootstrap', [False])
 @pytest.mark.parametrize('share_encoder', [True])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
-@pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
-@pytest.mark.parametrize('n_augmentations', [1])
+@pytest.mark.parametrize('augmentation', [DrQPipeline()])
 def test_fqe_impl(observation_shape, action_size, learning_rate, optim_factory,
                   encoder_factory, q_func_factory, gamma, n_critics, bootstrap,
-                  share_encoder, scaler, augmentation, n_augmentations):
+                  share_encoder, scaler, augmentation):
     fqe = FQEImpl(observation_shape,
                   action_size,
                   learning_rate,
@@ -62,8 +61,7 @@ def test_fqe_impl(observation_shape, action_size, learning_rate, optim_factory,
                   share_encoder,
                   use_gpu=False,
                   scaler=scaler,
-                  augmentation=augmentation,
-                  n_augmentations=n_augmentations)
+                  augmentation=augmentation)
 
     torch_impl_tester(fqe, False)
 
@@ -79,12 +77,11 @@ def test_fqe_impl(observation_shape, action_size, learning_rate, optim_factory,
 @pytest.mark.parametrize('bootstrap', [False])
 @pytest.mark.parametrize('share_encoder', [True])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
-@pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
-@pytest.mark.parametrize('n_augmentations', [1])
+@pytest.mark.parametrize('augmentation', [DrQPipeline()])
 def test_discrete_fqe_impl(observation_shape, action_size, learning_rate,
                            optim_factory, encoder_factory, q_func_factory,
                            gamma, n_critics, bootstrap, share_encoder, scaler,
-                           augmentation, n_augmentations):
+                           augmentation):
     fqe = DiscreteFQEImpl(observation_shape,
                           action_size,
                           learning_rate,
@@ -97,7 +94,6 @@ def test_discrete_fqe_impl(observation_shape, action_size, learning_rate,
                           share_encoder,
                           use_gpu=False,
                           scaler=scaler,
-                          augmentation=augmentation,
-                          n_augmentations=n_augmentations)
+                          augmentation=augmentation)
 
     torch_impl_tester(fqe, True)

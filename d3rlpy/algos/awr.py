@@ -63,7 +63,6 @@ class AWR(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.awr_impl.AWRImpl): algorithm implementation.
@@ -92,7 +91,6 @@ class AWR(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.awr_impl.AWRImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -118,7 +116,6 @@ class AWR(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -142,7 +139,6 @@ class AWR(AlgoBase):
         self.beta = beta
         self.max_weight = max_weight
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -157,8 +153,7 @@ class AWR(AlgoBase):
                             critic_encoder_factory=self.critic_encoder_factory,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
-                            augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations)
+                            augmentation=self.augmentation)
         self.impl.build()
 
     def _compute_lambda_returns(self, batch):
@@ -296,7 +291,6 @@ class DiscreteAWR(AWR):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.awr_impl.DiscreteAWRImpl):
@@ -326,7 +320,6 @@ class DiscreteAWR(AWR):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.awr_impl.DiscreteAWRImpl):
             algorithm implementation.
@@ -345,6 +338,5 @@ class DiscreteAWR(AWR):
             critic_encoder_factory=self.critic_encoder_factory,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
-            augmentation=self.augmentation,
-            n_augmentations=self.n_augmentations)
+            augmentation=self.augmentation)
         self.impl.build()

@@ -5,7 +5,6 @@ import copy
 from d3rlpy.models.torch.q_functions import create_discrete_q_function
 from .utility import hard_sync
 from .utility import torch_api, train_api, eval_api
-from .utility import compute_augmentation_mean
 from .base import TorchImplBase
 
 
@@ -13,7 +12,7 @@ class DQNImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size, learning_rate,
                  optim_factory, encoder_factory, q_func_factory, gamma,
                  n_critics, bootstrap, share_encoder, use_gpu, scaler,
-                 augmentation, n_augmentations):
+                 augmentation):
         super().__init__(observation_shape, action_size, scaler)
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
@@ -24,7 +23,6 @@ class DQNImpl(TorchImplBase):
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.augmentation = augmentation
-        self.n_augmentations = n_augmentations
         self.use_gpu = use_gpu
 
         # initialized in build
@@ -64,16 +62,12 @@ class DQNImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t', 'obs_tpn'])
     def update(self, obs_t, act_t, rew_tpn, obs_tpn, ter_tpn, n_steps):
-        q_tpn = compute_augmentation_mean(augmentation=self.augmentation,
-                                          n_augmentations=self.n_augmentations,
-                                          func=self.compute_target,
+        q_tpn = self.augmentation.process(func=self.compute_target,
                                           inputs={'x': obs_tpn},
                                           targets=['x'])
         q_tpn *= (1.0 - ter_tpn)
 
-        loss = compute_augmentation_mean(augmentation=self.augmentation,
-                                         n_augmentations=self.n_augmentations,
-                                         func=self._compute_loss,
+        loss = self.augmentation.process(func=self._compute_loss,
                                          inputs={
                                              'obs_t': obs_t,
                                              'act_t': act_t.long(),

@@ -124,7 +124,6 @@ class BCQ(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
@@ -168,7 +167,6 @@ class BCQ(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -204,7 +202,6 @@ class BCQ(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -236,7 +233,6 @@ class BCQ(AlgoBase):
         self.latent_size = latent_size
         self.beta = beta
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -266,8 +262,7 @@ class BCQ(AlgoBase):
             beta=self.beta,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
-            augmentation=self.augmentation,
-            n_augmentations=self.n_augmentations)
+            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
@@ -360,7 +355,6 @@ class DiscreteBCQ(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bcq_impl.DiscreteBCQImpl):
@@ -387,7 +381,6 @@ class DiscreteBCQ(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bcq_impl.DiscreteBCQImpl):
             algorithm implementation.
@@ -413,7 +406,6 @@ class DiscreteBCQ(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -434,7 +426,6 @@ class DiscreteBCQ(AlgoBase):
         self.beta = beta
         self.target_update_interval = target_update_interval
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -453,8 +444,7 @@ class DiscreteBCQ(AlgoBase):
                                     beta=self.beta,
                                     use_gpu=self.use_gpu,
                                     scaler=self.scaler,
-                                    augmentation=self.augmentation,
-                                    n_augmentations=self.n_augmentations)
+                                    augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):

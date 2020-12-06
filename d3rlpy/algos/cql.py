@@ -91,7 +91,6 @@ class CQL(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.cql_impl.CQLImpl): algorithm implementation.
@@ -134,7 +133,6 @@ class CQL(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.cql_impl.CQLImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -169,7 +167,6 @@ class CQL(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -200,7 +197,6 @@ class CQL(AlgoBase):
         self.alpha_threshold = alpha_threshold
         self.n_action_samples = n_action_samples
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -229,8 +225,7 @@ class CQL(AlgoBase):
                             n_action_samples=self.n_action_samples,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
-                            augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations)
+                            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
@@ -304,7 +299,6 @@ class DiscreteCQL(DoubleDQN):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.cql_impl.DiscreteCQLImpl):
@@ -328,7 +322,6 @@ class DiscreteCQL(DoubleDQN):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.CQLImpl.DiscreteCQLImpl):
             algorithm implementation.
@@ -348,6 +341,5 @@ class DiscreteCQL(DoubleDQN):
                                     share_encoder=self.share_encoder,
                                     use_gpu=self.use_gpu,
                                     scaler=self.scaler,
-                                    augmentation=self.augmentation,
-                                    n_augmentations=self.n_augmentations)
+                                    augmentation=self.augmentation)
         self.impl.build()

@@ -82,7 +82,6 @@ class SAC(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
@@ -117,7 +116,6 @@ class SAC(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -147,7 +145,6 @@ class SAC(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -173,7 +170,6 @@ class SAC(AlgoBase):
         self.update_actor_interval = update_actor_interval
         self.initial_temperature = initial_temperature
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -197,8 +193,7 @@ class SAC(AlgoBase):
                             initial_temperature=self.initial_temperature,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
-                            augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations)
+                            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
@@ -283,7 +278,6 @@ class DiscreteSAC(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
@@ -316,7 +310,6 @@ class DiscreteSAC(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -345,7 +338,6 @@ class DiscreteSAC(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -370,7 +362,6 @@ class DiscreteSAC(AlgoBase):
         self.initial_temperature = initial_temperature
         self.target_update_interval = target_update_interval
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -394,8 +385,7 @@ class DiscreteSAC(AlgoBase):
             initial_temperature=self.initial_temperature,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
-            augmentation=self.augmentation,
-            n_augmentations=self.n_augmentations)
+            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):

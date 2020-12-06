@@ -100,7 +100,6 @@ class BEAR(AlgoBase):
             The avaiable options are `['pixel', 'min_max', 'standard']`.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bear_impl.BEARImpl): algorithm implementation.
@@ -154,7 +153,6 @@ class BEAR(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.bear_impl.BEARImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -195,7 +193,6 @@ class BEAR(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
@@ -232,7 +229,6 @@ class BEAR(AlgoBase):
         self.mmd_sigma = mmd_sigma
         self.rl_start_epoch = rl_start_epoch
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -267,8 +263,7 @@ class BEAR(AlgoBase):
             mmd_sigma=self.mmd_sigma,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
-            augmentation=self.augmentation,
-            n_augmentations=self.n_augmentations)
+            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):

@@ -8,7 +8,6 @@ from d3rlpy.models.torch.policies import create_normal_policy
 from d3rlpy.models.torch.policies import create_categorical_policy
 from d3rlpy.models.torch.q_functions import create_discrete_q_function
 from .utility import torch_api, train_api, eval_api, hard_sync
-from .utility import compute_augmentation_mean
 from .ddpg_impl import DDPGImpl
 from .base import TorchImplBase
 
@@ -19,8 +18,7 @@ class SACImpl(DDPGImpl):
                  critic_optim_factory, temp_optim_factory,
                  actor_encoder_factory, critic_encoder_factory, q_func_factory,
                  gamma, tau, n_critics, bootstrap, share_encoder,
-                 initial_temperature, use_gpu, scaler, augmentation,
-                 n_augmentations):
+                 initial_temperature, use_gpu, scaler, augmentation):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
@@ -38,8 +36,7 @@ class SACImpl(DDPGImpl):
                          reguralizing_rate=0.0,
                          use_gpu=use_gpu,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         n_augmentations=n_augmentations)
+                         augmentation=augmentation)
         self.temp_learning_rate = temp_learning_rate
         self.temp_optim_factory = temp_optim_factory
         self.initial_temperature = initial_temperature
@@ -112,8 +109,7 @@ class DiscreteSACImpl(TorchImplBase):
                  critic_optim_factory, temp_optim_factory,
                  actor_encoder_factory, critic_encoder_factory, q_func_factory,
                  gamma, n_critics, bootstrap, share_encoder,
-                 initial_temperature, use_gpu, scaler, augmentation,
-                 n_augmentations):
+                 initial_temperature, use_gpu, scaler, augmentation):
         super().__init__(observation_shape, action_size, scaler)
         self.actor_learning_rate = actor_learning_rate
         self.critic_learning_rate = critic_learning_rate
@@ -131,7 +127,6 @@ class DiscreteSACImpl(TorchImplBase):
         self.initial_temperature = initial_temperature
         self.use_gpu = use_gpu
         self.augmentation = augmentation
-        self.n_augmentations = n_augmentations
 
     def build(self):
         self._build_critic()
@@ -190,16 +185,12 @@ class DiscreteSACImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t', 'obs_tpn'])
     def update_critic(self, obs_t, act_t, rew_tpn, obs_tpn, ter_tpn, n_steps):
-        q_tpn = compute_augmentation_mean(augmentation=self.augmentation,
-                                          n_augmentations=self.n_augmentations,
-                                          func=self.compute_target,
+        q_tpn = self.augmentation.process(func=self.compute_target,
                                           inputs={'x': obs_tpn},
                                           targets=['x'])
         q_tpn *= (1.0 - ter_tpn)
 
-        loss = compute_augmentation_mean(augmentation=self.augmentation,
-                                         n_augmentations=self.n_augmentations,
-                                         func=self._compute_critic_loss,
+        loss = self.augmentation.process(func=self._compute_critic_loss,
                                          inputs={
                                              'obs_t': obs_t,
                                              'act_t': act_t.long(),
@@ -235,9 +226,7 @@ class DiscreteSACImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t):
-        loss = compute_augmentation_mean(augmentation=self.augmentation,
-                                         n_augmentations=self.n_augmentations,
-                                         func=self._compute_actor_loss,
+        loss = self.augmentation.process(func=self._compute_actor_loss,
                                          inputs={'obs_t': obs_t},
                                          targets=['obs_t'])
 

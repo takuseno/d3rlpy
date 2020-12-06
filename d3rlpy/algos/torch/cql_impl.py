@@ -17,7 +17,7 @@ class CQLImpl(SACImpl):
                  critic_encoder_factory, q_func_factory, gamma, tau, n_critics,
                  bootstrap, share_encoder, initial_temperature, initial_alpha,
                  alpha_threshold, n_action_samples, use_gpu, scaler,
-                 augmentation, n_augmentations):
+                 augmentation):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
@@ -37,8 +37,7 @@ class CQLImpl(SACImpl):
                          initial_temperature=initial_temperature,
                          use_gpu=use_gpu,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         n_augmentations=n_augmentations)
+                         augmentation=augmentation)
         self.alpha_learning_rate = alpha_learning_rate
         self.alpha_optim_factory = alpha_optim_factory
         self.initial_alpha = initial_alpha

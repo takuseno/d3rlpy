@@ -49,7 +49,6 @@ class FQE(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     Attributes:
@@ -71,7 +70,6 @@ class FQE(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     """
@@ -93,7 +91,6 @@ class FQE(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
-                 n_augmentations=1,
                  impl=None,
                  **kwargs):
         super().__init__(batch_size=batch_size,
@@ -112,7 +109,6 @@ class FQE(AlgoBase):
         self.share_encoder = share_encoder
         self.target_update_interval = target_update_interval
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -138,7 +134,6 @@ class FQE(AlgoBase):
                             share_encoder=self.share_encoder,
                             use_gpu=self.use_gpu,
                             augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations,
                             scaler=self.scaler)
         self.impl.build()
 
@@ -198,7 +193,6 @@ class DiscreteFQE(FQE):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     Attributes:
@@ -220,7 +214,6 @@ class DiscreteFQE(FQE):
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     """
@@ -237,6 +230,5 @@ class DiscreteFQE(FQE):
                                     share_encoder=self.share_encoder,
                                     use_gpu=self.use_gpu,
                                     augmentation=self.augmentation,
-                                    n_augmentations=self.n_augmentations,
                                     scaler=self.scaler)
         self.impl.build()

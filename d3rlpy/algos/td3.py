@@ -70,7 +70,6 @@ class TD3(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.td3_impl.TD3Impl): algorithm implementation.
@@ -105,7 +104,6 @@ class TD3(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.td3_impl.TD3Impl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -136,7 +134,6 @@ class TD3(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
-                 n_augmentations=1,
                  encoder_params={},
                  dynamics=None,
                  impl=None,
@@ -164,7 +161,6 @@ class TD3(AlgoBase):
         self.update_actor_interval = update_actor_interval
         self.use_batch_norm = use_batch_norm
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
@@ -189,8 +185,7 @@ class TD3(AlgoBase):
                             target_smoothing_clip=self.target_smoothing_clip,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
-                            augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations)
+                            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
