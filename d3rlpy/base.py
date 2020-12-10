@@ -290,8 +290,7 @@ class LearnableBase:
             save_interval (int): interval to save parameters.
             scorers (list(callable)):
                 list of scorer functions used with `eval_episodes`.
-            shuffle (bool): whether or not to shuffle transitions on each
-                epoch.
+            shuffle (bool): flag to shuffle transitions on each epoch.
 
         """
 
