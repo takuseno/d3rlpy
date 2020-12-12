@@ -26,8 +26,8 @@ class AlgoImplBase(ImplBase):
 
 
 class AlgoBase(LearnableBase):
-    def __init__(self, batch_size, n_frames, scaler, dynamics):
-        super().__init__(batch_size, n_frames, scaler)
+    def __init__(self, batch_size, n_frames, n_steps, gamma, scaler, dynamics):
+        super().__init__(batch_size, n_frames, n_steps, gamma, scaler)
         self.dynamics = dynamics
 
     def save_policy(self, fname, as_onnx=False):

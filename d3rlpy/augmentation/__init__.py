@@ -8,6 +8,8 @@ from .image import Intensity
 from .image import ColorJitter
 from .vector import SingleAmplitudeScaling
 from .vector import MultipleAmplitudeScaling
+from .pipeline import AugmentationPipeline
+from .pipeline import DrQPipeline
 
 AUGMENTATION_LIST = {}
 
@@ -50,70 +52,3 @@ register_augmentation(Intensity)
 register_augmentation(ColorJitter)
 register_augmentation(SingleAmplitudeScaling)
 register_augmentation(MultipleAmplitudeScaling)
-
-
-class AugmentationPipeline:
-    """ Augmentation pipeline.
-
-    Args:
-        augmentations (list(d3rlpy.augmentation.base.Augmentation or str)):
-            list of augmentations or augmentation types.
-
-    Attributes:
-        augmentations (list(d3rlpy.augmentation.base.Augmentation)):
-            list of augmentations.
-
-    """
-    def __init__(self, augmentations=None):
-        if augmentations is None:
-            self.augmentations = []
-        else:
-            self.augmentations = augmentations
-
-    def append(self, augmentation):
-        """ Append augmentation to pipeline.
-
-        Args:
-            augmentation (d3rlpy.augmentation.base.Augmentation): augmentation.
-
-        """
-        self.augmentations.append(augmentation)
-
-    def transform(self, x):
-        """ Returns observation processed by all augmentations.
-
-        Args:
-            x (torch.Tensor): observation tensor.
-
-        Returns:
-            torch.Tensor: processed observation tensor.
-
-        """
-        if not self.augmentations:
-            return x
-
-        for augmentation in self.augmentations:
-            x = augmentation.transform(x)
-
-        return x
-
-    def get_augmentation_types(self):
-        """ Returns augmentation types.
-
-        Returns:
-            list(str): list of augmentation types.
-
-        """
-        return [aug.get_type() for aug in self.augmentations]
-
-    def get_augmentation_params(self):
-        """ Returns augmentation parameters.
-
-        Args:
-            deep (bool): flag to deeply copy objects.
-
-        Returns:
-            list(dict): list of augmentation parameters.
-
-        """
-        return [aug.get_params() for aug in self.augmentations]

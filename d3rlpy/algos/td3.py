@@ -8,7 +8,7 @@ from ..argument_utils import check_q_func
 
 
 class TD3(AlgoBase):
-    """ Twin Delayed Deep Deterministic Policy Gradients algorithm.
+    r""" Twin Delayed Deep Deterministic Policy Gradients algorithm.
 
     TD3 is an improved DDPG-based algorithm.
     Major differences from DDPG are as follows.
@@ -23,16 +23,16 @@ class TD3(AlgoBase):
 
     .. math::
 
-        L(\\theta_i) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
-            + \gamma \min_j Q_{\\theta_j'}(s_{t+1}, \pi_{\phi'}(s_{t+1}) +
-            \epsilon) - Q_{\\theta_i}(s_t, a_t))^2]
+        L(\theta_i) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
+            + \gamma \min_j Q_{\theta_j'}(s_{t+1}, \pi_{\phi'}(s_{t+1}) +
+            \epsilon) - Q_{\theta_i}(s_t, a_t))^2]
 
     .. math::
 
-        J(\\phi) = \mathbb{E}_{s_t \sim D}
-            [\min_i Q_{\\theta_i}(s_t, \pi_\phi(s_t))]
+        J(\phi) = \mathbb{E}_{s_t \sim D}
+            [\min_i Q_{\theta_i}(s_t, \pi_\phi(s_t))]
 
-    where :math:`\\epsilon \sim clip (N(0, \\sigma), -c, c)`
+    where :math:`\epsilon \sim clip (N(0, \sigma), -c, c)`
 
     References:
         * `Fujimoto et al., Addressing Function Approximation Error in
@@ -53,6 +53,7 @@ class TD3(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         reguralizing_rate (float): reguralizing term for policy function.
@@ -69,7 +70,6 @@ class TD3(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.td3_impl.TD3Impl): algorithm implementation.
@@ -89,6 +89,7 @@ class TD3(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         reguralizing_rate (float): reguralizing term for policy function.
@@ -103,7 +104,6 @@ class TD3(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.td3_impl.TD3Impl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -120,6 +120,7 @@ class TD3(AlgoBase):
                  q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  tau=0.005,
                  reguralizing_rate=0.0,
@@ -133,13 +134,14 @@ class TD3(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=[],
-                 n_augmentations=1,
                  encoder_params={},
                  dynamics=None,
                  impl=None,
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -149,7 +151,6 @@ class TD3(AlgoBase):
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.tau = tau
         self.reguralizing_rate = reguralizing_rate
         self.n_critics = n_critics
@@ -160,7 +161,6 @@ class TD3(AlgoBase):
         self.update_actor_interval = update_actor_interval
         self.use_batch_norm = use_batch_norm
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
@@ -185,8 +185,7 @@ class TD3(AlgoBase):
                             target_smoothing_clip=self.target_smoothing_clip,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
-                            augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations)
+                            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
@@ -194,7 +193,7 @@ class TD3(AlgoBase):
                                               batch.actions,
                                               batch.next_rewards,
                                               batch.next_observations,
-                                              batch.terminals)
+                                              batch.terminals, batch.n_steps)
         # delayed policy update
         if total_step % self.update_actor_interval == 0:
             actor_loss = self.impl.update_actor(batch.observations)

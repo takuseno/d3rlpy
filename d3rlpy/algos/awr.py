@@ -8,7 +8,7 @@ from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
 
 
 class AWR(AlgoBase):
-    """ Advantage-Weighted Regression algorithm.
+    r""" Advantage-Weighted Regression algorithm.
 
     AWR is an actor-critic algorithm that trains via supervised regression way,
     and has shown strong performance in online and offline settings.
@@ -17,18 +17,18 @@ class AWR(AlgoBase):
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{s_t, R_t \\sim D} [(R_t - V(s_t|\\theta))^2]
+        L(\theta) = \mathbb{E}_{s_t, R_t \sim D} [(R_t - V(s_t|\theta))^2]
 
-    where :math:`R_t` is approximated using TD(:math:`\\lambda`) to mitigate
+    where :math:`R_t` is approximated using TD(:math:`\lambda`) to mitigate
     high variance issue.
 
     The policy function is also trained as a supervised regression problem.
 
     .. math::
 
-        J(\\phi) = \\mathbb{E}_{s_t, a_t, R_t \\sim D}
-            [\\log \\pi(a_t|s_t, \\phi)
-                \\exp (\\frac{1}{B} (R_t - V(s_t|\\theta)))]
+        J(\phi) = \mathbb{E}_{s_t, a_t, R_t \sim D}
+            [\log \pi(a_t|s_t, \phi)
+                \exp (\frac{1}{B} (R_t - V(s_t|\theta)))]
 
     where :math:`B` is a constant factor.
 
@@ -54,16 +54,15 @@ class AWR(AlgoBase):
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.
         n_critic_updates (int): critic gradient steps per iteration.
-        lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
+        lam (float): :math:`\lambda`  for TD(:math:`\lambda`).
         beta (float): :math:`B` for weight scale.
-        max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
+        max_weight (float): :math:`w_{\text{max}}` for weight clipping.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.awr_impl.AWRImpl): algorithm implementation.
@@ -85,14 +84,13 @@ class AWR(AlgoBase):
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.
         n_critic_updates (int): critic gradient steps per iteration.
-        lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
+        lam (float): :math:`\lambda`  for TD(:math:`\lambda`).
         beta (float): :math:`B` for weight scale.
-        max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
+        max_weight (float): :math:`w_{\text{max}}` for weight clipping.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.awr_impl.AWRImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -118,13 +116,14 @@ class AWR(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  dynamics=None,
                  impl=None,
                  **kwargs):
         # batch_size in AWR has different semantic from Q learning algorithms.
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=1,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -136,12 +135,10 @@ class AWR(AlgoBase):
         self.batch_size_per_update = batch_size_per_update
         self.n_actor_updates = n_actor_updates
         self.n_critic_updates = n_critic_updates
-        self.gamma = gamma
         self.lam = lam
         self.beta = beta
         self.max_weight = max_weight
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
@@ -156,8 +153,7 @@ class AWR(AlgoBase):
                             critic_encoder_factory=self.critic_encoder_factory,
                             use_gpu=self.use_gpu,
                             scaler=self.scaler,
-                            augmentation=self.augmentation,
-                            n_augmentations=self.n_augmentations)
+                            augmentation=self.augmentation)
         self.impl.build()
 
     def _compute_lambda_returns(self, batch):
@@ -240,7 +236,7 @@ class AWR(AlgoBase):
 
 
 class DiscreteAWR(AWR):
-    """ Discrete veriosn of Advantage-Weighted Regression algorithm.
+    r""" Discrete veriosn of Advantage-Weighted Regression algorithm.
 
     AWR is an actor-critic algorithm that trains via supervised regression way,
     and has shown strong performance in online and offline settings.
@@ -249,18 +245,18 @@ class DiscreteAWR(AWR):
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{s_t, R_t \\sim D} [(R_t - V(s_t|\\theta))^2]
+        L(\theta) = \mathbb{E}_{s_t, R_t \sim D} [(R_t - V(s_t|\theta))^2]
 
-    where :math:`R_t` is approximated using TD(:math:`\\lambda`) to mitigate
+    where :math:`R_t` is approximated using TD(:math:`\lambda`) to mitigate
     high variance issue.
 
     The policy function is also trained as a supervised regression problem.
 
     .. math::
 
-        J(\\phi) = \\mathbb{E}_{s_t, a_t, R_t \\sim D}
-            [\\log \\pi(a_t|s_t, \\phi)
-                \\exp (\\frac{1}{B} (R_t - V(s_t|\\theta)))]
+        J(\phi) = \mathbb{E}_{s_t, a_t, R_t \sim D}
+            [\log \pi(a_t|s_t, \phi)
+                \exp (\frac{1}{B} (R_t - V(s_t|\theta)))]
 
     where :math:`B` is a constant factor.
 
@@ -286,16 +282,15 @@ class DiscreteAWR(AWR):
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.
         n_critic_updates (int): critic gradient steps per iteration.
-        lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
+        lam (float): :math:`\lambda`  for TD(:math:`\lambda`).
         beta (float): :math:`B` for weight scale.
-        max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
+        max_weight (float): :math:`w_{\text{max}}` for weight clipping.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.awr_impl.DiscreteAWRImpl):
@@ -318,14 +313,13 @@ class DiscreteAWR(AWR):
         batch_size_per_update (int): mini-batch size.
         n_actor_updates (int): actor gradient steps per iteration.
         n_critic_updates (int): critic gradient steps per iteration.
-        lam (float): :math:`\\lambda`  for TD(:math:`\\lambda`).
+        lam (float): :math:`\lambda`  for TD(:math:`\lambda`).
         beta (float): :math:`B` for weight scale.
-        max_weight (float): :math:`w_{\\text{max}}` for weight clipping.
+        max_weight (float): :math:`w_{\text{max}}` for weight clipping.
         use_gpu (d3rlpy.gpu.Device): GPU device.
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.awr_impl.DiscreteAWRImpl):
             algorithm implementation.
@@ -344,6 +338,5 @@ class DiscreteAWR(AWR):
             critic_encoder_factory=self.critic_encoder_factory,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
-            augmentation=self.augmentation,
-            n_augmentations=self.n_augmentations)
+            augmentation=self.augmentation)
         self.impl.build()

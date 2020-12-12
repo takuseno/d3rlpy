@@ -16,8 +16,7 @@ reinforcement learning algorithms.
     from d3rlpy.algos import DiscreteCQL
 
     # choose data augmentation types
-    cql = DiscreteCQL(augmentation=['random_shift', 'intensity'],
-                      n_augmentations=2)
+    cql = DiscreteCQL(augmentation=['random_shift', 'intensity'])
 
 You can also tune data augmentation parameters by yourself.
 
@@ -27,8 +26,7 @@ You can also tune data augmentation parameters by yourself.
 
     random_shift = RandomShift(shift_size=10)
 
-    cql = DiscreteCQL(augmentation=[random_shift, 'intensity'],
-                      n_augmentations=2)
+    cql = DiscreteCQL(augmentation=[random_shift, 'intensity'])
 
 Image Observation
 -----------------
@@ -54,3 +52,13 @@ Vector Observation
 
    d3rlpy.augmentation.vector.SingleAmplitudeScaling
    d3rlpy.augmentation.vector.MultipleAmplitudeScaling
+
+
+Augmentation Pipeline
+---------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   d3rlpy.augmentation.pipeline.DrQPipeline

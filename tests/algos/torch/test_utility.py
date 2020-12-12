@@ -10,7 +10,6 @@ from d3rlpy.algos.torch.utility import freeze, unfreeze
 from d3rlpy.algos.torch.utility import torch_api, train_api, eval_api
 from d3rlpy.algos.torch.utility import map_location
 from d3rlpy.algos.torch.utility import get_state_dict, set_state_dict
-from d3rlpy.algos.torch.utility import compute_augmentation_mean
 
 
 @pytest.mark.parametrize('tau', [0.05])
@@ -176,28 +175,6 @@ def test_unfreeze():
         assert p.requires_grad
     for p in impl.fc2.parameters():
         assert p.requires_grad
-
-
-def test_compute_augmentation_mean():
-    class DummyAugmentation:
-        def __init__(self):
-            self.n = 1
-
-        def transform(self, x):
-            y = x + self.n
-            self.n += 1
-            return y
-
-    aug = DummyAugmentation()
-
-    def func(x):
-        return x
-
-    x = np.random.random((100, 100))
-
-    y = compute_augmentation_mean(aug, 2, func, {'x': x}, 'x')
-
-    assert np.allclose(y, x + 1.5)
 
 
 def test_torch_api():

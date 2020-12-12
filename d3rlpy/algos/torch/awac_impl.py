@@ -5,7 +5,6 @@ from torch.optim import Adam
 from d3rlpy.models.torch.policies import squash_action, create_normal_policy
 from d3rlpy.optimizers import AdamFactory
 from .sac_impl import SACImpl
-from .utility import compute_augmentation_mean
 from .utility import torch_api, train_api
 
 
@@ -15,8 +14,7 @@ class AWACImpl(SACImpl):
                  critic_optim_factory, actor_encoder_factory,
                  critic_encoder_factory, q_func_factory, gamma, tau, lam,
                  n_action_samples, max_weight, n_critics, bootstrap,
-                 share_encoder, use_gpu, scaler, augmentation,
-                 n_augmentations):
+                 share_encoder, use_gpu, scaler, augmentation):
         super().__init__(observation_shape=observation_shape,
                          action_size=action_size,
                          actor_learning_rate=actor_learning_rate,
@@ -36,8 +34,7 @@ class AWACImpl(SACImpl):
                          initial_temperature=1e-20,
                          use_gpu=use_gpu,
                          scaler=scaler,
-                         augmentation=augmentation,
-                         n_augmentations=n_augmentations)
+                         augmentation=augmentation)
         self.lam = lam
         self.n_action_samples = n_action_samples
         self.max_weight = max_weight
@@ -53,9 +50,7 @@ class AWACImpl(SACImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t, act_t):
-        loss = compute_augmentation_mean(augmentation=self.augmentation,
-                                         n_augmentations=self.n_augmentations,
-                                         func=self._compute_actor_loss,
+        loss = self.augmentation.process(func=self._compute_actor_loss,
                                          inputs={
                                              'obs_t': obs_t,
                                              'act_t': act_t

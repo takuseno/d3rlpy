@@ -1,28 +1,33 @@
-from .base import AlgoBase
-from .torch.dqn_impl import DQNImpl, DoubleDQNImpl
+from ..algos.base import AlgoBase
 from ..optimizers import AdamFactory
 from ..argument_utils import check_encoder
 from ..argument_utils import check_use_gpu
 from ..argument_utils import check_q_func
 from ..argument_utils import check_augmentation
+from .torch.fqe_impl import FQEImpl, DiscreteFQEImpl
 
 
-class DQN(AlgoBase):
-    r""" Deep Q-Network algorithm.
+class FQE(AlgoBase):
+    r""" Fitted Q Evaluation.
+
+    FQE is an off-policy evaluation method that approximates a Q function
+    :math:`Q_\theta (s, a)` with the trained policy :math:`\pi_\phi(s)`.
 
     .. math::
 
-        L(\theta) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
-            + \gamma \max_a Q_{\theta'}(s_{t+1}, a) - Q_\theta(s_t, a_t))^2]
+        L(\theta) = \mathbb{E}_{s_t, a_t, r_{t+1} s_{t+1} \sim D}
+            [(Q_\theta(s_t, a_t) - r_{t+1}
+                - \gamma Q_{\theta'}(s_{t+1}, \pi_\phi(s_{t+1})))^2]
 
-    where :math:`\theta'` is the target network parameter. The target network
-    parameter is synchronized every `target_update_interval` iterations.
+    The trained Q function in FQE will estimate evaluation metrics more
+    accurately than learned Q function during training.
 
     References:
-        * `Mnih et al., Human-level control through deep reinforcement
-          learning. <https://www.nature.com/articles/nature14236>`_
+        * `Le et al., Batch Policy Learning under Constraints.
+          <https://arxiv.org/abs/1903.08738>`_
 
     Args:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory or str):
             optimizer factory.
@@ -44,11 +49,10 @@ class DQN(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
-            augmentation.
-        impl (d3rlpy.algos.torch.dqn_impl.DQNImpl): algorithm implementation.
+        impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     Attributes:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
@@ -63,32 +67,30 @@ class DQN(AlgoBase):
         share_encoder (bool): flag to share encoder network.
         target_update_interval (int): interval to update the target network.
         use_gpu (d3rlpy.gpu.Device): GPU device.
-        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.torch.dqn_impl.DQNImpl): algorithm implementation.
-        eval_results_ (dict): evaluation results.
+        impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     """
     def __init__(self,
                  *,
-                 learning_rate=6.25e-5,
+                 algo=None,
+                 learning_rate=1e-4,
                  optim_factory=AdamFactory(),
                  encoder_factory='default',
                  q_func_factory='mean',
-                 batch_size=32,
+                 batch_size=100,
                  n_frames=1,
                  n_steps=1,
                  gamma=0.99,
                  n_critics=1,
                  bootstrap=False,
                  share_encoder=False,
-                 target_update_interval=8e3,
+                 target_update_interval=100,
                  use_gpu=False,
                  scaler=None,
-                 augmentation=None,
-                 dynamics=None,
+                 augmentation=[],
                  impl=None,
                  **kwargs):
         super().__init__(batch_size=batch_size,
@@ -96,7 +98,8 @@ class DQN(AlgoBase):
                          n_steps=n_steps,
                          gamma=gamma,
                          scaler=scaler,
-                         dynamics=dynamics)
+                         dynamics=None)
+        self.algo = algo
         self.learning_rate = learning_rate
         self.optim_factory = optim_factory
         self.encoder_factory = check_encoder(encoder_factory)
@@ -109,8 +112,17 @@ class DQN(AlgoBase):
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
 
+    def save_policy(self, fname, as_onnx=False):
+        self.algo.save_policy(fname, as_onnx)
+
+    def predict(self, x):
+        return self.algo.predict(x)
+
+    def sample_action(self, x):
+        return self.algo.sample_action(x)
+
     def create_impl(self, observation_shape, action_size):
-        self.impl = DQNImpl(observation_shape=observation_shape,
+        self.impl = FQEImpl(observation_shape=observation_shape,
                             action_size=action_size,
                             learning_rate=self.learning_rate,
                             optim_factory=self.optim_factory,
@@ -121,14 +133,16 @@ class DQN(AlgoBase):
                             bootstrap=self.bootstrap,
                             share_encoder=self.share_encoder,
                             use_gpu=self.use_gpu,
-                            scaler=self.scaler,
-                            augmentation=self.augmentation)
+                            augmentation=self.augmentation,
+                            scaler=self.scaler)
         self.impl.build()
 
     def update(self, epoch, total_step, batch):
+        next_actions = self.algo.predict(batch.observations)
         loss = self.impl.update(batch.observations, batch.actions,
-                                batch.next_rewards, batch.next_observations,
-                                batch.terminals, batch.n_steps)
+                                batch.next_rewards, next_actions,
+                                batch.next_observations, batch.terminals,
+                                batch.n_steps)
         if total_step % self.target_update_interval == 0:
             self.impl.update_target()
         return (loss, )
@@ -137,30 +151,30 @@ class DQN(AlgoBase):
         return ['value_loss']
 
 
-class DoubleDQN(DQN):
-    r""" Double Deep Q-Network algorithm.
+class DiscreteFQE(FQE):
+    r""" Fitted Q Evaluation for discrete action-space.
 
-    The difference from DQN is that the action is taken from the current Q
-    function instead of the target Q function.
-    This modification significantly decreases overestimation bias of TD
-    learning.
+    FQE is an off-policy evaluation method that approximates a Q function
+    :math:`Q_\theta (s, a)` with the trained policy :math:`\pi_\phi(s)`.
 
     .. math::
 
-        L(\theta) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
-            + \gamma Q_{\theta'}(s_{t+1}, \text{argmax}_a
-            Q_\theta(s_{t+1}, a)) - Q_\theta(s_t, a_t))^2]
+        L(\theta) = \mathbb{E}_{s_t, a_t, r_{t+1} s_{t+1} \sim D}
+            [(Q_\theta(s_t, a_t) - r_{t+1}
+                - \gamma Q_{\theta'}(s_{t+1}, \pi_\phi(s_{t+1})))^2]
 
-    where :math:`\theta'` is the target network parameter. The target network
-    parameter is synchronized every `target_update_interval` iterations.
+    The trained Q function in FQE will estimate evaluation metrics more
+    accurately than learned Q function during training.
 
     References:
-        * `Hasselt et al., Deep reinforcement learning with double Q-learning.
-          <https://arxiv.org/abs/1509.06461>`_
+        * `Le et al., Batch Policy Learning under Constraints.
+          <https://arxiv.org/abs/1903.08738>`_
 
     Args:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
         learning_rate (float): learning rate.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
+        optim_factory (d3rlpy.optimizers.OptimizerFactory or str):
+            optimizer factory.
         encoder_factory (d3rlpy.encoders.EncoderFactory or str):
             encoder factory.
         q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
@@ -169,23 +183,20 @@ class DoubleDQN(DQN):
         n_frames (int): the number of frames to stack for image observation.
         n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
-        n_critics (int): the number of Q functions.
+        n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
-        target_update_interval (int): interval to synchronize the target
-            network.
+        target_update_interval (int): interval to update the target network.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
-            augmentation.
-        impl (d3rlpy.algos.torch.dqn_impl.DoubleDQNImpl):
-            algorithm implementation.
+        impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     Attributes:
+        algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
         encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
@@ -195,32 +206,29 @@ class DoubleDQN(DQN):
         n_frames (int): the number of frames to stack for image observation.
         n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
-        n_critics (int): the number of Q functions.
+        n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
-        target_update_interval (int): interval to synchronize the target
-            network.
+        target_update_interval (int): interval to update the target network.
         use_gpu (d3rlpy.gpu.Device): GPU device.
-        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+        augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        dynamics (d3rlpy.dynaics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.torch.dqn_impl.DoubleDQNImpl):
-            algorithm implementation.
+        impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     """
     def create_impl(self, observation_shape, action_size):
-        self.impl = DoubleDQNImpl(observation_shape=observation_shape,
-                                  action_size=action_size,
-                                  learning_rate=self.learning_rate,
-                                  optim_factory=self.optim_factory,
-                                  encoder_factory=self.encoder_factory,
-                                  q_func_factory=self.q_func_factory,
-                                  gamma=self.gamma,
-                                  n_critics=self.n_critics,
-                                  bootstrap=self.bootstrap,
-                                  share_encoder=self.share_encoder,
-                                  use_gpu=self.use_gpu,
-                                  scaler=self.scaler,
-                                  augmentation=self.augmentation)
+        self.impl = DiscreteFQEImpl(observation_shape=observation_shape,
+                                    action_size=action_size,
+                                    learning_rate=self.learning_rate,
+                                    optim_factory=self.optim_factory,
+                                    encoder_factory=self.encoder_factory,
+                                    q_func_factory=self.q_func_factory,
+                                    gamma=self.gamma,
+                                    n_critics=self.n_critics,
+                                    bootstrap=self.bootstrap,
+                                    share_encoder=self.share_encoder,
+                                    use_gpu=self.use_gpu,
+                                    augmentation=self.augmentation,
+                                    scaler=self.scaler)
         self.impl.build()

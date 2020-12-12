@@ -4,13 +4,13 @@ from .base import Augmentation
 
 
 class SingleAmplitudeScaling(Augmentation):
-    """ Single Amplitude Scaling augmentation.
+    r""" Single Amplitude Scaling augmentation.
 
     .. math::
 
         x' = x + z
 
-    where :math:`z \\sim \\text{Unif}(minimum, maximum)`.
+    where :math:`z \sim \text{Unif}(minimum, maximum)`.
 
     References:
         * `Laskin et al., Reinforcement Learning with Augmented Data.
@@ -60,13 +60,13 @@ class SingleAmplitudeScaling(Augmentation):
 
 
 class MultipleAmplitudeScaling(SingleAmplitudeScaling):
-    """ Multiple Amplitude Scaling augmentation.
+    r""" Multiple Amplitude Scaling augmentation.
 
     .. math::
 
         x' = x + z
 
-    where :math:`z \\sim \\text{Unif}(minimum, maximum)` and :math:`z`
+    where :math:`z \sim \text{Unif}(minimum, maximum)` and :math:`z`
     is a vector with different amplitude scale on each.
 
     References:

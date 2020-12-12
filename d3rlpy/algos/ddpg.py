@@ -8,29 +8,29 @@ from ..argument_utils import check_augmentation
 
 
 class DDPG(AlgoBase):
-    """ Deep Deterministic Policy Gradients algorithm.
+    r""" Deep Deterministic Policy Gradients algorithm.
 
     DDPG is an actor-critic algorithm that trains a Q function parametrized
-    with :math:`\\theta` and a policy function parametrized with :math:`\\phi`.
+    with :math:`\theta` and a policy function parametrized with :math:`\phi`.
 
     .. math::
 
-        L(\\theta) = \\mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \\sim D} [(r_{t+1}
-            + \\gamma Q_{\\theta'}(s_{t+1}, \\pi_{\\phi'}(s_{t+1}))
-            - Q_\\theta(s_t, a_t))^2]
+        L(\theta) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
+            + \gamma Q_{\theta'}(s_{t+1}, \pi_{\phi'}(s_{t+1}))
+            - Q_\theta(s_t, a_t))^2]
 
     .. math::
 
-        J(\\phi) = \\mathbb{E}_{s_t \\sim D} [Q_\\theta(s_t, \\pi_\\phi(s_t))]
+        J(\phi) = \mathbb{E}_{s_t \sim D} [Q_\theta(s_t, \pi_\phi(s_t))]
 
-    where :math:`\\theta'` and :math:`\\phi` are the target network parameters.
+    where :math:`\theta'` and :math:`\phi` are the target network parameters.
     There target network parameters are updated every iteration.
 
     .. math::
 
-        \\theta' \\gets \\tau \\theta + (1 - \\tau) \\theta'
+        \theta' \gets \tau \theta + (1 - \tau) \theta'
 
-        \\phi' \\gets \\tau \\phi + (1 - \\tau) \\phi'
+        \phi' \gets \tau \phi + (1 - \tau) \phi'
 
     References:
         * `Silver et al., Deterministic policy gradient algorithms.
@@ -53,6 +53,7 @@ class DDPG(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -65,7 +66,6 @@ class DDPG(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.ddpg_impl.DDPGImpl): algorithm implementation.
@@ -85,6 +85,7 @@ class DDPG(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -95,7 +96,6 @@ class DDPG(AlgoBase):
         scaler (d3rlpy.preprocessing.Scaler): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline):
             augmentation pipeline.
-        n_augmentations (int): the number of data augmentations to update.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         impl (d3rlpy.algos.torch.ddpg_impl.DDPGImpl): algorithm implementation.
         eval_results_ (dict): evaluation results.
@@ -112,6 +112,7 @@ class DDPG(AlgoBase):
                  q_func_factory='mean',
                  batch_size=100,
                  n_frames=1,
+                 n_steps=1,
                  gamma=0.99,
                  tau=0.005,
                  n_critics=1,
@@ -122,13 +123,14 @@ class DDPG(AlgoBase):
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
-                 n_augmentations=1,
                  encoder_params={},
                  dynamics=None,
                  impl=None,
                  **kwargs):
         super().__init__(batch_size=batch_size,
                          n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
                          scaler=scaler,
                          dynamics=dynamics)
         self.actor_learning_rate = actor_learning_rate
@@ -138,7 +140,6 @@ class DDPG(AlgoBase):
         self.actor_encoder_factory = check_encoder(actor_encoder_factory)
         self.critic_encoder_factory = check_encoder(critic_encoder_factory)
         self.q_func_factory = check_q_func(q_func_factory)
-        self.gamma = gamma
         self.tau = tau
         self.n_critics = n_critics
         self.bootstrap = bootstrap
@@ -146,7 +147,6 @@ class DDPG(AlgoBase):
         self.reguralizing_rate = reguralizing_rate
         self.use_batch_norm = use_batch_norm
         self.augmentation = check_augmentation(augmentation)
-        self.n_augmentations = n_augmentations
         self.encoder_params = encoder_params
         self.use_gpu = check_use_gpu(use_gpu)
         self.impl = impl
@@ -170,8 +170,7 @@ class DDPG(AlgoBase):
             reguralizing_rate=self.reguralizing_rate,
             use_gpu=self.use_gpu,
             scaler=self.scaler,
-            augmentation=self.augmentation,
-            n_augmentations=self.n_augmentations)
+            augmentation=self.augmentation)
         self.impl.build()
 
     def update(self, epoch, itr, batch):
@@ -179,7 +178,7 @@ class DDPG(AlgoBase):
                                               batch.actions,
                                               batch.next_rewards,
                                               batch.next_observations,
-                                              batch.terminals)
+                                              batch.terminals, batch.n_steps)
         actor_loss = self.impl.update_actor(batch.observations)
         self.impl.update_critic_target()
         self.impl.update_actor_target()

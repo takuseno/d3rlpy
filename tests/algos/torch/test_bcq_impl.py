@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from d3rlpy.algos.torch.bcq_impl import BCQImpl, DiscreteBCQImpl
-from d3rlpy.augmentation import AugmentationPipeline
+from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.optimizers import AdamFactory
 from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.q_functions import create_q_func_factory
@@ -30,15 +30,14 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize('latent_size', [32])
 @pytest.mark.parametrize('beta', [0.5])
 @pytest.mark.parametrize('scaler', [None, DummyScaler()])
-@pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
-@pytest.mark.parametrize('n_augmentations', [1])
+@pytest.mark.parametrize('augmentation', [DrQPipeline()])
 def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                   critic_learning_rate, imitator_learning_rate,
                   actor_optim_factory, critic_optim_factory,
                   imitator_optim_factory, encoder_factory, q_func_factory,
                   gamma, tau, n_critics, bootstrap, share_encoder, lam,
                   n_action_samples, action_flexibility, latent_size, beta,
-                  scaler, augmentation, n_augmentations):
+                  scaler, augmentation):
     impl = BCQImpl(observation_shape,
                    action_size,
                    actor_learning_rate,
@@ -63,8 +62,7 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
                    beta,
                    use_gpu=False,
                    scaler=scaler,
-                   augmentation=augmentation,
-                   n_augmentations=n_augmentations)
+                   augmentation=augmentation)
     impl.build()
 
     # test internal methods
@@ -112,13 +110,11 @@ def test_bcq_impl(observation_shape, action_size, actor_learning_rate,
 @pytest.mark.parametrize('action_flexibility', [0.3])
 @pytest.mark.parametrize('beta', [1e-2])
 @pytest.mark.parametrize('scaler', [None])
-@pytest.mark.parametrize('augmentation', [AugmentationPipeline()])
-@pytest.mark.parametrize('n_augmentations', [1])
+@pytest.mark.parametrize('augmentation', [DrQPipeline()])
 def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
                            optim_factory, encoder_factory, q_func_factory,
                            gamma, n_critics, bootstrap, share_encoder,
-                           action_flexibility, beta, scaler, augmentation,
-                           n_augmentations):
+                           action_flexibility, beta, scaler, augmentation):
     impl = DiscreteBCQImpl(observation_shape,
                            action_size,
                            learning_rate,
@@ -133,8 +129,7 @@ def test_discrete_bcq_impl(observation_shape, action_size, learning_rate,
                            beta,
                            use_gpu=False,
                            scaler=scaler,
-                           augmentation=augmentation,
-                           n_augmentations=n_augmentations)
+                           augmentation=augmentation)
     torch_impl_tester(impl,
                       discrete=True,
                       deterministic_best_action=q_func_factory != 'iqn')

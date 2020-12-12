@@ -100,11 +100,11 @@ class PixelScaler(Scaler):
 
 
 class MinMaxScaler(Scaler):
-    """ Min-Max normalization preprocessing.
+    r""" Min-Max normalization preprocessing.
 
     .. math::
 
-        x' = (x - \\min{x}) / (\\max{x} - \\min{x})
+        x' = (x - \min{x}) / (\max{x} - \min{x})
 
     .. code-block:: python
 
@@ -242,11 +242,11 @@ class MinMaxScaler(Scaler):
 
 
 class StandardScaler(Scaler):
-    """ Standardization preprocessing.
+    r""" Standardization preprocessing.
 
     .. math::
 
-        x' = (x - \\mu) / \\sigma
+        x' = (x - \mu) / \sigma
 
     .. code-block:: python
 

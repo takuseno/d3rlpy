@@ -4,7 +4,7 @@ from .scorer import _make_batches
 
 
 def compare_continuous_action_diff(base_algo, window_size=1024):
-    """ Returns scorer function of action difference between algorithms. 
+    r""" Returns scorer function of action difference between algorithms.
 
     This metrics suggests how different the two algorithms are in continuous
     action-space.
@@ -13,8 +13,8 @@ def compare_continuous_action_diff(base_algo, window_size=1024):
 
     .. math::
 
-        \\mathbb{E}_{s_t \\sim D}
-            [(\\pi_{\\phi_1}(s_t) - \\pi_{\\phi_2}(s_t))^2]
+        \mathbb{E}_{s_t \sim D}
+            [(\pi_{\phi_1}(s_t) - \pi_{\phi_2}(s_t))^2]
 
     .. code-block:: python
 
@@ -52,7 +52,7 @@ def compare_continuous_action_diff(base_algo, window_size=1024):
 
 
 def compare_discrete_action_match(base_algo, window_size=1024):
-    """ Returns scorer function of action matches between algorithms.
+    r""" Returns scorer function of action matches between algorithms.
 
     This metrics suggests how different the two algorithms are in discrete
     action-space.
@@ -61,9 +61,9 @@ def compare_discrete_action_match(base_algo, window_size=1024):
 
     .. math::
 
-        \\mathbb{E}_{s_t \\sim D} [\\parallel
-            \\{\\text{argmax}_a Q_{\\theta_1}(s_t, a)
-            = \\text{argmax}_a Q_{\\theta_2}(s_t, a)\\}]
+        \mathbb{E}_{s_t \sim D} [\parallel
+            \{\text{argmax}_a Q_{\theta_1}(s_t, a)
+            = \text{argmax}_a Q_{\theta_2}(s_t, a)\}]
 
     .. code-block:: python
 

@@ -122,8 +122,11 @@ def train(env,
         # update loop
         if total_step > update_start_step and len(buffer) > algo.batch_size:
             if total_step % update_interval == 0:
-                batch = buffer.sample(algo.batch_size, algo.n_frames)
-                loss = algo.update(epoch, total_step // update_interval, batch)
+                batch = buffer.sample(batch_size=algo.batch_size,
+                                      n_frames=algo.n_frames,
+                                      n_steps=algo.n_steps,
+                                      gamma=algo.gamma)
+                loss = algo.update(epoch, total_step, batch)
                 for name, val in zip(algo._get_loss_labels(), loss):
                     if val:
                         logger.add_metric(name, val)

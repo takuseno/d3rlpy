@@ -50,12 +50,14 @@ performance just in a few lines of codes.
 d3rlpy supports Linux, macOS and Windows.
 ### PyPI
 [![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/d3rlpy)
 ```
 $ pip install d3rlpy
 ```
 ### Anaconda
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/d3rlpy/badges/version.svg)](https://anaconda.org/conda-forge/d3rlpy)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/d3rlpy/badges/platforms.svg)](https://anaconda.org/conda-forge/d3rlpy)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/d3rlpy/badges/downloads.svg)](https://anaconda.org/conda-forge/d3rlpy)
 ```
 $ conda install -c conda-forge d3rlpy
 ```
@@ -89,6 +91,7 @@ Basically, all features are available with every algorithm.
 - [x] evaluation metrics in a scikit-learn scorer function style
 - [x] export greedy-policy as TorchScript or ONNX
 - [x] ensemble Q function
+- [x] N-step TD calculation
 - [x] parallel cross validation with multiple GPU
 - [x] online training
 - [x] [data augmentation](https://arxiv.org/abs/2004.13649)
@@ -282,6 +285,25 @@ transitions = sample(dataset.episodes[0].transitions, 32)
 batch = TransitionMiniBatch(transitions, n_frames=4)
 
 batch.observations.shape == (32, 4, 84, 84)
+```
+
+Finally, `TransitionMiniBatch` also supports N-step TD backup, which is also
+efficiently done with Cython.
+
+```py
+batch = TransitionMiniBatch(transitions, n_steps=1, gamma=0.99)
+
+# the number of steps before next observations at each batch index
+batch.n_steps.shape == (32, 1)
+
+# N step after batch.observations
+batch.next_observations
+
+# N step after batch.actions
+batch.next_actions
+
+# N-step return
+batch.next_rewards
 ```
 
 ## contributions

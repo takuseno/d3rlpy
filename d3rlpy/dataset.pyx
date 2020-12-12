@@ -928,10 +928,9 @@ def trace_back_and_clear(transition):
 @cython.wraparound(False)
 cdef void _stack_frames(TransitionPtr transition,
                         UINT8_t* stack,
-                        UINT8_t* next_stack,
                         int n_frames,
-                        bool stack_curr_frames=True,
-                        bool stack_next_frames=True) nogil:
+                        bool stack_next=False) nogil:
+    cdef UINT8_t* observation_ptr
     cdef int c = transition.get().observation_shape[0]
     cdef int h = transition.get().observation_shape[1]
     cdef int w = transition.get().observation_shape[2]
@@ -945,26 +944,23 @@ cdef void _stack_frames(TransitionPtr transition,
     cdef int offset
     cdef int index
     for i in range(n_frames):
+
         tail_channel = n_frames * c - i * c
         head_channel = tail_channel - c
 
-        if stack_curr_frames:
-            memcpy(stack + head_channel * h * w, t.get().observation_i, image_size)
+        if stack_next:
+            observation_ptr = t.get().next_observation_i
+        else:
+            observation_ptr = t.get().observation_i
 
-        if stack_next_frames:
-            memcpy(next_stack + head_channel * h * w, t.get().next_observation_i, image_size)
+        memcpy(stack + head_channel * h * w, observation_ptr, image_size)
 
         if t.get().prev_transition == nullptr:
             # fill rests with the last frame
             for j in range(n_frames - i - 1):
                 tail_channel = n_frames * c - (i + j + 1) * c
                 head_channel = tail_channel - c
-
-                if stack_curr_frames:
-                    memcpy(stack + head_channel * h * w, t.get().observation_i, image_size)
-
-                if stack_next_frames:
-                    memcpy(next_stack + head_channel * h * w, t.get().observation_i, image_size)
+                memcpy(stack + head_channel * h * w, t.get().observation_i, image_size)
             break
         t = t.get().prev_transition
 
@@ -997,6 +993,8 @@ cdef class TransitionMiniBatch:
         transitions (list(d3rlpy.dataset.Transition)):
             mini-batch of transitions.
         n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): length of N-step sampling.
+        gamma (float): discount factor for N-step calculation.
 
     """
     cdef list _transitions
@@ -1007,8 +1005,13 @@ cdef class TransitionMiniBatch:
     cdef np.ndarray _next_actions
     cdef np.ndarray _next_rewards
     cdef np.ndarray _terminals
+    cdef np.ndarray _n_steps
 
-    def __cinit__(self, list transitions not None, int n_frames=1):
+    def __cinit__(self,
+                  list transitions not None,
+                  int n_frames=1,
+                  int n_steps=1,
+                  float gamma=0.99):
         self._transitions = transitions
 
         # determine observation shape
@@ -1036,6 +1039,7 @@ cdef class TransitionMiniBatch:
         self._next_actions = np.empty((size,) + action_shape, dtype=action_dtype)
         self._next_rewards = np.empty((size, 1), dtype=np.float32)
         self._terminals = np.empty((size, 1), dtype=np.float32)
+        self._n_steps = np.empty((size, 1), dtype=np.float32)
 
         # determine flags
         cdef bool is_image
@@ -1051,6 +1055,7 @@ cdef class TransitionMiniBatch:
         cdef void* next_actions_ptr = self._next_actions.data
         cdef FLOAT_t* next_rewards_ptr = <FLOAT_t*> self._next_rewards.data
         cdef FLOAT_t* terminals_ptr = <FLOAT_t*> self._terminals.data
+        cdef FLOAT_t* n_steps_ptr = <FLOAT_t*> self._n_steps.data
 
         # get pointers to transitions
         cdef int i
@@ -1064,14 +1069,86 @@ cdef class TransitionMiniBatch:
         cdef TransitionPtr ptr
         for i in prange(size, nogil=True):
             ptr = transition_ptrs[i]
-            self._assign_to_batch(i, ptr, observations_ptr, actions_ptr,
-                                  rewards_ptr, next_observations_ptr,
-                                  next_actions_ptr, next_rewards_ptr,
-                                  terminals_ptr, n_frames, is_image,
-                                  is_discrete)
+            self._assign_to_batch(batch_index=i,
+                                  ptr=ptr,
+                                  observations_ptr=observations_ptr,
+                                  actions_ptr=actions_ptr,
+                                  rewards_ptr=rewards_ptr,
+                                  next_observations_ptr=next_observations_ptr,
+                                  next_actions_ptr=next_actions_ptr,
+                                  next_rewards_ptr=next_rewards_ptr,
+                                  terminals_ptr=terminals_ptr,
+                                  n_steps_ptr=n_steps_ptr,
+                                  n_frames=n_frames,
+                                  n_steps=n_steps,
+                                  gamma=gamma,
+                                  is_image=is_image,
+                                  is_discrete=is_discrete)
+
+    cdef void _assign_observation(self,
+                                  int batch_index,
+                                  TransitionPtr ptr,
+                                  void* observations_ptr,
+                                  int n_frames,
+                                  bool is_image,
+                                  bool is_next) nogil:
+        cdef int offset, channel, height, width
+        cdef void* src_observation_ptr
+        if is_image:
+            channel = ptr.get().observation_shape[0]
+            height = ptr.get().observation_shape[1]
+            width = ptr.get().observation_shape[2]
+            # stack frames if necessary
+            if n_frames > 1:
+                offset = n_frames * batch_index * channel * height * width
+                _stack_frames(transition=ptr,
+                              stack=(<UINT8_t*> observations_ptr) + offset,
+                              n_frames=n_frames,
+                              stack_next=is_next)
+            else:
+                offset = batch_index * channel * height * width
+                if is_next:
+                    src_observation_ptr = ptr.get().next_observation_i
+                else:
+                    src_observation_ptr = ptr.get().observation_i
+                memcpy((<UINT8_t*> observations_ptr) + offset,
+                       <UINT8_t*> src_observation_ptr,
+                       channel * height * width)
+        else:
+            offset = batch_index * ptr.get().observation_shape[0]
+            if is_next:
+                src_observation_ptr = ptr.get().next_observation_f
+            else:
+                src_observation_ptr = ptr.get().observation_f
+            memcpy((<FLOAT_t*> observations_ptr) + offset,
+                   <FLOAT_t*> src_observation_ptr,
+                   ptr.get().observation_shape[0] * sizeof(FLOAT_t))
+
+    cdef void _assign_action(self,
+                             int batch_index,
+                             TransitionPtr ptr,
+                             void* actions_ptr,
+                             bool is_discrete,
+                             bool is_next) nogil:
+        cdef int offset
+        cdef void* src_action_ptr
+        if is_discrete:
+            if is_next:
+                ((<INT_t*> actions_ptr) + batch_index)[0] = ptr.get().next_action_i
+            else:
+                ((<INT_t*> actions_ptr) + batch_index)[0] = ptr.get().action_i
+        else:
+            offset = batch_index * ptr.get().action_size
+            if is_next:
+                src_action_ptr = ptr.get().next_action_f
+            else:
+                src_action_ptr = ptr.get().action_f
+            memcpy((<FLOAT_t*> actions_ptr) + offset,
+                   <FLOAT_t*> src_action_ptr,
+                   ptr.get().action_size * sizeof(FLOAT_t))
 
     cdef void _assign_to_batch(self,
-                               int i,
+                               int batch_index,
                                TransitionPtr ptr,
                                void* observations_ptr,
                                void* actions_ptr,
@@ -1080,57 +1157,35 @@ cdef class TransitionMiniBatch:
                                void* next_actions_ptr,
                                float* next_rewards_ptr,
                                float* terminals_ptr,
+                               float* n_steps_ptr,
                                int n_frames,
+                               int n_steps,
+                               float gamma,
                                bool is_image,
                                bool is_discrete) nogil:
-        cdef int offset
-        cdef int channel, height, width
+        cdef int i
+        cdef float n_step_return = 0.0
+        cdef TransitionPtr next_ptr
 
-        # assign observation
-        if is_image:
-            channel = ptr.get().observation_shape[0]
-            height = ptr.get().observation_shape[1]
-            width = ptr.get().observation_shape[2]
-            # stack frames if necessary
-            if n_frames > 1:
-                offset = n_frames * i * channel * height * width
-                _stack_frames(transition=ptr,
-                              stack=(<UINT8_t*> observations_ptr) + offset,
-                              next_stack=(<UINT8_t*> next_observations_ptr) + offset,
-                              n_frames=n_frames)
-            else:
-                offset = i * channel * height * width
-                memcpy((<UINT8_t*> observations_ptr) + offset,
-                       ptr.get().observation_i,
-                       channel * height * width)
-                memcpy((<UINT8_t*> next_observations_ptr) + offset,
-                       ptr.get().next_observation_i,
-                       channel * height * width)
-        else:
-            offset = i * ptr.get().observation_shape[0]
-            memcpy((<FLOAT_t*> observations_ptr) + offset,
-                   ptr.get().observation_f,
-                   ptr.get().observation_shape[0] * sizeof(FLOAT_t))
-            memcpy((<FLOAT_t*> next_observations_ptr) + offset,
-                   ptr.get().next_observation_f,
-                   ptr.get().observation_shape[0] * sizeof(FLOAT_t))
+        # assign data at t
+        self._assign_observation(batch_index, ptr, observations_ptr, n_frames, is_image, False)
+        self._assign_action(batch_index, ptr, actions_ptr, is_discrete, False)
+        rewards_ptr[batch_index] = ptr.get().reward
 
-        # assign action
-        if is_discrete:
-            ((<INT_t*> actions_ptr) + i)[0] = ptr.get().action_i
-            ((<INT_t*> next_actions_ptr) + i)[0] = ptr.get().next_action_i
-        else:
-            offset = i * ptr.get().action_size
-            memcpy((<FLOAT_t*> actions_ptr) + offset,
-                   ptr.get().action_f,
-                   ptr.get().action_size * sizeof(FLOAT_t))
-            memcpy((<FLOAT_t*> next_actions_ptr) + offset,
-                   ptr.get().next_action_f,
-                   ptr.get().action_size * sizeof(FLOAT_t))
+        # compute N-step return
+        next_ptr = ptr
+        for i in range(n_steps):
+            n_step_return += next_ptr.get().next_reward * gamma ** i
+            if next_ptr.get().next_transition == nullptr or i == n_steps - 1:
+                break
+            next_ptr = next_ptr.get().next_transition
 
-        rewards_ptr[i] = ptr.get().reward
-        next_rewards_ptr[i] = ptr.get().next_reward
-        terminals_ptr[i] = ptr.get().terminal
+        # assign data at t+N
+        self._assign_observation(batch_index, next_ptr, next_observations_ptr, n_frames, is_image, True)
+        self._assign_action(batch_index, next_ptr, next_actions_ptr, is_discrete, True)
+        next_rewards_ptr[batch_index] = n_step_return
+        terminals_ptr[batch_index] = next_ptr.get().terminal
+        n_steps_ptr[batch_index] = i + 1
 
     @property
     def observations(self):
@@ -1164,43 +1219,56 @@ cdef class TransitionMiniBatch:
 
     @property
     def next_observations(self):
-        """ Returns mini-batch of observations at `t+1`.
+        """ Returns mini-batch of observations at `t+n`.
 
         Returns:
-            numpy.ndarray or torch.Tensor: observations at `t+1`.
+            numpy.ndarray or torch.Tensor: observations at `t+n`.
 
         """
         return self._next_observations
 
     @property
     def next_actions(self):
-        """ Returns mini-batch of actions at `t+1`.
+        """ Returns mini-batch of actions at `t+n`.
 
         Returns:
-            numpy.ndarray: actions at `t+1`.
+            numpy.ndarray: actions at `t+n`.
 
         """
         return self._next_actions
 
     @property
     def next_rewards(self):
-        """ Returns mini-batch of rewards at `t+1`.
+        """ Returns mini-batch of rewards at `t+n`.
 
         Returns:
-            numpy.ndarray: rewards at `t+1`.
+            numpy.ndarray: rewards at `t+n`.
 
         """
         return self._next_rewards
 
     @property
     def terminals(self):
-        """ Returns mini-batch of terminal flags at `t+1`.
+        """ Returns mini-batch of terminal flags at `t+n`.
 
         Returns:
-            numpy.ndarray: terminal flags at `t+1`.
+            numpy.ndarray: terminal flags at `t+n`.
 
         """
         return self._terminals
+
+    @property
+    def n_steps(self):
+        """ Returns mini-batch of the number of steps before next observations.
+
+        This will always include only ones if ``n_steps=1``. If ``n_steps`` is
+        bigger than ``1``. the values will depend on its episode length.
+
+        Returns:
+            numpy.ndarray: the number of steps before next observations.
+
+        """
+        return self._n_steps
 
     @property
     def transitions(self):
@@ -1285,10 +1353,9 @@ cdef _compute_returns(Transition transition, float gamma, int n_frames):
                 if n_frames > 1:
                     offset = n_frames * i * channel * height * width
                     _stack_frames(transition=ptr,
-                                  stack=NULL,
-                                  next_stack=(<UINT8_t*> observations_ptr) + offset,
+                                  stack=(<UINT8_t*> observations_ptr) + offset,
                                   n_frames=n_frames,
-                                  stack_curr_frames=False)
+                                  stack_next=True)
                 else:
                     offset = i * channel * height * width
                     memcpy((<UINT8_t*> observations_ptr) + offset,

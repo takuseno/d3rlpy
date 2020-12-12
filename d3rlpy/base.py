@@ -6,7 +6,8 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from tqdm import trange
 from .preprocessing import create_scaler, Scaler
-from .augmentation import create_augmentation, AugmentationPipeline
+from .augmentation import create_augmentation, AugmentationPipeline, DrQPipeline
+from .augmentation import DrQPipeline
 from .dataset import TransitionMiniBatch
 from .logger import D3RLPyLogger
 from .metrics.scorer import NEGATED_SCORER
@@ -43,9 +44,12 @@ def _serialize_params(params):
         elif isinstance(value, AugmentationPipeline):
             aug_types = value.get_augmentation_types()
             aug_params = value.get_augmentation_params()
-            params[key] = []
+            params[key] = {'params': value.get_params(), 'augmentations': []}
             for aug_type, aug_param in zip(aug_types, aug_params):
-                params[value].append({'type': aug_type, 'params': aug_param})
+                params[key]['augmentations'].append({
+                    'type': aug_type,
+                    'params': aug_param
+                })
     return params
 
 
@@ -58,12 +62,12 @@ def _deseriealize_params(params):
             params[key] = scaler
         elif key == 'augmentation' and params['augmentation']:
             augmentations = []
-            for param in params[key]:
+            for param in params[key]['augmentations']:
                 aug_type = param['type']
                 aug_params = param['params']
                 augmentation = create_augmentation(aug_type, **aug_params)
                 augmentations.append(augmentation)
-            params[key] = AugmentationPipeline(augmentations)
+            params[key] = DrQPipeline(augmentations, **params[key]['params'])
         elif 'optim_factory' in key:
             params[key] = OptimizerFactory(**value)
         elif 'encoder_factory' in key:
@@ -92,9 +96,11 @@ class LearnableBase:
         active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
 
     """
-    def __init__(self, batch_size, n_frames, scaler):
+    def __init__(self, batch_size, n_frames, n_steps, gamma, scaler):
         self.batch_size = batch_size
         self.n_frames = n_frames
+        self.n_steps = n_steps
+        self.gamma = gamma
         self.scaler = check_scaler(scaler)
 
         self.impl = None
@@ -335,13 +341,17 @@ class LearnableBase:
             range_gen = trange(n_iters) if show_progress else range(n_iters)
             for itr in range_gen:
                 # pick transitions
-                batch = []
+                sampled_transitions = []
                 head_index = itr * self.batch_size
                 for index in indices[head_index:head_index + self.batch_size]:
-                    batch.append(transitions[index])
+                    sampled_transitions.append(transitions[index])
 
-                loss = self.update(epoch, total_step,
-                                   TransitionMiniBatch(batch, self.n_frames))
+                batch = TransitionMiniBatch(transitions=sampled_transitions,
+                                            n_frames=self.n_frames,
+                                            n_steps=self.n_steps,
+                                            gamma=self.gamma)
+
+                loss = self.update(epoch, total_step, batch)
 
                 # record metrics
                 for name, val in zip(self._get_loss_labels(), loss):

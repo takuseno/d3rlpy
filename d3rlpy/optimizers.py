@@ -1,5 +1,6 @@
 import copy
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 
 from torch.optim import SGD, Adam, RMSprop
 
@@ -50,6 +51,12 @@ class OptimizerFactory:
 
     def get_params(self, deep=False):
         """ Returns optimizer parameters.
+
+        Args:
+            deep (bool): flag to deeply copy the parameters.
+
+        Returns:
+            dict: optimizer parameters.
 
         """
         if deep:
