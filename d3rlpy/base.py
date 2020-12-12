@@ -1,7 +1,6 @@
 import numpy as np
 import copy
 import json
-import random
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
@@ -341,25 +340,24 @@ class LearnableBase:
 
             # shuffle data
             if shuffle:
-                random.shuffle(transitions)
-
-            # batches generator
-            total_batches = ((len(transitions) + self.batch_size - 1) //
-                             self.batch_size)
-            batches = (transitions[i * self.batch_size:(i + 1) *
-                                   self.batch_size]
-                       for i in range(total_batches))
-
-            # Epoch progress bar
-            tqdm_epoch = tqdm(batches,
-                              total=total_batches,
-                              disable=not show_progress,
-                              desc=f'Epoch {epoch + 1}')
+                indices = np.random.permutation(np.arange(len(transitions)))
+            else:
+                indices = np.arange(len(transitions))
 
             # dict to add incremental mean losses to epoch
-            step_incremental_losses = {}
+            loss_history = {}
 
-            for itr, sampled_transitions in enumerate(tqdm_epoch, start=1):
+            n_iters = len(transitions) // self.batch_size
+            range_gen = tqdm(range(n_iters),
+                             disable=not show_progress,
+                             desc=f'Epoch {epoch + 1}')
+
+            for itr in range_gen:
+                # pick transitions
+                sampled_transitions = []
+                head_index = itr * self.batch_size
+                for index in indices[head_index:head_index + self.batch_size]:
+                    sampled_transitions.append(transitions[index])
 
                 batch = TransitionMiniBatch(transitions=sampled_transitions,
                                             n_frames=self.n_frames,
@@ -373,13 +371,12 @@ class LearnableBase:
                     if val is not None:
                         logger.add_metric(name, val)
 
-                        # update progress bar with partial means of losses
-                        incremental_mean_loss = np.mean(
+                        # update loss_history with partial means of losses
+                        loss_history[name] = np.mean(
                             logger.metrics_buffer[name])
-                        step_incremental_losses[name] = incremental_mean_loss
 
                 # update progress postfix with losses
-                tqdm_epoch.set_postfix(step_incremental_losses)
+                range_gen.set_postfix(loss_history)
 
                 total_step += 1
 
@@ -387,7 +384,7 @@ class LearnableBase:
             self.loss_history_['epoch'].append(epoch)
             self.loss_history_['step'].append(total_step)
             for name in self._get_loss_labels():
-                self.loss_history_[name].append(step_incremental_losses[name])
+                self.loss_history_[name].append(loss_history[name])
 
             if scorers and eval_episodes:
                 self._evaluate(eval_episodes, scorers, logger)
