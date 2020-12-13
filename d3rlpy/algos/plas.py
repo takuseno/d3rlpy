@@ -128,7 +128,7 @@ class PLAS(AlgoBase):
                  share_encoder=False,
                  update_actor_interval=1,
                  lam=0.75,
-                 rl_start_epoch=0,
+                 rl_start_epoch=5,
                  beta=0.5,
                  use_gpu=False,
                  scaler=None,
