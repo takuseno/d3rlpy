@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-from torch.optim import Adam
 from .utility import torch_api, train_api
 from .sac_impl import SACImpl
 from .dqn_impl import DoubleDQNImpl

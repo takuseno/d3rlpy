@@ -1,7 +1,6 @@
 import torch
 import math
 
-from torch.optim import Adam
 from d3rlpy.models.torch.encoders import PixelEncoder
 from d3rlpy.models.torch.policies import create_deterministic_residual_policy
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
