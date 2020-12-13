@@ -1,5 +1,5 @@
 from .base import AlgoBase
-from .torch.plas_impl import PLASImpl
+from .torch.plas_impl import PLASImpl, PLASWithPerturbationImpl
 from ..optimizers import AdamFactory
 from ..argument_utils import check_encoder
 from ..argument_utils import check_use_gpu
@@ -210,3 +210,184 @@ class PLAS(AlgoBase):
 
     def _get_loss_labels(self):
         return ['critic_loss', 'actor_loss', 'imitator_loss']
+
+
+class PLASWithPerturbation(PLAS):
+    r""" Policy in Latent Action Space algorithm with perturbation layer.
+
+    PLAS with perturbation layer enables PLAS to output out-of-distribution
+    action.
+
+    References:
+        * `Zhou et al., PLAS: latent action space for offline reinforcement
+          learning. <https://arxiv.org/abs/2011.07213>`_
+
+    Args:
+        actor_learning_rate (float): learning rate for policy function.
+        critic_learning_rate (float): learning rate for Q functions.
+        imitator_learning_rate (float): learning rate for Conditional VAE.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the conditional VAE.
+        actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory for the actor.
+        critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory for the critic.
+        imitator_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+            encoder factory for the conditional VAE.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+            Q function factory.
+        batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
+        gamma (float): discount factor.
+        tau (float): target network synchronization coefficiency.
+        n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
+        update_actor_interval (int): interval to update policy function.
+        lam (float): weight factor for critic ensemble.
+        action_flexibility (float): output scale of perturbation layer.
+        rl_start_epoch (int): epoch to start to update policy function and Q
+            functions. If this is large, RL training would be more stabilized.
+        beta (float): KL reguralization term for Conditional VAE.
+        use_gpu (bool, int or d3rlpy.gpu.Device):
+            flag to use GPU, device ID or device.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+            The available options are `['pixel', 'min_max', 'standard']`
+        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
+            augmentation pipeline.
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
+            augmentation.
+        impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
+
+    Attributes:
+        actor_learning_rate (float): learning rate for policy function.
+        critic_learning_rate (float): learning rate for Q functions.
+        imitator_learning_rate (float): learning rate for Conditional VAE.
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+            optimizer factory for the conditional VAE.
+        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
+            encoder factory for the actor.
+        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
+            encoder factory for the critic.
+        imitator_encoder_factory (d3rlpy.encoders.EncoderFactory):
+            encoder factory for the conditional VAE.
+        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
+            Q function factory.
+        batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
+        gamma (float): discount factor.
+        tau (float): target network synchronization coefficiency.
+        n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
+        update_actor_interval (int): interval to update policy function.
+        lam (float): weight factor for critic ensemble.
+        action_flexibility (float): output scale of perturbation layer.
+        rl_start_epoch (int): epoch to start to update policy function and Q
+            functions.
+        beta (float): KL reguralization term for Conditional VAE.
+        use_gpu (d3rlpy.gpu.Device): GPU device.
+        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
+        augmentation (d3rlpy.augmentation.AugmentationPipeline):
+            augmentation pipeline.
+        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
+        impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
+        eval_results_ (dict): evaluation results.
+
+    """
+    def __init__(self,
+                 *,
+                 actor_learning_rate=3e-4,
+                 critic_learning_rate=3e-4,
+                 imitator_learning_rate=3e-4,
+                 actor_optim_factory=AdamFactory(),
+                 critic_optim_factory=AdamFactory(),
+                 imitator_optim_factory=AdamFactory(),
+                 actor_encoder_factory='default',
+                 critic_encoder_factory='default',
+                 imitator_encoder_factory='default',
+                 q_func_factory='mean',
+                 batch_size=256,
+                 n_frames=1,
+                 n_steps=1,
+                 gamma=0.99,
+                 tau=0.005,
+                 n_critics=2,
+                 bootstrap=False,
+                 share_encoder=False,
+                 update_actor_interval=1,
+                 lam=0.75,
+                 action_flexibility=0.05,
+                 rl_start_epoch=10,
+                 beta=0.5,
+                 use_gpu=False,
+                 scaler=None,
+                 augmentation=None,
+                 dynamics=None,
+                 impl=None,
+                 **kwargs):
+        super().__init__(actor_learning_rate=actor_learning_rate,
+                         critic_learning_rate=critic_learning_rate,
+                         imitator_learning_rate=imitator_learning_rate,
+                         actor_optim_factory=actor_optim_factory,
+                         critic_optim_factory=critic_optim_factory,
+                         imitator_optim_factory=imitator_optim_factory,
+                         actor_encoder_factory=actor_encoder_factory,
+                         critic_encoder_factory=critic_encoder_factory,
+                         imitator_encoder_factory=imitator_encoder_factory,
+                         q_func_factory=q_func_factory,
+                         batch_size=batch_size,
+                         n_frames=n_frames,
+                         n_steps=n_steps,
+                         gamma=gamma,
+                         tau=tau,
+                         n_critics=n_critics,
+                         bootstrap=bootstrap,
+                         share_encoder=share_encoder,
+                         update_actor_interval=update_actor_interval,
+                         lam=lam,
+                         rl_start_epoch=rl_start_epoch,
+                         beta=beta,
+                         use_gpu=use_gpu,
+                         scaler=scaler,
+                         augmentation=augmentation,
+                         dynamics=dynamics,
+                         impl=impl)
+        self.action_flexibility = action_flexibility
+
+    def create_impl(self, observation_shape, action_size):
+        self.impl = PLASWithPerturbationImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            actor_learning_rate=self.actor_learning_rate,
+            critic_learning_rate=self.critic_learning_rate,
+            imitator_learning_rate=self.imitator_learning_rate,
+            actor_optim_factory=self.actor_optim_factory,
+            critic_optim_factory=self.critic_optim_factory,
+            imitator_optim_factory=self.imitator_optim_factory,
+            actor_encoder_factory=self.actor_encoder_factory,
+            critic_encoder_factory=self.critic_encoder_factory,
+            imitator_encoder_factory=self.imitator_encoder_factory,
+            q_func_factory=self.q_func_factory,
+            gamma=self.gamma,
+            tau=self.tau,
+            n_critics=self.n_critics,
+            bootstrap=self.bootstrap,
+            share_encoder=self.share_encoder,
+            lam=self.lam,
+            beta=self.beta,
+            action_flexibility=self.action_flexibility,
+            use_gpu=self.use_gpu,
+            scaler=self.scaler,
+            augmentation=self.augmentation)
+        self.impl.build()

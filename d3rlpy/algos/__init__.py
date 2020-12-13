@@ -7,7 +7,7 @@ from .bear import BEAR
 from .cql import CQL, DiscreteCQL
 from .ddpg import DDPG
 from .dqn import DQN, DoubleDQN
-from .plas import PLAS
+from .plas import PLAS, PLASWithPerturbation
 from .sac import SAC, DiscreteSAC
 from .td3 import TD3
 
