@@ -57,8 +57,7 @@ class PLASImpl(DDPGImpl):
     def _build_imitator(self):
         self.imitator = create_conditional_vae(self.observation_shape,
                                                self.action_size,
-                                               2 * self.action_size,
-                                               self.beta,
+                                               2 * self.action_size, self.beta,
                                                self.imitator_encoder_factory)
 
     def _build_imitator_optim(self):
