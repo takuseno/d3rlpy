@@ -17,9 +17,9 @@ class PLAS(AlgoBase):
 
     .. math::
 
-       a \sim p_\Beta(a|s, z=\pi_\phi(s))
+       a \sim p_\beta (a|s, z=\pi_\phi(s))
 
-    where \Beta is a parameter of the decoder in Conditional VAE.
+    where :math:`\beta` is a parameter of the decoder in Conditional VAE.
 
     References:
         * `Zhou et al., PLAS: latent action space for offline reinforcement
