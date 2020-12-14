@@ -95,7 +95,7 @@ class PLASImpl(DDPGImpl):
     def compute_target(self, x):
         with torch.no_grad():
             action = self.imitator.decode(x, 2.0 * self.targ_policy(x))
-            return self.q_func.compute_target(x, action, 'mix', self.lam)
+            return self.targ_q_func.compute_target(x, action, 'mix', self.lam)
 
 
 class PLASWithPerturbationImpl(PLASImpl):
@@ -166,10 +166,9 @@ class PLASWithPerturbationImpl(PLASImpl):
         with torch.no_grad():
             action = self.imitator.decode(x, 2.0 * self.targ_policy(x))
             residual_action = self.targ_perturbation(x, action)
-            return self.q_func.compute_target(x=x,
-                                              action=residual_action,
-                                              reduction='mix',
-                                              lam=self.lam)
+            return self.targ_q_func.compute_target(x, residual_action,
+                                                   reduction='mix',
+                                                   lam=self.lam)
 
     def update_actor_target(self):
         super().update_actor_target()
