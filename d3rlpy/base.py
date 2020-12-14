@@ -383,7 +383,8 @@ class LearnableBase:
             self.loss_history_['epoch'].append(epoch)
             self.loss_history_['step'].append(total_step)
             for name in self._get_loss_labels():
-                self.loss_history_[name].append(np.mean(epoch_loss[name]))
+                if name in epoch_loss:
+                    self.loss_history_[name].append(np.mean(epoch_loss[name]))
 
             if scorers and eval_episodes:
                 self._evaluate(eval_episodes, scorers, logger)
