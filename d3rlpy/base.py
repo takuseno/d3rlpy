@@ -345,12 +345,12 @@ class LearnableBase:
                 indices = np.arange(len(transitions))
 
             # dict to add incremental mean losses to epoch
-            loss_history = {}
+            epoch_loss = defaultdict(list)
 
             n_iters = len(transitions) // self.batch_size
             range_gen = tqdm(range(n_iters),
                              disable=not show_progress,
-                             desc=f'Epoch {epoch + 1}')
+                             desc='Epoch %d' % int(epoch + 1))
 
             for itr in range_gen:
                 # pick transitions
@@ -370,13 +370,12 @@ class LearnableBase:
                 for name, val in zip(self._get_loss_labels(), loss):
                     if val is not None:
                         logger.add_metric(name, val)
-
-                        # update loss_history with partial means of losses
-                        loss_history[name] = np.mean(
-                            logger.metrics_buffer[name])
+                        epoch_loss[name].append(val)
 
                 # update progress postfix with losses
-                range_gen.set_postfix(loss_history)
+                if itr % 10 == 0:
+                    mean_loss = {k: np.mean(v) for k, v in epoch_loss.items()}
+                    range_gen.set_postfix(mean_loss)
 
                 total_step += 1
 
@@ -384,7 +383,7 @@ class LearnableBase:
             self.loss_history_['epoch'].append(epoch)
             self.loss_history_['step'].append(total_step)
             for name in self._get_loss_labels():
-                self.loss_history_[name].append(loss_history[name])
+                self.loss_history_[name].append(np.mean(epoch_loss[name]))
 
             if scorers and eval_episodes:
                 self._evaluate(eval_episodes, scorers, logger)
