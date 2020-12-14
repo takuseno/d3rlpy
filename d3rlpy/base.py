@@ -350,7 +350,7 @@ class LearnableBase:
             n_iters = len(transitions) // self.batch_size
             range_gen = tqdm(range(n_iters),
                              disable=not show_progress,
-                             desc='Epoch %d' % int(epoch + 1))
+                             desc='Epoch %d' % int(epoch))
 
             for itr in range_gen:
                 # pick transitions
