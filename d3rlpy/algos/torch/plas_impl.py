@@ -166,7 +166,8 @@ class PLASWithPerturbationImpl(PLASImpl):
         with torch.no_grad():
             action = self.imitator.decode(x, 2.0 * self.targ_policy(x))
             residual_action = self.targ_perturbation(x, action)
-            return self.targ_q_func.compute_target(x, residual_action,
+            return self.targ_q_func.compute_target(x,
+                                                   residual_action,
                                                    reduction='mix',
                                                    lam=self.lam)
 
