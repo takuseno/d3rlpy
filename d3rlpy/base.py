@@ -4,7 +4,7 @@ import json
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-from tqdm import trange
+from tqdm.auto import tqdm
 from .preprocessing import create_scaler, Scaler
 from .augmentation import create_augmentation, AugmentationPipeline, DrQPipeline
 from .augmentation import DrQPipeline
@@ -261,7 +261,8 @@ class LearnableBase:
             tensorboard=True,
             eval_episodes=None,
             save_interval=1,
-            scorers=None):
+            scorers=None,
+            shuffle=True):
         """ Trains with the given dataset.
 
         .. code-block:: python
@@ -288,6 +289,7 @@ class LearnableBase:
             save_interval (int): interval to save parameters.
             scorers (list(callable)):
                 list of scorer functions used with `eval_episodes`.
+            shuffle (bool): flag to shuffle transitions on each epoch.
 
         """
 
@@ -336,9 +338,20 @@ class LearnableBase:
             if new_transitions:
                 transitions = env_transitions + new_transitions
 
-            indices = np.random.permutation(np.arange(len(transitions)))
+            # shuffle data
+            if shuffle:
+                indices = np.random.permutation(np.arange(len(transitions)))
+            else:
+                indices = np.arange(len(transitions))
+
+            # dict to add incremental mean losses to epoch
+            epoch_loss = defaultdict(list)
+
             n_iters = len(transitions) // self.batch_size
-            range_gen = trange(n_iters) if show_progress else range(n_iters)
+            range_gen = tqdm(range(n_iters),
+                             disable=not show_progress,
+                             desc='Epoch %d' % int(epoch))
+
             for itr in range_gen:
                 # pick transitions
                 sampled_transitions = []
@@ -357,11 +370,21 @@ class LearnableBase:
                 for name, val in zip(self._get_loss_labels(), loss):
                     if val is not None:
                         logger.add_metric(name, val)
+                        epoch_loss[name].append(val)
 
-                        # save loss to loss history dict
-                        self.loss_history_[name].append(val)
+                # update progress postfix with losses
+                if itr % 10 == 0:
+                    mean_loss = {k: np.mean(v) for k, v in epoch_loss.items()}
+                    range_gen.set_postfix(mean_loss)
 
                 total_step += 1
+
+            # save loss to loss history dict
+            self.loss_history_['epoch'].append(epoch)
+            self.loss_history_['step'].append(total_step)
+            for name in self._get_loss_labels():
+                if name in epoch_loss:
+                    self.loss_history_[name].append(np.mean(epoch_loss[name]))
 
             if scorers and eval_episodes:
                 self._evaluate(eval_episodes, scorers, logger)

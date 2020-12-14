@@ -639,7 +639,7 @@ class EnsembleQFunction(nn.Module):
 
         return td_sum
 
-    def compute_target(self, x, action=None, reduction='min'):
+    def compute_target(self, x, action=None, reduction='min', lam=0.75):
         values = []
         for q_func in self.q_funcs:
             target = q_func.compute_target(x, action)
@@ -657,9 +657,9 @@ class EnsembleQFunction(nn.Module):
             return _reduce_quantile_ensemble(values, reduction)
 
         if values.shape[2] == 1:
-            return _reduce_ensemble(values, reduction)
+            return _reduce_ensemble(values, reduction, lam=lam)
 
-        return _reduce_quantile_ensemble(values, reduction)
+        return _reduce_quantile_ensemble(values, reduction, lam=lam)
 
 
 class EnsembleDiscreteQFunction(EnsembleQFunction):

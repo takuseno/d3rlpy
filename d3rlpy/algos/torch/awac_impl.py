@@ -1,7 +1,6 @@
 import torch
 import torch.nn.functional as F
 
-from torch.optim import Adam
 from d3rlpy.models.torch.policies import squash_action, create_normal_policy
 from d3rlpy.optimizers import AdamFactory
 from .sac_impl import SACImpl

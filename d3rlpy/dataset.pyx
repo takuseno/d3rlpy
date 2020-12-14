@@ -1168,8 +1168,17 @@ cdef class TransitionMiniBatch:
         cdef TransitionPtr next_ptr
 
         # assign data at t
-        self._assign_observation(batch_index, ptr, observations_ptr, n_frames, is_image, False)
-        self._assign_action(batch_index, ptr, actions_ptr, is_discrete, False)
+        self._assign_observation(batch_index=batch_index,
+                                 ptr=ptr,
+                                 observations_ptr=observations_ptr,
+                                 n_frames=n_frames,
+                                 is_image=is_image,
+                                 is_next=False)
+        self._assign_action(batch_index=batch_index,
+                            ptr=ptr,
+                            actions_ptr=actions_ptr,
+                            is_discrete=is_discrete,
+                            is_next=False)
         rewards_ptr[batch_index] = ptr.get().reward
 
         # compute N-step return
@@ -1181,8 +1190,17 @@ cdef class TransitionMiniBatch:
             next_ptr = next_ptr.get().next_transition
 
         # assign data at t+N
-        self._assign_observation(batch_index, next_ptr, next_observations_ptr, n_frames, is_image, True)
-        self._assign_action(batch_index, next_ptr, next_actions_ptr, is_discrete, True)
+        self._assign_observation(batch_index=batch_index,
+                                 ptr=next_ptr,
+                                 observations_ptr=next_observations_ptr,
+                                 n_frames=n_frames,
+                                 is_image=is_image,
+                                 is_next=True)
+        self._assign_action(batch_index=batch_index,
+                            ptr=next_ptr,
+                            actions_ptr=next_actions_ptr,
+                            is_discrete=is_discrete,
+                            is_next=True)
         next_rewards_ptr[batch_index] = n_step_return
         terminals_ptr[batch_index] = next_ptr.get().terminal
         n_steps_ptr[batch_index] = i + 1
