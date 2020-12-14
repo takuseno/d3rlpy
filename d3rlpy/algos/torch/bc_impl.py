@@ -1,4 +1,3 @@
-from torch.optim import Adam
 from d3rlpy.models.torch.imitators import create_deterministic_regressor
 from d3rlpy.models.torch.imitators import create_discrete_imitator
 from .base import TorchImplBase

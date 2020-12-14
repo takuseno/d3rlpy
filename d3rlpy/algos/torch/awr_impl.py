@@ -1,6 +1,5 @@
 import torch
 
-from torch.optim import SGD
 from d3rlpy.models.torch.v_functions import create_value_function
 from d3rlpy.models.torch.policies import squash_action, create_normal_policy
 from d3rlpy.models.torch.policies import create_categorical_policy

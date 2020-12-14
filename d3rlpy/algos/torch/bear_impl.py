@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import math
 
-from torch.optim import Adam
 from d3rlpy.models.torch.imitators import create_probablistic_regressor
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
 from .utility import torch_api, train_api
