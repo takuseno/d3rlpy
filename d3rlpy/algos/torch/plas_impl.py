@@ -52,19 +52,22 @@ class PLASImpl(DDPGImpl):
         self._build_imitator_optim()
 
     def _build_actor(self):
-        self.policy = create_deterministic_policy(self.observation_shape,
-                                                  2 * self.action_size,
-                                                  self.actor_encoder_factory)
+        self.policy = create_deterministic_policy(
+            observation_shape=self.observation_shape,
+            action_size=2 * self.action_size,
+            encoder_factory=self.actor_encoder_factory)
 
     def _build_imitator(self):
-        self.imitator = create_conditional_vae(self.observation_shape,
-                                               self.action_size,
-                                               2 * self.action_size, self.beta,
-                                               self.imitator_encoder_factory)
+        self.imitator = create_conditional_vae(
+            observation_shape=self.observation_shape,
+            action_size=self.action_size,
+            latent_size=2 * self.action_size,
+            beta=self.beta,
+            encoder_factory=self.imitator_encoder_factory)
 
     def _build_imitator_optim(self):
         self.imitator_optim = self.imitator_optim_factory.create(
-            self.imitator.parameters(), lr=self.imitator_learning_rate)
+            params=self.imitator.parameters(), lr=self.imitator_learning_rate)
 
     @train_api
     @torch_api(scaler_targets=['obs_t'])
@@ -83,18 +86,15 @@ class PLASImpl(DDPGImpl):
         return loss.cpu().detach().numpy()
 
     def _compute_actor_loss(self, obs_t):
-        latent_action = self.policy(obs_t)
-        action = self.imitator.decode(obs_t, 2.0 * latent_action)
+        action = self.imitator.decode(obs_t, 2.0 * self.policy(obs_t))
         return -self.q_func(obs_t, action, 'none')[0].mean()
 
     def _predict_best_action(self, x):
-        latent_action = self.policy(x)
-        return self.imitator.decode(x, 2.0 * latent_action)
+        return self.imitator.decode(x, 2.0 * self.policy(x))
 
     def compute_target(self, x):
         with torch.no_grad():
-            latent_action = self.targ_policy(x)
-            action = self.imitator.decode(x, 2.0 * latent_action)
+            action = self.imitator.decode(x, 2.0 * self.targ_policy(x))
             return self.q_func.compute_target(x, action, 'mix', self.lam)
 
 
@@ -151,23 +151,20 @@ class PLASWithPerturbationImpl(PLASImpl):
         parameters = list(self.policy.parameters())
         parameters += list(self.perturbation.parameters())
         self.actor_optim = self.actor_optim_factory.create(
-            parameters, lr=self.actor_learning_rate)
+            params=parameters, lr=self.actor_learning_rate)
 
     def _compute_actor_loss(self, obs_t):
-        latent_action = self.policy(obs_t)
-        action = self.imitator.decode(obs_t, 2.0 * latent_action)
+        action = self.imitator.decode(obs_t, 2.0 * self.policy(obs_t))
         residual_action = self.perturbation(obs_t, action)
         return -self.q_func(obs_t, residual_action, 'none')[0].mean()
 
     def _predict_best_action(self, x):
-        latent_action = self.policy(x)
-        action = self.imitator.decode(x, 2.0 * latent_action)
+        action = self.imitator.decode(x, 2.0 * self.policy(x))
         return self.perturbation(x, action)
 
     def compute_target(self, x):
         with torch.no_grad():
-            latent_action = self.targ_policy(x)
-            action = self.imitator.decode(x, 2.0 * latent_action)
+            action = self.imitator.decode(x, 2.0 * self.targ_policy(x))
             residual_action = self.targ_perturbation(x, action)
             return self.q_func.compute_target(x=x,
                                               action=residual_action,
