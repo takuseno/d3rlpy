@@ -17,11 +17,24 @@ save_model and load_model
     # save entire model parameters.
     dqn.save_model('model.pt')
 
+``save_model`` method saves all parameters including optimizer states, which is
+useful when checking all the outputs or re-training from snapshots.
+
+Once you save your model, you can load it via ``load_model`` method. Before
+loading the model, the algorithm object must be initialized as follows.
+
+.. code-block:: python
+
+    dqn = DQN()
+
+    # initialize with dataset
+    dqn.build_with_dataset(dataset)
+
+    # initialize with environment
+    # dqn.build_with_env(env)
+
     # load entire model parameters.
     dqn.load_model('model.pt')
-
-`save_model` method saves all parameters including optimizer states, which is
-useful when checking all the outputs or re-training from snapshots.
 
 
 from_json
@@ -29,9 +42,9 @@ from_json
 
 It is very boring to set the same hyperparameters to initialize algorithms when
 loading model parameters.
-In d3rlpy, `params.json` is saved at the beggining of `fit` method, which
+In d3rlpy, ``params.json`` is saved at the beggining of ``fit`` method, which
 includes all hyperparameters within the algorithm object.
-You can recreate algorithm objects from `params.json` via `from_json` method.
+You can recreate algorithm objects from ``params.json`` via ``from_json`` method.
 
 .. code-block:: python
 
@@ -46,10 +59,10 @@ You can recreate algorithm objects from `params.json` via `from_json` method.
 save_policy
 -----------
 
-`save_policy` method saves the only greedy-policy computation graph as
+``save_policy`` method saves the only greedy-policy computation graph as
 TorchSciprt or ONNX.
-When `save_policy` method is called, the greedy-policy graph is constructed
-and traced via `torch.jit.trace` function.
+When ``save_policy`` method is called, the greedy-policy graph is constructed
+and traced via ``torch.jit.trace`` function.
 
 .. code-block:: python
 
