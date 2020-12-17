@@ -140,7 +140,7 @@ class SAC(AlgoBase):
                  n_critics=2,
                  bootstrap=False,
                  share_encoder=False,
-                 update_actor_interval=2,
+                 update_actor_interval=1,
                  initial_temperature=1.0,
                  use_gpu=False,
                  scaler=None,
