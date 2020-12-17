@@ -119,7 +119,6 @@ class DDPG(AlgoBase):
                  bootstrap=False,
                  share_encoder=False,
                  reguralizing_rate=1e-10,
-                 use_batch_norm=False,
                  use_gpu=False,
                  scaler=None,
                  augmentation=None,
@@ -145,7 +144,6 @@ class DDPG(AlgoBase):
         self.bootstrap = bootstrap
         self.share_encoder = share_encoder
         self.reguralizing_rate = reguralizing_rate
-        self.use_batch_norm = use_batch_norm
         self.augmentation = check_augmentation(augmentation)
         self.encoder_params = encoder_params
         self.use_gpu = check_use_gpu(use_gpu)
