@@ -66,7 +66,10 @@ class D3RLPyLogger:
         if self.save_metrics:
             # save dictionary as json file
             with open(os.path.join(self.logdir, 'params.json'), 'w') as f:
-                f.write(json.dumps(params, default=default_json_encoder))
+                json_str = json.dumps(params,
+                                      default=default_json_encoder,
+                                      indent=2)
+                f.write(json_str)
 
         if self.verbose:
             for key, val in params.items():
