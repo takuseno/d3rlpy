@@ -49,6 +49,8 @@ class AWACImpl(SACImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t, act_t):
+        self.actor_optim.zero_grad()
+
         loss = self.augmentation.process(func=self._compute_actor_loss,
                                          inputs={
                                              'obs_t': obs_t,
@@ -56,7 +58,6 @@ class AWACImpl(SACImpl):
                                          },
                                          targets=['obs_t'])
 
-        self.actor_optim.zero_grad()
         loss.backward()
         self.actor_optim.step()
 

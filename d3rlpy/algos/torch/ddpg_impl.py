@@ -85,6 +85,8 @@ class DDPGImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t', 'obs_tpn'])
     def update_critic(self, obs_t, act_t, rew_tpn, obs_tpn, ter_tpn, n_steps):
+        self.critic_optim.zero_grad()
+
         q_tpn = self.augmentation.process(func=self.compute_target,
                                           inputs={'x': obs_tpn},
                                           targets=['x'])
@@ -100,7 +102,6 @@ class DDPGImpl(TorchImplBase):
                                          },
                                          targets=['obs_t'])
 
-        self.critic_optim.zero_grad()
         loss.backward()
         self.critic_optim.step()
 
@@ -113,11 +114,12 @@ class DDPGImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t):
+        self.actor_optim.zero_grad()
+
         loss = self.augmentation.process(func=self._compute_actor_loss,
                                          inputs={'obs_t': obs_t},
                                          targets=['obs_t'])
 
-        self.actor_optim.zero_grad()
         loss.backward()
         self.actor_optim.step()
 

@@ -75,13 +75,14 @@ class SACImpl(DDPGImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_temp(self, obs_t):
+        self.temp_optim.zero_grad()
+
         with torch.no_grad():
             _, log_prob = self.policy.sample(obs_t, with_log_prob=True)
             targ_temp = log_prob - self.action_size
 
         loss = -(self.log_temp.exp() * targ_temp).mean()
 
-        self.temp_optim.zero_grad()
         loss.backward()
         self.temp_optim.step()
 
@@ -185,6 +186,8 @@ class DiscreteSACImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t', 'obs_tpn'])
     def update_critic(self, obs_t, act_t, rew_tpn, obs_tpn, ter_tpn, n_steps):
+        self.critic_optim.zero_grad()
+
         q_tpn = self.augmentation.process(func=self.compute_target,
                                           inputs={'x': obs_tpn},
                                           targets=['x'])
@@ -200,7 +203,6 @@ class DiscreteSACImpl(TorchImplBase):
                                          },
                                          targets=['obs_t'])
 
-        self.critic_optim.zero_grad()
         loss.backward()
         self.critic_optim.step()
 
@@ -226,11 +228,12 @@ class DiscreteSACImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t):
+        self.actor_optim.zero_grad()
+
         loss = self.augmentation.process(func=self._compute_actor_loss,
                                          inputs={'obs_t': obs_t},
                                          targets=['obs_t'])
 
-        self.actor_optim.zero_grad()
         loss.backward()
         self.actor_optim.step()
 
@@ -247,6 +250,8 @@ class DiscreteSACImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_temp(self, obs_t):
+        self.temp_optim.zero_grad()
+
         with torch.no_grad():
             log_probs = self.policy.log_probs(obs_t)
             probs = log_probs.exp()
@@ -256,7 +261,6 @@ class DiscreteSACImpl(TorchImplBase):
 
         loss = -(self.log_temp.exp() * targ_temp).mean()
 
-        self.temp_optim.zero_grad()
         loss.backward()
         self.temp_optim.step()
 

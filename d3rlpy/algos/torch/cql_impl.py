@@ -70,9 +70,10 @@ class CQLImpl(SACImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_alpha(self, obs_t, act_t):
+        self.alpha_optim.zero_grad()
+
         loss = -self._compute_conservative_loss(obs_t, act_t)
 
-        self.alpha_optim.zero_grad()
         loss.backward()
         self.alpha_optim.step()
 

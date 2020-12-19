@@ -62,6 +62,8 @@ class AWRImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['observation'])
     def update_critic(self, observation, value):
+        self.critic_optim.zero_grad()
+
         loss = self.augmentation.process(func=self._compute_critic_loss,
                                          inputs={
                                              'observation': observation,
@@ -69,7 +71,6 @@ class AWRImpl(TorchImplBase):
                                          },
                                          targets=['observation'])
 
-        self.critic_optim.zero_grad()
         loss.backward()
         self.critic_optim.step()
 
@@ -81,6 +82,8 @@ class AWRImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['observation'])
     def update_actor(self, observation, action, weight):
+        self.actor_optim.zero_grad()
+
         loss = self.augmentation.process(func=self._compute_actor_loss,
                                          inputs={
                                              'observation': observation,
@@ -89,7 +92,6 @@ class AWRImpl(TorchImplBase):
                                          },
                                          targets=['observation'])
 
-        self.actor_optim.zero_grad()
         loss.backward()
         self.actor_optim.step()
 

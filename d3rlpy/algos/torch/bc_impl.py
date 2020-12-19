@@ -41,6 +41,8 @@ class BCImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_imitator(self, obs_t, act_t):
+        self.optim.zero_grad()
+
         loss = self.augmentation.process(func=self._compute_loss,
                                          inputs={
                                              'obs_t': obs_t,
@@ -48,7 +50,6 @@ class BCImpl(TorchImplBase):
                                          },
                                          targets=['obs_t'])
 
-        self.optim.zero_grad()
         loss.backward()
         self.optim.step()
 

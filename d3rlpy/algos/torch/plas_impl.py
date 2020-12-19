@@ -72,6 +72,8 @@ class PLASImpl(DDPGImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_imitator(self, obs_t, act_t):
+        self.imitator_optim.zero_grad()
+
         loss = self.augmentation.process(func=self.imitator.compute_error,
                                          inputs={
                                              'x': obs_t,
@@ -79,7 +81,6 @@ class PLASImpl(DDPGImpl):
                                          },
                                          targets=['x'])
 
-        self.imitator_optim.zero_grad()
         loss.backward()
         self.imitator_optim.step()
 

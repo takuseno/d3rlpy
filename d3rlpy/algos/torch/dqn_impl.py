@@ -62,6 +62,8 @@ class DQNImpl(TorchImplBase):
     @train_api
     @torch_api(scaler_targets=['obs_t', 'obs_tpn'])
     def update(self, obs_t, act_t, rew_tpn, obs_tpn, ter_tpn, n_steps):
+        self.optim.zero_grad()
+
         q_tpn = self.augmentation.process(func=self.compute_target,
                                           inputs={'x': obs_tpn},
                                           targets=['x'])
@@ -77,7 +79,6 @@ class DQNImpl(TorchImplBase):
                                          },
                                          targets=['obs_t'])
 
-        self.optim.zero_grad()
         loss.backward()
         self.optim.step()
 
