@@ -467,10 +467,15 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         # original paper explicitly separates the optimization process
         # but, it's combined here
         proposal_loss = self._compute_proposal_loss(h, act_t, taus, taus_prime)
+        proposal_params = list(self.proposal.parameters())
+        proposal_grads = torch.autograd.grad(outputs=proposal_loss.mean(),
+                                             inputs=proposal_params,
+                                             retain_graph=True)
+        # directly apply gradients
+        for param, grad in zip(list(proposal_params), proposal_grads):
+            param.grad = 1e-4 * grad
 
-        # small learning rate for prpposal network
-        entropy_peanlty = self.entropy_coeff * entropies
-        loss = quantile_loss + 1e-5 * (proposal_loss - entropy_peanlty)
+        loss = quantile_loss - self.entropy_coeff * entropies
 
         return _reduce(loss, reduction)
 
@@ -486,7 +491,7 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         # compute gradients
         proposal_grad = 2 * q_taus - q_taus_prime[:, :-1] - q_taus_prime[:, 1:]
 
-        return (proposal_grad.detach() * taus[:, :-1]).sum(dim=1)
+        return proposal_grad.sum(dim=1)
 
     def compute_target(self, x, action=None):
         h = self.encoder(x)
@@ -537,10 +542,15 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         # original paper explicitly separates the optimization process
         # but, it's combined here
         proposal_loss = self._compute_proposal_loss(h, taus, taus_prime)
+        proposal_params = list(self.proposal.parameters())
+        proposal_grads = torch.autograd.grad(outputs=proposal_loss.mean(),
+                                             inputs=proposal_params,
+                                             retain_graph=True)
+        # directly apply gradients
+        for param, grad in zip(list(proposal_params), proposal_grads):
+            param.grad = 1e-4 * grad
 
-        # small lerarning rate for proposal network
-        entropy_penalty = self.entropy_coeff * entropies
-        loss = quantile_loss + 1e-5 * (proposal_loss - entropy_penalty)
+        loss = quantile_loss - self.entropy_coeff * entropies
 
         return _reduce(loss, reduction)
 
@@ -552,7 +562,7 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
 
         # compute gradients
         proposal_grad = 2 * q_taus - q_taus_prime[:, :-1] - q_taus_prime[:, 1:]
-        return (proposal_grad.detach() * taus[:, :-1]).sum(dim=1)
+        return proposal_grad.sum(dim=1)
 
     def compute_target(self, x, action):
         h = self.encoder(x, action)
