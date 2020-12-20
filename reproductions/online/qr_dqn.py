@@ -1,4 +1,4 @@
-from d3rlpy.algos import DoubleDQN
+from d3rlpy.algos import DQN
 from d3rlpy.optimizers import AdamFactory
 from d3rlpy.online.buffers import ReplayBuffer
 from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
@@ -16,14 +16,14 @@ eval_env = AtariEnv('Breakout',
                     terminate_on_life_loss=False)
 
 # setup algorithm
-dqn = DoubleDQN(batch_size=32,
-                learning_rate=5e-5,
-                optim_factory=AdamFactory(eps=1e-2 / 32),
-                target_update_interval=10000,
-                q_func_factory='qr',
-                scaler='pixel',
-                n_frames=4,
-                use_gpu=True)
+dqn = DQN(batch_size=32,
+          learning_rate=5e-5,
+          optim_factory=AdamFactory(eps=1e-2 / 32),
+          target_update_interval=10000,
+          q_func_factory='qr',
+          scaler='pixel',
+          n_frames=4,
+          use_gpu=True)
 
 # replay buffer for experience replay
 buffer = ReplayBuffer(maxlen=1000000, env=env)
