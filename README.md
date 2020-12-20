@@ -114,7 +114,7 @@ dataset, env = get_atari('breakout-expert-v0')
 train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
 # setup algorithm
-cql = DiscreteCQL(n_frames=4, q_func_type='qr', scaler='pixel', use_gpu=True)
+cql = DiscreteCQL(n_frames=4, q_func_factory='qr', scaler='pixel', use_gpu=True)
 
 # start training
 cql.fit(train_episodes,
@@ -145,7 +145,7 @@ dataset, env = get_pybullet('hopper-bullet-mixed-v0')
 train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
 # setup algorithm
-cql = CQL(q_func_type='qr', use_gpu=True)
+cql = CQL(q_func_factory='qr', use_gpu=True)
 
 # start training
 cql.fit(train_episodes,
