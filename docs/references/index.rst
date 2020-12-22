@@ -22,3 +22,4 @@ API Reference
    sklearn
    online
    model_based
+   sb3
