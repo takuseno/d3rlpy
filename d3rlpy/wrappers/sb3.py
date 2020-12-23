@@ -3,7 +3,7 @@ from d3rlpy.dataset import MDPDataset
 
 
 class SB3Wrapper:
-    """ A wrapper for d3rlpy algorithms so they can be used with Stable-Baseline3 (SB3).
+    """ A wrapper for d3rlpy algorithms so they can be used with Stable-Baselines3 (SB3).
 
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.

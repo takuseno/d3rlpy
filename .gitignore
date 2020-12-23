@@ -18,3 +18,4 @@ coverage.xml
 build
 dist
 /.idea/
+*.egg-info
