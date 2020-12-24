@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import random
 
+from ._version import __version__
+
 
 def seed(n):
     """ Sets random seed value.

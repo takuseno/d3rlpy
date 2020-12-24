@@ -4,6 +4,10 @@ from setuptools import setup, Extension
 
 os.environ['CFLAGS'] = '-std=c++11'
 
+# get __version__ variable
+here = os.path.abspath(os.path.dirname(__file__))
+exec(open(os.path.join(here, 'd3rlpy', '_version.py')).read())
+
 if __name__ == "__main__":
     from numpy import get_include
     from Cython.Build import cythonize
@@ -24,7 +28,7 @@ if __name__ == "__main__":
 
     # main setup
     setup(name="d3rlpy",
-          version="0.41",
+          version=__version__,
           description="Data-driven Deep Reinforcement Learning Library as an Out-of-the-box Tool",
           long_description=open("README.md").read(),
           long_description_content_type="text/markdown",
@@ -67,4 +71,5 @@ if __name__ == "__main__":
           python_requires=">=3.5.0",
           zip_safe=False,
           package_data={'d3rlpy': ['*.pyx', '*.pxd', '*.h']},
-          ext_modules=ext_modules)
+          ext_modules=ext_modules,
+          entry_points={'console_scripts': ['d3rlpy=d3rlpy.cli:cli']})

@@ -513,6 +513,9 @@ class LearnableBase:
                     continue
                 params[k] = v
 
+        # save algorithm name
+        params['algorithm'] = self.__class__.__name__
+
         # save shapes
         params['observation_shape'] = self.impl.observation_shape
         params['action_size'] = self.impl.action_size
