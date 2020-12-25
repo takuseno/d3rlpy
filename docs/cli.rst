@@ -6,9 +6,7 @@ d3rlpy provides the convenient CLI tool.
 plot
 ----
 
-Plot the saved metrics by specifying paths.
-
-.. code-block::
+Plot the saved metrics by specifying paths::
 
   $ d3rlpy plot <path> [<path>...]
 
@@ -24,9 +22,7 @@ Plot the saved metrics by specifying paths.
    * - ``--show-max``
      - show maximum value.
 
-example.
-
-.. code-block::
+example::
 
   $ d3rlpy plot d3rlpy_logs/CQL_20201224224314/environment.csv
 
@@ -35,15 +31,11 @@ example.
 plot-all
 --------
 
-Plot the all metrics saved in the directory.
-
-.. code-block::
+Plot the all metrics saved in the directory::
 
   $ d3rlpy plot-all <path>
 
-example.
-
-.. code-block::
+example::
 
   $ d3rlpy plot d3rlpy_logs/CQL_20201224224314
 
@@ -52,9 +44,7 @@ example.
 export
 ------
 
-Export the saved model to the inference format, ``onnx`` and ``torchscript``.
-
-.. code-block::
+Export the saved model to the inference format, ``onnx`` and ``torchscript``::
 
   $ d3rlpy export <path>
 
@@ -70,9 +60,7 @@ Export the saved model to the inference format, ``onnx`` and ``torchscript``.
    * - ``--out``
      - output path.
 
-example.
-
-.. code-block::
+example::
 
   $ d3rlpy export d3rlpy_logs/CQL_20201224224314/model_100.pt
 
