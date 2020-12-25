@@ -37,7 +37,7 @@ Plot the all metrics saved in the directory::
 
 example::
 
-  $ d3rlpy plot d3rlpy_logs/CQL_20201224224314
+  $ d3rlpy plot-all d3rlpy_logs/CQL_20201224224314
 
 .. image:: ./assets/plot_all_example.png
 
