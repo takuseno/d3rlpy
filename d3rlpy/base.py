@@ -352,32 +352,41 @@ class LearnableBase:
                              disable=not show_progress,
                              desc='Epoch %d' % int(epoch))
 
-            for itr in range_gen:
-                # pick transitions
-                sampled_transitions = []
-                head_index = itr * self.batch_size
-                for index in indices[head_index:head_index + self.batch_size]:
-                    sampled_transitions.append(transitions[index])
+            with logger.measure_time('epoch'):
+                for itr in range_gen:
+                    # pick transitions
+                    with logger.measure_time('sample_batch'):
+                        sampled_transitions = []
+                        head_index = itr * self.batch_size
+                        tail_index = head_index + self.batch_size
+                        for index in indices[head_index:tail_index]:
+                            sampled_transitions.append(transitions[index])
 
-                batch = TransitionMiniBatch(transitions=sampled_transitions,
-                                            n_frames=self.n_frames,
-                                            n_steps=self.n_steps,
-                                            gamma=self.gamma)
+                        batch = TransitionMiniBatch(
+                            transitions=sampled_transitions,
+                            n_frames=self.n_frames,
+                            n_steps=self.n_steps,
+                            gamma=self.gamma)
 
-                loss = self.update(epoch, total_step, batch)
+                    # update parameters
+                    with logger.measure_time('algorithm_update'):
+                        loss = self.update(epoch, total_step, batch)
 
-                # record metrics
-                for name, val in zip(self._get_loss_labels(), loss):
-                    if val is not None:
-                        logger.add_metric(name, val)
-                        epoch_loss[name].append(val)
+                    # record metrics
+                    for name, val in zip(self._get_loss_labels(), loss):
+                        if val is not None:
+                            logger.add_metric(name, val)
+                            epoch_loss[name].append(val)
 
-                # update progress postfix with losses
-                if itr % 10 == 0:
-                    mean_loss = {k: np.mean(v) for k, v in epoch_loss.items()}
-                    range_gen.set_postfix(mean_loss)
+                    # update progress postfix with losses
+                    if itr % 10 == 0:
+                        mean_loss = {
+                            k: np.mean(v)
+                            for k, v in epoch_loss.items()
+                        }
+                        range_gen.set_postfix(mean_loss)
 
-                total_step += 1
+                    total_step += 1
 
             # save loss to loss history dict
             self.loss_history_['epoch'].append(epoch)

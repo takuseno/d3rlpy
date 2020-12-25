@@ -3,6 +3,7 @@ import os
 import json
 import time
 
+from contextlib import contextmanager
 from datetime import datetime
 
 
@@ -114,3 +115,12 @@ class D3RLPyLogger:
             # save entire model
             model_path = os.path.join(self.logdir, 'model_%d.pt' % epoch)
             algo.save_model(model_path)
+
+    @contextmanager
+    def measure_time(self, name):
+        name = 'time_' + name
+        start = time.time()
+        try:
+            yield
+        finally:
+            self.add_metric(name, time.time() - start)

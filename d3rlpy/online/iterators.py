@@ -119,14 +119,20 @@ def train(env,
         # psuedo epoch count
         epoch = total_step // n_steps_per_epoch
 
-        # update loop
         if total_step > update_start_step and len(buffer) > algo.batch_size:
             if total_step % update_interval == 0:
-                batch = buffer.sample(batch_size=algo.batch_size,
-                                      n_frames=algo.n_frames,
-                                      n_steps=algo.n_steps,
-                                      gamma=algo.gamma)
-                loss = algo.update(epoch, total_step, batch)
+                # sample mini-batch
+                with logger.measure_time('sample_batch'):
+                    batch = buffer.sample(batch_size=algo.batch_size,
+                                          n_frames=algo.n_frames,
+                                          n_steps=algo.n_steps,
+                                          gamma=algo.gamma)
+
+                # update parameters
+                with logger.measure_time('algorithm_update'):
+                    loss = algo.update(epoch, total_step, batch)
+
+                # record metrics
                 for name, val in zip(algo._get_loss_labels(), loss):
                     if val:
                         logger.add_metric(name, val)
