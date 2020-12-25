@@ -118,7 +118,7 @@ def plot_all(path):
     for i in range(n_rows):
         for j in range(n_cols):
             index = j + n_cols * i
-            if index > len(metrics_names):
+            if index >= len(metrics_names):
                 break
 
             plt.subplot(n_rows, n_cols, index + 1)
@@ -142,7 +142,7 @@ def plot_all(path):
               help='model format (torchscript, onnx).')
 @click.option('--params-json',
               default=None,
-              help='explicitly specify params.json')
+              help='explicitly specify params.json.')
 @click.option('--out', default=None, help='output path.')
 def export(path, format, params_json, out):
     # check format

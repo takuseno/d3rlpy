@@ -30,6 +30,7 @@ powerful performance beyond the paper via several tweaks.
    :caption: References
 
    references/index
+   cli
    installation
 
 .. toctree::
