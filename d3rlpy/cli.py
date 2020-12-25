@@ -11,14 +11,23 @@ from ._version import __version__
 
 def print_stats(path):
     data = np.loadtxt(path, delimiter=',')
-    print('-' * 80)
     print('FILE NAME  : ', path)
     print('EPOCH      : ', data[-1, 0])
     print('TOTAL STEPS: ', data[-1, 1])
     print('MAX VALUE  : ', np.max(data[:, 2]))
     print('MIN VALUE  : ', np.min(data[:, 2]))
     print('STD VALUE  : ', np.std(data[:, 2]))
-    print('')
+
+
+def get_plt():
+    import matplotlib.pyplot as plt
+    try:
+        # enable seaborn style if avaiable
+        import seaborn as sns
+        sns.set()
+    except ImportError:
+        pass
+    return plt
 
 
 @click.group()
@@ -41,17 +50,11 @@ def stats(path):
 @click.option('--show-steps', is_flag=True, help='use iterations on x-axis.')
 @click.option('--show-max', is_flag=True, help='show maximum value.')
 def plot(path, window, show_steps, show_max):
-    import matplotlib.pyplot as plt
-    try:
-        # enable seaborn style if avaiable
-        import seaborn as sns
-        sns.set()
-    except ImportError:
-        pass
+    plt = get_plt()
 
-    max_y_value = None
-    min_x_value = None
-    max_x_value = None
+    max_y_values = []
+    min_x_values = []
+    max_x_values = []
 
     for i, p in enumerate(path):
         data = np.loadtxt(p, delimiter=',')
@@ -70,24 +73,22 @@ def plot(path, window, show_steps, show_max):
         else:
             x_data = data[:, 0]
 
-        if i == 0:
-            max_y_value = np.max(data[:, 2])
-            min_x_value = np.min(x_data)
-            max_x_value = np.max(x_data)
-        else:
-            max_y_value = max(max_y_value, np.max(data[:, 2]))
-            min_x_value = min(min_x_value, np.min(x_data))
-            max_x_value = max(max_x_value, np.max(x_data))
+        max_y_values.append(np.max(data[:, 2]))
+        min_x_values.append(np.min(x_data))
+        max_x_values.append(np.max(x_data))
 
         # show statistics
+        print('')
         print_stats(p)
 
         plt.plot(x_data, y_data, label=label)
 
     if show_max:
-        plt.plot([min_x_value, max_x_value], [max_y_value, max_y_value],
-                 color='black',
-                 linestyle='dashed')
+        plt.plot(
+            [np.min(min_x_values), np.max(max_x_values)],
+            [np.max(max_y_values), np.max(max_y_values)],
+            color='black',
+            linestyle='dashed')
 
     plt.xlabel('steps' if show_steps else 'epochs')
     plt.ylabel('value')
@@ -98,13 +99,7 @@ def plot(path, window, show_steps, show_max):
 @cli.command(short_help='Plot saved metrics in a grid (requires matplotlib).')
 @click.argument('path')
 def plot_all(path):
-    import matplotlib.pyplot as plt
-    try:
-        # enable seaborn style if avaiable
-        import seaborn as sns
-        sns.set()
-    except ImportError:
-        pass
+    plt = get_plt()
 
     # print params.json
     if os.path.exists(os.path.join(path, 'params.json')):
@@ -147,8 +142,8 @@ def plot_all(path):
               help='model format (torchscript, onnx).')
 @click.option('--params-json',
               default=None,
-              help='Explicitly specify params.json')
-@click.option('--out', default=None, help='Output path.')
+              help='explicitly specify params.json')
+@click.option('--out', default=None, help='output path.')
 def export(path, format, params_json, out):
     # check format
     if format not in ['onnx', 'torchscript']:
