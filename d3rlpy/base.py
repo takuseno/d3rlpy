@@ -352,8 +352,8 @@ class LearnableBase:
                              disable=not show_progress,
                              desc='Epoch %d' % int(epoch))
 
-            with logger.measure_time('epoch'):
-                for itr in range_gen:
+            for itr in range_gen:
+                with logger.measure_time('step'):
                     # pick transitions
                     with logger.measure_time('sample_batch'):
                         sampled_transitions = []

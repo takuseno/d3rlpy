@@ -77,6 +77,7 @@ def train(env,
 
     # save hyperparameters
     algo._save_params(logger)
+    batch_size = algo.batch_size
 
     # switch based on show_progress flag
     xrange = trange if show_progress else range
@@ -90,53 +91,54 @@ def train(env,
     # start training loop
     observation, reward, terminal = env.reset(), 0.0, False
     for total_step in xrange(n_steps):
-        # stack observation if necessary
-        if is_image:
-            stacked_frame.append(observation)
-            fed_observation = stacked_frame.eval()
-        else:
-            observation = observation.astype('f4')
-            fed_observation = observation
-
-        # sample exploration action
-        if explorer:
-            action = explorer.sample(algo, fed_observation, total_step)
-        else:
-            action = algo.sample_action([fed_observation])[0]
-
-        # store observation
-        buffer.append(observation, action, reward, terminal)
-
-        # get next observation
-        if terminal:
-            observation, reward, terminal = env.reset(), 0.0, False
-            # for image observation
+        with logger.measure_time('step'):
+            # stack observation if necessary
             if is_image:
-                stacked_frame.clear()
-        else:
-            with logger.measure_time('environment_step'):
-                observation, reward, terminal, _ = env.step(action)
+                stacked_frame.append(observation)
+                fed_observation = stacked_frame.eval()
+            else:
+                observation = observation.astype('f4')
+                fed_observation = observation
 
-        # psuedo epoch count
-        epoch = total_step // n_steps_per_epoch
+            # sample exploration action
+            if explorer:
+                action = explorer.sample(algo, fed_observation, total_step)
+            else:
+                action = algo.sample_action([fed_observation])[0]
 
-        if total_step > update_start_step and len(buffer) > algo.batch_size:
-            if total_step % update_interval == 0:
-                # sample mini-batch
-                with logger.measure_time('sample_batch'):
-                    batch = buffer.sample(batch_size=algo.batch_size,
-                                          n_frames=algo.n_frames,
-                                          n_steps=algo.n_steps,
-                                          gamma=algo.gamma)
+            # store observation
+            buffer.append(observation, action, reward, terminal)
 
-                # update parameters
-                with logger.measure_time('algorithm_update'):
-                    loss = algo.update(epoch, total_step, batch)
+            # get next observation
+            if terminal:
+                observation, reward, terminal = env.reset(), 0.0, False
+                # for image observation
+                if is_image:
+                    stacked_frame.clear()
+            else:
+                with logger.measure_time('environment_step'):
+                    observation, reward, terminal, _ = env.step(action)
 
-                # record metrics
-                for name, val in zip(algo._get_loss_labels(), loss):
-                    if val:
-                        logger.add_metric(name, val)
+            # psuedo epoch count
+            epoch = total_step // n_steps_per_epoch
+
+            if total_step > update_start_step and len(buffer) > batch_size:
+                if total_step % update_interval == 0:
+                    # sample mini-batch
+                    with logger.measure_time('sample_batch'):
+                        batch = buffer.sample(batch_size=batch_size,
+                                              n_frames=algo.n_frames,
+                                              n_steps=algo.n_steps,
+                                              gamma=algo.gamma)
+
+                    # update parameters
+                    with logger.measure_time('algorithm_update'):
+                        loss = algo.update(epoch, total_step, batch)
+
+                    # record metrics
+                    for name, val in zip(algo._get_loss_labels(), loss):
+                        if val:
+                            logger.add_metric(name, val)
 
         if total_step % n_steps_per_epoch == 0:
             # evaluation
