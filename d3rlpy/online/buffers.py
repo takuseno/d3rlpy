@@ -1,9 +1,30 @@
 import numpy as np
 
 from abc import ABCMeta, abstractmethod
-from collections import deque
 from ..dataset import Transition, TransitionMiniBatch
 from .utility import get_action_size_from_env
+
+
+class FIFOQueue:
+    def __init__(self, maxlen):
+        self.maxlen = maxlen
+        self.buffer = [None for _ in range(maxlen)]
+        self.cursor = 0
+        self.size = 0
+
+    def append(self, item):
+        self.buffer[self.cursor] = item
+        self.cursor += 1
+        if self.cursor == self.maxlen:
+            self.cursor = 0
+        self.size = min(self.size + 1, self.maxlen)
+
+    def __getitem__(self, index):
+        assert index < self.size
+        return self.buffer[index]
+
+    def __len__(self):
+        return self.size
 
 
 class Buffer(metaclass=ABCMeta):
@@ -101,7 +122,7 @@ class ReplayBuffer(Buffer):
         self.prev_reward = None
         self.prev_transition = None
 
-        self.transitions = deque(maxlen=maxlen)
+        self.transitions = FIFOQueue(maxlen=maxlen)
 
         # extract shape information
         self.observation_shape = env.observation_space.shape
@@ -161,7 +182,7 @@ class ReplayBuffer(Buffer):
             self.transitions.append(transition)
 
     def sample(self, batch_size, n_frames=1, n_steps=1, gamma=0.99):
-        indices = np.random.choice(self.size(), batch_size)
+        indices = np.random.choice(len(self.transitions), batch_size)
         transitions = [self.transitions[index] for index in indices]
         return TransitionMiniBatch(transitions, n_frames, n_steps, gamma)
 
