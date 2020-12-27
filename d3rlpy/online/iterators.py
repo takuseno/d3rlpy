@@ -114,7 +114,8 @@ def train(env,
             if is_image:
                 stacked_frame.clear()
         else:
-            observation, reward, terminal, _ = env.step(action)
+            with logger.measure_time('environment_step'):
+                observation, reward, terminal, _ = env.step(action)
 
         # psuedo epoch count
         epoch = total_step // n_steps_per_epoch
