@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 
+from torch.utils.data._utils.collate import default_collate
 from inspect import signature
 
 
@@ -101,6 +102,9 @@ def torch_api(scaler_targets=[]):
             for i, val in enumerate(args):
                 if isinstance(val, torch.Tensor):
                     tensor = val
+                elif isinstance(val, list):
+                    tensor = default_collate(val)
+                    tensor = tensor.to(self.device)
                 elif isinstance(val, np.ndarray):
                     if val.dtype == np.uint8:
                         dtype = torch.uint8
