@@ -101,10 +101,11 @@ def train(env,
                 fed_observation = observation
 
             # sample exploration action
-            if explorer:
-                action = explorer.sample(algo, fed_observation, total_step)
-            else:
-                action = algo.sample_action([fed_observation])[0]
+            with logger.measure_time('inference'):
+                if explorer:
+                    action = explorer.sample(algo, fed_observation, total_step)
+                else:
+                    action = algo.sample_action([fed_observation])[0]
 
             # store observation
             buffer.append(observation, action, reward, terminal)
