@@ -6,6 +6,11 @@ from .utility import get_action_size_from_env
 
 
 class FIFOQueue:
+    """ Simple FIFO queue implementation.
+
+    Random access of this queue object is O(1).
+
+    """
     def __init__(self, maxlen):
         self.maxlen = maxlen
         self.buffer = [None for _ in range(maxlen)]
