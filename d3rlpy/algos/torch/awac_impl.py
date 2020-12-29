@@ -49,6 +49,9 @@ class AWACImpl(SACImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_actor(self, obs_t, act_t):
+        # Q function should be inference mode for stability
+        self.q_func.eval()
+
         self.actor_optim.zero_grad()
 
         loss = self.augmentation.process(func=self._compute_actor_loss,

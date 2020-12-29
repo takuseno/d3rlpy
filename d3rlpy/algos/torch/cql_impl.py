@@ -70,6 +70,9 @@ class CQLImpl(SACImpl):
     @train_api
     @torch_api(scaler_targets=['obs_t'])
     def update_alpha(self, obs_t, act_t):
+        # Q function should be inference mode for stability
+        self.q_func.eval()
+
         self.alpha_optim.zero_grad()
 
         loss = -self._compute_conservative_loss(obs_t, act_t)
