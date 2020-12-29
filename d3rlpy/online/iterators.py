@@ -141,7 +141,7 @@ def train(env,
                         if val:
                             logger.add_metric(name, val)
 
-        if total_step % n_steps_per_epoch == 0:
+        if epoch > 0 and total_step % n_steps_per_epoch == 0:
             # evaluation
             if eval_scorer:
                 logger.add_metric('evaluation', eval_scorer(algo))
