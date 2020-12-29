@@ -289,7 +289,16 @@ class IQNQFunction(QRQFunction):
         self.embed = nn.Linear(embed_size, encoder.get_feature_size())
 
     def _make_taus(self, h):
-        return torch.rand(h.shape[0], self.n_quantiles, device=h.device)
+        if self.training:
+            taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
+        else:
+            taus = torch.linspace(start=0,
+                                  end=1,
+                                  steps=self.n_quantiles,
+                                  device=h.device,
+                                  dtype=torch.float32)
+            taus = taus.view(1, self.n_quantiles).repeat(h.shape[0], 1)
+        return taus
 
     def _compute_last_feature(self, h, taus):
         # compute embedding
