@@ -119,10 +119,12 @@ class IQNQFunctionFactory(QFunctionFactory):
 
     Args:
         n_quantiles (int): the number of quantiles.
+        n_greedy_quantiles (int): the number of quantiles for inference.
         embed_size (int): the embedding size.
 
     Attributes:
         n_quantiles (int): the number of quantiles.
+        n_greedy_quantiles (int): the number of quantiles for inference.
         embed_size (int): the embedding size.
 
     """
