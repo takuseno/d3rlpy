@@ -283,8 +283,9 @@ class ContinuousQRQFunction(ContinuousQFunction, QRQFunction):
 
 
 class IQNQFunction(QRQFunction):
-    def __init__(self, encoder, n_quantiles, embed_size):
+    def __init__(self, encoder, n_quantiles, n_greedy_quantiles, embed_size):
         super().__init__(n_quantiles)
+        self.n_greedy_quantiles = n_greedy_quantiles
         self.embed_size = embed_size
         self.embed = nn.Linear(embed_size, encoder.get_feature_size())
 
@@ -294,17 +295,17 @@ class IQNQFunction(QRQFunction):
         else:
             taus = torch.linspace(start=0,
                                   end=1,
-                                  steps=self.n_quantiles,
+                                  steps=self.n_greedy_quantiles,
                                   device=h.device,
                                   dtype=torch.float32)
-            taus = taus.view(1, self.n_quantiles).repeat(h.shape[0], 1)
+            taus = taus.view(1, -1).repeat(h.shape[0], 1)
         return taus
 
     def _compute_last_feature(self, h, taus):
         # compute embedding
         steps = torch.arange(self.embed_size, device=h.device).float() + 1
         # (batch, quantile, embedding)
-        expanded_taus = taus.view(h.shape[0], self.n_quantiles, 1)
+        expanded_taus = taus.view(h.shape[0], -1, 1)
         prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
         # (batch, quantile, embedding) -> (batch, quantile, feature)
         phi = torch.relu(self.embed(prior))
@@ -314,8 +315,9 @@ class IQNQFunction(QRQFunction):
 
 
 class DiscreteIQNQFunction(DiscreteQFunction, IQNQFunction):
-    def __init__(self, encoder, action_size, n_quantiles, embed_size):
-        super().__init__(encoder, n_quantiles, embed_size)
+    def __init__(self, encoder, action_size, n_quantiles, n_greedy_quantiles,
+                 embed_size):
+        super().__init__(encoder, n_quantiles, n_greedy_quantiles, embed_size)
         self.encoder = encoder
         self.action_size = action_size
         self.fc = nn.Linear(encoder.get_feature_size(), self.action_size)
@@ -365,8 +367,8 @@ class DiscreteIQNQFunction(DiscreteQFunction, IQNQFunction):
 
 
 class ContinuousIQNQFunction(ContinuousQFunction, IQNQFunction):
-    def __init__(self, encoder, n_quantiles, embed_size):
-        super().__init__(encoder, n_quantiles, embed_size)
+    def __init__(self, encoder, n_quantiles, n_greedy_quantiles, embed_size):
+        super().__init__(encoder, n_quantiles, n_greedy_quantiles, embed_size)
         self.encoder = encoder
         self.action_size = encoder.action_size
         self.fc = nn.Linear(encoder.get_feature_size(), 1)
@@ -436,7 +438,8 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
                  n_quantiles,
                  embed_size,
                  entropy_coeff=0.0):
-        super().__init__(encoder, action_size, n_quantiles, embed_size)
+        super().__init__(encoder, action_size, n_quantiles, n_quantiles,
+                         embed_size)
         self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
         self.entropy_coeff = entropy_coeff
 
@@ -513,7 +516,7 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
 
 class ContinuousFQFQFunction(ContinuousIQNQFunction):
     def __init__(self, encoder, n_quantiles, embed_size, entropy_coeff=0.0):
-        super().__init__(encoder, n_quantiles, embed_size)
+        super().__init__(encoder, n_quantiles, n_quantiles, embed_size)
         self.entropy_coeff = entropy_coeff
         self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
 

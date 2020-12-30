@@ -129,21 +129,33 @@ class IQNQFunctionFactory(QFunctionFactory):
 
     TYPE = 'iqn'
 
-    def __init__(self, n_quantiles=32, embed_size=64):
+    def __init__(self, n_quantiles=64, n_greedy_quantiles=32, embed_size=64):
         self.n_quantiles = n_quantiles
+        self.n_greedy_quantiles = n_greedy_quantiles
         self.embed_size = embed_size
 
     def create(self, encoder, action_size=None):
         if action_size is None:
-            q_func = ContinuousIQNQFunction(encoder, self.n_quantiles,
-                                            self.embed_size)
+            q_func = ContinuousIQNQFunction(
+                encoder=encoder,
+                n_quantiles=self.n_quantiles,
+                n_greedy_quantiles=self.n_greedy_quantiles,
+                embed_size=self.embed_size)
         else:
-            q_func = DiscreteIQNQFunction(encoder, action_size,
-                                          self.n_quantiles, self.embed_size)
+            q_func = DiscreteIQNQFunction(
+                encoder=encoder,
+                action_size=action_size,
+                n_quantiles=self.n_quantiles,
+                n_greedy_quantiles=self.n_greedy_quantiles,
+                embed_size=self.embed_size)
         return q_func
 
     def get_params(self, deep=False):
-        return {'n_quantiles': self.n_quantiles, 'embed_size': self.embed_size}
+        return {
+            'n_quantiles': self.n_quantiles,
+            'n_greedy_quantiles': self.n_greedy_quantiles,
+            'embed_size': self.embed_size
+        }
 
 
 class FQFQFunctionFactory(QFunctionFactory):
