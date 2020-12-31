@@ -24,7 +24,7 @@ def test_pixel_encoder_factory(observation_shape, action_size,
         assert isinstance(encoder, PixelEncoder)
     else:
         assert isinstance(encoder, PixelEncoderWithAction)
-        assert encoder.discrete_action == discrete_action
+        assert encoder._discrete_action == discrete_action
 
     assert factory.get_type() == 'pixel'
 
@@ -46,7 +46,7 @@ def test_vector_encoder_factory(observation_shape, action_size,
         assert isinstance(encoder, VectorEncoder)
     else:
         assert isinstance(encoder, VectorEncoderWithAction)
-        assert encoder.discrete_action == discrete_action
+        assert encoder._discrete_action == discrete_action
 
     assert factory.get_type() == 'vector'
 
@@ -75,7 +75,7 @@ def test_default_encoder_factory(observation_shape, action_size,
         else:
             assert isinstance(encoder, VectorEncoderWithAction)
     if action_size is not None:
-        assert encoder.discrete_action == discrete_action
+        assert encoder._discrete_action == discrete_action
 
     assert factory.get_type() == 'default'
 
@@ -97,8 +97,8 @@ def test_dense_encoder_factory(observation_shape, action_size,
         assert isinstance(encoder, VectorEncoder)
     else:
         assert isinstance(encoder, VectorEncoderWithAction)
-        assert encoder.discrete_action == discrete_action
-    assert encoder.use_dense
+        assert encoder._discrete_action == discrete_action
+    assert encoder._use_dense
 
     assert factory.get_type() == 'dense'
 
