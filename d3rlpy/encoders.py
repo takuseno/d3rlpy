@@ -2,32 +2,36 @@ import copy
 import torch
 
 from abc import ABCMeta, abstractmethod
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Union
+from typing import Sequence
+from d3rlpy.models.torch.encoders import Encoder, EncoderWithAction
 from d3rlpy.models.torch.encoders import PixelEncoder
 from d3rlpy.models.torch.encoders import PixelEncoderWithAction
 from d3rlpy.models.torch.encoders import VectorEncoder
 from d3rlpy.models.torch.encoders import VectorEncoderWithAction
 
 
-def _create_activation(activation_type):
+def _create_activation(
+        activation_type: str) -> Callable[[torch.Tensor], torch.Tensor]:
     if activation_type == 'relu':
         return torch.relu
     elif activation_type == 'tanh':
         return torch.tanh
-    elif activation_type == 'elu':
-        return torch.elu
     elif activation_type == 'swish':
         return lambda x: x * torch.sigmoid(x)
     raise ValueError('invalid activation_type.')
 
 
 class EncoderFactory(metaclass=ABCMeta):
-    TYPE = 'none'
+    TYPE: ClassVar[str] = 'none'
 
     @abstractmethod
-    def create(self,
-               observation_shape,
-               action_size=None,
-               discrete_action=False):
+    def create(
+            self,
+            observation_shape: Sequence[int],
+            action_size: Optional[int] = None,
+            discrete_action: bool = False
+    ) -> Union[Encoder, EncoderWithAction]:
         """ Returns PyTorch's enocder module.
 
         Args:
@@ -42,7 +46,7 @@ class EncoderFactory(metaclass=ABCMeta):
         """
         pass
 
-    def get_type(self):
+    def get_type(self) -> str:
         """ Returns encoder type.
 
         Returns:
@@ -52,7 +56,7 @@ class EncoderFactory(metaclass=ABCMeta):
         return self.TYPE
 
     @abstractmethod
-    def get_params(self, deep=False):
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
         """ Returns encoder parameters.
 
         Args:
@@ -87,54 +91,61 @@ class PixelEncoderFactory(EncoderFactory):
 
     """
 
-    TYPE = 'pixel'
+    TYPE: ClassVar[str] = 'pixel'
+    _filters: List[Sequence[int]]
+    _feature_size: int
+    _activation: str
+    _use_batch_norm: bool
 
     def __init__(self,
-                 filters=None,
-                 feature_size=512,
-                 activation='relu',
-                 use_batch_norm=False):
+                 filters: Optional[List[Sequence[int]]] = None,
+                 feature_size: int = 512,
+                 activation: str = 'relu',
+                 use_batch_norm: bool = False):
         if filters is None:
-            self.filters = [(32, 8, 4), (64, 4, 2), (64, 3, 1)]
+            self._filters = [(32, 8, 4), (64, 4, 2), (64, 3, 1)]
         else:
-            self.filters = filters
-        self.feature_size = feature_size
-        self.activation = activation
-        self.use_batch_norm = use_batch_norm
+            self._filters = filters
+        self._feature_size = feature_size
+        self._activation = activation
+        self._use_batch_norm = use_batch_norm
 
-    def create(self,
-               observation_shape,
-               action_size=None,
-               discrete_action=False):
+    def create(
+        self,
+        observation_shape: Sequence[int],
+        action_size: Optional[int] = None,
+        discrete_action: bool = False
+    ) -> Union[PixelEncoder, PixelEncoderWithAction]:
         assert len(observation_shape) == 3
-        activation_fn = _create_activation(self.activation)
+        activation_fn = _create_activation(self._activation)
+        encoder: Union[PixelEncoder, PixelEncoderWithAction]
         if action_size is not None:
             encoder = PixelEncoderWithAction(
                 observation_shape=observation_shape,
                 action_size=action_size,
-                filters=self.filters,
-                feature_size=self.feature_size,
-                use_batch_norm=self.use_batch_norm,
+                filters=self._filters,
+                feature_size=self._feature_size,
+                use_batch_norm=self._use_batch_norm,
                 discrete_action=discrete_action,
                 activation=activation_fn)
         else:
             encoder = PixelEncoder(observation_shape=observation_shape,
-                                   filters=self.filters,
-                                   feature_size=self.feature_size,
-                                   use_batch_norm=self.use_batch_norm,
+                                   filters=self._filters,
+                                   feature_size=self._feature_size,
+                                   use_batch_norm=self._use_batch_norm,
                                    activation=activation_fn)
         return encoder
 
-    def get_params(self, deep=False):
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
         if deep:
-            filters = copy.deepcopy(self.filters)
+            filters = copy.deepcopy(self._filters)
         else:
-            filters = self.filters
+            filters = self._filters
         params = {
             'filters': filters,
-            'feature_size': self.feature_size,
-            'activation': self.activation,
-            'use_batch_norm': self.use_batch_norm
+            'feature_size': self._feature_size,
+            'activation': self._activation,
+            'use_batch_norm': self._use_batch_norm
         }
         return params
 
@@ -159,54 +170,61 @@ class VectorEncoderFactory(EncoderFactory):
 
     """
 
-    TYPE = 'vector'
+    TYPE: ClassVar[str] = 'vector'
+    _hidden_units: Sequence[int]
+    _activation: str
+    _use_batch_norm: bool
+    _use_dense: bool
 
     def __init__(self,
-                 hidden_units=None,
-                 activation='relu',
-                 use_batch_norm=False,
-                 use_dense=False):
+                 hidden_units: Optional[Sequence[int]] = None,
+                 activation: str = 'relu',
+                 use_batch_norm: bool = False,
+                 use_dense: bool = False):
         if hidden_units is None:
-            self.hidden_units = [256, 256]
+            self._hidden_units = [256, 256]
         else:
-            self.hidden_units = hidden_units
-        self.activation = activation
-        self.use_batch_norm = use_batch_norm
-        self.use_dense = use_dense
+            self._hidden_units = hidden_units
+        self._activation = activation
+        self._use_batch_norm = use_batch_norm
+        self._use_dense = use_dense
 
-    def create(self,
-               observation_shape,
-               action_size=None,
-               discrete_action=False):
+    def create(
+        self,
+        observation_shape: Sequence[int],
+        action_size: Optional[int] = None,
+        discrete_action: bool = False
+    ) -> Union[VectorEncoder, VectorEncoderWithAction]:
         assert len(observation_shape) == 1
-        activation_fn = _create_activation(self.activation)
+        activation_fn = _create_activation(self._activation)
+        encoder: Union[VectorEncoder, VectorEncoderWithAction]
         if action_size is not None:
             encoder = VectorEncoderWithAction(
                 observation_shape=observation_shape,
                 action_size=action_size,
-                hidden_units=self.hidden_units,
-                use_batch_norm=self.use_batch_norm,
-                use_dense=self.use_dense,
+                hidden_units=self._hidden_units,
+                use_batch_norm=self._use_batch_norm,
+                use_dense=self._use_dense,
                 discrete_action=discrete_action,
                 activation=activation_fn)
         else:
             encoder = VectorEncoder(observation_shape=observation_shape,
-                                    hidden_units=self.hidden_units,
-                                    use_batch_norm=self.use_batch_norm,
-                                    use_dense=self.use_dense,
+                                    hidden_units=self._hidden_units,
+                                    use_batch_norm=self._use_batch_norm,
+                                    use_dense=self._use_dense,
                                     activation=activation_fn)
         return encoder
 
-    def get_params(self, deep=False):
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
         if deep:
-            hidden_units = copy.deepcopy(self.hidden_units)
+            hidden_units = copy.deepcopy(self._hidden_units)
         else:
-            hidden_units = self.hidden_units
+            hidden_units = self._hidden_units
         params = {
             'hidden_units': hidden_units,
-            'activation': self.activation,
-            'use_batch_norm': self.use_batch_norm,
-            'use_dense': self.use_dense
+            'activation': self._activation,
+            'use_batch_norm': self._use_batch_norm,
+            'use_dense': self._use_dense
         }
         return params
 
@@ -226,28 +244,33 @@ class DefaultEncoderFactory(EncoderFactory):
 
     """
 
-    TYPE = 'default'
+    TYPE: ClassVar[str] = 'default'
+    _activation: str
+    _use_batch_norm: bool
 
-    def __init__(self, activation='relu', use_batch_norm=False):
-        self.activation = activation
-        self.use_batch_norm = use_batch_norm
+    def __init__(self, activation: str = 'relu', use_batch_norm: bool = False):
+        self._activation = activation
+        self._use_batch_norm = use_batch_norm
 
-    def create(self,
-               observation_shape,
-               action_size=None,
-               discrete_action=False):
+    def create(
+            self,
+            observation_shape: Sequence[int],
+            action_size: Optional[int] = None,
+            discrete_action: bool = False
+    ) -> Union[Encoder, EncoderWithAction]:
+        factory: Union[PixelEncoderFactory, VectorEncoderFactory]
         if len(observation_shape) == 3:
-            factory = PixelEncoderFactory(activation=self.activation,
-                                          use_batch_norm=self.use_batch_norm)
+            factory = PixelEncoderFactory(activation=self._activation,
+                                          use_batch_norm=self._use_batch_norm)
         else:
-            factory = VectorEncoderFactory(activation=self.activation,
-                                           use_batch_norm=self.use_batch_norm)
+            factory = VectorEncoderFactory(activation=self._activation,
+                                           use_batch_norm=self._use_batch_norm)
         return factory.create(observation_shape, action_size, discrete_action)
 
-    def get_params(self, deep=False):
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
-            'activation': self.activation,
-            'use_batch_norm': self.use_batch_norm
+            'activation': self._activation,
+            'use_batch_norm': self._use_batch_norm
         }
 
 
@@ -280,36 +303,40 @@ class DenseEncoderFactory(EncoderFactory):
 
     """
 
-    TYPE = 'dense'
+    TYPE: ClassVar[str] = 'dense'
+    _activation: str
+    _use_batch_norm: bool
 
-    def __init__(self, activation='relu', use_batch_norm=False):
-        self.activation = activation
-        self.use_batch_norm = use_batch_norm
+    def __init__(self, activation: str = 'relu', use_batch_norm: bool = False):
+        self._activation = activation
+        self._use_batch_norm = use_batch_norm
 
-    def create(self,
-               observation_shape,
-               action_size=None,
-               discrete_action=False):
+    def create(
+        self,
+        observation_shape: Sequence[int],
+        action_size: Optional[int] = None,
+        discrete_action: bool = False
+    ) -> Union[VectorEncoder, VectorEncoderWithAction]:
         if len(observation_shape) == 3:
             raise NotImplementedError('pixel observation is not supported.')
         else:
             factory = VectorEncoderFactory(hidden_units=[256, 256, 256, 256],
-                                           activation=self.activation,
+                                           activation=self._activation,
                                            use_dense=True,
-                                           use_batch_norm=self.use_batch_norm)
+                                           use_batch_norm=self._use_batch_norm)
         return factory.create(observation_shape, action_size, discrete_action)
 
-    def get_params(self, deep=False):
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
-            'activation': self.activation,
-            'use_batch_norm': self.use_batch_norm
+            'activation': self._activation,
+            'use_batch_norm': self._use_batch_norm
         }
 
 
-ENCODER_LIST = {}
+ENCODER_LIST: Dict[str, Any] = {}
 
 
-def register_encoder_factory(cls):
+def register_encoder_factory(cls: Any) -> None:
     """ Registers encoder factory class.
 
     Args:
@@ -321,7 +348,7 @@ def register_encoder_factory(cls):
     ENCODER_LIST[cls.TYPE] = cls
 
 
-def create_encoder_factory(name, **kwargs):
+def create_encoder_factory(name: str, **kwargs) -> EncoderFactory:
     """ Returns registered encoder factory object.
 
     Args:

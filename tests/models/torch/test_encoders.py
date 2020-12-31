@@ -85,7 +85,7 @@ def test_vector_encoder(observation_shape, hidden_units, batch_size,
     y = encoder(x)
 
     # check output shape
-    assert encoder.feature_size == hidden_units[-1]
+    assert encoder.get_feature_size() == hidden_units[-1]
     assert y.shape == (batch_size, hidden_units[-1])
 
     # check use of batch norm
@@ -120,7 +120,7 @@ def test_vector_encoder(observation_shape, action_size, hidden_units,
     y = encoder(x, action)
 
     # check output shape
-    assert encoder.feature_size == hidden_units[-1]
+    assert encoder.get_feature_size() == hidden_units[-1]
     assert y.shape == (batch_size, hidden_units[-1])
 
     # check use of batch norm
