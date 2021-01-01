@@ -1,0 +1,7 @@
+#!/bin/bash -eux
+
+
+mypy \
+  d3rlpy/encoders.py \
+  d3rlpy/q_functions.py \
+  d3rlpy/models
