@@ -11,8 +11,8 @@ from .encoders import Encoder, EncoderWithAction
 
 
 def squash_action(
-        dist: torch.distributions.Distribution,
-        raw_action: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    dist: torch.distributions.Distribution, raw_action: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor]:
     squashed_action = torch.tanh(raw_action)
     jacob = 2 * (math.log(2) - raw_action - F.softplus(-2 * raw_action))
     log_prob = (dist.log_prob(raw_action) - jacob).sum(dim=-1, keepdims=True)
@@ -25,15 +25,17 @@ class Policy(nn.Module, metaclass=ABCMeta):
 
     @abstractmethod
     def sample_with_log_prob(
-            self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        self, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         pass
 
     def sample_n(self, x: torch.Tensor, n: int) -> torch.Tensor:
         return self.sample_n_with_log_prob(x, n)[0]
 
     @abstractmethod
-    def sample_n_with_log_prob(self, x: torch.Tensor,
-                               n: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def sample_n_with_log_prob(
+        self, x: torch.Tensor, n: int
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         pass
 
     @abstractmethod
@@ -52,9 +54,7 @@ class DeterministicPolicy(Policy):
         self._fc = nn.Linear(encoder.get_feature_size(), action_size)
 
     def forward(
-        self,
-        x: torch.Tensor,
-        with_raw: bool = False
+        self, x: torch.Tensor, with_raw: bool = False
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         h = self._encoder(x)
         raw_action = self._fc(h)
@@ -63,14 +63,18 @@ class DeterministicPolicy(Policy):
         return torch.tanh(raw_action)
 
     def sample_with_log_prob(
-            self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        self, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError(
-            'deterministic policy does not support sample')
+            "deterministic policy does not support sample"
+        )
 
-    def sample_n_with_log_prob(self, x: torch.Tensor,
-                               n: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def sample_n_with_log_prob(
+        self, x: torch.Tensor, n: int
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError(
-            'deterministic policy does not support sample_n')
+            "deterministic policy does not support sample_n"
+        )
 
     def best_action(self, x: torch.Tensor) -> torch.Tensor:
         return cast(torch.Tensor, self.forward(x))
@@ -93,8 +97,9 @@ class DeterministicResidualPolicy(nn.Module):
         residual_action = self._scale * torch.tanh(self._fc(h))
         return (action + residual_action).clamp(-1.0, 1.0)
 
-    def best_action(self, x: torch.Tensor,
-                    action: torch.Tensor) -> torch.Tensor:
+    def best_action(
+        self, x: torch.Tensor, action: torch.Tensor
+    ) -> torch.Tensor:
         return self.forward(x, action)
 
 
@@ -108,8 +113,14 @@ class NormalPolicy(Policy):
     _mu: nn.Linear
     _logstd: Union[nn.Linear, nn.Parameter]
 
-    def __init__(self, encoder: Encoder, action_size: int, min_logstd: float,
-                 max_logstd: float, use_std_parameter: bool):
+    def __init__(
+        self,
+        encoder: Encoder,
+        action_size: int,
+        min_logstd: float,
+        max_logstd: float,
+        use_std_parameter: bool,
+    ):
         super().__init__()
         self._action_size = action_size
         self._encoder = encoder
@@ -137,7 +148,7 @@ class NormalPolicy(Policy):
         self,
         x: torch.Tensor,
         deterministic: bool = False,
-        with_log_prob: bool = False
+        with_log_prob: bool = False,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         if deterministic:
             # to avoid errors at ONNX export because broadcast_tensors in
@@ -153,7 +164,8 @@ class NormalPolicy(Policy):
         return torch.tanh(action)
 
     def sample_with_log_prob(
-            self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        self, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         out = self.forward(x, with_log_prob=True)
         return cast(Tuple[torch.Tensor, torch.Tensor], out)
 
@@ -164,7 +176,7 @@ class NormalPolicy(Policy):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         dist = self.dist(x)
 
-        action = dist.rsample((n, ))
+        action = dist.rsample((n,))
 
         squashed_action_T, log_prob_T = squash_action(dist, action)
 
@@ -205,7 +217,7 @@ class CategoricalPolicy(Policy):
         self,
         x: torch.Tensor,
         deterministic: bool = False,
-        with_log_prob: bool = False
+        with_log_prob: bool = False,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         dist = self.dist(x)
 
@@ -220,15 +232,17 @@ class CategoricalPolicy(Policy):
         return action
 
     def sample_with_log_prob(
-            self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        self, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         out = self.forward(x, with_log_prob=True)
         return cast(Tuple[torch.Tensor, torch.Tensor], out)
 
-    def sample_n_with_log_prob(self, x: torch.Tensor,
-                               n: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def sample_n_with_log_prob(
+        self, x: torch.Tensor, n: int
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         dist = self.dist(x)
 
-        action_T = cast(torch.Tensor, dist.sample((n, )))
+        action_T = cast(torch.Tensor, dist.sample((n,)))
         log_prob_T = dist.log_prob(action_T)
 
         # (n, batch) -> (batch, n)

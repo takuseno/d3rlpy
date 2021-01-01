@@ -23,17 +23,17 @@ from d3rlpy.models.torch.utility import create_continuous_q_function
 from .model_test import check_parameter_updates, DummyEncoder
 
 
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_quantiles', [0, 200])
-@pytest.mark.parametrize('keepdims', [True, False])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_quantiles", [0, 200])
+@pytest.mark.parametrize("keepdims", [True, False])
 def test_pick_value_by_action(batch_size, action_size, n_quantiles, keepdims):
     if n_quantiles == 0:
         values = torch.rand(batch_size, action_size)
     else:
         values = torch.rand(batch_size, action_size, n_quantiles)
 
-    action = torch.randint(action_size, size=(batch_size, ))
+    action = torch.randint(action_size, size=(batch_size,))
 
     rets = _pick_value_by_action(values, action, keepdims)
 
@@ -41,7 +41,7 @@ def test_pick_value_by_action(batch_size, action_size, n_quantiles, keepdims):
         if keepdims:
             assert rets.shape == (batch_size, 1)
         else:
-            assert rets.shape == (batch_size, )
+            assert rets.shape == (batch_size,)
     else:
         if keepdims:
             assert rets.shape == (batch_size, 1, n_quantiles)
@@ -55,8 +55,8 @@ def test_pick_value_by_action(batch_size, action_size, n_quantiles, keepdims):
 
 
 def ref_quantile_huber_loss(a, b, taus, n_quantiles):
-    abs_diff = np.abs(a - b).reshape((-1, ))
-    l2_diff = ((a - b)**2).reshape((-1, ))
+    abs_diff = np.abs(a - b).reshape((-1,))
+    l2_diff = ((a - b) ** 2).reshape((-1,))
     huber_diff = np.zeros_like(abs_diff)
     huber_diff[abs_diff < 1.0] = 0.5 * l2_diff[abs_diff < 1.0]
     huber_diff[abs_diff >= 1.0] = abs_diff[abs_diff >= 1.0] - 0.5
@@ -66,66 +66,69 @@ def ref_quantile_huber_loss(a, b, taus, n_quantiles):
     return element_wise_loss.sum(axis=2).mean(axis=1)
 
 
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('n_quantiles', [200])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("n_quantiles", [200])
 def test_quantile_huber_loss(batch_size, n_quantiles):
     y = np.random.random((batch_size, n_quantiles, 1))
     target = np.random.random((batch_size, 1, n_quantiles))
     taus = np.random.random((1, 1, n_quantiles))
 
     ref_loss = ref_quantile_huber_loss(y, target, taus, n_quantiles)
-    loss = _quantile_huber_loss(torch.tensor(y), torch.tensor(target),
-                                torch.tensor(taus))
+    loss = _quantile_huber_loss(
+        torch.tensor(y), torch.tensor(target), torch.tensor(taus)
+    )
 
     assert np.allclose(loss.cpu().detach().numpy(), ref_loss)
 
 
-@pytest.mark.parametrize('n_ensembles', [2])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('reduction', ['min', 'max', 'mean', 'none'])
+@pytest.mark.parametrize("n_ensembles", [2])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("reduction", ["min", "max", "mean", "none"])
 def test_reduce_ensemble(n_ensembles, batch_size, reduction):
     y = torch.rand(n_ensembles, batch_size, 1)
     ret = _reduce_ensemble(y, reduction)
-    if reduction == 'min':
+    if reduction == "min":
         assert ret.shape == (batch_size, 1)
         assert torch.allclose(ret, y.min(dim=0).values)
-    elif reduction == 'max':
+    elif reduction == "max":
         assert ret.shape == (batch_size, 1)
         assert torch.allclose(ret, y.max(dim=0).values)
-    elif reduction == 'mean':
+    elif reduction == "mean":
         assert ret.shape == (batch_size, 1)
         assert torch.allclose(ret, y.mean(dim=0))
-    elif reduction == 'none':
+    elif reduction == "none":
         assert ret.shape == (n_ensembles, batch_size, 1)
         assert (ret == y).all()
 
 
-@pytest.mark.parametrize('n_ensembles', [2])
-@pytest.mark.parametrize('n_quantiles', [200])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('reduction', ['min', 'max'])
-def test_reduce_quantile_ensemble(n_ensembles, n_quantiles, batch_size,
-                                  reduction):
+@pytest.mark.parametrize("n_ensembles", [2])
+@pytest.mark.parametrize("n_quantiles", [200])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("reduction", ["min", "max"])
+def test_reduce_quantile_ensemble(
+    n_ensembles, n_quantiles, batch_size, reduction
+):
     y = torch.rand(n_ensembles, batch_size, n_quantiles)
     ret = _reduce_quantile_ensemble(y, reduction)
     mean = y.mean(dim=2)
-    if reduction == 'min':
+    if reduction == "min":
         assert ret.shape == (batch_size, n_quantiles)
         indices = mean.min(dim=0).indices
         assert torch.allclose(ret, y[indices, torch.arange(batch_size)])
-    elif reduction == 'max':
+    elif reduction == "max":
         assert ret.shape == (batch_size, n_quantiles)
         indices = mean.max(dim=0).indices
         assert torch.allclose(ret, y[indices, torch.arange(batch_size)])
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_quantiles', [200])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_discrete_qr_q_function(feature_size, action_size, n_quantiles,
-                                batch_size, gamma):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_quantiles", [200])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("gamma", [0.99])
+def test_discrete_qr_q_function(
+    feature_size, action_size, n_quantiles, batch_size, gamma
+):
     encoder = DummyEncoder(feature_size)
     q_func = DiscreteQRQFunction(encoder, action_size, n_quantiles)
 
@@ -141,7 +144,7 @@ def test_discrete_qr_q_function(feature_size, action_size, n_quantiles,
         assert np.allclose(taus[0][i].numpy(), i * step + step / 2.0)
 
     # check compute_target
-    action = torch.randint(high=action_size, size=(batch_size, ))
+    action = torch.randint(high=action_size, size=(batch_size,))
     target = q_func.compute_target(x, action)
     assert target.shape == (batch_size, n_quantiles)
 
@@ -151,38 +154,41 @@ def test_discrete_qr_q_function(feature_size, action_size, n_quantiles,
 
     # check quantile huber loss
     obs_t = torch.rand(batch_size, feature_size)
-    act_t = torch.randint(action_size, size=(batch_size, ))
+    act_t = torch.randint(action_size, size=(batch_size,))
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
     # shape check
-    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction='none')
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction="none")
     assert loss.shape == (batch_size, 1)
     # mean loss
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
 
-    target = (rew_tp1.numpy() + gamma * q_tp1.numpy())
-    y = _pick_value_by_action(q_func._compute_quantiles(encoder(obs_t), taus),
-                              act_t)
+    target = rew_tp1.numpy() + gamma * q_tp1.numpy()
+    y = _pick_value_by_action(
+        q_func._compute_quantiles(encoder(obs_t), taus), act_t
+    )
 
     reshaped_target = np.reshape(target, (batch_size, -1, 1))
     reshaped_y = np.reshape(y.detach().numpy(), (batch_size, 1, -1))
     reshaped_taus = np.reshape(taus, (1, 1, -1))
 
-    ref_loss = ref_quantile_huber_loss(reshaped_y, reshaped_target,
-                                       reshaped_taus, n_quantiles)
+    ref_loss = ref_quantile_huber_loss(
+        reshaped_y, reshaped_target, reshaped_taus, n_quantiles
+    )
     assert np.allclose(loss.cpu().detach(), ref_loss.mean())
 
     # check layer connection
     check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_quantiles', [200])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_continuous_qr_q_function(feature_size, action_size, n_quantiles,
-                                  batch_size, gamma):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_quantiles", [200])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("gamma", [0.99])
+def test_continuous_qr_q_function(
+    feature_size, action_size, n_quantiles, batch_size, gamma
+):
     encoder = DummyEncoder(feature_size, action_size, concat=True)
     q_func = ContinuousQRQFunction(encoder, n_quantiles)
 
@@ -207,7 +213,7 @@ def test_continuous_qr_q_function(feature_size, action_size, n_quantiles,
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
     # check shape
-    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction='none')
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction="none")
     assert loss.shape == (batch_size, 1)
     # mean loss
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
@@ -219,27 +225,35 @@ def test_continuous_qr_q_function(feature_size, action_size, n_quantiles,
     reshaped_y = y.reshape((batch_size, 1, -1))
     reshaped_taus = taus.reshape((1, 1, -1))
 
-    ref_loss = ref_quantile_huber_loss(reshaped_y, reshaped_target,
-                                       reshaped_taus, n_quantiles)
+    ref_loss = ref_quantile_huber_loss(
+        reshaped_y, reshaped_target, reshaped_taus, n_quantiles
+    )
     assert np.allclose(loss.cpu().detach(), ref_loss.mean())
 
     # check layer connection
     check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_quantiles', [200])
-@pytest.mark.parametrize('n_greedy_quantiles', [32])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('embed_size', [64])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_discrete_iqn_q_function(feature_size, action_size, n_quantiles,
-                                 n_greedy_quantiles, batch_size, embed_size,
-                                 gamma):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_quantiles", [200])
+@pytest.mark.parametrize("n_greedy_quantiles", [32])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("embed_size", [64])
+@pytest.mark.parametrize("gamma", [0.99])
+def test_discrete_iqn_q_function(
+    feature_size,
+    action_size,
+    n_quantiles,
+    n_greedy_quantiles,
+    batch_size,
+    embed_size,
+    gamma,
+):
     encoder = DummyEncoder(feature_size)
-    q_func = DiscreteIQNQFunction(encoder, action_size, n_quantiles,
-                                  n_greedy_quantiles, embed_size)
+    q_func = DiscreteIQNQFunction(
+        encoder, action_size, n_quantiles, n_greedy_quantiles, embed_size
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -254,7 +268,7 @@ def test_discrete_iqn_q_function(feature_size, action_size, n_quantiles,
     q_func.train()
 
     # check compute_target
-    action = torch.randint(high=action_size, size=(batch_size, ))
+    action = torch.randint(high=action_size, size=(batch_size,))
     target = q_func.compute_target(x, action)
     assert target.shape == (batch_size, n_quantiles)
 
@@ -264,11 +278,11 @@ def test_discrete_iqn_q_function(feature_size, action_size, n_quantiles,
 
     # TODO: check quantile huber loss
     obs_t = torch.rand(batch_size, feature_size)
-    act_t = torch.randint(action_size, size=(batch_size, ))
+    act_t = torch.randint(action_size, size=(batch_size,))
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
     # check shape
-    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction='none')
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction="none")
     assert loss.shape == (batch_size, 1)
     # mean loss
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
@@ -277,19 +291,26 @@ def test_discrete_iqn_q_function(feature_size, action_size, n_quantiles,
     check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_quantiles', [200])
-@pytest.mark.parametrize('n_greedy_quantiles', [32])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('embed_size', [64])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_continuous_iqn_q_function(feature_size, action_size, n_quantiles,
-                                   n_greedy_quantiles, batch_size, embed_size,
-                                   gamma):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_quantiles", [200])
+@pytest.mark.parametrize("n_greedy_quantiles", [32])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("embed_size", [64])
+@pytest.mark.parametrize("gamma", [0.99])
+def test_continuous_iqn_q_function(
+    feature_size,
+    action_size,
+    n_quantiles,
+    n_greedy_quantiles,
+    batch_size,
+    embed_size,
+    gamma,
+):
     encoder = DummyEncoder(feature_size, action_size)
-    q_func = ContinuousIQNQFunction(encoder, n_quantiles, n_greedy_quantiles,
-                                    embed_size)
+    q_func = ContinuousIQNQFunction(
+        encoder, n_quantiles, n_greedy_quantiles, embed_size
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -310,11 +331,11 @@ def test_continuous_iqn_q_function(feature_size, action_size, n_quantiles,
 
     # TODO: check quantile huber loss
     obs_t = torch.rand(batch_size, feature_size)
-    act_t = torch.randint(action_size, size=(batch_size, ))
+    act_t = torch.randint(action_size, size=(batch_size,))
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
     # check shape
-    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction='none')
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction="none")
     assert loss.shape == (batch_size, 1)
     # mean loss
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
@@ -323,17 +344,17 @@ def test_continuous_iqn_q_function(feature_size, action_size, n_quantiles,
     check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_quantiles', [200])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('embed_size', [64])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_discrete_fqf_q_function(feature_size, action_size, n_quantiles,
-                                 batch_size, embed_size, gamma):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_quantiles", [200])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("embed_size", [64])
+@pytest.mark.parametrize("gamma", [0.99])
+def test_discrete_fqf_q_function(
+    feature_size, action_size, n_quantiles, batch_size, embed_size, gamma
+):
     encoder = DummyEncoder(feature_size)
-    q_func = DiscreteFQFQFunction(encoder, action_size, n_quantiles,
-                                  embed_size)
+    q_func = DiscreteFQFQFunction(encoder, action_size, n_quantiles, embed_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -341,7 +362,7 @@ def test_discrete_fqf_q_function(feature_size, action_size, n_quantiles,
     assert y.shape == (batch_size, action_size)
 
     # check compute_target
-    action = torch.randint(high=action_size, size=(batch_size, ))
+    action = torch.randint(high=action_size, size=(batch_size,))
     target = q_func.compute_target(x, action)
     assert target.shape == (batch_size, n_quantiles)
 
@@ -351,11 +372,11 @@ def test_discrete_fqf_q_function(feature_size, action_size, n_quantiles,
 
     # TODO: check quantile huber loss
     obs_t = torch.rand(batch_size, feature_size)
-    act_t = torch.randint(action_size, size=(batch_size, ))
+    act_t = torch.randint(action_size, size=(batch_size,))
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
     # check shape
-    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction='none')
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction="none")
     assert loss.shape == (batch_size, 1)
     # mean loss
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
@@ -364,14 +385,15 @@ def test_discrete_fqf_q_function(feature_size, action_size, n_quantiles,
     check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_quantiles', [200])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('embed_size', [64])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_continuous_fqf_q_function(feature_size, action_size, n_quantiles,
-                                   batch_size, embed_size, gamma):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_quantiles", [200])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("embed_size", [64])
+@pytest.mark.parametrize("gamma", [0.99])
+def test_continuous_fqf_q_function(
+    feature_size, action_size, n_quantiles, batch_size, embed_size, gamma
+):
     encoder = DummyEncoder(feature_size, action_size)
     q_func = ContinuousFQFQFunction(encoder, n_quantiles, embed_size)
 
@@ -386,11 +408,11 @@ def test_continuous_fqf_q_function(feature_size, action_size, n_quantiles,
 
     # TODO: check quantile huber loss
     obs_t = torch.rand(batch_size, feature_size)
-    act_t = torch.randint(action_size, size=(batch_size, ))
+    act_t = torch.randint(action_size, size=(batch_size,))
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
     # check shape
-    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction='none')
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, reduction="none")
     assert loss.shape == (batch_size, 1)
     # mean loss
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1)
@@ -400,8 +422,8 @@ def test_continuous_fqf_q_function(feature_size, action_size, n_quantiles,
 
 
 def ref_huber_loss(a, b):
-    abs_diff = np.abs(a - b).reshape((-1, ))
-    l2_diff = ((a - b)**2).reshape((-1, ))
+    abs_diff = np.abs(a - b).reshape((-1,))
+    l2_diff = ((a - b) ** 2).reshape((-1,))
     huber_diff = np.zeros_like(abs_diff)
     huber_diff[abs_diff < 1.0] = 0.5 * l2_diff[abs_diff < 1.0]
     huber_diff[abs_diff >= 1.0] = abs_diff[abs_diff >= 1.0] - 0.5
@@ -409,16 +431,15 @@ def ref_huber_loss(a, b):
 
 
 def filter_by_action(value, action, action_size):
-    act_one_hot = np.identity(action_size)[np.reshape(action, (-1, ))]
+    act_one_hot = np.identity(action_size)[np.reshape(action, (-1,))]
     return (value * act_one_hot).sum(axis=1)
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_discrete_mean_q_function(feature_size, action_size, batch_size,
-                                  gamma):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("gamma", [0.99])
+def test_discrete_mean_q_function(feature_size, action_size, batch_size, gamma):
     encoder = DummyEncoder(feature_size)
     q_func = DiscreteMeanQFunction(encoder, action_size)
 
@@ -428,7 +449,7 @@ def test_discrete_mean_q_function(feature_size, action_size, batch_size,
     assert y.shape == (batch_size, action_size)
 
     # check compute_target
-    action = torch.randint(high=action_size, size=(batch_size, ))
+    action = torch.randint(high=action_size, size=(batch_size,))
     target = q_func.compute_target(x, action)
     assert target.shape == (batch_size, 1)
     assert torch.allclose(y[torch.arange(batch_size), action], target.view(-1))
@@ -458,71 +479,81 @@ def test_discrete_mean_q_function(feature_size, action_size, batch_size,
     check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('gamma', [0.99])
-@pytest.mark.parametrize('ensemble_size', [5])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
-@pytest.mark.parametrize('n_quantiles', [200])
-@pytest.mark.parametrize('embed_size', [64])
-@pytest.mark.parametrize('bootstrap', [False, True])
-def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
-                                      gamma, ensemble_size, q_func_type,
-                                      n_quantiles, embed_size, bootstrap):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("gamma", [0.99])
+@pytest.mark.parametrize("ensemble_size", [5])
+@pytest.mark.parametrize("q_func_type", ["mean", "qr", "iqn", "fqf"])
+@pytest.mark.parametrize("n_quantiles", [200])
+@pytest.mark.parametrize("embed_size", [64])
+@pytest.mark.parametrize("bootstrap", [False, True])
+def test_ensemble_discrete_q_function(
+    feature_size,
+    action_size,
+    batch_size,
+    gamma,
+    ensemble_size,
+    q_func_type,
+    n_quantiles,
+    embed_size,
+    bootstrap,
+):
     q_funcs = []
     for _ in range(ensemble_size):
         encoder = DummyEncoder(feature_size)
-        if q_func_type == 'mean':
+        if q_func_type == "mean":
             q_func = DiscreteMeanQFunction(encoder, action_size)
-        elif q_func_type == 'qr':
+        elif q_func_type == "qr":
             q_func = DiscreteQRQFunction(encoder, action_size, n_quantiles)
-        elif q_func_type == 'iqn':
-            q_func = DiscreteIQNQFunction(encoder, action_size, n_quantiles,
-                                          n_quantiles, embed_size)
-        elif q_func_type == 'fqf':
-            q_func = DiscreteFQFQFunction(encoder, action_size, n_quantiles,
-                                          embed_size)
+        elif q_func_type == "iqn":
+            q_func = DiscreteIQNQFunction(
+                encoder, action_size, n_quantiles, n_quantiles, embed_size
+            )
+        elif q_func_type == "fqf":
+            q_func = DiscreteFQFQFunction(
+                encoder, action_size, n_quantiles, embed_size
+            )
         q_funcs.append(q_func)
     q_func = EnsembleDiscreteQFunction(q_funcs, bootstrap)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
-    values = q_func(x, 'none')
+    values = q_func(x, "none")
     assert values.shape == (ensemble_size, batch_size, action_size)
 
     # check compute_target
-    action = torch.randint(high=action_size, size=(batch_size, ))
+    action = torch.randint(high=action_size, size=(batch_size,))
     target = q_func.compute_target(x, action)
-    if q_func_type == 'mean':
+    if q_func_type == "mean":
         assert target.shape == (batch_size, 1)
         min_values = values.min(dim=0).values
-        assert torch.allclose(min_values[torch.arange(batch_size), action],
-                              target.view(-1))
+        assert torch.allclose(
+            min_values[torch.arange(batch_size), action], target.view(-1)
+        )
     else:
         assert target.shape == (batch_size, n_quantiles)
 
     # check compute_target with action=None
     targets = q_func.compute_target(x)
-    if q_func_type == 'mean':
+    if q_func_type == "mean":
         assert targets.shape == (batch_size, action_size)
     else:
         assert targets.shape == (batch_size, action_size, n_quantiles)
 
     # check reductions
-    if q_func_type != 'iqn':
-        assert torch.allclose(values.min(dim=0).values, q_func(x, 'min'))
-        assert torch.allclose(values.max(dim=0).values, q_func(x, 'max'))
-        assert torch.allclose(values.mean(dim=0), q_func(x, 'mean'))
+    if q_func_type != "iqn":
+        assert torch.allclose(values.min(dim=0).values, q_func(x, "min"))
+        assert torch.allclose(values.max(dim=0).values, q_func(x, "max"))
+        assert torch.allclose(values.mean(dim=0), q_func(x, "mean"))
 
     # check td computation
     obs_t = torch.rand(batch_size, feature_size)
-    act_t = torch.randint(0,
-                          action_size,
-                          size=(batch_size, 1),
-                          dtype=torch.int64)
+    act_t = torch.randint(
+        0, action_size, size=(batch_size, 1), dtype=torch.int64
+    )
     rew_tp1 = torch.rand(batch_size, 1)
-    if q_func_type == 'mean':
+    if q_func_type == "mean":
         q_tp1 = torch.rand(batch_size, 1)
     else:
         q_tp1 = torch.rand(batch_size, n_quantiles)
@@ -533,19 +564,20 @@ def test_ensemble_discrete_q_function(feature_size, action_size, batch_size,
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
     if bootstrap:
         assert not torch.allclose(ref_td_sum, loss)
-    elif q_func_type != 'iqn':
+    elif q_func_type != "iqn":
         assert torch.allclose(ref_td_sum, loss)
 
     # check layer connection
     check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_continuous_mean_q_function(feature_size, action_size, batch_size,
-                                    gamma):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("gamma", [0.99])
+def test_continuous_mean_q_function(
+    feature_size, action_size, batch_size, gamma
+):
     encoder = DummyEncoder(feature_size, action_size, concat=True)
     q_func = ContinuousMeanQFunction(encoder)
 
@@ -568,7 +600,7 @@ def test_continuous_mean_q_function(feature_size, action_size, batch_size,
     obs_t = torch.rand(batch_size, feature_size)
     act_t = torch.rand(batch_size, action_size)
     q_t = q_func(obs_t, act_t).detach().numpy()
-    ref_loss = ((q_t - target)**2).mean()
+    ref_loss = ((q_t - target) ** 2).mean()
 
     rew_tp1 = torch.tensor(rew_tp1, dtype=torch.float32)
     q_tp1 = torch.tensor(q_tp1, dtype=torch.float32)
@@ -580,29 +612,38 @@ def test_continuous_mean_q_function(feature_size, action_size, batch_size,
     check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('gamma', [0.99])
-@pytest.mark.parametrize('ensemble_size', [5])
-@pytest.mark.parametrize('n_quantiles', [200])
-@pytest.mark.parametrize('q_func_type', ['mean', 'qr', 'iqn', 'fqf'])
-@pytest.mark.parametrize('embed_size', [64])
-@pytest.mark.parametrize('bootstrap', [False, True])
-def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
-                                        gamma, ensemble_size, q_func_type,
-                                        n_quantiles, embed_size, bootstrap):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("gamma", [0.99])
+@pytest.mark.parametrize("ensemble_size", [5])
+@pytest.mark.parametrize("n_quantiles", [200])
+@pytest.mark.parametrize("q_func_type", ["mean", "qr", "iqn", "fqf"])
+@pytest.mark.parametrize("embed_size", [64])
+@pytest.mark.parametrize("bootstrap", [False, True])
+def test_ensemble_continuous_q_function(
+    feature_size,
+    action_size,
+    batch_size,
+    gamma,
+    ensemble_size,
+    q_func_type,
+    n_quantiles,
+    embed_size,
+    bootstrap,
+):
     q_funcs = []
     for _ in range(ensemble_size):
         encoder = DummyEncoder(feature_size, action_size, concat=True)
-        if q_func_type == 'mean':
+        if q_func_type == "mean":
             q_func = ContinuousMeanQFunction(encoder)
-        elif q_func_type == 'qr':
+        elif q_func_type == "qr":
             q_func = ContinuousQRQFunction(encoder, n_quantiles)
-        elif q_func_type == 'iqn':
-            q_func = ContinuousIQNQFunction(encoder, n_quantiles, n_quantiles,
-                                            embed_size)
-        elif q_func_type == 'fqf':
+        elif q_func_type == "iqn":
+            q_func = ContinuousIQNQFunction(
+                encoder, n_quantiles, n_quantiles, embed_size
+            )
+        elif q_func_type == "fqf":
             q_func = ContinuousFQFQFunction(encoder, n_quantiles, embed_size)
         q_funcs.append(q_func)
 
@@ -611,12 +652,12 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
     # check output shape
     x = torch.rand(batch_size, feature_size)
     action = torch.rand(batch_size, action_size)
-    values = q_func(x, action, 'none')
+    values = q_func(x, action, "none")
     assert values.shape == (ensemble_size, batch_size, 1)
 
     # check compute_target
     target = q_func.compute_target(x, action)
-    if q_func_type == 'mean':
+    if q_func_type == "mean":
         assert target.shape == (batch_size, 1)
         min_values = values.min(dim=0).values
         assert (target == min_values).all()
@@ -624,16 +665,16 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
         assert target.shape == (batch_size, n_quantiles)
 
     # check reductions
-    if q_func_type != 'iqn':
-        assert torch.allclose(values.min(dim=0)[0], q_func(x, action, 'min'))
-        assert torch.allclose(values.max(dim=0)[0], q_func(x, action, 'max'))
-        assert torch.allclose(values.mean(dim=0), q_func(x, action, 'mean'))
+    if q_func_type != "iqn":
+        assert torch.allclose(values.min(dim=0)[0], q_func(x, action, "min"))
+        assert torch.allclose(values.max(dim=0)[0], q_func(x, action, "max"))
+        assert torch.allclose(values.mean(dim=0), q_func(x, action, "mean"))
 
     # check td computation
     obs_t = torch.rand(batch_size, feature_size)
     act_t = torch.rand(batch_size, action_size)
     rew_tp1 = torch.rand(batch_size, 1)
-    if q_func_type == 'mean':
+    if q_func_type == "mean":
         q_tp1 = torch.rand(batch_size, 1)
     else:
         q_tp1 = torch.rand(batch_size, n_quantiles)
@@ -644,33 +685,42 @@ def test_ensemble_continuous_q_function(feature_size, action_size, batch_size,
     loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, gamma)
     if bootstrap:
         assert not torch.allclose(ref_td_sum, loss)
-    elif q_func_type != 'iqn':
+    elif q_func_type != "iqn":
         assert torch.allclose(ref_td_sum, loss)
 
     # check layer connection
     check_parameter_updates(q_func, (obs_t, act_t, rew_tp1, q_tp1))
 
 
-@pytest.mark.parametrize('observation_shape', [(4, 84, 84), (100, )])
-@pytest.mark.parametrize('action_size', [3])
-@pytest.mark.parametrize('encoder_factory', [DefaultEncoderFactory()])
+@pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])
+@pytest.mark.parametrize("action_size", [3])
+@pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize(
-    'q_func_factory',
-    [MeanQFunctionFactory(), QRQFunctionFactory()])
-@pytest.mark.parametrize('n_ensembles', [2])
-@pytest.mark.parametrize('batch_size', [100])
-@pytest.mark.parametrize('n_quantiles', [32])
-@pytest.mark.parametrize('n_actions', [10])
-@pytest.mark.parametrize('lam', [0.75])
-def test_compute_max_with_n_actions(observation_shape, action_size,
-                                    encoder_factory, q_func_factory,
-                                    n_ensembles, batch_size, n_quantiles,
-                                    n_actions, lam):
-    q_func = create_continuous_q_function(observation_shape,
-                                          action_size,
-                                          encoder_factory,
-                                          q_func_factory,
-                                          n_ensembles=n_ensembles)
+    "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
+)
+@pytest.mark.parametrize("n_ensembles", [2])
+@pytest.mark.parametrize("batch_size", [100])
+@pytest.mark.parametrize("n_quantiles", [32])
+@pytest.mark.parametrize("n_actions", [10])
+@pytest.mark.parametrize("lam", [0.75])
+def test_compute_max_with_n_actions(
+    observation_shape,
+    action_size,
+    encoder_factory,
+    q_func_factory,
+    n_ensembles,
+    batch_size,
+    n_quantiles,
+    n_actions,
+    lam,
+):
+    q_func = create_continuous_q_function(
+        observation_shape,
+        action_size,
+        encoder_factory,
+        q_func_factory,
+        n_ensembles=n_ensembles,
+    )
     x = torch.rand(batch_size, *observation_shape)
     actions = torch.rand(batch_size, n_actions, action_size)
 

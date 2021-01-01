@@ -25,8 +25,8 @@ def _create_encoder(observation_shape, action_size):
     return encoder
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [None, 2])
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [None, 2])
 def test_mean_q_function_factory(observation_shape, action_size):
     encoder = _create_encoder(observation_shape, action_size)
 
@@ -38,15 +38,15 @@ def test_mean_q_function_factory(observation_shape, action_size):
     else:
         assert isinstance(q_func, DiscreteMeanQFunction)
 
-    assert factory.get_type() == 'mean'
+    assert factory.get_type() == "mean"
 
     params = factory.get_params()
     new_factory = MeanQFunctionFactory(**params)
     assert new_factory.get_params() == params
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [None, 2])
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [None, 2])
 def test_qr_q_function_factory(observation_shape, action_size):
     encoder = _create_encoder(observation_shape, action_size)
 
@@ -58,15 +58,15 @@ def test_qr_q_function_factory(observation_shape, action_size):
     else:
         assert isinstance(q_func, DiscreteQRQFunction)
 
-    assert factory.get_type() == 'qr'
+    assert factory.get_type() == "qr"
 
     params = factory.get_params()
     new_factory = QRQFunctionFactory(**params)
     assert new_factory.get_params() == params
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [None, 2])
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [None, 2])
 def test_iqn_q_function_factory(observation_shape, action_size):
     encoder = _create_encoder(observation_shape, action_size)
 
@@ -78,15 +78,15 @@ def test_iqn_q_function_factory(observation_shape, action_size):
     else:
         assert isinstance(q_func, DiscreteIQNQFunction)
 
-    assert factory.get_type() == 'iqn'
+    assert factory.get_type() == "iqn"
 
     params = factory.get_params()
     new_factory = IQNQFunctionFactory(**params)
     assert new_factory.get_params() == params
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [None, 2])
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [None, 2])
 def test_fqf_q_function_factory(observation_shape, action_size):
     encoder = _create_encoder(observation_shape, action_size)
 
@@ -98,21 +98,21 @@ def test_fqf_q_function_factory(observation_shape, action_size):
     else:
         assert isinstance(q_func, DiscreteFQFQFunction)
 
-    assert factory.get_type() == 'fqf'
+    assert factory.get_type() == "fqf"
 
     params = factory.get_params()
     new_factory = FQFQFunctionFactory(**params)
     assert new_factory.get_params() == params
 
 
-@pytest.mark.parametrize('name', ['mean', 'qr', 'iqn', 'fqf'])
+@pytest.mark.parametrize("name", ["mean", "qr", "iqn", "fqf"])
 def test_create_q_func_factory(name):
     factory = create_q_func_factory(name)
-    if name == 'mean':
+    if name == "mean":
         assert isinstance(factory, MeanQFunctionFactory)
-    elif name == 'qr':
+    elif name == "qr":
         assert isinstance(factory, QRQFunctionFactory)
-    elif name == 'iqn':
+    elif name == "iqn":
         assert isinstance(factory, IQNQFunctionFactory)
-    elif name == 'fqf':
+    elif name == "fqf":
         assert isinstance(factory, FQFQFunctionFactory)

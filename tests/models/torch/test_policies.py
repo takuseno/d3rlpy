@@ -10,9 +10,9 @@ from d3rlpy.models.torch.policies import CategoricalPolicy
 from .model_test import check_parameter_updates, DummyEncoder
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('batch_size', [32])
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("batch_size", [32])
 def test_deterministic_policy(feature_size, action_size, batch_size):
     encoder = DummyEncoder(feature_size)
     policy = DeterministicPolicy(encoder, action_size)
@@ -27,15 +27,16 @@ def test_deterministic_policy(feature_size, action_size, batch_size):
     assert torch.allclose(best_action, y)
 
     # check layer connection
-    check_parameter_updates(policy, (x, ))
+    check_parameter_updates(policy, (x,))
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('scale', [0.05])
-@pytest.mark.parametrize('batch_size', [32])
-def test_deterministic_residual_policy(feature_size, action_size, scale,
-                                       batch_size):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("scale", [0.05])
+@pytest.mark.parametrize("batch_size", [32])
+def test_deterministic_residual_policy(
+    feature_size, action_size, scale, batch_size
+):
     encoder = DummyEncoder(feature_size, action_size)
     policy = DeterministicResidualPolicy(encoder, scale)
 
@@ -57,18 +58,26 @@ def test_deterministic_residual_policy(feature_size, action_size, scale,
     check_parameter_updates(policy, (x, action))
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('min_logstd', [-20.0])
-@pytest.mark.parametrize('max_logstd', [2.0])
-@pytest.mark.parametrize('use_std_parameter', [True, False])
-@pytest.mark.parametrize('n', [10])
-def test_normal_policy(feature_size, action_size, batch_size, min_logstd,
-                       max_logstd, use_std_parameter, n):
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("min_logstd", [-20.0])
+@pytest.mark.parametrize("max_logstd", [2.0])
+@pytest.mark.parametrize("use_std_parameter", [True, False])
+@pytest.mark.parametrize("n", [10])
+def test_normal_policy(
+    feature_size,
+    action_size,
+    batch_size,
+    min_logstd,
+    max_logstd,
+    use_std_parameter,
+    n,
+):
     encoder = DummyEncoder(feature_size)
-    policy = NormalPolicy(encoder, action_size, min_logstd, max_logstd,
-                          use_std_parameter)
+    policy = NormalPolicy(
+        encoder, action_size, min_logstd, max_logstd, use_std_parameter
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -87,13 +96,13 @@ def test_normal_policy(feature_size, action_size, batch_size, min_logstd,
     assert log_prob_n.shape == (batch_size, n, 1)
 
     # check layer connection
-    check_parameter_updates(policy, (x, ))
+    check_parameter_updates(policy, (x,))
 
 
-@pytest.mark.parametrize('feature_size', [100])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('n', [10])
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("n", [10])
 def test_categorical_policy(feature_size, action_size, batch_size, n):
     encoder = DummyEncoder(feature_size)
     policy = CategoricalPolicy(encoder, action_size)
@@ -101,11 +110,11 @@ def test_categorical_policy(feature_size, action_size, batch_size, n):
     # check output shape
     x = torch.rand(batch_size, feature_size)
     y = policy(x)
-    assert y.shape == (batch_size, )
+    assert y.shape == (batch_size,)
 
     # check log_prob shape
     _, log_prob = policy(x, with_log_prob=True)
-    assert log_prob.shape == (batch_size, )
+    assert log_prob.shape == (batch_size,)
 
     # check distribution type
     assert isinstance(policy.dist(x), torch.distributions.Categorical)

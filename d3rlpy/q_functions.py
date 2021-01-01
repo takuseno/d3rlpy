@@ -14,15 +14,15 @@ from d3rlpy.models.torch.q_functions import ContinuousFQFQFunction
 
 
 class QFunctionFactory(metaclass=ABCMeta):
-    TYPE: ClassVar[str] = 'none'
+    TYPE: ClassVar[str] = "none"
 
     @abstractmethod
     def create(
         self,
         encoder: Union[Encoder, EncoderWithAction],
-        action_size: Optional[int] = None
+        action_size: Optional[int] = None,
     ) -> Union[DiscreteQFunction, ContinuousQFunction]:
-        """ Returns PyTorch's Q function module.
+        """Returns PyTorch's Q function module.
 
         Args:
             encoder (torch.nn.Module): an encoder module that processes
@@ -38,7 +38,7 @@ class QFunctionFactory(metaclass=ABCMeta):
         pass
 
     def get_type(self) -> str:
-        """ Returns Q function type.
+        """Returns Q function type.
 
         Returns:
             str: Q function type.
@@ -48,7 +48,7 @@ class QFunctionFactory(metaclass=ABCMeta):
 
     @abstractmethod
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """ Returns Q function parameters.
+        """Returns Q function parameters.
 
         Returns:
             dict: Q function parameters.
@@ -58,7 +58,7 @@ class QFunctionFactory(metaclass=ABCMeta):
 
 
 class MeanQFunctionFactory(QFunctionFactory):
-    """ Standard Q function factory class.
+    """Standard Q function factory class.
 
     This is the standard Q function factory class.
 
@@ -70,12 +70,12 @@ class MeanQFunctionFactory(QFunctionFactory):
 
     """
 
-    TYPE: ClassVar[str] = 'mean'
+    TYPE: ClassVar[str] = "mean"
 
     def create(
         self,
         encoder: Union[Encoder, EncoderWithAction],
-        action_size: Optional[int] = None
+        action_size: Optional[int] = None,
     ) -> Union[ContinuousMeanQFunction, DiscreteMeanQFunction]:
         q_func: Union[ContinuousMeanQFunction, DiscreteMeanQFunction]
         if action_size is None:
@@ -91,7 +91,7 @@ class MeanQFunctionFactory(QFunctionFactory):
 
 
 class QRQFunctionFactory(QFunctionFactory):
-    """ Quantile Regression Q function factory class.
+    """Quantile Regression Q function factory class.
 
     References:
         * `Dabney et al., Distributional reinforcement learning with quantile
@@ -105,7 +105,7 @@ class QRQFunctionFactory(QFunctionFactory):
 
     """
 
-    TYPE: ClassVar[str] = 'qr'
+    TYPE: ClassVar[str] = "qr"
     _n_quantiles: int
 
     def __init__(self, n_quantiles: int = 200):
@@ -114,7 +114,7 @@ class QRQFunctionFactory(QFunctionFactory):
     def create(
         self,
         encoder: Union[Encoder, EncoderWithAction],
-        action_size: Optional[int] = None
+        action_size: Optional[int] = None,
     ) -> Union[ContinuousQRQFunction, DiscreteQRQFunction]:
         q_func: Union[ContinuousQRQFunction, DiscreteQRQFunction]
         if action_size is None:
@@ -122,16 +122,21 @@ class QRQFunctionFactory(QFunctionFactory):
             q_func = ContinuousQRQFunction(encoder, self._n_quantiles)
         else:
             assert isinstance(encoder, Encoder)
-            q_func = DiscreteQRQFunction(encoder, action_size,
-                                         self._n_quantiles)
+            q_func = DiscreteQRQFunction(
+                encoder, action_size, self._n_quantiles
+            )
         return q_func
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {'n_quantiles': self._n_quantiles}
+        return {"n_quantiles": self._n_quantiles}
+
+    @property
+    def n_quantiles(self) -> int:
+        return self._n_quantiles
 
 
 class IQNQFunctionFactory(QFunctionFactory):
-    """ Implicit Quantile Network Q function factory class.
+    """Implicit Quantile Network Q function factory class.
 
     References:
         * `Dabney et al., Implicit quantile networks for distributional
@@ -149,15 +154,17 @@ class IQNQFunctionFactory(QFunctionFactory):
 
     """
 
-    TYPE: ClassVar[str] = 'iqn'
+    TYPE: ClassVar[str] = "iqn"
     _n_quantiles: int
     _n_greedy_quantiles: int
     _embed_size: int
 
-    def __init__(self,
-                 n_quantiles: int = 64,
-                 n_greedy_quantiles: int = 32,
-                 embed_size: int = 64):
+    def __init__(
+        self,
+        n_quantiles: int = 64,
+        n_greedy_quantiles: int = 32,
+        embed_size: int = 64,
+    ):
         self._n_quantiles = n_quantiles
         self._n_greedy_quantiles = n_greedy_quantiles
         self._embed_size = embed_size
@@ -165,7 +172,7 @@ class IQNQFunctionFactory(QFunctionFactory):
     def create(
         self,
         encoder: Union[Encoder, EncoderWithAction],
-        action_size: Optional[int] = None
+        action_size: Optional[int] = None,
     ) -> Union[ContinuousIQNQFunction, DiscreteIQNQFunction]:
         q_func: Union[DiscreteIQNQFunction, ContinuousIQNQFunction]
         if action_size is None:
@@ -174,7 +181,8 @@ class IQNQFunctionFactory(QFunctionFactory):
                 encoder=encoder,
                 n_quantiles=self._n_quantiles,
                 n_greedy_quantiles=self._n_greedy_quantiles,
-                embed_size=self._embed_size)
+                embed_size=self._embed_size,
+            )
         else:
             assert isinstance(encoder, Encoder)
             q_func = DiscreteIQNQFunction(
@@ -182,19 +190,32 @@ class IQNQFunctionFactory(QFunctionFactory):
                 action_size=action_size,
                 n_quantiles=self._n_quantiles,
                 n_greedy_quantiles=self._n_greedy_quantiles,
-                embed_size=self._embed_size)
+                embed_size=self._embed_size,
+            )
         return q_func
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
-            'n_quantiles': self._n_quantiles,
-            'n_greedy_quantiles': self._n_greedy_quantiles,
-            'embed_size': self._embed_size
+            "n_quantiles": self._n_quantiles,
+            "n_greedy_quantiles": self._n_greedy_quantiles,
+            "embed_size": self._embed_size,
         }
+
+    @property
+    def n_quantiles(self) -> int:
+        return self._n_quantiles
+
+    @property
+    def n_greedy_quantiles(self) -> int:
+        return self._n_greedy_quantiles
+
+    @property
+    def embed_size(self) -> int:
+        return self._embed_size
 
 
 class FQFQFunctionFactory(QFunctionFactory):
-    """ Fully parameterized Quantile Function Q function factory.
+    """Fully parameterized Quantile Function Q function factory.
 
     References:
         * `Yang et al., Fully parameterized quantile function for
@@ -213,15 +234,17 @@ class FQFQFunctionFactory(QFunctionFactory):
 
     """
 
-    TYPE: ClassVar[str] = 'fqf'
+    TYPE: ClassVar[str] = "fqf"
     _n_quantiles: int
     _embed_size: int
     _entropy_coeff: float
 
-    def __init__(self,
-                 n_quantiles: int = 32,
-                 embed_size: int = 64,
-                 entropy_coeff: float = 0.0):
+    def __init__(
+        self,
+        n_quantiles: int = 32,
+        embed_size: int = 64,
+        entropy_coeff: float = 0.0,
+    ):
         self._n_quantiles = n_quantiles
         self._embed_size = embed_size
         self._entropy_coeff = entropy_coeff
@@ -229,50 +252,67 @@ class FQFQFunctionFactory(QFunctionFactory):
     def create(
         self,
         encoder: Union[Encoder, EncoderWithAction],
-        action_size: Optional[int] = None
+        action_size: Optional[int] = None,
     ) -> Union[ContinuousFQFQFunction, DiscreteFQFQFunction]:
         q_func: Union[ContinuousFQFQFunction, DiscreteFQFQFunction]
         if action_size is None:
             assert isinstance(encoder, EncoderWithAction)
-            q_func = ContinuousFQFQFunction(encoder=encoder,
-                                            n_quantiles=self._n_quantiles,
-                                            embed_size=self._embed_size,
-                                            entropy_coeff=self._entropy_coeff)
+            q_func = ContinuousFQFQFunction(
+                encoder=encoder,
+                n_quantiles=self._n_quantiles,
+                embed_size=self._embed_size,
+                entropy_coeff=self._entropy_coeff,
+            )
         else:
             assert isinstance(encoder, Encoder)
-            q_func = DiscreteFQFQFunction(encoder=encoder,
-                                          action_size=action_size,
-                                          n_quantiles=self._n_quantiles,
-                                          embed_size=self._embed_size,
-                                          entropy_coeff=self._entropy_coeff)
+            q_func = DiscreteFQFQFunction(
+                encoder=encoder,
+                action_size=action_size,
+                n_quantiles=self._n_quantiles,
+                embed_size=self._embed_size,
+                entropy_coeff=self._entropy_coeff,
+            )
         return q_func
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
-            'n_quantiles': self._n_quantiles,
-            'embed_size': self._embed_size,
-            'entropy_coeff': self._entropy_coeff
+            "n_quantiles": self._n_quantiles,
+            "embed_size": self._embed_size,
+            "entropy_coeff": self._entropy_coeff,
         }
+
+    @property
+    def n_quantiles(self) -> int:
+        return self._n_quantiles
+
+    @property
+    def embed_size(self) -> int:
+        return self._embed_size
+
+    @property
+    def entropy_coeff(self) -> float:
+        return self._entropy_coeff
 
 
 Q_FUNC_LIST = {}
 
 
 def register_q_func_factory(cls: Any) -> None:
-    """ Registers Q function factory class.
+    """Registers Q function factory class.
 
     Args:
         cls (type): Q function factory class inheriting ``QFunctionFactory``.
 
     """
     is_registered = cls.TYPE in Q_FUNC_LIST
-    assert not is_registered, '%s seems to be already registered' % cls.TYPE
+    assert not is_registered, "%s seems to be already registered" % cls.TYPE
     Q_FUNC_LIST[cls.TYPE] = cls
 
 
-def create_q_func_factory(name: str, **kwargs: Dict[str,
-                                                    Any]) -> QFunctionFactory:
-    """ Returns registered Q function factory object.
+def create_q_func_factory(
+    name: str, **kwargs: Dict[str, Any]
+) -> QFunctionFactory:
+    """Returns registered Q function factory object.
 
     Args:
         name (str): registered Q function factory type name.
@@ -282,7 +322,7 @@ def create_q_func_factory(name: str, **kwargs: Dict[str,
         d3rlpy.q_functions.QFunctionFactory: Q function factory object.
 
     """
-    assert name in Q_FUNC_LIST, '%s seems not to be registered.' % name
+    assert name in Q_FUNC_LIST, "%s seems not to be registered." % name
     factory = Q_FUNC_LIST[name](**kwargs)
     assert isinstance(factory, QFunctionFactory)
     return factory
