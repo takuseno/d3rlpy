@@ -156,7 +156,7 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
         return h
 
     @property
-    def action_size(self):
+    def action_size(self) -> int:
         return self._action_size
 
 
