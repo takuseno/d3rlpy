@@ -15,6 +15,7 @@ docs/modules.rst
 docs/references/generated
 coverage.xml
 .coverage
+.mypy_cache
 build
 dist
 /.idea/
