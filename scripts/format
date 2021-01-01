@@ -1,9 +1,15 @@
 #!/bin/bash -eux
 
 if [ $# = 0 ]; then
-  YAPF_ARG="-i"
+  BLACK_ARG=""
 else
-  YAPF_ARG=$*
+  BLACK_ARG=$*
 fi
 
-yapf -r -vv $YAPF_ARG d3rlpy tests examples reproductions
+black -l 80 $BLACK_ARG \
+  d3rlpy/models \
+  d3rlpy/q_functions.py \
+  d3rlpy/encoders.py \
+  tests/models \
+  tests/test_q_functions.py \
+  tests/test_encoders.py
