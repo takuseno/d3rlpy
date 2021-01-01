@@ -4,80 +4,41 @@ import torch.nn.functional as F
 import math
 
 from abc import ABCMeta, abstractmethod
+from typing import List, Optional, Tuple, Union, cast
+from .encoders import Encoder, EncoderWithAction
 
 
-def create_discrete_q_function(observation_shape,
-                               action_size,
-                               encoder_factory,
-                               q_func_factory,
-                               n_ensembles=1,
-                               bootstrap=False,
-                               share_encoder=False):
-
-    if share_encoder:
-        encoder = encoder_factory.create(observation_shape)
-        # normalize gradient scale by ensemble size
-        for p in encoder.parameters():
-            p.register_hook(lambda grad: grad / n_ensembles)
-
-    q_funcs = []
-    for _ in range(n_ensembles):
-        if not share_encoder:
-            encoder = encoder_factory.create(observation_shape)
-        q_funcs.append(q_func_factory.create(encoder, action_size))
-    return EnsembleDiscreteQFunction(q_funcs, bootstrap)
-
-
-def create_continuous_q_function(observation_shape,
-                                 action_size,
-                                 encoder_factory,
-                                 q_func_factory,
-                                 n_ensembles=1,
-                                 bootstrap=False,
-                                 share_encoder=False):
-
-    if share_encoder:
-        encoder = encoder_factory.create(observation_shape, action_size)
-        # normalize gradient scale by ensemble size
-        for p in encoder.parameters():
-            p.register_hook(lambda grad: grad / n_ensembles)
-
-    q_funcs = []
-    for _ in range(n_ensembles):
-        if not share_encoder:
-            encoder = encoder_factory.create(observation_shape, action_size)
-        q_funcs.append(q_func_factory.create(encoder))
-    return EnsembleContinuousQFunction(q_funcs, bootstrap)
-
-
-def _pick_value_by_action(values, action, keepdims=False):
+def _pick_value_by_action(values: torch.Tensor,
+                          action: torch.Tensor,
+                          keepdim: bool = False) -> torch.Tensor:
     action_size = values.shape[1]
     one_hot = F.one_hot(action.view(-1), num_classes=action_size)
     # take care of 3 dimensional vectors
-    if values.ndim == 3:
+    if values.ndim == 3:  # type: ignore
         one_hot = one_hot.view(-1, action_size, 1)
-    masked_values = values * one_hot.float()
-    return masked_values.sum(dim=1, keepdims=keepdims)
+    masked_values = values * cast(torch.Tensor, one_hot.float())
+    return masked_values.sum(dim=1, keepdim=keepdim)
 
 
-def _huber_loss(y, target, beta=1.0):
+def _huber_loss(y: torch.Tensor,
+                target: torch.Tensor,
+                beta: float = 1.0) -> torch.Tensor:
     diff = target - y
     cond = diff.detach().abs() < beta
     return torch.where(cond, 0.5 * diff**2, beta * (diff.abs() - 0.5 * beta))
 
 
-def _quantile_huber_loss(y, target, taus):
-    assert y.ndim == 3
-    assert target.ndim == 3
-    assert taus.ndim == 3
+def _quantile_huber_loss(y: torch.Tensor, target: torch.Tensor,
+                         taus: torch.Tensor) -> torch.Tensor:
+    assert y.ndim == 3 and target.ndim == 3 and taus.ndim == 3  # type: ignore
     # compute huber loss
     huber_loss = _huber_loss(y, target)
-    delta = ((target - y).detach() < 0.0).float()
+    delta = cast(torch.Tensor, ((target - y).detach() < 0.0).float())
     element_wise_loss = ((taus - delta).abs() * huber_loss)
     return element_wise_loss.sum(dim=2).mean(dim=1)
 
 
-def _reduce(value, reduction_type):
+def _reduce(value: torch.Tensor, reduction_type: str) -> torch.Tensor:
     if reduction_type == 'mean':
         return value.mean()
     elif reduction_type == 'sum':
@@ -90,134 +51,183 @@ def _reduce(value, reduction_type):
 class QFunction(metaclass=ABCMeta):
     @abstractmethod
     def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
+                      obs_t: torch.Tensor,
+                      act_t: torch.Tensor,
+                      rew_tp1: torch.Tensor,
+                      q_tp1: torch.Tensor,
+                      gamma: float = 0.99,
+                      reduction: str = 'mean') -> torch.Tensor:
         pass
 
-    @abstractmethod
-    def compute_target(self, x, action):
+    @property
+    def action_size(self) -> int:
         pass
 
 
 class DiscreteQFunction(QFunction):
     @abstractmethod
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def compute_target(self, x: torch.Tensor,
+                       action: Optional[torch.Tensor]) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
 
 class ContinuousQFunction(QFunction):
     @abstractmethod
-    def forward(self, x, action):
+    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def compute_target(self, x: torch.Tensor,
+                       action: torch.Tensor) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def __call__(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         pass
 
 
-class DiscreteMeanQFunction(DiscreteQFunction, nn.Module):
-    def __init__(self, encoder, action_size):
-        super().__init__()
-        self.action_size = action_size
-        self.encoder = encoder
-        self.fc = nn.Linear(encoder.get_feature_size(), action_size)
+class DiscreteMeanQFunction(nn.Module, DiscreteQFunction):
+    _action_size: int
+    _encoder: Encoder
+    _fc: nn.Linear
 
-    def forward(self, x):
-        return self.fc(self.encoder(x))
+    def __init__(self, encoder: Encoder, action_size: int):
+        super().__init__()
+        self._action_size = action_size
+        self._encoder = encoder
+        self._fc = nn.Linear(encoder.get_feature_size(), action_size)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return cast(torch.Tensor, self._fc(self._encoder(x)))
 
     def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
+                      obs_t: torch.Tensor,
+                      act_t: torch.Tensor,
+                      rew_tp1: torch.Tensor,
+                      q_tp1: torch.Tensor,
+                      gamma: float = 0.99,
+                      reduction: str = 'mean') -> torch.Tensor:
         one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
-        q_t = (self.forward(obs_t) * one_hot.float()).sum(dim=1, keepdims=True)
+        q_t = (self.forward(obs_t) * one_hot.float()).sum(dim=1, keepdim=True)
         y = rew_tp1 + gamma * q_tp1
         loss = _huber_loss(q_t, y)
         return _reduce(loss, reduction)
 
-    def compute_target(self, x, action=None):
+    def compute_target(self,
+                       x: torch.Tensor,
+                       action: Optional[torch.Tensor] = None) -> torch.Tensor:
         if action is None:
             return self.forward(x)
-        return _pick_value_by_action(self.forward(x), action, keepdims=True)
+        return _pick_value_by_action(self.forward(x), action, keepdim=True)
+
+    @property
+    def action_size(self) -> int:
+        return self._action_size
 
 
-class ContinuousMeanQFunction(ContinuousQFunction, nn.Module):
-    def __init__(self, encoder):
+class ContinuousMeanQFunction(nn.Module, ContinuousQFunction):
+    _encoder: EncoderWithAction
+    _action_size: int
+    _fc: nn.Linear
+
+    def __init__(self, encoder: EncoderWithAction):
         super().__init__()
-        self.encoder = encoder
-        self.action_size = encoder.action_size
-        self.fc = nn.Linear(encoder.get_feature_size(), 1)
+        self._encoder = encoder
+        self._action_size = encoder.action_size
+        self._fc = nn.Linear(encoder.get_feature_size(), 1)
 
-    def forward(self, x, action):
-        return self.fc(self.encoder(x, action))
+    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        return cast(torch.Tensor, self._fc(self._encoder(x, action)))
 
     def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
+                      obs_t: torch.Tensor,
+                      act_t: torch.Tensor,
+                      rew_tp1: torch.Tensor,
+                      q_tp1: torch.Tensor,
+                      gamma: float = 0.99,
+                      reduction: str = 'mean') -> torch.Tensor:
         q_t = self.forward(obs_t, act_t)
         y = rew_tp1 + gamma * q_tp1
         loss = F.mse_loss(q_t, y, reduction='none')
         return _reduce(loss, reduction)
 
-    def compute_target(self, x, action):
+    def compute_target(self, x: torch.Tensor,
+                       action: torch.Tensor) -> torch.Tensor:
         return self.forward(x, action)
 
+    @property
+    def action_size(self) -> int:
+        return self._action_size
 
-class QRQFunction(nn.Module):
-    def __init__(self, n_quantiles):
+
+class QRQFunction(nn.Module, metaclass=ABCMeta):
+    _n_quantiles: int
+
+    def __init__(self, n_quantiles: int):
         super().__init__()
-        self.n_quantiles = n_quantiles
+        self._n_quantiles = n_quantiles
 
-    def _make_taus(self, h):
-        n_quantiles = self.n_quantiles
-        steps = torch.arange(n_quantiles, dtype=torch.float32, device=h.device)
-        taus = ((steps + 1).float() / n_quantiles).view(1, -1)
-        taus_dot = (steps.float() / n_quantiles).view(1, -1)
+    def _make_taus(self, h: torch.Tensor) -> torch.Tensor:
+        steps = torch.arange(self._n_quantiles,
+                             dtype=torch.float32,
+                             device=h.device)
+        taus = ((steps + 1).float() / self._n_quantiles).view(1, -1)
+        taus_dot = (steps.float() / self._n_quantiles).view(1, -1)
         return (taus + taus_dot) / 2.0
 
-    def _compute_quantile_loss(self, quantiles_t, rew_tp1, q_tp1, taus, gamma):
+    def _compute_quantile_loss(self, quantiles_t: torch.Tensor,
+                               rew_tp1: torch.Tensor, q_tp1: torch.Tensor,
+                               taus: torch.Tensor,
+                               gamma: float) -> torch.Tensor:
         batch_size = rew_tp1.shape[0]
         y = (rew_tp1 + gamma * q_tp1).view(batch_size, -1, 1)
         quantiles_t = quantiles_t.view(batch_size, 1, -1)
-        expanded_taus = taus.view(-1, 1, self.n_quantiles)
+        expanded_taus = taus.view(-1, 1, self._n_quantiles)
         return _quantile_huber_loss(quantiles_t, y, expanded_taus)
 
 
-class DiscreteQRQFunction(DiscreteQFunction, QRQFunction):
-    def __init__(self, encoder, action_size, n_quantiles):
+class DiscreteQRQFunction(QRQFunction, DiscreteQFunction):
+    _action_size: int
+    _encoder: Encoder
+    _fc: nn.Linear
+
+    def __init__(self, encoder: Encoder, action_size: int, n_quantiles: int):
         super().__init__(n_quantiles)
-        self.encoder = encoder
-        self.action_size = action_size
-        self.fc = nn.Linear(encoder.get_feature_size(),
-                            action_size * n_quantiles)
+        self._encoder = encoder
+        self._action_size = action_size
+        self._fc = nn.Linear(encoder.get_feature_size(),
+                             action_size * n_quantiles)
 
-    def _compute_quantiles(self, h, taus):
-        return self.fc(h).view(-1, self.action_size, self.n_quantiles)
+    def _compute_quantiles(self, h: torch.Tensor,
+                           taus: torch.Tensor) -> torch.Tensor:
+        h = cast(torch.Tensor, self._fc(h))
+        return h.view(-1, self._action_size, self._n_quantiles)
 
-    def forward(self, x):
-        h = self.encoder(x)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        h = self._encoder(x)
         taus = self._make_taus(h)
         quantiles = self._compute_quantiles(h, taus)
         return quantiles.mean(dim=2)
 
     def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+                      obs_t: torch.Tensor,
+                      act_t: torch.Tensor,
+                      rew_tp1: torch.Tensor,
+                      q_tp1: torch.Tensor,
+                      gamma: float = 0.99,
+                      reduction: str = 'mean') -> torch.Tensor:
+        assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
 
         # extraect quantiles corresponding to act_t
-        h = self.encoder(obs_t)
+        h = self._encoder(obs_t)
         taus = self._make_taus(h)
         quantiles = self._compute_quantiles(h, taus)
         quantiles_t = _pick_value_by_action(quantiles, act_t)
@@ -230,41 +240,52 @@ class DiscreteQRQFunction(DiscreteQFunction, QRQFunction):
 
         return _reduce(loss, reduction)
 
-    def compute_target(self, x, action=None):
-        h = self.encoder(x)
+    def compute_target(self,
+                       x: torch.Tensor,
+                       action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        h = self._encoder(x)
         taus = self._make_taus(h)
         quantiles = self._compute_quantiles(h, taus)
         if action is None:
             return quantiles
         return _pick_value_by_action(quantiles, action)
 
+    @property
+    def action_size(self) -> int:
+        return self._action_size
 
-class ContinuousQRQFunction(ContinuousQFunction, QRQFunction):
-    def __init__(self, encoder, n_quantiles):
+
+class ContinuousQRQFunction(QRQFunction, ContinuousQFunction):
+    _action_size: int
+    _encoder: EncoderWithAction
+    _fc: nn.Linear
+
+    def __init__(self, encoder: EncoderWithAction, n_quantiles: int):
         super().__init__(n_quantiles)
-        self.encoder = encoder
-        self.action_size = encoder.action_size
-        self.fc = nn.Linear(encoder.get_feature_size(), n_quantiles)
+        self._encoder = encoder
+        self._action_size = encoder.action_size
+        self._fc = nn.Linear(encoder.get_feature_size(), n_quantiles)
 
-    def _compute_quantiles(self, h, taus):
-        return self.fc(h)
+    def _compute_quantiles(self, h: torch.Tensor,
+                           taus: torch.Tensor) -> torch.Tensor:
+        return cast(torch.Tensor, self._fc(h))
 
-    def forward(self, x, action):
-        h = self.encoder(x, action)
+    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        h = self._encoder(x, action)
         taus = self._make_taus(h)
         quantiles = self._compute_quantiles(h, taus)
-        return quantiles.mean(dim=1, keepdims=True)
+        return quantiles.mean(dim=1, keepdim=True)
 
     def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+                      obs_t: torch.Tensor,
+                      act_t: torch.Tensor,
+                      rew_tp1: torch.Tensor,
+                      q_tp1: torch.Tensor,
+                      gamma: float = 0.99,
+                      reduction: str = 'mean') -> torch.Tensor:
+        assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
 
-        h = self.encoder(obs_t, act_t)
+        h = self._encoder(obs_t, act_t)
         taus = self._make_taus(h)
         quantiles_t = self._compute_quantiles(h, taus)
 
@@ -276,75 +297,92 @@ class ContinuousQRQFunction(ContinuousQFunction, QRQFunction):
 
         return _reduce(loss, reduction)
 
-    def compute_target(self, x, action):
-        h = self.encoder(x, action)
+    def compute_target(self, x: torch.Tensor,
+                       action: torch.Tensor) -> torch.Tensor:
+        h = self._encoder(x, action)
         taus = self._make_taus(h)
         return self._compute_quantiles(h, taus)
 
+    @property
+    def action_size(self) -> int:
+        return self._action_size
+
 
 class IQNQFunction(QRQFunction):
-    def __init__(self, encoder, n_quantiles, n_greedy_quantiles, embed_size):
-        super().__init__(n_quantiles)
-        self.n_greedy_quantiles = n_greedy_quantiles
-        self.embed_size = embed_size
-        self.embed = nn.Linear(embed_size, encoder.get_feature_size())
+    _n_greedy_quantiles: int
+    _embed_size: int
+    _embed: nn.Linear
 
-    def _make_taus(self, h):
+    def __init__(self, n_quantiles: int, n_greedy_quantiles: int,
+                 embed_size: int, feature_size: int):
+        super().__init__(n_quantiles)
+        self._n_greedy_quantiles = n_greedy_quantiles
+        self._embed_size = embed_size
+        self._embed = nn.Linear(embed_size, feature_size)
+
+    def _make_taus(self, h: torch.Tensor) -> torch.Tensor:
         if self.training:
-            taus = torch.rand(h.shape[0], self.n_quantiles, device=h.device)
+            taus = torch.rand(h.shape[0], self._n_quantiles, device=h.device)
         else:
             taus = torch.linspace(start=0,
                                   end=1,
-                                  steps=self.n_greedy_quantiles,
+                                  steps=self._n_greedy_quantiles,
                                   device=h.device,
                                   dtype=torch.float32)
             taus = taus.view(1, -1).repeat(h.shape[0], 1)
         return taus
 
-    def _compute_last_feature(self, h, taus):
+    def _compute_last_feature(self, h: torch.Tensor,
+                              taus: torch.Tensor) -> torch.Tensor:
         # compute embedding
-        steps = torch.arange(self.embed_size, device=h.device).float() + 1
+        steps = torch.arange(self._embed_size, device=h.device).float() + 1
         # (batch, quantile, embedding)
         expanded_taus = taus.view(h.shape[0], -1, 1)
         prior = torch.cos(math.pi * steps.view(1, 1, -1) * expanded_taus)
         # (batch, quantile, embedding) -> (batch, quantile, feature)
-        phi = torch.relu(self.embed(prior))
+        phi = torch.relu(self._embed(prior))
 
         # (batch, 1, feature) -> (batch,  quantile, feature)
         return h.view(h.shape[0], 1, -1) * phi
 
 
-class DiscreteIQNQFunction(DiscreteQFunction, IQNQFunction):
-    def __init__(self, encoder, action_size, n_quantiles, n_greedy_quantiles,
-                 embed_size):
-        super().__init__(encoder, n_quantiles, n_greedy_quantiles, embed_size)
-        self.encoder = encoder
-        self.action_size = action_size
-        self.fc = nn.Linear(encoder.get_feature_size(), self.action_size)
+class DiscreteIQNQFunction(IQNQFunction, DiscreteQFunction):
+    _action_size: int
+    _encoder: Encoder
+    _fc: nn.Linear
 
-    def _compute_quantiles(self, h, taus):
+    def __init__(self, encoder: Encoder, action_size: int, n_quantiles: int,
+                 n_greedy_quantiles: int, embed_size: int):
+        super().__init__(n_quantiles, n_greedy_quantiles, embed_size,
+                         encoder.get_feature_size())
+        self._encoder = encoder
+        self._action_size = action_size
+        self._fc = nn.Linear(encoder.get_feature_size(), self._action_size)
+
+    def _compute_quantiles(self, h: torch.Tensor,
+                           taus: torch.Tensor) -> torch.Tensor:
         # element-wise product on feature and phi (batch, quantile, feature)
         prod = self._compute_last_feature(h, taus)
         # (batch, quantile, feature) -> (batch, action, quantile)
-        return self.fc(prod).transpose(1, 2)
+        return cast(torch.Tensor, self._fc(prod)).transpose(1, 2)
 
-    def forward(self, x):
-        h = self.encoder(x)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        h = self._encoder(x)
         taus = self._make_taus(h)
         quantiles = self._compute_quantiles(h, taus)
         return quantiles.mean(dim=2)
 
     def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+                      obs_t: torch.Tensor,
+                      act_t: torch.Tensor,
+                      rew_tp1: torch.Tensor,
+                      q_tp1: torch.Tensor,
+                      gamma: float = 0.99,
+                      reduction: str = 'mean') -> torch.Tensor:
+        assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
 
         # extraect quantiles corresponding to act_t
-        h = self.encoder(obs_t)
+        h = self._encoder(obs_t)
         taus = self._make_taus(h)
         quantiles = self._compute_quantiles(h, taus)
         quantiles_t = _pick_value_by_action(quantiles, act_t)
@@ -357,44 +395,57 @@ class DiscreteIQNQFunction(DiscreteQFunction, IQNQFunction):
 
         return _reduce(loss, reduction)
 
-    def compute_target(self, x, action=None):
-        h = self.encoder(x)
+    def compute_target(self,
+                       x: torch.Tensor,
+                       action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        h = self._encoder(x)
         taus = self._make_taus(h)
         quantiles = self._compute_quantiles(h, taus)
         if action is None:
             return quantiles
         return _pick_value_by_action(quantiles, action)
 
+    @property
+    def action_size(self) -> int:
+        return self._action_size
 
-class ContinuousIQNQFunction(ContinuousQFunction, IQNQFunction):
-    def __init__(self, encoder, n_quantiles, n_greedy_quantiles, embed_size):
-        super().__init__(encoder, n_quantiles, n_greedy_quantiles, embed_size)
-        self.encoder = encoder
-        self.action_size = encoder.action_size
-        self.fc = nn.Linear(encoder.get_feature_size(), 1)
 
-    def _compute_quantiles(self, h, taus):
+class ContinuousIQNQFunction(IQNQFunction, ContinuousQFunction):
+    _action_size: int
+    _encoder: EncoderWithAction
+    _fc: nn.Linear
+
+    def __init__(self, encoder: EncoderWithAction, n_quantiles: int,
+                 n_greedy_quantiles: int, embed_size: int):
+        super().__init__(n_quantiles, n_greedy_quantiles, embed_size,
+                         encoder.get_feature_size())
+        self._encoder = encoder
+        self._action_size = encoder.action_size
+        self._fc = nn.Linear(encoder.get_feature_size(), 1)
+
+    def _compute_quantiles(self, h: torch.Tensor,
+                           taus: torch.Tensor) -> torch.Tensor:
         # element-wise product on feature and phi (batch, quantile, feature)
         prod = self._compute_last_feature(h, taus)
         # (batch, quantile, feature) -> (batch, quantile)
-        return self.fc(prod).view(h.shape[0], -1)
+        return cast(torch.Tensor, self._fc(prod)).view(h.shape[0], -1)
 
-    def forward(self, x, action):
-        h = self.encoder(x, action)
+    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        h = self._encoder(x, action)
         taus = self._make_taus(h)
         quantiles = self._compute_quantiles(h, taus)
-        return quantiles.mean(dim=1, keepdims=True)
+        return quantiles.mean(dim=1, keepdim=True)
 
     def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+                      obs_t: torch.Tensor,
+                      act_t: torch.Tensor,
+                      rew_tp1: torch.Tensor,
+                      q_tp1: torch.Tensor,
+                      gamma: float = 0.99,
+                      reduction: str = 'mean') -> torch.Tensor:
+        assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
 
-        h = self.encoder(obs_t, act_t)
+        h = self._encoder(obs_t, act_t)
         taus = self._make_taus(h)
         quantiles_t = self._compute_quantiles(h, taus)
 
@@ -406,66 +457,91 @@ class ContinuousIQNQFunction(ContinuousQFunction, IQNQFunction):
 
         return _reduce(loss, reduction)
 
-    def compute_target(self, x, action):
-        h = self.encoder(x, action)
+    def compute_target(self, x: torch.Tensor,
+                       action: torch.Tensor) -> torch.Tensor:
+        h = self._encoder(x, action)
         taus = self._make_taus(h)
         return self._compute_quantiles(h, taus)
 
-
-def _compute_fqf_taus(h, proposals):
-    # tau_i+1
-    log_probs = torch.log_softmax(proposals, dim=1)
-    probs = log_probs.exp()
-    taus = torch.cumsum(probs, dim=1)
-
-    # tau_i
-    pads = torch.zeros(h.shape[0], 1, device=h.device)
-    taus_minus = torch.cat([pads, taus[:, :-1]], dim=1)
-
-    # tau^
-    taus_prime = (taus + taus_minus) / 2
-
-    # entropy for penalty
-    entropies = -(log_probs * probs).sum(dim=1)
-
-    return taus, taus_minus, taus_prime, entropies
+    @property
+    def action_size(self) -> int:
+        return self._action_size
 
 
-class DiscreteFQFQFunction(DiscreteIQNQFunction):
+class FQFQFunction(IQNQFunction):
+    _proposal: nn.Linear
+
+    def __init__(self, n_quantiles: int, embed_size: int, feature_size: int):
+        super().__init__(n_quantiles, n_quantiles, embed_size, feature_size)
+        self._proposal = nn.Linear(feature_size, n_quantiles)
+
+    def _make_fqf_taus(
+        self, h: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        proposals = self._proposal(h.detach())
+
+        # tau_i+1
+        log_probs = torch.log_softmax(proposals, dim=1)
+        probs = log_probs.exp()
+        taus = torch.cumsum(probs, dim=1)
+
+        # tau_i
+        pads = torch.zeros(h.shape[0], 1, device=h.device)
+        taus_minus = torch.cat([pads, taus[:, :-1]], dim=1)
+
+        # tau^
+        taus_prime = (taus + taus_minus) / 2
+
+        # entropy for penalty
+        entropies = -(log_probs * probs).sum(dim=1)
+
+        return taus, taus_minus, taus_prime, entropies
+
+
+class DiscreteFQFQFunction(FQFQFunction, DiscreteQFunction):
+    _action_size: int
+    _entropy_coeff: float
+    _encoder: Encoder
+    _fc: nn.Linear
+
     def __init__(self,
-                 encoder,
-                 action_size,
-                 n_quantiles,
-                 embed_size,
-                 entropy_coeff=0.0):
-        super().__init__(encoder, action_size, n_quantiles, n_quantiles,
-                         embed_size)
-        self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
-        self.entropy_coeff = entropy_coeff
+                 encoder: Encoder,
+                 action_size: int,
+                 n_quantiles: int,
+                 embed_size: int,
+                 entropy_coeff: float = 0.0):
+        super().__init__(n_quantiles, embed_size, encoder.get_feature_size())
+        self._encoder = encoder
+        self._action_size = action_size
+        self._fc = nn.Linear(encoder.get_feature_size(), self._action_size)
+        self._entropy_coeff = entropy_coeff
 
-    def _make_taus(self, h):
-        proposals = self.proposal(h.detach())
-        return _compute_fqf_taus(h.detach(), proposals)
+    def _compute_quantiles(self, h: torch.Tensor,
+                           taus: torch.Tensor) -> torch.Tensor:
+        # element-wise product on feature and phi (batch, quantile, feature)
+        prod = self._compute_last_feature(h, taus)
+        # (batch, quantile, feature) -> (batch, action, quantile)
+        return cast(torch.Tensor, self._fc(prod)).transpose(1, 2)
 
-    def forward(self, x):
-        h = self.encoder(x)
-        taus, taus_minus, taus_prime, _ = self._make_taus(h)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        h = self._encoder(x)
+        taus, taus_minus, taus_prime, _ = self._make_fqf_taus(h)
         quantiles = self._compute_quantiles(h, taus_prime.detach())
-        weight = (taus - taus_minus).view(-1, 1, self.n_quantiles).detach()
+        weight = (taus - taus_minus).view(-1, 1, self._n_quantiles).detach()
         return (weight * quantiles).sum(dim=2)
 
     def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+                      obs_t: torch.Tensor,
+                      act_t: torch.Tensor,
+                      rew_tp1: torch.Tensor,
+                      q_tp1: torch.Tensor,
+                      gamma: float = 0.99,
+                      reduction: str = 'mean') -> torch.Tensor:
+        assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
 
         # compute quantiles
-        h = self.encoder(obs_t)
-        taus, _, taus_prime, entropies = self._make_taus(h)
+        h = self._encoder(obs_t)
+        taus, _, taus_prime, entropies = self._make_fqf_taus(h)
         quantiles = self._compute_quantiles(h, taus_prime.detach())
         quantiles_t = _pick_value_by_action(quantiles, act_t)
 
@@ -479,7 +555,7 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         # original paper explicitly separates the optimization process
         # but, it's combined here
         proposal_loss = self._compute_proposal_loss(h, act_t, taus, taus_prime)
-        proposal_params = list(self.proposal.parameters())
+        proposal_params = list(self._proposal.parameters())
         proposal_grads = torch.autograd.grad(outputs=proposal_loss.mean(),
                                              inputs=proposal_params,
                                              retain_graph=True)
@@ -487,11 +563,13 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
         for param, grad in zip(list(proposal_params), proposal_grads):
             param.grad = 1e-4 * grad
 
-        loss = quantile_loss - self.entropy_coeff * entropies
+        loss = quantile_loss - self._entropy_coeff * entropies
 
         return _reduce(loss, reduction)
 
-    def _compute_proposal_loss(self, h, action, taus, taus_prime):
+    def _compute_proposal_loss(self, h: torch.Tensor, action: torch.Tensor,
+                               taus: torch.Tensor,
+                               taus_prime: torch.Tensor) -> torch.Tensor:
         q_taus = self._compute_quantiles(h.detach(), taus)
         q_taus_prime = self._compute_quantiles(h.detach(), taus_prime)
         batch_steps = torch.arange(h.shape[0])
@@ -505,43 +583,63 @@ class DiscreteFQFQFunction(DiscreteIQNQFunction):
 
         return proposal_grad.sum(dim=1)
 
-    def compute_target(self, x, action=None):
-        h = self.encoder(x)
-        _, _, taus_prime, _ = self._make_taus(h)
+    def compute_target(self,
+                       x: torch.Tensor,
+                       action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        h = self._encoder(x)
+        _, _, taus_prime, _ = self._make_fqf_taus(h)
         quantiles = self._compute_quantiles(h, taus_prime.detach())
         if action is None:
             return quantiles
         return _pick_value_by_action(quantiles, action)
 
+    @property
+    def action_size(self) -> int:
+        return self._action_size
 
-class ContinuousFQFQFunction(ContinuousIQNQFunction):
-    def __init__(self, encoder, n_quantiles, embed_size, entropy_coeff=0.0):
-        super().__init__(encoder, n_quantiles, n_quantiles, embed_size)
-        self.entropy_coeff = entropy_coeff
-        self.proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
 
-    def _make_taus(self, h):
-        proposals = self.proposal(h.detach())
-        return _compute_fqf_taus(h.detach(), proposals)
+class ContinuousFQFQFunction(FQFQFunction, ContinuousQFunction):
+    _action_size: int
+    _entropy_coeff: float
+    _encoder: EncoderWithAction
+    _fc: nn.Linear
 
-    def forward(self, x, action):
-        h = self.encoder(x, action)
-        taus, taus_minus, taus_prime, _ = self._make_taus(h)
+    def __init__(self,
+                 encoder: EncoderWithAction,
+                 n_quantiles: int,
+                 embed_size: int,
+                 entropy_coeff: float = 0.0):
+        super().__init__(n_quantiles, embed_size, encoder.get_feature_size())
+        self._encoder = encoder
+        self._action_size = encoder.action_size
+        self._fc = nn.Linear(encoder.get_feature_size(), 1)
+        self._entropy_coeff = entropy_coeff
+
+    def _compute_quantiles(self, h: torch.Tensor,
+                           taus: torch.Tensor) -> torch.Tensor:
+        # element-wise product on feature and phi (batch, quantile, feature)
+        prod = self._compute_last_feature(h, taus)
+        # (batch, quantile, feature) -> (batch, quantile)
+        return cast(torch.Tensor, self._fc(prod)).view(h.shape[0], -1)
+
+    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        h = self._encoder(x, action)
+        taus, taus_minus, taus_prime, _ = self._make_fqf_taus(h)
         quantiles = self._compute_quantiles(h, taus_prime.detach())
         weight = (taus - taus_minus).detach()
-        return ((weight * quantiles).sum(dim=1, keepdims=True))
+        return (weight * quantiles).sum(dim=1, keepdim=True)
 
     def compute_error(self,
-                      obs_t,
-                      act_t,
-                      rew_tp1,
-                      q_tp1,
-                      gamma=0.99,
-                      reduction='mean'):
-        assert q_tp1.shape == (obs_t.shape[0], self.n_quantiles)
+                      obs_t: torch.Tensor,
+                      act_t: torch.Tensor,
+                      rew_tp1: torch.Tensor,
+                      q_tp1: torch.Tensor,
+                      gamma: float = 0.99,
+                      reduction: str = 'mean') -> torch.Tensor:
+        assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
 
-        h = self.encoder(obs_t, act_t)
-        taus, _, taus_prime, entropies = self._make_taus(h)
+        h = self._encoder(obs_t, act_t)
+        taus, _, taus_prime, entropies = self._make_fqf_taus(h)
         quantiles_t = self._compute_quantiles(h, taus_prime.detach())
 
         quantile_loss = self._compute_quantile_loss(quantiles_t=quantiles_t,
@@ -554,7 +652,7 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         # original paper explicitly separates the optimization process
         # but, it's combined here
         proposal_loss = self._compute_proposal_loss(h, taus, taus_prime)
-        proposal_params = list(self.proposal.parameters())
+        proposal_params = list(self._proposal.parameters())
         proposal_grads = torch.autograd.grad(outputs=proposal_loss.mean(),
                                              inputs=proposal_params,
                                              retain_graph=True)
@@ -562,11 +660,12 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         for param, grad in zip(list(proposal_params), proposal_grads):
             param.grad = 1e-4 * grad
 
-        loss = quantile_loss - self.entropy_coeff * entropies
+        loss = quantile_loss - self._entropy_coeff * entropies
 
         return _reduce(loss, reduction)
 
-    def _compute_proposal_loss(self, h, taus, taus_prime):
+    def _compute_proposal_loss(self, h: torch.Tensor, taus: torch.Tensor,
+                               taus_prime: torch.Tensor) -> torch.Tensor:
         # (batch, n_quantiles - 1)
         q_taus = self._compute_quantiles(h.detach(), taus)[:, :-1]
         # (batch, n_quantiles)
@@ -576,13 +675,17 @@ class ContinuousFQFQFunction(ContinuousIQNQFunction):
         proposal_grad = 2 * q_taus - q_taus_prime[:, :-1] - q_taus_prime[:, 1:]
         return proposal_grad.sum(dim=1)
 
-    def compute_target(self, x, action):
-        h = self.encoder(x, action)
-        _, _, taus_prime, _ = self._make_taus(h)
+    def compute_target(self, x: torch.Tensor,
+                       action: torch.Tensor) -> torch.Tensor:
+        h = self._encoder(x, action)
+        _, _, taus_prime, _ = self._make_fqf_taus(h)
         return self._compute_quantiles(h, taus_prime.detach())
 
 
-def _reduce_ensemble(y, reduction='min', dim=0, lam=0.75):
+def _reduce_ensemble(y: torch.Tensor,
+                     reduction: str = 'min',
+                     dim: int = 0,
+                     lam: float = 0.75) -> torch.Tensor:
     if reduction == 'min':
         return y.min(dim=dim).values
     elif reduction == 'max':
@@ -598,12 +701,13 @@ def _reduce_ensemble(y, reduction='min', dim=0, lam=0.75):
     raise ValueError
 
 
-def _gather_quantiles_by_indices(y, indices):
+def _gather_quantiles_by_indices(y: torch.Tensor,
+                                 indices: torch.Tensor) -> torch.Tensor:
     # TODO: implement this in general case
-    if y.ndim == 3:
+    if y.ndim == 3:  # type: ignore
         # (N, batch, n_quantiles) -> (batch, n_quantiles)
         return y.transpose(0, 1)[torch.arange(y.shape[1]), indices]
-    elif y.ndim == 4:
+    elif y.ndim == 4:  # type: ignore
         # (N, batch, action, n_quantiles) -> (batch, action, N, n_quantiles)
         transposed_y = y.transpose(0, 1).transpose(1, 2)
         # (batch, action, N, n_quantiles) -> (batch * action, N, n_quantiles)
@@ -616,7 +720,10 @@ def _gather_quantiles_by_indices(y, indices):
     raise ValueError
 
 
-def _reduce_quantile_ensemble(y, reduction='min', dim=0, lam=0.75):
+def _reduce_quantile_ensemble(y: torch.Tensor,
+                              reduction: str = 'min',
+                              dim: int = 0,
+                              lam: float = 0.75) -> torch.Tensor:
     # reduction beased on expectation
     mean = y.mean(dim=-1)
     if reduction == 'min':
@@ -637,15 +744,26 @@ def _reduce_quantile_ensemble(y, reduction='min', dim=0, lam=0.75):
 
 
 class EnsembleQFunction(nn.Module):
-    def __init__(self, q_funcs, bootstrap=False):
-        super().__init__()
-        self.action_size = q_funcs[0].action_size
-        self.q_funcs = nn.ModuleList(q_funcs)
-        self.bootstrap = bootstrap and len(q_funcs) > 1
+    _action_size: int
+    _q_funcs: nn.ModuleList
+    _bootstrap: bool
 
-    def compute_error(self, obs_t, act_t, rew_tp1, q_tp1, gamma=0.99):
-        td_sum = 0.0
-        for i, q_func in enumerate(self.q_funcs):
+    def __init__(self,
+                 q_funcs: List[Union[DiscreteQFunction, ContinuousQFunction]],
+                 bootstrap: bool = False):
+        super().__init__()
+        self._action_size = q_funcs[0].action_size
+        self._q_funcs = nn.ModuleList(q_funcs)  # type: ignore
+        self._bootstrap = bootstrap and len(q_funcs) > 1
+
+    def compute_error(self,
+                      obs_t: torch.Tensor,
+                      act_t: torch.Tensor,
+                      rew_tp1: torch.Tensor,
+                      q_tp1: torch.Tensor,
+                      gamma: float = 0.99) -> torch.Tensor:
+        td_sum = torch.tensor(0.0, dtype=torch.float32, device=obs_t.device)
+        for i, q_func in enumerate(self._q_funcs):
             loss = q_func.compute_error(obs_t,
                                         act_t,
                                         rew_tp1,
@@ -653,7 +771,7 @@ class EnsembleQFunction(nn.Module):
                                         gamma,
                                         reduction='none')
 
-            if self.bootstrap:
+            if self._bootstrap:
                 mask = torch.randint(0, 2, loss.shape, device=obs_t.device)
                 loss *= mask.float()
 
@@ -661,21 +779,25 @@ class EnsembleQFunction(nn.Module):
 
         return td_sum
 
-    def compute_target(self, x, action=None, reduction='min', lam=0.75):
-        values = []
-        for q_func in self.q_funcs:
+    def _compute_target(self,
+                        x: torch.Tensor,
+                        action: Optional[torch.Tensor] = None,
+                        reduction: str = 'min',
+                        lam: float = 0.75) -> torch.Tensor:
+        values_list: List[torch.Tensor] = []
+        for q_func in self._q_funcs:
             target = q_func.compute_target(x, action)
-            values.append(target.reshape(1, x.shape[0], -1))
+            values_list.append(target.reshape(1, x.shape[0], -1))
 
-        values = torch.cat(values, dim=0)
+        values = torch.cat(values_list, dim=0)
 
         if action is None:
             # mean Q function
-            if values.shape[2] == self.action_size:
+            if values.shape[2] == self._action_size:
                 return _reduce_ensemble(values, reduction)
             # distributional Q function
             n_q_funcs = values.shape[0]
-            values = values.view(n_q_funcs, x.shape[0], self.action_size, -1)
+            values = values.view(n_q_funcs, x.shape[0], self._action_size, -1)
             return _reduce_quantile_ensemble(values, reduction)
 
         if values.shape[2] == 1:
@@ -683,28 +805,52 @@ class EnsembleQFunction(nn.Module):
 
         return _reduce_quantile_ensemble(values, reduction, lam=lam)
 
+    @property
+    def q_funcs(self) -> nn.ModuleList:
+        return self._q_funcs
+
 
 class EnsembleDiscreteQFunction(EnsembleQFunction):
-    def forward(self, x, reduction='mean'):
+    def forward(self,
+                x: torch.Tensor,
+                reduction: str = 'mean') -> torch.Tensor:
         values = []
-        for q_func in self.q_funcs:
-            values.append(q_func(x).view(1, x.shape[0], self.action_size))
+        for q_func in self._q_funcs:
+            values.append(q_func(x).view(1, x.shape[0], self._action_size))
         return _reduce_ensemble(torch.cat(values, dim=0), reduction)
+
+    def compute_target(self,
+                       x: torch.Tensor,
+                       action: Optional[torch.Tensor] = None,
+                       reduction: str = 'min',
+                       lam: float = 0.75) -> torch.Tensor:
+        return self._compute_target(x, action, reduction, lam)
 
 
 class EnsembleContinuousQFunction(EnsembleQFunction):
-    def forward(self, x, action, reduction='mean'):
+    def forward(self,
+                x: torch.Tensor,
+                action: torch.Tensor,
+                reduction: str = 'mean') -> torch.Tensor:
         values = []
-        for q_func in self.q_funcs:
+        for q_func in self._q_funcs:
             values.append(q_func(x, action).view(1, x.shape[0], 1))
         return _reduce_ensemble(torch.cat(values, dim=0), reduction)
 
+    def compute_target(self,
+                       x: torch.Tensor,
+                       action: torch.Tensor,
+                       reduction: str = 'min',
+                       lam: float = 0.75) -> torch.Tensor:
+        return self._compute_target(x, action, reduction, lam)
 
-def compute_max_with_n_actions(x,
-                               actions,
-                               q_func,
-                               lam,
-                               with_action_indices=False):
+
+def compute_max_with_n_actions_and_indices(
+    x: torch.Tensor,
+    actions: torch.Tensor,
+    q_func: EnsembleContinuousQFunction,
+    lam: float,
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """ Returns weighted target value from sampled actions.
 
     This calculation is proposed in BCQ paper for the first time.
@@ -757,7 +903,13 @@ def compute_max_with_n_actions(x,
     # (batch, n, -1) -> (batch, -1)
     result_values = mix_values[torch.arange(x.shape[0]), action_indices]
 
-    if with_action_indices:
-        return result_values, action_indices
+    return result_values, action_indices
 
-    return result_values
+
+def compute_max_with_n_actions(
+    x: torch.Tensor,
+    actions: torch.Tensor,
+    q_func: EnsembleContinuousQFunction,
+    lam: float,
+) -> torch.Tensor:
+    return compute_max_with_n_actions_and_indices(x, actions, q_func, lam)[0]
