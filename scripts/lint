@@ -6,4 +6,8 @@ mypy \
   d3rlpy/q_functions.py \
   d3rlpy/models \
   d3rlpy/preprocessing \
+  d3rlpy/base.py \
+  d3rlpy/logger.py \
+  d3rlpy/gpu.py \
+  d3rlpy/context.py \
   d3rlpy/augmentation

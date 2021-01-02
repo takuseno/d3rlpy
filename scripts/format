@@ -13,6 +13,10 @@ black -l 80 $BLACK_ARG \
   d3rlpy/dataset.pyi \
   d3rlpy/preprocessing \
   d3rlpy/augmentation \
+  d3rlpy/base.py \
+  d3rlpy/logger.py \
+  d3rlpy/gpu.py \
+  d3rlpy/context.py \
   tests/models \
   tests/preprocessing \
   tests/augmentation \

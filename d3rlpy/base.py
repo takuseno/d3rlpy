@@ -1,14 +1,17 @@
 import numpy as np
 import copy
 import json
+import gym
 
 from abc import ABCMeta, abstractmethod
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Union
+from typing import Sequence
 from collections import defaultdict
 from tqdm.auto import tqdm
 from .preprocessing import create_scaler, Scaler
 from .augmentation import create_augmentation, AugmentationPipeline, DrQPipeline
 from .augmentation import DrQPipeline
-from .dataset import TransitionMiniBatch
+from .dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
 from .logger import D3RLPyLogger
 from .metrics.scorer import NEGATED_SCORER
 from .context import disable_parallel
@@ -22,65 +25,74 @@ from .online.utility import get_action_size_from_env
 
 class ImplBase(metaclass=ABCMeta):
     @abstractmethod
-    def save_model(self, fname):
+    def save_model(self, fname: str) -> None:
         pass
 
     @abstractmethod
-    def load_model(self, fname):
+    def load_model(self, fname: str) -> None:
+        pass
+
+    @property
+    def observation_shape(self) -> Sequence[int]:
+        pass
+
+    @property
+    def action_size(self) -> int:
         pass
 
 
-def _serialize_params(params):
+def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
     for key, value in params.items():
         if isinstance(value, Device):
             params[key] = value.get_id()
         elif isinstance(value, (Scaler, EncoderFactory, QFunctionFactory)):
             params[key] = {
-                'type': value.get_type(),
-                'params': value.get_params()
+                "type": value.get_type(),
+                "params": value.get_params(),
             }
         elif isinstance(value, OptimizerFactory):
             params[key] = value.get_params()
         elif isinstance(value, AugmentationPipeline):
             aug_types = value.get_augmentation_types()
             aug_params = value.get_augmentation_params()
-            params[key] = {'params': value.get_params(), 'augmentations': []}
+            params[key] = {"params": value.get_params(), "augmentations": []}
             for aug_type, aug_param in zip(aug_types, aug_params):
-                params[key]['augmentations'].append({
-                    'type': aug_type,
-                    'params': aug_param
-                })
+                params[key]["augmentations"].append(
+                    {"type": aug_type, "params": aug_param}
+                )
     return params
 
 
-def _deseriealize_params(params):
+def _deseriealize_params(params: Dict[str, Any]) -> Dict[str, Any]:
     for key, value in params.items():
-        if key == 'scaler' and params['scaler']:
-            scaler_type = params['scaler']['type']
-            scaler_params = params['scaler']['params']
+        if key == "scaler" and params["scaler"]:
+            scaler_type = params["scaler"]["type"]
+            scaler_params = params["scaler"]["params"]
             scaler = create_scaler(scaler_type, **scaler_params)
             params[key] = scaler
-        elif key == 'augmentation' and params['augmentation']:
+        elif key == "augmentation" and params["augmentation"]:
             augmentations = []
-            for param in params[key]['augmentations']:
-                aug_type = param['type']
-                aug_params = param['params']
+            for param in params[key]["augmentations"]:
+                aug_type = param["type"]
+                aug_params = param["params"]
                 augmentation = create_augmentation(aug_type, **aug_params)
                 augmentations.append(augmentation)
-            params[key] = DrQPipeline(augmentations, **params[key]['params'])
-        elif 'optim_factory' in key:
+            params[key] = DrQPipeline(augmentations, **params[key]["params"])
+        elif "optim_factory" in key:
             params[key] = OptimizerFactory(**value)
-        elif 'encoder_factory' in key:
-            params[key] = create_encoder_factory(value['type'],
-                                                 **value['params'])
-        elif key == 'q_func_factory':
-            params[key] = create_q_func_factory(value['type'],
-                                                **value['params'])
+        elif "encoder_factory" in key:
+            params[key] = create_encoder_factory(
+                value["type"], **value["params"]
+            )
+        elif key == "q_func_factory":
+            params[key] = create_q_func_factory(
+                value["type"], **value["params"]
+            )
     return params
 
 
 class LearnableBase:
-    """ Algorithm base class.
+    """Algorithm base class.
 
     All algorithms have the shared interfaces same as scikit-learn.
 
@@ -96,27 +108,45 @@ class LearnableBase:
         active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
 
     """
-    def __init__(self, batch_size, n_frames, n_steps, gamma, scaler):
-        self.batch_size = batch_size
-        self.n_frames = n_frames
-        self.n_steps = n_steps
-        self.gamma = gamma
-        self.scaler = check_scaler(scaler)
 
-        self.impl = None
-        self.eval_results_ = defaultdict(list)
-        self.loss_history_ = defaultdict(list)
-        self.active_logger_ = None
+    _batch_size: int
+    _n_frames: int
+    _n_steps: int
+    _gamma: float
+    _scaler: Optional[Scaler]
+    _impl: Optional[ImplBase]
+    _eval_results: DefaultDict[str, List[float]]
+    _loss_history: DefaultDict[str, List[float]]
+    _active_logger: Optional[D3RLPyLogger]
 
-    def __setattr__(self, name, value):
+    def __init__(
+        self,
+        batch_size: int,
+        n_frames: int,
+        n_steps: int,
+        gamma: float,
+        scaler: Optional[Union[Scaler, str]],
+    ):
+        self._batch_size = batch_size
+        self._n_frames = n_frames
+        self._n_steps = n_steps
+        self._gamma = gamma
+        self._scaler = check_scaler(scaler)
+
+        self._impl = None
+        self._eval_results = defaultdict(list)
+        self._loss_history = defaultdict(list)
+        self._active_logger = None
+
+    def __setattr__(self, name: str, value: Any) -> None:
         super().__setattr__(name, value)
         # propagate property updates to implementation object
-        if hasattr(self, 'impl') and self.impl and hasattr(self.impl, name):
-            setattr(self.impl, name, value)
+        if hasattr(self, "_impl") and self._impl and hasattr(self._impl, name):
+            setattr(self._impl, name, value)
 
     @classmethod
-    def from_json(cls, fname, use_gpu=False):
-        """ Returns algorithm configured with json file.
+    def from_json(cls, fname: str, use_gpu: bool = False) -> "LearnableBase":
+        """Returns algorithm configured with json file.
 
         The Json file should be the one saved during fitting.
 
@@ -142,26 +172,26 @@ class LearnableBase:
             d3rlpy.base.LearnableBase: algorithm.
 
         """
-        with open(fname, 'r') as f:
+        with open(fname, "r") as f:
             params = json.load(f)
 
-        observation_shape = tuple(params['observation_shape'])
-        action_size = params['action_size']
-        del params['observation_shape']
-        del params['action_size']
+        observation_shape = tuple(params["observation_shape"])
+        action_size = params["action_size"]
+        del params["observation_shape"]
+        del params["action_size"]
 
         # reconstruct objects from json
         params = _deseriealize_params(params)
 
         # overwrite use_gpu flag
-        params['use_gpu'] = use_gpu
+        params["use_gpu"] = use_gpu
 
         algo = cls(**params)
         algo.create_impl(observation_shape, action_size)
         return algo
 
-    def set_params(self, **params):
-        """ Sets the given arguments to the attributes if they exist.
+    def set_params(self, **params: Dict[str, Any]) -> "LearnableBase":
+        """Sets the given arguments to the attributes if they exist.
 
         This method sets the given values to the attributes including ones in
         subclasses. If the values that don't exist as attributes are
@@ -184,8 +214,8 @@ class LearnableBase:
             setattr(self, key, val)
         return self
 
-    def get_params(self, deep=True):
-        """ Returns the all attributes.
+    def get_params(self, deep: bool = True) -> Dict[str, Any]:
+        """Returns the all attributes.
 
         This method returns the all attributes including ones in subclasses.
         Some of scikit-learn utilities will use this method.
@@ -207,10 +237,10 @@ class LearnableBase:
         rets = {}
         for key in dir(self):
             # remove magic properties
-            if key[:2] == '__':
+            if key[:2] == "__":
                 continue
             # remove protected properties
-            if key[-1] == '_':
+            if key[-1] == "_":
                 continue
             # pick scalar parameters
             value = getattr(self, key)
@@ -223,8 +253,8 @@ class LearnableBase:
                     rets[key] = value
         return rets
 
-    def save_model(self, fname):
-        """ Saves neural network parameters.
+    def save_model(self, fname: str) -> None:
+        """Saves neural network parameters.
 
         .. code-block:: python
 
@@ -234,10 +264,11 @@ class LearnableBase:
             fname (str): destination file path.
 
         """
-        self.impl.save_model(fname)
+        assert self._impl is not None
+        self._impl.save_model(fname)
 
-    def load_model(self, fname):
-        """ Load neural network parameters.
+    def load_model(self, fname: str) -> None:
+        """Load neural network parameters.
 
         .. code-block:: python
 
@@ -247,23 +278,28 @@ class LearnableBase:
             fname (str): source file path.
 
         """
-        self.impl.load_model(fname)
+        assert self._impl is not None
+        self._impl.load_model(fname)
 
-    def fit(self,
-            episodes,
-            n_epochs=1000,
-            save_metrics=True,
-            experiment_name=None,
-            with_timestamp=True,
-            logdir='d3rlpy_logs',
-            verbose=True,
-            show_progress=True,
-            tensorboard=True,
-            eval_episodes=None,
-            save_interval=1,
-            scorers=None,
-            shuffle=True):
-        """ Trains with the given dataset.
+    def fit(
+        self,
+        episodes: List[Episode],
+        n_epochs: int = 1000,
+        save_metrics: bool = True,
+        experiment_name: Optional[str] = None,
+        with_timestamp: bool = True,
+        logdir: str = "d3rlpy_logs",
+        verbose: bool = True,
+        show_progress: bool = True,
+        tensorboard: bool = True,
+        eval_episodes: Optional[List[Episode]] = None,
+        save_interval: int = 1,
+        scorers: Optional[
+            Dict[str, Callable[[Any, List[Episode]], float]]
+        ] = None,
+        shuffle: bool = True,
+    ) -> None:
+        """Trains with the given dataset.
 
         .. code-block:: python
 
@@ -298,33 +334,38 @@ class LearnableBase:
             transitions += episode.transitions
 
         # initialize scaler
-        if self.scaler:
-            self.scaler.fit(episodes)
+        if self._scaler:
+            self._scaler.fit(episodes)
 
         # instantiate implementation
-        if self.impl is None:
+        if self._impl is None:
             action_size = transitions[0].get_action_size()
             observation_shape = tuple(transitions[0].get_observation_shape())
             self.create_impl(
-                self._process_observation_shape(observation_shape),
-                action_size)
+                self._process_observation_shape(observation_shape), action_size
+            )
 
         # setup logger
-        logger = self._prepare_logger(save_metrics, experiment_name,
-                                      with_timestamp, logdir, verbose,
-                                      tensorboard)
+        logger = self._prepare_logger(
+            save_metrics,
+            experiment_name,
+            with_timestamp,
+            logdir,
+            verbose,
+            tensorboard,
+        )
 
         # add reference to active logger to algo class during fit
-        self.active_logger_ = logger
+        self._active_logger = logger
 
         # save hyperparameters
         self._save_params(logger)
 
         # refresh evaluation metrics
-        self.eval_results_ = defaultdict(list)
+        self._eval_results = defaultdict(list)
 
         # refresh loss history
-        self.loss_history_ = defaultdict(list)
+        self._loss_history = defaultdict(list)
 
         # hold original dataset
         env_transitions = transitions
@@ -347,15 +388,17 @@ class LearnableBase:
             # dict to add incremental mean losses to epoch
             epoch_loss = defaultdict(list)
 
-            n_iters = len(transitions) // self.batch_size
-            range_gen = tqdm(range(n_iters),
-                             disable=not show_progress,
-                             desc='Epoch %d' % int(epoch))
+            n_iters = len(transitions) // self._batch_size
+            range_gen = tqdm(
+                range(n_iters),
+                disable=not show_progress,
+                desc="Epoch %d" % int(epoch),
+            )
 
             for itr in range_gen:
-                with logger.measure_time('step'):
+                with logger.measure_time("step"):
                     # pick transitions
-                    with logger.measure_time('sample_batch'):
+                    with logger.measure_time("sample_batch"):
                         sampled_transitions = []
                         head_index = itr * self.batch_size
                         tail_index = head_index + self.batch_size
@@ -364,12 +407,13 @@ class LearnableBase:
 
                         batch = TransitionMiniBatch(
                             transitions=sampled_transitions,
-                            n_frames=self.n_frames,
-                            n_steps=self.n_steps,
-                            gamma=self.gamma)
+                            n_frames=self._n_frames,
+                            n_steps=self._n_steps,
+                            gamma=self._gamma,
+                        )
 
                     # update parameters
-                    with logger.measure_time('algorithm_update'):
+                    with logger.measure_time("algorithm_update"):
                         loss = self.update(epoch, total_step, batch)
 
                     # record metrics
@@ -381,19 +425,18 @@ class LearnableBase:
                     # update progress postfix with losses
                     if itr % 10 == 0:
                         mean_loss = {
-                            k: np.mean(v)
-                            for k, v in epoch_loss.items()
+                            k: np.mean(v) for k, v in epoch_loss.items()
                         }
                         range_gen.set_postfix(mean_loss)
 
                     total_step += 1
 
             # save loss to loss history dict
-            self.loss_history_['epoch'].append(epoch)
-            self.loss_history_['step'].append(total_step)
+            self._loss_history["epoch"].append(epoch)
+            self._loss_history["step"].append(total_step)
             for name in self._get_loss_labels():
                 if name in epoch_loss:
-                    self.loss_history_[name].append(np.mean(epoch_loss[name]))
+                    self._loss_history[name].append(np.mean(epoch_loss[name]))
 
             if scorers and eval_episodes:
                 self._evaluate(eval_episodes, scorers, logger)
@@ -407,10 +450,12 @@ class LearnableBase:
 
         # drop reference to active logger since out of fit there is no active
         # logger
-        self.active_logger_ = None
+        self._active_logger = None
 
-    def create_impl(self, observation_shape, action_size):
-        """ Instantiate implementation objects with the dataset shapes.
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        """Instantiate implementation objects with the dataset shapes.
 
         This method will be used internally when `fit` method is called.
 
@@ -421,38 +466,46 @@ class LearnableBase:
         """
         raise NotImplementedError
 
-    def build_with_dataset(self, dataset):
-        """ Instantiate implementation object with MDPDataset object.
+    def build_with_dataset(self, dataset: MDPDataset) -> None:
+        """Instantiate implementation object with MDPDataset object.
 
         Args:
             dataset (d3rlpy.dataset.MDPDataset): dataset.
 
         """
         observation_shape = dataset.get_observation_shape()
-        self.create_impl(self._process_observation_shape(observation_shape),
-                         dataset.get_action_size())
+        self.create_impl(
+            self._process_observation_shape(observation_shape),
+            dataset.get_action_size(),
+        )
 
-    def build_with_env(self, env):
-        """ Instantiate implementation object with OpenAI Gym object.
+    def build_with_env(self, env: gym.Env) -> None:
+        """Instantiate implementation object with OpenAI Gym object.
 
         Args:
             env (gym.Env): gym-like environment.
 
         """
         observation_shape = env.observation_space.shape
-        self.create_impl(self._process_observation_shape(observation_shape),
-                         get_action_size_from_env(env))
+        self.create_impl(
+            self._process_observation_shape(observation_shape),
+            get_action_size_from_env(env),
+        )
 
-    def _process_observation_shape(self, observation_shape):
+    def _process_observation_shape(
+        self, observation_shape: Sequence[int]
+    ) -> Sequence[int]:
         if len(observation_shape) == 3:
             n_channels = observation_shape[0]
             image_size = observation_shape[1:]
             # frame stacking for image observation
-            observation_shape = (self.n_frames * n_channels, *image_size)
+            observation_shape = (self._n_frames * n_channels, *image_size)
         return observation_shape
 
-    def update(self, epoch, total_step, batch):
-        """ Update parameters with mini-batch of data.
+    def update(
+        self, epoch: int, total_step: int, batch: TransitionMiniBatch
+    ) -> List[float]:
+        """Update parameters with mini-batch of data.
 
         Args:
             epoch (int): the current number of epochs.
@@ -465,8 +518,10 @@ class LearnableBase:
         """
         raise NotImplementedError
 
-    def _generate_new_data(self, transitions):
-        """ Returns generated transitions for data augmentation.
+    def _generate_new_data(
+        self, transitions: List[Transition]
+    ) -> Optional[List[Transition]]:
+        """Returns generated transitions for data augmentation.
 
         This method is called at the beginning of every epoch.
 
@@ -479,24 +534,38 @@ class LearnableBase:
         """
         return None
 
-    def _get_loss_labels(self):
+    def _get_loss_labels(self) -> List[str]:
         raise NotImplementedError
 
-    def _prepare_logger(self, save_metrics, experiment_name, with_timestamp,
-                        logdir, verbose, tensorboard):
+    def _prepare_logger(
+        self,
+        save_metrics: bool,
+        experiment_name: Optional[str],
+        with_timestamp: bool,
+        logdir: str,
+        verbose: bool,
+        tensorboard: bool,
+    ) -> D3RLPyLogger:
         if experiment_name is None:
             experiment_name = self.__class__.__name__
 
-        logger = D3RLPyLogger(experiment_name,
-                              save_metrics=save_metrics,
-                              root_dir=logdir,
-                              verbose=verbose,
-                              tensorboard=tensorboard,
-                              with_timestamp=with_timestamp)
+        logger = D3RLPyLogger(
+            experiment_name,
+            save_metrics=save_metrics,
+            root_dir=logdir,
+            verbose=verbose,
+            tensorboard=tensorboard,
+            with_timestamp=with_timestamp,
+        )
 
         return logger
 
-    def _evaluate(self, episodes, scorers, logger):
+    def _evaluate(
+        self,
+        episodes: List[Episode],
+        scorers: Dict[str, Callable[[Any, List[Episode]], float]],
+        logger: D3RLPyLogger,
+    ) -> None:
         for name, scorer in scorers.items():
             # evaluation with test data
             test_score = scorer(self, episodes)
@@ -511,9 +580,11 @@ class LearnableBase:
 
             # store metric locally
             if test_score is not None:
-                self.eval_results_[name].append(test_score)
+                self._eval_results[name].append(test_score)
 
-    def _save_params(self, logger):
+    def _save_params(self, logger: D3RLPyLogger) -> None:
+        assert self._impl
+
         # get hyperparameters without impl
         params = {}
         with disable_parallel():
@@ -523,13 +594,29 @@ class LearnableBase:
                 params[k] = v
 
         # save algorithm name
-        params['algorithm'] = self.__class__.__name__
+        params["algorithm"] = self.__class__.__name__
 
         # save shapes
-        params['observation_shape'] = self.impl.observation_shape
-        params['action_size'] = self.impl.action_size
+        params["observation_shape"] = self._impl.observation_shape
+        params["action_size"] = self._impl.action_size
 
         # serialize objects
         params = _serialize_params(params)
 
         logger.add_params(params)
+
+    @property
+    def batch_size(self) -> int:
+        return self._batch_size
+
+    @property
+    def n_steps(self) -> int:
+        return self._n_steps
+
+    @property
+    def gamma(self) -> float:
+        return self._gamma
+
+    @property
+    def scaler(self) -> Optional[Scaler]:
+        return self._scaler

@@ -1,14 +1,15 @@
 import GPUtil
 
+from typing import Any
 from .context import get_parallel_flag
 
 
-def get_gpu_count():
+def get_gpu_count() -> int:
     return len(GPUtil.getGPUs())
 
 
 class Device:
-    """ GPU Device class.
+    """GPU Device class.
 
     This class manages GPU id.
     The purpose of this device class instead of PyTorch device class is
@@ -35,31 +36,34 @@ class Device:
         idx (int): GPU id.
 
     """
-    def __init__(self, idx=0):
-        self.idx = idx
 
-    def get_id(self):
-        """ Returns GPU id.
+    _idx: int
+
+    def __init__(self, idx: int = 0):
+        self._idx = idx
+
+    def get_id(self) -> int:
+        """Returns GPU id.
 
         Returns:
             int: GPU id.
 
         """
-        return self.idx
+        return self._idx
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo: Any) -> Device:
         if get_parallel_flag():
             # this bahavior is only for sklearn.base.clone
-            self.idx += 1
-            if self.idx >= get_gpu_count():
+            self._idx += 1
+            if self._idx >= get_gpu_count():
                 self.idx = 0
         obj = self.__class__(self.idx)
         return obj
 
-    def __eq__(self, obj):
+    def __eq__(self, obj: Any) -> bool:
         if isinstance(obj, Device):
-            return self.idx == obj.idx
-        raise ValueError('Device cannot be comapred with non Device objects.')
+            return self._idx == obj.get_id()
+        raise ValueError("Device cannot be comapred with non Device objects.")
 
-    def __ne__(self, obj):
+    def __ne__(self, obj: Any) -> bool:
         return not self.__eq__(obj)
