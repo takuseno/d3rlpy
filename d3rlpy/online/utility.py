@@ -1,5 +1,10 @@
-def get_action_size_from_env(env):
-    from gym.spaces import Discrete
+import gym
+
+from typing import cast
+from gym.spaces import Discrete
+
+
+def get_action_size_from_env(env: gym.Env) -> int:
     if isinstance(env.action_space, Discrete):
-        return env.action_space.n
-    return env.action_space.shape[0]
+        return cast(int, env.action_space.n)
+    return cast(int, env.action_space.shape[0])

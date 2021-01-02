@@ -610,6 +610,10 @@ class LearnableBase:
         return self._batch_size
 
     @property
+    def n_frames(self) -> int:
+        return self._n_frames
+
+    @property
     def n_steps(self) -> int:
         return self._n_steps
 
@@ -620,3 +624,18 @@ class LearnableBase:
     @property
     def scaler(self) -> Optional[Scaler]:
         return self._scaler
+
+    @property
+    def impl(self) -> ImplBase:
+        assert self._impl is not None
+        return self._impl
+
+    @property
+    def observation_shape(self) -> Sequence[int]:
+        assert self._impl is not None
+        return self._impl.observation_shape
+
+    @property
+    def action_size(self) -> int:
+        assert self._impl is not None
+        return self._impl.action_size

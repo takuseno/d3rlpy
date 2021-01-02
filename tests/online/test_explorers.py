@@ -5,13 +5,14 @@ from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
 from d3rlpy.online.explorers import NormalNoise
 
 
-@pytest.mark.parametrize('action_size', [3])
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('start_epsilon', [1.0])
-@pytest.mark.parametrize('end_epsilon', [0.1])
-@pytest.mark.parametrize('duration', [10])
-def test_linear_decay_epsilon_greedy(action_size, observation_shape,
-                                     start_epsilon, end_epsilon, duration):
+@pytest.mark.parametrize("action_size", [3])
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("start_epsilon", [1.0])
+@pytest.mark.parametrize("end_epsilon", [0.1])
+@pytest.mark.parametrize("duration", [10])
+def test_linear_decay_epsilon_greedy(
+    action_size, observation_shape, start_epsilon, end_epsilon, duration
+):
     explorer = LinearDecayEpsilonGreedy(start_epsilon, end_epsilon, duration)
 
     # check epsilon
@@ -48,10 +49,10 @@ def test_linear_decay_epsilon_greedy(action_size, observation_shape,
             assert False
 
 
-@pytest.mark.parametrize('action_size', [3])
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('mean', [0.0])
-@pytest.mark.parametrize('std', [0.1])
+@pytest.mark.parametrize("action_size", [3])
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("mean", [0.0])
+@pytest.mark.parametrize("std", [0.1])
 def test_normal_noise(action_size, observation_shape, mean, std):
     explorer = NormalNoise(mean, std)
 

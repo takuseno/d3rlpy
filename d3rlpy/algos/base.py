@@ -1,37 +1,63 @@
+import numpy as np
+import gym
+
 from abc import abstractmethod
+from typing import List, Optional, Union
 from ..base import ImplBase, LearnableBase
+from ..dataset import Transition
+from ..dynamics.base import DynamicsBase
 from ..online.iterators import train
+from ..online.buffers import Buffer
+from ..online.explorers import Explorer
+from ..preprocessing import Scaler
 
 
 class AlgoImplBase(ImplBase):
     @abstractmethod
-    def build(self):
+    def build(self) -> None:
         pass
 
     @abstractmethod
-    def save_policy(self, fname, as_onnx):
+    def save_policy(self, fname: str, as_onnx: bool) -> None:
         pass
 
     @abstractmethod
-    def predict_best_action(self, x):
+    def predict_best_action(self, x: Union[np.ndarray, list]) -> np.ndarray:
         pass
 
     @abstractmethod
-    def predict_value(self, x, action, with_std):
+    def predict_value(
+        self,
+        x: Union[np.ndarray, list],
+        action: Union[np.ndarray, list],
+        with_std: bool,
+    ) -> np.ndarray:
         pass
 
     @abstractmethod
-    def sample_action(self, x):
+    def sample_action(self, x: Union[np.ndarray, list]) -> np.ndarray:
         pass
 
 
 class AlgoBase(LearnableBase):
-    def __init__(self, batch_size, n_frames, n_steps, gamma, scaler, dynamics):
-        super().__init__(batch_size, n_frames, n_steps, gamma, scaler)
-        self.dynamics = dynamics
 
-    def save_policy(self, fname, as_onnx=False):
-        """ Save the greedy-policy computational graph as TorchScript or ONNX.
+    _dynamics: Optional[DynamicsBase]
+    _impl: Optional[AlgoImplBase]
+
+    def __init__(
+        self,
+        batch_size: int,
+        n_frames: int,
+        n_steps: int,
+        gamma: float,
+        scaler: Optional[Scaler],
+        dynamics: Optional[DynamicsBase],
+    ):
+        super().__init__(batch_size, n_frames, n_steps, gamma, scaler)
+        self._dynamics = dynamics
+
+    def save_policy(self, fname: str, as_onnx: bool = False) -> None:
+        """Save the greedy-policy computational graph as TorchScript or ONNX.
 
         .. code-block:: python
 
@@ -56,10 +82,11 @@ class AlgoBase(LearnableBase):
             as_onnx (bool): flag to save as ONNX format.
 
         """
-        self.impl.save_policy(fname, as_onnx)
+        assert self._impl is not None
+        self._impl.save_policy(fname, as_onnx)
 
-    def predict(self, x):
-        """ Returns greedy actions.
+    def predict(self, x: Union[np.ndarray, list]) -> np.ndarray:
+        """Returns greedy actions.
 
         .. code-block:: python
 
@@ -77,10 +104,16 @@ class AlgoBase(LearnableBase):
             numpy.ndarray: greedy actions
 
         """
-        return self.impl.predict_best_action(x)
+        assert self._impl is not None
+        return self._impl.predict_best_action(x)
 
-    def predict_value(self, x, action, with_std=False):
-        """ Returns predicted action-values.
+    def predict_value(
+        self,
+        x: Union[np.ndarray, list],
+        action: Union[np.ndarray, list],
+        with_std: bool = False,
+    ) -> np.ndarray:
+        """Returns predicted action-values.
 
         .. code-block:: python
 
@@ -113,10 +146,11 @@ class AlgoBase(LearnableBase):
             numpy.ndarray: predicted action-values
 
         """
-        return self.impl.predict_value(x, action, with_std)
+        assert self._impl is not None
+        return self._impl.predict_value(x, action, with_std)
 
-    def sample_action(self, x):
-        """ Returns sampled actions.
+    def sample_action(self, x: Union[np.ndarray, list]) -> np.ndarray:
+        """Returns sampled actions.
 
         The sampled actions are identical to the output of `predict` method if
         the policy is deterministic.
@@ -128,26 +162,29 @@ class AlgoBase(LearnableBase):
             numpy.ndarray: sampled actions.
 
         """
-        return self.impl.sample_action(x)
+        assert self._impl is not None
+        return self._impl.sample_action(x)
 
-    def fit_online(self,
-                   env,
-                   buffer,
-                   explorer=None,
-                   n_steps=1000000,
-                   n_steps_per_epoch=10000,
-                   update_interval=1,
-                   update_start_step=0,
-                   eval_env=None,
-                   eval_epsilon=0.0,
-                   save_metrics=True,
-                   experiment_name=None,
-                   with_timestamp=True,
-                   logdir='d3rlpy_logs',
-                   verbose=True,
-                   show_progress=True,
-                   tensorboard=True):
-        """ Start training loop of online deep reinforcement learning.
+    def fit_online(
+        self,
+        env: gym.Env,
+        buffer: Buffer,
+        explorer: Optional[Explorer] = None,
+        n_steps: int = 1000000,
+        n_steps_per_epoch: int = 10000,
+        update_interval: int = 1,
+        update_start_step: int = 0,
+        eval_env: Optional[gym.Env] = None,
+        eval_epsilon: float = 0.0,
+        save_metrics: bool = True,
+        experiment_name: Optional[str] = None,
+        with_timestamp: bool = True,
+        logdir: str = "d3rlpy_logs",
+        verbose: bool = True,
+        show_progress: bool = True,
+        tensorboard: bool = True,
+    ) -> None:
+        """Start training loop of online deep reinforcement learning.
 
         This method is a convenient alias to ``d3rlpy.online.iterators.train``.
 
@@ -176,26 +213,30 @@ class AlgoBase(LearnableBase):
                 (additional to the csv data)
 
         """
-        train(env=env,
-              algo=self,
-              buffer=buffer,
-              explorer=explorer,
-              n_steps=n_steps,
-              n_steps_per_epoch=n_steps_per_epoch,
-              update_interval=update_interval,
-              update_start_step=update_start_step,
-              eval_env=eval_env,
-              eval_epsilon=eval_epsilon,
-              save_metrics=save_metrics,
-              experiment_name=experiment_name,
-              with_timestamp=with_timestamp,
-              logdir=logdir,
-              verbose=verbose,
-              show_progress=show_progress,
-              tensorboard=tensorboard)
+        train(
+            env=env,
+            algo=self,
+            buffer=buffer,
+            explorer=explorer,
+            n_steps=n_steps,
+            n_steps_per_epoch=n_steps_per_epoch,
+            update_interval=update_interval,
+            update_start_step=update_start_step,
+            eval_env=eval_env,
+            eval_epsilon=eval_epsilon,
+            save_metrics=save_metrics,
+            experiment_name=experiment_name,
+            with_timestamp=with_timestamp,
+            logdir=logdir,
+            verbose=verbose,
+            show_progress=show_progress,
+            tensorboard=tensorboard,
+        )
 
-    def _generate_new_data(self, transitions):
+    def _generate_new_data(
+        self, transitions: List[Transition]
+    ) -> List[Transition]:
         new_data = []
-        if self.dynamics:
-            new_data += self.dynamics.generate(self, transitions)
+        if self._dynamics:
+            new_data += self._dynamics.generate(self, transitions)
         return new_data

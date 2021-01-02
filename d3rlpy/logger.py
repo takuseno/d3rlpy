@@ -4,10 +4,15 @@ import json
 import time
 
 from typing import Any, Dict, List, Optional, Iterator
+from typing_extensions import Protocol
 from contextlib import contextmanager
 from tensorboardX import SummaryWriter
 from datetime import datetime
-from .base import LearnableBase
+
+
+class _SaveProtocol(Protocol):
+    def save_model(self, fname: str) -> None:
+        ...
 
 
 # default json encoder for numpy objects
@@ -125,7 +130,7 @@ class D3RLPyLogger:
         # initialize metrics buffer
         self._metrics_buffer = {}
 
-    def save_model(self, epoch: int, algo: LearnableBase) -> None:
+    def save_model(self, epoch: int, algo: _SaveProtocol) -> None:
         if self._save_metrics:
             # save entire model
             model_path = os.path.join(self._logdir, "model_%d.pt" % epoch)

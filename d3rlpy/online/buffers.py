@@ -1,41 +1,59 @@
 import numpy as np
+import gym
 
 from abc import ABCMeta, abstractmethod
-from ..dataset import Transition, TransitionMiniBatch
+from typing import Any, Generic, List, Optional, TypeVar, Sequence
+from ..dataset import Episode, Transition, TransitionMiniBatch
 from .utility import get_action_size_from_env
 
+T = TypeVar("T")
 
-class FIFOQueue:
-    """ Simple FIFO queue implementation.
+
+class FIFOQueue(Generic[T]):
+    """Simple FIFO queue implementation.
 
     Random access of this queue object is O(1).
 
     """
-    def __init__(self, maxlen):
-        self.maxlen = maxlen
-        self.buffer = [None for _ in range(maxlen)]
-        self.cursor = 0
-        self.size = 0
 
-    def append(self, item):
-        self.buffer[self.cursor] = item
-        self.cursor += 1
-        if self.cursor == self.maxlen:
-            self.cursor = 0
-        self.size = min(self.size + 1, self.maxlen)
+    _maxlen: int
+    _buffer: List[Optional[T]]
+    _cursor: int
+    _size: int
 
-    def __getitem__(self, index):
-        assert index < self.size
-        return self.buffer[index]
+    def __init__(self, maxlen: int):
+        self._maxlen = maxlen
+        self._buffer = [None for _ in range(maxlen)]
+        self._cursor = 0
+        self._size = 0
 
-    def __len__(self):
-        return self.size
+    def append(self, item: T) -> None:
+        self._buffer[self._cursor] = item
+        self._cursor += 1
+        if self._cursor == self._maxlen:
+            self._cursor = 0
+        self._size = min(self._size + 1, self._maxlen)
+
+    def __getitem__(self, index: int) -> T:
+        assert index < self._size
+        item = self._buffer[index]
+        assert item is not None
+        return item
+
+    def __len__(self) -> int:
+        return self._size
 
 
 class Buffer(metaclass=ABCMeta):
     @abstractmethod
-    def append(self, observation, action, reward, terminal):
-        """ Append observation, action, reward and terminal flag to buffer.
+    def append(
+        self,
+        observation: np.ndarray,
+        action: np.ndarray,
+        reward: float,
+        terminal: float,
+    ) -> None:
+        """Append observation, action, reward and terminal flag to buffer.
 
         If the terminal flag is True, Monte-Carlo returns will be computed with
         an entire episode and the whole transitions will be appended.
@@ -50,8 +68,8 @@ class Buffer(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def append_episode(self, episode):
-        """ Append Episode object to buffer.
+    def append_episode(self, episode: Episode) -> None:
+        """Append Episode object to buffer.
 
         Args:
             episode (d3rlpy.dataset.Episode): episode.
@@ -60,8 +78,14 @@ class Buffer(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def sample(self, batch_size, n_frames=1, n_steps=1, gamma=0.99):
-        """ Returns sampled mini-batch of transitions.
+    def sample(
+        self,
+        batch_size: int,
+        n_frames: int = 1,
+        n_steps: int = 1,
+        gamma: float = 0.99,
+    ) -> TransitionMiniBatch:
+        """Returns sampled mini-batch of transitions.
 
         If observation is image, you can stack arbitrary frames via
         ``n_frames``.
@@ -89,8 +113,8 @@ class Buffer(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def size(self):
-        """ Returns the number of appended elements in buffer.
+    def size(self) -> int:
+        """Returns the number of appended elements in buffer.
 
         Returns:
             int: the number of elements in buffer.
@@ -98,9 +122,12 @@ class Buffer(metaclass=ABCMeta):
         """
         pass
 
+    def __len__(self) -> int:
+        return self.size()
+
 
 class ReplayBuffer(Buffer):
-    """ Standard Replay Buffer.
+    """Standard Replay Buffer.
 
     Args:
         maxlen (int): the maximum number of data length.
@@ -120,79 +147,104 @@ class ReplayBuffer(Buffer):
         action_size (int): action size.
 
     """
-    def __init__(self, maxlen, env, episodes=None):
-        # temporary cache to hold transitions for an entire episode
-        self.prev_observation = None
-        self.prev_action = None
-        self.prev_reward = None
-        self.prev_transition = None
 
-        self.transitions = FIFOQueue(maxlen=maxlen)
+    _prev_observation: Optional[np.ndarray]
+    _prev_action: Optional[np.ndarray]
+    _prev_reward: float
+    _prev_transition: Optional[Transition]
+    _transitions: FIFOQueue[Transition]
+    _observation_shape: Sequence[int]
+    _action_size: int
+
+    def __init__(
+        self,
+        maxlen: int,
+        env: gym.Env,
+        episodes: Optional[List[Episode]] = None,
+    ):
+        # temporary cache to hold transitions for an entire episode
+        self._prev_observation = None
+        self._prev_action = None
+        self._prev_reward = 0.0
+        self._prev_transition = None
+
+        self._transitions = FIFOQueue(maxlen=maxlen)
 
         # extract shape information
-        self.observation_shape = env.observation_space.shape
-        self.action_size = get_action_size_from_env(env)
+        self._observation_shape = env.observation_space.shape
+        self._action_size = get_action_size_from_env(env)
 
         # add initial transitions
         if episodes:
             for episode in episodes:
                 self.append_episode(episode)
 
-    def append(self, observation, action, reward, terminal):
+    def append(
+        self,
+        observation: np.ndarray,
+        action: np.ndarray,
+        reward: float,
+        terminal: float,
+    ) -> None:
         # validation
-        assert observation.shape == self.observation_shape
+        assert observation.shape == self._observation_shape
         if isinstance(action, np.ndarray):
-            assert action.shape[0] == self.action_size
+            assert action.shape[0] == self._action_size
         else:
             action = int(action)
-            assert action < self.action_size
+            assert action < self._action_size
 
         # create Transition object
-        if self.prev_observation is not None:
+        if self._prev_observation is not None:
             if isinstance(terminal, bool):
                 terminal = 1.0 if terminal else 0.0
 
-            transition = Transition(observation_shape=self.observation_shape,
-                                    action_size=self.action_size,
-                                    observation=self.prev_observation,
-                                    action=self.prev_action,
-                                    reward=self.prev_reward,
-                                    next_observation=observation,
-                                    next_action=action,
-                                    next_reward=reward,
-                                    terminal=terminal,
-                                    prev_transition=self.prev_transition)
+            transition = Transition(
+                observation_shape=self._observation_shape,
+                action_size=self._action_size,
+                observation=self._prev_observation,
+                action=self._prev_action,
+                reward=self._prev_reward,
+                next_observation=observation,
+                next_action=action,
+                next_reward=reward,
+                terminal=terminal,
+                prev_transition=self._prev_transition,
+            )
 
-            if self.prev_transition:
-                self.prev_transition.next_transition = transition
+            if self._prev_transition:
+                self._prev_transition.next_transition = transition
 
-            self.transitions.append(transition)
+            self._transitions.append(transition)
 
-            self.prev_transition = transition
+            self._prev_transition = transition
 
-        self.prev_observation = observation
-        self.prev_action = action
-        self.prev_reward = reward
+        self._prev_observation = observation
+        self._prev_action = action
+        self._prev_reward = reward
 
         if terminal:
-            self.prev_observation = None
-            self.prev_action = None
-            self.prev_reward = None
-            self.prev_transition = None
+            self._prev_observation = None
+            self._prev_action = None
+            self._prev_reward = 0.0
+            self._prev_transition = None
 
-    def append_episode(self, episode):
-        assert episode.get_observation_shape() == self.observation_shape
-        assert episode.get_action_size() == self.action_size
+    def append_episode(self, episode: Episode) -> None:
+        assert episode.get_observation_shape() == self._observation_shape
+        assert episode.get_action_size() == self._action_size
         for transition in episode.transitions:
-            self.transitions.append(transition)
+            self._transitions.append(transition)
 
-    def sample(self, batch_size, n_frames=1, n_steps=1, gamma=0.99):
-        indices = np.random.choice(len(self.transitions), batch_size)
-        transitions = [self.transitions[index] for index in indices]
+    def sample(
+        self,
+        batch_size: int,
+        n_frames: int = 1,
+        n_steps: int = 1,
+        gamma: float = 0.99,
+    ) -> TransitionMiniBatch:
+        indices = np.random.choice(len(self._transitions), batch_size)
+        transitions = [self._transitions[index] for index in indices]
         return TransitionMiniBatch(transitions, n_frames, n_steps, gamma)
 
-    def size(self):
-        return len(self.transitions)
-
-    def __len__(self):
-        return self.size()
+    def size(self) -> int:
+        return len(self._transitions)

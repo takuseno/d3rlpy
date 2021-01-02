@@ -1,28 +1,36 @@
+import gym
+
+from typing import Optional
 from tqdm import trange
+from ..algos.base import AlgoBase
 from ..preprocessing.stack import StackedObservation
 from ..metrics.scorer import evaluate_on_environment
 from ..logger import D3RLPyLogger
 from .utility import get_action_size_from_env
+from .buffers import Buffer
+from .explorers import Explorer
 
 
-def train(env,
-          algo,
-          buffer,
-          explorer=None,
-          n_steps=1000000,
-          n_steps_per_epoch=10000,
-          update_interval=1,
-          update_start_step=0,
-          eval_env=None,
-          eval_epsilon=0.0,
-          save_metrics=True,
-          experiment_name=None,
-          with_timestamp=True,
-          logdir='d3rlpy_logs',
-          verbose=True,
-          show_progress=True,
-          tensorboard=True):
-    """ Start training loop of online deep reinforcement learning.
+def train(
+    env: gym.Env,
+    algo: AlgoBase,
+    buffer: Buffer,
+    explorer: Optional[Explorer] = None,
+    n_steps: int = 1000000,
+    n_steps_per_epoch: int = 10000,
+    update_interval: int = 1,
+    update_start_step: int = 0,
+    eval_env: Optional[gym.Env] = None,
+    eval_epsilon: float = 0.0,
+    save_metrics: bool = True,
+    experiment_name: Optional[str] = None,
+    with_timestamp: bool = True,
+    logdir: str = "d3rlpy_logs",
+    verbose: bool = True,
+    show_progress: bool = True,
+    tensorboard: bool = True,
+) -> None:
+    """Start training loop of online deep reinforcement learning.
 
     Args:
         env (gym.Env): gym-like environment.
@@ -53,13 +61,15 @@ def train(env,
 
     # setup logger
     if experiment_name is None:
-        experiment_name = algo.__class__.__name__ + '_online'
-    logger = D3RLPyLogger(experiment_name,
-                          save_metrics=save_metrics,
-                          root_dir=logdir,
-                          verbose=verbose,
-                          tensorboard=tensorboard,
-                          with_timestamp=with_timestamp)
+        experiment_name = algo.__class__.__name__ + "_online"
+    logger = D3RLPyLogger(
+        experiment_name,
+        save_metrics=save_metrics,
+        root_dir=logdir,
+        verbose=verbose,
+        tensorboard=tensorboard,
+        with_timestamp=with_timestamp,
+    )
 
     observation_shape = env.observation_space.shape
     is_image = len(observation_shape) == 3
@@ -91,17 +101,17 @@ def train(env,
     # start training loop
     observation, reward, terminal = env.reset(), 0.0, False
     for total_step in xrange(n_steps):
-        with logger.measure_time('step'):
+        with logger.measure_time("step"):
             # stack observation if necessary
             if is_image:
                 stacked_frame.append(observation)
                 fed_observation = stacked_frame.eval()
             else:
-                observation = observation.astype('f4')
+                observation = observation.astype("f4")
                 fed_observation = observation
 
             # sample exploration action
-            with logger.measure_time('inference'):
+            with logger.measure_time("inference"):
                 if explorer:
                     action = explorer.sample(algo, fed_observation, total_step)
                 else:
@@ -117,7 +127,7 @@ def train(env,
                 if is_image:
                     stacked_frame.clear()
             else:
-                with logger.measure_time('environment_step'):
+                with logger.measure_time("environment_step"):
                     observation, reward, terminal, _ = env.step(action)
 
             # psuedo epoch count
@@ -126,14 +136,16 @@ def train(env,
             if total_step > update_start_step and len(buffer) > batch_size:
                 if total_step % update_interval == 0:
                     # sample mini-batch
-                    with logger.measure_time('sample_batch'):
-                        batch = buffer.sample(batch_size=batch_size,
-                                              n_frames=algo.n_frames,
-                                              n_steps=algo.n_steps,
-                                              gamma=algo.gamma)
+                    with logger.measure_time("sample_batch"):
+                        batch = buffer.sample(
+                            batch_size=batch_size,
+                            n_frames=algo.n_frames,
+                            n_steps=algo.n_steps,
+                            gamma=algo.gamma,
+                        )
 
                     # update parameters
-                    with logger.measure_time('algorithm_update'):
+                    with logger.measure_time("algorithm_update"):
                         loss = algo.update(epoch, total_step, batch)
 
                     # record metrics
@@ -144,7 +156,7 @@ def train(env,
         if epoch > 0 and total_step % n_steps_per_epoch == 0:
             # evaluation
             if eval_scorer:
-                logger.add_metric('evaluation', eval_scorer(algo))
+                logger.add_metric("evaluation", eval_scorer(algo))
 
             # save metrics
             logger.commit(epoch, total_step)

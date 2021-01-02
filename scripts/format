@@ -7,6 +7,7 @@ else
 fi
 
 black -l 80 $BLACK_ARG \
+  d3rlpy/algos/base.py \
   d3rlpy/models \
   d3rlpy/q_functions.py \
   d3rlpy/encoders.py \
@@ -19,9 +20,11 @@ black -l 80 $BLACK_ARG \
   d3rlpy/gpu.py \
   d3rlpy/context.py \
   d3rlpy/argument_utils.py \
+  d3rlpy/online \
   tests/models \
   tests/preprocessing \
   tests/augmentation \
+  tests/online \
   tests/test_gpu.py \
   tests/test_context.py \
   tests/test_argument_utils.py \

@@ -4,7 +4,7 @@ from d3rlpy.online.utility import get_action_size_from_env
 
 
 def test_get_action_size_from_env_with_cartpole():
-    env = gym.make('CartPole-v0')
+    env = gym.make("CartPole-v0")
 
     action_size = get_action_size_from_env(env)
 
@@ -12,7 +12,7 @@ def test_get_action_size_from_env_with_cartpole():
 
 
 def test_get_action_size_from_env_with_pendulum():
-    env = gym.make('Pendulum-v0')
+    env = gym.make("Pendulum-v0")
 
     action_size = get_action_size_from_env(env)
 
