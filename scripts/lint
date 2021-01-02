@@ -10,4 +10,5 @@ mypy \
   d3rlpy/logger.py \
   d3rlpy/gpu.py \
   d3rlpy/context.py \
+  d3rlpy/argument_utils.py \
   d3rlpy/augmentation

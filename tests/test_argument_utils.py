@@ -13,17 +13,17 @@ from d3rlpy.argument_utils import check_augmentation
 from d3rlpy.argument_utils import check_use_gpu
 
 
-@pytest.mark.parametrize('value', ['default', DefaultEncoderFactory()])
+@pytest.mark.parametrize("value", ["default", DefaultEncoderFactory()])
 def test_check_encoder(value):
     assert isinstance(check_encoder(value), DefaultEncoderFactory)
 
 
-@pytest.mark.parametrize('value', ['mean', MeanQFunctionFactory()])
+@pytest.mark.parametrize("value", ["mean", MeanQFunctionFactory()])
 def test_check_q_func(value):
     assert isinstance(check_q_func(value), MeanQFunctionFactory)
 
 
-@pytest.mark.parametrize('value', ['min_max', MinMaxScaler(), None])
+@pytest.mark.parametrize("value", ["min_max", MinMaxScaler(), None])
 def test_check_scaler(value):
     scaler = check_scaler(value)
     if value is None:
@@ -32,7 +32,7 @@ def test_check_scaler(value):
         assert isinstance(scaler, MinMaxScaler)
 
 
-@pytest.mark.parametrize('value', [['random_shift'], [RandomShift()], None])
+@pytest.mark.parametrize("value", [["random_shift"], [RandomShift()], None])
 def test_check_augmentation(value):
     pipeline = check_augmentation(value)
     assert isinstance(pipeline, AugmentationPipeline)
@@ -42,7 +42,7 @@ def test_check_augmentation(value):
         assert isinstance(pipeline.augmentations[0], RandomShift)
 
 
-@pytest.mark.parametrize('value', [False, True, 0, Device(0)])
+@pytest.mark.parametrize("value", [False, True, 0, Device(0)])
 def test_check_use_gpu(value):
     device = check_use_gpu(value)
     if type(value) == bool and value:

@@ -1,3 +1,4 @@
+from typing import List, Optional, Union, cast
 from .encoders import create_encoder_factory, EncoderFactory
 from .q_functions import create_q_func_factory, QFunctionFactory
 from .preprocessing.scalers import create_scaler, Scaler
@@ -6,8 +7,8 @@ from .augmentation import DrQPipeline, Augmentation
 from .gpu import Device
 
 
-def check_encoder(value):
-    """ Checks value and returns EncoderFactory object.
+def check_encoder(value: Union[EncoderFactory, str]) -> EncoderFactory:
+    """Checks value and returns EncoderFactory object.
 
     Returns:
         d3rlpy.encoders.EncoderFactory: encoder factory object.
@@ -17,11 +18,11 @@ def check_encoder(value):
         return value
     if isinstance(value, str):
         return create_encoder_factory(value)
-    raise ValueError('This argument must be str or EncoderFactory object.')
+    raise ValueError("This argument must be str or EncoderFactory object.")
 
 
-def check_q_func(value):
-    """ Checks value and returns QFunctionFactory object.
+def check_q_func(value: Union[QFunctionFactory, str]) -> QFunctionFactory:
+    """Checks value and returns QFunctionFactory object.
 
     Returns:
         d3rlpy.q_functions.QFunctionFactory: Q function factory object.
@@ -31,11 +32,11 @@ def check_q_func(value):
         return value
     if isinstance(value, str):
         return create_q_func_factory(value)
-    raise ValueError('This argument must be str or QFunctionFactory object.')
+    raise ValueError("This argument must be str or QFunctionFactory object.")
 
 
-def check_scaler(value):
-    """ Checks value and returns Scaler object.
+def check_scaler(value: Optional[Union[Scaler, str]]) -> Optional[Scaler]:
+    """Checks value and returns Scaler object.
 
     Returns:
         d3rlpy.preprocessing.scalers.Scaler: scaler object.
@@ -47,11 +48,13 @@ def check_scaler(value):
         return create_scaler(value)
     if value is None:
         return None
-    raise ValueError('This argument must be str or Scaler object.')
+    raise ValueError("This argument must be str or Scaler object.")
 
 
-def check_augmentation(value):
-    """ Checks value and returns AugmentationPipeline object.
+def check_augmentation(
+    value: Optional[Union[AugmentationPipeline, List[Union[str, Augmentation]]]]
+) -> AugmentationPipeline:
+    """Checks value and returns AugmentationPipeline object.
 
     Returns:
         d3rlpy.augmentation.AugmentationPipeline: augmentation pipeline object.
@@ -65,16 +68,18 @@ def check_augmentation(value):
             if isinstance(v, str):
                 v = create_augmentation(v)
             elif not isinstance(v, Augmentation):
-                raise ValueError('str or Augmentation is expected.')
+                raise ValueError("str or Augmentation is expected.")
             augmentations.append(v)
         return DrQPipeline(augmentations)
     if value is None:
         return DrQPipeline([])
-    raise ValueError('This argument must be list or AugmentationPipeline.')
+    raise ValueError("This argument must be list or AugmentationPipeline.")
 
 
-def check_use_gpu(value):
-    """ Checks value and returns Device object.
+def check_use_gpu(
+    value: Optional[Union[bool, int, Device]]
+) -> Optional[Device]:
+    """Checks value and returns Device object.
 
     Returns:
         d3rlpy.gpu.Device: device object.
@@ -86,9 +91,9 @@ def check_use_gpu(value):
             return Device(0)
         return None
     if type(value) == int:
-        return Device(value)
+        return Device(cast(int, value))
     if isinstance(value, Device):
         return value
     if value is None:
         return None
-    raise ValueError('This argument must be bool, int or Device.')
+    raise ValueError("This argument must be bool, int or Device.")

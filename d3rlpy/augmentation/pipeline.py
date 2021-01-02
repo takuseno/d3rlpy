@@ -89,6 +89,10 @@ class AugmentationPipeline(metaclass=ABCMeta):
         """
         pass
 
+    @property
+    def augmentations(self) -> List[Augmentation]:
+        return self._augmentations
+
 
 class DrQPipeline(AugmentationPipeline):
     """Data-reguralized Q augmentation pipeline.

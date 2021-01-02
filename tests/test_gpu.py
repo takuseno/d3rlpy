@@ -5,7 +5,7 @@ from d3rlpy.gpu import Device
 from d3rlpy.context import parallel
 
 
-@patch('d3rlpy.gpu.get_gpu_count', return_value=2)
+@patch("d3rlpy.gpu.get_gpu_count", return_value=2)
 def test_device(mock):
     device = Device()
 

@@ -51,13 +51,13 @@ class Device:
         """
         return self._idx
 
-    def __deepcopy__(self, memo: Any) -> Device:
+    def __deepcopy__(self, memo: Any) -> "Device":
         if get_parallel_flag():
             # this bahavior is only for sklearn.base.clone
             self._idx += 1
             if self._idx >= get_gpu_count():
-                self.idx = 0
-        obj = self.__class__(self.idx)
+                self._idx = 0
+        obj = self.__class__(self._idx)
         return obj
 
     def __eq__(self, obj: Any) -> bool:
