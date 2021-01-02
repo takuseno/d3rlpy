@@ -11,31 +11,39 @@ from d3rlpy.augmentation.image import Intensity
 from d3rlpy.augmentation.image import ColorJitter
 
 
-@pytest.mark.parametrize('augmentation_type', [
-    'random_shift', 'cutout', 'horizontal_flip', 'vertical_flip',
-    'random_rotation', 'intensity', 'color_jitter'
-])
+@pytest.mark.parametrize(
+    "augmentation_type",
+    [
+        "random_shift",
+        "cutout",
+        "horizontal_flip",
+        "vertical_flip",
+        "random_rotation",
+        "intensity",
+        "color_jitter",
+    ],
+)
 def test_create_augmentation(augmentation_type):
     augmentation = create_augmentation(augmentation_type)
-    if augmentation_type == 'random_shift':
+    if augmentation_type == "random_shift":
         assert isinstance(augmentation, RandomShift)
-    elif augmentation_type == 'cutout':
+    elif augmentation_type == "cutout":
         assert isinstance(augmentation, Cutout)
-    elif augmentation_type == 'horizontal_flip':
+    elif augmentation_type == "horizontal_flip":
         assert isinstance(augmentation, HorizontalFlip)
-    elif augmentation_type == 'vertical_flip':
+    elif augmentation_type == "vertical_flip":
         assert isinstance(augmentation, VerticalFlip)
-    elif augmentation_type == 'random_rotation':
+    elif augmentation_type == "random_rotation":
         assert isinstance(augmentation, RandomRotation)
-    elif augmentation_type == 'intensity':
+    elif augmentation_type == "intensity":
         assert isinstance(augmentation, Intensity)
-    elif augmentation_type == 'color_jitter':
+    elif augmentation_type == "color_jitter":
         assert isinstance(augmentation, ColorJitter)
 
 
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('observation_shape', [(4, 84, 84)])
-@pytest.mark.parametrize('shift_size', [4])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("observation_shape", [(4, 84, 84)])
+@pytest.mark.parametrize("shift_size", [4])
 def test_random_shift(batch_size, observation_shape, shift_size):
     augmentation = RandomShift(shift_size)
 
@@ -45,13 +53,13 @@ def test_random_shift(batch_size, observation_shape, shift_size):
 
     assert not torch.all(x == y)
 
-    assert augmentation.get_type() == 'random_shift'
-    assert augmentation.get_params()['shift_size'] == shift_size
+    assert augmentation.get_type() == "random_shift"
+    assert augmentation.get_params()["shift_size"] == shift_size
 
 
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('observation_shape', [(4, 4, 4)])
-@pytest.mark.parametrize('probability', [1.0])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("observation_shape", [(4, 4, 4)])
+@pytest.mark.parametrize("probability", [1.0])
 def test_cutout(batch_size, observation_shape, probability):
     augmentation = Cutout(probability)
 
@@ -61,13 +69,13 @@ def test_cutout(batch_size, observation_shape, probability):
 
     assert not torch.all(x == y)
 
-    assert augmentation.get_type() == 'cutout'
-    assert augmentation.get_params()['probability'] == probability
+    assert augmentation.get_type() == "cutout"
+    assert augmentation.get_params()["probability"] == probability
 
 
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('observation_shape', [(4, 4, 4)])
-@pytest.mark.parametrize('probability', [1.0])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("observation_shape", [(4, 4, 4)])
+@pytest.mark.parametrize("probability", [1.0])
 def test_horizontal_flip(batch_size, observation_shape, probability):
     augmentation = HorizontalFlip(probability)
 
@@ -77,13 +85,13 @@ def test_horizontal_flip(batch_size, observation_shape, probability):
 
     assert not torch.all(x == y)
 
-    assert augmentation.get_type() == 'horizontal_flip'
-    assert augmentation.get_params()['probability'] == probability
+    assert augmentation.get_type() == "horizontal_flip"
+    assert augmentation.get_params()["probability"] == probability
 
 
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('observation_shape', [(4, 4, 4)])
-@pytest.mark.parametrize('probability', [1.0])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("observation_shape", [(4, 4, 4)])
+@pytest.mark.parametrize("probability", [1.0])
 def test_vertical_flip(batch_size, observation_shape, probability):
     augmentation = VerticalFlip(probability)
 
@@ -93,13 +101,13 @@ def test_vertical_flip(batch_size, observation_shape, probability):
 
     assert not torch.all(x == y)
 
-    assert augmentation.get_type() == 'vertical_flip'
-    assert augmentation.get_params()['probability'] == probability
+    assert augmentation.get_type() == "vertical_flip"
+    assert augmentation.get_params()["probability"] == probability
 
 
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('observation_shape', [(4, 4, 4)])
-@pytest.mark.parametrize('degree', [5.0])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("observation_shape", [(4, 4, 4)])
+@pytest.mark.parametrize("degree", [5.0])
 def test_random_rotation(batch_size, observation_shape, degree):
     augmentation = RandomRotation(degree)
 
@@ -109,13 +117,13 @@ def test_random_rotation(batch_size, observation_shape, degree):
 
     assert not torch.all(x == y)
 
-    assert augmentation.get_type() == 'random_rotation'
-    assert augmentation.get_params()['degree'] == degree
+    assert augmentation.get_type() == "random_rotation"
+    assert augmentation.get_params()["degree"] == degree
 
 
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('observation_shape', [(4, 4, 4)])
-@pytest.mark.parametrize('scale', [0.1])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("observation_shape", [(4, 4, 4)])
+@pytest.mark.parametrize("scale", [0.1])
 def test_intensity(batch_size, observation_shape, scale):
     augmentation = Intensity(scale)
 
@@ -125,18 +133,19 @@ def test_intensity(batch_size, observation_shape, scale):
 
     assert not torch.all(x == y)
 
-    assert augmentation.get_type() == 'intensity'
-    assert augmentation.get_params()['scale'] == scale
+    assert augmentation.get_type() == "intensity"
+    assert augmentation.get_params()["scale"] == scale
 
 
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('observation_shape', [(3, 4, 4), (9, 4, 4)])
-@pytest.mark.parametrize('hue', [(0.6, 1.4)])
-@pytest.mark.parametrize('saturation', [(0.6, 1.4)])
-@pytest.mark.parametrize('brightness', [(0.6, 1.4)])
-@pytest.mark.parametrize('contrast', [(0.6, 1.4)])
-def test_color_jitter(batch_size, observation_shape, hue, saturation,
-                      brightness, contrast):
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("observation_shape", [(3, 4, 4), (9, 4, 4)])
+@pytest.mark.parametrize("hue", [(0.6, 1.4)])
+@pytest.mark.parametrize("saturation", [(0.6, 1.4)])
+@pytest.mark.parametrize("brightness", [(0.6, 1.4)])
+@pytest.mark.parametrize("contrast", [(0.6, 1.4)])
+def test_color_jitter(
+    batch_size, observation_shape, hue, saturation, brightness, contrast
+):
     augmentation = ColorJitter(brightness, contrast, saturation, hue)
 
     x = torch.rand(batch_size, *observation_shape)
@@ -145,8 +154,8 @@ def test_color_jitter(batch_size, observation_shape, hue, saturation,
 
     assert not torch.all(x == y)
 
-    assert augmentation.get_type() == 'color_jitter'
-    assert augmentation.get_params()['hue'] == hue
-    assert augmentation.get_params()['saturation'] == saturation
-    assert augmentation.get_params()['brightness'] == brightness
-    assert augmentation.get_params()['contrast'] == contrast
+    assert augmentation.get_type() == "color_jitter"
+    assert augmentation.get_params()["hue"] == hue
+    assert augmentation.get_params()["saturation"] == saturation
+    assert augmentation.get_params()["brightness"] == brightness
+    assert augmentation.get_params()["contrast"] == contrast

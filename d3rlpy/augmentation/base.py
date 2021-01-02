@@ -1,16 +1,19 @@
+import torch
+
 from abc import ABCMeta, abstractmethod
+from typing import Any, ClassVar, Dict
 
 
 class Augmentation(metaclass=ABCMeta):
 
-    TYPE = 'none'
+    TYPE: ClassVar[str] = "none"
 
     @abstractmethod
-    def transform(self, x):
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
-    def get_type(self):
-        """ Returns augmentation type.
+    def get_type(self) -> str:
+        """Returns augmentation type.
 
         Returns:
             str: augmentation type.
@@ -19,5 +22,5 @@ class Augmentation(metaclass=ABCMeta):
         return self.TYPE
 
     @abstractmethod
-    def get_params(self, deep=False):
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
         pass

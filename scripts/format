@@ -12,7 +12,9 @@ black -l 80 $BLACK_ARG \
   d3rlpy/encoders.py \
   d3rlpy/dataset.pyi \
   d3rlpy/preprocessing \
+  d3rlpy/augmentation \
   tests/models \
   tests/preprocessing \
+  tests/augmentation \
   tests/test_q_functions.py \
   tests/test_encoders.py

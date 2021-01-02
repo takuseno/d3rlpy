@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 import pytest
 
 from unittest.mock import Mock
@@ -11,15 +11,15 @@ class DummyAugmentation(Augmentation):
         return x
 
     def get_type(self):
-        return 'dummy'
+        return "dummy"
 
     def get_params(self):
-        return {'param': 0.1}
+        return {"param": 0.1}
 
 
-@pytest.mark.parametrize('batch_size', [32])
-@pytest.mark.parametrize('observation_shape', [(4, 84, 84)])
-@pytest.mark.parametrize('n_mean', [1, 2])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("observation_shape", [(4, 84, 84)])
+@pytest.mark.parametrize("n_mean", [1, 2])
 def test_drq_pipeline(batch_size, observation_shape, n_mean):
     aug1 = DummyAugmentation()
     aug1.transform = Mock(side_effect=lambda x: x + 0.1)
@@ -30,22 +30,22 @@ def test_drq_pipeline(batch_size, observation_shape, n_mean):
     aug = DrQPipeline([aug1], n_mean=n_mean)
     aug.append(aug2)
 
-    x = np.random.random((batch_size, *observation_shape))
+    x = torch.rand((batch_size, *observation_shape))
     y = aug.transform(x)
 
     aug1.transform.assert_called_once()
     aug2.transform.assert_called_once()
-    assert np.allclose(y, x + 0.3)
+    assert torch.allclose(y, x + 0.3)
 
-    assert aug.get_augmentation_types() == ['dummy', 'dummy']
-    assert aug.get_augmentation_params() == [{'param': 0.1}, {'param': 0.1}]
-    assert aug.get_params() == {'n_mean': n_mean}
+    assert aug.get_augmentation_types() == ["dummy", "dummy"]
+    assert aug.get_augmentation_params() == [{"param": 0.1}, {"param": 0.1}]
+    assert aug.get_params() == {"n_mean": n_mean}
 
     def func(x):
         return x
 
-    x = np.random.random((batch_size, *observation_shape))
-    y = aug.process(func, {'x': x}, targets=['x'])
-    assert np.allclose(y, x + 0.3)
+    x = torch.rand((batch_size, *observation_shape))
+    y = aug.process(func, {"x": x}, targets=["x"])
+    assert torch.allclose(y, x + 0.3)
     assert aug1.transform.call_count == 1 + n_mean
     assert aug2.transform.call_count == 1 + n_mean

@@ -1,30 +1,36 @@
+import torch
+
 from abc import ABCMeta, abstractmethod
+from typing import Any, Callable, Dict, List, Optional
+from .base import Augmentation
 
 
 class AugmentationPipeline(metaclass=ABCMeta):
-    def __init__(self, augmentations):
-        self.augmentations = augmentations
+    _augmentations: List[Augmentation]
 
-    def append(self, augmentation):
-        """ Append augmentation to pipeline.
+    def __init__(self, augmentations: List[Augmentation]):
+        self._augmentations = augmentations
+
+    def append(self, augmentation: Augmentation) -> None:
+        """Append augmentation to pipeline.
 
         Args:
             augmentation (d3rlpy.augmentation.base.Augmentation): augmentation.
 
         """
-        self.augmentations.append(augmentation)
+        self._augmentations.append(augmentation)
 
-    def get_augmentation_types(self):
-        """ Returns augmentation types.
+    def get_augmentation_types(self) -> List[str]:
+        """Returns augmentation types.
 
         Returns:
             list(str): list of augmentation types.
 
         """
-        return [aug.get_type() for aug in self.augmentations]
+        return [aug.get_type() for aug in self._augmentations]
 
-    def get_augmentation_params(self):
-        """ Returns augmentation parameters.
+    def get_augmentation_params(self) -> List[Dict[str, Any]]:
+        """Returns augmentation parameters.
 
         Args:
             deep (bool): flag to deeply copy objects.
@@ -33,11 +39,11 @@ class AugmentationPipeline(metaclass=ABCMeta):
             list(dict): list of augmentation parameters.
 
         """
-        return [aug.get_params() for aug in self.augmentations]
+        return [aug.get_params() for aug in self._augmentations]
 
     @abstractmethod
-    def get_params(self, deep=False):
-        """ Returns pipeline parameters.
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
+        """Returns pipeline parameters.
 
         Returns:
             dict: piple parameters.
@@ -45,8 +51,8 @@ class AugmentationPipeline(metaclass=ABCMeta):
         """
         pass
 
-    def transform(self, x):
-        """ Returns observation processed by all augmentations.
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        """Returns observation processed by all augmentations.
 
         Args:
             x (torch.Tensor): observation tensor.
@@ -55,17 +61,22 @@ class AugmentationPipeline(metaclass=ABCMeta):
             torch.Tensor: processed observation tensor.
 
         """
-        if not self.augmentations:
+        if not self._augmentations:
             return x
 
-        for augmentation in self.augmentations:
+        for augmentation in self._augmentations:
             x = augmentation.transform(x)
 
         return x
 
     @abstractmethod
-    def process(self, func, inputs, targets):
-        """ Runs a given function while augmenting inputs.
+    def process(
+        self,
+        func: Callable[..., torch.Tensor],
+        inputs: Dict[str, torch.Tensor],
+        targets: List[str],
+    ) -> torch.Tensor:
+        """Runs a given function while augmenting inputs.
 
         Args:
             func (callable): function to compute.
@@ -80,7 +91,7 @@ class AugmentationPipeline(metaclass=ABCMeta):
 
 
 class DrQPipeline(AugmentationPipeline):
-    """ Data-reguralized Q augmentation pipeline.
+    """Data-reguralized Q augmentation pipeline.
 
     References:
         * `Kostrikov et al., Image Augmentation Is All You Need: Regularizing
@@ -98,20 +109,34 @@ class DrQPipeline(AugmentationPipeline):
         n_mean (int): the number of computations to average
 
     """
-    def __init__(self, augmentations=None, n_mean=1):
+
+    _n_mean: int
+
+    def __init__(
+        self,
+        augmentations: Optional[List[Augmentation]] = None,
+        n_mean: int = 1,
+    ):
         if augmentations is None:
             augmentations = []
         super().__init__(augmentations)
-        self.n_mean = n_mean
+        self._n_mean = n_mean
 
-    def get_params(self, deep=False):
-        return {'n_mean': self.n_mean}
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
+        return {"n_mean": self._n_mean}
 
-    def process(self, func, inputs, targets):
-        ret = 0.0
-        for _ in range(self.n_mean):
+    def process(
+        self,
+        func: Callable[..., torch.Tensor],
+        inputs: Dict[str, torch.Tensor],
+        targets: List[str],
+    ) -> torch.Tensor:
+        device = list(inputs.values())[0].device
+        shape = list(inputs.values())[0].shape
+        ret = torch.zeros(shape, dtype=torch.float32, device=device)
+        for _ in range(self._n_mean):
             kwargs = dict(inputs)
             for target in targets:
                 kwargs[target] = self.transform(kwargs[target])
             ret += func(**kwargs)
-        return ret / self.n_mean
+        return ret / self._n_mean

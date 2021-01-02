@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from .base import Augmentation
 from .image import RandomShift
 from .image import Cutout
@@ -14,20 +15,20 @@ from .pipeline import DrQPipeline
 AUGMENTATION_LIST = {}
 
 
-def register_augmentation(cls):
-    """ Registers augmentation class.
+def register_augmentation(cls: Any) -> None:
+    """Registers augmentation class.
 
     Args:
         cls (type): augmentation class inheriting ``Augmentation``.
 
     """
     is_registered = cls.TYPE in AUGMENTATION_LIST
-    assert not is_registered, '%s seems to be already registered' % cls.TYPE
+    assert not is_registered, "%s seems to be already registered" % cls.TYPE
     AUGMENTATION_LIST[cls.TYPE] = cls
 
 
-def create_augmentation(name, **kwargs):
-    """ Returns registered encoder factory object.
+def create_augmentation(name: str, **kwargs: Dict[str, Any]) -> Augmentation:
+    """Returns registered encoder factory object.
 
     Args:
         name (str): regsitered encoder factory type name.
@@ -37,7 +38,7 @@ def create_augmentation(name, **kwargs):
         d3rlpy.encoders.EncoderFactory: encoder factory object.
 
     """
-    assert name in AUGMENTATION_LIST, '%s seems not to be registered.' % name
+    assert name in AUGMENTATION_LIST, "%s seems not to be registered." % name
     augmentation = AUGMENTATION_LIST[name](**kwargs)
     assert isinstance(augmentation, Augmentation)
     return augmentation
