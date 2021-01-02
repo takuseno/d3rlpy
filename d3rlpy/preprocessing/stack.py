@@ -1,8 +1,10 @@
 import numpy as np
 
+from typing import Sequence
+
 
 class StackedObservation:
-    """ StackedObservation class.
+    """StackedObservation class.
 
     This class is used to stack images to handle temporal features.
 
@@ -22,35 +24,46 @@ class StackedObservation:
         stack (numpy.ndarray): stacked observation.
 
     """
-    def __init__(self, observation_shape, n_frames, dtype=np.uint8):
-        self.image_channels = observation_shape[0]
-        image_size = observation_shape[1:]
-        self.n_frames = n_frames
-        self.dtype = dtype
-        stacked_shape = (self.image_channels * n_frames, *image_size)
-        self.stack = np.zeros(stacked_shape, dtype=self.dtype)
 
-    def append(self, image):
-        """ Stack new image.
+    _image_channels: int
+    _n_frames: int
+    _dtype: np.dtype
+    _stack: np.ndarray
+
+    def __init__(
+        self,
+        observation_shape: Sequence[int],
+        n_frames: int,
+        dtype: np.dtype = np.uint8,
+    ):
+        self._image_channels = observation_shape[0]
+        image_size = observation_shape[1:]
+        self._n_frames = n_frames
+        self._dtype = dtype
+        stacked_shape = (self._image_channels * n_frames, *image_size)
+        self._stack = np.zeros(stacked_shape, dtype=self._dtype)
+
+    def append(self, image: np.ndarray) -> np.ndarray:
+        """Stack new image.
 
         Args:
             image (numpy.ndarray): image observation.
 
         """
-        assert image.dtype == self.dtype
-        self.stack = np.roll(self.stack, -self.image_channels, axis=0)
-        self.stack[self.image_channels * (self.n_frames - 1):] = image.copy()
+        assert image.dtype == self._dtype
+        self._stack = np.roll(self._stack, -self._image_channels, axis=0)
+        head_channel = self._image_channels * (self._n_frames - 1)
+        self._stack[head_channel:] = image.copy()
 
-    def eval(self):
-        """ Returns stacked observation.
+    def eval(self) -> np.ndarray:
+        """Returns stacked observation.
 
         Returns:
             numpy.ndarray: stacked observation.
 
         """
-        return self.stack
+        return self._stack
 
-    def clear(self):
-        """ Clear stacked observation by filling 0.
-        """
-        self.stack.fill(0)
+    def clear(self) -> None:
+        """Clear stacked observation by filling 0."""
+        self._stack.fill(0)

@@ -2,26 +2,28 @@ import numpy as np
 import torch
 
 from abc import ABCMeta, abstractmethod
+from typing import Any, ClassVar, Dict, List, Optional
+from ..dataset import Episode, MDPDataset
 
 
 class Scaler(metaclass=ABCMeta):
 
-    TYPE = 'none'
+    TYPE: ClassVar[str] = "none"
 
     @abstractmethod
-    def fit(self, episodes):
+    def fit(self, episodes: List[Episode]) -> None:
         pass
 
     @abstractmethod
-    def transform(self, x):
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
     @abstractmethod
-    def reverse_transform(self, x):
+    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
-    def get_type(self):
-        """ Returns a scaler type.
+    def get_type(self) -> str:
+        """Returns a scaler type.
 
         Returns:
             str: scaler type.
@@ -30,12 +32,12 @@ class Scaler(metaclass=ABCMeta):
         return self.TYPE
 
     @abstractmethod
-    def get_params(self, deep=False):
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
         pass
 
 
 class PixelScaler(Scaler):
-    """ Pixel normalization preprocessing.
+    """Pixel normalization preprocessing.
 
     .. math::
 
@@ -55,13 +57,13 @@ class PixelScaler(Scaler):
 
     """
 
-    TYPE = 'pixel'
+    TYPE: ClassVar[str] = "pixel"
 
-    def fit(self, episodes):
+    def fit(self, episodes: List[Episode]) -> None:
         pass
 
-    def transform(self, x):
-        """ Returns normalized pixel observations.
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        """Returns normalized pixel observations.
 
         Args:
             x (torch.Tensor): pixel observation tensor.
@@ -72,8 +74,8 @@ class PixelScaler(Scaler):
         """
         return x.float() / 255.0
 
-    def reverse_transform(self, x):
-        """ Returns reversely transformed observations.
+    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
+        """Returns reversely transformed observations.
 
         Args:
             x (torch.Tensor): normalized observation tensor.
@@ -84,8 +86,8 @@ class PixelScaler(Scaler):
         """
         return (x * 255.0).long()
 
-    def get_params(self, deep=False):
-        """ Returns scaling parameters.
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
+        """Returns scaling parameters.
 
         PixelScaler returns empty dictiornary.
 
@@ -100,7 +102,7 @@ class PixelScaler(Scaler):
 
 
 class MinMaxScaler(Scaler):
-    r""" Min-Max normalization preprocessing.
+    r"""Min-Max normalization preprocessing.
 
     .. math::
 
@@ -147,25 +149,32 @@ class MinMaxScaler(Scaler):
 
     """
 
-    TYPE = 'min_max'
+    TYPE: ClassVar[str] = "min_max"
+    _minimum: Optional[np.ndarray]
+    _maximum: Optional[np.ndarray]
 
-    def __init__(self, dataset=None, maximum=None, minimum=None):
-        self.minimum = None
-        self.maximum = None
+    def __init__(
+        self,
+        dataset: Optional[MDPDataset] = None,
+        maximum: Optional[np.ndarray] = None,
+        minimum: Optional[np.ndarray] = None,
+    ):
+        self._minimum = None
+        self._maximum = None
         if dataset:
             self.fit(dataset.episodes)
         elif maximum is not None and minimum is not None:
-            self.minimum = np.asarray(minimum)
-            self.maximum = np.asarray(maximum)
+            self._minimum = np.asarray(minimum)
+            self._maximum = np.asarray(maximum)
 
-    def fit(self, episodes):
-        """ Fits minimum and maximum from list of episodes.
+    def fit(self, episodes: List[Episode]) -> None:
+        """Fits minimum and maximum from list of episodes.
 
         Args:
             episodes (list(d3rlpy.dataset.Episode)): list of episodes.
 
         """
-        if self.minimum is not None and self.maximum is not None:
+        if self._minimum is not None and self._maximum is not None:
             return
 
         for i, e in enumerate(episodes):
@@ -177,11 +186,11 @@ class MinMaxScaler(Scaler):
             minimum = np.minimum(minimum, observations.min(axis=0))
             maximum = np.maximum(maximum, observations.max(axis=0))
 
-        self.minimum = minimum.reshape((1, ) + minimum.shape)
-        self.maximum = maximum.reshape((1, ) + maximum.shape)
+        self._minimum = minimum.reshape((1,) + minimum.shape)
+        self._maximum = maximum.reshape((1,) + maximum.shape)
 
-    def transform(self, x):
-        """ Returns normalized observation tensor.
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        """Returns normalized observation tensor.
 
         Args:
             x (torch.Tensor): observation tensor.
@@ -190,17 +199,17 @@ class MinMaxScaler(Scaler):
             torch.Tensor: normalized observation tensor.
 
         """
-        assert self.minimum is not None and self.maximum is not None
-        minimum = torch.tensor(self.minimum,
-                               dtype=torch.float32,
-                               device=x.device)
-        maximum = torch.tensor(self.maximum,
-                               dtype=torch.float32,
-                               device=x.device)
+        assert self._minimum is not None and self._maximum is not None
+        minimum = torch.tensor(
+            self._minimum, dtype=torch.float32, device=x.device
+        )
+        maximum = torch.tensor(
+            self._maximum, dtype=torch.float32, device=x.device
+        )
         return (x - minimum) / (maximum - minimum)
 
-    def reverse_transform(self, x):
-        """ Returns reversely transformed observations.
+    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
+        """Returns reversely transformed observations.
 
         Args:
             x (torch.Tensor): normalized observation tensor.
@@ -209,17 +218,17 @@ class MinMaxScaler(Scaler):
             torch.Tensor: unnormalized observation tensor.
 
         """
-        assert self.minimum is not None and self.maximum is not None
-        minimum = torch.tensor(self.minimum,
-                               dtype=torch.float32,
-                               device=x.device)
-        maximum = torch.tensor(self.maximum,
-                               dtype=torch.float32,
-                               device=x.device)
+        assert self._minimum is not None and self._maximum is not None
+        minimum = torch.tensor(
+            self._minimum, dtype=torch.float32, device=x.device
+        )
+        maximum = torch.tensor(
+            self._maximum, dtype=torch.float32, device=x.device
+        )
         return ((maximum - minimum) * x) + minimum
 
-    def get_params(self, deep=False):
-        """ Returns scaling parameters.
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
+        """Returns scaling parameters.
 
         Args:
             deep (bool): flag to deeply copy objects.
@@ -228,21 +237,21 @@ class MinMaxScaler(Scaler):
             dict: `maximum` and `minimum`.
 
         """
-        if self.maximum is not None:
-            maximum = self.maximum.copy() if deep else self.maximum
+        if self._maximum is not None:
+            maximum = self._maximum.copy() if deep else self._maximum
         else:
             maximum = None
 
-        if self.minimum is not None:
-            minimum = self.minimum.copy() if deep else self.minimum
+        if self._minimum is not None:
+            minimum = self._minimum.copy() if deep else self._minimum
         else:
             minimum = None
 
-        return {'maximum': maximum, 'minimum': minimum}
+        return {"maximum": maximum, "minimum": minimum}
 
 
 class StandardScaler(Scaler):
-    r""" Standardization preprocessing.
+    r"""Standardization preprocessing.
 
     .. math::
 
@@ -289,29 +298,36 @@ class StandardScaler(Scaler):
 
     """
 
-    TYPE = 'standard'
+    TYPE = "standard"
+    _mean: Optional[np.ndarray]
+    _std: Optional[np.ndarray]
 
-    def __init__(self, dataset=None, mean=None, std=None):
-        self.mean = None
-        self.std = None
+    def __init__(
+        self,
+        dataset: Optional[MDPDataset] = None,
+        mean: Optional[np.ndarray] = None,
+        std: Optional[np.ndarray] = None,
+    ):
+        self._mean = None
+        self._std = None
         if dataset:
             self.fit(dataset.episodes)
         elif mean is not None and std is not None:
-            self.mean = np.asarray(mean)
-            self.std = np.asarray(std)
+            self._mean = np.asarray(mean)
+            self._std = np.asarray(std)
 
-    def fit(self, episodes):
-        """ Fits mean and standard deviation from list of episodes.
+    def fit(self, episodes: List[Episode]) -> None:
+        """Fits mean and standard deviation from list of episodes.
 
         Args:
             episodes (list(d3rlpy.dataset.Episode)): list of episodes.
 
         """
-        if self.mean is not None and self.std is not None:
+        if self._mean is not None and self._std is not None:
             return
 
         # compute mean
-        total_sum = np.zeros(episodes[0].observation_shape)
+        total_sum = np.zeros(episodes[0].get_observation_shape())
         total_count = 0
         for e in episodes:
             observations = np.asarray(e.observations)
@@ -320,18 +336,18 @@ class StandardScaler(Scaler):
         mean = total_sum / total_count
 
         # compute stdandard deviation
-        total_sqsum = np.zeros(episodes[0].observation_shape)
-        expanded_mean = mean.reshape((1, ) + mean.shape)
+        total_sqsum = np.zeros(episodes[0].get_observation_shape())
+        expanded_mean = mean.reshape((1,) + mean.shape)
         for e in episodes:
             observations = np.asarray(e.observations)
-            total_sqsum += ((observations - expanded_mean)**2).sum(axis=0)
+            total_sqsum += ((observations - expanded_mean) ** 2).sum(axis=0)
         std = np.sqrt(total_sqsum / total_count)
 
-        self.mean = mean.reshape((1, ) + mean.shape)
-        self.std = std.reshape((1, ) + std.shape)
+        self._mean = mean.reshape((1,) + mean.shape)
+        self._std = std.reshape((1,) + std.shape)
 
-    def transform(self, x):
-        """ Returns standardized observation tensor.
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        """Returns standardized observation tensor.
 
         Args:
             x (torch.Tensor): observation tensor.
@@ -340,13 +356,13 @@ class StandardScaler(Scaler):
             torch.Tensor: standardized observation tensor.
 
         """
-        assert self.mean is not None and self.std is not None
-        mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
-        std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
+        assert self._mean is not None and self._std is not None
+        mean = torch.tensor(self._mean, dtype=torch.float32, device=x.device)
+        std = torch.tensor(self._std, dtype=torch.float32, device=x.device)
         return (x - mean) / std
 
-    def reverse_transform(self, x):
-        """ Returns reversely transformed observation tensor.
+    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
+        """Returns reversely transformed observation tensor.
 
         Args:
             x (torch.Tensor): standardized observation tensor.
@@ -355,13 +371,13 @@ class StandardScaler(Scaler):
             torch.Tensor: unstandardized observation tensor.
 
         """
-        assert self.mean is not None and self.std is not None
-        mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
-        std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
+        assert self._mean is not None and self._std is not None
+        mean = torch.tensor(self._mean, dtype=torch.float32, device=x.device)
+        std = torch.tensor(self._std, dtype=torch.float32, device=x.device)
         return (std * x) + mean
 
-    def get_params(self, deep=False):
-        """ Returns scaling parameters.
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
+        """Returns scaling parameters.
 
         Args:
             deep (bool): flag to deeply copy objects.
@@ -370,36 +386,36 @@ class StandardScaler(Scaler):
             dict: `mean` and `std`.
 
         """
-        if self.mean is not None:
-            mean = self.mean.copy() if deep else self.mean
+        if self._mean is not None:
+            mean = self._mean.copy() if deep else self._mean
         else:
             mean = None
 
-        if self.std is not None:
-            std = self.std.copy() if deep else self.std
+        if self._std is not None:
+            std = self._std.copy() if deep else self._std
         else:
             std = None
 
-        return {'mean': mean, 'std': std}
+        return {"mean": mean, "std": std}
 
 
 SCALER_LIST = {}
 
 
-def register_scaler(cls):
-    """ Registers scaler class.
+def register_scaler(cls: Any) -> None:
+    """Registers scaler class.
 
     Args:
         cls (type): scaler class inheriting ``Scaler``.
 
     """
     is_registered = cls.TYPE in SCALER_LIST
-    assert not is_registered, '%s seems to be already registered' % cls.TYPE
+    assert not is_registered, "%s seems to be already registered" % cls.TYPE
     SCALER_LIST[cls.TYPE] = cls
 
 
-def create_scaler(name, **kwargs):
-    """ Returns registered scaler object.
+def create_scaler(name: str, **kwargs: Dict[str, Any]) -> Scaler:
+    """Returns registered scaler object.
 
     Args:
         name (str): regsitered scaler type name.
@@ -409,7 +425,7 @@ def create_scaler(name, **kwargs):
         d3rlpy.preprocessing.scalers: scaler object.
 
     """
-    assert name in SCALER_LIST, '%s seems not to be registered.' % name
+    assert name in SCALER_LIST, "%s seems not to be registered." % name
     scaler = SCALER_LIST[name](**kwargs)
     assert isinstance(scaler, Scaler)
     return scaler
