@@ -1,14 +1,22 @@
+from typing import Any, List, Optional, Sequence
 from .base import AlgoBase
 from .torch.ddpg_impl import DDPGImpl
-from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder
-from ..argument_utils import check_use_gpu
-from ..argument_utils import check_q_func
-from ..argument_utils import check_augmentation
+from ..augmentation import AugmentationPipeline
+from ..dataset import TransitionMiniBatch
+from ..encoders import EncoderFactory
+from ..optimizers import OptimizerFactory, AdamFactory
+from ..dynamics.base import DynamicsBase
+from ..q_functions import QFunctionFactory
+from ..gpu import Device
+from ..argument_utils import check_encoder, EncoderArg
+from ..argument_utils import check_use_gpu, UseGPUArg
+from ..argument_utils import check_q_func, QFuncArg
+from ..argument_utils import check_augmentation, AugmentationArg
+from ..argument_utils import ScalerArg
 
 
 class DDPG(AlgoBase):
-    r""" Deep Deterministic Policy Gradients algorithm.
+    r"""Deep Deterministic Policy Gradients algorithm.
 
     DDPG is an actor-critic algorithm that trains a Q function parametrized
     with :math:`\theta` and a policy function parametrized with :math:`\phi`.
@@ -101,86 +109,114 @@ class DDPG(AlgoBase):
         eval_results_ (dict): evaluation results.
 
     """
-    def __init__(self,
-                 *,
-                 actor_learning_rate=3e-4,
-                 critic_learning_rate=3e-4,
-                 actor_optim_factory=AdamFactory(),
-                 critic_optim_factory=AdamFactory(),
-                 actor_encoder_factory='default',
-                 critic_encoder_factory='default',
-                 q_func_factory='mean',
-                 batch_size=100,
-                 n_frames=1,
-                 n_steps=1,
-                 gamma=0.99,
-                 tau=0.005,
-                 n_critics=1,
-                 bootstrap=False,
-                 share_encoder=False,
-                 reguralizing_rate=1e-10,
-                 use_gpu=False,
-                 scaler=None,
-                 augmentation=None,
-                 encoder_params={},
-                 dynamics=None,
-                 impl=None,
-                 **kwargs):
-        super().__init__(batch_size=batch_size,
-                         n_frames=n_frames,
-                         n_steps=n_steps,
-                         gamma=gamma,
-                         scaler=scaler,
-                         dynamics=dynamics)
-        self.actor_learning_rate = actor_learning_rate
-        self.critic_learning_rate = critic_learning_rate
-        self.actor_optim_factory = actor_optim_factory
-        self.critic_optim_factory = critic_optim_factory
-        self.actor_encoder_factory = check_encoder(actor_encoder_factory)
-        self.critic_encoder_factory = check_encoder(critic_encoder_factory)
-        self.q_func_factory = check_q_func(q_func_factory)
-        self.tau = tau
-        self.n_critics = n_critics
-        self.bootstrap = bootstrap
-        self.share_encoder = share_encoder
-        self.reguralizing_rate = reguralizing_rate
-        self.augmentation = check_augmentation(augmentation)
-        self.encoder_params = encoder_params
-        self.use_gpu = check_use_gpu(use_gpu)
-        self.impl = impl
 
-    def create_impl(self, observation_shape, action_size):
-        self.impl = DDPGImpl(
+    _actor_learning_rate: float
+    _critic_learning_rate: float
+    _actor_optim_factory: OptimizerFactory
+    _critic_optim_factory: OptimizerFactory
+    _actor_encoder_factory: EncoderFactory
+    _critic_encoder_factory: EncoderFactory
+    _q_func_factory: QFunctionFactory
+    _tau: float
+    _n_critics: int
+    _bootstrap: bool
+    _share_encoder: bool
+    _reguralizing_rate: float
+    _augmentation: AugmentationPipeline
+    _use_gpu: Optional[Device]
+    _impl: Optional[DDPGImpl]
+
+    def __init__(
+        self,
+        *,
+        actor_learning_rate: float = 3e-4,
+        critic_learning_rate: float = 3e-4,
+        actor_optim_factory: OptimizerFactory = AdamFactory(),
+        critic_optim_factory: OptimizerFactory = AdamFactory(),
+        actor_encoder_factory: EncoderArg = "default",
+        critic_encoder_factory: EncoderArg = "default",
+        q_func_factory: QFuncArg = "mean",
+        batch_size: int = 100,
+        n_frames: int = 1,
+        n_steps: int = 1,
+        gamma: float = 0.99,
+        tau: float = 0.005,
+        n_critics: int = 1,
+        bootstrap: bool = False,
+        share_encoder: bool = False,
+        reguralizing_rate: float = 1e-10,
+        use_gpu: UseGPUArg = False,
+        scaler: ScalerArg = None,
+        augmentation: AugmentationArg = None,
+        dynamics: Optional[DynamicsBase] = None,
+        impl: Optional[DDPGImpl] = None,
+        **kwargs: Any
+    ):
+        super().__init__(
+            batch_size=batch_size,
+            n_frames=n_frames,
+            n_steps=n_steps,
+            gamma=gamma,
+            scaler=scaler,
+            dynamics=dynamics,
+        )
+        self._actor_learning_rate = actor_learning_rate
+        self._critic_learning_rate = critic_learning_rate
+        self._actor_optim_factory = actor_optim_factory
+        self._critic_optim_factory = critic_optim_factory
+        self._actor_encoder_factory = check_encoder(actor_encoder_factory)
+        self._critic_encoder_factory = check_encoder(critic_encoder_factory)
+        self._q_func_factory = check_q_func(q_func_factory)
+        self._tau = tau
+        self._n_critics = n_critics
+        self._bootstrap = bootstrap
+        self._share_encoder = share_encoder
+        self._reguralizing_rate = reguralizing_rate
+        self._augmentation = check_augmentation(augmentation)
+        self._use_gpu = check_use_gpu(use_gpu)
+        self._impl = impl
+
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        self._impl = DDPGImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self.actor_learning_rate,
-            critic_learning_rate=self.critic_learning_rate,
-            actor_optim_factory=self.actor_optim_factory,
-            critic_optim_factory=self.critic_optim_factory,
-            actor_encoder_factory=self.actor_encoder_factory,
-            critic_encoder_factory=self.critic_encoder_factory,
-            q_func_factory=self.q_func_factory,
-            gamma=self.gamma,
-            tau=self.tau,
-            n_critics=self.n_critics,
-            bootstrap=self.bootstrap,
-            share_encoder=self.share_encoder,
-            reguralizing_rate=self.reguralizing_rate,
-            use_gpu=self.use_gpu,
-            scaler=self.scaler,
-            augmentation=self.augmentation)
-        self.impl.build()
+            actor_learning_rate=self._actor_learning_rate,
+            critic_learning_rate=self._critic_learning_rate,
+            actor_optim_factory=self._actor_optim_factory,
+            critic_optim_factory=self._critic_optim_factory,
+            actor_encoder_factory=self._actor_encoder_factory,
+            critic_encoder_factory=self._critic_encoder_factory,
+            q_func_factory=self._q_func_factory,
+            gamma=self._gamma,
+            tau=self._tau,
+            n_critics=self._n_critics,
+            bootstrap=self._bootstrap,
+            share_encoder=self._share_encoder,
+            reguralizing_rate=self._reguralizing_rate,
+            use_gpu=self._use_gpu,
+            scaler=self._scaler,
+            augmentation=self._augmentation,
+        )
+        self._impl.build()
 
-    def update(self, epoch, itr, batch):
-        critic_loss = self.impl.update_critic(batch.observations,
-                                              batch.actions,
-                                              batch.next_rewards,
-                                              batch.next_observations,
-                                              batch.terminals, batch.n_steps)
-        actor_loss = self.impl.update_actor(batch.observations)
-        self.impl.update_critic_target()
-        self.impl.update_actor_target()
-        return critic_loss, actor_loss
+    def update(
+        self, epoch: int, itr: int, batch: TransitionMiniBatch
+    ) -> List[float]:
+        assert self._impl is not None
+        critic_loss = self._impl.update_critic(
+            batch.observations,
+            batch.actions,
+            batch.next_rewards,
+            batch.next_observations,
+            batch.terminals,
+            batch.n_steps,
+        )
+        actor_loss = self._impl.update_actor(batch.observations)
+        self._impl.update_critic_target()
+        self._impl.update_actor_target()
+        return [critic_loss, actor_loss]
 
-    def _get_loss_labels(self):
-        return ['critic_loss', 'actor_loss']
+    def _get_loss_labels(self) -> List[str]:
+        return ["critic_loss", "actor_loss"]

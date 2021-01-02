@@ -1,6 +1,7 @@
 import numpy as np
 
 from typing import Any, Dict, List, Optional, Sequence, Union
+from typing_extensions import Protocol
 
 class Transition:
     def __init__(
@@ -63,6 +64,8 @@ class TransitionMiniBatch:
     def next_actions(self) -> np.ndarray: ...
     @property
     def next_rewards(self) -> np.ndarray: ...
+    @property
+    def transitions(self) -> List[Transition]: ...
     @property
     def terminals(self) -> np.ndarray: ...
     @property
@@ -132,3 +135,14 @@ class MDPDataset:
     @classmethod
     def load(cls, fname: str) -> MDPDataset: ...
     def build_episodes(self) -> None: ...
+
+class _ValueProtocol(Protocol):
+    def predict_value(self, x: Union[np.ndarray, list]) -> np.ndarray: ...
+
+def compute_lambda_return(
+    transition: Transition,
+    algo: _ValueProtocol,
+    gamma: float,
+    lam: float,
+    n_frames: int,
+) -> float: ...

@@ -21,6 +21,7 @@ black -l 80 $BLACK_ARG \
   d3rlpy/context.py \
   d3rlpy/argument_utils.py \
   d3rlpy/online \
+  d3rlpy/algos/*.py \
   tests/models \
   tests/preprocessing \
   tests/augmentation \

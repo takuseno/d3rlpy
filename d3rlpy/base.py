@@ -19,7 +19,7 @@ from .gpu import Device
 from .optimizers import OptimizerFactory
 from .encoders import EncoderFactory, create_encoder_factory
 from .q_functions import QFunctionFactory, create_q_func_factory
-from .argument_utils import check_scaler
+from .argument_utils import check_scaler, ScalerArg
 from .online.utility import get_action_size_from_env
 
 
@@ -125,7 +125,7 @@ class LearnableBase:
         n_frames: int,
         n_steps: int,
         gamma: float,
-        scaler: Optional[Union[Scaler, str]],
+        scaler: ScalerArg,
     ):
         self._batch_size = batch_size
         self._n_frames = n_frames

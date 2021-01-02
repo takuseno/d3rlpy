@@ -1,14 +1,22 @@
+from typing import Any, List, Optional, Sequence
 from .base import AlgoBase
 from .torch.bear_impl import BEARImpl
-from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder
-from ..argument_utils import check_use_gpu
-from ..argument_utils import check_augmentation
-from ..argument_utils import check_q_func
+from ..dataset import TransitionMiniBatch
+from ..optimizers import OptimizerFactory, AdamFactory
+from ..encoders import EncoderFactory
+from ..dynamics.base import DynamicsBase
+from ..q_functions import QFunctionFactory
+from ..gpu import Device
+from ..augmentation import AugmentationPipeline
+from ..argument_utils import check_encoder, EncoderArg
+from ..argument_utils import check_use_gpu, UseGPUArg
+from ..argument_utils import check_augmentation, AugmentationArg
+from ..argument_utils import check_q_func, QFuncArg
+from ..argument_utils import ScalerArg
 
 
 class BEAR(AlgoBase):
-    r""" Bootstrapping Error Accumulation Reduction algorithm.
+    r"""Bootstrapping Error Accumulation Reduction algorithm.
 
     BEAR is a SAC-based data-driven deep reinforcement learning algorithm.
 
@@ -158,127 +166,175 @@ class BEAR(AlgoBase):
         eval_results_ (dict): evaluation results.
 
     """
-    def __init__(self,
-                 *,
-                 actor_learning_rate=3e-4,
-                 critic_learning_rate=3e-4,
-                 imitator_learning_rate=1e-3,
-                 temp_learning_rate=3e-4,
-                 alpha_learning_rate=1e-3,
-                 actor_optim_factory=AdamFactory(),
-                 critic_optim_factory=AdamFactory(),
-                 imitator_optim_factory=AdamFactory(),
-                 temp_optim_factory=AdamFactory(),
-                 alpha_optim_factory=AdamFactory(),
-                 actor_encoder_factory='default',
-                 critic_encoder_factory='default',
-                 imitator_encoder_factory='default',
-                 q_func_factory='mean',
-                 batch_size=100,
-                 n_frames=1,
-                 n_steps=1,
-                 gamma=0.99,
-                 tau=0.005,
-                 n_critics=2,
-                 bootstrap=False,
-                 share_encoder=False,
-                 update_actor_interval=1,
-                 initial_temperature=1.0,
-                 initial_alpha=1.0,
-                 alpha_threshold=0.05,
-                 lam=0.75,
-                 n_action_samples=4,
-                 mmd_sigma=20.0,
-                 rl_start_epoch=0,
-                 use_gpu=False,
-                 scaler=None,
-                 augmentation=None,
-                 dynamics=None,
-                 impl=None,
-                 **kwargs):
-        super().__init__(batch_size=batch_size,
-                         n_frames=n_frames,
-                         n_steps=n_steps,
-                         gamma=gamma,
-                         scaler=scaler,
-                         dynamics=dynamics)
-        self.actor_learning_rate = actor_learning_rate
-        self.critic_learning_rate = critic_learning_rate
-        self.imitator_learning_rate = imitator_learning_rate
-        self.temp_learning_rate = temp_learning_rate
-        self.alpha_learning_rate = alpha_learning_rate
-        self.actor_optim_factory = actor_optim_factory
-        self.critic_optim_factory = critic_optim_factory
-        self.imitator_optim_factory = imitator_optim_factory
-        self.temp_optim_factory = temp_optim_factory
-        self.alpha_optim_factory = alpha_optim_factory
-        self.actor_encoder_factory = check_encoder(actor_encoder_factory)
-        self.critic_encoder_factory = check_encoder(critic_encoder_factory)
-        self.imitator_encoder_factory = check_encoder(imitator_encoder_factory)
-        self.q_func_factory = check_q_func(q_func_factory)
-        self.tau = tau
-        self.n_critics = n_critics
-        self.bootstrap = bootstrap
-        self.share_encoder = share_encoder
-        self.update_actor_interval = update_actor_interval
-        self.initial_temperature = initial_temperature
-        self.initial_alpha = initial_alpha
-        self.alpha_threshold = alpha_threshold
-        self.lam = lam
-        self.n_action_samples = n_action_samples
-        self.mmd_sigma = mmd_sigma
-        self.rl_start_epoch = rl_start_epoch
-        self.augmentation = check_augmentation(augmentation)
-        self.use_gpu = check_use_gpu(use_gpu)
-        self.impl = impl
 
-    def create_impl(self, observation_shape, action_size):
-        self.impl = BEARImpl(
+    _actor_learning_rate: float
+    _critic_learning_rate: float
+    _imitator_learning_rate: float
+    _temp_learning_rate: float
+    _alpha_learning_rate: float
+    _actor_optim_factory: OptimizerFactory
+    _critic_optim_factory: OptimizerFactory
+    _imitator_optim_factory: OptimizerFactory
+    _temp_optim_factory: OptimizerFactory
+    _alpha_optim_factory: OptimizerFactory
+    _actor_encoder_factory: EncoderFactory
+    _critic_encoder_factory: EncoderFactory
+    _imitator_encoder_factory: EncoderFactory
+    _q_func_factory: QFunctionFactory
+    _tau: float
+    _n_critics: int
+    _bootstrap: bool
+    _share_encoder: bool
+    _update_actor_interval: int
+    _initial_temperature: float
+    _initial_alpha: float
+    _alpha_threshold: float
+    _lam: float
+    _n_action_samples: int
+    _mmd_sigma: float
+    _rl_start_epoch: int
+    _augmentation: AugmentationPipeline
+    _use_gpu: Optional[Device]
+    _impl: Optional[BEARImpl]
+
+    def __init__(
+        self,
+        *,
+        actor_learning_rate: float = 3e-4,
+        critic_learning_rate: float = 3e-4,
+        imitator_learning_rate: float = 1e-3,
+        temp_learning_rate: float = 3e-4,
+        alpha_learning_rate: float = 1e-3,
+        actor_optim_factory: OptimizerFactory = AdamFactory(),
+        critic_optim_factory: OptimizerFactory = AdamFactory(),
+        imitator_optim_factory: OptimizerFactory = AdamFactory(),
+        temp_optim_factory: OptimizerFactory = AdamFactory(),
+        alpha_optim_factory: OptimizerFactory = AdamFactory(),
+        actor_encoder_factory: EncoderArg = "default",
+        critic_encoder_factory: EncoderArg = "default",
+        imitator_encoder_factory: EncoderArg = "default",
+        q_func_factory: QFuncArg = "mean",
+        batch_size: int = 100,
+        n_frames: int = 1,
+        n_steps: int = 1,
+        gamma: float = 0.99,
+        tau: float = 0.005,
+        n_critics: int = 2,
+        bootstrap: bool = False,
+        share_encoder: bool = False,
+        update_actor_interval: int = 1,
+        initial_temperature: float = 1.0,
+        initial_alpha: float = 1.0,
+        alpha_threshold: float = 0.05,
+        lam: float = 0.75,
+        n_action_samples: int = 4,
+        mmd_sigma: float = 20.0,
+        rl_start_epoch: int = 0,
+        use_gpu: UseGPUArg = False,
+        scaler: ScalerArg = None,
+        augmentation: AugmentationArg = None,
+        dynamics: Optional[DynamicsBase] = None,
+        impl: Optional[BEARImpl] = None,
+        **kwargs: Any
+    ):
+        super().__init__(
+            batch_size=batch_size,
+            n_frames=n_frames,
+            n_steps=n_steps,
+            gamma=gamma,
+            scaler=scaler,
+            dynamics=dynamics,
+        )
+        self._actor_learning_rate = actor_learning_rate
+        self._critic_learning_rate = critic_learning_rate
+        self._imitator_learning_rate = imitator_learning_rate
+        self._temp_learning_rate = temp_learning_rate
+        self._alpha_learning_rate = alpha_learning_rate
+        self._actor_optim_factory = actor_optim_factory
+        self._critic_optim_factory = critic_optim_factory
+        self._imitator_optim_factory = imitator_optim_factory
+        self._temp_optim_factory = temp_optim_factory
+        self._alpha_optim_factory = alpha_optim_factory
+        self._actor_encoder_factory = check_encoder(actor_encoder_factory)
+        self._critic_encoder_factory = check_encoder(critic_encoder_factory)
+        self._imitator_encoder_factory = check_encoder(imitator_encoder_factory)
+        self._q_func_factory = check_q_func(q_func_factory)
+        self._tau = tau
+        self._n_critics = n_critics
+        self._bootstrap = bootstrap
+        self._share_encoder = share_encoder
+        self._update_actor_interval = update_actor_interval
+        self._initial_temperature = initial_temperature
+        self._initial_alpha = initial_alpha
+        self._alpha_threshold = alpha_threshold
+        self._lam = lam
+        self._n_action_samples = n_action_samples
+        self._mmd_sigma = mmd_sigma
+        self._rl_start_epoch = rl_start_epoch
+        self._augmentation = check_augmentation(augmentation)
+        self._use_gpu = check_use_gpu(use_gpu)
+        self._impl = impl
+
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        self._impl = BEARImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self.actor_learning_rate,
-            critic_learning_rate=self.critic_learning_rate,
-            imitator_learning_rate=self.imitator_learning_rate,
-            temp_learning_rate=self.temp_learning_rate,
-            alpha_learning_rate=self.alpha_learning_rate,
-            actor_optim_factory=self.actor_optim_factory,
-            critic_optim_factory=self.critic_optim_factory,
-            imitator_optim_factory=self.imitator_optim_factory,
-            temp_optim_factory=self.temp_optim_factory,
-            alpha_optim_factory=self.alpha_optim_factory,
-            actor_encoder_factory=self.actor_encoder_factory,
-            critic_encoder_factory=self.critic_encoder_factory,
-            imitator_encoder_factory=self.imitator_encoder_factory,
-            q_func_factory=self.q_func_factory,
-            gamma=self.gamma,
-            tau=self.tau,
-            n_critics=self.n_critics,
-            bootstrap=self.bootstrap,
-            share_encoder=self.share_encoder,
-            initial_temperature=self.initial_temperature,
-            initial_alpha=self.initial_alpha,
-            alpha_threshold=self.alpha_threshold,
-            lam=self.lam,
-            n_action_samples=self.n_action_samples,
-            mmd_sigma=self.mmd_sigma,
-            use_gpu=self.use_gpu,
-            scaler=self.scaler,
-            augmentation=self.augmentation)
-        self.impl.build()
+            actor_learning_rate=self._actor_learning_rate,
+            critic_learning_rate=self._critic_learning_rate,
+            imitator_learning_rate=self._imitator_learning_rate,
+            temp_learning_rate=self._temp_learning_rate,
+            alpha_learning_rate=self._alpha_learning_rate,
+            actor_optim_factory=self._actor_optim_factory,
+            critic_optim_factory=self._critic_optim_factory,
+            imitator_optim_factory=self._imitator_optim_factory,
+            temp_optim_factory=self._temp_optim_factory,
+            alpha_optim_factory=self._alpha_optim_factory,
+            actor_encoder_factory=self._actor_encoder_factory,
+            critic_encoder_factory=self._critic_encoder_factory,
+            imitator_encoder_factory=self._imitator_encoder_factory,
+            q_func_factory=self._q_func_factory,
+            gamma=self._gamma,
+            tau=self._tau,
+            n_critics=self._n_critics,
+            bootstrap=self._bootstrap,
+            share_encoder=self._share_encoder,
+            initial_temperature=self._initial_temperature,
+            initial_alpha=self._initial_alpha,
+            alpha_threshold=self._alpha_threshold,
+            lam=self._lam,
+            n_action_samples=self._n_action_samples,
+            mmd_sigma=self._mmd_sigma,
+            use_gpu=self._use_gpu,
+            scaler=self._scaler,
+            augmentation=self._augmentation,
+        )
+        self._impl.build()
 
-    def update(self, epoch, total_step, batch):
-        imitator_loss = self.impl.update_imitator(batch.observations,
-                                                  batch.actions)
-        if epoch >= self.rl_start_epoch:
-            critic_loss = self.impl.update_critic(
-                batch.observations, batch.actions, batch.next_rewards,
-                batch.next_observations, batch.terminals, batch.n_steps)
-            if total_step % self.update_actor_interval == 0:
-                actor_loss = self.impl.update_actor(batch.observations)
-                temp_loss, temp = self.impl.update_temp(batch.observations)
-                alpha_loss, alpha = self.impl.update_alpha(batch.observations)
-                self.impl.update_actor_target()
-                self.impl.update_critic_target()
+    def update(
+        self, epoch: int, total_step: int, batch: TransitionMiniBatch
+    ) -> List[float]:
+        assert self._impl is not None
+
+        imitator_loss = self._impl.update_imitator(
+            batch.observations, batch.actions
+        )
+        if epoch >= self._rl_start_epoch:
+            critic_loss = self._impl.update_critic(
+                batch.observations,
+                batch.actions,
+                batch.next_rewards,
+                batch.next_observations,
+                batch.terminals,
+                batch.n_steps,
+            )
+            if total_step % self._update_actor_interval == 0:
+                actor_loss = self._impl.update_actor(batch.observations)
+                temp_loss, temp = self._impl.update_temp(batch.observations)
+                alpha_loss, alpha = self._impl.update_alpha(batch.observations)
+                self._impl.update_actor_target()
+                self._impl.update_critic_target()
             else:
                 actor_loss = None
                 temp_loss = None
@@ -292,11 +348,23 @@ class BEAR(AlgoBase):
             temp = None
             alpha_loss = None
             alpha = None
-        return critic_loss, actor_loss, imitator_loss, temp_loss, temp,\
-               alpha_loss, alpha
-
-    def _get_loss_labels(self):
         return [
-            'critic_loss', 'actor_loss', 'imitator_loss', 'temp_loss', 'temp',
-            'alpha_loss', 'alpha'
+            critic_loss,
+            actor_loss,
+            imitator_loss,
+            temp_loss,
+            temp,
+            alpha_loss,
+            alpha,
+        ]
+
+    def _get_loss_labels(self) -> List[str]:
+        return [
+            "critic_loss",
+            "actor_loss",
+            "imitator_loss",
+            "temp_loss",
+            "temp",
+            "alpha_loss",
+            "alpha",
         ]

@@ -1,14 +1,22 @@
+from typing import Any, List, Optional, Sequence
 from .base import AlgoBase
 from .torch.dqn_impl import DQNImpl, DoubleDQNImpl
-from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder
-from ..argument_utils import check_use_gpu
-from ..argument_utils import check_q_func
-from ..argument_utils import check_augmentation
+from ..augmentation import AugmentationPipeline
+from ..dataset import TransitionMiniBatch
+from ..optimizers import OptimizerFactory, AdamFactory
+from ..dynamics.base import DynamicsBase
+from ..encoders import EncoderFactory
+from ..q_functions import QFunctionFactory
+from ..gpu import Device
+from ..argument_utils import ScalerArg
+from ..argument_utils import check_encoder, EncoderArg
+from ..argument_utils import check_use_gpu, UseGPUArg
+from ..argument_utils import check_q_func, QFuncArg
+from ..argument_utils import check_augmentation, AugmentationArg
 
 
 class DQN(AlgoBase):
-    r""" Deep Q-Network algorithm.
+    r"""Deep Q-Network algorithm.
 
     .. math::
 
@@ -71,74 +79,103 @@ class DQN(AlgoBase):
         eval_results_ (dict): evaluation results.
 
     """
-    def __init__(self,
-                 *,
-                 learning_rate=6.25e-5,
-                 optim_factory=AdamFactory(),
-                 encoder_factory='default',
-                 q_func_factory='mean',
-                 batch_size=32,
-                 n_frames=1,
-                 n_steps=1,
-                 gamma=0.99,
-                 n_critics=1,
-                 bootstrap=False,
-                 share_encoder=False,
-                 target_update_interval=8e3,
-                 use_gpu=False,
-                 scaler=None,
-                 augmentation=None,
-                 dynamics=None,
-                 impl=None,
-                 **kwargs):
-        super().__init__(batch_size=batch_size,
-                         n_frames=n_frames,
-                         n_steps=n_steps,
-                         gamma=gamma,
-                         scaler=scaler,
-                         dynamics=dynamics)
-        self.learning_rate = learning_rate
-        self.optim_factory = optim_factory
-        self.encoder_factory = check_encoder(encoder_factory)
-        self.q_func_factory = check_q_func(q_func_factory)
-        self.n_critics = n_critics
-        self.bootstrap = bootstrap
-        self.share_encoder = share_encoder
-        self.target_update_interval = target_update_interval
-        self.augmentation = check_augmentation(augmentation)
-        self.use_gpu = check_use_gpu(use_gpu)
-        self.impl = impl
 
-    def create_impl(self, observation_shape, action_size):
-        self.impl = DQNImpl(observation_shape=observation_shape,
-                            action_size=action_size,
-                            learning_rate=self.learning_rate,
-                            optim_factory=self.optim_factory,
-                            encoder_factory=self.encoder_factory,
-                            q_func_factory=self.q_func_factory,
-                            gamma=self.gamma,
-                            n_critics=self.n_critics,
-                            bootstrap=self.bootstrap,
-                            share_encoder=self.share_encoder,
-                            use_gpu=self.use_gpu,
-                            scaler=self.scaler,
-                            augmentation=self.augmentation)
-        self.impl.build()
+    _learning_rate: float
+    _optim_factory: OptimizerFactory
+    _encoder_factory: EncoderFactory
+    _q_func_factory: QFunctionFactory
+    _n_critics: int
+    _bootstrap: bool
+    _share_encoder: bool
+    _target_update_interval: int
+    _augmentation: AugmentationPipeline
+    _use_gpu: Optional[Device]
+    _impl: Optional[DQNImpl]
 
-    def update(self, epoch, total_step, batch):
-        loss = self.impl.update(batch.observations, batch.actions,
-                                batch.next_rewards, batch.next_observations,
-                                batch.terminals, batch.n_steps)
-        if total_step % self.target_update_interval == 0:
-            self.impl.update_target()
-        return (loss, )
+    def __init__(
+        self,
+        *,
+        learning_rate: float = 6.25e-5,
+        optim_factory: OptimizerFactory = AdamFactory(),
+        encoder_factory: EncoderArg = "default",
+        q_func_factory: QFuncArg = "mean",
+        batch_size: int = 32,
+        n_frames: int = 1,
+        n_steps: int = 1,
+        gamma: float = 0.99,
+        n_critics: int = 1,
+        bootstrap: bool = False,
+        share_encoder: bool = False,
+        target_update_interval: int = 8000,
+        use_gpu: UseGPUArg = False,
+        scaler: ScalerArg = None,
+        augmentation: AugmentationArg = None,
+        dynamics: Optional[DynamicsBase] = None,
+        impl: Optional[DQNImpl] = None,
+        **kwargs: Any
+    ):
+        super().__init__(
+            batch_size=batch_size,
+            n_frames=n_frames,
+            n_steps=n_steps,
+            gamma=gamma,
+            scaler=scaler,
+            dynamics=dynamics,
+        )
+        self._learning_rate = learning_rate
+        self._optim_factory = optim_factory
+        self._encoder_factory = check_encoder(encoder_factory)
+        self._q_func_factory = check_q_func(q_func_factory)
+        self._n_critics = n_critics
+        self._bootstrap = bootstrap
+        self._share_encoder = share_encoder
+        self._target_update_interval = target_update_interval
+        self._augmentation = check_augmentation(augmentation)
+        self._use_gpu = check_use_gpu(use_gpu)
+        self._impl = impl
 
-    def _get_loss_labels(self):
-        return ['value_loss']
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        self._impl = DQNImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            learning_rate=self._learning_rate,
+            optim_factory=self._optim_factory,
+            encoder_factory=self._encoder_factory,
+            q_func_factory=self._q_func_factory,
+            gamma=self._gamma,
+            n_critics=self._n_critics,
+            bootstrap=self._bootstrap,
+            share_encoder=self._share_encoder,
+            use_gpu=self._use_gpu,
+            scaler=self._scaler,
+            augmentation=self._augmentation,
+        )
+        self._impl.build()
+
+    def update(
+        self, epoch: int, total_step: int, batch: TransitionMiniBatch
+    ) -> List[float]:
+        assert self._impl is not None
+        loss = self._impl.update(
+            batch.observations,
+            batch.actions,
+            batch.next_rewards,
+            batch.next_observations,
+            batch.terminals,
+            batch.n_steps,
+        )
+        if total_step % self._target_update_interval == 0:
+            self._impl.update_target()
+        return [loss]
+
+    def _get_loss_labels(self) -> List[str]:
+        return ["value_loss"]
 
 
 class DoubleDQN(DQN):
-    r""" Double Deep Q-Network algorithm.
+    r"""Double Deep Q-Network algorithm.
 
     The difference from DQN is that the action is taken from the current Q
     function instead of the target Q function.
@@ -209,18 +246,25 @@ class DoubleDQN(DQN):
             algorithm implementation.
 
     """
-    def create_impl(self, observation_shape, action_size):
-        self.impl = DoubleDQNImpl(observation_shape=observation_shape,
-                                  action_size=action_size,
-                                  learning_rate=self.learning_rate,
-                                  optim_factory=self.optim_factory,
-                                  encoder_factory=self.encoder_factory,
-                                  q_func_factory=self.q_func_factory,
-                                  gamma=self.gamma,
-                                  n_critics=self.n_critics,
-                                  bootstrap=self.bootstrap,
-                                  share_encoder=self.share_encoder,
-                                  use_gpu=self.use_gpu,
-                                  scaler=self.scaler,
-                                  augmentation=self.augmentation)
-        self.impl.build()
+
+    _impl: Optional[DoubleDQNImpl]
+
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        self._impl = DoubleDQNImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            learning_rate=self._learning_rate,
+            optim_factory=self._optim_factory,
+            encoder_factory=self._encoder_factory,
+            q_func_factory=self._q_func_factory,
+            gamma=self._gamma,
+            n_critics=self._n_critics,
+            bootstrap=self._bootstrap,
+            share_encoder=self._share_encoder,
+            use_gpu=self._use_gpu,
+            scaler=self._scaler,
+            augmentation=self._augmentation,
+        )
+        self._impl.build()

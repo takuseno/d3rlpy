@@ -1,11 +1,20 @@
+import numpy as np
+
+from typing import Any, List, Optional, Sequence, Union
 from .base import AlgoBase
 from .torch.bc_impl import BCImpl, DiscreteBCImpl
-from ..optimizers import AdamFactory
+from ..augmentation import AugmentationPipeline
+from ..dataset import TransitionMiniBatch
+from ..dynamics.base import DynamicsBase
+from ..encoders import EncoderFactory
+from ..gpu import Device
+from ..optimizers import OptimizerFactory, AdamFactory
 from ..argument_utils import check_encoder, check_use_gpu, check_augmentation
+from ..argument_utils import EncoderArg, UseGPUArg, AugmentationArg, ScalerArg
 
 
 class BC(AlgoBase):
-    r""" Behavior Cloning algorithm.
+    r"""Behavior Cloning algorithm.
 
     Behavior Cloning (BC) is to imitate actions in the dataset via a supervised
     learning approach.
@@ -52,63 +61,85 @@ class BC(AlgoBase):
         eval_results_ (dict): evaluation results.
 
     """
-    def __init__(self,
-                 *,
-                 learning_rate=1e-3,
-                 optim_factory=AdamFactory(),
-                 encoder_factory='default',
-                 batch_size=100,
-                 n_frames=1,
-                 use_gpu=False,
-                 scaler=None,
-                 augmentation=None,
-                 dynamics=None,
-                 impl=None,
-                 **kwargs):
-        super().__init__(batch_size=batch_size,
-                         n_frames=n_frames,
-                         n_steps=1,
-                         gamma=1.0,
-                         scaler=scaler,
-                         dynamics=dynamics)
-        self.learning_rate = learning_rate
-        self.optim_factory = optim_factory
-        self.encoder_factory = check_encoder(encoder_factory)
-        self.augmentation = check_augmentation(augmentation)
-        self.use_gpu = check_use_gpu(use_gpu)
-        self.impl = impl
 
-    def create_impl(self, observation_shape, action_size):
-        self.impl = BCImpl(observation_shape=observation_shape,
-                           action_size=action_size,
-                           learning_rate=self.learning_rate,
-                           optim_factory=self.optim_factory,
-                           encoder_factory=self.encoder_factory,
-                           use_gpu=self.use_gpu,
-                           scaler=self.scaler,
-                           augmentation=self.augmentation)
-        self.impl.build()
+    _learning_rate: float
+    _optim_factory: OptimizerFactory
+    _encoder_factory: EncoderFactory
+    _augmentation: AugmentationPipeline
+    _use_gpu: Optional[Device]
+    _impl: Optional[BCImpl]
 
-    def update(self, epoch, itr, batch):
-        loss = self.impl.update_imitator(batch.observations, batch.actions)
-        return (loss, )
+    def __init__(
+        self,
+        *,
+        learning_rate: float = 1e-3,
+        optim_factory: OptimizerFactory = AdamFactory(),
+        encoder_factory: EncoderArg = "default",
+        batch_size: int = 100,
+        n_frames: int = 1,
+        use_gpu: UseGPUArg = False,
+        scaler: ScalerArg = None,
+        augmentation: AugmentationArg = None,
+        dynamics: Optional[DynamicsBase] = None,
+        impl: Optional[BCImpl] = None,
+        **kwargs: Any
+    ):
+        super().__init__(
+            batch_size=batch_size,
+            n_frames=n_frames,
+            n_steps=1,
+            gamma=1.0,
+            scaler=scaler,
+            dynamics=dynamics,
+        )
+        self._learning_rate = learning_rate
+        self._optim_factory = optim_factory
+        self._encoder_factory = check_encoder(encoder_factory)
+        self._augmentation = check_augmentation(augmentation)
+        self._use_gpu = check_use_gpu(use_gpu)
+        self._impl = impl
 
-    def predict_value(self, x, action):
-        """ value prediction is not supported by BC algorithms.
-        """
-        raise NotImplementedError('BC does not support value estimation.')
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        self._impl = BCImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            learning_rate=self._learning_rate,
+            optim_factory=self._optim_factory,
+            encoder_factory=self._encoder_factory,
+            use_gpu=self._use_gpu,
+            scaler=self._scaler,
+            augmentation=self._augmentation,
+        )
+        self._impl.build()
 
-    def sample_action(self, x):
-        """ sampling action is not supported by BC algorithm.
-        """
-        raise NotImplementedError('BC does not support sampling action.')
+    def update(
+        self, epoch: int, itr: int, batch: TransitionMiniBatch
+    ) -> List[float]:
+        assert self._impl is not None
+        loss = self._impl.update_imitator(batch.observations, batch.actions)
+        return [loss]
 
-    def _get_loss_labels(self):
-        return ['loss']
+    def predict_value(
+        self,
+        x: Union[np.ndarray, list],
+        action: Union[np.ndarray, list],
+        with_std: bool = False,
+    ) -> np.ndarray:
+        """value prediction is not supported by BC algorithms."""
+        raise NotImplementedError("BC does not support value estimation.")
+
+    def sample_action(self, x: Union[np.ndarray, list]) -> None:
+        """sampling action is not supported by BC algorithm."""
+        raise NotImplementedError("BC does not support sampling action.")
+
+    def _get_loss_labels(self) -> List[str]:
+        return ["loss"]
 
 
 class DiscreteBC(BC):
-    r""" Behavior Cloning algorithm for discrete control.
+    r"""Behavior Cloning algorithm for discrete control.
 
     Behavior Cloning (BC) is to imitate actions in the dataset via a supervised
     learning approach.
@@ -159,41 +190,53 @@ class DiscreteBC(BC):
         eval_results_ (dict): evaluation results.
 
     """
-    def __init__(self,
-                 *,
-                 learning_rate=1e-3,
-                 optim_factory=AdamFactory(),
-                 encoder_factory='default',
-                 batch_size=100,
-                 n_frames=1,
-                 beta=0.5,
-                 use_gpu=False,
-                 scaler=None,
-                 augmentation=None,
-                 dynamics=None,
-                 impl=None,
-                 **kwargs):
-        super().__init__(learning_rate=learning_rate,
-                         optim_factory=optim_factory,
-                         encoder_factory=encoder_factory,
-                         batch_size=batch_size,
-                         n_frames=n_frames,
-                         use_gpu=use_gpu,
-                         scaler=scaler,
-                         augmentation=augmentation,
-                         dynamics=dynamics,
-                         impl=impl,
-                         **kwargs)
-        self.beta = beta
 
-    def create_impl(self, observation_shape, action_size):
-        self.impl = DiscreteBCImpl(observation_shape=observation_shape,
-                                   action_size=action_size,
-                                   learning_rate=self.learning_rate,
-                                   optim_factory=self.optim_factory,
-                                   encoder_factory=self.encoder_factory,
-                                   beta=self.beta,
-                                   use_gpu=self.use_gpu,
-                                   scaler=self.scaler,
-                                   augmentation=self.augmentation)
-        self.impl.build()
+    _beta: float
+    _impl: Optional[DiscreteBCImpl]
+
+    def __init__(
+        self,
+        *,
+        learning_rate: float = 1e-3,
+        optim_factory: OptimizerFactory = AdamFactory(),
+        encoder_factory: EncoderArg = "default",
+        batch_size: int = 100,
+        n_frames: int = 1,
+        beta: float = 0.5,
+        use_gpu: UseGPUArg = False,
+        scaler: ScalerArg = None,
+        augmentation: AugmentationArg = None,
+        dynamics: Optional[DynamicsBase] = None,
+        impl: Optional[DiscreteBCImpl] = None,
+        **kwargs: Any
+    ):
+        super().__init__(
+            learning_rate=learning_rate,
+            optim_factory=optim_factory,
+            encoder_factory=encoder_factory,
+            batch_size=batch_size,
+            n_frames=n_frames,
+            use_gpu=use_gpu,
+            scaler=scaler,
+            augmentation=augmentation,
+            dynamics=dynamics,
+            impl=impl,
+            **kwargs
+        )
+        self._beta = beta
+
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        self._impl = DiscreteBCImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            learning_rate=self._learning_rate,
+            optim_factory=self._optim_factory,
+            encoder_factory=self._encoder_factory,
+            beta=self._beta,
+            use_gpu=self._use_gpu,
+            scaler=self._scaler,
+            augmentation=self._augmentation,
+        )
+        self._impl.build()

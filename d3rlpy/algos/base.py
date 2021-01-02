@@ -10,6 +10,7 @@ from ..online.iterators import train
 from ..online.buffers import Buffer
 from ..online.explorers import Explorer
 from ..preprocessing import Scaler
+from ..argument_utils import ScalerArg
 
 
 class AlgoImplBase(ImplBase):
@@ -50,7 +51,7 @@ class AlgoBase(LearnableBase):
         n_frames: int,
         n_steps: int,
         gamma: float,
-        scaler: Optional[Scaler],
+        scaler: ScalerArg,
         dynamics: Optional[DynamicsBase],
     ):
         super().__init__(batch_size, n_frames, n_steps, gamma, scaler)

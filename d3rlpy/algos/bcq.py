@@ -1,14 +1,24 @@
+import numpy as np
+
+from typing import Any, List, Optional, Sequence, Union
 from .base import AlgoBase
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
-from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder
-from ..argument_utils import check_use_gpu
-from ..argument_utils import check_augmentation
-from ..argument_utils import check_q_func
+from ..augmentation import AugmentationPipeline
+from ..optimizers import OptimizerFactory, AdamFactory
+from ..encoders import EncoderFactory
+from ..dataset import TransitionMiniBatch
+from ..dynamics.base import DynamicsBase
+from ..q_functions import QFunctionFactory
+from ..gpu import Device
+from ..argument_utils import check_encoder, EncoderArg
+from ..argument_utils import check_use_gpu, UseGPUArg
+from ..argument_utils import check_augmentation, AugmentationArg
+from ..argument_utils import check_q_func, QFuncArg
+from ..argument_utils import ScalerArg
 
 
 class BCQ(AlgoBase):
-    r""" Batch-Constrained Q-learning algorithm.
+    r"""Batch-Constrained Q-learning algorithm.
 
     BCQ is the very first practical data-driven deep reinforcement learning
     lgorithm.
@@ -172,128 +182,170 @@ class BCQ(AlgoBase):
         eval_results_ (dict): evaluation results.
 
     """
-    def __init__(self,
-                 *,
-                 actor_learning_rate=1e-3,
-                 critic_learning_rate=1e-3,
-                 imitator_learning_rate=1e-3,
-                 actor_optim_factory=AdamFactory(),
-                 critic_optim_factory=AdamFactory(),
-                 imitator_optim_factory=AdamFactory(),
-                 actor_encoder_factory='default',
-                 critic_encoder_factory='default',
-                 imitator_encoder_factory='default',
-                 q_func_factory='mean',
-                 batch_size=100,
-                 n_frames=1,
-                 n_steps=1,
-                 gamma=0.99,
-                 tau=0.005,
-                 n_critics=2,
-                 bootstrap=False,
-                 share_encoder=False,
-                 update_actor_interval=1,
-                 lam=0.75,
-                 n_action_samples=100,
-                 action_flexibility=0.05,
-                 rl_start_epoch=0,
-                 latent_size=32,
-                 beta=0.5,
-                 use_gpu=False,
-                 scaler=None,
-                 augmentation=None,
-                 dynamics=None,
-                 impl=None,
-                 **kwargs):
-        super().__init__(batch_size=batch_size,
-                         n_frames=n_frames,
-                         n_steps=n_steps,
-                         gamma=gamma,
-                         scaler=scaler,
-                         dynamics=dynamics)
-        self.actor_learning_rate = actor_learning_rate
-        self.critic_learning_rate = critic_learning_rate
-        self.imitator_learning_rate = imitator_learning_rate
-        self.actor_optim_factory = actor_optim_factory
-        self.critic_optim_factory = critic_optim_factory
-        self.imitator_optim_factory = imitator_optim_factory
-        self.actor_encoder_factory = check_encoder(actor_encoder_factory)
-        self.critic_encoder_factory = check_encoder(critic_encoder_factory)
-        self.imitator_encoder_factory = check_encoder(imitator_encoder_factory)
-        self.q_func_factory = check_q_func(q_func_factory)
-        self.tau = tau
-        self.n_critics = n_critics
-        self.bootstrap = bootstrap
-        self.share_encoder = share_encoder
-        self.update_actor_interval = update_actor_interval
-        self.lam = lam
-        self.n_action_samples = n_action_samples
-        self.action_flexibility = action_flexibility
-        self.rl_start_epoch = rl_start_epoch
-        self.latent_size = latent_size
-        self.beta = beta
-        self.augmentation = check_augmentation(augmentation)
-        self.use_gpu = check_use_gpu(use_gpu)
-        self.impl = impl
 
-    def create_impl(self, observation_shape, action_size):
-        self.impl = BCQImpl(
+    _actor_learning_rate: float
+    _critic_learning_rate: float
+    _imitator_learning_rate: float
+    _actor_optim_factory: OptimizerFactory
+    _critic_optim_factory: OptimizerFactory
+    _imitator_optim_factory: OptimizerFactory
+    _actor_encoder_factory: EncoderFactory
+    _critic_encoder_factory: EncoderFactory
+    _imitator_encoder_factory: EncoderFactory
+    _q_func_factory: QFunctionFactory
+    _tau: float
+    _n_critics: int
+    _bootstrap: bool
+    _share_encoder: bool
+    _update_actor_interval: int
+    _lam: float
+    _n_action_samples: int
+    _action_flexibility: float
+    _rl_start_epoch: int
+    _latent_size: int
+    _beta: float
+    _augmentation: AugmentationPipeline
+    _use_gpu: Optional[Device]
+    _impl: Optional[BCQImpl]
+
+    def __init__(
+        self,
+        *,
+        actor_learning_rate: float = 1e-3,
+        critic_learning_rate: float = 1e-3,
+        imitator_learning_rate: float = 1e-3,
+        actor_optim_factory: OptimizerFactory = AdamFactory(),
+        critic_optim_factory: OptimizerFactory = AdamFactory(),
+        imitator_optim_factory: OptimizerFactory = AdamFactory(),
+        actor_encoder_factory: EncoderArg = "default",
+        critic_encoder_factory: EncoderArg = "default",
+        imitator_encoder_factory: EncoderArg = "default",
+        q_func_factory: QFuncArg = "mean",
+        batch_size: int = 100,
+        n_frames: int = 1,
+        n_steps: int = 1,
+        gamma: float = 0.99,
+        tau: float = 0.005,
+        n_critics: int = 2,
+        bootstrap: bool = False,
+        share_encoder: bool = False,
+        update_actor_interval: int = 1,
+        lam: float = 0.75,
+        n_action_samples: int = 100,
+        action_flexibility: float = 0.05,
+        rl_start_epoch: int = 0,
+        latent_size: int = 32,
+        beta: float = 0.5,
+        use_gpu: UseGPUArg = False,
+        scaler: ScalerArg = None,
+        augmentation: AugmentationArg = None,
+        dynamics: Optional[DynamicsBase] = None,
+        impl: Optional[BCQImpl] = None,
+        **kwargs: Any
+    ):
+        super().__init__(
+            batch_size=batch_size,
+            n_frames=n_frames,
+            n_steps=n_steps,
+            gamma=gamma,
+            scaler=scaler,
+            dynamics=dynamics,
+        )
+        self._actor_learning_rate = actor_learning_rate
+        self._critic_learning_rate = critic_learning_rate
+        self._imitator_learning_rate = imitator_learning_rate
+        self._actor_optim_factory = actor_optim_factory
+        self._critic_optim_factory = critic_optim_factory
+        self._imitator_optim_factory = imitator_optim_factory
+        self._actor_encoder_factory = check_encoder(actor_encoder_factory)
+        self._critic_encoder_factory = check_encoder(critic_encoder_factory)
+        self._imitator_encoder_factory = check_encoder(imitator_encoder_factory)
+        self._q_func_factory = check_q_func(q_func_factory)
+        self._tau = tau
+        self._n_critics = n_critics
+        self._bootstrap = bootstrap
+        self._share_encoder = share_encoder
+        self._update_actor_interval = update_actor_interval
+        self._lam = lam
+        self._n_action_samples = n_action_samples
+        self._action_flexibility = action_flexibility
+        self._rl_start_epoch = rl_start_epoch
+        self._latent_size = latent_size
+        self._beta = beta
+        self._augmentation = check_augmentation(augmentation)
+        self._use_gpu = check_use_gpu(use_gpu)
+        self._impl = impl
+
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        self._impl = BCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self.actor_learning_rate,
-            critic_learning_rate=self.critic_learning_rate,
-            imitator_learning_rate=self.imitator_learning_rate,
-            actor_optim_factory=self.actor_optim_factory,
-            critic_optim_factory=self.critic_optim_factory,
-            imitator_optim_factory=self.imitator_optim_factory,
-            actor_encoder_factory=self.actor_encoder_factory,
-            critic_encoder_factory=self.critic_encoder_factory,
-            imitator_encoder_factory=self.imitator_encoder_factory,
-            q_func_factory=self.q_func_factory,
-            gamma=self.gamma,
-            tau=self.tau,
-            n_critics=self.n_critics,
-            bootstrap=self.bootstrap,
-            share_encoder=self.share_encoder,
-            lam=self.lam,
-            n_action_samples=self.n_action_samples,
-            action_flexibility=self.action_flexibility,
-            latent_size=self.latent_size,
-            beta=self.beta,
-            use_gpu=self.use_gpu,
-            scaler=self.scaler,
-            augmentation=self.augmentation)
-        self.impl.build()
+            actor_learning_rate=self._actor_learning_rate,
+            critic_learning_rate=self._critic_learning_rate,
+            imitator_learning_rate=self._imitator_learning_rate,
+            actor_optim_factory=self._actor_optim_factory,
+            critic_optim_factory=self._critic_optim_factory,
+            imitator_optim_factory=self._imitator_optim_factory,
+            actor_encoder_factory=self._actor_encoder_factory,
+            critic_encoder_factory=self._critic_encoder_factory,
+            imitator_encoder_factory=self._imitator_encoder_factory,
+            q_func_factory=self._q_func_factory,
+            gamma=self._gamma,
+            tau=self._tau,
+            n_critics=self._n_critics,
+            bootstrap=self._bootstrap,
+            share_encoder=self._share_encoder,
+            lam=self._lam,
+            n_action_samples=self._n_action_samples,
+            action_flexibility=self._action_flexibility,
+            latent_size=self._latent_size,
+            beta=self._beta,
+            use_gpu=self._use_gpu,
+            scaler=self._scaler,
+            augmentation=self._augmentation,
+        )
+        self._impl.build()
 
-    def update(self, epoch, total_step, batch):
-        imitator_loss = self.impl.update_imitator(batch.observations,
-                                                  batch.actions)
-        if epoch >= self.rl_start_epoch:
-            critic_loss = self.impl.update_critic(
-                batch.observations, batch.actions, batch.next_rewards,
-                batch.next_observations, batch.terminals, batch.n_steps)
-            if total_step % self.update_actor_interval == 0:
-                actor_loss = self.impl.update_actor(batch.observations)
-                self.impl.update_actor_target()
-                self.impl.update_critic_target()
+    def update(
+        self, epoch: int, total_step: int, batch: TransitionMiniBatch
+    ) -> List[float]:
+        assert self._impl is not None
+
+        imitator_loss = self._impl.update_imitator(
+            batch.observations, batch.actions
+        )
+        if epoch >= self._rl_start_epoch:
+            critic_loss = self._impl.update_critic(
+                batch.observations,
+                batch.actions,
+                batch.next_rewards,
+                batch.next_observations,
+                batch.terminals,
+                batch.n_steps,
+            )
+            if total_step % self._update_actor_interval == 0:
+                actor_loss = self._impl.update_actor(batch.observations)
+                self._impl.update_actor_target()
+                self._impl.update_critic_target()
             else:
                 actor_loss = None
         else:
             critic_loss = None
             actor_loss = None
-        return critic_loss, actor_loss, imitator_loss
+        return [critic_loss, actor_loss, imitator_loss]
 
-    def sample_action(self, x):
-        """ BCQ does not support sampling action.
-        """
-        raise NotImplementedError('BCQ does not support sampling action.')
+    def sample_action(self, x: Union[np.ndarray, list]) -> np.ndarray:
+        """BCQ does not support sampling action."""
+        raise NotImplementedError("BCQ does not support sampling action.")
 
-    def _get_loss_labels(self):
-        return ['critic_loss', 'actor_loss', 'imitator_loss']
+    def _get_loss_labels(self) -> List[str]:
+        return ["critic_loss", "actor_loss", "imitator_loss"]
 
 
 class DiscreteBCQ(AlgoBase):
-    r""" Discrete version of Batch-Constrained Q-learning algorithm.
+    r"""Discrete version of Batch-Constrained Q-learning algorithm.
 
     Discrete version takes theories from the continuous version, but the
     algorithm is much simpler than that.
@@ -387,73 +439,105 @@ class DiscreteBCQ(AlgoBase):
         eval_results_ (dict): evaluation results.
 
     """
-    def __init__(self,
-                 *,
-                 learning_rate=6.25e-5,
-                 optim_factory=AdamFactory(),
-                 encoder_factory='default',
-                 q_func_factory='mean',
-                 batch_size=32,
-                 n_frames=1,
-                 n_steps=1,
-                 gamma=0.99,
-                 n_critics=1,
-                 bootstrap=False,
-                 share_encoder=False,
-                 action_flexibility=0.3,
-                 beta=0.5,
-                 target_update_interval=8e3,
-                 use_gpu=False,
-                 scaler=None,
-                 augmentation=None,
-                 dynamics=None,
-                 impl=None,
-                 **kwargs):
-        super().__init__(batch_size=batch_size,
-                         n_frames=n_frames,
-                         n_steps=n_steps,
-                         gamma=gamma,
-                         scaler=scaler,
-                         dynamics=dynamics)
-        self.learning_rate = learning_rate
-        self.optim_factory = optim_factory
-        self.encoder_factory = check_encoder(encoder_factory)
-        self.q_func_factory = check_q_func(q_func_factory)
-        self.n_critics = n_critics
-        self.bootstrap = bootstrap
-        self.share_encoder = share_encoder
-        self.action_flexibility = action_flexibility
-        self.beta = beta
-        self.target_update_interval = target_update_interval
-        self.augmentation = check_augmentation(augmentation)
-        self.use_gpu = check_use_gpu(use_gpu)
-        self.impl = impl
 
-    def create_impl(self, observation_shape, action_size):
-        self.impl = DiscreteBCQImpl(observation_shape=observation_shape,
-                                    action_size=action_size,
-                                    learning_rate=self.learning_rate,
-                                    optim_factory=self.optim_factory,
-                                    encoder_factory=self.encoder_factory,
-                                    q_func_factory=self.q_func_factory,
-                                    gamma=self.gamma,
-                                    n_critics=self.n_critics,
-                                    bootstrap=self.bootstrap,
-                                    share_encoder=self.share_encoder,
-                                    action_flexibility=self.action_flexibility,
-                                    beta=self.beta,
-                                    use_gpu=self.use_gpu,
-                                    scaler=self.scaler,
-                                    augmentation=self.augmentation)
-        self.impl.build()
+    _learning_rate: float
+    _optim_factory: OptimizerFactory
+    _encoder_factory: EncoderFactory
+    _q_func_factory: QFunctionFactory
+    _n_critics: int
+    _bootstrap: bool
+    _share_encoder: bool
+    _action_flexibility: float
+    _beta: float
+    _target_update_interval: int
+    _augmentation: AugmentationPipeline
+    _use_gpu: Optional[Device]
+    _impl: Optional[DiscreteBCQImpl]
 
-    def update(self, epoch, total_step, batch):
-        loss = self.impl.update(batch.observations, batch.actions,
-                                batch.next_rewards, batch.next_observations,
-                                batch.terminals, batch.n_steps)
-        if total_step % self.target_update_interval == 0:
-            self.impl.update_target()
+    def __init__(
+        self,
+        *,
+        learning_rate: float = 6.25e-5,
+        optim_factory: OptimizerFactory = AdamFactory(),
+        encoder_factory: EncoderArg = "default",
+        q_func_factory: QFuncArg = "mean",
+        batch_size: int = 32,
+        n_frames: int = 1,
+        n_steps: int = 1,
+        gamma: float = 0.99,
+        n_critics: int = 1,
+        bootstrap: bool = False,
+        share_encoder: bool = False,
+        action_flexibility: float = 0.3,
+        beta: float = 0.5,
+        target_update_interval: int = 8000,
+        use_gpu: UseGPUArg = False,
+        scaler: ScalerArg = None,
+        augmentation: AugmentationArg = None,
+        dynamics: Optional[DynamicsBase] = None,
+        impl: Optional[DiscreteBCQImpl] = None,
+        **kwargs: Any
+    ):
+        super().__init__(
+            batch_size=batch_size,
+            n_frames=n_frames,
+            n_steps=n_steps,
+            gamma=gamma,
+            scaler=scaler,
+            dynamics=dynamics,
+        )
+        self._learning_rate = learning_rate
+        self._optim_factory = optim_factory
+        self._encoder_factory = check_encoder(encoder_factory)
+        self._q_func_factory = check_q_func(q_func_factory)
+        self._n_critics = n_critics
+        self._bootstrap = bootstrap
+        self._share_encoder = share_encoder
+        self._action_flexibility = action_flexibility
+        self._beta = beta
+        self._target_update_interval = target_update_interval
+        self._augmentation = check_augmentation(augmentation)
+        self._use_gpu = check_use_gpu(use_gpu)
+        self._impl = impl
+
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        self._impl = DiscreteBCQImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            learning_rate=self._learning_rate,
+            optim_factory=self._optim_factory,
+            encoder_factory=self._encoder_factory,
+            q_func_factory=self._q_func_factory,
+            gamma=self._gamma,
+            n_critics=self._n_critics,
+            bootstrap=self._bootstrap,
+            share_encoder=self._share_encoder,
+            action_flexibility=self._action_flexibility,
+            beta=self._beta,
+            use_gpu=self._use_gpu,
+            scaler=self._scaler,
+            augmentation=self._augmentation,
+        )
+        self._impl.build()
+
+    def update(
+        self, epoch: int, total_step: int, batch: TransitionMiniBatch
+    ) -> List[float]:
+        assert self._impl is not None
+
+        loss = self._impl.update(
+            batch.observations,
+            batch.actions,
+            batch.next_rewards,
+            batch.next_observations,
+            batch.terminals,
+            batch.n_steps,
+        )
+        if total_step % self._target_update_interval == 0:
+            self._impl.update_target()
         return [loss]
 
-    def _get_loss_labels(self):
-        return ['loss']
+    def _get_loss_labels(self) -> List[str]:
+        return ["loss"]

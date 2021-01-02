@@ -7,7 +7,16 @@ from .augmentation import DrQPipeline, Augmentation
 from .gpu import Device
 
 
-def check_encoder(value: Union[EncoderFactory, str]) -> EncoderFactory:
+EncoderArg = Union[EncoderFactory, str]
+QFuncArg = Union[QFunctionFactory, str]
+ScalerArg = Optional[Union[Scaler, str]]
+AugmentationArg = Optional[
+    Union[AugmentationPipeline, List[Union[str, Augmentation]]]
+]
+UseGPUArg = Optional[Union[bool, int, Device]]
+
+
+def check_encoder(value: EncoderArg) -> EncoderFactory:
     """Checks value and returns EncoderFactory object.
 
     Returns:
@@ -21,7 +30,7 @@ def check_encoder(value: Union[EncoderFactory, str]) -> EncoderFactory:
     raise ValueError("This argument must be str or EncoderFactory object.")
 
 
-def check_q_func(value: Union[QFunctionFactory, str]) -> QFunctionFactory:
+def check_q_func(value: QFuncArg) -> QFunctionFactory:
     """Checks value and returns QFunctionFactory object.
 
     Returns:
@@ -35,7 +44,7 @@ def check_q_func(value: Union[QFunctionFactory, str]) -> QFunctionFactory:
     raise ValueError("This argument must be str or QFunctionFactory object.")
 
 
-def check_scaler(value: Optional[Union[Scaler, str]]) -> Optional[Scaler]:
+def check_scaler(value: ScalerArg) -> Optional[Scaler]:
     """Checks value and returns Scaler object.
 
     Returns:
@@ -51,9 +60,7 @@ def check_scaler(value: Optional[Union[Scaler, str]]) -> Optional[Scaler]:
     raise ValueError("This argument must be str or Scaler object.")
 
 
-def check_augmentation(
-    value: Optional[Union[AugmentationPipeline, List[Union[str, Augmentation]]]]
-) -> AugmentationPipeline:
+def check_augmentation(value: AugmentationArg) -> AugmentationPipeline:
     """Checks value and returns AugmentationPipeline object.
 
     Returns:
@@ -76,9 +83,7 @@ def check_augmentation(
     raise ValueError("This argument must be list or AugmentationPipeline.")
 
 
-def check_use_gpu(
-    value: Optional[Union[bool, int, Device]]
-) -> Optional[Device]:
+def check_use_gpu(value: UseGPUArg) -> Optional[Device]:
     """Checks value and returns Device object.
 
     Returns:

@@ -11,31 +11,31 @@ from .sac import SAC, DiscreteSAC
 from .td3 import TD3
 
 DISCRETE_ALGORITHMS = {
-    'awr': DiscreteAWR,
-    'bc': DiscreteBC,
-    'bcq': DiscreteBCQ,
-    'cql': DiscreteCQL,
-    'dqn': DQN,
-    'double_dqn': DoubleDQN,
-    'sac': DiscreteSAC
+    "awr": DiscreteAWR,
+    "bc": DiscreteBC,
+    "bcq": DiscreteBCQ,
+    "cql": DiscreteCQL,
+    "dqn": DQN,
+    "double_dqn": DoubleDQN,
+    "sac": DiscreteSAC,
 }
 
 CONTINUOUS_ALGORITHMS = {
-    'awac': AWAC,
-    'awr': AWR,
-    'bc': BC,
-    'bcq': BCQ,
-    'bear': BEAR,
-    'cql': CQL,
-    'ddpg': DDPG,
-    'sac': SAC,
-    'plas': PLASWithPerturbation,
-    'td3': TD3
+    "awac": AWAC,
+    "awr": AWR,
+    "bc": BC,
+    "bcq": BCQ,
+    "bear": BEAR,
+    "cql": CQL,
+    "ddpg": DDPG,
+    "sac": SAC,
+    "plas": PLASWithPerturbation,
+    "td3": TD3,
 }
 
 
 def get_algo(name, discrete):
-    """ Returns algorithm class from its name.
+    """Returns algorithm class from its name.
 
     Args:
         name (str): algorithm name in snake_case.
@@ -48,14 +48,14 @@ def get_algo(name, discrete):
     if discrete:
         if name in DISCRETE_ALGORITHMS:
             return DISCRETE_ALGORITHMS[name]
-        raise ValueError('%s does not support discrete action-space.' % name)
+        raise ValueError("%s does not support discrete action-space." % name)
     if name in CONTINUOUS_ALGORITHMS:
         return CONTINUOUS_ALGORITHMS[name]
-    raise ValueError('%s does not support continuous action-space.' % name)
+    raise ValueError("%s does not support continuous action-space." % name)
 
 
 def create_algo(name, discrete, **params):
-    """ Returns algorithm object from its name.
+    """Returns algorithm object from its name.
 
     Args:
         name (str): algorithm name in snake_case.

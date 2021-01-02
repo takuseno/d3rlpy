@@ -1,15 +1,22 @@
+from typing import Any, List, Optional, Sequence
 from .base import AlgoBase
 from .dqn import DoubleDQN
 from .torch.cql_impl import CQLImpl, DiscreteCQLImpl
-from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder
-from ..argument_utils import check_use_gpu
-from ..argument_utils import check_augmentation
-from ..argument_utils import check_q_func
+from ..augmentation import AugmentationPipeline
+from ..dataset import TransitionMiniBatch
+from ..dynamics.base import DynamicsBase
+from ..encoders import EncoderFactory
+from ..q_functions import QFunctionFactory
+from ..optimizers import OptimizerFactory, AdamFactory
+from ..argument_utils import check_encoder, EncoderArg
+from ..argument_utils import check_use_gpu, UseGPUArg
+from ..argument_utils import check_augmentation, AugmentationArg
+from ..argument_utils import check_q_func, QFuncArg
+from ..argument_utils import ScalerArg
 
 
 class CQL(AlgoBase):
-    r""" Conservative Q-Learning algorithm.
+    r"""Conservative Q-Learning algorithm.
 
     CQL is a SAC-based data-driven deep reinforcement learning algorithm, which
     achieves state-of-the-art performance in offline RL problems.
@@ -138,109 +145,149 @@ class CQL(AlgoBase):
         eval_results_ (dict): evaluation results.
 
     """
-    def __init__(self,
-                 *,
-                 actor_learning_rate=3e-5,
-                 critic_learning_rate=3e-4,
-                 temp_learning_rate=3e-5,
-                 alpha_learning_rate=3e-4,
-                 actor_optim_factory=AdamFactory(),
-                 critic_optim_factory=AdamFactory(),
-                 temp_optim_factory=AdamFactory(),
-                 alpha_optim_factory=AdamFactory(),
-                 actor_encoder_factory='default',
-                 critic_encoder_factory='default',
-                 q_func_factory='mean',
-                 batch_size=100,
-                 n_frames=1,
-                 n_steps=1,
-                 gamma=0.99,
-                 tau=0.005,
-                 n_critics=2,
-                 bootstrap=False,
-                 share_encoder=False,
-                 update_actor_interval=1,
-                 initial_temperature=1.0,
-                 initial_alpha=5.0,
-                 alpha_threshold=10.0,
-                 n_action_samples=10,
-                 use_gpu=False,
-                 scaler=None,
-                 augmentation=None,
-                 dynamics=None,
-                 impl=None,
-                 **kwargs):
-        super().__init__(batch_size=batch_size,
-                         n_frames=n_frames,
-                         n_steps=n_steps,
-                         gamma=gamma,
-                         scaler=scaler,
-                         dynamics=dynamics)
-        self.actor_learning_rate = actor_learning_rate
-        self.critic_learning_rate = critic_learning_rate
-        self.temp_learning_rate = temp_learning_rate
-        self.alpha_learning_rate = alpha_learning_rate
-        self.actor_optim_factory = actor_optim_factory
-        self.critic_optim_factory = critic_optim_factory
-        self.temp_optim_factory = temp_optim_factory
-        self.alpha_optim_factory = alpha_optim_factory
-        self.actor_encoder_factory = check_encoder(actor_encoder_factory)
-        self.critic_encoder_factory = check_encoder(critic_encoder_factory)
-        self.q_func_factory = check_q_func(q_func_factory)
-        self.tau = tau
-        self.n_critics = n_critics
-        self.bootstrap = bootstrap
-        self.share_encoder = share_encoder
-        self.update_actor_interval = update_actor_interval
-        self.initial_temperature = initial_temperature
-        self.initial_alpha = initial_alpha
-        self.alpha_threshold = alpha_threshold
-        self.n_action_samples = n_action_samples
-        self.augmentation = check_augmentation(augmentation)
-        self.use_gpu = check_use_gpu(use_gpu)
-        self.impl = impl
 
-    def create_impl(self, observation_shape, action_size):
-        self.impl = CQLImpl(observation_shape=observation_shape,
-                            action_size=action_size,
-                            actor_learning_rate=self.actor_learning_rate,
-                            critic_learning_rate=self.critic_learning_rate,
-                            temp_learning_rate=self.temp_learning_rate,
-                            alpha_learning_rate=self.alpha_learning_rate,
-                            actor_optim_factory=self.actor_optim_factory,
-                            critic_optim_factory=self.critic_optim_factory,
-                            temp_optim_factory=self.temp_optim_factory,
-                            alpha_optim_factory=self.alpha_optim_factory,
-                            actor_encoder_factory=self.actor_encoder_factory,
-                            critic_encoder_factory=self.critic_encoder_factory,
-                            q_func_factory=self.q_func_factory,
-                            gamma=self.gamma,
-                            tau=self.tau,
-                            n_critics=self.n_critics,
-                            bootstrap=self.bootstrap,
-                            share_encoder=self.share_encoder,
-                            initial_temperature=self.initial_temperature,
-                            initial_alpha=self.initial_alpha,
-                            alpha_threshold=self.alpha_threshold,
-                            n_action_samples=self.n_action_samples,
-                            use_gpu=self.use_gpu,
-                            scaler=self.scaler,
-                            augmentation=self.augmentation)
-        self.impl.build()
+    _actor_learning_rate: float
+    _critic_learning_rate: float
+    _temp_learning_rate: float
+    _alpha_learning_rate: float
+    _actor_optim_factory: OptimizerFactory
+    _critic_optim_factory: OptimizerFactory
+    _temp_optim_factory: OptimizerFactory
+    _alpha_optim_factory: OptimizerFactory
+    _actor_encoder_factory: EncoderFactory
+    _critic_encoder_factory: EncoderFactory
+    _q_func_factory: QFunctionFactory
+    _tau: float
+    _n_critics: int
+    _bootstrap: bool
+    _share_encoder: bool
+    _update_actor_interval: int
+    _initial_temperature: float
+    _initial_alpha: float
+    _alpha_threshold: float
+    _n_action_samples: int
+    _augmentation: AugmentationPipeline
+    _use_gpu: UseGPUArg
+    _impl: Optional[CQLImpl]
 
-    def update(self, epoch, total_step, batch):
-        critic_loss = self.impl.update_critic(batch.observations,
-                                              batch.actions,
-                                              batch.next_rewards,
-                                              batch.next_observations,
-                                              batch.terminals, batch.n_steps)
-        if total_step % self.update_actor_interval == 0:
-            actor_loss = self.impl.update_actor(batch.observations)
-            temp_loss, temp = self.impl.update_temp(batch.observations)
-            alpha_loss, alpha = self.impl.update_alpha(batch.observations,
-                                                       batch.actions)
-            self.impl.update_critic_target()
-            self.impl.update_actor_target()
+    def __init__(
+        self,
+        *,
+        actor_learning_rate: float = 3e-5,
+        critic_learning_rate: float = 3e-4,
+        temp_learning_rate: float = 3e-5,
+        alpha_learning_rate: float = 3e-4,
+        actor_optim_factory: OptimizerFactory = AdamFactory(),
+        critic_optim_factory: OptimizerFactory = AdamFactory(),
+        temp_optim_factory: OptimizerFactory = AdamFactory(),
+        alpha_optim_factory: OptimizerFactory = AdamFactory(),
+        actor_encoder_factory: EncoderArg = "default",
+        critic_encoder_factory: EncoderArg = "default",
+        q_func_factory: QFuncArg = "mean",
+        batch_size: int = 100,
+        n_frames: int = 1,
+        n_steps: int = 1,
+        gamma: float = 0.99,
+        tau: float = 0.005,
+        n_critics: int = 2,
+        bootstrap: bool = False,
+        share_encoder: bool = False,
+        update_actor_interval: int = 1,
+        initial_temperature: float = 1.0,
+        initial_alpha: float = 5.0,
+        alpha_threshold: float = 10.0,
+        n_action_samples: int = 10,
+        use_gpu: UseGPUArg = False,
+        scaler: ScalerArg = None,
+        augmentation: AugmentationArg = None,
+        dynamics: Optional[DynamicsBase] = None,
+        impl: Optional[CQLImpl] = None,
+        **kwargs: Any
+    ):
+        super().__init__(
+            batch_size=batch_size,
+            n_frames=n_frames,
+            n_steps=n_steps,
+            gamma=gamma,
+            scaler=scaler,
+            dynamics=dynamics,
+        )
+        self._actor_learning_rate = actor_learning_rate
+        self._critic_learning_rate = critic_learning_rate
+        self._temp_learning_rate = temp_learning_rate
+        self._alpha_learning_rate = alpha_learning_rate
+        self._actor_optim_factory = actor_optim_factory
+        self._critic_optim_factory = critic_optim_factory
+        self._temp_optim_factory = temp_optim_factory
+        self._alpha_optim_factory = alpha_optim_factory
+        self._actor_encoder_factory = check_encoder(actor_encoder_factory)
+        self._critic_encoder_factory = check_encoder(critic_encoder_factory)
+        self._q_func_factory = check_q_func(q_func_factory)
+        self._tau = tau
+        self._n_critics = n_critics
+        self._bootstrap = bootstrap
+        self._share_encoder = share_encoder
+        self._update_actor_interval = update_actor_interval
+        self._initial_temperature = initial_temperature
+        self._initial_alpha = initial_alpha
+        self._alpha_threshold = alpha_threshold
+        self._n_action_samples = n_action_samples
+        self._augmentation = check_augmentation(augmentation)
+        self._use_gpu = check_use_gpu(use_gpu)
+        self._impl = impl
+
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        self._impl = CQLImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            actor_learning_rate=self._actor_learning_rate,
+            critic_learning_rate=self._critic_learning_rate,
+            temp_learning_rate=self._temp_learning_rate,
+            alpha_learning_rate=self._alpha_learning_rate,
+            actor_optim_factory=self._actor_optim_factory,
+            critic_optim_factory=self._critic_optim_factory,
+            temp_optim_factory=self._temp_optim_factory,
+            alpha_optim_factory=self._alpha_optim_factory,
+            actor_encoder_factory=self._actor_encoder_factory,
+            critic_encoder_factory=self._critic_encoder_factory,
+            q_func_factory=self._q_func_factory,
+            gamma=self._gamma,
+            tau=self._tau,
+            n_critics=self._n_critics,
+            bootstrap=self._bootstrap,
+            share_encoder=self._share_encoder,
+            initial_temperature=self._initial_temperature,
+            initial_alpha=self._initial_alpha,
+            alpha_threshold=self._alpha_threshold,
+            n_action_samples=self._n_action_samples,
+            use_gpu=self._use_gpu,
+            scaler=self._scaler,
+            augmentation=self._augmentation,
+        )
+        self._impl.build()
+
+    def update(
+        self, epoch: int, total_step: int, batch: TransitionMiniBatch
+    ) -> List[float]:
+        assert self._impl is not None
+        critic_loss = self._impl.update_critic(
+            batch.observations,
+            batch.actions,
+            batch.next_rewards,
+            batch.next_observations,
+            batch.terminals,
+            batch.n_steps,
+        )
+        if total_step % self._update_actor_interval == 0:
+            actor_loss = self._impl.update_actor(batch.observations)
+            temp_loss, temp = self._impl.update_temp(batch.observations)
+            alpha_loss, alpha = self._impl.update_alpha(
+                batch.observations, batch.actions
+            )
+            self._impl.update_critic_target()
+            self._impl.update_actor_target()
         else:
             actor_loss = None
             temp_loss = None
@@ -248,17 +295,21 @@ class CQL(AlgoBase):
             alpha_loss = None
             alpha = None
 
-        return critic_loss, actor_loss, temp_loss, temp, alpha_loss, alpha
+        return [critic_loss, actor_loss, temp_loss, temp, alpha_loss, alpha]
 
-    def _get_loss_labels(self):
+    def _get_loss_labels(self) -> List[str]:
         return [
-            'critic_loss', 'actor_loss', 'temp_loss', 'temp', 'alpha_loss',
-            'alpha'
+            "critic_loss",
+            "actor_loss",
+            "temp_loss",
+            "temp",
+            "alpha_loss",
+            "alpha",
         ]
 
 
 class DiscreteCQL(DoubleDQN):
-    r""" Discrete version of Conservative Q-Learning algorithm.
+    r"""Discrete version of Conservative Q-Learning algorithm.
 
     Discrete version of CQL is a DoubleDQN-based data-driven deep reinforcement
     learning algorithm (the original paper uses DQN), which achieves
@@ -328,18 +379,25 @@ class DiscreteCQL(DoubleDQN):
         eval_results_ (dict): evaluation results.
 
     """
-    def create_impl(self, observation_shape, action_size):
-        self.impl = DiscreteCQLImpl(observation_shape=observation_shape,
-                                    action_size=action_size,
-                                    learning_rate=self.learning_rate,
-                                    optim_factory=self.optim_factory,
-                                    encoder_factory=self.encoder_factory,
-                                    q_func_factory=self.q_func_factory,
-                                    gamma=self.gamma,
-                                    n_critics=self.n_critics,
-                                    bootstrap=self.bootstrap,
-                                    share_encoder=self.share_encoder,
-                                    use_gpu=self.use_gpu,
-                                    scaler=self.scaler,
-                                    augmentation=self.augmentation)
-        self.impl.build()
+
+    _impl: Optional[DiscreteCQLImpl]
+
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        self._impl = DiscreteCQLImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            learning_rate=self._learning_rate,
+            optim_factory=self._optim_factory,
+            encoder_factory=self._encoder_factory,
+            q_func_factory=self._q_func_factory,
+            gamma=self._gamma,
+            n_critics=self._n_critics,
+            bootstrap=self._bootstrap,
+            share_encoder=self._share_encoder,
+            use_gpu=self._use_gpu,
+            scaler=self._scaler,
+            augmentation=self._augmentation,
+        )
+        self._impl.build()
