@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, ClassVar, Dict, Optional, Union
+from typing import Any, ClassVar, Dict, Optional, Union, Type
 from d3rlpy.models.torch.encoders import Encoder, EncoderWithAction
 from d3rlpy.models.torch.q_functions import DiscreteQFunction
 from d3rlpy.models.torch.q_functions import ContinuousQFunction
@@ -294,10 +294,10 @@ class FQFQFunctionFactory(QFunctionFactory):
         return self._entropy_coeff
 
 
-Q_FUNC_LIST = {}
+Q_FUNC_LIST: Dict[str, Type[QFunctionFactory]] = {}
 
 
-def register_q_func_factory(cls: Any) -> None:
+def register_q_func_factory(cls: Type[QFunctionFactory]) -> None:
     """Registers Q function factory class.
 
     Args:
@@ -323,7 +323,7 @@ def create_q_func_factory(
 
     """
     assert name in Q_FUNC_LIST, "%s seems not to be registered." % name
-    factory = Q_FUNC_LIST[name](**kwargs)
+    factory = Q_FUNC_LIST[name](**kwargs)  # type: ignore
     assert isinstance(factory, QFunctionFactory)
     return factory
 

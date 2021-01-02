@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional, Type
 from ..dataset import Episode, MDPDataset
 
 
@@ -399,10 +399,10 @@ class StandardScaler(Scaler):
         return {"mean": mean, "std": std}
 
 
-SCALER_LIST = {}
+SCALER_LIST: Dict[str, Type[Scaler]] = {}
 
 
-def register_scaler(cls: Any) -> None:
+def register_scaler(cls: Type[Scaler]) -> None:
     """Registers scaler class.
 
     Args:
@@ -426,7 +426,7 @@ def create_scaler(name: str, **kwargs: Dict[str, Any]) -> Scaler:
 
     """
     assert name in SCALER_LIST, "%s seems not to be registered." % name
-    scaler = SCALER_LIST[name](**kwargs)
+    scaler = SCALER_LIST[name](**kwargs)  # type: ignore
     assert isinstance(scaler, Scaler)
     return scaler
 

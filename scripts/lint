@@ -4,6 +4,7 @@
 mypy \
   d3rlpy/encoders.py \
   d3rlpy/q_functions.py \
+  d3rlpy/optimizers.py \
   d3rlpy/models \
   d3rlpy/preprocessing \
   d3rlpy/base.py \

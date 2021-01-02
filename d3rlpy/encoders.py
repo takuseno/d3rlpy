@@ -2,7 +2,7 @@ import copy
 import torch
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Union
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Union, Type
 from typing import Sequence
 from d3rlpy.models.torch.encoders import Encoder, EncoderWithAction
 from d3rlpy.models.torch.encoders import PixelEncoder
@@ -348,10 +348,10 @@ class DenseEncoderFactory(EncoderFactory):
         }
 
 
-ENCODER_LIST: Dict[str, Any] = {}
+ENCODER_LIST: Dict[str, Type[EncoderFactory]] = {}
 
 
-def register_encoder_factory(cls: Any) -> None:
+def register_encoder_factory(cls: Type[EncoderFactory]) -> None:
     """Registers encoder factory class.
 
     Args:
@@ -377,7 +377,7 @@ def create_encoder_factory(
 
     """
     assert name in ENCODER_LIST, "%s seems not to be registered." % name
-    factory = ENCODER_LIST[name](**kwargs)
+    factory = ENCODER_LIST[name](**kwargs)  # type: ignore
     assert isinstance(factory, EncoderFactory)
     return factory
 

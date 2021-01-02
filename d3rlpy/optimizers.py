@@ -1,12 +1,14 @@
 import copy
+import torch
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 
-from torch.optim import SGD, Adam, RMSprop
+from typing import Any, Dict, List, Union, Tuple, Type, cast
+from torch.optim import Optimizer, SGD, Adam, RMSprop
 
 
 class OptimizerFactory:
-    """ A factory class that creates an optimizer object in a lazy way.
+    """A factory class that creates an optimizer object in a lazy way.
 
     The optimizers in algorithms can be configured through this factory class.
 
@@ -29,15 +31,19 @@ class OptimizerFactory:
         optim_kwargs (dict): given parameters for an optimizer.
 
     """
-    def __init__(self, optim_cls, **kwargs):
-        if isinstance(optim_cls, str):
-            self.optim_cls = getattr(optim, optim_cls)
-        else:
-            self.optim_cls = optim_cls
-        self.optim_kwargs = kwargs
 
-    def create(self, params, lr):
-        """ Returns an optimizer object.
+    _optim_cls: Type[Optimizer]
+    _optim_kwargs: Dict[str, Any]
+
+    def __init__(self, optim_cls: Union[Type[Optimizer], str], **kwargs: Any):
+        if isinstance(optim_cls, str):
+            self._optim_cls = cast(Type[Optimizer], getattr(optim, optim_cls))
+        else:
+            self._optim_cls = optim_cls
+        self._optim_kwargs = kwargs
+
+    def create(self, params: List[torch.Tensor], lr: float) -> Optimizer:
+        """Returns an optimizer object.
 
         Args:
             params (list): a list of PyTorch parameters.
@@ -47,10 +53,10 @@ class OptimizerFactory:
             torch.optim.Optimizer: an optimizer object.
 
         """
-        return self.optim_cls(params, lr=lr, **self.optim_kwargs)
+        return self._optim_cls(params, lr=lr, **self._optim_kwargs)  # type: ignore
 
-    def get_params(self, deep=False):
-        """ Returns optimizer parameters.
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
+        """Returns optimizer parameters.
 
         Args:
             deep (bool): flag to deeply copy the parameters.
@@ -60,14 +66,14 @@ class OptimizerFactory:
 
         """
         if deep:
-            params = copy.deepcopy(self.optim_kwargs)
+            params = copy.deepcopy(self._optim_kwargs)
         else:
-            params = self.optim_kwargs
-        return {'optim_cls': self.optim_cls.__name__, **params}
+            params = self._optim_kwargs
+        return {"optim_cls": self._optim_cls.__name__, **params}
 
 
 class SGDFactory(OptimizerFactory):
-    """ An alias for SGD optimizer.
+    """An alias for SGD optimizer.
 
     .. code-block:: python
 
@@ -86,21 +92,26 @@ class SGDFactory(OptimizerFactory):
         optim_kwargs (dict): given parameters for an optimizer.
 
     """
-    def __init__(self,
-                 momentum=0,
-                 dampening=0,
-                 weight_decay=0,
-                 nesterov=False,
-                 **kwargs):
-        super().__init__(optim_cls=SGD,
-                         momentum=momentum,
-                         dampening=dampening,
-                         weight_decay=weight_decay,
-                         nesterov=nesterov)
+
+    def __init__(
+        self,
+        momentum: float = 0,
+        dampening: float = 0,
+        weight_decay: float = 0,
+        nesterov: bool = False,
+        **kwargs: Any
+    ):
+        super().__init__(
+            optim_cls=SGD,
+            momentum=momentum,
+            dampening=dampening,
+            weight_decay=weight_decay,
+            nesterov=nesterov,
+        )
 
 
 class AdamFactory(OptimizerFactory):
-    """ An alias for Adam optimizer.
+    """An alias for Adam optimizer.
 
     .. code-block:: python
 
@@ -121,21 +132,26 @@ class AdamFactory(OptimizerFactory):
         optim_kwargs (dict): given parameters for an optimizer.
 
     """
-    def __init__(self,
-                 betas=(0.9, 0.999),
-                 eps=1e-8,
-                 weight_decay=0,
-                 amsgrad=False,
-                 **kwargs):
-        super().__init__(optim_cls=Adam,
-                         betas=betas,
-                         eps=eps,
-                         weight_decay=weight_decay,
-                         amsgrad=amsgrad)
+
+    def __init__(
+        self,
+        betas: Tuple[float, float] = (0.9, 0.999),
+        eps: float = 1e-8,
+        weight_decay: float = 0,
+        amsgrad: bool = False,
+        **kwargs: Any
+    ):
+        super().__init__(
+            optim_cls=Adam,
+            betas=betas,
+            eps=eps,
+            weight_decay=weight_decay,
+            amsgrad=amsgrad,
+        )
 
 
 class RMSpropFactory(OptimizerFactory):
-    """ An alias for RMSprop optimizer.
+    """An alias for RMSprop optimizer.
 
     .. code-block:: python
 
@@ -157,16 +173,21 @@ class RMSpropFactory(OptimizerFactory):
         optim_kwargs (dict): given parameters for an optimizer.
 
     """
-    def __init__(self,
-                 alpha=0.95,
-                 eps=1e-2,
-                 weight_decay=0,
-                 momentum=0,
-                 centered=True,
-                 **kwargs):
-        super().__init__(optim_cls=RMSprop,
-                         alpha=alpha,
-                         eps=eps,
-                         weight_decay=weight_decay,
-                         momentum=momentum,
-                         centered=centered)
+
+    def __init__(
+        self,
+        alpha: float = 0.95,
+        eps: float = 1e-2,
+        weight_decay: float = 0,
+        momentum: float = 0,
+        centered: bool = True,
+        **kwargs: Any
+    ):
+        super().__init__(
+            optim_cls=RMSprop,
+            alpha=alpha,
+            eps=eps,
+            weight_decay=weight_decay,
+            momentum=momentum,
+            centered=centered,
+        )

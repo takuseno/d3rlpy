@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Type
 from .base import Augmentation
 from .image import RandomShift
 from .image import Cutout
@@ -12,10 +12,10 @@ from .vector import MultipleAmplitudeScaling
 from .pipeline import AugmentationPipeline
 from .pipeline import DrQPipeline
 
-AUGMENTATION_LIST = {}
+AUGMENTATION_LIST: Dict[str, Type[Augmentation]] = {}
 
 
-def register_augmentation(cls: Any) -> None:
+def register_augmentation(cls: Type[Augmentation]) -> None:
     """Registers augmentation class.
 
     Args:
@@ -39,7 +39,7 @@ def create_augmentation(name: str, **kwargs: Dict[str, Any]) -> Augmentation:
 
     """
     assert name in AUGMENTATION_LIST, "%s seems not to be registered." % name
-    augmentation = AUGMENTATION_LIST[name](**kwargs)
+    augmentation = AUGMENTATION_LIST[name](**kwargs)  # type: ignore
     assert isinstance(augmentation, Augmentation)
     return augmentation
 
