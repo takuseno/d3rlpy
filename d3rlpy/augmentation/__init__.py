@@ -12,6 +12,23 @@ from .vector import MultipleAmplitudeScaling
 from .pipeline import AugmentationPipeline
 from .pipeline import DrQPipeline
 
+__all__ = [
+    "Augmentation",
+    "AugmentationPipeline",
+    "DrQPipeline",
+    "RandomShift",
+    "Cutout",
+    "HorizontalFlip",
+    "VerticalFlip",
+    "RandomRotation",
+    "Intensity",
+    "ColorJitter",
+    "SingleAmplitudeScaling",
+    "MultipleAmplitudeScaling",
+    "register_augmentation",
+    "create_augmentation",
+]
+
 AUGMENTATION_LIST: Dict[str, Type[Augmentation]] = {}
 
 

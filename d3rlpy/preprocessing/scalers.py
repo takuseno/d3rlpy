@@ -143,10 +143,6 @@ class MinMaxScaler(Scaler):
         min (numpy.ndarray): minimum values at each entry.
         max (numpy.ndarray): maximum values at each entry.
 
-    Attributes:
-        minimum (numpy.ndarray): minimum values at each entry.
-        maximum (numpy.ndarray): maximum values at each entry.
-
     """
 
     TYPE: ClassVar[str] = "min_max"
@@ -291,10 +287,6 @@ class StandardScaler(Scaler):
         dataset (d3rlpy.dataset.MDPDataset): dataset object.
         mean (numpy.ndarray): mean values at each entry.
         std (numpy.ndarray): standard deviation at each entry.
-
-    Attributes:
-        mean (numpy.ndarray): mean values at each entry.
-        std (numpy.ndarray): standard deviation values at each entry.
 
     """
 

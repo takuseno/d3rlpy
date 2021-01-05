@@ -9,7 +9,7 @@ from typing import Sequence
 from collections import defaultdict
 from tqdm.auto import tqdm
 from .preprocessing import create_scaler, Scaler
-from .augmentation import create_augmentation, AugmentationPipeline, DrQPipeline
+from .augmentation import create_augmentation, AugmentationPipeline
 from .augmentation import DrQPipeline
 from .dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
 from .logger import D3RLPyLogger
@@ -19,7 +19,7 @@ from .gpu import Device
 from .optimizers import OptimizerFactory
 from .encoders import EncoderFactory, create_encoder_factory
 from .q_functions import QFunctionFactory, create_q_func_factory
-from .argument_utils import check_scaler, ScalerArg
+from .argument_utility import check_scaler, ScalerArg
 from .online.utility import get_action_size_from_env
 
 
@@ -210,8 +210,16 @@ class LearnableBase:
 
         """
         for key, val in params.items():
-            assert hasattr(self, key)
-            setattr(self, key, val)
+            if hasattr(self, key):
+                try:
+                    setattr(self, key, val)
+                except AttributeError:
+                    # try passing to protected keys
+                    if hasattr(self, "_" + key):
+                        setattr(self, "_" + key, val)
+            else:
+                assert hasattr(self, "_" + key)
+                setattr(self, "_" + key, val)
         return self
 
     def get_params(self, deep: bool = True) -> Dict[str, Any]:
@@ -239,11 +247,24 @@ class LearnableBase:
             # remove magic properties
             if key[:2] == "__":
                 continue
-            # remove protected properties
-            if key[-1] == "_":
+
+            # remove specific keys
+            if key in [
+                "_eval_results",
+                "_loss_history",
+                "_active_logger",
+                "observation_shape",
+                "action_size",
+            ]:
                 continue
-            # pick scalar parameters
+
             value = getattr(self, key)
+
+            # remove underscore
+            if key[0] == "_":
+                key = key[1:]
+
+            # pick scalar parameters
             if np.isscalar(value):
                 rets[key] = value
             elif isinstance(value, object) and not callable(value):
@@ -504,7 +525,7 @@ class LearnableBase:
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[float]:
+    ) -> List[Optional[float]]:
         """Update parameters with mini-batch of data.
 
         Args:
@@ -609,33 +630,58 @@ class LearnableBase:
     def batch_size(self) -> int:
         return self._batch_size
 
+    @batch_size.setter
+    def batch_size(self, batch_size: int) -> None:
+        self._batch_size = batch_size
+
     @property
     def n_frames(self) -> int:
         return self._n_frames
+
+    @n_frames.setter
+    def n_frames(self, n_frames: int) -> None:
+        self._n_frames = n_frames
 
     @property
     def n_steps(self) -> int:
         return self._n_steps
 
+    @n_steps.setter
+    def n_steps(self, n_steps: int) -> None:
+        self._n_steps = n_steps
+
     @property
     def gamma(self) -> float:
         return self._gamma
+
+    @gamma.setter
+    def gamma(self, gamma: float) -> None:
+        self._gamma = gamma
 
     @property
     def scaler(self) -> Optional[Scaler]:
         return self._scaler
 
+    @scaler.setter
+    def scaler(self, scaler: Scaler) -> None:
+        self._scaler = scaler
+
     @property
-    def impl(self) -> ImplBase:
-        assert self._impl is not None
+    def impl(self) -> Optional[ImplBase]:
         return self._impl
 
-    @property
-    def observation_shape(self) -> Sequence[int]:
-        assert self._impl is not None
-        return self._impl.observation_shape
+    @impl.setter
+    def impl(self, impl: ImplBase) -> None:
+        self._impl = impl
 
     @property
-    def action_size(self) -> int:
-        assert self._impl is not None
-        return self._impl.action_size
+    def observation_shape(self) -> Optional[Sequence[int]]:
+        if self._impl:
+            return self._impl.observation_shape
+        return None
+
+    @property
+    def action_size(self) -> Optional[int]:
+        if self._impl:
+            return self._impl.action_size
+        return None

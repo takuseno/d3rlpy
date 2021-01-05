@@ -2,13 +2,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from abc import ABCMeta, abstractmethod
 from typing import Tuple, cast
 from torch.distributions import Normal
 from torch.distributions.kl import kl_divergence
 from .encoders import Encoder, EncoderWithAction
 
 
-class ConditionalVAE(nn.Module):
+class ConditionalVAE(nn.Module):  # type: ignore
     _encoder_encoder: EncoderWithAction
     _decoder_encoder: EncoderWithAction
     _beta: float
@@ -48,6 +49,9 @@ class ConditionalVAE(nn.Module):
         dist = self.encode(x, action)
         return self.decode(x, dist.rsample())
 
+    def __call__(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        return cast(torch.Tensor, super().__call__(x, action))
+
     def encode(self, x: torch.Tensor, action: torch.Tensor) -> Normal:
         h = self._encoder_encoder(x, action)
         mu = self._mu(h)
@@ -68,7 +72,22 @@ class ConditionalVAE(nn.Module):
         return F.mse_loss(y, action) + cast(torch.Tensor, self._beta * kl_loss)
 
 
-class DiscreteImitator(nn.Module):
+class Imitator(nn.Module, metaclass=ABCMeta):  # type: ignore
+    @abstractmethod
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        pass
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        return cast(torch.Tensor, super().__call__(x))
+
+    @abstractmethod
+    def compute_error(
+        self, x: torch.Tensor, action: torch.Tensor
+    ) -> torch.Tensor:
+        pass
+
+
+class DiscreteImitator(Imitator):
     _encoder: Encoder
     _beta: float
     _fc: nn.Linear
@@ -98,7 +117,7 @@ class DiscreteImitator(nn.Module):
         return F.nll_loss(log_probs, action.view(-1)) + self._beta * penalty
 
 
-class DeterministicRegressor(nn.Module):
+class DeterministicRegressor(Imitator):
     _encoder: Encoder
     _fc: nn.Linear
 
@@ -118,7 +137,7 @@ class DeterministicRegressor(nn.Module):
         return F.mse_loss(self.forward(x), action)
 
 
-class ProbablisticRegressor(nn.Module):
+class ProbablisticRegressor(Imitator):
     _encoder: Encoder
     _mu: nn.Linear
     _logstd: nn.Linear

@@ -1,20 +1,19 @@
 import numpy as np
 
 from abc import ABCMeta, abstractmethod
-from typing import Union
+from typing import Any, List, Optional, Union
 from typing_extensions import Protocol
-from ..algos.base import AlgoBase
 
 
 class _ActionProtocol(Protocol):
-    def predict(self, x: Union[np.ndarray, list]) -> np.ndarray:
+    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
         ...
 
-    def sample_action(self, x: Union[np.ndarray, list]) -> np.ndarray:
+    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
         ...
 
     @property
-    def action_size(self) -> int:
+    def action_size(self) -> Optional[int]:
         ...
 
 
@@ -30,11 +29,6 @@ class LinearDecayEpsilonGreedy(Explorer):
     """:math:`\\epsilon`-greedy explorer with linear decay schedule.
 
     Args:
-        start_epsilon (float): the beginning :math:`\\epsilon`.
-        end_epsilon (float): the end :math:`\\epsilon`.
-        duration (int): the scheduling duration.
-
-    Attributes:
         start_epsilon (float): the beginning :math:`\\epsilon`.
         end_epsilon (float): the end :math:`\\epsilon`.
         duration (int): the scheduling duration.
@@ -70,6 +64,7 @@ class LinearDecayEpsilonGreedy(Explorer):
 
         """
         if np.random.random() < self.compute_epsilon(step):
+            assert algo.action_size is not None
             return np.random.randint(algo.action_size)
         return algo.predict([x])[0]
 
@@ -90,10 +85,6 @@ class NormalNoise(Explorer):
     """Normal noise explorer.
 
     Args:
-        mean (float): mean.
-        std (float): standard deviation.
-
-    Attributes:
         mean (float): mean.
         std (float): standard deviation.
 

@@ -1,59 +1,111 @@
-from torch.optim import Adam
-from d3rlpy.models.torch.dynamics import create_probablistic_dynamics
-from d3rlpy.algos.torch.utility import torch_api, train_api
+import numpy as np
+import torch
+
+from typing import Optional, Sequence, Tuple
+from torch.optim import Optimizer, Adam
+from d3rlpy.optimizers import OptimizerFactory
+from d3rlpy.encoders import EncoderFactory
+from d3rlpy.preprocessing import Scaler
+from d3rlpy.gpu import Device
+from d3rlpy.models.torch.utility import create_probablistic_dynamics
+from d3rlpy.models.torch.dynamics import EnsembleDynamics
+from ...torch_utility import torch_api, train_api
 from .base import TorchImplBase
 
 
 class MOPOImpl(TorchImplBase):
-    def __init__(self, observation_shape, action_size, learning_rate,
-                 optim_factory, encoder_factory, n_ensembles, lam,
-                 discrete_action, scaler, use_gpu):
-        super().__init__(observation_shape, action_size, scaler)
-        self.learning_rate = learning_rate
-        self.optim_factory = optim_factory
-        self.encoder_factory = encoder_factory
-        self.n_ensembles = n_ensembles
-        self.lam = lam
-        self.discrete_action = discrete_action
-        self.use_gpu = use_gpu
 
+    _learning_rate: float
+    _optim_factory: OptimizerFactory
+    _encoder_factory: EncoderFactory
+    _n_ensembles: int
+    _lam: float
+    _discrete_action: bool
+    _use_gpu: Optional[Device]
+    _dynamics: Optional[EnsembleDynamics]
+    _optim: Optional[Optimizer]
+
+    def __init__(
+        self,
+        observation_shape: Sequence[int],
+        action_size: int,
+        learning_rate: float,
+        optim_factory: OptimizerFactory,
+        encoder_factory: EncoderFactory,
+        n_ensembles: int,
+        lam: float,
+        discrete_action: bool,
+        scaler: Optional[Scaler],
+        use_gpu: Optional[Device],
+    ):
+        super().__init__(observation_shape, action_size, scaler)
+        self._learning_rate = learning_rate
+        self._optim_factory = optim_factory
+        self._encoder_factory = encoder_factory
+        self._n_ensembles = n_ensembles
+        self._lam = lam
+        self._discrete_action = discrete_action
+        self._use_gpu = use_gpu
+
+        # initialized in build
+        self._dynamics = None
+        self._optim = None
+
+    def build(self) -> None:
         self._build_dynamics()
 
         self.to_cpu()
-        if self.use_gpu:
-            self.to_gpu()
+        if self._use_gpu:
+            self.to_gpu(self._use_gpu)
 
         self._build_optim()
 
-    def _build_dynamics(self):
-        self.dynamics = create_probablistic_dynamics(
-            self.observation_shape,
-            self.action_size,
-            self.encoder_factory,
-            n_ensembles=self.n_ensembles,
-            discrete_action=self.discrete_action)
+    def _build_dynamics(self) -> None:
+        self._dynamics = create_probablistic_dynamics(
+            self._observation_shape,
+            self._action_size,
+            self._encoder_factory,
+            n_ensembles=self._n_ensembles,
+            discrete_action=self._discrete_action,
+        )
 
-    def _build_optim(self):
-        self.optim = self.optim_factory.create(self.dynamics.parameters(),
-                                               lr=self.learning_rate)
+    def _build_optim(self) -> None:
+        assert self._dynamics is not None
+        self._optim = self._optim_factory.create(
+            self._dynamics.parameters(), lr=self._learning_rate
+        )
 
-    def _predict(self, x, action):
-        return self.dynamics(x, action, True, 'max')
+    def _predict(
+        self, x: torch.Tensor, action: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        assert self._dynamics is not None
+        return self._dynamics.predict_with_variance(x, action, "max")
 
-    def _generate(self, x, action):
-        observations, rewards, variances = self.dynamics(x,
-                                                         action,
-                                                         with_variance=True,
-                                                         variance_type='max')
-        return observations, rewards - self.lam * variances
+    def _generate(
+        self, x: torch.Tensor, action: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert self._dynamics is not None
+        observations, rewards, variances = self._dynamics.predict_with_variance(
+            x, action, "max"
+        )
+        return observations, rewards - self._lam * variances
 
     @train_api
-    @torch_api(scaler_targets=['obs_t', 'obs_tp1'])
-    def update(self, obs_t, act_t, rew_tp1, obs_tp1):
-        loss = self.dynamics.compute_error(obs_t, act_t, rew_tp1, obs_tp1)
+    @torch_api(scaler_targets=["obs_t", "obs_tp1"])
+    def update(
+        self,
+        obs_t: torch.Tensor,
+        act_t: torch.Tensor,
+        rew_tp1: torch.Tensor,
+        obs_tp1: torch.Tensor,
+    ) -> np.ndarray:
+        assert self._dynamics is not None
+        assert self._optim is not None
 
-        self.optim.zero_grad()
+        loss = self._dynamics.compute_error(obs_t, act_t, rew_tp1, obs_tp1)
+
+        self._optim.zero_grad()
         loss.backward()
-        self.optim.step()
+        self._optim.step()
 
         return loss.cpu().detach().numpy()

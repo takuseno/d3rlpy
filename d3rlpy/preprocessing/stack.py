@@ -17,12 +17,6 @@ class StackedObservation:
         n_frames (int): the number of frames to stack.
         dtype (int): numpy data type.
 
-    Attributes:
-        image_channels (int): the number of channles of image.
-        n_frames (int): the number of frames to stack.
-        dtype (int): numpy data type.
-        stack (numpy.ndarray): stacked observation.
-
     """
 
     _image_channels: int

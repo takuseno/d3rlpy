@@ -6,11 +6,11 @@ from d3rlpy.preprocessing.scalers import MinMaxScaler
 from d3rlpy.augmentation import AugmentationPipeline, RandomShift
 from d3rlpy.augmentation.base import Augmentation
 from d3rlpy.gpu import Device
-from d3rlpy.argument_utils import check_encoder
-from d3rlpy.argument_utils import check_q_func
-from d3rlpy.argument_utils import check_scaler
-from d3rlpy.argument_utils import check_augmentation
-from d3rlpy.argument_utils import check_use_gpu
+from d3rlpy.argument_utility import check_encoder
+from d3rlpy.argument_utility import check_q_func
+from d3rlpy.argument_utility import check_scaler
+from d3rlpy.argument_utility import check_augmentation
+from d3rlpy.argument_utility import check_use_gpu
 
 
 @pytest.mark.parametrize("value", ["default", DefaultEncoderFactory()])

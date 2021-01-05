@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from abc import abstractmethod, ABCMeta
-from typing import Callable, List, Optional, Sequence
+from typing import Callable, List, Optional, Sequence, cast
 
 
 class Encoder(metaclass=ABCMeta):
@@ -46,7 +46,7 @@ class EncoderWithAction(metaclass=ABCMeta):
         pass
 
 
-class _PixelEncoder(nn.Module):
+class _PixelEncoder(nn.Module):  # type: ignore
 
     _observation_shape: Sequence[int]
     _feature_size: int
@@ -100,7 +100,7 @@ class _PixelEncoder(nn.Module):
     def _get_linear_input_size(self) -> int:
         x = torch.rand((1,) + tuple(self._observation_shape))
         with torch.no_grad():
-            return self._conv_encode(x).view(1, -1).shape[1]
+            return self._conv_encode(x).view(1, -1).shape[1]  # type: ignore
 
     def _conv_encode(self, x: torch.Tensor) -> torch.Tensor:
         h = x
@@ -136,7 +136,7 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
 
     def __init__(
         self,
-        observation_shape: Sequence,
+        observation_shape: Sequence[int],
         action_size: int,
         filters: Optional[List[Sequence[int]]] = None,
         feature_size: int = 512,
@@ -175,7 +175,7 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
         return self._action_size
 
 
-class _VectorEncoder(nn.Module):
+class _VectorEncoder(nn.Module):  # type: ignore
 
     _observation_shape: Sequence[int]
     _use_batch_norm: bool

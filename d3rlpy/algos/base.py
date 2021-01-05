@@ -2,15 +2,15 @@ import numpy as np
 import gym
 
 from abc import abstractmethod
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Tuple, Union
 from ..base import ImplBase, LearnableBase
 from ..dataset import Transition
-from ..dynamics.base import DynamicsBase
+from ..dynamics import DynamicsBase
 from ..online.iterators import train
 from ..online.buffers import Buffer
 from ..online.explorers import Explorer
 from ..preprocessing import Scaler
-from ..argument_utils import ScalerArg
+from ..argument_utility import ScalerArg
 
 
 class AlgoImplBase(ImplBase):
@@ -23,20 +23,22 @@ class AlgoImplBase(ImplBase):
         pass
 
     @abstractmethod
-    def predict_best_action(self, x: Union[np.ndarray, list]) -> np.ndarray:
+    def predict_best_action(
+        self, x: Union[np.ndarray, List[Any]]
+    ) -> np.ndarray:
         pass
 
     @abstractmethod
     def predict_value(
         self,
-        x: Union[np.ndarray, list],
-        action: Union[np.ndarray, list],
+        x: Union[np.ndarray, List[Any]],
+        action: Union[np.ndarray, List[Any]],
         with_std: bool,
-    ) -> np.ndarray:
+    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         pass
 
     @abstractmethod
-    def sample_action(self, x: Union[np.ndarray, list]) -> np.ndarray:
+    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
         pass
 
 
@@ -86,7 +88,7 @@ class AlgoBase(LearnableBase):
         assert self._impl is not None
         self._impl.save_policy(fname, as_onnx)
 
-    def predict(self, x: Union[np.ndarray, list]) -> np.ndarray:
+    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
         """Returns greedy actions.
 
         .. code-block:: python
@@ -110,10 +112,10 @@ class AlgoBase(LearnableBase):
 
     def predict_value(
         self,
-        x: Union[np.ndarray, list],
-        action: Union[np.ndarray, list],
+        x: Union[np.ndarray, List[Any]],
+        action: Union[np.ndarray, List[Any]],
         with_std: bool = False,
-    ) -> np.ndarray:
+    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """Returns predicted action-values.
 
         .. code-block:: python
@@ -150,7 +152,7 @@ class AlgoBase(LearnableBase):
         assert self._impl is not None
         return self._impl.predict_value(x, action, with_std)
 
-    def sample_action(self, x: Union[np.ndarray, list]) -> np.ndarray:
+    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
         """Returns sampled actions.
 
         The sampled actions are identical to the output of `predict` method if

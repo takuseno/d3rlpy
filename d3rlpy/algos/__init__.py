@@ -1,3 +1,5 @@
+from typing import Any, Dict, Type
+from .base import AlgoBase
 from .awac import AWAC
 from .awr import AWR, DiscreteAWR
 from .bc import BC, DiscreteBC
@@ -10,7 +12,31 @@ from .plas import PLAS, PLASWithPerturbation
 from .sac import SAC, DiscreteSAC
 from .td3 import TD3
 
-DISCRETE_ALGORITHMS = {
+
+__all__ = [
+    "AlgoBase",
+    "AWAC",
+    "AWR",
+    "DiscreteAWR",
+    "BC",
+    "DiscreteBC",
+    "BEAR",
+    "CQL",
+    "DiscreteCQL",
+    "DDPG",
+    "DQN",
+    "DoubleDQN",
+    "PLAS",
+    "PLASWithPerturbation",
+    "SAC",
+    "DiscreteSAC",
+    "TD3",
+    "get_algo",
+    "create_algo",
+]
+
+
+DISCRETE_ALGORITHMS: Dict[str, Type[AlgoBase]] = {
     "awr": DiscreteAWR,
     "bc": DiscreteBC,
     "bcq": DiscreteBCQ,
@@ -20,7 +46,7 @@ DISCRETE_ALGORITHMS = {
     "sac": DiscreteSAC,
 }
 
-CONTINUOUS_ALGORITHMS = {
+CONTINUOUS_ALGORITHMS: Dict[str, Type[AlgoBase]] = {
     "awac": AWAC,
     "awr": AWR,
     "bc": BC,
@@ -34,7 +60,7 @@ CONTINUOUS_ALGORITHMS = {
 }
 
 
-def get_algo(name, discrete):
+def get_algo(name: str, discrete: bool) -> Type[AlgoBase]:
     """Returns algorithm class from its name.
 
     Args:
@@ -54,7 +80,7 @@ def get_algo(name, discrete):
     raise ValueError("%s does not support continuous action-space." % name)
 
 
-def create_algo(name, discrete, **params):
+def create_algo(name: str, discrete: bool, **params: Any) -> AlgoBase:
     """Returns algorithm object from its name.
 
     Args:

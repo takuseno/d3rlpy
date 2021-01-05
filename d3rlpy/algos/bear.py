@@ -8,11 +8,11 @@ from ..dynamics.base import DynamicsBase
 from ..q_functions import QFunctionFactory
 from ..gpu import Device
 from ..augmentation import AugmentationPipeline
-from ..argument_utils import check_encoder, EncoderArg
-from ..argument_utils import check_use_gpu, UseGPUArg
-from ..argument_utils import check_augmentation, AugmentationArg
-from ..argument_utils import check_q_func, QFuncArg
-from ..argument_utils import ScalerArg
+from ..argument_utility import check_encoder, EncoderArg
+from ..argument_utility import check_use_gpu, UseGPUArg
+from ..argument_utility import check_augmentation, AugmentationArg
+from ..argument_utility import check_q_func, QFuncArg
+from ..argument_utility import ScalerArg
 
 
 class BEAR(AlgoBase):
@@ -111,59 +111,6 @@ class BEAR(AlgoBase):
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bear_impl.BEARImpl): algorithm implementation.
-
-    Attributes:
-        actor_learning_rate (float): learning rate for policy function.
-        critic_learning_rate (float): learning rate for Q functions.
-        imitator_learning_rate (float): learning rate for behavior policy
-            function.
-        temp_learning_rate (float): learning rate for temperature parameter.
-        alpha_learning_rate (float): learning rate for :math:`\alpha`.
-        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
-        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the behavior policy.
-        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the temperature.
-        alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for :math:`\alpha`.
-        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the critic.
-        imitator_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the behavior policy.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
-            Q function factory.
-        batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): N-step TD calculation.
-        gamma (float): discount factor.
-        tau (float): target network synchronization coefficiency.
-        n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
-        update_actor_interval (int): interval to update policy function.
-        initial_temperature (float): initial temperature value.
-        initial_alpha (float): initial :math:`\alpha` value.
-        alpha_threshold (float): threshold value described as
-            :math:`\epsilon`.
-        lam (float): weight for critic ensemble.
-        n_action_samples (int): the number of action samples to estimate
-            action-values.
-        mmd_sigma (float): :math:`\sigma` for gaussian kernel in MMD
-            calculation.
-        rl_start_epoch (int): epoch to start to update policy function and Q
-            functions. If this is large, RL training would be more stabilized.
-        use_gpu (d3rlpy.gpu.Device): GPU device.
-        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline):
-            augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.torch.bear_impl.BEARImpl): algorithm implementation.
-        eval_results_ (dict): evaluation results.
 
     """
 
@@ -314,7 +261,7 @@ class BEAR(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[float]:
+    ) -> List[Optional[float]]:
         assert self._impl is not None
 
         imitator_loss = self._impl.update_imitator(

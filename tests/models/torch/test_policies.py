@@ -51,7 +51,7 @@ def test_deterministic_residual_policy(
     assert ((y - action).abs() <= scale).all()
 
     # check best action
-    best_action = policy.best_action(x, action)
+    best_action = policy.best_residual_action(x, action)
     assert torch.allclose(best_action, y)
 
     # check layer connection

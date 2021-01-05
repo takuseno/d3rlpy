@@ -38,7 +38,7 @@ def _gaussian_likelihood(
     return (((mu - x) ** 2) * inv_std).mean(dim=1, keepdim=True)
 
 
-class ProbablisticDynamics(nn.Module):
+class ProbablisticDynamics(nn.Module):  # type: ignore
     """Probablistic dynamics model.
 
     References:
@@ -138,7 +138,7 @@ class ProbablisticDynamics(nn.Module):
         return loss.view(-1, 1)
 
 
-class EnsembleDynamics(nn.Module):
+class EnsembleDynamics(nn.Module):  # type: ignore
     _models: nn.ModuleList
 
     def __init__(self, models: List[ProbablisticDynamics]):
@@ -149,6 +149,13 @@ class EnsembleDynamics(nn.Module):
         self, x: torch.Tensor, action: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         return self.predict_with_variance(x, action)[:2]
+
+    def __call__(
+        self, x: torch.Tensor, action: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        return cast(
+            Tuple[torch.Tensor, torch.Tensor], super().__call__(x, action)
+        )
 
     def predict_with_variance(
         self, x: torch.Tensor, action: torch.Tensor, variance_type: str = "data"

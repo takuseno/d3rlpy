@@ -8,11 +8,11 @@ from ..dynamics.base import DynamicsBase
 from ..optimizers import OptimizerFactory, AdamFactory
 from ..q_functions import QFunctionFactory
 from ..gpu import Device
-from ..argument_utils import check_encoder, EncoderArg
-from ..argument_utils import check_use_gpu, UseGPUArg
-from ..argument_utils import check_augmentation, AugmentationArg
-from ..argument_utils import check_q_func, QFuncArg
-from ..argument_utils import ScalerArg
+from ..argument_utility import check_encoder, EncoderArg
+from ..argument_utility import check_use_gpu, UseGPUArg
+from ..argument_utility import check_augmentation, AugmentationArg
+from ..argument_utility import check_q_func, QFuncArg
+from ..argument_utility import ScalerArg
 
 
 class PLAS(AlgoBase):
@@ -73,45 +73,6 @@ class PLAS(AlgoBase):
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
             augmentation.
         impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
-
-    Attributes:
-        actor_learning_rate (float): learning rate for policy function.
-        critic_learning_rate (float): learning rate for Q functions.
-        imitator_learning_rate (float): learning rate for Conditional VAE.
-        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
-        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the conditional VAE.
-        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the critic.
-        imitator_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the conditional VAE.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
-            Q function factory.
-        batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): N-step TD calculation.
-        gamma (float): discount factor.
-        tau (float): target network synchronization coefficiency.
-        n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
-        update_actor_interval (int): interval to update policy function.
-        lam (float): weight factor for critic ensemble.
-        rl_start_epoch (int): epoch to start to update policy function and Q
-            functions.
-        beta (float): KL reguralization term for Conditional VAE.
-        use_gpu (d3rlpy.gpu.Device): GPU device.
-        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline):
-            augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
-        eval_results_ (dict): evaluation results.
 
     """
 
@@ -230,7 +191,8 @@ class PLAS(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[float]:
+    ) -> List[Optional[float]]:
+        assert self._impl is not None
         if epoch < self._rl_start_epoch:
             imitator_loss = self._impl.update_imitator(
                 batch.observations, batch.actions

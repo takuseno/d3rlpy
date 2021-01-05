@@ -57,15 +57,15 @@ class D3RLPyLogger:
                 self._experiment_name = experiment_name
 
             if self._save_metrics:
-                self.logdir = os.path.join(root_dir, self._experiment_name)
-                if not os.path.exists(self.logdir):
-                    os.makedirs(self.logdir)
+                self._logdir = os.path.join(root_dir, self._experiment_name)
+                if not os.path.exists(self._logdir):
+                    os.makedirs(self._logdir)
                     break
                 else:
                     if with_timestamp:
                         time.sleep(1.0)
                     else:
-                        raise ValueError("%s already exists." % self.logdir)
+                        raise ValueError("%s already exists." % self._logdir)
             else:
                 break
 
@@ -144,3 +144,11 @@ class D3RLPyLogger:
             yield
         finally:
             self.add_metric(name, time.time() - start)
+
+    @property
+    def logdir(self) -> str:
+        return self._logdir
+
+    @property
+    def experiment_name(self) -> str:
+        return self._experiment_name

@@ -14,7 +14,7 @@ def _pick_value_by_action(
     action_size = values.shape[1]
     one_hot = F.one_hot(action.view(-1), num_classes=action_size)
     # take care of 3 dimensional vectors
-    if values.ndim == 3:  # type: ignore
+    if values.dim() == 3:
         one_hot = one_hot.view(-1, action_size, 1)
     masked_values = values * cast(torch.Tensor, one_hot.float())
     return masked_values.sum(dim=1, keepdim=keepdim)
@@ -31,7 +31,7 @@ def _huber_loss(
 def _quantile_huber_loss(
     y: torch.Tensor, target: torch.Tensor, taus: torch.Tensor
 ) -> torch.Tensor:
-    assert y.ndim == 3 and target.ndim == 3 and taus.ndim == 3  # type: ignore
+    assert y.dim() == 3 and target.dim() == 3 and taus.dim() == 3
     # compute huber loss
     huber_loss = _huber_loss(y, target)
     delta = cast(torch.Tensor, ((target - y).detach() < 0.0).float())
@@ -107,7 +107,7 @@ class ContinuousQFunction(QFunction):
         pass
 
 
-class DiscreteMeanQFunction(nn.Module, DiscreteQFunction):
+class DiscreteMeanQFunction(nn.Module, DiscreteQFunction):  # type: ignore
     _action_size: int
     _encoder: Encoder
     _fc: nn.Linear
@@ -152,7 +152,7 @@ class DiscreteMeanQFunction(nn.Module, DiscreteQFunction):
         return self._encoder
 
 
-class ContinuousMeanQFunction(nn.Module, ContinuousQFunction):
+class ContinuousMeanQFunction(nn.Module, ContinuousQFunction):  # type: ignore
     _encoder: EncoderWithAction
     _action_size: int
     _fc: nn.Linear
@@ -194,7 +194,7 @@ class ContinuousMeanQFunction(nn.Module, ContinuousQFunction):
         return self._encoder
 
 
-class QRQFunction(nn.Module, metaclass=ABCMeta):
+class QRQFunction(nn.Module):  # type: ignore
     _n_quantiles: int
 
     def __init__(self, n_quantiles: int):
@@ -836,10 +836,10 @@ def _gather_quantiles_by_indices(
     y: torch.Tensor, indices: torch.Tensor
 ) -> torch.Tensor:
     # TODO: implement this in general case
-    if y.ndim == 3:  # type: ignore
+    if y.dim() == 3:
         # (N, batch, n_quantiles) -> (batch, n_quantiles)
         return y.transpose(0, 1)[torch.arange(y.shape[1]), indices]
-    elif y.ndim == 4:  # type: ignore
+    elif y.dim() == 4:
         # (N, batch, action, n_quantiles) -> (batch, action, N, n_quantiles)
         transposed_y = y.transpose(0, 1).transpose(1, 2)
         # (batch, action, N, n_quantiles) -> (batch * action, N, n_quantiles)
@@ -874,7 +874,7 @@ def _reduce_quantile_ensemble(
     raise ValueError
 
 
-class EnsembleQFunction(nn.Module):
+class EnsembleQFunction(nn.Module):  # type: ignore
     _action_size: int
     _q_funcs: nn.ModuleList
     _bootstrap: bool
@@ -886,7 +886,7 @@ class EnsembleQFunction(nn.Module):
     ):
         super().__init__()
         self._action_size = q_funcs[0].action_size
-        self._q_funcs = nn.ModuleList(q_funcs)  # type: ignore
+        self._q_funcs = nn.ModuleList(q_funcs)
         self._bootstrap = bootstrap and len(q_funcs) > 1
 
     def compute_error(
@@ -951,6 +951,11 @@ class EnsembleDiscreteQFunction(EnsembleQFunction):
             values.append(q_func(x).view(1, x.shape[0], self._action_size))
         return _reduce_ensemble(torch.cat(values, dim=0), reduction)
 
+    def __call__(
+        self, x: torch.Tensor, reduction: str = "mean"
+    ) -> torch.Tensor:
+        return cast(torch.Tensor, super().__call__(x, reduction))
+
     def compute_target(
         self,
         x: torch.Tensor,
@@ -969,6 +974,11 @@ class EnsembleContinuousQFunction(EnsembleQFunction):
         for q_func in self._q_funcs:
             values.append(q_func(x, action).view(1, x.shape[0], 1))
         return _reduce_ensemble(torch.cat(values, dim=0), reduction)
+
+    def __call__(
+        self, x: torch.Tensor, action: torch.Tensor, reduction: str = "mean"
+    ) -> torch.Tensor:
+        return cast(torch.Tensor, super().__call__(x, action, reduction))
 
     def compute_target(
         self,

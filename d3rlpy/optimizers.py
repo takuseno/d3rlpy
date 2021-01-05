@@ -1,9 +1,10 @@
 import copy
 import torch
+import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 
-from typing import Any, Dict, List, Union, Tuple, Type, cast
+from typing import Any, Dict, Iterable, Union, Tuple, Type, cast
 from torch.optim import Optimizer, SGD, Adam, RMSprop
 
 
@@ -26,10 +27,6 @@ class OptimizerFactory:
         optim_cls (type or str): An optimizer class.
         kwargs (any): arbitrary keyword-arguments.
 
-    Attributes:
-        optim_cls (type): An optimizer class.
-        optim_kwargs (dict): given parameters for an optimizer.
-
     """
 
     _optim_cls: Type[Optimizer]
@@ -42,7 +39,7 @@ class OptimizerFactory:
             self._optim_cls = optim_cls
         self._optim_kwargs = kwargs
 
-    def create(self, params: List[torch.Tensor], lr: float) -> Optimizer:
+    def create(self, params: Iterable[nn.Parameter], lr: float) -> Optimizer:
         """Returns an optimizer object.
 
         Args:
@@ -53,7 +50,7 @@ class OptimizerFactory:
             torch.optim.Optimizer: an optimizer object.
 
         """
-        return self._optim_cls(params, lr=lr, **self._optim_kwargs)  # type: ignore
+        return self._optim_cls(params, lr=lr, **self._optim_kwargs)
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         """Returns optimizer parameters.
@@ -86,10 +83,6 @@ class SGDFactory(OptimizerFactory):
         dampening (float): dampening for momentum.
         weight_decay (float): weight decay (L2 penalty).
         nesterov (bool): flag to enable Nesterov momentum.
-
-    Attributes:
-        optim_cls (type): ``torch.optim.SGD`` class.
-        optim_kwargs (dict): given parameters for an optimizer.
 
     """
 
@@ -127,10 +120,6 @@ class AdamFactory(OptimizerFactory):
         weight_decay (float): weight decay (L2 penalty).
         amsgrad (bool): flag to use the AMSGrad variant of this algorithm.
 
-    Attributes:
-        optim_cls (type): ``torch.optim.Adam`` class.
-        optim_kwargs (dict): given parameters for an optimizer.
-
     """
 
     def __init__(
@@ -167,10 +156,6 @@ class RMSpropFactory(OptimizerFactory):
         momentum (float): momentum factor.
         centered (bool): flag to compute the centered RMSProp, the gradient is
             normalized by an estimation of its variance.
-
-    Attributes:
-        optim_cls (type): ``torch.optim.RMSprop`` class.
-        optim_kwargs (dict): given parameters for an optimizer.
 
     """
 

@@ -1,177 +1,277 @@
+import numpy as np
 import torch
 import copy
 
-from d3rlpy.models.torch.policies import create_deterministic_policy
-from d3rlpy.models.torch.policies import create_deterministic_residual_policy
-from d3rlpy.models.torch.imitators import create_conditional_vae
-from .utility import torch_api, train_api, soft_sync
-from .ddpg_impl import DDPGImpl
+from typing import Optional, Sequence
+from torch.optim import Optimizer
+from ...models.torch import DeterministicResidualPolicy
+from ...models.torch import DeterministicPolicy
+from ...models.torch import ConditionalVAE
+from ...models.torch import create_deterministic_policy
+from ...models.torch import create_deterministic_residual_policy
+from ...models.torch import create_conditional_vae
+from ...optimizers import OptimizerFactory
+from ...encoders import EncoderFactory
+from ...q_functions import QFunctionFactory
+from ...gpu import Device
+from ...preprocessing import Scaler
+from ...augmentation import AugmentationPipeline
+from ...torch_utility import torch_api, train_api, soft_sync
+from .ddpg_impl import DDPGBaseImpl
 
 
-class PLASImpl(DDPGImpl):
-    def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, imitator_learning_rate,
-                 actor_optim_factory, critic_optim_factory,
-                 imitator_optim_factory, actor_encoder_factory,
-                 critic_encoder_factory, imitator_encoder_factory,
-                 q_func_factory, gamma, tau, n_critics, bootstrap,
-                 share_encoder, lam, beta, use_gpu, scaler, augmentation):
-        super().__init__(observation_shape=observation_shape,
-                         action_size=action_size,
-                         actor_learning_rate=actor_learning_rate,
-                         critic_learning_rate=critic_learning_rate,
-                         actor_optim_factory=actor_optim_factory,
-                         critic_optim_factory=critic_optim_factory,
-                         actor_encoder_factory=actor_encoder_factory,
-                         critic_encoder_factory=critic_encoder_factory,
-                         q_func_factory=q_func_factory,
-                         gamma=gamma,
-                         tau=tau,
-                         n_critics=n_critics,
-                         bootstrap=bootstrap,
-                         share_encoder=share_encoder,
-                         reguralizing_rate=0.0,
-                         use_gpu=use_gpu,
-                         scaler=scaler,
-                         augmentation=augmentation)
-        self.imitator_learning_rate = imitator_learning_rate
-        self.imitator_optim_factory = imitator_optim_factory
-        self.imitator_encoder_factory = imitator_encoder_factory
-        self.n_critics = n_critics
-        self.lam = lam
-        self.beta = beta
+class PLASImpl(DDPGBaseImpl):
+
+    _imitator_learning_rate: float
+    _imitator_optim_factory: OptimizerFactory
+    _imitator_encoder_factory: EncoderFactory
+    _n_critics: int
+    _lam: float
+    _beta: float
+    _policy: Optional[DeterministicPolicy]
+    _targ_policy: Optional[DeterministicPolicy]
+    _imitator: Optional[ConditionalVAE]
+    _imitator_optim: Optional[Optimizer]
+
+    def __init__(
+        self,
+        observation_shape: Sequence[int],
+        action_size: int,
+        actor_learning_rate: float,
+        critic_learning_rate: float,
+        imitator_learning_rate: float,
+        actor_optim_factory: OptimizerFactory,
+        critic_optim_factory: OptimizerFactory,
+        imitator_optim_factory: OptimizerFactory,
+        actor_encoder_factory: EncoderFactory,
+        critic_encoder_factory: EncoderFactory,
+        imitator_encoder_factory: EncoderFactory,
+        q_func_factory: QFunctionFactory,
+        gamma: float,
+        tau: float,
+        n_critics: int,
+        bootstrap: bool,
+        share_encoder: bool,
+        lam: float,
+        beta: float,
+        use_gpu: Optional[Device],
+        scaler: Optional[Scaler],
+        augmentation: AugmentationPipeline,
+    ):
+        super().__init__(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            actor_learning_rate=actor_learning_rate,
+            critic_learning_rate=critic_learning_rate,
+            actor_optim_factory=actor_optim_factory,
+            critic_optim_factory=critic_optim_factory,
+            actor_encoder_factory=actor_encoder_factory,
+            critic_encoder_factory=critic_encoder_factory,
+            q_func_factory=q_func_factory,
+            gamma=gamma,
+            tau=tau,
+            n_critics=n_critics,
+            bootstrap=bootstrap,
+            share_encoder=share_encoder,
+            use_gpu=use_gpu,
+            scaler=scaler,
+            augmentation=augmentation,
+        )
+        self._imitator_learning_rate = imitator_learning_rate
+        self._imitator_optim_factory = imitator_optim_factory
+        self._imitator_encoder_factory = imitator_encoder_factory
+        self._n_critics = n_critics
+        self._lam = lam
+        self._beta = beta
 
         # initialized in build
-        self.imitator = None
-        self.imitator_optim = None
+        self._imitator = None
+        self._imitator_optim = None
 
-    def build(self):
+    def build(self) -> None:
         self._build_imitator()
         super().build()
         # setup optimizer after the parameters move to GPU
         self._build_imitator_optim()
 
-    def _build_actor(self):
-        self.policy = create_deterministic_policy(
-            observation_shape=self.observation_shape,
-            action_size=2 * self.action_size,
-            encoder_factory=self.actor_encoder_factory)
+    def _build_actor(self) -> None:
+        self._policy = create_deterministic_policy(
+            observation_shape=self._observation_shape,
+            action_size=2 * self._action_size,
+            encoder_factory=self._actor_encoder_factory,
+        )
 
-    def _build_imitator(self):
-        self.imitator = create_conditional_vae(
-            observation_shape=self.observation_shape,
-            action_size=self.action_size,
-            latent_size=2 * self.action_size,
-            beta=self.beta,
-            encoder_factory=self.imitator_encoder_factory)
+    def _build_imitator(self) -> None:
+        self._imitator = create_conditional_vae(
+            observation_shape=self._observation_shape,
+            action_size=self._action_size,
+            latent_size=2 * self._action_size,
+            beta=self._beta,
+            encoder_factory=self._imitator_encoder_factory,
+        )
 
-    def _build_imitator_optim(self):
-        self.imitator_optim = self.imitator_optim_factory.create(
-            params=self.imitator.parameters(), lr=self.imitator_learning_rate)
+    def _build_imitator_optim(self) -> None:
+        assert self._imitator is not None
+        self._imitator_optim = self._imitator_optim_factory.create(
+            params=self._imitator.parameters(), lr=self._imitator_learning_rate
+        )
 
     @train_api
-    @torch_api(scaler_targets=['obs_t'])
-    def update_imitator(self, obs_t, act_t):
-        self.imitator_optim.zero_grad()
+    @torch_api(scaler_targets=["obs_t"])
+    def update_imitator(
+        self, obs_t: torch.Tensor, act_t: torch.Tensor
+    ) -> np.ndarray:
+        assert self._imitator is not None
+        assert self._imitator_optim is not None
 
-        loss = self.augmentation.process(func=self.imitator.compute_error,
-                                         inputs={
-                                             'x': obs_t,
-                                             'action': act_t
-                                         },
-                                         targets=['x'])
+        self._imitator_optim.zero_grad()
+
+        loss = self._augmentation.process(
+            func=self._imitator.compute_error,
+            inputs={"x": obs_t, "action": act_t},
+            targets=["x"],
+        )
 
         loss.backward()
-        self.imitator_optim.step()
+        self._imitator_optim.step()
 
         return loss.cpu().detach().numpy()
 
-    def _compute_actor_loss(self, obs_t):
-        action = self.imitator.decode(obs_t, 2.0 * self.policy(obs_t))
-        return -self.q_func(obs_t, action, 'none')[0].mean()
+    def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+        assert self._imitator is not None
+        assert self._policy is not None
+        assert self._q_func is not None
+        action = self._imitator.decode(obs_t, 2.0 * self._policy(obs_t))
+        return -self._q_func(obs_t, action, "none")[0].mean()
 
-    def _predict_best_action(self, x):
-        return self.imitator.decode(x, 2.0 * self.policy(x))
+    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+        assert self._imitator is not None
+        assert self._policy is not None
+        return self._imitator.decode(x, 2.0 * self._policy(x))
 
-    def compute_target(self, x):
+    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+        assert self._imitator is not None
+        assert self._targ_policy is not None
+        assert self._targ_q_func is not None
         with torch.no_grad():
-            action = self.imitator.decode(x, 2.0 * self.targ_policy(x))
-            return self.targ_q_func.compute_target(x, action, 'mix', self.lam)
+            action = self._imitator.decode(x, 2.0 * self._targ_policy(x))
+            return self._targ_q_func.compute_target(x, action, "mix", self._lam)
 
 
 class PLASWithPerturbationImpl(PLASImpl):
-    def __init__(self, observation_shape, action_size, actor_learning_rate,
-                 critic_learning_rate, imitator_learning_rate,
-                 actor_optim_factory, critic_optim_factory,
-                 imitator_optim_factory, actor_encoder_factory,
-                 critic_encoder_factory, imitator_encoder_factory,
-                 q_func_factory, gamma, tau, n_critics, bootstrap,
-                 share_encoder, lam, beta, action_flexibility, use_gpu, scaler,
-                 augmentation):
-        super().__init__(observation_shape=observation_shape,
-                         action_size=action_size,
-                         actor_learning_rate=actor_learning_rate,
-                         critic_learning_rate=critic_learning_rate,
-                         imitator_learning_rate=imitator_learning_rate,
-                         actor_optim_factory=actor_optim_factory,
-                         critic_optim_factory=critic_optim_factory,
-                         imitator_optim_factory=imitator_optim_factory,
-                         actor_encoder_factory=actor_encoder_factory,
-                         critic_encoder_factory=critic_encoder_factory,
-                         imitator_encoder_factory=imitator_encoder_factory,
-                         q_func_factory=q_func_factory,
-                         gamma=gamma,
-                         tau=tau,
-                         n_critics=n_critics,
-                         bootstrap=bootstrap,
-                         share_encoder=share_encoder,
-                         lam=lam,
-                         beta=beta,
-                         use_gpu=use_gpu,
-                         scaler=scaler,
-                         augmentation=augmentation)
-        self.action_flexibility = action_flexibility
+
+    _action_flexibility: float
+    _perturbation: Optional[DeterministicResidualPolicy]
+    _targ_perturbation: Optional[DeterministicResidualPolicy]
+
+    def __init__(
+        self,
+        observation_shape: Sequence[int],
+        action_size: int,
+        actor_learning_rate: float,
+        critic_learning_rate: float,
+        imitator_learning_rate: float,
+        actor_optim_factory: OptimizerFactory,
+        critic_optim_factory: OptimizerFactory,
+        imitator_optim_factory: OptimizerFactory,
+        actor_encoder_factory: EncoderFactory,
+        critic_encoder_factory: EncoderFactory,
+        imitator_encoder_factory: EncoderFactory,
+        q_func_factory: QFunctionFactory,
+        gamma: float,
+        tau: float,
+        n_critics: int,
+        bootstrap: bool,
+        share_encoder: bool,
+        lam: float,
+        beta: float,
+        action_flexibility: float,
+        use_gpu: Optional[Device],
+        scaler: Optional[Scaler],
+        augmentation: AugmentationPipeline,
+    ):
+        super().__init__(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            actor_learning_rate=actor_learning_rate,
+            critic_learning_rate=critic_learning_rate,
+            imitator_learning_rate=imitator_learning_rate,
+            actor_optim_factory=actor_optim_factory,
+            critic_optim_factory=critic_optim_factory,
+            imitator_optim_factory=imitator_optim_factory,
+            actor_encoder_factory=actor_encoder_factory,
+            critic_encoder_factory=critic_encoder_factory,
+            imitator_encoder_factory=imitator_encoder_factory,
+            q_func_factory=q_func_factory,
+            gamma=gamma,
+            tau=tau,
+            n_critics=n_critics,
+            bootstrap=bootstrap,
+            share_encoder=share_encoder,
+            lam=lam,
+            beta=beta,
+            use_gpu=use_gpu,
+            scaler=scaler,
+            augmentation=augmentation,
+        )
+        self._action_flexibility = action_flexibility
 
         # initialized in build
-        self.perturbation = None
-        self.targ_perturbation = None
+        self._perturbation = None
+        self._targ_perturbation = None
 
-    def build(self):
+    def build(self) -> None:
         super().build()
-        self.targ_perturbation = copy.deepcopy(self.perturbation)
+        self._targ_perturbation = copy.deepcopy(self._perturbation)
 
-    def _build_actor(self):
+    def _build_actor(self) -> None:
         super()._build_actor()
-        self.perturbation = create_deterministic_residual_policy(
-            observation_shape=self.observation_shape,
-            action_size=self.action_size,
-            scale=self.action_flexibility,
-            encoder_factory=self.actor_encoder_factory)
+        self._perturbation = create_deterministic_residual_policy(
+            observation_shape=self._observation_shape,
+            action_size=self._action_size,
+            scale=self._action_flexibility,
+            encoder_factory=self._actor_encoder_factory,
+        )
 
-    def _build_actor_optim(self):
-        parameters = list(self.policy.parameters())
-        parameters += list(self.perturbation.parameters())
-        self.actor_optim = self.actor_optim_factory.create(
-            params=parameters, lr=self.actor_learning_rate)
+    def _build_actor_optim(self) -> None:
+        assert self._policy is not None
+        assert self._perturbation is not None
+        parameters = list(self._policy.parameters())
+        parameters += list(self._perturbation.parameters())
+        self.actor_optim = self._actor_optim_factory.create(
+            params=parameters, lr=self._actor_learning_rate
+        )
 
-    def _compute_actor_loss(self, obs_t):
-        action = self.imitator.decode(obs_t, 2.0 * self.policy(obs_t))
-        residual_action = self.perturbation(obs_t, action)
-        return -self.q_func(obs_t, residual_action, 'none')[0].mean()
+    def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+        assert self._imitator is not None
+        assert self._policy is not None
+        assert self._perturbation is not None
+        assert self._q_func is not None
+        action = self._imitator.decode(obs_t, 2.0 * self._policy(obs_t))
+        residual_action = self._perturbation(obs_t, action)
+        return -self._q_func(obs_t, residual_action, "none")[0].mean()
 
-    def _predict_best_action(self, x):
-        action = self.imitator.decode(x, 2.0 * self.policy(x))
-        return self.perturbation(x, action)
+    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+        assert self._imitator is not None
+        assert self._policy is not None
+        assert self._perturbation is not None
+        action = self._imitator.decode(x, 2.0 * self._policy(x))
+        return self._perturbation(x, action)
 
-    def compute_target(self, x):
+    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+        assert self._imitator is not None
+        assert self._targ_policy is not None
+        assert self._targ_perturbation is not None
+        assert self._targ_q_func is not None
         with torch.no_grad():
-            action = self.imitator.decode(x, 2.0 * self.targ_policy(x))
-            residual_action = self.targ_perturbation(x, action)
-            return self.targ_q_func.compute_target(x,
-                                                   residual_action,
-                                                   reduction='mix',
-                                                   lam=self.lam)
+            action = self._imitator.decode(x, 2.0 * self._targ_policy(x))
+            residual_action = self._targ_perturbation(x, action)
+            return self._targ_q_func.compute_target(
+                x, residual_action, reduction="mix", lam=self._lam
+            )
 
-    def update_actor_target(self):
+    def update_actor_target(self) -> None:
+        assert self._perturbation is not None
+        assert self._targ_perturbation is not None
         super().update_actor_target()
-        soft_sync(self.targ_perturbation, self.perturbation, self.tau)
+        soft_sync(self._targ_perturbation, self._perturbation, self._tau)

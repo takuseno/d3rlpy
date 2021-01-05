@@ -21,10 +21,6 @@ class SingleAmplitudeScaling(Augmentation):
         minimum (float): minimum amplitude scale.
         maximum (float): maximum amplitude scale.
 
-    Attributes:
-        minimum (float): minimum amplitude scale.
-        maximum (float): maximum amplitude scale.
-
     """
 
     TYPE: ClassVar[str] = "single_amplitude_scaling"
@@ -77,10 +73,6 @@ class MultipleAmplitudeScaling(SingleAmplitudeScaling):
           <https://arxiv.org/abs/2004.14990>`_
 
     Args:
-        minimum (float): minimum amplitude scale.
-        maximum (float): maximum amplitude scale.
-
-    Attributes:
         minimum (float): minimum amplitude scale.
         maximum (float): maximum amplitude scale.
 

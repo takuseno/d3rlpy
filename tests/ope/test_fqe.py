@@ -20,8 +20,8 @@ def ope_tester(ope, observation_shape, action_size=2):
 
     # check save policy
     impl.save_policy = Mock()
-    ope.save_policy('policy.pt', False)
-    impl.save_policy.assert_called_with('policy.pt', False)
+    ope.save_policy("policy.pt", False)
+    impl.save_policy.assert_called_with("policy.pt", False)
 
     # check predict
     x = np.random.random((2, 3)).tolist()
@@ -52,10 +52,10 @@ def ope_tester(ope, observation_shape, action_size=2):
     ope.algo.impl = None
 
 
-@pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('q_func_factory', ['mean', 'qr', 'iqn', 'fqf'])
-@pytest.mark.parametrize('scaler', [None, 'standard'])
+@pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
+@pytest.mark.parametrize("scaler", [None, "standard"])
 def test_fqe(observation_shape, action_size, q_func_factory, scaler):
     algo = DDPG()
     fqe = FQE(algo=algo, scaler=scaler, q_func_factory=q_func_factory)
@@ -64,10 +64,10 @@ def test_fqe(observation_shape, action_size, q_func_factory, scaler):
     algo_update_tester(fqe, observation_shape, action_size, discrete=False)
 
 
-@pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('q_func_factory', ['mean', 'qr', 'iqn', 'fqf'])
-@pytest.mark.parametrize('scaler', [None, 'standard'])
+@pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
+@pytest.mark.parametrize("scaler", [None, "standard"])
 def test_discrete_fqe(observation_shape, action_size, q_func_factory, scaler):
     algo = DQN()
     fqe = DiscreteFQE(algo=algo, scaler=scaler, q_func_factory=q_func_factory)

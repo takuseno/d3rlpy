@@ -4,20 +4,20 @@ import torch
 from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Union, Type
 from typing import Sequence
-from d3rlpy.models.torch.encoders import Encoder, EncoderWithAction
-from d3rlpy.models.torch.encoders import PixelEncoder
-from d3rlpy.models.torch.encoders import PixelEncoderWithAction
-from d3rlpy.models.torch.encoders import VectorEncoder
-from d3rlpy.models.torch.encoders import VectorEncoderWithAction
+from .models.torch import Encoder, EncoderWithAction
+from .models.torch import PixelEncoder
+from .models.torch import PixelEncoderWithAction
+from .models.torch import VectorEncoder
+from .models.torch import VectorEncoderWithAction
 
 
 def _create_activation(
     activation_type: str,
 ) -> Callable[[torch.Tensor], torch.Tensor]:
     if activation_type == "relu":
-        return torch.relu
+        return torch.relu  # type: ignore
     elif activation_type == "tanh":
-        return torch.tanh
+        return torch.tanh  # type: ignore
     elif activation_type == "swish":
         return lambda x: x * torch.sigmoid(x)
     raise ValueError("invalid activation_type.")
@@ -79,13 +79,6 @@ class PixelEncoderFactory(EncoderFactory):
         filters (list): list of tuples consisting with
             ``(filter_size, kernel_size, stride)``. If None,
             ``Nature DQN``-based architecture is used.
-        feature_size (int): the last linear layer size.
-        activation (str): activation function name.
-        use_batch_norm (bool): flag to insert batch normalization layers.
-
-    Attributes:
-        filters (list): list of tuples consisting with
-            ``(filter_size, kernel_size, stride)``.
         feature_size (int): the last linear layer size.
         activation (str): activation function name.
         use_batch_norm (bool): flag to insert batch normalization layers.
@@ -168,12 +161,6 @@ class VectorEncoderFactory(EncoderFactory):
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_dense (bool): flag to use DenseNet architecture.
 
-    Attributes:
-        hidden_units (list): list of hidden unit sizes.
-        activation (str): activation function name.
-        use_batch_norm (bool): flag to insert batch normalization layers.
-        use_dense (bool): flag to use DenseNet architecture.
-
     """
 
     TYPE: ClassVar[str] = "vector"
@@ -249,10 +236,6 @@ class DefaultEncoderFactory(EncoderFactory):
         activation (str): activation function name.
         use_batch_norm (bool): flag to insert batch normalization layers.
 
-    Attributes:
-        activation (str): activation function name.
-        use_batch_norm (bool): flag to insert batch normalization layers.
-
     """
 
     TYPE: ClassVar[str] = "default"
@@ -307,10 +290,6 @@ class DenseEncoderFactory(EncoderFactory):
           Learning. <https://arxiv.org/abs/2010.09163>`_
 
     Args:
-        activation (str): activation function name.
-        use_batch_norm (bool): flag to insert batch normalization layers.
-
-    Attributes:
         activation (str): activation function name.
         use_batch_norm (bool): flag to insert batch normalization layers.
 

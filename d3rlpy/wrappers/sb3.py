@@ -1,9 +1,17 @@
+import numpy as np
+
+from typing import Any, List, Tuple, Union, TYPE_CHECKING
 from gym.spaces import Discrete
-from d3rlpy.dataset import MDPDataset
+from ..dataset import MDPDataset
+from ..algos import AlgoBase
+
+
+if TYPE_CHECKING:
+    from stable_baselines3.common.buffers import ReplayBuffer
 
 
 class SB3Wrapper:
-    """ A wrapper for d3rlpy algorithms so they can be used with Stable-Baselines3 (SB3).
+    """A wrapper for d3rlpy algorithms so they can be used with Stable-Baselines3 (SB3).
 
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
@@ -12,12 +20,19 @@ class SB3Wrapper:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
 
     """
-    def __init__(self, algo):
+
+    def __init__(self, algo: AlgoBase):
         # Avoid infinite recursion due to override of setattr
         self.__dict__["algo"] = algo
 
-    def predict(self, observation, state=None, mask=None, deterministic=True):
-        """ Returns actions.
+    def predict(
+        self,
+        observation: Union[np.ndarray, List[Any]],
+        state: Any = None,
+        mask: Any = None,
+        deterministic: bool = True,
+    ) -> Tuple[np.ndarray, None]:
+        """Returns actions.
 
         Args:
             observation (np.ndarray): observation.
@@ -33,20 +48,20 @@ class SB3Wrapper:
             return self.algo.predict(observation), None
         return self.algo.sample_action(observation), None
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Any:
         if attr in self.__dict__:
             return getattr(self, attr)
         return getattr(self.algo, attr)
 
-    def __setattr__(self, attr_name, value):
+    def __setattr__(self, attr_name: str, value: Any) -> None:
         if attr_name != "algo":
             self.algo.__setattr__(attr_name, value)
         else:
             self.__dict__["algo"] = value
 
 
-def to_mdp_dataset(replay_buffer):
-    """ Returns d3rlpy's MDPDataset from SB3's ReplayBuffer
+def to_mdp_dataset(replay_buffer: "ReplayBuffer") -> MDPDataset:
+    """Returns d3rlpy's MDPDataset from SB3's ReplayBuffer
 
     Args:
         replay_buffer (stable_baselines3.common.buffers.ReplayBuffer):
@@ -58,9 +73,11 @@ def to_mdp_dataset(replay_buffer):
     """
     pos = replay_buffer.size()
     discrete_action = isinstance(replay_buffer.action_space, Discrete)
-    dataset = MDPDataset(observations=replay_buffer.observations[:pos, 0],
-                         actions=replay_buffer.actions[:pos, 0],
-                         rewards=replay_buffer.rewards[:pos, 0],
-                         terminals=replay_buffer.dones[:pos, 0],
-                         discrete_action=discrete_action)
+    dataset = MDPDataset(
+        observations=replay_buffer.observations[:pos, 0],
+        actions=replay_buffer.actions[:pos, 0],
+        rewards=replay_buffer.rewards[:pos, 0],
+        terminals=replay_buffer.dones[:pos, 0],
+        discrete_action=discrete_action,
+    )
     return dataset

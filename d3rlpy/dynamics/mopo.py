@@ -1,11 +1,16 @@
+from typing import Any, List, Optional, Sequence
 from .base import DynamicsBase
 from .torch.mopo_impl import MOPOImpl
-from ..optimizers import AdamFactory
-from ..argument_utils import check_encoder, check_use_gpu
+from ..dataset import TransitionMiniBatch
+from ..optimizers import OptimizerFactory, AdamFactory
+from ..encoders import EncoderFactory
+from ..gpu import Device
+from ..argument_utility import check_encoder, check_use_gpu
+from ..argument_utility import EncoderArg, UseGPUArg, ScalerArg
 
 
 class MOPO(DynamicsBase):
-    r""" Model-based Offline Policy Optimization.
+    r"""Model-based Offline Policy Optimization.
 
     MOPO is a model-based RL approach for offline policy optimization.
     MOPO leverages the probablistic ensemble dynamics model to generate
@@ -64,69 +69,79 @@ class MOPO(DynamicsBase):
         use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         impl (d3rlpy.dynamics.torch.MOPOImpl): dynamics implementation.
 
-    Attributes:
-        learning_rate (float): learning rate for dynamics model.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory): encoder factory.
-        batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
-        n_ensembles (int): the number of dynamics model for ensemble.
-        n_transitions (int): the number of parallel trajectories to generate.
-        horizon (int): the number of steps to generate.
-        lam (float): :math:`\lambda` for uncertainty penalties.
-        discrete_action (bool): flag to take discrete actions.
-        scaler (d3rlpy.preprocessing.scalers.Scaler): preprocessor.
-        use_gpu (d3rlpy.gpu.Device): flag to use GPU or device.
-        impl (d3rlpy.dynamics.torch.MOPOImpl): dynamics implementation.
-        eval_results_ (dict): evaluation results.
-
     """
-    def __init__(self,
-                 *,
-                 learning_rate=1e-3,
-                 optim_factory=AdamFactory(weight_decay=1e-4),
-                 encoder_factory='default',
-                 batch_size=100,
-                 n_frames=1,
-                 n_ensembles=5,
-                 n_transitions=400,
-                 horizon=5,
-                 lam=1.0,
-                 discrete_action=False,
-                 scaler=None,
-                 use_gpu=False,
-                 impl=None,
-                 **kwargs):
-        super().__init__(batch_size=batch_size,
-                         n_frames=n_frames,
-                         n_transitions=n_transitions,
-                         horizon=horizon,
-                         scaler=scaler)
-        self.learning_rate = learning_rate
-        self.optim_factory = optim_factory
-        self.encoder_factory = check_encoder(encoder_factory)
-        self.n_ensembles = n_ensembles
-        self.lam = lam
-        self.discrete_action = discrete_action
-        self.use_gpu = check_use_gpu(use_gpu)
-        self.impl = impl
 
-    def create_impl(self, observation_shape, action_size):
-        self.impl = MOPOImpl(observation_shape=observation_shape,
-                             action_size=action_size,
-                             learning_rate=self.learning_rate,
-                             optim_factory=self.optim_factory,
-                             encoder_factory=self.encoder_factory,
-                             n_ensembles=self.n_ensembles,
-                             lam=self.lam,
-                             discrete_action=self.discrete_action,
-                             scaler=self.scaler,
-                             use_gpu=self.use_gpu)
+    _learning_rate: float
+    _optim_factory: OptimizerFactory
+    _encoder_factory: EncoderFactory
+    _n_ensembles: int
+    _lam: float
+    _discrete_action: bool
+    _use_gpu: Optional[Device]
+    _impl: Optional[MOPOImpl]
 
-    def update(self, epoch, total_step, batch):
-        loss = self.impl.update(batch.observations, batch.actions,
-                                batch.next_rewards, batch.next_observations)
+    def __init__(
+        self,
+        *,
+        learning_rate: float = 1e-3,
+        optim_factory: OptimizerFactory = AdamFactory(weight_decay=1e-4),
+        encoder_factory: EncoderArg = "default",
+        batch_size: int = 100,
+        n_frames: int = 1,
+        n_ensembles: int = 5,
+        n_transitions: int = 400,
+        horizon: int = 5,
+        lam: float = 1.0,
+        discrete_action: bool = False,
+        scaler: ScalerArg = None,
+        use_gpu: UseGPUArg = False,
+        impl: Optional[MOPOImpl] = None,
+        **kwargs: Any
+    ):
+        super().__init__(
+            batch_size=batch_size,
+            n_frames=n_frames,
+            n_transitions=n_transitions,
+            horizon=horizon,
+            scaler=scaler,
+        )
+        self._learning_rate = learning_rate
+        self._optim_factory = optim_factory
+        self._encoder_factory = check_encoder(encoder_factory)
+        self._n_ensembles = n_ensembles
+        self._lam = lam
+        self._discrete_action = discrete_action
+        self._use_gpu = check_use_gpu(use_gpu)
+        self._impl = impl
+
+    def create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
+        self._impl = MOPOImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            learning_rate=self._learning_rate,
+            optim_factory=self._optim_factory,
+            encoder_factory=self._encoder_factory,
+            n_ensembles=self._n_ensembles,
+            lam=self._lam,
+            discrete_action=self._discrete_action,
+            scaler=self._scaler,
+            use_gpu=self._use_gpu,
+        )
+        self._impl.build()
+
+    def update(
+        self, epoch: int, total_step: int, batch: TransitionMiniBatch
+    ) -> List[Optional[float]]:
+        assert self._impl is not None
+        loss = self._impl.update(
+            batch.observations,
+            batch.actions,
+            batch.next_rewards,
+            batch.next_observations,
+        )
         return [loss]
 
-    def _get_loss_labels(self):
-        return ['loss']
+    def _get_loss_labels(self) -> List[str]:
+        return ["loss"]

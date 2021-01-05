@@ -1,150 +1,73 @@
 import torch
 import numpy as np
 
-from torch.utils.data._utils.collate import default_collate
-from inspect import signature
+from typing import Optional, Tuple, Union
+from typing_extensions import Protocol
+from ...torch_utility import eval_api, torch_api
+from ...models.torch import EnsembleDiscreteQFunction
+from ...models.torch import EnsembleContinuousQFunction
 
 
-def soft_sync(targ_model, model, tau):
-    with torch.no_grad():
-        params = model.parameters()
-        targ_params = targ_model.parameters()
-        for p, p_targ in zip(params, targ_params):
-            p_targ.data.mul_(1 - tau)
-            p_targ.data.add_(tau * p.data)
+class _DiscreteQFunctionProtocol(Protocol):
+    _q_func: Optional[EnsembleDiscreteQFunction]
 
 
-def hard_sync(targ_model, model):
-    with torch.no_grad():
-        params = model.parameters()
-        targ_params = targ_model.parameters()
-        for p, p_targ in zip(params, targ_params):
-            p_targ.data.copy_(p.data)
+class _ContinuousQFunctionProtocol(Protocol):
+    _q_func: Optional[EnsembleContinuousQFunction]
 
 
-def set_eval_mode(impl):
-    for key in dir(impl):
-        module = getattr(impl, key)
-        if isinstance(module, torch.nn.Module):
-            module.eval()
+class DiscreteQFunctionMixin:
+    @eval_api
+    @torch_api(scaler_targets=["x"])
+    def predict_value(
+        self: _DiscreteQFunctionProtocol,
+        x: torch.Tensor,
+        action: torch.Tensor,
+        with_std: bool,
+    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        assert x.shape[0] == action.shape[0]
+        assert self._q_func is not None
+
+        action = action.view(-1).long().cpu().detach().numpy()
+        with torch.no_grad():
+            values = self._q_func(x, reduction="none").cpu().detach().numpy()
+            values = np.transpose(values, [1, 0, 2])
+
+        mean_values = values.mean(axis=1)
+        stds = np.std(values, axis=1)
+
+        ret_values = []
+        ret_stds = []
+        for v, std, a in zip(mean_values, stds, action):
+            ret_values.append(v[a])
+            ret_stds.append(std[a])
+
+        if with_std:
+            return np.array(ret_values), np.array(ret_stds)
+
+        return np.array(ret_values)
 
 
-def set_train_mode(impl):
-    for key in dir(impl):
-        module = getattr(impl, key)
-        if isinstance(module, torch.nn.Module):
-            module.train()
+class ContinuousQFunctionMixin:
+    @eval_api
+    @torch_api(scaler_targets=["x"])
+    def predict_value(
+        self: _ContinuousQFunctionProtocol,
+        x: torch.Tensor,
+        action: torch.Tensor,
+        with_std: bool,
+    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        assert x.shape[0] == action.shape[0]
+        assert self._q_func is not None
 
+        with torch.no_grad():
+            values = self._q_func(x, action, "none").cpu().detach().numpy()
+            values = np.transpose(values, [1, 0, 2])
 
-def to_cuda(impl, device):
-    for key in dir(impl):
-        module = getattr(impl, key)
-        if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
-            module.cuda(device)
+        mean_values = values.mean(axis=1).reshape(-1)
+        stds = np.std(values, axis=1).reshape(-1)
 
+        if with_std:
+            return mean_values, stds
 
-def to_cpu(impl):
-    for key in dir(impl):
-        module = getattr(impl, key)
-        if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
-            module.cpu()
-
-
-def freeze(impl):
-    for key in dir(impl):
-        module = getattr(impl, key)
-        if isinstance(module, torch.nn.Module):
-            for p in module.parameters():
-                p.requires_grad = False
-
-
-def unfreeze(impl):
-    for key in dir(impl):
-        module = getattr(impl, key)
-        if isinstance(module, torch.nn.Module):
-            for p in module.parameters():
-                p.requires_grad = True
-
-
-def get_state_dict(impl):
-    rets = {}
-    for key in dir(impl):
-        obj = getattr(impl, key)
-        if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
-            rets[key] = obj.state_dict()
-    return rets
-
-
-def set_state_dict(impl, chkpt):
-    for key in dir(impl):
-        obj = getattr(impl, key)
-        if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
-            obj.load_state_dict(chkpt[key])
-
-
-def map_location(device):
-    if 'cuda' in device:
-        return lambda storage, loc: storage.cuda(device)
-    if 'cpu' in device:
-        return 'cpu'
-    raise ValueError('invalid device={}'.format(device))
-
-
-def torch_api(scaler_targets=[]):
-    def _torch_api(f):
-        # get argument names
-        sig = signature(f)
-        arg_keys = list(sig.parameters.keys())[1:]
-
-        def wrapper(self, *args, **kwargs):
-            # convert all args to torch.Tensor
-            tensors = []
-            for i, val in enumerate(args):
-                if isinstance(val, torch.Tensor):
-                    tensor = val
-                elif isinstance(val, list):
-                    tensor = default_collate(val)
-                    tensor = tensor.to(self.device)
-                elif isinstance(val, np.ndarray):
-                    if val.dtype == np.uint8:
-                        dtype = torch.uint8
-                    else:
-                        dtype = torch.float32
-                    tensor = torch.tensor(data=val,
-                                          dtype=dtype,
-                                          device=self.device)
-                else:
-                    tensor = torch.tensor(data=val,
-                                          dtype=torch.float32,
-                                          device=self.device)
-
-                # preprocess
-                if self.scaler and arg_keys[i] in scaler_targets:
-                    tensor = self.scaler.transform(tensor)
-
-                # make sure if the tensor is float32 type
-                if tensor.dtype != torch.float32:
-                    tensor = tensor.float()
-
-                tensors.append(tensor)
-            return f(self, *tensors, **kwargs)
-
-        return wrapper
-
-    return _torch_api
-
-
-def eval_api(f):
-    def wrapper(self, *args, **kwargs):
-        set_eval_mode(self)
-        return f(self, *args, **kwargs)
-
-    return wrapper
-
-
-def train_api(f):
-    def wrapper(self, *args, **kwargs):
-        set_train_mode(self)
-        return f(self, *args, **kwargs)
-
-    return wrapper
+        return mean_values

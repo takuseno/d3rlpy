@@ -19,9 +19,6 @@ class RandomShift(Augmentation):
     Args:
         shift_size (int): size to shift image.
 
-    Attributes:
-        shift_size (int): size to shift image.
-
     """
 
     TYPE: ClassVar[str] = "random_shift"
@@ -78,9 +75,6 @@ class Cutout(Augmentation):
     Args:
         probability (float): probability to cutout.
 
-    Attributes:
-        probability (float): probability to cutout.
-
     """
 
     TYPE: ClassVar[str] = "cutout"
@@ -125,9 +119,6 @@ class HorizontalFlip(Augmentation):
           <https://arxiv.org/abs/2004.13649>`_
 
     Args:
-        probability (float): probability to flip horizontally.
-
-    Attributes:
         probability (float): probability to flip horizontally.
 
     """
@@ -176,9 +167,6 @@ class VerticalFlip(Augmentation):
     Args:
         probability (float): probability to flip vertically.
 
-    Attributes:
-        probability (float): probability to flip vertically.
-
     """
 
     TYPE: ClassVar[str] = "vertical_flip"
@@ -223,9 +211,6 @@ class RandomRotation(Augmentation):
           <https://arxiv.org/abs/2004.13649>`_
 
     Args:
-        degree (float): range of degrees to rotate image.
-
-    Attributes:
         degree (float): range of degrees to rotate image.
 
     """
@@ -280,9 +265,6 @@ class Intensity(Augmentation):
     Args:
         scale (float): scale of multiplier.
 
-    Attributes:
-        scale (float): scale of multiplier.
-
     """
 
     TYPE: ClassVar[str] = "intensity"
@@ -330,12 +312,6 @@ class ColorJitter(Augmentation):
           <https://arxiv.org/abs/2004.14990>`_
 
     Args:
-        brightness (tuple): brightness scale range.
-        contrast (tuple): contrast scale range.
-        saturation (tuple): saturation scale range.
-        hue (tuple): hue scale range.
-
-    Attributes:
         brightness (tuple): brightness scale range.
         contrast (tuple): contrast scale range.
         saturation (tuple): saturation scale range.

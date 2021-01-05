@@ -135,17 +135,6 @@ class ReplayBuffer(Buffer):
         episodes (list(d3rlpy.dataset.Episode)): list of episodes to
             initialize buffer
 
-    Attributes:
-        prev_observation (numpy.ndarray): previously appended observation.
-        prev_action (numpy.ndarray or int): previously appended action.
-        prev_reward (float): previously appended reward.
-        prev_transition (d3rlpy.dataset.Transition):
-            previously appended transition.
-        transitions (d3rlpy.online.buffers.TransitionQueue):
-            queue of transitions.
-        observation_shape (tuple): observation shape.
-        action_size (int): action size.
-
     """
 
     _prev_observation: Optional[np.ndarray]

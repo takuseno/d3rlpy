@@ -1,18 +1,19 @@
 import numpy as np
 import gym
 import os
-import urllib
+import urllib.request as request
 import pickle
 
+from typing import Tuple
 from .dataset import MDPDataset
 
-DATA_DIRECTORY = 'd3rlpy_data'
-CARTPOLE_URL = 'https://www.dropbox.com/s/2tmo7ul00268l3e/cartpole.pkl?dl=1'
-PENDULUM_URL = 'https://www.dropbox.com/s/90z7a84ngndrqt4/pendulum.pkl?dl=1'
+DATA_DIRECTORY = "d3rlpy_data"
+CARTPOLE_URL = "https://www.dropbox.com/s/2tmo7ul00268l3e/cartpole.pkl?dl=1"
+PENDULUM_URL = "https://www.dropbox.com/s/90z7a84ngndrqt4/pendulum.pkl?dl=1"
 
 
-def get_cartpole():
-    """ Returns cartpole dataset and environment.
+def get_cartpole() -> Tuple[MDPDataset, gym.Env]:
+    """Returns cartpole dataset and environment.
 
     The dataset is automatically downloaded to `d3rlpy_data/cartpole.pkl` if it
     does not exist.
@@ -21,32 +22,34 @@ def get_cartpole():
         tuple: tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
-    data_path = os.path.join(DATA_DIRECTORY, 'cartpole.pkl')
+    data_path = os.path.join(DATA_DIRECTORY, "cartpole.pkl")
 
     # download dataset
     if not os.path.exists(data_path):
         os.makedirs(DATA_DIRECTORY, exist_ok=True)
-        print('Donwloading cartpole.pkl into %s...' % data_path)
-        urllib.request.urlretrieve(CARTPOLE_URL, data_path)
+        print("Donwloading cartpole.pkl into %s..." % data_path)
+        request.urlretrieve(CARTPOLE_URL, data_path)
 
     # load dataset
-    with open(data_path, 'rb') as f:
+    with open(data_path, "rb") as f:
         observations, actions, rewards, terminals = pickle.load(f)
 
     # environment
-    env = gym.make('CartPole-v0')
+    env = gym.make("CartPole-v0")
 
-    dataset = MDPDataset(observations=np.array(observations, dtype=np.float32),
-                         actions=actions,
-                         rewards=rewards,
-                         terminals=terminals,
-                         discrete_action=True)
+    dataset = MDPDataset(
+        observations=np.array(observations, dtype=np.float32),
+        actions=actions,
+        rewards=rewards,
+        terminals=terminals,
+        discrete_action=True,
+    )
 
     return dataset, env
 
 
-def get_pendulum():
-    """ Returns pendulum dataset and environment.
+def get_pendulum() -> Tuple[MDPDataset, gym.Env]:
+    """Returns pendulum dataset and environment.
 
     The dataset is automatically downloaded to `d3rlpy_data/pendulum.pkl` if it
     does not exist.
@@ -55,30 +58,32 @@ def get_pendulum():
         tuple: tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
-    data_path = os.path.join(DATA_DIRECTORY, 'pendulum.pkl')
+    data_path = os.path.join(DATA_DIRECTORY, "pendulum.pkl")
 
     if not os.path.exists(data_path):
         os.makedirs(DATA_DIRECTORY, exist_ok=True)
-        print('Donwloading pendulum.pkl into %s...' % data_path)
-        urllib.request.urlretrieve(PENDULUM_URL, data_path)
+        print("Donwloading pendulum.pkl into %s..." % data_path)
+        request.urlretrieve(PENDULUM_URL, data_path)
 
     # load dataset
-    with open(data_path, 'rb') as f:
+    with open(data_path, "rb") as f:
         observations, actions, rewards, terminals = pickle.load(f)
 
     # environment
-    env = gym.make('Pendulum-v0')
+    env = gym.make("Pendulum-v0")
 
-    dataset = MDPDataset(observations=np.array(observations, dtype=np.float32),
-                         actions=actions,
-                         rewards=rewards,
-                         terminals=terminals)
+    dataset = MDPDataset(
+        observations=np.array(observations, dtype=np.float32),
+        actions=actions,
+        rewards=rewards,
+        terminals=terminals,
+    )
 
     return dataset, env
 
 
-def get_pybullet(env_name):
-    """ Returns pybullet dataset and envrironment.
+def get_pybullet(env_name: str) -> Tuple[MDPDataset, gym.Env]:
+    """Returns pybullet dataset and envrironment.
 
     The dataset is provided through d4rl-pybullet. See more details including
     available dataset from its GitHub page.
@@ -100,18 +105,20 @@ def get_pybullet(env_name):
 
     """
     try:
-        import d4rl_pybullet
+        import d4rl_pybullet  # type: ignore
+
         env = gym.make(env_name)
         dataset = MDPDataset(**env.get_dataset())
         return dataset, env
     except ImportError:
         raise ImportError(
-            'd4rl-pybullet is not installed.\n' \
-            'pip install git+https://github.com/takuseno/d4rl-pybullet')
+            "d4rl-pybullet is not installed.\n"
+            "pip install git+https://github.com/takuseno/d4rl-pybullet"
+        )
 
 
-def get_atari(env_name):
-    """ Returns atari dataset and envrironment.
+def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
+    """Returns atari dataset and envrironment.
 
     The dataset is provided through d4rl-atari. See more details including
     available dataset from its GitHub page.
@@ -133,11 +140,13 @@ def get_atari(env_name):
 
     """
     try:
-        import d4rl_atari
+        import d4rl_atari  # type: ignore
+
         env = gym.make(env_name, stack=False)
-        dataset = MDPDataset(**env.get_dataset(), discrete_action=True)
+        dataset = MDPDataset(discrete_action=True, **env.get_dataset())
         return dataset, env
     except ImportError:
         raise ImportError(
-            'd4rl-atari is not installed.\n' \
-            'pip install git+https://github.com/takuseno/d4rl-atari')
+            "d4rl-atari is not installed.\n"
+            "pip install git+https://github.com/takuseno/d4rl-atari"
+        )

@@ -9,11 +9,11 @@ from ..q_functions import QFunctionFactory
 from ..preprocessing import Scaler
 from ..augmentation import AugmentationPipeline
 from ..gpu import Device
-from ..argument_utils import ScalerArg
-from ..argument_utils import check_encoder, EncoderArg
-from ..argument_utils import check_use_gpu, UseGPUArg
-from ..argument_utils import check_q_func, QFuncArg
-from ..argument_utils import check_augmentation, AugmentationArg
+from ..argument_utility import ScalerArg
+from ..argument_utility import check_encoder, EncoderArg
+from ..argument_utility import check_use_gpu, UseGPUArg
+from ..argument_utility import check_q_func, QFuncArg
+from ..argument_utility import check_augmentation, AugmentationArg
 
 
 class AWAC(AlgoBase):
@@ -71,41 +71,6 @@ class AWAC(AlgoBase):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
-            augmentation.
-        impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
-
-    Attributes:
-        actor_learning_rate (float): learning rate for policy function.
-        critic_learning_rate (float): learning rate for Q functions.
-        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
-        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the critic.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
-            Q function factory.
-        batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): N-step TD calculation.
-        gamma (float): discount factor.
-        tau (float): target network synchronization coefficiency.
-        lam (float): :math:`\lambda` for weight calculation.
-        n_action_samples (int): the number of sampled actions to calculate
-            :math:`A^\pi(s_t, a_t)`.
-        max_weight (float): maximum weight for cross-entropy loss.
-        n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
-        update_actor_interval (int): interval to update policy function.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
@@ -218,7 +183,7 @@ class AWAC(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[float]:
+    ) -> List[Optional[float]]:
         assert self._impl is not None
         critic_loss = self._impl.update_critic(
             batch.observations,

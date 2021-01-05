@@ -6,7 +6,6 @@ import math
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Union, cast
 from torch.distributions import Normal, Categorical
-from d3rlpy.encoders import EncoderFactory
 from .encoders import Encoder, EncoderWithAction
 
 
@@ -19,7 +18,7 @@ def squash_action(
     return squashed_action, log_prob
 
 
-class Policy(nn.Module, metaclass=ABCMeta):
+class Policy(nn.Module, metaclass=ABCMeta):  # type: ignore
     def sample(self, x: torch.Tensor) -> torch.Tensor:
         return self.sample_with_log_prob(x)[0]
 
@@ -53,14 +52,12 @@ class DeterministicPolicy(Policy):
         self._encoder = encoder
         self._fc = nn.Linear(encoder.get_feature_size(), action_size)
 
-    def forward(
-        self, x: torch.Tensor, with_raw: bool = False
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self._encoder(x)
-        raw_action = self._fc(h)
-        if with_raw:
-            return torch.tanh(raw_action), raw_action
-        return torch.tanh(raw_action)
+        return torch.tanh(self._fc(h))
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        return cast(torch.Tensor, super().__call__(x))
 
     def sample_with_log_prob(
         self, x: torch.Tensor
@@ -77,10 +74,10 @@ class DeterministicPolicy(Policy):
         )
 
     def best_action(self, x: torch.Tensor) -> torch.Tensor:
-        return cast(torch.Tensor, self.forward(x))
+        return self.forward(x)
 
 
-class DeterministicResidualPolicy(nn.Module):
+class DeterministicResidualPolicy(Policy):
 
     _encoder: EncoderWithAction
     _scale: float
@@ -95,12 +92,34 @@ class DeterministicResidualPolicy(nn.Module):
     def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         h = self._encoder(x, action)
         residual_action = self._scale * torch.tanh(self._fc(h))
-        return (action + residual_action).clamp(-1.0, 1.0)
+        return (action + cast(torch.Tensor, residual_action)).clamp(-1.0, 1.0)
 
-    def best_action(
+    def __call__(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        return cast(torch.Tensor, super().__call__(x, action))
+
+    def best_residual_action(
         self, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
         return self.forward(x, action)
+
+    def best_action(self, x: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError(
+            "residual policy does not support best_action"
+        )
+
+    def sample_with_log_prob(
+        self, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        raise NotImplementedError(
+            "deterministic policy does not support sample"
+        )
+
+    def sample_n_with_log_prob(
+        self, x: torch.Tensor, n: int
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        raise NotImplementedError(
+            "deterministic policy does not support sample_n"
+        )
 
 
 class NormalPolicy(Policy):

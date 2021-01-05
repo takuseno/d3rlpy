@@ -1,10 +1,22 @@
 import numpy as np
+import gym
 
+from typing import Any, Callable, List, Iterator, Tuple, TYPE_CHECKING, cast
 from ..preprocessing.stack import StackedObservation
-from ..dataset import TransitionMiniBatch
+from ..dataset import Episode, TransitionMiniBatch
 
 
-def _make_batches(episode, window_size, n_frames):
+if TYPE_CHECKING:
+    from ..algos import AlgoBase
+    from ..dynamics import DynamicsBase
+
+
+WINDOW_SIZE = 1024
+
+
+def _make_batches(
+    episode: Episode, window_size: int, n_frames: int
+) -> Iterator[TransitionMiniBatch]:
     n_batches = len(episode) // window_size
     if len(episode) % window_size != 0:
         n_batches += 1
@@ -16,8 +28,8 @@ def _make_batches(episode, window_size, n_frames):
         yield batch
 
 
-def td_error_scorer(algo, episodes, window_size=1024):
-    r""" Returns average TD error (in negative scale).
+def td_error_scorer(algo: "AlgoBase", episodes: List[Episode]) -> float:
+    r"""Returns average TD error (in negative scale).
 
     This metics suggests how Q functions overfit to training sets.
     If the TD error is large, the Q functions are overfitting.
@@ -31,7 +43,6 @@ def td_error_scorer(algo, episodes, window_size=1024):
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
         episodes (list(d3rlpy.dataset.Episode)): list of episodes.
-        window_size (int): mini-batch size to compute.
 
     Returns:
         float: negative average TD error.
@@ -39,27 +50,30 @@ def td_error_scorer(algo, episodes, window_size=1024):
     """
     total_errors = []
     for episode in episodes:
-        for batch in _make_batches(episode, window_size, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
             # estimate values for current observations
             values = algo.predict_value(batch.observations, batch.actions)
 
             # estimate values for next observations
             next_actions = algo.predict(batch.next_observations)
-            next_values = algo.predict_value(batch.next_observations,
-                                             next_actions)
+            next_values = algo.predict_value(
+                batch.next_observations, next_actions
+            )
 
             # calculate td errors
             mask = (1.0 - np.asarray(batch.terminals)).reshape(-1)
             rewards = np.asarray(batch.next_rewards).reshape(-1)
-            y = rewards + algo.gamma * next_values * mask
-            total_errors += ((values - y)**2).tolist()
+            y = rewards + algo.gamma * cast(np.ndarray, next_values) * mask
+            total_errors += ((values - y) ** 2).tolist()
 
     # smaller is better
-    return -np.mean(total_errors)
+    return -float(np.mean(total_errors))
 
 
-def discounted_sum_of_advantage_scorer(algo, episodes, window_size=1024):
-    r""" Returns average of discounted sum of advantage (in negative scale).
+def discounted_sum_of_advantage_scorer(
+    algo: "AlgoBase", episodes: List[Episode]
+) -> float:
+    r"""Returns average of discounted sum of advantage (in negative scale).
 
     This metrics suggests how the greedy-policy selects different actions in
     action-value space.
@@ -81,7 +95,6 @@ def discounted_sum_of_advantage_scorer(algo, episodes, window_size=1024):
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
         episodes (list(d3rlpy.dataset.Episode)): list of episodes.
-        window_size (int): mini-batch size to compute.
 
     Returns:
         float: negative average of discounted sum of advantage.
@@ -89,10 +102,12 @@ def discounted_sum_of_advantage_scorer(algo, episodes, window_size=1024):
     """
     total_sums = []
     for episode in episodes:
-        for batch in _make_batches(episode, window_size, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
             # estimate values for dataset actions
-            dataset_values = algo.predict_value(batch.observations,
-                                                batch.actions)
+            dataset_values = algo.predict_value(
+                batch.observations, batch.actions
+            )
+            dataset_values = cast(np.ndarray, dataset_values)
 
             # estimate values for the current policy
             actions = algo.predict(batch.observations)
@@ -111,11 +126,13 @@ def discounted_sum_of_advantage_scorer(algo, episodes, window_size=1024):
             total_sums += sum_advantages
 
     # smaller is better
-    return -np.mean(total_sums)
+    return -float(np.mean(total_sums))
 
 
-def average_value_estimation_scorer(algo, episodes, window_size=1024):
-    r""" Returns average value estimation (in negative scale).
+def average_value_estimation_scorer(
+    algo: "AlgoBase", episodes: List[Episode]
+) -> float:
+    r"""Returns average value estimation (in negative scale).
 
     This metrics suggests the scale for estimation of Q functions.
     If average value estimation is too large, the Q functions overestimate
@@ -128,7 +145,6 @@ def average_value_estimation_scorer(algo, episodes, window_size=1024):
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
         episodes (list(d3rlpy.dataset.Episode)): list of episodes.
-        window_size (int): mini-batch size to compute.
 
     Returns:
         float: negative average value estimation.
@@ -136,16 +152,18 @@ def average_value_estimation_scorer(algo, episodes, window_size=1024):
     """
     total_values = []
     for episode in episodes:
-        for batch in _make_batches(episode, window_size, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
             actions = algo.predict(batch.observations)
             values = algo.predict_value(batch.observations, actions)
-            total_values += values.tolist()
+            total_values += cast(np.ndarray, values).tolist()
     # smaller is better, maybe?
-    return -np.mean(total_values)
+    return -float(np.mean(total_values))
 
 
-def value_estimation_std_scorer(algo, episodes, window_size=1024):
-    r""" Returns standard deviation of value estimation (in negative scale).
+def value_estimation_std_scorer(
+    algo: "AlgoBase", episodes: List[Episode]
+) -> float:
+    r"""Returns standard deviation of value estimation (in negative scale).
 
     This metrics suggests how confident Q functions are for the given
     episodes.
@@ -165,7 +183,6 @@ def value_estimation_std_scorer(algo, episodes, window_size=1024):
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
         episodes (list(d3rlpy.dataset.Episode)): list of episodes.
-        window_size (int): mini-batch size to compute.
 
     Returns:
         float: negative standard deviation.
@@ -173,16 +190,18 @@ def value_estimation_std_scorer(algo, episodes, window_size=1024):
     """
     total_stds = []
     for episode in episodes:
-        for batch in _make_batches(episode, window_size, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
             actions = algo.predict(batch.observations)
             _, stds = algo.predict_value(batch.observations, actions, True)
             total_stds += stds.tolist()
     # smaller is better
-    return -np.mean(total_stds)
+    return -float(np.mean(total_stds))
 
 
-def initial_state_value_estimation_scorer(algo, episodes, window_size=1024):
-    r""" Returns mean estimated action-values at the initial states.
+def initial_state_value_estimation_scorer(
+    algo: "AlgoBase", episodes: List[Episode]
+) -> float:
+    r"""Returns mean estimated action-values at the initial states.
 
     This metrics suggests how much return the trained policy would get from
     the initial states by deploying the policy to the states.
@@ -200,7 +219,6 @@ def initial_state_value_estimation_scorer(algo, episodes, window_size=1024):
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
         episodes (list(d3rlpy.dataset.Episode)): list of episodes.
-        window_size (int): mini-batch size to compute.
 
     Returns:
         float: mean action-value estimation at the initial states.
@@ -208,16 +226,18 @@ def initial_state_value_estimation_scorer(algo, episodes, window_size=1024):
     """
     total_values = []
     for episode in episodes:
-        for batch in _make_batches(episode, window_size, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
             # estimate action-value in initial states
             actions = algo.predict([batch.observations[0]])
             values = algo.predict_value([batch.observations[0]], actions)
             total_values.append(values[0])
-    return np.mean(total_values)
+    return float(np.mean(total_values))
 
 
-def soft_opc_scorer(return_threshold):
-    r""" Returns Soft Off-Policy Classification metrics.
+def soft_opc_scorer(
+    return_threshold: float,
+) -> Callable[["AlgoBase", List[Episode]], float]:
+    r"""Returns Soft Off-Policy Classification metrics.
 
     This function returns scorer function, which is suitable to the standard
     scikit-learn scorer function style.
@@ -261,23 +281,27 @@ def soft_opc_scorer(return_threshold):
         callable: scorer function.
 
     """
-    def scorer(algo, episodes, window_size=1024):
+
+    def scorer(algo: "AlgoBase", episodes: List[Episode]) -> float:
         success_values = []
         all_values = []
         for episode in episodes:
             is_success = episode.compute_return() >= return_threshold
-            for batch in _make_batches(episode, window_size, algo.n_frames):
+            for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
                 values = algo.predict_value(batch.observations, batch.actions)
+                values = cast(np.ndarray, values)
                 all_values += values.reshape(-1).tolist()
                 if is_success:
                     success_values += values.reshape(-1).tolist()
-        return np.mean(success_values) - np.mean(all_values)
+        return float(np.mean(success_values) - np.mean(all_values))
 
     return scorer
 
 
-def continuous_action_diff_scorer(algo, episodes, window_size=1024):
-    r""" Returns squared difference of actions between algorithm and dataset.
+def continuous_action_diff_scorer(
+    algo: "AlgoBase", episodes: List[Episode]
+) -> float:
+    r"""Returns squared difference of actions between algorithm and dataset.
 
     This metrics suggests how different the greedy-policy is from the given
     episodes in continuous action-space.
@@ -299,16 +323,18 @@ def continuous_action_diff_scorer(algo, episodes, window_size=1024):
     """
     total_diffs = []
     for episode in episodes:
-        for batch in _make_batches(episode, window_size, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
             actions = algo.predict(batch.observations)
-            diff = ((batch.actions - actions)**2).sum(axis=1).tolist()
+            diff = ((batch.actions - actions) ** 2).sum(axis=1).tolist()
             total_diffs += diff
     # smaller is better, sometimes?
-    return -np.mean(total_diffs)
+    return -float(np.mean(total_diffs))
 
 
-def discrete_action_match_scorer(algo, episodes, window_size=1024):
-    r""" Returns percentage of identical actions between algorithm and dataset.
+def discrete_action_match_scorer(
+    algo: "AlgoBase", episodes: List[Episode]
+) -> float:
+    r"""Returns percentage of identical actions between algorithm and dataset.
 
     This metrics suggests how different the greedy-policy is from the given
     episodes in discrete action-space.
@@ -323,7 +349,6 @@ def discrete_action_match_scorer(algo, episodes, window_size=1024):
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm.
         episodes (list(d3rlpy.dataset.Episode)): list of episodes.
-        window_size (int): mini-batch size to compute.
 
     Returns:
         float: percentage of identical actions.
@@ -331,15 +356,17 @@ def discrete_action_match_scorer(algo, episodes, window_size=1024):
     """
     total_matches = []
     for episode in episodes:
-        for batch in _make_batches(episode, window_size, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
             actions = algo.predict(batch.observations)
             match = (batch.actions.reshape(-1) == actions).tolist()
             total_matches += match
-    return np.mean(total_matches)
+    return float(np.mean(total_matches))
 
 
-def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
-    """ Returns scorer function of evaluation on environment.
+def evaluate_on_environment(
+    env: gym.Env, n_trials: int = 10, epsilon: float = 0.0, render: bool = False
+) -> Callable[..., float]:
+    """Returns scorer function of evaluation on environment.
 
     This function returns scorer function, which is suitable to the standard
     scikit-learn scorer function style.
@@ -379,10 +406,11 @@ def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
     observation_shape = env.observation_space.shape
     is_image = len(observation_shape) == 3
 
-    def scorer(algo, *args):
+    def scorer(algo: "AlgoBase", *args: Any) -> float:
         if is_image:
-            stacked_observation = StackedObservation(observation_shape,
-                                                     algo.n_frames)
+            stacked_observation = StackedObservation(
+                observation_shape, algo.n_frames
+            )
 
         episode_rewards = []
         for _ in range(n_trials):
@@ -416,15 +444,15 @@ def evaluate_on_environment(env, n_trials=10, epsilon=0.0, render=False):
                 if done:
                     break
             episode_rewards.append(episode_reward)
-        return np.mean(episode_rewards)
+        return float(np.mean(episode_rewards))
 
     return scorer
 
 
-def dynamics_observation_prediction_error_scorer(dynamics,
-                                                 episodes,
-                                                 window_size=1024):
-    r""" Returns MSE of observation prediction (in negative scale).
+def dynamics_observation_prediction_error_scorer(
+    dynamics: "DynamicsBase", episodes: List[Episode]
+) -> float:
+    r"""Returns MSE of observation prediction (in negative scale).
 
     This metrics suggests how dynamics model is generalized to test sets.
     If the MSE is large, the dynamics model are overfitting.
@@ -438,7 +466,6 @@ def dynamics_observation_prediction_error_scorer(dynamics,
     Args:
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         episodes (list(d3rlpy.dataset.Episode)): list of episodes.
-        window_size (int): mini-batch size to compute.
 
     Returns:
         float: negative mean squared error.
@@ -446,18 +473,18 @@ def dynamics_observation_prediction_error_scorer(dynamics,
     """
     total_errors = []
     for episode in episodes:
-        for batch in _make_batches(episode, window_size, dynamics.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, dynamics.n_frames):
             pred = dynamics.predict(batch.observations, batch.actions)
-            errors = ((batch.next_observations - pred[0])**2).sum(axis=1)
+            errors = ((batch.next_observations - pred[0]) ** 2).sum(axis=1)
             total_errors += errors.tolist()
     # smaller is better
-    return -np.mean(total_errors)
+    return -float(np.mean(total_errors))
 
 
-def dynamics_reward_prediction_error_scorer(dynamics,
-                                            episodes,
-                                            window_size=1024):
-    r""" Returns MSE of reward prediction (in negative scale).
+def dynamics_reward_prediction_error_scorer(
+    dynamics: "DynamicsBase", episodes: List[Episode]
+) -> float:
+    r"""Returns MSE of reward prediction (in negative scale).
 
     This metrics suggests how dynamics model is generalized to test sets.
     If the MSE is large, the dynamics model are overfitting.
@@ -471,7 +498,6 @@ def dynamics_reward_prediction_error_scorer(dynamics,
     Args:
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         episodes (list(d3rlpy.dataset.Episode)): list of episodes.
-        window_size (int): mini-batch size to compute.
 
     Returns:
         float: negative mean squared error.
@@ -479,16 +505,18 @@ def dynamics_reward_prediction_error_scorer(dynamics,
     """
     total_errors = []
     for episode in episodes:
-        for batch in _make_batches(episode, window_size, dynamics.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, dynamics.n_frames):
             pred = dynamics.predict(batch.observations, batch.actions)
-            errors = ((batch.next_rewards - pred[1])**2).reshape(-1)
+            errors = ((batch.next_rewards - pred[1]) ** 2).reshape(-1)
             total_errors += errors.tolist()
     # smaller is better
-    return -np.mean(total_errors)
+    return -float(np.mean(total_errors))
 
 
-def dynamics_prediction_variance_scorer(dynamics, episodes, window_size=1024):
-    """ Returns prediction variance of ensemble dynamics (in negative scale).
+def dynamics_prediction_variance_scorer(
+    dynamics: "DynamicsBase", episodes: List[Episode]
+) -> float:
+    """Returns prediction variance of ensemble dynamics (in negative scale).
 
     This metrics suggests how dynamics model is confident of test sets.
     If the variance is large, the dynamics model has large uncertainty.
@@ -496,7 +524,6 @@ def dynamics_prediction_variance_scorer(dynamics, episodes, window_size=1024):
     Args:
         dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
         episodes (list(d3rlpy.dataset.Episode)): list of episodes.
-        window_size (int): mini-batch size to compute.
 
     Returns:
         float: negative variance.
@@ -504,14 +531,15 @@ def dynamics_prediction_variance_scorer(dynamics, episodes, window_size=1024):
     """
     total_variances = []
     for episode in episodes:
-        for batch in _make_batches(episode, window_size, dynamics.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, dynamics.n_frames):
             pred = dynamics.predict(batch.observations, batch.actions, True)
+            pred = cast(Tuple[np.ndarray, np.ndarray, np.ndarray], pred)
             total_variances += pred[2].tolist()
     # smaller is better
-    return -np.mean(total_variances)
+    return -float(np.mean(total_variances))
 
 
-NEGATED_SCORER = [
+NEGATED_SCORER: List[Callable[[Any, List[Episode]], float]] = [
     td_error_scorer,
     value_estimation_std_scorer,
     average_value_estimation_scorer,

@@ -8,17 +8,17 @@ from d3rlpy.logger import D3RLPyLogger
 
 def base_tester(model, impl, observation_shape, action_size=2):
     # dummy impl object
-    model.impl = impl
+    model._impl = impl
 
     # check save  model
     impl.save_model = Mock()
-    model.save_model('model.pt')
-    impl.save_model.assert_called_with('model.pt')
+    model.save_model("model.pt")
+    impl.save_model.assert_called_with("model.pt")
 
     # check load model
     impl.load_model = Mock()
-    model.load_model('mock.pt')
-    impl.load_model.assert_called_with('mock.pt')
+    model.load_model("mock.pt")
+    impl.load_model.assert_called_with("mock.pt")
 
     # check get_params
     params = model.get_params(deep=False)
@@ -28,7 +28,7 @@ def base_tester(model, impl, observation_shape, action_size=2):
 
     # check deep flag
     deep_params = model.get_params(deep=True)
-    assert deep_params['impl'] is not impl
+    assert deep_params["impl"] is not impl
 
     # check set_params
     clone = model.__class__()
@@ -48,12 +48,12 @@ def base_tester(model, impl, observation_shape, action_size=2):
     n_batch = 32
     n_epochs = 3
     data_size = n_episodes * episode_length
-    model.batch_size = n_batch
-    shape = (data_size, ) + observation_shape
+    model._batch_size = n_batch
+    shape = (data_size,) + observation_shape
     if len(observation_shape) == 3:
         observations = np.random.randint(256, size=shape, dtype=np.uint8)
     else:
-        observations = np.random.random(shape).astype('f4')
+        observations = np.random.random(shape).astype("f4")
     actions = np.random.random((data_size, action_size))
     rewards = np.random.random(data_size)
     terminals = np.zeros(data_size)
@@ -61,12 +61,14 @@ def base_tester(model, impl, observation_shape, action_size=2):
         terminals[(i + 1) * episode_length - 1] = 1.0
     dataset = MDPDataset(observations, actions, rewards, terminals)
 
-    model.fit(dataset.episodes,
-              n_epochs=n_epochs,
-              logdir='test_data',
-              verbose=False,
-              show_progress=False,
-              tensorboard=False)
+    model.fit(
+        dataset.episodes,
+        n_epochs=n_epochs,
+        logdir="test_data",
+        verbose=False,
+        show_progress=False,
+        tensorboard=False,
+    )
 
     # check if the correct number of iterations are performed
     assert len(model.update.call_args_list) == data_size // n_batch * n_epochs
@@ -81,14 +83,13 @@ def base_tester(model, impl, observation_shape, action_size=2):
         assert len(call[0][2]) == n_batch
 
     # save params.json
-    logger = D3RLPyLogger('test',
-                          root_dir='test_data',
-                          verbose=False,
-                          tensorboard=False)
+    logger = D3RLPyLogger(
+        "test", root_dir="test_data", verbose=False, tensorboard=False
+    )
     # save parameters to test_data/test/params.json
     model._save_params(logger)
     # load params.json
-    json_path = os.path.join(logger.logdir, 'params.json')
+    json_path = os.path.join(logger.logdir, "params.json")
     new_model = model.__class__.from_json(json_path)
     assert new_model.impl is not None
     assert new_model.impl.observation_shape == observation_shape
@@ -101,13 +102,13 @@ def base_tester(model, impl, observation_shape, action_size=2):
     assert model.impl.batch_size == model.batch_size
 
     # check builds
-    model.impl = None
+    model._impl = None
     model.build_with_dataset(dataset)
     assert model.impl.observation_shape == dataset.get_observation_shape()
     assert model.impl.action_size == dataset.get_action_size()
 
     # set backed up methods
-    model.impl = None
+    model._impl = None
     model.update = update_backup
 
     return dataset
@@ -119,15 +120,15 @@ def base_update_tester(model, observation_shape, action_size, discrete=False):
     prev_transition = None
     for i in range(model.batch_size):
         if len(observation_shape) == 3:
-            observation = np.random.randint(256,
-                                            size=observation_shape,
-                                            dtype=np.uint8)
-            next_observation = np.random.randint(256,
-                                                 size=observation_shape,
-                                                 dtype=np.uint8)
+            observation = np.random.randint(
+                256, size=observation_shape, dtype=np.uint8
+            )
+            next_observation = np.random.randint(
+                256, size=observation_shape, dtype=np.uint8
+            )
         else:
-            observation = np.random.random(observation_shape).astype('f4')
-            next_observation = np.random.random(observation_shape).astype('f4')
+            observation = np.random.random(observation_shape).astype("f4")
+            next_observation = np.random.random(observation_shape).astype("f4")
         reward = np.random.random()
         next_reward = np.random.random()
         terminal = np.random.randint(2)
@@ -135,19 +136,21 @@ def base_update_tester(model, observation_shape, action_size, discrete=False):
             action = np.random.randint(action_size)
             next_action = np.random.randint(action_size)
         else:
-            action = np.random.random(action_size).astype('f4')
-            next_action = np.random.random(action_size).astype('f4')
+            action = np.random.random(action_size).astype("f4")
+            next_action = np.random.random(action_size).astype("f4")
 
-        transition = Transition(observation_shape=observation_shape,
-                                action_size=action_size,
-                                observation=observation,
-                                action=action,
-                                reward=reward,
-                                next_observation=next_observation,
-                                next_action=next_action,
-                                next_reward=next_reward,
-                                terminal=terminal,
-                                prev_transition=prev_transition)
+        transition = Transition(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            observation=observation,
+            action=action,
+            reward=reward,
+            next_observation=next_observation,
+            next_action=next_action,
+            next_reward=next_reward,
+            terminal=terminal,
+            prev_transition=prev_transition,
+        )
 
         # set transition to the next pointer
         if prev_transition:

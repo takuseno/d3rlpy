@@ -1,17 +1,3 @@
 #!/bin/bash -eux
 
-
-mypy \
-  d3rlpy/encoders.py \
-  d3rlpy/q_functions.py \
-  d3rlpy/optimizers.py \
-  d3rlpy/models \
-  d3rlpy/algos/base.py \
-  d3rlpy/preprocessing \
-  d3rlpy/online \
-  d3rlpy/base.py \
-  d3rlpy/logger.py \
-  d3rlpy/gpu.py \
-  d3rlpy/context.py \
-  d3rlpy/argument_utils.py \
-  d3rlpy/augmentation
+mypy d3rlpy

@@ -6,7 +6,7 @@ from typing import cast
 from .encoders import Encoder
 
 
-class ValueFunction(nn.Module):
+class ValueFunction(nn.Module):  # type: ignore
     _encoder: Encoder
     _fc: nn.Linear
 
@@ -18,6 +18,9 @@ class ValueFunction(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self._encoder(x)
         return cast(torch.Tensor, self._fc(h))
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        return cast(torch.Tensor, super().__call__(x))
 
     def compute_error(
         self, obs_t: torch.Tensor, ret_t: torch.Tensor

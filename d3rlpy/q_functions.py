@@ -1,16 +1,16 @@
 from abc import ABCMeta, abstractmethod
 from typing import Any, ClassVar, Dict, Optional, Union, Type
-from d3rlpy.models.torch.encoders import Encoder, EncoderWithAction
-from d3rlpy.models.torch.q_functions import DiscreteQFunction
-from d3rlpy.models.torch.q_functions import ContinuousQFunction
-from d3rlpy.models.torch.q_functions import DiscreteMeanQFunction
-from d3rlpy.models.torch.q_functions import DiscreteQRQFunction
-from d3rlpy.models.torch.q_functions import DiscreteIQNQFunction
-from d3rlpy.models.torch.q_functions import DiscreteFQFQFunction
-from d3rlpy.models.torch.q_functions import ContinuousMeanQFunction
-from d3rlpy.models.torch.q_functions import ContinuousQRQFunction
-from d3rlpy.models.torch.q_functions import ContinuousIQNQFunction
-from d3rlpy.models.torch.q_functions import ContinuousFQFQFunction
+from .models.torch import Encoder, EncoderWithAction
+from .models.torch import DiscreteQFunction
+from .models.torch import ContinuousQFunction
+from .models.torch import DiscreteMeanQFunction
+from .models.torch import DiscreteQRQFunction
+from .models.torch import DiscreteIQNQFunction
+from .models.torch import DiscreteFQFQFunction
+from .models.torch import ContinuousMeanQFunction
+from .models.torch import ContinuousQRQFunction
+from .models.torch import ContinuousIQNQFunction
+from .models.torch import ContinuousFQFQFunction
 
 
 class QFunctionFactory(metaclass=ABCMeta):
@@ -100,9 +100,6 @@ class QRQFunctionFactory(QFunctionFactory):
     Args:
         n_quantiles (int): the number of quantiles.
 
-    Attributes:
-        n_quantiles (int): the number of quantiles.
-
     """
 
     TYPE: ClassVar[str] = "qr"
@@ -143,11 +140,6 @@ class IQNQFunctionFactory(QFunctionFactory):
           reinforcement learning. <https://arxiv.org/abs/1806.06923>`_
 
     Args:
-        n_quantiles (int): the number of quantiles.
-        n_greedy_quantiles (int): the number of quantiles for inference.
-        embed_size (int): the embedding size.
-
-    Attributes:
         n_quantiles (int): the number of quantiles.
         n_greedy_quantiles (int): the number of quantiles for inference.
         embed_size (int): the embedding size.
@@ -223,11 +215,6 @@ class FQFQFunctionFactory(QFunctionFactory):
           <https://arxiv.org/abs/1911.02140>`_
 
     Args:
-        n_quantiles (int): the number of quantiles.
-        embed_size (int): the embedding size.
-        entropy_coeff (float): the coefficiency of entropy penalty term.
-
-    Attributes:
         n_quantiles (int): the number of quantiles.
         embed_size (int): the embedding size.
         entropy_coeff (float): the coefficiency of entropy penalty term.

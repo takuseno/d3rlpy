@@ -107,11 +107,6 @@ class DrQPipeline(AugmentationPipeline):
             list of augmentations or augmentation types.
         n_mean (int): the number of computations to average
 
-    Attributes:
-        augmentations (list(d3rlpy.augmentation.base.Augmentation)):
-            list of augmentations.
-        n_mean (int): the number of computations to average
-
     """
 
     _n_mean: int
@@ -137,7 +132,7 @@ class DrQPipeline(AugmentationPipeline):
     ) -> torch.Tensor:
         device = list(inputs.values())[0].device
         shape = list(inputs.values())[0].shape
-        ret = torch.zeros(shape, dtype=torch.float32, device=device)
+        ret = 0.0
         for _ in range(self._n_mean):
             kwargs = dict(inputs)
             for target in targets:

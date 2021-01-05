@@ -42,30 +42,44 @@ class DummyAlgo:
         return values.reshape(-1)
 
 
-def ref_td_error_score(predict_value, observations, actions, rewards,
-                       next_observations, next_actions, terminals, gamma):
+def ref_td_error_score(
+    predict_value,
+    observations,
+    actions,
+    rewards,
+    next_observations,
+    next_actions,
+    terminals,
+    gamma,
+):
     values = predict_value(observations, actions)
     next_values = predict_value(next_observations, next_actions)
     y = rewards + gamma * next_values * (1.0 - terminals)
-    return ((y - values)**2).reshape(-1).tolist()
+    return ((y - values) ** 2).reshape(-1).tolist()
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_episodes', [100])
-@pytest.mark.parametrize('episode_length', [10])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_td_error_scorer(observation_shape, action_size, n_episodes,
-                         episode_length, gamma):
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+@pytest.mark.parametrize("gamma", [0.99])
+def test_td_error_scorer(
+    observation_shape, action_size, n_episodes, episode_length, gamma
+):
     # projection matrix for deterministic action
-    A = np.random.random(observation_shape + (action_size, ))
+    A = np.random.random(observation_shape + (action_size,))
     episodes = []
     for _ in range(n_episodes):
-        observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.matmul(observations, A).astype('f4')
-        rewards = np.random.random((episode_length, 1)).astype('f4')
-        episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions, rewards)
+        observations = np.random.random((episode_length,) + observation_shape)
+        actions = np.matmul(observations, A).astype("f4")
+        rewards = np.random.random((episode_length, 1)).astype("f4")
+        episode = Episode(
+            observation_shape,
+            action_size,
+            observations.astype("f4"),
+            actions,
+            rewards,
+        )
         episodes.append(episode)
 
     algo = DummyAlgo(A, gamma)
@@ -74,19 +88,24 @@ def test_td_error_scorer(observation_shape, action_size, n_episodes,
     for episode in episodes:
         batch = TransitionMiniBatch(episode.transitions)
         ref_error = ref_td_error_score(
-            algo.predict_value, batch.observations, batch.actions,
+            algo.predict_value,
+            batch.observations,
+            batch.actions,
             np.asarray(batch.next_rewards).reshape(-1),
-            batch.next_observations, batch.next_actions,
-            np.asarray(batch.terminals).reshape(-1), gamma)
+            batch.next_observations,
+            batch.next_actions,
+            np.asarray(batch.terminals).reshape(-1),
+            gamma,
+        )
         ref_errors += ref_error
 
     score = td_error_scorer(algo, episodes)
     assert np.allclose(score, -np.mean(ref_errors))
 
 
-def ref_discounted_sum_of_advantage_score(predict_value, observations,
-                                          dataset_actions, policy_actions,
-                                          gamma):
+def ref_discounted_sum_of_advantage_score(
+    predict_value, observations, dataset_actions, policy_actions, gamma
+):
     dataset_values = predict_value(observations, dataset_actions)
     policy_values = predict_value(observations, policy_actions)
     advantages = (dataset_values - policy_values).reshape(-1).tolist()
@@ -94,29 +113,35 @@ def ref_discounted_sum_of_advantage_score(predict_value, observations,
     for i in range(len(advantages)):
         sum_advangage = 0.0
         for j, advantage in enumerate(advantages[i:]):
-            sum_advangage += (gamma**j) * advantage
+            sum_advangage += (gamma ** j) * advantage
         rets.append(sum_advangage)
     return rets
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_episodes', [100])
-@pytest.mark.parametrize('episode_length', [10])
-@pytest.mark.parametrize('gamma', [0.99])
-def test_discounted_sum_of_advantage_scorer(observation_shape, action_size,
-                                            n_episodes, episode_length, gamma):
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+@pytest.mark.parametrize("gamma", [0.99])
+def test_discounted_sum_of_advantage_scorer(
+    observation_shape, action_size, n_episodes, episode_length, gamma
+):
     # projection matrix for deterministic action
-    A = np.random.random(observation_shape + (action_size, ))
+    A = np.random.random(observation_shape + (action_size,))
     episodes = []
     for _ in range(n_episodes):
-        observations = np.random.random((episode_length, ) + observation_shape)
+        observations = np.random.random((episode_length,) + observation_shape)
         # make difference between algorithm outputs and dataset
         noise = 100 * np.random.random((episode_length, action_size))
-        actions = (np.matmul(observations, A) + noise).astype('f4')
-        rewards = np.random.random((episode_length, 1)).astype('f4')
-        episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions, rewards)
+        actions = (np.matmul(observations, A) + noise).astype("f4")
+        rewards = np.random.random((episode_length, 1)).astype("f4")
+        episode = Episode(
+            observation_shape,
+            action_size,
+            observations.astype("f4"),
+            actions,
+            rewards,
+        )
         episodes.append(episode)
 
     algo = DummyAlgo(A, gamma)
@@ -126,29 +151,39 @@ def test_discounted_sum_of_advantage_scorer(observation_shape, action_size,
         batch = TransitionMiniBatch(episode.transitions)
         policy_actions = algo.predict(batch.observations)
         ref_sum = ref_discounted_sum_of_advantage_score(
-            algo.predict_value, batch.observations, batch.actions,
-            policy_actions, gamma)
+            algo.predict_value,
+            batch.observations,
+            batch.actions,
+            policy_actions,
+            gamma,
+        )
         ref_sums += ref_sum
 
     score = discounted_sum_of_advantage_scorer(algo, episodes)
     assert np.allclose(score, -np.mean(ref_sums))
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_episodes', [100])
-@pytest.mark.parametrize('episode_length', [10])
-def test_average_value_estimation_scorer(observation_shape, action_size,
-                                         n_episodes, episode_length):
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+def test_average_value_estimation_scorer(
+    observation_shape, action_size, n_episodes, episode_length
+):
     # projection matrix for deterministic action
-    A = np.random.random(observation_shape + (action_size, ))
+    A = np.random.random(observation_shape + (action_size,))
     episodes = []
     for _ in range(n_episodes):
-        observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.matmul(observations, A).astype('f4')
-        rewards = np.random.random((episode_length, 1)).astype('f4')
-        episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions, rewards)
+        observations = np.random.random((episode_length,) + observation_shape)
+        actions = np.matmul(observations, A).astype("f4")
+        rewards = np.random.random((episode_length, 1)).astype("f4")
+        episode = Episode(
+            observation_shape,
+            action_size,
+            observations.astype("f4"),
+            actions,
+            rewards,
+        )
         episodes.append(episode)
 
     algo = DummyAlgo(A, 0.0)
@@ -164,21 +199,27 @@ def test_average_value_estimation_scorer(observation_shape, action_size,
     assert np.allclose(score, -np.mean(total_values))
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_episodes', [100])
-@pytest.mark.parametrize('episode_length', [10])
-def test_value_estimation_std_scorer(observation_shape, action_size,
-                                     n_episodes, episode_length):
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+def test_value_estimation_std_scorer(
+    observation_shape, action_size, n_episodes, episode_length
+):
     # projection matrix for deterministic action
-    A = np.random.random(observation_shape + (action_size, ))
+    A = np.random.random(observation_shape + (action_size,))
     episodes = []
     for _ in range(n_episodes):
-        observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.matmul(observations, A).astype('f4')
-        rewards = np.random.random((episode_length, 1)).astype('f4')
-        episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions, rewards)
+        observations = np.random.random((episode_length,) + observation_shape)
+        actions = np.matmul(observations, A).astype("f4")
+        rewards = np.random.random((episode_length, 1)).astype("f4")
+        episode = Episode(
+            observation_shape,
+            action_size,
+            observations.astype("f4"),
+            actions,
+            rewards,
+        )
         episodes.append(episode)
 
     algo = DummyAlgo(A, 0.0)
@@ -194,21 +235,27 @@ def test_value_estimation_std_scorer(observation_shape, action_size,
     assert np.allclose(score, -np.mean(total_stds))
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_episodes', [100])
-@pytest.mark.parametrize('episode_length', [10])
-def test_initial_state_value_estimation_scorer(observation_shape, action_size,
-                                               n_episodes, episode_length):
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+def test_initial_state_value_estimation_scorer(
+    observation_shape, action_size, n_episodes, episode_length
+):
     # projection matrix for deterministic action
-    A = np.random.random(observation_shape + (action_size, ))
+    A = np.random.random(observation_shape + (action_size,))
     episodes = []
     for _ in range(n_episodes):
-        observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.matmul(observations, A).astype('f4')
-        rewards = np.random.random((episode_length, 1)).astype('f4')
-        episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions, rewards)
+        observations = np.random.random((episode_length,) + observation_shape)
+        actions = np.matmul(observations, A).astype("f4")
+        rewards = np.random.random((episode_length, 1)).astype("f4")
+        episode = Episode(
+            observation_shape,
+            action_size,
+            observations.astype("f4"),
+            actions,
+            rewards,
+        )
         episodes.append(episode)
 
     algo = DummyAlgo(A, 0.0)
@@ -224,22 +271,28 @@ def test_initial_state_value_estimation_scorer(observation_shape, action_size,
     assert np.allclose(score, np.mean(total_values))
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_episodes', [100])
-@pytest.mark.parametrize('episode_length', [10])
-@pytest.mark.parametrize('threshold', [5.0])
-def test_soft_opc_scorer(observation_shape, action_size, n_episodes,
-                         episode_length, threshold):
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+@pytest.mark.parametrize("threshold", [5.0])
+def test_soft_opc_scorer(
+    observation_shape, action_size, n_episodes, episode_length, threshold
+):
     # projection matrix for deterministic action
-    A = np.random.random(observation_shape + (action_size, ))
+    A = np.random.random(observation_shape + (action_size,))
     episodes = []
     for _ in range(n_episodes):
-        observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.matmul(observations, A).astype('f4')
-        rewards = np.random.random((episode_length, 1)).astype('f4')
-        episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions, rewards)
+        observations = np.random.random((episode_length,) + observation_shape)
+        actions = np.matmul(observations, A).astype("f4")
+        rewards = np.random.random((episode_length, 1)).astype("f4")
+        episode = Episode(
+            observation_shape,
+            action_size,
+            observations.astype("f4"),
+            actions,
+            rewards,
+        )
         episodes.append(episode)
 
     algo = DummyAlgo(A, 0.0)
@@ -258,21 +311,27 @@ def test_soft_opc_scorer(observation_shape, action_size, n_episodes,
     assert np.allclose(score, np.mean(success_values) - np.mean(all_values))
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_episodes', [100])
-@pytest.mark.parametrize('episode_length', [10])
-def test_continuous_action_diff_scorer(observation_shape, action_size,
-                                       n_episodes, episode_length):
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+def test_continuous_action_diff_scorer(
+    observation_shape, action_size, n_episodes, episode_length
+):
     # projection matrix for deterministic action
-    A = np.random.random(observation_shape + (action_size, ))
+    A = np.random.random(observation_shape + (action_size,))
     episodes = []
     for _ in range(n_episodes):
-        observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.random.random((episode_length, action_size)).astype('f4')
-        rewards = np.random.random((episode_length, 1)).astype('f4')
-        episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions, rewards)
+        observations = np.random.random((episode_length,) + observation_shape)
+        actions = np.random.random((episode_length, action_size)).astype("f4")
+        rewards = np.random.random((episode_length, 1)).astype("f4")
+        episode = Episode(
+            observation_shape,
+            action_size,
+            observations.astype("f4"),
+            actions,
+            rewards,
+        )
         episodes.append(episode)
 
     algo = DummyAlgo(A, 0.0)
@@ -281,27 +340,33 @@ def test_continuous_action_diff_scorer(observation_shape, action_size,
     for episode in episodes:
         batch = TransitionMiniBatch(episode.transitions)
         policy_actions = algo.predict(batch.observations)
-        diff = ((batch.actions - policy_actions)**2).sum(axis=1).tolist()
+        diff = ((batch.actions - policy_actions) ** 2).sum(axis=1).tolist()
         total_diffs += diff
     score = continuous_action_diff_scorer(algo, episodes)
     assert np.allclose(score, -np.mean(total_diffs))
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_episodes', [100])
-@pytest.mark.parametrize('episode_length', [10])
-def test_discrete_action_math_scorer(observation_shape, action_size,
-                                     n_episodes, episode_length):
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+def test_discrete_action_math_scorer(
+    observation_shape, action_size, n_episodes, episode_length
+):
     # projection matrix for deterministic action
-    A = np.random.random(observation_shape + (action_size, ))
+    A = np.random.random(observation_shape + (action_size,))
     episodes = []
     for _ in range(n_episodes):
-        observations = np.random.random((episode_length, ) + observation_shape)
+        observations = np.random.random((episode_length,) + observation_shape)
         actions = np.random.randint(action_size, size=episode_length)
-        rewards = np.random.random((episode_length, 1)).astype('f4')
-        episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions, rewards)
+        rewards = np.random.random((episode_length, 1)).astype("f4")
+        episode = Episode(
+            observation_shape,
+            action_size,
+            observations.astype("f4"),
+            actions,
+            rewards,
+        )
         episodes.append(episode)
 
     algo = DummyAlgo(A, 0.0, discrete=True)
@@ -316,24 +381,25 @@ def test_discrete_action_math_scorer(observation_shape, action_size,
     assert np.allclose(score, np.mean(total_matches))
 
 
-@pytest.mark.parametrize('observation_shape', [(100, ), (4, 84, 84)])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('episode_length', [10])
-@pytest.mark.parametrize('n_trials', [10])
-def test_evaluate_on_environment(observation_shape, action_size,
-                                 episode_length, n_trials):
+@pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("episode_length", [10])
+@pytest.mark.parametrize("n_trials", [10])
+def test_evaluate_on_environment(
+    observation_shape, action_size, episode_length, n_trials
+):
     shape = (n_trials, episode_length + 1) + observation_shape
     if len(observation_shape) == 3:
         observations = np.random.randint(0, 255, size=shape, dtype=np.uint8)
     else:
-        observations = np.random.random(shape).astype('f4')
+        observations = np.random.random(shape).astype("f4")
 
     class DummyEnv:
         def __init__(self):
             self.episode = 0
-            self.observation_space = spaces.Box(low=0,
-                                                high=255,
-                                                shape=observation_shape)
+            self.observation_space = spaces.Box(
+                low=0, high=255, shape=observation_shape
+            )
 
         def step(self, action):
             self.t += 1
@@ -376,20 +442,25 @@ class DummyDynamics:
         return y, reward
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_episodes', [100])
-@pytest.mark.parametrize('episode_length', [10])
-def test_dynamics_observation_prediction_error_scorer(observation_shape,
-                                                      action_size, n_episodes,
-                                                      episode_length):
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+def test_dynamics_observation_prediction_error_scorer(
+    observation_shape, action_size, n_episodes, episode_length
+):
     episodes = []
     for _ in range(n_episodes):
-        observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.random.random((episode_length, action_size)).astype('f4')
-        rewards = np.random.random((episode_length, 1)).astype('f4')
-        episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions, rewards)
+        observations = np.random.random((episode_length,) + observation_shape)
+        actions = np.random.random((episode_length, action_size)).astype("f4")
+        rewards = np.random.random((episode_length, 1)).astype("f4")
+        episode = Episode(
+            observation_shape,
+            action_size,
+            observations.astype("f4"),
+            actions,
+            rewards,
+        )
         episodes.append(episode)
 
     dynamics = DummyDynamics(np.random.random(observation_shape))
@@ -398,26 +469,31 @@ def test_dynamics_observation_prediction_error_scorer(observation_shape,
     for episode in episodes:
         batch = TransitionMiniBatch(episode.transitions)
         pred_x, _ = dynamics.predict(batch.observations, batch.actions)
-        errors = ((batch.next_observations - pred_x)**2).sum(axis=1)
+        errors = ((batch.next_observations - pred_x) ** 2).sum(axis=1)
         total_errors += errors.tolist()
     score = dynamics_observation_prediction_error_scorer(dynamics, episodes)
     assert np.allclose(score, -np.mean(total_errors))
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_episodes', [100])
-@pytest.mark.parametrize('episode_length', [10])
-def test_dynamics_reward_prediction_error_scorer(observation_shape,
-                                                 action_size, n_episodes,
-                                                 episode_length):
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+def test_dynamics_reward_prediction_error_scorer(
+    observation_shape, action_size, n_episodes, episode_length
+):
     episodes = []
     for _ in range(n_episodes):
-        observations = np.random.random((episode_length, ) + observation_shape)
-        actions = np.random.random((episode_length, action_size)).astype('f4')
-        rewards = np.random.random((episode_length, 1)).astype('f4')
-        episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions, rewards)
+        observations = np.random.random((episode_length,) + observation_shape)
+        actions = np.random.random((episode_length, action_size)).astype("f4")
+        rewards = np.random.random((episode_length, 1)).astype("f4")
+        episode = Episode(
+            observation_shape,
+            action_size,
+            observations.astype("f4"),
+            actions,
+            rewards,
+        )
         episodes.append(episode)
 
     dynamics = DummyDynamics(np.random.random(observation_shape))
@@ -426,26 +502,31 @@ def test_dynamics_reward_prediction_error_scorer(observation_shape,
     for episode in episodes:
         batch = TransitionMiniBatch(episode.transitions)
         _, pred_reward = dynamics.predict(batch.observations, batch.actions)
-        errors = ((batch.next_rewards - pred_reward)**2).reshape(-1)
+        errors = ((batch.next_rewards - pred_reward) ** 2).reshape(-1)
         total_errors += errors.tolist()
     score = dynamics_reward_prediction_error_scorer(dynamics, episodes)
     assert np.allclose(score, -np.mean(total_errors))
 
 
-@pytest.mark.parametrize('observation_shape', [(100, )])
-@pytest.mark.parametrize('action_size', [2])
-@pytest.mark.parametrize('n_episodes', [100])
-@pytest.mark.parametrize('episode_length', [10])
-def test_dynamics_prediction_variance_scorer(observation_shape, action_size,
-                                             n_episodes, episode_length):
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+def test_dynamics_prediction_variance_scorer(
+    observation_shape, action_size, n_episodes, episode_length
+):
     episodes = []
     for _ in range(n_episodes):
-        observations = np.random.random((episode_length, ) + observation_shape)
+        observations = np.random.random((episode_length,) + observation_shape)
         actions = np.random.random((episode_length, action_size))
         rewards = np.random.random((episode_length, 1))
-        episode = Episode(observation_shape, action_size,
-                          observations.astype('f4'), actions.astype('f4'),
-                          rewards.astype('f4'))
+        episode = Episode(
+            observation_shape,
+            action_size,
+            observations.astype("f4"),
+            actions.astype("f4"),
+            rewards.astype("f4"),
+        )
         episodes.append(episode)
 
     dynamics = DummyDynamics(np.random.random(observation_shape))

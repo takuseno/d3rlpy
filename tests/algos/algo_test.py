@@ -13,8 +13,8 @@ from d3rlpy.preprocessing import Scaler
 
 class DummyImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size):
-        self.observation_shape = observation_shape
-        self.action_size = action_size
+        self._observation_shape = observation_shape
+        self._action_size = action_size
         self.batch_size = 32
 
     def build(self):
@@ -38,6 +38,14 @@ class DummyImpl(TorchImplBase):
     def sample_action(self, x):
         pass
 
+    @property
+    def observation_shape(self):
+        return self._observation_shape
+
+    @property
+    def action_size(self):
+        return self._action_size
+
 
 class DummyScaler(Scaler):
     def fit(self, episodes):
@@ -50,28 +58,26 @@ class DummyScaler(Scaler):
         return 10.0 * x
 
     def get_type(self):
-        return 'dummy'
+        return "dummy"
 
     def get_params(self):
         return {}
 
 
-def algo_tester(algo,
-                observation_shape,
-                imitator=False,
-                action_size=2,
-                state_value=False):
+def algo_tester(
+    algo, observation_shape, imitator=False, action_size=2, state_value=False
+):
     # dummy impl object
     impl = DummyImpl(observation_shape, action_size)
 
     base_tester(algo, impl, observation_shape, action_size)
 
-    algo.impl = impl
+    algo._impl = impl
 
     # check save policy
     impl.save_policy = Mock()
-    algo.save_policy('policy.pt', False)
-    impl.save_policy.assert_called_with('policy.pt', False)
+    algo.save_policy("policy.pt", False)
+    impl.save_policy.assert_called_with("policy.pt", False)
 
     # check predict
     x = np.random.random((2, 3)).tolist()
@@ -99,7 +105,7 @@ def algo_tester(algo,
     except NotImplementedError:
         pass
 
-    algo.impl = None
+    algo._impl = None
 
 
 def algo_update_tester(algo, observation_shape, action_size, discrete=False):
@@ -114,14 +120,16 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
     trial_count = 0
     for _ in range(n_trials):
         # reset parameters
-        algo.impl = None
+        algo._impl = None
 
         # train
-        algo.fit(dataset.episodes[:n_episodes],
-                 n_epochs=3,
-                 logdir='test_data',
-                 verbose=False,
-                 tensorboard=False)
+        algo.fit(
+            dataset.episodes[:n_episodes],
+            n_epochs=3,
+            logdir="test_data",
+            verbose=False,
+            tensorboard=False,
+        )
 
         # evaluation loop
         success_count = 0
@@ -144,7 +152,7 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
 
         trial_count += 1
         if trial_count == n_trials:
-            assert False, 'performance is not good enough: %d.' % success_count
+            assert False, "performance is not good enough: %d." % success_count
 
 
 def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
@@ -156,14 +164,16 @@ def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
     trial_count = 0
     for _ in range(n_trials):
         # reset parameters
-        algo.impl = None
+        algo._impl = None
 
         # train
-        algo.fit(dataset.episodes[:n_episodes],
-                 n_epochs=3,
-                 logdir='test_data',
-                 verbose=False,
-                 tensorboard=False)
+        algo.fit(
+            dataset.episodes[:n_episodes],
+            n_epochs=3,
+            logdir="test_data",
+            verbose=False,
+            tensorboard=False,
+        )
 
         # evaluation loop
         success_count = 0
@@ -186,14 +196,14 @@ def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
 
         trial_count += 1
         if trial_count == n_trials:
-            assert False, 'performance is not good enough: %d.' % success_count
+            assert False, "performance is not good enough: %d." % success_count
 
 
 def impl_tester(impl, discrete, imitator, test_with_std):
     # setup implementation
     impl.build()
 
-    observations = np.random.random((100, ) + impl.observation_shape)
+    observations = np.random.random((100,) + impl.observation_shape)
     if discrete:
         actions = np.random.randint(impl.action_size, size=100)
     else:
@@ -202,51 +212,53 @@ def impl_tester(impl, discrete, imitator, test_with_std):
     # check predict_best_action
     y = impl.predict_best_action(observations)
     if discrete:
-        assert y.shape == (100, )
+        assert y.shape == (100,)
     else:
         assert y.shape == (100, impl.action_size)
 
     # check predict_values
     if not imitator:
         value = impl.predict_value(observations, actions, with_std=False)
-        assert value.shape == (100, )
+        assert value.shape == (100,)
 
         if test_with_std:
-            value, std = impl.predict_value(observations,
-                                            actions,
-                                            with_std=True)
-            assert value.shape == (100, )
-            assert std.shape == (100, )
+            value, std = impl.predict_value(
+                observations, actions, with_std=True
+            )
+            assert value.shape == (100,)
+            assert std.shape == (100,)
 
     # check sample_action
     try:
         action = impl.sample_action(observations)
         if discrete:
-            assert action.shape == (100, )
+            assert action.shape == (100,)
         else:
             assert action.shape == (100, impl.action_size)
     except NotImplementedError:
         pass
 
 
-def torch_impl_tester(impl,
-                      discrete,
-                      deterministic_best_action=True,
-                      imitator=False,
-                      test_with_std=True):
+def torch_impl_tester(
+    impl,
+    discrete,
+    deterministic_best_action=True,
+    imitator=False,
+    test_with_std=True,
+):
     impl_tester(impl, discrete, imitator, test_with_std)
 
     # check save_model and load_model
-    impl.save_model(os.path.join('test_data', 'model.pt'))
-    impl.load_model(os.path.join('test_data', 'model.pt'))
+    impl.save_model(os.path.join("test_data", "model.pt"))
+    impl.load_model(os.path.join("test_data", "model.pt"))
 
     # check save_policy as TorchScript
-    impl.save_policy(os.path.join('test_data', 'model.pt'), False)
-    policy = torch.jit.load(os.path.join('test_data', 'model.pt'))
+    impl.save_policy(os.path.join("test_data", "model.pt"), False)
+    policy = torch.jit.load(os.path.join("test_data", "model.pt"))
     observations = torch.rand(100, *impl.observation_shape)
     action = policy(observations)
     if discrete:
-        assert action.shape == (100, )
+        assert action.shape == (100,)
     else:
         assert action.shape == (100, impl.action_size)
 
@@ -257,12 +269,12 @@ def torch_impl_tester(impl,
         assert np.allclose(action, impl.predict_best_action(observations))
 
     # check save_policy as ONNX
-    impl.save_policy(os.path.join('test_data', 'model.onnx'), True)
-    ort_session = ort.InferenceSession(os.path.join('test_data', 'model.onnx'))
-    observations = np.random.rand(1, *impl.observation_shape).astype('f4')
-    action = ort_session.run(None, {'input_0': observations})[0]
+    impl.save_policy(os.path.join("test_data", "model.onnx"), True)
+    ort_session = ort.InferenceSession(os.path.join("test_data", "model.onnx"))
+    observations = np.random.rand(1, *impl.observation_shape).astype("f4")
+    action = ort_session.run(None, {"input_0": observations})[0]
     if discrete:
-        assert action.shape == (1, )
+        assert action.shape == (1,)
     else:
         assert action.shape == (1, impl.action_size)
 
@@ -270,6 +282,6 @@ def torch_impl_tester(impl,
     # TODO: check probablistic policy
     # https://github.com/pytorch/pytorch/pull/25753
     if deterministic_best_action:
-        assert np.allclose(action,
-                           impl.predict_best_action(observations),
-                           atol=1e-6)
+        assert np.allclose(
+            action, impl.predict_best_action(observations), atol=1e-6
+        )

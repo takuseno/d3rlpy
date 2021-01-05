@@ -8,11 +8,11 @@ from ..dynamics.base import DynamicsBase
 from ..optimizers import OptimizerFactory, AdamFactory
 from ..gpu import Device
 from ..q_functions import QFunctionFactory
-from ..argument_utils import check_encoder, EncoderArg
-from ..argument_utils import check_use_gpu, UseGPUArg
-from ..argument_utils import check_augmentation, AugmentationArg
-from ..argument_utils import check_q_func, QFuncArg
-from ..argument_utils import ScalerArg
+from ..argument_utility import check_encoder, EncoderArg
+from ..argument_utility import check_use_gpu, UseGPUArg
+from ..argument_utility import check_augmentation, AugmentationArg
+from ..argument_utility import check_q_func, QFuncArg
+from ..argument_utility import ScalerArg
 
 
 class TD3(AlgoBase):
@@ -64,7 +64,6 @@ class TD3(AlgoBase):
         n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
-        reguralizing_rate (float): reguralizing term for policy function.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
@@ -82,40 +81,6 @@ class TD3(AlgoBase):
             augmentation.
         impl (d3rlpy.algos.torch.td3_impl.TD3Impl): algorithm implementation.
 
-    Attributes:
-        actor_learning_rate (float): learning rate for a policy function.
-        critic_learning_rate (float): learning rate for Q functions.
-        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
-        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the critic.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
-            Q function factory.
-        batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): N-step TD calculation.
-        gamma (float): discount factor.
-        tau (float): target network synchronization coefficiency.
-        reguralizing_rate (float): reguralizing term for policy function.
-        n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
-        target_smoothing_sigma (float): standard deviation for target noise.
-        target_smoothing_clip (float): clipping range for target noise.
-        update_actor_interval (int): interval to update policy function
-            described as `delayed policy update` in the paper.
-        use_gpu (d3rlpy.gpu.Device): GPU device.
-        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline):
-            augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.torch.td3_impl.TD3Impl): algorithm implementation.
-        eval_results_ (dict): evaluation results.
-
     """
 
     _actor_learning_rate: float
@@ -126,7 +91,6 @@ class TD3(AlgoBase):
     _critic_encoder_factory: EncoderFactory
     _q_func_factory: QFunctionFactory
     _tau: float
-    _reguralizing_rate: float
     _n_critics: int
     _bootstrap: bool
     _share_encoder: bool
@@ -152,7 +116,6 @@ class TD3(AlgoBase):
         n_steps: int = 1,
         gamma: float = 0.99,
         tau: float = 0.005,
-        reguralizing_rate: float = 0.0,
         n_critics: int = 2,
         bootstrap: bool = False,
         share_encoder: bool = False,
@@ -182,7 +145,6 @@ class TD3(AlgoBase):
         self._critic_encoder_factory = check_encoder(critic_encoder_factory)
         self._q_func_factory = check_q_func(q_func_factory)
         self._tau = tau
-        self._reguralizing_rate = reguralizing_rate
         self._n_critics = n_critics
         self._bootstrap = bootstrap
         self._share_encoder = share_encoder
@@ -208,7 +170,6 @@ class TD3(AlgoBase):
             q_func_factory=self._q_func_factory,
             gamma=self._gamma,
             tau=self._tau,
-            reguralizing_rate=self._reguralizing_rate,
             n_critics=self._n_critics,
             bootstrap=self._bootstrap,
             share_encoder=self._share_encoder,
@@ -222,7 +183,8 @@ class TD3(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[float]:
+    ) -> List[Optional[float]]:
+        assert self._impl is not None
         critic_loss = self._impl.update_critic(
             batch.observations,
             batch.actions,

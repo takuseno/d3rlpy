@@ -6,29 +6,4 @@ else
   BLACK_ARG=$*
 fi
 
-black -l 80 $BLACK_ARG \
-  d3rlpy/algos/base.py \
-  d3rlpy/models \
-  d3rlpy/q_functions.py \
-  d3rlpy/encoders.py \
-  d3rlpy/optimizers.py \
-  d3rlpy/dataset.pyi \
-  d3rlpy/preprocessing \
-  d3rlpy/augmentation \
-  d3rlpy/base.py \
-  d3rlpy/logger.py \
-  d3rlpy/gpu.py \
-  d3rlpy/context.py \
-  d3rlpy/argument_utils.py \
-  d3rlpy/online \
-  d3rlpy/algos/*.py \
-  tests/models \
-  tests/preprocessing \
-  tests/augmentation \
-  tests/online \
-  tests/test_gpu.py \
-  tests/test_context.py \
-  tests/test_argument_utils.py \
-  tests/test_q_functions.py \
-  tests/test_optimizers.py \
-  tests/test_encoders.py
+black -l 80 $BLACK_ARG d3rlpy tests

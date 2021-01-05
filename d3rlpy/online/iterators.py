@@ -1,8 +1,7 @@
 import gym
 
-from typing import Optional
+from typing import Callable, Optional, TYPE_CHECKING
 from tqdm import trange
-from ..algos.base import AlgoBase
 from ..preprocessing.stack import StackedObservation
 from ..metrics.scorer import evaluate_on_environment
 from ..logger import D3RLPyLogger
@@ -11,9 +10,13 @@ from .buffers import Buffer
 from .explorers import Explorer
 
 
+if TYPE_CHECKING:
+    from ..algos.base import AlgoBase
+
+
 def train(
     env: gym.Env,
-    algo: AlgoBase,
+    algo: "AlgoBase",
     buffer: Buffer,
     explorer: Optional[Explorer] = None,
     n_steps: int = 1000000,
@@ -93,6 +96,7 @@ def train(
     xrange = trange if show_progress else range
 
     # setup evaluation scorer
+    eval_scorer: Optional[Callable[..., float]]
     if eval_env:
         eval_scorer = evaluate_on_environment(eval_env, epsilon=eval_epsilon)
     else:
