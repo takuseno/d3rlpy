@@ -15,7 +15,7 @@ def ope_tester(ope, observation_shape, action_size=2):
 
     base_tester(ope, impl, observation_shape, action_size)
 
-    ope.algo.impl = impl
+    ope._algo.impl = impl
     ope.impl = impl
 
     # check save policy
@@ -49,7 +49,7 @@ def ope_tester(ope, observation_shape, action_size=2):
         pass
 
     ope.impl = None
-    ope.algo.impl = None
+    ope._algo.impl = None
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])

@@ -71,7 +71,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         self._build_network()
 
         # setup target network
-        self.targ_q_func = copy.deepcopy(self._q_func)
+        self._targ_q_func = copy.deepcopy(self._q_func)
 
         if self._use_gpu:
             self.to_gpu(self._use_gpu)

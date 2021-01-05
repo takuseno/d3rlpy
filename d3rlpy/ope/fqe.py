@@ -19,7 +19,7 @@ from .torch.fqe_impl import FQEBaseImpl, FQEImpl, DiscreteFQEImpl
 
 class _FQEBase(AlgoBase):
 
-    _algo: AlgoBase
+    _algo: Optional[AlgoBase]
     _learning_rate: float
     _optim_factory: OptimizerFactory
     _encoder_factory: EncoderFactory
@@ -60,7 +60,6 @@ class _FQEBase(AlgoBase):
             scaler=scaler,
             dynamics=None,
         )
-        assert algo is not None
         self._algo = algo
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
@@ -74,12 +73,15 @@ class _FQEBase(AlgoBase):
         self._impl = impl
 
     def save_policy(self, fname: str, as_onnx: bool = False) -> None:
+        assert self._algo is not None
         self._algo.save_policy(fname, as_onnx)
 
     def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+        assert self._algo is not None
         return self._algo.predict(x)
 
     def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+        assert self._algo is not None
         return self._algo.sample_action(x)
 
     @abstractmethod
@@ -91,6 +93,7 @@ class _FQEBase(AlgoBase):
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
+        assert self._algo is not None
         assert self._impl is not None
         next_actions = self._algo.predict(batch.observations)
         loss = self._impl.update(
