@@ -133,3 +133,11 @@ class DynamicsBase(LearnableBase):
             rewards = next_rewards.copy()
 
         return rets
+
+    @property
+    def n_transitions(self) -> int:
+        return self._n_transitions
+
+    @property
+    def horizon(self) -> int:
+        return self._horizon

@@ -96,22 +96,11 @@ def test_bcq_impl(
     value = impl._predict_value(repeated_x, action)
     assert value.shape == (n_critics, 32 * n_action_samples, 1)
 
-    target_values = impl._predict_value(repeated_x, action, target=True)
-    if q_func_factory == "mean":
-        assert target_values.shape == (n_critics, 32 * n_action_samples, 1)
-    else:
-        n_quantiles = impl.q_func.q_funcs[0].n_quantiles
-        assert target_values.shape == (
-            n_critics,
-            32 * n_action_samples,
-            n_quantiles,
-        )
-
     target = impl.compute_target(x)
     if q_func_factory == "mean":
         assert target.shape == (32, 1)
     else:
-        assert target.shape == (32, n_quantiles)
+        assert target.shape == (32, impl._q_func.q_funcs[0]._n_quantiles)
 
     best_action = impl._predict_best_action(x)
     assert best_action.shape == (32, action_size)

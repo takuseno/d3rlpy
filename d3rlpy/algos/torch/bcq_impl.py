@@ -189,18 +189,15 @@ class BCQImpl(DDPGBaseImpl):
         self,
         repeated_x: torch.Tensor,
         action: torch.Tensor,
-        target: bool = False,
     ) -> torch.Tensor:
         assert self._q_func is not None
-        assert self._targ_q_func is not None
         # TODO: this seems to be slow with image observation
         # (batch_size, n, *obs_shape) -> (batch_size * n, *obs_shape)
         flattened_x = repeated_x.reshape(-1, *self.observation_shape)
         # (batch_size, n, action_size) -> (batch_size * n, action_size)
         flattend_action = action.view(-1, self.action_size)
         # estimate values
-        q_func = self._targ_q_func if target else self._q_func
-        return q_func(flattened_x, flattend_action, "none")
+        return self._q_func(flattened_x, flattend_action, "none")
 
     def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         # TODO: this seems to be slow with image observation
@@ -274,8 +271,8 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         self._imitator = None
 
     def _build_network(self) -> None:
-        assert self._q_func is not None
         super()._build_network()
+        assert self._q_func is not None
         # share convolutional layers if observation is pixel
         if isinstance(self._q_func.q_funcs[0].encoder, PixelEncoder):
             self._imitator = DiscreteImitator(

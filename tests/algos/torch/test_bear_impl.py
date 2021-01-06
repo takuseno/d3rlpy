@@ -104,7 +104,7 @@ def test_bear_impl(
     if q_func_factory == "mean":
         assert target.shape == (32, 1)
     else:
-        n_quantiles = impl.q_func.q_funcs[0].n_quantiles
+        n_quantiles = impl._q_func.q_funcs[0]._n_quantiles
         assert target.shape == (32, n_quantiles)
 
     torch_impl_tester(

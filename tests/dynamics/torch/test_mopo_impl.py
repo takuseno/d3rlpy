@@ -39,4 +39,5 @@ def test_mopo_impl(
         use_gpu=False,
         scaler=scaler,
     )
+    impl.build()
     torch_impl_tester(impl, discrete=discrete_action)

@@ -14,8 +14,8 @@ from d3rlpy.preprocessing import Scaler
 
 class DummyImpl(TorchImplBase):
     def __init__(self, observation_shape, action_size):
-        self.observation_shape = observation_shape
-        self.action_size = action_size
+        self._observation_shape = observation_shape
+        self._action_size = action_size
         self.batch_size = 32
 
     def save_model(self, fname):
@@ -24,10 +24,10 @@ class DummyImpl(TorchImplBase):
     def load_model(self, fname):
         pass
 
-    def predict(self, x, action):
+    def _predict(self, x, action):
         pass
 
-    def generate(self, x, action):
+    def _generate(self, x, action):
         pass
 
 
@@ -48,7 +48,7 @@ def dynamics_tester(dynamics, observation_shape, action_size=2):
 
     base_tester(dynamics, impl, observation_shape, action_size)
 
-    dynamics.impl = impl
+    dynamics._impl = impl
 
     # check predict
     x = np.random.random((2, 3)).tolist()

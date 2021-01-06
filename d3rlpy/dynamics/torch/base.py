@@ -48,7 +48,9 @@ class TorchImplBase(DynamicsImplBase):
         return observation, reward, variance
 
     @abstractmethod
-    def _predict(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+    def _predict(
+        self, x: torch.Tensor, action: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         pass
 
     @eval_api
@@ -67,7 +69,9 @@ class TorchImplBase(DynamicsImplBase):
         return observation, reward
 
     @abstractmethod
-    def _generate(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+    def _generate(
+        self, x: torch.Tensor, action: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         pass
 
     def to_gpu(self, device: Device = Device()) -> None:
