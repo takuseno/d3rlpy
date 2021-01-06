@@ -20,6 +20,8 @@ __all__ = [
     "DiscreteAWR",
     "BC",
     "DiscreteBC",
+    "BCQ",
+    "DiscreteBCQ",
     "BEAR",
     "CQL",
     "DiscreteCQL",
