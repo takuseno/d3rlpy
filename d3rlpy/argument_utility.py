@@ -1,3 +1,5 @@
+# pylint: disable=unidiomatic-typecheck
+
 from typing import List, Optional, Union, cast
 from .encoders import create_encoder_factory, EncoderFactory
 from .q_functions import create_q_func_factory, QFunctionFactory

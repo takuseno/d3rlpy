@@ -1,14 +1,14 @@
+from typing import Callable, List
+
 import numpy as np
 
-from typing import Callable, List
-from .scorer import _make_batches, WINDOW_SIZE
-from ..algos import AlgoBase
+from .scorer import _make_batches, AlgoProtocol, WINDOW_SIZE
 from ..dataset import Episode
 
 
 def compare_continuous_action_diff(
-    base_algo: AlgoBase,
-) -> Callable[[AlgoBase, List[Episode]], float]:
+    base_algo: AlgoProtocol,
+) -> Callable[[AlgoProtocol, List[Episode]], float]:
     r"""Returns scorer function of action difference between algorithms.
 
     This metrics suggests how different the two algorithms are in continuous
@@ -42,7 +42,7 @@ def compare_continuous_action_diff(
 
     """
 
-    def scorer(algo: AlgoBase, episodes: List[Episode]) -> float:
+    def scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
         total_diffs = []
         for episode in episodes:
             # TODO: handle different n_frames
@@ -58,8 +58,8 @@ def compare_continuous_action_diff(
 
 
 def compare_discrete_action_match(
-    base_algo: AlgoBase,
-) -> Callable[[AlgoBase, List[Episode]], float]:
+    base_algo: AlgoProtocol,
+) -> Callable[[AlgoProtocol, List[Episode]], float]:
     r"""Returns scorer function of action matches between algorithms.
 
     This metrics suggests how different the two algorithms are in discrete
@@ -94,7 +94,7 @@ def compare_discrete_action_match(
 
     """
 
-    def scorer(algo: AlgoBase, episodes: List[Episode]) -> float:
+    def scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
         total_matches = []
         for episode in episodes:
             # TODO: handle different n_frames

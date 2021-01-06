@@ -1,11 +1,12 @@
+import math
+from typing import Optional, Sequence
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import math
-
-from typing import Optional, Sequence
 from torch.optim import Optimizer
+
 from ...optimizers import OptimizerFactory
 from ...encoders import EncoderFactory
 from ...q_functions import QFunctionFactory

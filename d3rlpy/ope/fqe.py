@@ -1,19 +1,18 @@
-import numpy as np
-
 from abc import abstractmethod
 from typing import Any, List, Optional, Sequence, Union
+
+import numpy as np
+
 from ..algos import AlgoBase
 from ..optimizers import OptimizerFactory, AdamFactory
 from ..argument_utility import check_encoder, EncoderArg
 from ..argument_utility import check_use_gpu, UseGPUArg
 from ..argument_utility import check_q_func, QFuncArg
-from ..argument_utility import check_augmentation, AugmentationArg
 from ..argument_utility import ScalerArg
 from ..dataset import TransitionMiniBatch
 from ..encoders import EncoderFactory
 from ..gpu import Device
 from ..q_functions import QFunctionFactory
-from ..preprocessing import Scaler
 from .torch.fqe_impl import FQEBaseImpl, FQEImpl, DiscreteFQEImpl
 
 
@@ -58,7 +57,7 @@ class _FQEBase(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
-            dynamics=None,
+            generator=None,
         )
         self._algo = algo
         self._learning_rate = learning_rate

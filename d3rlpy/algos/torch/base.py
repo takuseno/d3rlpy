@@ -1,7 +1,8 @@
+from typing import Optional, Sequence
+
 import numpy as np
 import torch
 
-from typing import Optional, Sequence
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...torch_utility import freeze, unfreeze
@@ -41,7 +42,7 @@ class TorchImplBase(AlgoImplBase):
 
     @eval_api
     def save_policy(self, fname: str, as_onnx: bool) -> None:
-        dummy_x = torch.rand(1, *self.observation_shape, device=self.device)
+        dummy_x = torch.rand(1, *self.observation_shape, device=self._device)
 
         # workaround until version 1.6
         freeze(self)
@@ -73,11 +74,11 @@ class TorchImplBase(AlgoImplBase):
         unfreeze(self)
 
     def to_gpu(self, device: Device = Device()) -> None:
-        self.device = "cuda:%d" % device.get_id()
+        self._device = "cuda:%d" % device.get_id()
         to_cuda(self, self._device)
 
     def to_cpu(self) -> None:
-        self.device = "cpu:0"
+        self._device = "cpu:0"
         to_cpu(self)
 
     def save_model(self, fname: str) -> None:
@@ -94,3 +95,11 @@ class TorchImplBase(AlgoImplBase):
     @property
     def action_size(self) -> int:
         return self._action_size
+
+    @property
+    def device(self) -> str:
+        return self._device
+
+    @property
+    def scaler(self) -> Optional[Scaler]:
+        return self._scaler

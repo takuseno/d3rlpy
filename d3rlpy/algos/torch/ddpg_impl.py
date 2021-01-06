@@ -1,10 +1,11 @@
+import copy
+from abc import ABCMeta, abstractmethod
+from typing import Any, List, Optional, Sequence, Union
+
 import numpy as np
 import torch
-import copy
-
-from abc import ABCMeta, abstractmethod
-from typing import Any, List, Optional, Sequence, Tuple, Union, cast
 from torch.optim import Optimizer
+
 from ...models.torch import create_continuous_q_function
 from ...models.torch import create_deterministic_policy
 from ...models.torch import EnsembleContinuousQFunction

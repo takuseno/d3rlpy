@@ -1,6 +1,6 @@
-import gym
-
 from typing import cast
+
+import gym
 from gym.spaces import Discrete
 
 

@@ -1,8 +1,11 @@
+# pylint: disable=arguments-differ
+
+from typing import Optional, Sequence
+
 import numpy as np
 import torch
 import torch.nn.functional as F
 
-from typing import Optional, Sequence
 from ...models.torch import squash_action, create_normal_policy
 from ...optimizers import OptimizerFactory, AdamFactory
 from ...encoders import EncoderFactory

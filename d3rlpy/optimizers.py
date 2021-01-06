@@ -1,10 +1,8 @@
 import copy
-import torch
+from typing import Any, Dict, Iterable, Union, Tuple, Type, cast
+
 import torch.nn as nn
 import torch.optim as optim
-import torch.optim.lr_scheduler as lr_scheduler
-
-from typing import Any, Dict, Iterable, Union, Tuple, Type, cast
 from torch.optim import Optimizer, SGD, Adam, RMSprop
 
 

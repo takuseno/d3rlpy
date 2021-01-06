@@ -35,7 +35,6 @@ class QFunctionFactory(metaclass=ABCMeta):
             torch.nn.Module: Q function object.
 
         """
-        pass
 
     def get_type(self) -> str:
         """Returns Q function type.
@@ -54,7 +53,6 @@ class QFunctionFactory(metaclass=ABCMeta):
             dict: Q function parameters.
 
         """
-        pass
 
 
 class MeanQFunctionFactory(QFunctionFactory):

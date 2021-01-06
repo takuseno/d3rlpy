@@ -1,10 +1,13 @@
+# pylint: disable=unused-import
+
+import urllib.request as request
+import os
+import pickle
+from typing import Tuple
+
 import numpy as np
 import gym
-import os
-import urllib.request as request
-import pickle
 
-from typing import Tuple
 from .dataset import MDPDataset
 
 DATA_DIRECTORY = "d3rlpy_data"
@@ -110,11 +113,11 @@ def get_pybullet(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         env = gym.make(env_name)
         dataset = MDPDataset(**env.get_dataset())
         return dataset, env
-    except ImportError:
+    except ImportError as e:
         raise ImportError(
             "d4rl-pybullet is not installed.\n"
             "pip install git+https://github.com/takuseno/d4rl-pybullet"
-        )
+        ) from e
 
 
 def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
@@ -145,8 +148,8 @@ def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         env = gym.make(env_name, stack=False)
         dataset = MDPDataset(discrete_action=True, **env.get_dataset())
         return dataset, env
-    except ImportError:
+    except ImportError as e:
         raise ImportError(
             "d4rl-atari is not installed.\n"
             "pip install git+https://github.com/takuseno/d4rl-atari"
-        )
+        ) from e

@@ -1,10 +1,9 @@
 from typing import Any, List, Optional, Sequence
-from .base import AlgoBase
+from .base import AlgoBase, DataGenerator
 from .torch.plas_impl import PLASImpl, PLASWithPerturbationImpl
 from ..augmentation import AugmentationPipeline
 from ..dataset import TransitionMiniBatch
 from ..encoders import EncoderFactory
-from ..dynamics.base import DynamicsBase
 from ..optimizers import OptimizerFactory, AdamFactory
 from ..q_functions import QFunctionFactory
 from ..gpu import Device
@@ -126,7 +125,7 @@ class PLAS(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[PLASImpl] = None,
         **kwargs: Any
     ):
@@ -136,7 +135,7 @@ class PLAS(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
-            dynamics=dynamics,
+            generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -346,7 +345,7 @@ class PLASWithPerturbation(PLAS):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[PLASWithPerturbationImpl] = None,
         **kwargs: Any
     ):
@@ -376,7 +375,7 @@ class PLASWithPerturbation(PLAS):
             use_gpu=use_gpu,
             scaler=scaler,
             augmentation=augmentation,
-            dynamics=dynamics,
+            generator=generator,
             impl=impl,
         )
         self._action_flexibility = action_flexibility

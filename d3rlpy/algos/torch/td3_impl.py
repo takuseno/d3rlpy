@@ -1,6 +1,7 @@
+from typing import Optional, Sequence
+
 import torch
 
-from typing import Optional, Sequence
 from ...optimizers import OptimizerFactory
 from ...encoders import EncoderFactory
 from ...q_functions import QFunctionFactory

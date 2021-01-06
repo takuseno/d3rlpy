@@ -1,11 +1,12 @@
+from typing import Any, Callable, Dict, List, Optional
+from inspect import signature
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from typing_extensions import Protocol
-from inspect import signature
 from torch.utils.data._utils.collate import default_collate
+from typing_extensions import Protocol
+
 from .preprocessing import Scaler
 
 
@@ -95,11 +96,18 @@ def map_location(device: str) -> Any:
 
 
 class _WithDeviceAndScalerProtocol(Protocol):
-    _device: str
-    _scaler: Optional[Scaler]
+    @property
+    def device(self) -> str:
+        ...
+
+    @property
+    def scaler(self) -> Optional[Scaler]:
+        ...
 
 
-def torch_api(scaler_targets: List[str] = []) -> Callable[..., np.ndarray]:
+def torch_api(
+    scaler_targets: Optional[List[str]] = None,
+) -> Callable[..., np.ndarray]:
     def _torch_api(f: Callable[..., np.ndarray]) -> Callable[..., np.ndarray]:
         # get argument names
         sig = signature(f)
@@ -115,7 +123,7 @@ def torch_api(scaler_targets: List[str] = []) -> Callable[..., np.ndarray]:
                     tensor = val
                 elif isinstance(val, list):
                     tensor = default_collate(val)
-                    tensor = tensor.to(self._device)
+                    tensor = tensor.to(self.device)
                 elif isinstance(val, np.ndarray):
                     if val.dtype == np.uint8:
                         dtype = torch.uint8
@@ -124,18 +132,19 @@ def torch_api(scaler_targets: List[str] = []) -> Callable[..., np.ndarray]:
                     tensor = torch.tensor(
                         data=val,
                         dtype=dtype,
-                        device=self._device,
+                        device=self.device,
                     )
                 else:
                     tensor = torch.tensor(
                         data=val,
                         dtype=torch.float32,
-                        device=self._device,
+                        device=self.device,
                     )
 
                 # preprocess
-                if self._scaler and arg_keys[i] in scaler_targets:
-                    tensor = self._scaler.transform(tensor)
+                if self.scaler and scaler_targets:
+                    if arg_keys[i] in scaler_targets:
+                        tensor = self.scaler.transform(tensor)
 
                 # make sure if the tensor is float32 type
                 if tensor.dtype != torch.float32:

@@ -1,9 +1,8 @@
 from typing import Any, List, Optional, Sequence
-from .base import AlgoBase
+from .base import AlgoBase, DataGenerator
 from .torch.sac_impl import SACImpl, DiscreteSACImpl
 from ..augmentation import AugmentationPipeline
 from ..dataset import TransitionMiniBatch
-from ..dynamics.base import DynamicsBase
 from ..encoders import EncoderFactory
 from ..gpu import Device
 from ..q_functions import QFunctionFactory
@@ -140,7 +139,7 @@ class SAC(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[SACImpl] = None,
         **kwargs: Any
     ):
@@ -150,7 +149,7 @@ class SAC(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
-            dynamics=dynamics,
+            generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -334,7 +333,7 @@ class DiscreteSAC(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[DiscreteSACImpl] = None,
         **kwargs: Any
     ):
@@ -344,7 +343,7 @@ class DiscreteSAC(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
-            dynamics=dynamics,
+            generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate

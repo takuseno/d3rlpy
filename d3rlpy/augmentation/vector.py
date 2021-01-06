@@ -1,6 +1,7 @@
+from typing import Any, ClassVar, Dict
+
 import torch
 
-from typing import Any, ClassVar, Dict
 from .base import Augmentation
 
 

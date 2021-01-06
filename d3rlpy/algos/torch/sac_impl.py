@@ -1,11 +1,12 @@
+import math
+import copy
+from typing import Optional, Sequence, Tuple
+
 import torch
 import torch.nn as nn
 import numpy as np
-import math
-import copy
-
-from typing import Optional, Sequence, Tuple
 from torch.optim import Optimizer
+
 from ...models.torch import NormalPolicy, CategoricalPolicy
 from ...models.torch import EnsembleDiscreteQFunction
 from ...models.torch import create_normal_policy
@@ -99,7 +100,7 @@ class SACImpl(DDPGBaseImpl):
 
     def _build_temperature(self) -> None:
         initial_val = math.log(self._initial_temperature)
-        data = torch.full((1, 1), initial_val, device=self.device)
+        data = torch.full((1, 1), initial_val, device=self._device)
         self._log_temp = nn.Parameter(data)
 
     def _build_temperature_optim(self) -> None:

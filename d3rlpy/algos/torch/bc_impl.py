@@ -1,16 +1,16 @@
-import numpy as np
-import torch
-
 from abc import ABCMeta, abstractmethod
 from typing import Optional, Sequence
+
+import numpy as np
+import torch
 from torch.optim import Optimizer
+
 from ...models.torch import Imitator
 from ...models.torch import DiscreteImitator, DeterministicRegressor
 from ...models.torch import create_deterministic_regressor
 from ...models.torch import create_discrete_imitator
 from ...optimizers import OptimizerFactory
 from ...encoders import EncoderFactory
-from ...q_functions import QFunctionFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline

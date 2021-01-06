@@ -1,6 +1,7 @@
+from typing import Any
+
 import GPUtil
 
-from typing import Any
 from .context import get_parallel_flag
 
 

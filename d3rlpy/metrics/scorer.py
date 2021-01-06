@@ -1,17 +1,51 @@
+from typing import Any, Callable, List, Iterator, Tuple, Union, cast
+from typing_extensions import Protocol
+
 import numpy as np
 import gym
 
-from typing import Any, Callable, List, Iterator, Tuple, TYPE_CHECKING, cast
 from ..preprocessing.stack import StackedObservation
 from ..dataset import Episode, TransitionMiniBatch
 
 
-if TYPE_CHECKING:
-    from ..algos import AlgoBase
-    from ..dynamics import DynamicsBase
-
-
 WINDOW_SIZE = 1024
+
+
+class AlgoProtocol(Protocol):
+    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+        ...
+
+    def predict_value(
+        self,
+        x: Union[np.ndarray, List[Any]],
+        action: Union[np.ndarray, List[Any]],
+        with_std: bool = False,
+    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        ...
+
+    @property
+    def n_frames(self) -> int:
+        ...
+
+    @property
+    def gamma(self) -> float:
+        ...
+
+
+class DynamicsProtocol(Protocol):
+    def predict(
+        self,
+        x: Union[np.ndarray, List[Any]],
+        action: Union[np.ndarray, List[Any]],
+        with_variance: bool = False,
+    ) -> Union[
+        Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]
+    ]:
+        ...
+
+    @property
+    def n_frames(self) -> int:
+        ...
 
 
 def _make_batches(
@@ -28,7 +62,7 @@ def _make_batches(
         yield batch
 
 
-def td_error_scorer(algo: "AlgoBase", episodes: List[Episode]) -> float:
+def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
     r"""Returns average TD error (in negative scale).
 
     This metics suggests how Q functions overfit to training sets.
@@ -71,7 +105,7 @@ def td_error_scorer(algo: "AlgoBase", episodes: List[Episode]) -> float:
 
 
 def discounted_sum_of_advantage_scorer(
-    algo: "AlgoBase", episodes: List[Episode]
+    algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
     r"""Returns average of discounted sum of advantage (in negative scale).
 
@@ -130,7 +164,7 @@ def discounted_sum_of_advantage_scorer(
 
 
 def average_value_estimation_scorer(
-    algo: "AlgoBase", episodes: List[Episode]
+    algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
     r"""Returns average value estimation (in negative scale).
 
@@ -161,7 +195,7 @@ def average_value_estimation_scorer(
 
 
 def value_estimation_std_scorer(
-    algo: "AlgoBase", episodes: List[Episode]
+    algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
     r"""Returns standard deviation of value estimation (in negative scale).
 
@@ -199,7 +233,7 @@ def value_estimation_std_scorer(
 
 
 def initial_state_value_estimation_scorer(
-    algo: "AlgoBase", episodes: List[Episode]
+    algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
     r"""Returns mean estimated action-values at the initial states.
 
@@ -236,7 +270,7 @@ def initial_state_value_estimation_scorer(
 
 def soft_opc_scorer(
     return_threshold: float,
-) -> Callable[["AlgoBase", List[Episode]], float]:
+) -> Callable[[AlgoProtocol, List[Episode]], float]:
     r"""Returns Soft Off-Policy Classification metrics.
 
     This function returns scorer function, which is suitable to the standard
@@ -282,7 +316,7 @@ def soft_opc_scorer(
 
     """
 
-    def scorer(algo: "AlgoBase", episodes: List[Episode]) -> float:
+    def scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
         success_values = []
         all_values = []
         for episode in episodes:
@@ -299,7 +333,7 @@ def soft_opc_scorer(
 
 
 def continuous_action_diff_scorer(
-    algo: "AlgoBase", episodes: List[Episode]
+    algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
     r"""Returns squared difference of actions between algorithm and dataset.
 
@@ -332,7 +366,7 @@ def continuous_action_diff_scorer(
 
 
 def discrete_action_match_scorer(
-    algo: "AlgoBase", episodes: List[Episode]
+    algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
     r"""Returns percentage of identical actions between algorithm and dataset.
 
@@ -406,7 +440,7 @@ def evaluate_on_environment(
     observation_shape = env.observation_space.shape
     is_image = len(observation_shape) == 3
 
-    def scorer(algo: "AlgoBase", *args: Any) -> float:
+    def scorer(algo: AlgoProtocol, *args: Any) -> float:
         if is_image:
             stacked_observation = StackedObservation(
                 observation_shape, algo.n_frames
@@ -450,7 +484,7 @@ def evaluate_on_environment(
 
 
 def dynamics_observation_prediction_error_scorer(
-    dynamics: "DynamicsBase", episodes: List[Episode]
+    dynamics: DynamicsProtocol, episodes: List[Episode]
 ) -> float:
     r"""Returns MSE of observation prediction (in negative scale).
 
@@ -482,7 +516,7 @@ def dynamics_observation_prediction_error_scorer(
 
 
 def dynamics_reward_prediction_error_scorer(
-    dynamics: "DynamicsBase", episodes: List[Episode]
+    dynamics: DynamicsProtocol, episodes: List[Episode]
 ) -> float:
     r"""Returns MSE of reward prediction (in negative scale).
 
@@ -514,7 +548,7 @@ def dynamics_reward_prediction_error_scorer(
 
 
 def dynamics_prediction_variance_scorer(
-    dynamics: "DynamicsBase", episodes: List[Episode]
+    dynamics: DynamicsProtocol, episodes: List[Episode]
 ) -> float:
     """Returns prediction variance of ensemble dynamics (in negative scale).
 

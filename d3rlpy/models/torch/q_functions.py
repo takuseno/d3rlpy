@@ -1,10 +1,11 @@
+import math
+from abc import ABCMeta, abstractmethod
+from typing import List, Optional, Tuple, Union, cast
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import math
 
-from abc import ABCMeta, abstractmethod
-from typing import List, Optional, Tuple, Union, cast
 from .encoders import Encoder, EncoderWithAction
 
 
@@ -898,7 +899,7 @@ class EnsembleQFunction(nn.Module):  # type: ignore
         gamma: float = 0.99,
     ) -> torch.Tensor:
         td_sum = torch.tensor(0.0, dtype=torch.float32, device=obs_t.device)
-        for i, q_func in enumerate(self._q_funcs):
+        for q_func in self._q_funcs:
             loss = q_func.compute_error(
                 obs_t, act_t, rew_tp1, q_tp1, gamma, reduction="none"
             )

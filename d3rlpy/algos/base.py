@@ -1,15 +1,17 @@
+from abc import ABCMeta, abstractmethod
+from typing import Any, Callable, List, Optional, Tuple, Union
+
 import numpy as np
 import gym
+from tqdm import trange
 
-from abc import abstractmethod
-from typing import Any, List, Optional, Tuple, Union
 from ..base import ImplBase, LearnableBase
+from ..logger import D3RLPyLogger
 from ..dataset import Transition
-from ..dynamics import DynamicsBase
-from ..online.iterators import train
 from ..online.buffers import Buffer
 from ..online.explorers import Explorer
-from ..preprocessing import Scaler
+from ..preprocessing.stack import StackedObservation
+from ..metrics.scorer import evaluate_on_environment
 from ..argument_utility import ScalerArg
 
 
@@ -42,9 +44,17 @@ class AlgoImplBase(ImplBase):
         pass
 
 
+class DataGenerator(metaclass=ABCMeta):
+    @abstractmethod
+    def generate(
+        self, algo: "AlgoBase", transitions: List[Transition]
+    ) -> List[Transition]:
+        pass
+
+
 class AlgoBase(LearnableBase):
 
-    _dynamics: Optional[DynamicsBase]
+    _generator: Optional[DataGenerator]
     _impl: Optional[AlgoImplBase]
 
     def __init__(
@@ -54,10 +64,10 @@ class AlgoBase(LearnableBase):
         n_steps: int,
         gamma: float,
         scaler: ScalerArg,
-        dynamics: Optional[DynamicsBase],
+        generator: Optional[DataGenerator],
     ):
         super().__init__(batch_size, n_frames, n_steps, gamma, scaler)
-        self._dynamics = dynamics
+        self._generator = generator
 
     def save_policy(self, fname: str, as_onnx: bool = False) -> None:
         """Save the greedy-policy computational graph as TorchScript or ONNX.
@@ -216,30 +226,121 @@ class AlgoBase(LearnableBase):
                 (additional to the csv data)
 
         """
-        train(
-            env=env,
-            algo=self,
-            buffer=buffer,
-            explorer=explorer,
-            n_steps=n_steps,
-            n_steps_per_epoch=n_steps_per_epoch,
-            update_interval=update_interval,
-            update_start_step=update_start_step,
-            eval_env=eval_env,
-            eval_epsilon=eval_epsilon,
+        # setup logger
+        if experiment_name is None:
+            experiment_name = self.__class__.__name__ + "_online"
+
+        logger = D3RLPyLogger(
+            experiment_name,
             save_metrics=save_metrics,
-            experiment_name=experiment_name,
-            with_timestamp=with_timestamp,
-            logdir=logdir,
+            root_dir=logdir,
             verbose=verbose,
-            show_progress=show_progress,
             tensorboard=tensorboard,
+            with_timestamp=with_timestamp,
         )
+
+        self._active_logger = logger
+
+        observation_shape = env.observation_space.shape
+        is_image = len(observation_shape) == 3
+
+        # prepare stacked observation
+        if is_image:
+            stacked_frame = StackedObservation(observation_shape, self.n_frames)
+            n_channels = observation_shape[0]
+            image_size = observation_shape[1:]
+            observation_shape = (n_channels * self.n_frames, *image_size)
+
+        # setup algorithm
+        if self._impl is None:
+            self.build_with_env(env)
+
+        # save hyperparameters
+        self._save_params(logger)
+        batch_size = self.batch_size
+
+        # switch based on show_progress flag
+        xrange = trange if show_progress else range
+
+        # setup evaluation scorer
+        eval_scorer: Optional[Callable[..., float]]
+        if eval_env:
+            eval_scorer = evaluate_on_environment(
+                eval_env, epsilon=eval_epsilon
+            )
+        else:
+            eval_scorer = None
+
+        # start training loop
+        observation, reward, terminal = env.reset(), 0.0, False
+        for total_step in xrange(n_steps):
+            with logger.measure_time("step"):
+                # stack observation if necessary
+                if is_image:
+                    stacked_frame.append(observation)
+                    fed_observation = stacked_frame.eval()
+                else:
+                    observation = observation.astype("f4")
+                    fed_observation = observation
+
+                # sample exploration action
+                with logger.measure_time("inference"):
+                    if explorer:
+                        action = explorer.sample(
+                            self, fed_observation, total_step
+                        )
+                    else:
+                        action = self.sample_action([fed_observation])[0]
+
+                # store observation
+                buffer.append(observation, action, reward, terminal)
+
+                # get next observation
+                if terminal:
+                    observation, reward, terminal = env.reset(), 0.0, False
+                    # for image observation
+                    if is_image:
+                        stacked_frame.clear()
+                else:
+                    with logger.measure_time("environment_step"):
+                        observation, reward, terminal, _ = env.step(action)
+
+                # psuedo epoch count
+                epoch = total_step // n_steps_per_epoch
+
+                if total_step > update_start_step and len(buffer) > batch_size:
+                    if total_step % update_interval == 0:
+                        # sample mini-batch
+                        with logger.measure_time("sample_batch"):
+                            batch = buffer.sample(
+                                batch_size=batch_size,
+                                n_frames=self._n_frames,
+                                n_steps=self._n_steps,
+                                gamma=self._gamma,
+                            )
+
+                        # update parameters
+                        with logger.measure_time("algorithm_update"):
+                            loss = self.update(epoch, total_step, batch)
+
+                        # record metrics
+                        for name, val in zip(self._get_loss_labels(), loss):
+                            if val:
+                                logger.add_metric(name, val)
+
+            if epoch > 0 and total_step % n_steps_per_epoch == 0:
+                # evaluation
+                if eval_scorer:
+                    logger.add_metric("evaluation", eval_scorer(self))
+
+                # save metrics
+                logger.commit(epoch, total_step)
+                logger.save_model(total_step, self)
 
     def _generate_new_data(
         self, transitions: List[Transition]
     ) -> List[Transition]:
         new_data = []
-        if self._dynamics:
-            new_data += self._dynamics.generate(self, transitions)
+        if self._generator:
+            new_data += self._generator.generate(self, transitions)
         return new_data

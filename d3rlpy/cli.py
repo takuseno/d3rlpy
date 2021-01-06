@@ -1,12 +1,14 @@
-import numpy as np
-import click
+# pylint: disable=redefined-builtin
+
 import os
 import json
 import glob
+from typing import List, TYPE_CHECKING, Optional
 
-from typing import TYPE_CHECKING, Optional
+import numpy as np
+import click
+
 from . import algos
-
 from ._version import __version__
 
 
@@ -55,14 +57,16 @@ def stats(path: str) -> None:
 )
 @click.option("--show-steps", is_flag=True, help="use iterations on x-axis.")
 @click.option("--show-max", is_flag=True, help="show maximum value.")
-def plot(path: str, window: int, show_steps: bool, show_max: bool) -> None:
+def plot(
+    path: List[str], window: int, show_steps: bool, show_max: bool
+) -> None:
     plt = get_plt()
 
     max_y_values = []
     min_x_values = []
     max_x_values = []
 
-    for i, p in enumerate(path):
+    for p in path:
         data = np.loadtxt(p, delimiter=",")
 
         # moving average

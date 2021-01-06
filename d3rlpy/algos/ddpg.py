@@ -1,11 +1,10 @@
 from typing import Any, List, Optional, Sequence
-from .base import AlgoBase
+from .base import AlgoBase, DataGenerator
 from .torch.ddpg_impl import DDPGImpl
 from ..augmentation import AugmentationPipeline
 from ..dataset import TransitionMiniBatch
 from ..encoders import EncoderFactory
 from ..optimizers import OptimizerFactory, AdamFactory
-from ..dynamics.base import DynamicsBase
 from ..q_functions import QFunctionFactory
 from ..gpu import Device
 from ..argument_utility import check_encoder, EncoderArg
@@ -115,7 +114,7 @@ class DDPG(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[DDPGImpl] = None,
         **kwargs: Any
     ):
@@ -125,7 +124,7 @@ class DDPG(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
-            dynamics=dynamics,
+            generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -167,7 +166,7 @@ class DDPG(AlgoBase):
         self._impl.build()
 
     def update(
-        self, epoch: int, itr: int, batch: TransitionMiniBatch
+        self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
         assert self._impl is not None
         critic_loss = self._impl.update_critic(

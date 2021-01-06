@@ -1,13 +1,12 @@
+from abc import abstractmethod
+from typing import Any, List, Optional, Tuple, Union
+
 import numpy as np
 
-from abc import abstractmethod
-from typing import Any, List, Optional, Tuple, Union, TYPE_CHECKING
 from ..base import ImplBase, LearnableBase
+from ..algos import AlgoBase, DataGenerator
 from ..dataset import Transition, TransitionMiniBatch
 from ..argument_utility import ScalerArg
-
-if TYPE_CHECKING:
-    from ..algos import AlgoBase
 
 
 class DynamicsImplBase(ImplBase):
@@ -28,7 +27,7 @@ class DynamicsImplBase(ImplBase):
         pass
 
 
-class DynamicsBase(LearnableBase):
+class DynamicsBase(LearnableBase, DataGenerator):
 
     _n_transitions: int
     _horizon: int
@@ -73,7 +72,7 @@ class DynamicsBase(LearnableBase):
         return observations, rewards
 
     def generate(
-        self, algo: "AlgoBase", transitions: List[Transition]
+        self, algo: AlgoBase, transitions: List[Transition]
     ) -> List[Transition]:
         """Returns new transitions for data augmentation.
 

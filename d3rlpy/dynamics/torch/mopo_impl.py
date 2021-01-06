@@ -1,14 +1,14 @@
+from typing import Optional, Sequence, Tuple
+from torch.optim import Optimizer
+
 import numpy as np
 import torch
 
-from typing import Optional, Sequence, Tuple
-from torch.optim import Optimizer, Adam
-from d3rlpy.optimizers import OptimizerFactory
-from d3rlpy.encoders import EncoderFactory
-from d3rlpy.preprocessing import Scaler
-from d3rlpy.gpu import Device
-from d3rlpy.models.torch.utility import create_probablistic_dynamics
-from d3rlpy.models.torch.dynamics import EnsembleDynamics
+from ...optimizers import OptimizerFactory
+from ...encoders import EncoderFactory
+from ...preprocessing import Scaler
+from ...gpu import Device
+from ...models.torch import create_probablistic_dynamics, EnsembleDynamics
 from ...torch_utility import torch_api, train_api
 from .base import TorchImplBase
 

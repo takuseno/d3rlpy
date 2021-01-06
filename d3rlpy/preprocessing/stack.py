@@ -1,6 +1,6 @@
-import numpy as np
-
 from typing import Sequence
+
+import numpy as np
 
 
 class StackedObservation:

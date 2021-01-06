@@ -61,6 +61,7 @@ class DummyImpl:
         self._fc2 = torch.nn.Linear(100, 100)
         self._optim = torch.optim.Adam(self._fc1.parameters())
         self._device = "cpu:0"
+        self._scaler = None
 
     @torch_api()
     def torch_api_func(self, x):
@@ -81,6 +82,14 @@ class DummyImpl:
     def eval_api_func(self):
         assert not self._fc1.training
         assert not self._fc2.training
+
+    @property
+    def device(self):
+        return self._device
+
+    @property
+    def scaler(self):
+        return self._scaler
 
 
 def check_if_same_dict(a, b):

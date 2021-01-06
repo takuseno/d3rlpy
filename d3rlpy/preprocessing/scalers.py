@@ -1,8 +1,9 @@
+from abc import ABCMeta, abstractmethod
+from typing import Any, ClassVar, Dict, List, Optional, Type
+
 import numpy as np
 import torch
 
-from abc import ABCMeta, abstractmethod
-from typing import Any, ClassVar, Dict, List, Optional, Type
 from ..dataset import Episode, MDPDataset
 
 

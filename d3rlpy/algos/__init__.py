@@ -1,5 +1,5 @@
 from typing import Any, Dict, Type
-from .base import AlgoBase
+from .base import AlgoBase, DataGenerator
 from .awac import AWAC
 from .awr import AWR, DiscreteAWR
 from .bc import BC, DiscreteBC
@@ -33,6 +33,7 @@ __all__ = [
     "SAC",
     "DiscreteSAC",
     "TD3",
+    "DataGenerator",
     "get_algo",
     "create_algo",
 ]

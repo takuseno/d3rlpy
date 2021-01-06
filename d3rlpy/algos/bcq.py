@@ -1,13 +1,13 @@
+from typing import Any, List, Optional, Sequence, Union
+
 import numpy as np
 
-from typing import Any, List, Optional, Sequence, Union
-from .base import AlgoBase
+from .base import AlgoBase, DataGenerator
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 from ..augmentation import AugmentationPipeline
 from ..optimizers import OptimizerFactory, AdamFactory
 from ..encoders import EncoderFactory
 from ..dataset import TransitionMiniBatch
-from ..dynamics.base import DynamicsBase
 from ..q_functions import QFunctionFactory
 from ..gpu import Device
 from ..argument_utility import check_encoder, EncoderArg
@@ -196,7 +196,7 @@ class BCQ(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[BCQImpl] = None,
         **kwargs: Any
     ):
@@ -206,7 +206,7 @@ class BCQ(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
-            dynamics=dynamics,
+            generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -405,7 +405,7 @@ class DiscreteBCQ(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[DiscreteBCQImpl] = None,
         **kwargs: Any
     ):
@@ -415,7 +415,7 @@ class DiscreteBCQ(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
-            dynamics=dynamics,
+            generator=generator,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory

@@ -1,6 +1,7 @@
+import random
+
 import numpy as np
 import torch
-import random
 
 from ._version import __version__
 

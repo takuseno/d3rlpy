@@ -1,10 +1,11 @@
-import numpy as np
-import torch
 import copy
-
 from abc import abstractmethod
 from typing import Any, List, Optional, Sequence, Union
+
+import numpy as np
+import torch
 from torch.optim import Optimizer
+
 from ...optimizers import OptimizerFactory
 from ...encoders import EncoderFactory
 from ...q_functions import QFunctionFactory
@@ -15,7 +16,7 @@ from ...models.torch import create_discrete_q_function
 from ...models.torch import EnsembleQFunction
 from ...models.torch import EnsembleDiscreteQFunction
 from ...models.torch import EnsembleContinuousQFunction
-from ...torch_utility import torch_api, train_api, eval_api, hard_sync
+from ...torch_utility import torch_api, train_api, hard_sync
 from ...algos.torch.utility import ContinuousQFunctionMixin
 from ...algos.torch.utility import DiscreteQFunctionMixin
 from ...algos.torch.base import TorchImplBase

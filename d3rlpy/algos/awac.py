@@ -1,12 +1,10 @@
-from typing import Any, List, Optional, Sequence, Union
-from .base import AlgoBase
+from typing import Any, List, Optional, Sequence
+from .base import AlgoBase, DataGenerator
 from .torch.awac_impl import AWACImpl
 from ..dataset import TransitionMiniBatch
 from ..optimizers import OptimizerFactory, AdamFactory
 from ..encoders import EncoderFactory
-from ..dynamics.base import DynamicsBase
 from ..q_functions import QFunctionFactory
-from ..preprocessing import Scaler
 from ..augmentation import AugmentationPipeline
 from ..gpu import Device
 from ..argument_utility import ScalerArg
@@ -123,7 +121,7 @@ class AWAC(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[AWACImpl] = None,
         **kwargs: Any
     ):
@@ -133,7 +131,7 @@ class AWAC(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
-            dynamics=dynamics,
+            generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate

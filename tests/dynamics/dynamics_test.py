@@ -17,6 +17,8 @@ class DummyImpl(TorchImplBase):
         self._observation_shape = observation_shape
         self._action_size = action_size
         self.batch_size = 32
+        self._device = "cpu:0"
+        self._scaler = None
 
     def save_model(self, fname):
         pass
@@ -29,6 +31,22 @@ class DummyImpl(TorchImplBase):
 
     def _generate(self, x, action):
         pass
+
+    @property
+    def observation_shape(self):
+        return self._observation_shape
+
+    @property
+    def action_size(self):
+        return self._action_size
+
+    @property
+    def device(self):
+        return self._device
+
+    @property
+    def scaler(self):
+        return self._scaler
 
 
 class DummyAlgo:

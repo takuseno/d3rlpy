@@ -1,8 +1,9 @@
+from typing import Optional, Sequence, Tuple
+from abc import abstractmethod
+
 import numpy as np
 import torch
 
-from typing import Optional, Sequence, Tuple
-from abc import abstractmethod
 from ..base import DynamicsImplBase
 from ...gpu import Device
 from ...preprocessing import Scaler
@@ -96,3 +97,11 @@ class TorchImplBase(DynamicsImplBase):
     @property
     def action_size(self) -> int:
         return self._action_size
+
+    @property
+    def device(self) -> str:
+        return self._device
+
+    @property
+    def scaler(self) -> Optional[Scaler]:
+        return self._scaler

@@ -1,8 +1,9 @@
+from abc import ABCMeta, abstractmethod
+from typing import Generic, List, Optional, TypeVar, Sequence
+
 import numpy as np
 import gym
 
-from abc import ABCMeta, abstractmethod
-from typing import Any, Generic, List, Optional, TypeVar, Sequence
 from ..dataset import Episode, Transition, TransitionMiniBatch
 from .utility import get_action_size_from_env
 
@@ -65,7 +66,6 @@ class Buffer(metaclass=ABCMeta):
             terminal (bool or float): terminal flag.
 
         """
-        pass
 
     @abstractmethod
     def append_episode(self, episode: Episode) -> None:
@@ -75,7 +75,6 @@ class Buffer(metaclass=ABCMeta):
             episode (d3rlpy.dataset.Episode): episode.
 
         """
-        pass
 
     @abstractmethod
     def sample(
@@ -110,7 +109,6 @@ class Buffer(metaclass=ABCMeta):
             d3rlpy.dataset.TransitionMiniBatch: mini-batch.
 
         """
-        pass
 
     @abstractmethod
     def size(self) -> int:
@@ -120,7 +118,6 @@ class Buffer(metaclass=ABCMeta):
             int: the number of elements in buffer.
 
         """
-        pass
 
     def __len__(self) -> int:
         return self.size()

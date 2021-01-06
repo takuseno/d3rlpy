@@ -1,9 +1,10 @@
+import math
+from typing import Optional, Sequence, cast
+
 import numpy as np
 import torch
-import math
-
-from typing import Optional, Sequence, cast
 from torch.optim import Optimizer
+
 from ...models.torch import PixelEncoder
 from ...models.torch import DeterministicResidualPolicy
 from ...models.torch import create_deterministic_residual_policy

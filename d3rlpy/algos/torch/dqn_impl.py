@@ -1,9 +1,10 @@
+import copy
+from typing import Optional, Sequence
+
 import numpy as np
 import torch
-import copy
-
-from typing import List, Optional, Sequence
 from torch.optim import Optimizer
+
 from ...models.torch import create_discrete_q_function
 from ...models.torch import EnsembleDiscreteQFunction
 from ...augmentation import AugmentationPipeline
@@ -12,7 +13,7 @@ from ...optimizers import OptimizerFactory
 from ...encoders import EncoderFactory
 from ...q_functions import QFunctionFactory
 from ...gpu import Device
-from ...torch_utility import hard_sync, torch_api, train_api, eval_api
+from ...torch_utility import hard_sync, torch_api, train_api
 from .utility import DiscreteQFunctionMixin
 from .base import TorchImplBase
 

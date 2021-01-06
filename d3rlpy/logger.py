@@ -1,13 +1,14 @@
-import numpy as np
 import os
 import json
 import time
 
-from typing import Any, Dict, List, Optional, Iterator
-from typing_extensions import Protocol
 from contextlib import contextmanager
-from tensorboardX import SummaryWriter
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Iterator
+
+import numpy as np
+from typing_extensions import Protocol
+from tensorboardX import SummaryWriter
 
 
 class _SaveProtocol(Protocol):
@@ -61,11 +62,10 @@ class D3RLPyLogger:
                 if not os.path.exists(self._logdir):
                     os.makedirs(self._logdir)
                     break
+                if with_timestamp:
+                    time.sleep(1.0)
                 else:
-                    if with_timestamp:
-                        time.sleep(1.0)
-                    else:
-                        raise ValueError("%s already exists." % self._logdir)
+                    raise ValueError("%s already exists." % self._logdir)
             else:
                 break
 

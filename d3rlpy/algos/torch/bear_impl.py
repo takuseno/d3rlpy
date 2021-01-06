@@ -1,10 +1,11 @@
+import math
+from typing import Optional, Sequence
+
 import numpy as np
 import torch
 import torch.nn as nn
-import math
-
-from typing import Optional, Sequence
 from torch.optim import Optimizer
+
 from ...models.torch import create_probablistic_regressor
 from ...models.torch import ProbablisticRegressor
 from ...models.torch import compute_max_with_n_actions_and_indices

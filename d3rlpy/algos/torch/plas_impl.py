@@ -1,9 +1,10 @@
+import copy
+from typing import Optional, Sequence
+
 import numpy as np
 import torch
-import copy
-
-from typing import Optional, Sequence
 from torch.optim import Optimizer
+
 from ...models.torch import DeterministicResidualPolicy
 from ...models.torch import DeterministicPolicy
 from ...models.torch import ConditionalVAE
@@ -238,7 +239,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         assert self._perturbation is not None
         parameters = list(self._policy.parameters())
         parameters += list(self._perturbation.parameters())
-        self.actor_optim = self._actor_optim_factory.create(
+        self._actor_optim = self._actor_optim_factory.create(
             params=parameters, lr=self._actor_learning_rate
         )
 

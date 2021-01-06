@@ -1,7 +1,9 @@
-import numpy as np
+# pylint: disable=multiple-statements
 
 from typing import Any, Dict, List, Iterator, Optional, Sequence, Union
 from typing_extensions import Protocol
+
+import numpy as np
 
 class Transition:
     def __init__(

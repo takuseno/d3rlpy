@@ -1,10 +1,9 @@
 from typing import Any, List, Optional, Sequence
-from .base import AlgoBase
+from .base import AlgoBase, DataGenerator
 from .dqn import DoubleDQN
 from .torch.cql_impl import CQLImpl, DiscreteCQLImpl
 from ..augmentation import AugmentationPipeline
 from ..dataset import TransitionMiniBatch
-from ..dynamics.base import DynamicsBase
 from ..encoders import EncoderFactory
 from ..q_functions import QFunctionFactory
 from ..optimizers import OptimizerFactory, AdamFactory
@@ -159,7 +158,7 @@ class CQL(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[CQLImpl] = None,
         **kwargs: Any
     ):
@@ -169,7 +168,7 @@ class CQL(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
-            dynamics=dynamics,
+            generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate

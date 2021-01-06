@@ -1,12 +1,12 @@
+from typing import Any, List, Optional, Sequence, Union
+from abc import abstractmethod
+
 import numpy as np
 
-from typing import Any, List, Optional, Sequence, Union
-from abc import ABCMeta, abstractmethod
-from .base import AlgoBase
+from .base import AlgoBase, DataGenerator
 from .torch.bc_impl import BCBaseImpl, BCImpl, DiscreteBCImpl
 from ..augmentation import AugmentationPipeline
 from ..dataset import TransitionMiniBatch
-from ..dynamics.base import DynamicsBase
 from ..encoders import EncoderFactory
 from ..gpu import Device
 from ..optimizers import OptimizerFactory, AdamFactory
@@ -33,7 +33,7 @@ class _BCBase(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[BCBaseImpl] = None,
         **kwargs: Any
     ):
@@ -43,7 +43,7 @@ class _BCBase(AlgoBase):
             n_steps=1,
             gamma=1.0,
             scaler=scaler,
-            dynamics=dynamics,
+            generator=generator,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
@@ -59,7 +59,7 @@ class _BCBase(AlgoBase):
         pass
 
     def update(
-        self, epoch: int, itr: int, batch: TransitionMiniBatch
+        self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
         assert self._impl is not None
         loss = self._impl.update_imitator(batch.observations, batch.actions)
@@ -186,7 +186,7 @@ class DiscreteBC(_BCBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[DiscreteBCImpl] = None,
         **kwargs: Any
     ):
@@ -199,7 +199,7 @@ class DiscreteBC(_BCBase):
             use_gpu=use_gpu,
             scaler=scaler,
             augmentation=augmentation,
-            dynamics=dynamics,
+            generator=generator,
             impl=impl,
             **kwargs
         )

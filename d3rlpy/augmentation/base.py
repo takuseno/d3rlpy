@@ -1,7 +1,7 @@
-import torch
-
 from abc import ABCMeta, abstractmethod
 from typing import Any, ClassVar, Dict
+
+import torch
 
 
 class Augmentation(metaclass=ABCMeta):

@@ -1,7 +1,8 @@
-import torch
-
 from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, Dict, List, Optional
+
+import torch
+
 from .base import Augmentation
 
 
@@ -49,7 +50,6 @@ class AugmentationPipeline(metaclass=ABCMeta):
             dict: piple parameters.
 
         """
-        pass
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         """Returns observation processed by all augmentations.
@@ -87,7 +87,6 @@ class AugmentationPipeline(metaclass=ABCMeta):
             torch.Tensor: the computation result.
 
         """
-        pass
 
     @property
     def augmentations(self) -> List[Augmentation]:
@@ -130,8 +129,6 @@ class DrQPipeline(AugmentationPipeline):
         inputs: Dict[str, torch.Tensor],
         targets: List[str],
     ) -> torch.Tensor:
-        device = list(inputs.values())[0].device
-        shape = list(inputs.values())[0].shape
         ret = 0.0
         for _ in range(self._n_mean):
             kwargs = dict(inputs)

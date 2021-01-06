@@ -1,18 +1,17 @@
+from typing import Any, List, Optional, Union, Sequence
+from abc import abstractmethod
+
 import numpy as np
 
-from typing import Any, List, Optional, Union, Sequence
-from abc import ABCMeta, abstractmethod
-from .base import AlgoBase
+from .base import AlgoBase, DataGenerator
 from .torch.awr_impl import AWRBaseImpl, AWRImpl, DiscreteAWRImpl
 from ..augmentation import AugmentationPipeline
 from ..dataset import compute_lambda_return, TransitionMiniBatch
-from ..dynamics.base import DynamicsBase
 from ..optimizers import OptimizerFactory, SGDFactory
 from ..encoders import EncoderFactory
-from ..q_functions import QFunctionFactory
 from ..gpu import Device
 from ..argument_utility import check_encoder, check_use_gpu, check_augmentation
-from ..argument_utility import ScalerArg, EncoderArg, UseGPUArg, QFuncArg
+from ..argument_utility import ScalerArg, EncoderArg, UseGPUArg
 from ..argument_utility import AugmentationArg
 
 
@@ -55,7 +54,7 @@ class _AWRBase(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[AWRImpl] = None,
         **kwargs: Any
     ):
@@ -66,7 +65,7 @@ class _AWRBase(AlgoBase):
             n_steps=1,
             gamma=gamma,
             scaler=scaler,
-            dynamics=dynamics,
+            generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -117,7 +116,7 @@ class _AWRBase(AlgoBase):
         weights = np.exp(advantages / self._beta)
         return np.minimum(weights, self._max_weight)
 
-    def predict_value(
+    def predict_value(  # pylint: disable=signature-differs
         self, x: Union[np.ndarray, List[Any]], *args: Any, **kwargs: Any
     ) -> np.ndarray:
         """Returns predicted state values.
@@ -133,7 +132,7 @@ class _AWRBase(AlgoBase):
         return self._impl.predict_value(x)
 
     def update(
-        self, epoch: int, itr: int, batch: TransitionMiniBatch
+        self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
         assert self._impl is not None
 
@@ -150,7 +149,7 @@ class _AWRBase(AlgoBase):
 
         # update critic
         critic_loss_history = []
-        for i in range(self._n_critic_updates // n_steps_per_batch):
+        for _ in range(self._n_critic_updates // n_steps_per_batch):
             for j in range(n_steps_per_batch):
                 head_index = j * self._batch_size_per_update
                 tail_index = head_index + self._batch_size_per_update
@@ -162,7 +161,7 @@ class _AWRBase(AlgoBase):
 
         # update actor
         actor_loss_history = []
-        for i in range(self._n_actor_updates // n_steps_per_batch):
+        for _ in range(self._n_actor_updates // n_steps_per_batch):
             for j in range(n_steps_per_batch):
                 head_index = j * self._batch_size_per_update
                 tail_index = head_index + self._batch_size_per_update

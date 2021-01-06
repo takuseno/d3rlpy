@@ -1,10 +1,9 @@
 from typing import Any, List, Optional, Sequence
-from .base import AlgoBase
+from .base import AlgoBase, DataGenerator
 from .torch.td3_impl import TD3Impl
 from ..augmentation import AugmentationPipeline
 from ..dataset import TransitionMiniBatch
 from ..encoders import EncoderFactory
-from ..dynamics.base import DynamicsBase
 from ..optimizers import OptimizerFactory, AdamFactory
 from ..gpu import Device
 from ..q_functions import QFunctionFactory
@@ -125,7 +124,7 @@ class TD3(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        dynamics: Optional[DynamicsBase] = None,
+        generator: Optional[DataGenerator] = None,
         impl: Optional[TD3Impl] = None,
         **kwargs: Any
     ):
@@ -135,7 +134,7 @@ class TD3(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
-            dynamics=dynamics,
+            generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate

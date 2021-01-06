@@ -1,13 +1,13 @@
-import numpy as np
 import copy
 import json
-import gym
-
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, DefaultDict, Dict, List, Optional, Union
-from typing import Sequence
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Sequence
 from collections import defaultdict
+
+import numpy as np
+import gym
 from tqdm.auto import tqdm
+
 from .preprocessing import create_scaler, Scaler
 from .augmentation import create_augmentation, AugmentationPipeline
 from .augmentation import DrQPipeline
@@ -250,6 +250,7 @@ class LearnableBase:
 
             # remove specific keys
             if key in [
+                "_abc_impl",
                 "_eval_results",
                 "_loss_history",
                 "_active_logger",

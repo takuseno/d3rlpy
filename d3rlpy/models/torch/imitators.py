@@ -1,11 +1,12 @@
+from abc import ABCMeta, abstractmethod
+from typing import Tuple, cast
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from abc import ABCMeta, abstractmethod
-from typing import Tuple, cast
 from torch.distributions import Normal
 from torch.distributions.kl import kl_divergence
+
 from .encoders import Encoder, EncoderWithAction
 
 

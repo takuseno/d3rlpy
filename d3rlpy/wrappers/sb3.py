@@ -1,7 +1,8 @@
-import numpy as np
-
 from typing import Any, List, Tuple, Union, TYPE_CHECKING
+
+import numpy as np
 from gym.spaces import Discrete
+
 from ..dataset import MDPDataset
 from ..algos import AlgoBase
 

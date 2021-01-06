@@ -1,9 +1,10 @@
 import copy
-import torch
-
 from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Union, Type
 from typing import Sequence
+
+import torch
+
 from .models.torch import Encoder, EncoderWithAction
 from .models.torch import PixelEncoder
 from .models.torch import PixelEncoderWithAction
@@ -45,7 +46,6 @@ class EncoderFactory(metaclass=ABCMeta):
             torch.nn.Module: an enocder object.
 
         """
-        pass
 
     def get_type(self) -> str:
         """Returns encoder type.
@@ -67,7 +67,6 @@ class EncoderFactory(metaclass=ABCMeta):
             dict: encoder parameters.
 
         """
-        pass
 
 
 class PixelEncoderFactory(EncoderFactory):
@@ -311,13 +310,12 @@ class DenseEncoderFactory(EncoderFactory):
     ) -> Union[VectorEncoder, VectorEncoderWithAction]:
         if len(observation_shape) == 3:
             raise NotImplementedError("pixel observation is not supported.")
-        else:
-            factory = VectorEncoderFactory(
-                hidden_units=[256, 256, 256, 256],
-                activation=self._activation,
-                use_dense=True,
-                use_batch_norm=self._use_batch_norm,
-            )
+        factory = VectorEncoderFactory(
+            hidden_units=[256, 256, 256, 256],
+            activation=self._activation,
+            use_dense=True,
+            use_batch_norm=self._use_batch_norm,
+        )
         return factory.create(observation_shape, action_size, discrete_action)
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:

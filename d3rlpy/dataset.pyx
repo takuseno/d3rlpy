@@ -1,15 +1,16 @@
+import copy
+
 import numpy as np
 cimport numpy as np
 import h5py
-import copy
 import cython
-
 from cython cimport view
 from cython.parallel import prange
 from libc.string cimport memcpy
 from libcpp cimport nullptr
 from libcpp cimport bool
 from libcpp.memory cimport make_shared, shared_ptr
+
 from dataset cimport CTransition
 
 

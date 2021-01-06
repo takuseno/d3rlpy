@@ -1,11 +1,12 @@
+import math
+from abc import ABCMeta, abstractmethod
+from typing import Tuple, Union, cast
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import math
-
-from abc import ABCMeta, abstractmethod
-from typing import Tuple, Union, cast
 from torch.distributions import Normal, Categorical
+
 from .encoders import Encoder, EncoderWithAction
 
 

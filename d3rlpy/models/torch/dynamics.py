@@ -1,10 +1,11 @@
+from typing import List, Tuple, cast
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from typing import List, Tuple, cast
 from torch.distributions import Normal
 from torch.nn.utils import spectral_norm
+
 from .encoders import EncoderWithAction
 
 
@@ -25,8 +26,8 @@ def _compute_ensemble_variance(
 def _apply_spectral_norm_recursively(model: nn.Module) -> None:
     for _, module in model.named_children():
         if isinstance(module, nn.ModuleList):
-            for i in range(len(module)):
-                _apply_spectral_norm_recursively(module[i])
+            for m in module:
+                _apply_spectral_norm_recursively(m)
         else:
             spectral_norm(module)
 
@@ -194,7 +195,7 @@ class EnsembleDynamics(nn.Module):  # type: ignore
         obs_tp1: torch.Tensor,
     ) -> torch.Tensor:
         loss_sum = torch.tensor(0.0, dtype=torch.float32, device=obs_t.device)
-        for i, model in enumerate(self._models):
+        for model in self._models:
             # bootstrapping
             loss = model.compute_error(obs_t, act_t, rew_tp1, obs_tp1)
             assert loss.shape == (obs_t.shape[0], 1)

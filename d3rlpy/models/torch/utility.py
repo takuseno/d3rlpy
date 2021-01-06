@@ -1,6 +1,7 @@
+from typing import Sequence, TYPE_CHECKING, cast
+
 import torch.nn as nn
 
-from typing import Sequence, TYPE_CHECKING, cast
 from .encoders import Encoder, EncoderWithAction
 from .q_functions import EnsembleDiscreteQFunction, EnsembleContinuousQFunction
 from .policies import DeterministicPolicy, DeterministicResidualPolicy
