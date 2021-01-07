@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -44,8 +44,7 @@ class AlgoImplBase(ImplBase):
         pass
 
 
-class DataGenerator(metaclass=ABCMeta):
-    @abstractmethod
+class DataGenerator:
     def generate(
         self, algo: "AlgoBase", transitions: List[Transition]
     ) -> List[Transition]:

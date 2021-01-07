@@ -27,7 +27,7 @@ class DynamicsImplBase(ImplBase):
         pass
 
 
-class DynamicsBase(LearnableBase, DataGenerator):
+class DynamicsBase(DataGenerator, LearnableBase):
 
     _n_transitions: int
     _horizon: int

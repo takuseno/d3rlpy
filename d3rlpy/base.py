@@ -33,10 +33,12 @@ class ImplBase(metaclass=ABCMeta):
         pass
 
     @property
+    @abstractmethod
     def observation_shape(self) -> Sequence[int]:
         pass
 
     @property
+    @abstractmethod
     def action_size(self) -> int:
         pass
 
@@ -250,7 +252,6 @@ class LearnableBase:
 
             # remove specific keys
             if key in [
-                "_abc_impl",
                 "_eval_results",
                 "_loss_history",
                 "_active_logger",
