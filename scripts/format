@@ -1,9 +1,15 @@
-#!/bin/bash -eux
+#!/bin/bash -ex
 
-if [ $# = 0 ]; then
+if [[ -z $CI ]]; then
   BLACK_ARG=""
+  YAPF_ARG="-i"
 else
-  BLACK_ARG=$*
+  BLACK_ARG="--check"
+  YAPF_ARG="-d"
 fi
 
+# use black for the better type annotations
 black -l 80 $BLACK_ARG d3rlpy tests
+
+# use yapf for the better visuals
+yapf -r -vv $YAPF_ARG examples reproductions

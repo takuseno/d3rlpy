@@ -7,10 +7,10 @@ jobs:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Python.3.7.x
+      - name: Setup Python.3.6.x
         uses: actions/setup-python@v1
         with:
-          python-version: 3.7.x
+          python-version: 3.6.x
       - name: Cache pip
         uses: actions/cache@v1
         with:
@@ -23,11 +23,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install black mypy pylint
+          pip install Cython black mypy pylint yapf
+      - name: Build Cython
+        run: |
+          pip install -e .
       - name: Check format
         run: |
-          ./scripts/format --check
-
+          ./scripts/format
       - name: Linter
         run: |
           ./scripts/lint
