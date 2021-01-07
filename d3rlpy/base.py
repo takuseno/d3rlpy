@@ -131,7 +131,9 @@ class LearnableBase:
             setattr(self._impl, name, value)
 
     @classmethod
-    def from_json(cls, fname: str, use_gpu: UseGPUArg = False) -> "LearnableBase":
+    def from_json(
+        cls, fname: str, use_gpu: UseGPUArg = False
+    ) -> "LearnableBase":
         """Returns algorithm configured with json file.
 
         The Json file should be the one saved during fitting.

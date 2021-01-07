@@ -340,9 +340,7 @@ def register_encoder_factory(cls: Type[EncoderFactory]) -> None:
     ENCODER_LIST[cls.TYPE] = cls
 
 
-def create_encoder_factory(
-    name: str, **kwargs: Any
-) -> EncoderFactory:
+def create_encoder_factory(name: str, **kwargs: Any) -> EncoderFactory:
     """Returns registered encoder factory object.
 
     Args:

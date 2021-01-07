@@ -294,9 +294,7 @@ def register_q_func_factory(cls: Type[QFunctionFactory]) -> None:
     Q_FUNC_LIST[cls.TYPE] = cls
 
 
-def create_q_func_factory(
-    name: str, **kwargs: Any
-) -> QFunctionFactory:
+def create_q_func_factory(name: str, **kwargs: Any) -> QFunctionFactory:
     """Returns registered Q function factory object.
 
     Args:
