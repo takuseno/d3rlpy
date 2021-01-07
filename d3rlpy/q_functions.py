@@ -25,14 +25,14 @@ class QFunctionFactory(metaclass=ABCMeta):
         """Returns PyTorch's Q function module.
 
         Args:
-            encoder (torch.nn.Module): an encoder module that processes
+            encoder: an encoder module that processes
                 the observation (and action in continuous action-space) to
                 obtain feature representations.
-            action_size (int): dimension of discrete action-space. If the
+            action_size: dimension of discrete action-space. If the
                 action-space is continous, ``None`` will be passed.
 
         Returns:
-            torch.nn.Module: Q function object.
+            Q function object.
 
         """
 
@@ -40,7 +40,7 @@ class QFunctionFactory(metaclass=ABCMeta):
         """Returns Q function type.
 
         Returns:
-            str: Q function type.
+            Q function type.
 
         """
         return self.TYPE
@@ -50,7 +50,7 @@ class QFunctionFactory(metaclass=ABCMeta):
         """Returns Q function parameters.
 
         Returns:
-            dict: Q function parameters.
+            Q function parameters.
 
         """
 
@@ -96,7 +96,7 @@ class QRQFunctionFactory(QFunctionFactory):
           regression. <https://arxiv.org/abs/1710.10044>`_
 
     Args:
-        n_quantiles (int): the number of quantiles.
+        n_quantiles: the number of quantiles.
 
     """
 
@@ -138,9 +138,9 @@ class IQNQFunctionFactory(QFunctionFactory):
           reinforcement learning. <https://arxiv.org/abs/1806.06923>`_
 
     Args:
-        n_quantiles (int): the number of quantiles.
-        n_greedy_quantiles (int): the number of quantiles for inference.
-        embed_size (int): the embedding size.
+        n_quantiles: the number of quantiles.
+        n_greedy_quantiles: the number of quantiles for inference.
+        embed_size: the embedding size.
 
     """
 
@@ -213,9 +213,9 @@ class FQFQFunctionFactory(QFunctionFactory):
           <https://arxiv.org/abs/1911.02140>`_
 
     Args:
-        n_quantiles (int): the number of quantiles.
-        embed_size (int): the embedding size.
-        entropy_coeff (float): the coefficiency of entropy penalty term.
+        n_quantiles: the number of quantiles.
+        embed_size: the embedding size.
+        entropy_coeff: the coefficiency of entropy penalty term.
 
     """
 
@@ -286,7 +286,7 @@ def register_q_func_factory(cls: Type[QFunctionFactory]) -> None:
     """Registers Q function factory class.
 
     Args:
-        cls (type): Q function factory class inheriting ``QFunctionFactory``.
+        cls: Q function factory class inheriting ``QFunctionFactory``.
 
     """
     is_registered = cls.TYPE in Q_FUNC_LIST
@@ -295,16 +295,16 @@ def register_q_func_factory(cls: Type[QFunctionFactory]) -> None:
 
 
 def create_q_func_factory(
-    name: str, **kwargs: Dict[str, Any]
+    name: str, **kwargs: Any
 ) -> QFunctionFactory:
     """Returns registered Q function factory object.
 
     Args:
-        name (str): registered Q function factory type name.
-        kwargs (any): Q function arguments.
+        name: registered Q function factory type name.
+        kwargs: Q function arguments.
 
     Returns:
-        d3rlpy.q_functions.QFunctionFactory: Q function factory object.
+        Q function factory object.
 
     """
     assert name in Q_FUNC_LIST, "%s seems not to be registered." % name

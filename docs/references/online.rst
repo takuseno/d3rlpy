@@ -62,13 +62,3 @@ Explorers
 
    d3rlpy.online.explorers.LinearDecayEpsilonGreedy
    d3rlpy.online.explorers.NormalNoise
-
-
-Iterators
----------
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   d3rlpy.online.iterators.train

@@ -31,10 +31,7 @@ class Device:
             scores = cross_validate(cql, ..., n_jobs=2)
 
     Args:
-        idx (int): GPU id.
-
-    Attributes:
-        idx (int): GPU id.
+        idx: GPU id.
 
     """
 
@@ -47,7 +44,7 @@ class Device:
         """Returns GPU id.
 
         Returns:
-            int: GPU id.
+            GPU id.
 
         """
         return self._idx

@@ -37,13 +37,13 @@ class EncoderFactory(metaclass=ABCMeta):
         """Returns PyTorch's enocder module.
 
         Args:
-            observation_shape (tuple): observation shape.
-            action_size (int): action size. If None, the encoder does not take
+            observation_shape: observation shape.
+            action_size: action size. If None, the encoder does not take
                 action as input.
-            discrete_action (bool): flag if action-space is discrete.
+            discrete_action: flag if action-space is discrete.
 
         Returns:
-            torch.nn.Module: an enocder object.
+            an enocder object.
 
         """
 
@@ -51,7 +51,7 @@ class EncoderFactory(metaclass=ABCMeta):
         """Returns encoder type.
 
         Returns:
-            str: encoder type.
+            encoder type.
 
         """
         return self.TYPE
@@ -61,10 +61,10 @@ class EncoderFactory(metaclass=ABCMeta):
         """Returns encoder parameters.
 
         Args:
-            deep (bool): flag to deeply copy the parameters.
+            deep: flag to deeply copy the parameters.
 
         Returns:
-            dict: encoder parameters.
+            encoder parameters.
 
         """
 
@@ -332,7 +332,7 @@ def register_encoder_factory(cls: Type[EncoderFactory]) -> None:
     """Registers encoder factory class.
 
     Args:
-        cls (type): encoder factory class inheriting ``EncoderFactory``.
+        cls: encoder factory class inheriting ``EncoderFactory``.
 
     """
     is_registered = cls.TYPE in ENCODER_LIST
@@ -341,16 +341,16 @@ def register_encoder_factory(cls: Type[EncoderFactory]) -> None:
 
 
 def create_encoder_factory(
-    name: str, **kwargs: Dict[str, Any]
+    name: str, **kwargs: Any
 ) -> EncoderFactory:
     """Returns registered encoder factory object.
 
     Args:
-        name (str): regsitered encoder factory type name.
-        kwargs (any): encoder arguments.
+        name: regsitered encoder factory type name.
+        kwargs: encoder arguments.
 
     Returns:
-        d3rlpy.encoders.EncoderFactory: encoder factory object.
+        encoder factory object.
 
     """
     assert name in ENCODER_LIST, "%s seems not to be registered." % name

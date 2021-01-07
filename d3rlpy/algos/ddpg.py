@@ -72,8 +72,8 @@ class DDPG(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
-            augmentation.
+        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
+            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.ddpg_impl.DDPGImpl): algorithm implementation.
 
     """

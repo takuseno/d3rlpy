@@ -72,7 +72,7 @@ class Buffer(metaclass=ABCMeta):
         """Append Episode object to buffer.
 
         Args:
-            episode (d3rlpy.dataset.Episode): episode.
+            episode: episode.
 
         """
 
@@ -99,14 +99,13 @@ class Buffer(metaclass=ABCMeta):
             batch.observations.shape == (32, 12, 84, 84)
 
         Args:
-            batch_size (int): mini-batch size.
-            n_frames (int):
-                the number of frames to stack for image observation.
-            n_steps (int): the number of steps before the next observation.
+            batch_size: mini-batch size.
+            n_frames: the number of frames to stack for image observation.
+            n_steps: the number of steps before the next observation.
             gamma: discount factor used in N-step return calculation.
 
         Returns:
-            d3rlpy.dataset.TransitionMiniBatch: mini-batch.
+            mini-batch.
 
         """
 
@@ -115,7 +114,7 @@ class Buffer(metaclass=ABCMeta):
         """Returns the number of appended elements in buffer.
 
         Returns:
-            int: the number of elements in buffer.
+            the number of elements in buffer.
 
         """
 

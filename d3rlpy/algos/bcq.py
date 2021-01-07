@@ -134,8 +134,8 @@ class BCQ(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
-            augmentation.
+        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
+            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
 
     """
@@ -364,8 +364,8 @@ class DiscreteBCQ(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
-            augmentation.
+        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
+            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.bcq_impl.DiscreteBCQImpl):
             algorithm implementation.
 

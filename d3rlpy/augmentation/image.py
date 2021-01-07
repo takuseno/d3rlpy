@@ -38,30 +38,12 @@ class RandomShift(Augmentation):
         )
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns shifted images.
-
-        Args:
-            x (torch.Tensor): observation tensor.
-
-        Returns:
-            torch.Tensor: processed observation tensor.
-
-        """
         if not self._operation:
             self._setup(x)
         assert self._operation is not None
         return cast(torch.Tensor, self._operation(x))
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns augmentation parameters.
-
-        Args:
-            deep (bool): flag to deeply copy objects.
-
-        Returns:
-            dict: augmentation parameters.
-
-        """
         return {"shift_size": self._shift_size}
 
 
@@ -87,27 +69,9 @@ class Cutout(Augmentation):
         self._operation = aug.RandomErasing(p=probability)
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns observation performed Cutout.
-
-        Args:
-            x (torch.Tensor): observation tensor.
-
-        Returns:
-            torch.Tensor: processed observation tensor.
-
-        """
         return cast(torch.Tensor, self._operation(x))
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns augmentation parameters.
-
-        Args:
-            deep (bool): flag to deeply copy objects.
-
-        Returns:
-            dict: augmentation parameters.
-
-        """
         return {"probability": self._probability}
 
 
@@ -133,27 +97,9 @@ class HorizontalFlip(Augmentation):
         self._operation = aug.RandomHorizontalFlip(p=probability)
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns horizontally flipped image.
-
-        Args:
-            x (torch.Tensor): observation tensor.
-
-        Returns:
-            torch.Tensor: processed observation tensor.
-
-        """
         return cast(torch.Tensor, self._operation(x))
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns augmentation parameters.
-
-        Args:
-            deep (bool): flag to deeply copy objects.
-
-        Returns:
-            dict: augmentation parameters.
-
-        """
         return {"probability": self._probability}
 
 
@@ -179,27 +125,9 @@ class VerticalFlip(Augmentation):
         self._operation = aug.RandomVerticalFlip(p=probability)
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns vertically flipped image.
-
-        Args:
-            x (torch.Tensor): observation tensor.
-
-        Returns:
-            torch.Tensor: processed observation tensor.
-
-        """
         return cast(torch.Tensor, self._operation(x))
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns augmentation parameters.
-
-        Args:
-            deep (bool): flag to deeply copy objects.
-
-        Returns:
-            dict: augmentation parameters.
-
-        """
         return {"probability": self._probability}
 
 
@@ -225,27 +153,9 @@ class RandomRotation(Augmentation):
         self._operation = aug.RandomRotation(degrees=degree)
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns rotated image.
-
-        Args:
-            x (torch.Tensor): observation tensor.
-
-        Returns:
-            torch.Tensor: processed observation tensor.
-
-        """
         return cast(torch.Tensor, self._operation(x))
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns augmentation parameters.
-
-        Args:
-            deep (bool): flag to deeply copy objects.
-
-        Returns:
-            dict: augmentation parameters.
-
-        """
         return {"degree": self._degree}
 
 
@@ -275,29 +185,11 @@ class Intensity(Augmentation):
         self._scale = scale
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns multiplied image.
-
-        Args:
-            x (torch.Tensor): observation tensor.
-
-        Returns:
-            torch.Tensor: processed observation tensor.
-
-        """
         r = torch.randn(x.size(0), 1, 1, 1, device=x.device)
         noise = 1.0 + (self._scale * r.clamp(-2.0, 2.0))
         return x * noise
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns augmentation parameters.
-
-        Args:
-            deep (bool): flag to deeply copy objects.
-
-        Returns:
-            dict: augmentation parameters.
-
-        """
         return {"scale": self._scale}
 
 
@@ -339,15 +231,6 @@ class ColorJitter(Augmentation):
         self._hue = hue
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns jittered images.
-
-        Args:
-            x (torch.Tensor): observation tensor.
-
-        Returns:
-            torch.Tensor: processed observation tensor.
-
-        """
         # check if channel can be devided by three
         if x.shape[1] % 3 > 0:
             raise ValueError("color jitter is used with stacked RGB images")
@@ -419,15 +302,6 @@ class ColorJitter(Augmentation):
         return ((rgb - means) * (scale + means)).clamp(0, 1)
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns augmentation parameters.
-
-        Args:
-            deep (bool): flag to deeply copy objects.
-
-        Returns:
-            dict: augmentation parameters.
-
-        """
         return {
             "brightness": self._brightness,
             "contrast": self._contrast,

@@ -36,13 +36,13 @@ class SB3Wrapper:
         """Returns actions.
 
         Args:
-            observation (np.ndarray): observation.
-            state (np.ndarray): this argument is just ignored.
-            mask (np.ndarray): this argument is just ignored.
-            deterministic (bool): flag to return greedy actions.
+            observation: observation.
+            state: this argument is just ignored.
+            mask: this argument is just ignored.
+            deterministic: flag to return greedy actions.
 
         Returns:
-            tuple: ``(actions, None)``.
+            ``(actions, None)``.
 
         """
         if deterministic:
@@ -65,11 +65,10 @@ def to_mdp_dataset(replay_buffer: "ReplayBuffer") -> MDPDataset:
     """Returns d3rlpy's MDPDataset from SB3's ReplayBuffer
 
     Args:
-        replay_buffer (stable_baselines3.common.buffers.ReplayBuffer):
-            SB3's replay buffer.
+        replay_buffer: SB3's replay buffer.
 
     Returns:
-        d3rlpy.dataset.MDPDataset: d3rlpy's MDPDataset.
+        d3rlpy's MDPDataset.
 
     """
     pos = replay_buffer.size()

@@ -69,8 +69,8 @@ class PLAS(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
-            augmentation.
+        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
+            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
 
     """
@@ -267,49 +267,9 @@ class PLASWithPerturbation(PLAS):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model for data
-            augmentation.
+        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
+            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
-
-    Attributes:
-        actor_learning_rate (float): learning rate for policy function.
-        critic_learning_rate (float): learning rate for Q functions.
-        imitator_learning_rate (float): learning rate for Conditional VAE.
-        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
-        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
-            optimizer factory for the conditional VAE.
-        actor_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the critic.
-        imitator_encoder_factory (d3rlpy.encoders.EncoderFactory):
-            encoder factory for the conditional VAE.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory):
-            Q function factory.
-        batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): N-step TD calculation.
-        gamma (float): discount factor.
-        tau (float): target network synchronization coefficiency.
-        n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
-        update_actor_interval (int): interval to update policy function.
-        lam (float): weight factor for critic ensemble.
-        action_flexibility (float): output scale of perturbation layer.
-        rl_start_epoch (int): epoch to start to update policy function and Q
-            functions.
-        beta (float): KL reguralization term for Conditional VAE.
-        use_gpu (d3rlpy.gpu.Device): GPU device.
-        scaler (d3rlpy.preprocessing.Scaler): preprocessor.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline):
-            augmentation pipeline.
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
-        eval_results_ (dict): evaluation results.
 
     """
 

@@ -57,12 +57,12 @@ class DynamicsBase(DataGenerator, LearnableBase):
         """Returns predicted observation and reward.
 
         Args:
-            x (numpy.ndarray): observation
-            action (numpy.ndarray): action
-            with_variance (bool): flag to return prediction variance.
+            x: observation
+            action: action
+            with_variance: flag to return prediction variance.
 
         Returns:
-            tuple: tuple of predicted observation and reward.
+            tuple of predicted observation and reward.
 
         """
         assert self._impl is not None
@@ -77,11 +77,11 @@ class DynamicsBase(DataGenerator, LearnableBase):
         """Returns new transitions for data augmentation.
 
         Args:
-            algo (d3rlpy.algos.base.AlgoBase): algorithm.
-            transitions (list(d3rlpy.dataset.Transition)): list of transitions.
+            algo: algorithm.
+            transitions: list of transitions.
 
         Returns:
-            list(d3rlpy.dataset.Transition): list of generated transitions.
+            list: list of generated transitions.
 
         """
         assert self._impl is not None

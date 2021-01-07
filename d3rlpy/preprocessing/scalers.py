@@ -27,7 +27,7 @@ class Scaler(metaclass=ABCMeta):
         """Returns a scaler type.
 
         Returns:
-            str: scaler type.
+            scaler type.
 
         """
         return self.TYPE
@@ -67,10 +67,10 @@ class PixelScaler(Scaler):
         """Returns normalized pixel observations.
 
         Args:
-            x (torch.Tensor): pixel observation tensor.
+            x: pixel observation tensor.
 
         Returns:
-            torch.Tensor: normalized pixel observation tensor.
+            normalized pixel observation tensor.
 
         """
         return x.float() / 255.0
@@ -79,10 +79,10 @@ class PixelScaler(Scaler):
         """Returns reversely transformed observations.
 
         Args:
-            x (torch.Tensor): normalized observation tensor.
+            x: normalized observation tensor.
 
         Returns:
-            torch.Tensor: unnormalized pixel observation tensor.
+            unnormalized pixel observation tensor.
 
         """
         return (x * 255.0).long()
@@ -93,10 +93,10 @@ class PixelScaler(Scaler):
         PixelScaler returns empty dictiornary.
 
         Args:
-            deep (bool): flag to deeply copy objects.
+            deep: flag to deeply copy objects.
 
         Returns:
-            dict: empty dictionary.
+            empty dictionary.
 
         """
         return {}
@@ -168,7 +168,7 @@ class MinMaxScaler(Scaler):
         """Fits minimum and maximum from list of episodes.
 
         Args:
-            episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+            episodes: list of episodes.
 
         """
         if self._minimum is not None and self._maximum is not None:
@@ -190,10 +190,10 @@ class MinMaxScaler(Scaler):
         """Returns normalized observation tensor.
 
         Args:
-            x (torch.Tensor): observation tensor.
+            x: observation tensor.
 
         Returns:
-            torch.Tensor: normalized observation tensor.
+            normalized observation tensor.
 
         """
         assert self._minimum is not None and self._maximum is not None
@@ -209,10 +209,10 @@ class MinMaxScaler(Scaler):
         """Returns reversely transformed observations.
 
         Args:
-            x (torch.Tensor): normalized observation tensor.
+            x: normalized observation tensor.
 
         Returns:
-            torch.Tensor: unnormalized observation tensor.
+            unnormalized observation tensor.
 
         """
         assert self._minimum is not None and self._maximum is not None
@@ -228,10 +228,10 @@ class MinMaxScaler(Scaler):
         """Returns scaling parameters.
 
         Args:
-            deep (bool): flag to deeply copy objects.
+            deep: flag to deeply copy objects.
 
         Returns:
-            dict: `maximum` and `minimum`.
+            `maximum` and `minimum`.
 
         """
         if self._maximum is not None:
@@ -313,7 +313,7 @@ class StandardScaler(Scaler):
         """Fits mean and standard deviation from list of episodes.
 
         Args:
-            episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+            episodes: list of episodes.
 
         """
         if self._mean is not None and self._std is not None:
@@ -343,10 +343,10 @@ class StandardScaler(Scaler):
         """Returns standardized observation tensor.
 
         Args:
-            x (torch.Tensor): observation tensor.
+            x: observation tensor.
 
         Returns:
-            torch.Tensor: standardized observation tensor.
+            standardized observation tensor.
 
         """
         assert self._mean is not None and self._std is not None
@@ -358,10 +358,10 @@ class StandardScaler(Scaler):
         """Returns reversely transformed observation tensor.
 
         Args:
-            x (torch.Tensor): standardized observation tensor.
+            x: standardized observation tensor.
 
         Returns:
-            torch.Tensor: unstandardized observation tensor.
+            unstandardized observation tensor.
 
         """
         assert self._mean is not None and self._std is not None
@@ -373,10 +373,10 @@ class StandardScaler(Scaler):
         """Returns scaling parameters.
 
         Args:
-            deep (bool): flag to deeply copy objects.
+            deep: flag to deeply copy objects.
 
         Returns:
-            dict: `mean` and `std`.
+            `mean` and `std`.
 
         """
         if self._mean is not None:
@@ -399,7 +399,7 @@ def register_scaler(cls: Type[Scaler]) -> None:
     """Registers scaler class.
 
     Args:
-        cls (type): scaler class inheriting ``Scaler``.
+        cls: scaler class inheriting ``Scaler``.
 
     """
     is_registered = cls.TYPE in SCALER_LIST
@@ -407,15 +407,15 @@ def register_scaler(cls: Type[Scaler]) -> None:
     SCALER_LIST[cls.TYPE] = cls
 
 
-def create_scaler(name: str, **kwargs: Dict[str, Any]) -> Scaler:
+def create_scaler(name: str, **kwargs: Any) -> Scaler:
     """Returns registered scaler object.
 
     Args:
-        name (str): regsitered scaler type name.
-        kwargs (any): scaler arguments.
+        name: regsitered scaler type name.
+        kwargs: scaler arguments.
 
     Returns:
-        d3rlpy.preprocessing.scalers: scaler object.
+        scaler object.
 
     """
     assert name in SCALER_LIST, "%s seems not to be registered." % name

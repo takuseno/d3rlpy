@@ -22,7 +22,7 @@ def get_cartpole() -> Tuple[MDPDataset, gym.Env]:
     does not exist.
 
     Returns:
-        tuple: tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
+        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
     data_path = os.path.join(DATA_DIRECTORY, "cartpole.pkl")
@@ -58,7 +58,7 @@ def get_pendulum() -> Tuple[MDPDataset, gym.Env]:
     does not exist.
 
     Returns:
-        tuple: tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
+        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
     data_path = os.path.join(DATA_DIRECTORY, "pendulum.pkl")
@@ -101,10 +101,10 @@ def get_pybullet(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         * https://github.com/takuseno/d4rl-pybullet
 
     Args:
-        env_name (str): environment id of d4rl-pybullet dataset.
+        env_name: environment id of d4rl-pybullet dataset.
 
     Returns:
-        tuple: tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
+        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
     try:
@@ -136,10 +136,10 @@ def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         * https://github.com/takuseno/d4rl-atari
 
     Args:
-        env_name (str): environment id of d4rl-atari dataset.
+        env_name: environment id of d4rl-atari dataset.
 
     Returns:
-        tuple: tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
+        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
     try:

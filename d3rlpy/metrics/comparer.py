@@ -34,11 +34,10 @@ def compare_continuous_action_diff(
         squared_action_diff = scorer(cql2, ...)
 
     Args:
-        base_algo (d3rlpy.algos.base.AlgoBase): algorithm to comapre with.
-        window_size (int): mini-batch size to compute.
+        base_algo: algorithm to comapre with.
 
     Returns:
-        callable: scorer function.
+        scorer function.
 
     """
 
@@ -86,11 +85,10 @@ def compare_discrete_action_match(
         percentage_of_identical_actions = scorer(dqn2, ...)
 
     Args:
-        base_algo (d3rlpy.algos.base.AlgoBase): algorithm to comapre with.
-        window_size (int): mini-batch size to compute.
+        base_algo: algorithm to comapre with.
 
     Returns:
-        callable: scorer function.
+        scorer function.
 
     """
 

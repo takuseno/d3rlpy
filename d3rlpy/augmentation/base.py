@@ -10,17 +10,33 @@ class Augmentation(metaclass=ABCMeta):
 
     @abstractmethod
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        pass
+        """Returns augmented observation.
+
+        Args:
+            x: observation.
+
+        Returns:
+            augmented observation.
+
+        """
 
     def get_type(self) -> str:
         """Returns augmentation type.
 
         Returns:
-            str: augmentation type.
+            augmentation type.
 
         """
         return self.TYPE
 
     @abstractmethod
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        pass
+        """Returns augmentation parameters.
+
+        Args:
+            deep: flag to copy parameters.
+
+        Returns:
+            augmentation parameters.
+
+        """

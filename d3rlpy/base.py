@@ -19,7 +19,7 @@ from .gpu import Device
 from .optimizers import OptimizerFactory
 from .encoders import EncoderFactory, create_encoder_factory
 from .q_functions import QFunctionFactory, create_q_func_factory
-from .argument_utility import check_scaler, ScalerArg
+from .argument_utility import check_scaler, ScalerArg, UseGPUArg
 from .online.utility import get_action_size_from_env
 
 
@@ -94,22 +94,6 @@ def _deseriealize_params(params: Dict[str, Any]) -> Dict[str, Any]:
 
 
 class LearnableBase:
-    """Algorithm base class.
-
-    All algorithms have the shared interfaces same as scikit-learn.
-
-    Attributes:
-        batch_size (int): the batch size of training.
-        scaler (d3rlpy.preprocessing.Scaler): preprocessor
-        augmentation (list(str or d3rlpy.augmentation.base.Augmentation)):
-            list of data augmentations.
-        use_gpu (d3rlpy.gpu.Device): GPU device.
-        impl (d3rlpy.base.ImplBase): implementation object.
-        eval_results_ (collections.defaultdict): evaluation results.
-        loss_history_ (collections.defaultdict): history of loss values.
-        active_logger_ (d3rlpy.logger.D3RLPyLogger): active logger during fit method.
-
-    """
 
     _batch_size: int
     _n_frames: int
@@ -147,7 +131,7 @@ class LearnableBase:
             setattr(self._impl, name, value)
 
     @classmethod
-    def from_json(cls, fname: str, use_gpu: bool = False) -> "LearnableBase":
+    def from_json(cls, fname: str, use_gpu: UseGPUArg = False) -> "LearnableBase":
         """Returns algorithm configured with json file.
 
         The Json file should be the one saved during fitting.
@@ -166,12 +150,11 @@ class LearnableBase:
             algo.predict(...)
 
         Args:
-            fname (str): file path to `params.json`.
-            use_gpu (bool, int or d3rlpy.gpu.Device):
-                flag to use GPU, device ID or device.
+            fname: file path to `params.json`.
+            use_gpu: flag to use GPU, device ID or device.
 
         Returns:
-            d3rlpy.base.LearnableBase: algorithm.
+            algorithm.
 
         """
         with open(fname, "r") as f:
@@ -192,7 +175,7 @@ class LearnableBase:
         algo.create_impl(observation_shape, action_size)
         return algo
 
-    def set_params(self, **params: Dict[str, Any]) -> "LearnableBase":
+    def set_params(self, **params: Any) -> "LearnableBase":
         """Sets the given arguments to the attributes if they exist.
 
         This method sets the given values to the attributes including ones in
@@ -205,10 +188,10 @@ class LearnableBase:
             algo.set_params(batch_size=100)
 
         Args:
-            **params: arbitrary inputs to set as attributes.
+            params: arbitrary inputs to set as attributes.
 
         Returns:
-            d3rlpy.algos.base.AlgoBase: itself.
+            itself.
 
         """
         for key, val in params.items():
@@ -238,10 +221,10 @@ class LearnableBase:
             algo2 = AlgoBase(**params)
 
         Args:
-            deep (bool): flag to deeply copy objects such as `impl`.
+            deep: flag to deeply copy objects such as `impl`.
 
         Returns:
-            dict: attribute values in dictionary.
+            attribute values in dictionary.
 
         """
         rets = {}
@@ -284,7 +267,7 @@ class LearnableBase:
             algo.save_model('model.pt')
 
         Args:
-            fname (str): destination file path.
+            fname: destination file path.
 
         """
         assert self._impl is not None
@@ -298,7 +281,7 @@ class LearnableBase:
             algo.load_model('model.pt')
 
         Args:
-            fname (str): source file path.
+            fname: source file path.
 
         """
         assert self._impl is not None
@@ -329,26 +312,24 @@ class LearnableBase:
             algo.fit(episodes)
 
         Args:
-            episodes (list(d3rlpy.dataset.Episode)): list of episodes to train.
-            n_epochs (int): the number of epochs to train.
-            save_metrics (bool): flag to record metrics in files. If False,
+            episodes: list of episodes to train.
+            n_epochs: the number of epochs to train.
+            save_metrics: flag to record metrics in files. If False,
                 the log directory is not created and the model parameters are
                 not saved during training.
-            experiment_name (str): experiment name for logging. If not passed,
+            experiment_name: experiment name for logging. If not passed,
                 the directory name will be `{class name}_{timestamp}`.
-            with_timestamp (bool): flag to add timestamp string to the last of
+            with_timestamp: flag to add timestamp string to the last of
                 directory name.
-            logdir (str): root directory name to save logs.
-            verbose (bool): flag to show logged information on stdout.
-            show_progress (bool): flag to show progress bar for iterations.
-            tensorboard (bool): flag to save logged information in tensorboard
+            logdir: root directory name to save logs.
+            verbose: flag to show logged information on stdout.
+            show_progress: flag to show progress bar for iterations.
+            tensorboard: flag to save logged information in tensorboard
                 (additional to the csv data)
-            eval_episodes (list(d3rlpy.dataset.Episode)):
-                list of episodes to test.
-            save_interval (int): interval to save parameters.
-            scorers (list(callable)):
-                list of scorer functions used with `eval_episodes`.
-            shuffle (bool): flag to shuffle transitions on each epoch.
+            eval_episodes: list of episodes to test.
+            save_interval: interval to save parameters.
+            scorers: list of scorer functions used with `eval_episodes`.
+            shuffle: flag to shuffle transitions on each epoch.
 
         """
 
@@ -483,8 +464,8 @@ class LearnableBase:
         This method will be used internally when `fit` method is called.
 
         Args:
-            observation_shape (tuple): observation shape.
-            action_size (int): dimension of action-space.
+            observation_shape: observation shape.
+            action_size: dimension of action-space.
 
         """
         raise NotImplementedError
@@ -493,7 +474,7 @@ class LearnableBase:
         """Instantiate implementation object with MDPDataset object.
 
         Args:
-            dataset (d3rlpy.dataset.MDPDataset): dataset.
+            dataset: dataset.
 
         """
         observation_shape = dataset.get_observation_shape()
@@ -506,7 +487,7 @@ class LearnableBase:
         """Instantiate implementation object with OpenAI Gym object.
 
         Args:
-            env (gym.Env): gym-like environment.
+            env: gym-like environment.
 
         """
         observation_shape = env.observation_space.shape
@@ -531,9 +512,9 @@ class LearnableBase:
         """Update parameters with mini-batch of data.
 
         Args:
-            epoch (int): the current number of epochs.
-            total_step (int): the current number of total iterations.
-            batch (d3rlpy.dataset.TransitionMiniBatch): mini-batch data.
+            epoch: the current number of epochs.
+            total_step: the current number of total iterations.
+            batch: mini-batch data.
 
         Returns:
             list: loss values.
@@ -549,10 +530,10 @@ class LearnableBase:
         This method is called at the beginning of every epoch.
 
         Args:
-            transitions (list(d3rlpy.dataset.Transition)): list of transitions.
+            transitions: list of transitions.
 
         Returns:
-            list(d3rlpy.dataset.Transition): list of new transitions.
+            list of new transitions.
 
         """
         return None
@@ -630,6 +611,12 @@ class LearnableBase:
 
     @property
     def batch_size(self) -> int:
+        """Batch size to train.
+
+        Returns:
+            int: batch size.
+
+        """
         return self._batch_size
 
     @batch_size.setter
@@ -638,6 +625,14 @@ class LearnableBase:
 
     @property
     def n_frames(self) -> int:
+        """Number of frames to stack.
+
+        This is only for image observation.
+
+        Returns:
+            int: number of frames to stack.
+
+        """
         return self._n_frames
 
     @n_frames.setter
@@ -646,6 +641,12 @@ class LearnableBase:
 
     @property
     def n_steps(self) -> int:
+        """N-step TD backup.
+
+        Returns:
+            int: N-step TD backup.
+
+        """
         return self._n_steps
 
     @n_steps.setter
@@ -654,6 +655,12 @@ class LearnableBase:
 
     @property
     def gamma(self) -> float:
+        """Discount factor.
+
+        Returns:
+            float: discount factor.
+
+        """
         return self._gamma
 
     @gamma.setter
@@ -662,6 +669,12 @@ class LearnableBase:
 
     @property
     def scaler(self) -> Optional[Scaler]:
+        """Preprocessing scaler.
+
+        Returns:
+            Optional[Scaler]: preprocessing scaler.
+
+        """
         return self._scaler
 
     @scaler.setter
@@ -670,6 +683,12 @@ class LearnableBase:
 
     @property
     def impl(self) -> Optional[ImplBase]:
+        """Implementation object.
+
+        Returns:
+            Optional[ImplBase]: implementation object.
+
+        """
         return self._impl
 
     @impl.setter
@@ -678,12 +697,24 @@ class LearnableBase:
 
     @property
     def observation_shape(self) -> Optional[Sequence[int]]:
+        """Observation shape.
+
+        Returns:
+            Optional[Sequence[int]]: observation shape.
+
+        """
         if self._impl:
             return self._impl.observation_shape
         return None
 
     @property
     def action_size(self) -> Optional[int]:
+        """Action size.
+
+        Returns:
+            Optional[int]: action size.
+
+        """
         if self._impl:
             return self._impl.action_size
         return None

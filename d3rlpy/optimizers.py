@@ -22,8 +22,8 @@ class OptimizerFactory:
         dqn = DQN(optim_factory=factory)
 
     Args:
-        optim_cls (type or str): An optimizer class.
-        kwargs (any): arbitrary keyword-arguments.
+        optim_cls: An optimizer class.
+        kwargs: arbitrary keyword-arguments.
 
     """
 
@@ -54,10 +54,10 @@ class OptimizerFactory:
         """Returns optimizer parameters.
 
         Args:
-            deep (bool): flag to deeply copy the parameters.
+            deep: flag to deeply copy the parameters.
 
         Returns:
-            dict: optimizer parameters.
+            optimizer parameters.
 
         """
         if deep:
@@ -77,10 +77,10 @@ class SGDFactory(OptimizerFactory):
         factory = SGDFactory(weight_decay=1e-4)
 
     Args:
-        momentum (float): momentum factor.
-        dampening (float): dampening for momentum.
-        weight_decay (float): weight decay (L2 penalty).
-        nesterov (bool): flag to enable Nesterov momentum.
+        momentum: momentum factor.
+        dampening: dampening for momentum.
+        weight_decay: weight decay (L2 penalty).
+        nesterov: flag to enable Nesterov momentum.
 
     """
 
@@ -111,12 +111,11 @@ class AdamFactory(OptimizerFactory):
         factory = AdamFactory(weight_decay=1e-4)
 
     Args:
-        betas (tuple): coefficients used for computing running averages of
+        betas: coefficients used for computing running averages of
             gradient and its square.
-        eps (float): term added to the denominator to improve numerical
-            stability.
-        weight_decay (float): weight decay (L2 penalty).
-        amsgrad (bool): flag to use the AMSGrad variant of this algorithm.
+        eps: term added to the denominator to improve numerical stability.
+        weight_decay: weight decay (L2 penalty).
+        amsgrad: flag to use the AMSGrad variant of this algorithm.
 
     """
 
@@ -147,12 +146,11 @@ class RMSpropFactory(OptimizerFactory):
         factory = RMSpropFactory(weight_decay=1e-4)
 
     Args:
-        alpha (float): smoothing constant.
-        eps (float): term added to the denominator to improve numerical
-            stability.
-        weight_decay (float): weight decay (L2 penalty).
-        momentum (float): momentum factor.
-        centered (bool): flag to compute the centered RMSProp, the gradient is
+        alpha: smoothing constant.
+        eps: term added to the denominator to improve numerical stability.
+        weight_decay: weight decay (L2 penalty).
+        momentum: momentum factor.
+        centered: flag to compute the centered RMSProp, the gradient is
             normalized by an estimation of its variance.
 
     """

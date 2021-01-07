@@ -75,11 +75,11 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
              - (r_t + \gamma \max_a Q_\theta (s_{t+1}, a))^2]
 
     Args:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm.
-        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        algo: algorithm.
+        episodes: list of episodes.
 
     Returns:
-        float: negative average TD error.
+        negative average TD error.
 
     """
     total_errors = []
@@ -127,11 +127,11 @@ def discounted_sum_of_advantage_scorer(
           <http://www.jmlr.org/papers/volume6/murphy05a/murphy05a.pdf>`_
 
     Args:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm.
-        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        algo: algorithm.
+        episodes: list of episodes.
 
     Returns:
-        float: negative average of discounted sum of advantage.
+        negative average of discounted sum of advantage.
 
     """
     total_sums = []
@@ -177,11 +177,11 @@ def average_value_estimation_scorer(
         \mathbb{E}_{s_t \sim D} [ \max_a Q_\theta (s_t, a)]
 
     Args:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm.
-        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        algo: algorithm.
+        episodes: list of episodes.
 
     Returns:
-        float: negative average value estimation.
+        negative average value estimation.
 
     """
     total_values = []
@@ -215,11 +215,11 @@ def value_estimation_std_scorer(
     estimation over ensemble functions.
 
     Args:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm.
-        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        algo: algorithm.
+        episodes: list of episodes.
 
     Returns:
-        float: negative standard deviation.
+        negative standard deviation.
 
     """
     total_stds = []
@@ -251,11 +251,11 @@ def initial_state_value_estimation_scorer(
           Learning <https://arxiv.org/abs/2007.09055>`_
 
     Args:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm.
-        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        algo: algorithm.
+        episodes: list of episodes.
 
     Returns:
-        float: mean action-value estimation at the initial states.
+        mean action-value estimation at the initial states.
 
     """
     total_values = []
@@ -309,10 +309,10 @@ def soft_opc_scorer(
           <https://arxiv.org/abs/1906.01624>`_
 
     Args:
-        return_threshold (float): threshold of success episodes.
+        return_threshold: threshold of success episodes.
 
     Returns:
-        callable: scorer function.
+        scorer function.
 
     """
 
@@ -347,12 +347,11 @@ def continuous_action_diff_scorer(
         \mathbb{E}_{s_t, a_t \sim D} [(a_t - \pi_\phi (s_t))^2]
 
     Args:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm.
-        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
-        window_size (int): mini-batch size to compute.
+        algo: algorithm.
+        episodes: list of episodes.
 
     Returns:
-        float: negative squared action difference.
+        negative squared action difference.
 
     """
     total_diffs = []
@@ -381,11 +380,11 @@ def discrete_action_match_scorer(
             \{a_t = \text{argmax}_a Q_\theta (s_t, a)\}
 
     Args:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm.
-        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        algo: algorithm.
+        episodes: list of episodes.
 
     Returns:
-        float: percentage of identical actions.
+        percentage of identical actions.
 
     """
     total_matches = []
@@ -425,13 +424,13 @@ def evaluate_on_environment(
 
 
     Args:
-        env (gym.Env): gym-styled environment.
-        n_trials (int): the number of trials.
-        epsilon (float): noise factor for epsilon-greedy policy.
-        render (bool): flag to render environment.
+        env: gym-styled environment.
+        n_trials: the number of trials.
+        epsilon: noise factor for epsilon-greedy policy.
+        render: flag to render environment.
 
     Returns:
-        callable: scoerer function.
+        scoerer function.
 
 
     """
@@ -498,11 +497,11 @@ def dynamics_observation_prediction_error_scorer(
     where :math:`s' \sim T(s_t, a_t)`.
 
     Args:
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        dynamics: dynamics model.
+        episodes: list of episodes.
 
     Returns:
-        float: negative mean squared error.
+        negative mean squared error.
 
     """
     total_errors = []
@@ -530,11 +529,11 @@ def dynamics_reward_prediction_error_scorer(
     where :math:`r' \sim T(s_t, a_t)`.
 
     Args:
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        dynamics: dynamics model.
+        episodes: list of episodes.
 
     Returns:
-        float: negative mean squared error.
+        negative mean squared error.
 
     """
     total_errors = []
@@ -556,11 +555,11 @@ def dynamics_prediction_variance_scorer(
     If the variance is large, the dynamics model has large uncertainty.
 
     Args:
-        dynamics (d3rlpy.dynamics.base.DynamicsBase): dynamics model.
-        episodes (list(d3rlpy.dataset.Episode)): list of episodes.
+        dynamics: dynamics model.
+        episodes: list of episodes.
 
     Returns:
-        float: negative variance.
+        negative variance.
 
     """
     total_variances = []

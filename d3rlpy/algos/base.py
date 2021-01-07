@@ -90,8 +90,8 @@ class AlgoBase(LearnableBase):
             * https://onnx.ai (for ONNX)
 
         Args:
-            fname (str): destination file path.
-            as_onnx (bool): flag to save as ONNX format.
+            fname: destination file path.
+            as_onnx: flag to save as ONNX format.
 
         """
         assert self._impl is not None
@@ -110,10 +110,10 @@ class AlgoBase(LearnableBase):
             # actions.shape == (100,) for discrete control
 
         Args:
-            x (numpy.ndarray): observations
+            x: observations
 
         Returns:
-            numpy.ndarray: greedy actions
+            greedy actions
 
         """
         assert self._impl is not None
@@ -147,15 +147,15 @@ class AlgoBase(LearnableBase):
             # stds.shape  == (100,)
 
         Args:
-            x (numpy.ndarray): observations
-            action (numpy.ndarray): actions
-            with_std (bool): flag to return standard deviation of ensemble
+            x: observations
+            action: actions
+            with_std: flag to return standard deviation of ensemble
                 estimation. This deviation reflects uncertainty for the given
                 observations. This uncertainty will be more accurate if you
-                enable `bootstrap` flag and increase `n_critics` value.
+                enable ``bootstrap`` flag and increase ``n_critics`` value.
 
         Returns:
-            numpy.ndarray: predicted action-values
+            predicted action-values
 
         """
         assert self._impl is not None
@@ -168,10 +168,10 @@ class AlgoBase(LearnableBase):
         the policy is deterministic.
 
         Args:
-            x (numpy.ndarray): observations.
+            x: observations.
 
         Returns:
-            numpy.ndarray: sampled actions.
+            sampled actions.
 
         """
         assert self._impl is not None
@@ -198,30 +198,26 @@ class AlgoBase(LearnableBase):
     ) -> None:
         """Start training loop of online deep reinforcement learning.
 
-        This method is a convenient alias to ``d3rlpy.online.iterators.train``.
-
         Args:
-            env (gym.Env): gym-like environment.
-            buffer (d3rlpy.online.buffers.Buffer): replay buffer.
-            explorer (d3rlpy.online.explorers.Explorer): action explorer.
-            n_steps (int): the number of total steps to train.
-            n_steps_per_epoch (int): the number of steps per epoch.
-            update_interval (int): the number of steps per update.
-            update_start_step (int): the steps before starting updates.
-            eval_env (gym.Env): gym-like environment. If None, evaluation is
-                skipped.
-            eval_epsilon (float): :math:`\\epsilon`-greedy factor during
-                evaluation.
-            save_metrics (bool): flag to record metrics. If False, the log
+            env: gym-like environment.
+            buffer : replay buffer.
+            explorer: action explorer.
+            n_steps: the number of total steps to train.
+            n_steps_per_epoch: the number of steps per epoch.
+            update_interval: the number of steps per update.
+            update_start_step: the steps before starting updates.
+            eval_env: gym-like environment. If None, evaluation is skipped.
+            eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
+            save_metrics: flag to record metrics. If False, the log
                 directory is not created and the model parameters are not saved.
-            experiment_name (str): experiment name for logging. If not passed,
-                the directory name will be `{class name}_online_{timestamp}`.
-            with_timestamp (bool): flag to add timestamp string to the last of
+            experiment_name: experiment name for logging. If not passed,
+                the directory name will be ``{class name}_online_{timestamp}``.
+            with_timestamp: flag to add timestamp string to the last of
                 directory name.
-            logdir (str): root directory name to save logs.
-            verbose (bool): flag to show logged information on stdout.
-            show_progress (bool): flag to show progress bar for iterations.
-            tensorboard (bool): flag to save logged information in tensorboard
+            logdir: root directory name to save logs.
+            verbose: flag to show logged information on stdout.
+            show_progress: flag to show progress bar for iterations.
+            tensorboard: flag to save logged information in tensorboard
                 (additional to the csv data)
 
         """

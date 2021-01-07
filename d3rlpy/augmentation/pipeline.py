@@ -16,7 +16,7 @@ class AugmentationPipeline(metaclass=ABCMeta):
         """Append augmentation to pipeline.
 
         Args:
-            augmentation (d3rlpy.augmentation.base.Augmentation): augmentation.
+            augmentation: augmentation.
 
         """
         self._augmentations.append(augmentation)
@@ -25,7 +25,7 @@ class AugmentationPipeline(metaclass=ABCMeta):
         """Returns augmentation types.
 
         Returns:
-            list(str): list of augmentation types.
+            list of augmentation types.
 
         """
         return [aug.get_type() for aug in self._augmentations]
@@ -34,10 +34,10 @@ class AugmentationPipeline(metaclass=ABCMeta):
         """Returns augmentation parameters.
 
         Args:
-            deep (bool): flag to deeply copy objects.
+            deep: flag to deeply copy objects.
 
         Returns:
-            list(dict): list of augmentation parameters.
+            list of augmentation parameters.
 
         """
         return [aug.get_params() for aug in self._augmentations]
@@ -47,7 +47,7 @@ class AugmentationPipeline(metaclass=ABCMeta):
         """Returns pipeline parameters.
 
         Returns:
-            dict: piple parameters.
+            piple parameters.
 
         """
 
@@ -55,10 +55,10 @@ class AugmentationPipeline(metaclass=ABCMeta):
         """Returns observation processed by all augmentations.
 
         Args:
-            x (torch.Tensor): observation tensor.
+            x: observation tensor.
 
         Returns:
-            torch.Tensor: processed observation tensor.
+            processed observation tensor.
 
         """
         if not self._augmentations:
@@ -79,12 +79,12 @@ class AugmentationPipeline(metaclass=ABCMeta):
         """Runs a given function while augmenting inputs.
 
         Args:
-            func (callable): function to compute.
-            inputs (dict): inputs to the func.
-            target (list(str)): list of argument names to augment.
+            func: function to compute.
+            inputs: inputs to the func.
+            target: list of argument names to augment.
 
         Returns:
-            torch.Tensor: the computation result.
+            the computation result.
 
         """
 

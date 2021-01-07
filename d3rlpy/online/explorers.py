@@ -55,12 +55,12 @@ class LinearDecayEpsilonGreedy(Explorer):
         """Returns :math:`\\epsilon`-greedy action.
 
         Args:
-            algo (d3rlpy.algos.base.AlgoBase): algorithm.
-            x (numpy.ndarray): observation.
-            step (int): current environment step.
+            algo: algorithm.
+            x: observation.
+            step: current environment step.
 
         Returns:
-            int: :math:`\\epsilon`-greedy action.
+            :math:`\\epsilon`-greedy action.
 
         """
         if np.random.random() < self.compute_epsilon(step):
@@ -72,7 +72,7 @@ class LinearDecayEpsilonGreedy(Explorer):
         """Returns decayed :math:`\\epsilon`.
 
         Returns:
-            float: :math:`\\epsilon`.
+            :math:`\\epsilon`.
 
         """
         if step >= self._duration:
@@ -103,11 +103,11 @@ class NormalNoise(Explorer):
         """Returns action with noise injection.
 
         Args:
-            algo (d3rlpy.algos.base.AlgoBase): algorithm.
-            x (numpy.ndarray): observation.
+            algo: algorithm.
+            x: observation.
 
         Returns:
-            numpy.ndarray: action with noise injection.
+            action with noise injection.
 
         """
         action = algo.sample_action([x])[0]

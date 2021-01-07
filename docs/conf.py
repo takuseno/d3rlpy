@@ -39,7 +39,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.mathjax',
     'sphinx.ext.extlinks',
-    'sphinx.ext.intersphinx'
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.autodoc.typehints'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -73,6 +74,8 @@ html_static_path = ['_static']
 html_show_sourcelink = False
 
 autosummary_generate = True
+
+autodoc_typehints = 'description'
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),

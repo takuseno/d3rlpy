@@ -33,29 +33,11 @@ class SingleAmplitudeScaling(Augmentation):
         self._maximum = maximum
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns scaled observation.
-
-        Args:
-            x (torch.Tensor): observation tensor.
-
-        Returns:
-            torch.Tensor: processed observation tensor.
-
-        """
         z = torch.empty(x.shape[0], 1, device=x.device)
         z.uniform_(self._minimum, self._maximum)
         return x * z
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns augmentation parameters.
-
-        Args:
-            deep (bool): flag to deeply copy objects.
-
-        Returns:
-            dict: augmentation parameters.
-
-        """
         return {"minimum": self._minimum, "maximum": self._maximum}
 
 
