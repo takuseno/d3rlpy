@@ -307,10 +307,19 @@ batch.next_rewards
 
 ## contributions
 ### coding style
-This library is fully formatted with [yapf](https://github.com/google/yapf).
+This library is fully formatted with [black](https://github.com/psf/black)
+and [yapf](https://github.com/google/yapf).
 You can format the entire scripts as follows:
 ```
 $ ./scripts/format
+```
+
+### linter
+This library is analyzed by [mypy](https://github.com/python/mypy) and
+[pylint](https://github.com/PyCQA/pylint).
+You can check the code structures as follows:
+```
+$ ./scripts/lint
 ```
 
 ### test
