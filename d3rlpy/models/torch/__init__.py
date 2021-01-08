@@ -18,6 +18,7 @@ from .imitators import ConditionalVAE
 from .imitators import Imitator, DiscreteImitator
 from .imitators import DeterministicRegressor, ProbablisticRegressor
 from .dynamics import ProbablisticDynamics, EnsembleDynamics
+from .parameters import Parameter
 from .utility import create_discrete_q_function, create_continuous_q_function
 from .utility import create_deterministic_policy
 from .utility import create_deterministic_residual_policy
@@ -27,6 +28,7 @@ from .utility import create_deterministic_regressor
 from .utility import create_probablistic_regressor
 from .utility import create_value_function
 from .utility import create_probablistic_dynamics
+from .utility import create_parameter
 
 __all__ = [
     "Encoder",
@@ -63,6 +65,7 @@ __all__ = [
     "DeterministicRegressor",
     "ProbablisticRegressor",
     "EnsembleDynamics",
+    "Parameter",
     "create_discrete_q_function",
     "create_continuous_q_function",
     "create_deterministic_policy",
@@ -75,4 +78,5 @@ __all__ = [
     "create_probablistic_regressor",
     "create_value_function",
     "create_probablistic_dynamics",
+    "create_parameter",
 ]

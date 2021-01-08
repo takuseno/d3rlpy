@@ -1,5 +1,6 @@
 from typing import Sequence, TYPE_CHECKING, cast
 
+import torch
 import torch.nn as nn
 
 from .encoders import Encoder, EncoderWithAction
@@ -10,6 +11,7 @@ from .imitators import ConditionalVAE, DiscreteImitator
 from .imitators import DeterministicRegressor, ProbablisticRegressor
 from .v_functions import ValueFunction
 from .dynamics import EnsembleDynamics, ProbablisticDynamics
+from .parameters import Parameter
 
 if TYPE_CHECKING:
     from ...encoders import EncoderFactory
@@ -183,3 +185,8 @@ def create_probablistic_dynamics(
         model = ProbablisticDynamics(encoder)
         models.append(model)
     return EnsembleDynamics(models)
+
+
+def create_parameter(shape: Sequence[int], initial_value: float) -> Parameter:
+    data = torch.full(shape, initial_value, dtype=torch.float32)
+    return Parameter(data)

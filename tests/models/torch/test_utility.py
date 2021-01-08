@@ -1,5 +1,6 @@
 import pytest
 import torch
+import numpy as np
 
 from d3rlpy.encoders import DefaultEncoderFactory
 from d3rlpy.q_functions import MeanQFunctionFactory
@@ -15,6 +16,7 @@ from d3rlpy.models.torch.utility import create_deterministic_regressor
 from d3rlpy.models.torch.utility import create_probablistic_regressor
 from d3rlpy.models.torch.utility import create_value_function
 from d3rlpy.models.torch.utility import create_probablistic_dynamics
+from d3rlpy.models.torch.utility import create_parameter
 from d3rlpy.models.torch.policies import DeterministicPolicy
 from d3rlpy.models.torch.policies import DeterministicResidualPolicy
 from d3rlpy.models.torch.policies import NormalPolicy
@@ -27,6 +29,7 @@ from d3rlpy.models.torch.imitators import DeterministicRegressor
 from d3rlpy.models.torch.imitators import ProbablisticRegressor
 from d3rlpy.models.torch.v_functions import ValueFunction
 from d3rlpy.models.torch.dynamics import EnsembleDynamics
+from d3rlpy.models.torch.parameters import Parameter
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])
@@ -311,3 +314,12 @@ def test_create_probablistic_dynamics(
     observation, reward = dynamics(x, action)
     assert observation.shape == (batch_size,) + observation_shape
     assert reward.shape == (batch_size, 1)
+
+
+@pytest.mark.parametrize("shape", [(100,)])
+def test_create_parameter(shape):
+    x = np.random.random()
+    parameter = create_parameter(shape, x)
+
+    assert len(list(parameter.parameters())) == 1
+    assert np.allclose(parameter().detach().numpy(), x)

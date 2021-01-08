@@ -3,11 +3,10 @@ from typing import Optional, Sequence
 
 import numpy as np
 import torch
-import torch.nn as nn
 from torch.optim import Optimizer
 
-from ...models.torch import create_probablistic_regressor
-from ...models.torch import ProbablisticRegressor
+from ...models.torch import create_probablistic_regressor, create_parameter
+from ...models.torch import ProbablisticRegressor, Parameter
 from ...models.torch import compute_max_with_n_actions_and_indices
 from ...optimizers import OptimizerFactory
 from ...encoders import EncoderFactory
@@ -39,7 +38,7 @@ class BEARImpl(SACImpl):
     _mmd_sigma: float
     _imitator: Optional[ProbablisticRegressor]
     _imitator_optim: Optional[Optimizer]
-    _log_alpha: Optional[nn.Parameter]
+    _log_alpha: Optional[Parameter]
     _alpha_optim: Optional[Optimizer]
 
     def __init__(
@@ -116,9 +115,9 @@ class BEARImpl(SACImpl):
 
     def build(self) -> None:
         self._build_imitator()
+        self._build_alpha()
         super().build()
         self._build_imitator_optim()
-        self._build_alpha()
         self._build_alpha_optim()
 
     def _build_imitator(self) -> None:
@@ -136,13 +135,12 @@ class BEARImpl(SACImpl):
 
     def _build_alpha(self) -> None:
         initial_val = math.log(self._initial_alpha)
-        data = torch.full((1, 1), initial_val, device=self._device)
-        self._log_alpha = nn.Parameter(data)
+        self._log_alpha = create_parameter((1, 1), initial_val)
 
     def _build_alpha_optim(self) -> None:
         assert self._log_alpha is not None
         self._alpha_optim = self._alpha_optim_factory.create(
-            [self._log_alpha], lr=self._alpha_learning_rate
+            self._log_alpha.parameters(), lr=self._alpha_learning_rate
         )
 
     def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
@@ -183,7 +181,7 @@ class BEARImpl(SACImpl):
         loss.backward()
         self._alpha_optim.step()
 
-        cur_alpha = self._log_alpha.exp().cpu().detach().numpy()[0][0]
+        cur_alpha = self._log_alpha().exp().cpu().detach().numpy()[0][0]
 
         return loss.cpu().detach().numpy(), cur_alpha
 
@@ -230,7 +228,7 @@ class BEARImpl(SACImpl):
         )
         mmd -= 2 * distance.sum(dim=1).sum(dim=1) / self._n_action_samples ** 2
 
-        clipped_alpha = self._log_alpha.clamp(-10.0, 2.0).exp()
+        clipped_alpha = self._log_alpha().clamp(-10.0, 2.0).exp()
 
         return (clipped_alpha * (mmd - self._alpha_threshold)).sum(dim=1).mean()
 
@@ -250,4 +248,4 @@ class BEARImpl(SACImpl):
             # (batch, n, 1) -> (batch, 1)
             max_log_prob = log_probs[torch.arange(x.shape[0]), indices]
 
-            return values - self._log_temp.exp() * max_log_prob
+            return values - self._log_temp().exp() * max_log_prob

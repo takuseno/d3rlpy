@@ -3,10 +3,10 @@ from typing import Optional, Sequence
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
+from ...models.torch import Parameter, create_parameter
 from ...optimizers import OptimizerFactory
 from ...encoders import EncoderFactory
 from ...q_functions import QFunctionFactory
@@ -25,7 +25,7 @@ class CQLImpl(SACImpl):
     _initial_alpha: float
     _alpha_threshold: float
     _n_action_samples: int
-    _log_alpha: Optional[nn.Parameter]
+    _log_alpha: Optional[Parameter]
     _alpha_optim: Optional[Optimizer]
 
     def __init__(
@@ -89,19 +89,18 @@ class CQLImpl(SACImpl):
         self._alpha_optim = None
 
     def build(self) -> None:
-        super().build()
         self._build_alpha()
+        super().build()
         self._build_alpha_optim()
 
     def _build_alpha(self) -> None:
         initial_val = math.log(self._initial_alpha)
-        data = torch.full((1, 1), initial_val, device=self._device)
-        self._log_alpha = nn.Parameter(data)
+        self._log_alpha = create_parameter((1, 1), initial_val)
 
     def _build_alpha_optim(self) -> None:
         assert self._log_alpha is not None
         self._alpha_optim = self._alpha_optim_factory.create(
-            [self._log_alpha], lr=self._alpha_learning_rate
+            self._log_alpha.parameters(), lr=self._alpha_learning_rate
         )
 
     def _compute_critic_loss(
@@ -137,7 +136,7 @@ class CQLImpl(SACImpl):
         loss.backward()
         self._alpha_optim.step()
 
-        cur_alpha = self._log_alpha.exp().cpu().detach().numpy()[0][0]
+        cur_alpha = self._log_alpha().exp().cpu().detach().numpy()[0][0]
 
         return loss.cpu().detach().numpy(), cur_alpha
 
@@ -191,7 +190,7 @@ class CQLImpl(SACImpl):
         element_wise_loss = logsumexp - data_values - self._alpha_threshold
 
         # this clipping seems to stabilize training
-        clipped_alpha = self._log_alpha.clamp(-10.0, 2.0).exp()
+        clipped_alpha = self._log_alpha().clamp(-10.0, 2.0).exp()
 
         return (clipped_alpha * element_wise_loss).sum(dim=0).mean()
 

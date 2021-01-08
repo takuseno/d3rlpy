@@ -3,15 +3,16 @@ import copy
 from typing import Optional, Sequence, Tuple
 
 import torch
-import torch.nn as nn
 import numpy as np
 from torch.optim import Optimizer
 
 from ...models.torch import NormalPolicy, CategoricalPolicy
 from ...models.torch import EnsembleDiscreteQFunction
+from ...models.torch import Parameter
 from ...models.torch import create_normal_policy
 from ...models.torch import create_categorical_policy
 from ...models.torch import create_discrete_q_function
+from ...models.torch import create_parameter
 from ...optimizers import OptimizerFactory
 from ...encoders import EncoderFactory
 from ...q_functions import QFunctionFactory
@@ -31,7 +32,7 @@ class SACImpl(DDPGBaseImpl):
     _temp_learning_rate: float
     _temp_optim_factory: OptimizerFactory
     _initial_temperature: float
-    _log_temp: Optional[nn.Parameter]
+    _log_temp: Optional[Parameter]
     _temp_optim: Optional[Optimizer]
 
     def __init__(
@@ -85,10 +86,8 @@ class SACImpl(DDPGBaseImpl):
         self._temp_optim = None
 
     def build(self) -> None:
-        super().build()
-        # TODO: save and load temperature parameter
-        # setup temeprature after device property is set.
         self._build_temperature()
+        super().build()
         self._build_temperature_optim()
 
     def _build_actor(self) -> None:
@@ -100,13 +99,12 @@ class SACImpl(DDPGBaseImpl):
 
     def _build_temperature(self) -> None:
         initial_val = math.log(self._initial_temperature)
-        data = torch.full((1, 1), initial_val, device=self._device)
-        self._log_temp = nn.Parameter(data)
+        self._log_temp = create_parameter((1, 1), initial_val)
 
     def _build_temperature_optim(self) -> None:
         assert self._log_temp is not None
         self._temp_optim = self._temp_optim_factory.create(
-            [self._log_temp], lr=self._temp_learning_rate
+            self._log_temp.parameters(), lr=self._temp_learning_rate
         )
 
     def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
@@ -114,7 +112,7 @@ class SACImpl(DDPGBaseImpl):
         assert self._log_temp is not None
         assert self._q_func is not None
         action, log_prob = self._policy.sample_with_log_prob(obs_t)
-        entropy = self._log_temp.exp() * log_prob
+        entropy = self._log_temp().exp() * log_prob
         q_t = self._q_func(obs_t, action, "min")
         return (entropy - q_t).mean()
 
@@ -131,13 +129,13 @@ class SACImpl(DDPGBaseImpl):
             _, log_prob = self._policy.sample_with_log_prob(obs_t)
             targ_temp = log_prob - self._action_size
 
-        loss = -(self._log_temp.exp() * targ_temp).mean()
+        loss = -(self._log_temp().exp() * targ_temp).mean()
 
         loss.backward()
         self._temp_optim.step()
 
         # current temperature value
-        cur_temp = self._log_temp.exp().cpu().detach().numpy()[0][0]
+        cur_temp = self._log_temp().exp().cpu().detach().numpy()[0][0]
 
         return loss.cpu().detach().numpy(), cur_temp
 
@@ -147,7 +145,7 @@ class SACImpl(DDPGBaseImpl):
         assert self._targ_q_func is not None
         with torch.no_grad():
             action, log_prob = self._policy.sample_with_log_prob(x)
-            entropy = self._log_temp.exp() * log_prob
+            entropy = self._log_temp().exp() * log_prob
             return self._targ_q_func.compute_target(x, action) - entropy
 
 
@@ -172,7 +170,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
     _policy: Optional[CategoricalPolicy]
     _q_func: Optional[EnsembleDiscreteQFunction]
     _targ_q_func: Optional[EnsembleDiscreteQFunction]
-    _log_temp: Optional[nn.Parameter]
+    _log_temp: Optional[Parameter]
     _actor_optim: Optional[Optimizer]
     _critic_optim: Optional[Optimizer]
     _temp_optim: Optional[Optimizer]
@@ -229,6 +227,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
     def build(self) -> None:
         self._build_critic()
         self._build_actor()
+        self._build_temperature()
 
         # setup target networks
         self._targ_q_func = copy.deepcopy(self._q_func)
@@ -241,10 +240,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         # setup optimizer after the parameters move to GPU
         self._build_critic_optim()
         self._build_actor_optim()
-
-        # TODO: save and load temperature parameter
-        # setup temeprature after device property is set.
-        self._build_temperature()
         self._build_temperature_optim()
 
     def _build_critic(self) -> None:
@@ -279,13 +274,12 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
 
     def _build_temperature(self) -> None:
         initial_val = math.log(self._initial_temperature)
-        data = torch.full((1, 1), initial_val, device=self._device)
-        self._log_temp = nn.Parameter(data)
+        self._log_temp = create_parameter((1, 1), initial_val)
 
     def _build_temperature_optim(self) -> None:
         assert self._log_temp is not None
         self._temp_optim = self._temp_optim_factory.create(
-            [self._log_temp], lr=self._temp_learning_rate
+            self._log_temp.parameters(), lr=self._temp_learning_rate
         )
 
     @train_api
@@ -332,7 +326,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         with torch.no_grad():
             log_probs = self._policy.log_probs(x)
             probs = log_probs.exp()
-            entropy = self._log_temp.exp() * log_probs
+            entropy = self._log_temp().exp() * log_probs
             target = self._targ_q_func.compute_target(x)
             keepdims = True
             if target.dim() == 3:
@@ -384,7 +378,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
             q_t = self._q_func(obs_t, reduction="min")
         log_probs = self._policy.log_probs(obs_t)
         probs = log_probs.exp()
-        entropy = self._log_temp.exp() * log_probs
+        entropy = self._log_temp().exp() * log_probs
         return (probs * (entropy - q_t)).sum(dim=1).mean()
 
     @train_api
@@ -403,13 +397,13 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
             entropy_target = 0.98 * (-math.log(1 / self.action_size))
             targ_temp = expct_log_probs + entropy_target
 
-        loss = -(self._log_temp.exp() * targ_temp).mean()
+        loss = -(self._log_temp().exp() * targ_temp).mean()
 
         loss.backward()
         self._temp_optim.step()
 
         # current temperature value
-        cur_temp = self._log_temp.exp().cpu().detach().numpy()[0][0]
+        cur_temp = self._log_temp().exp().cpu().detach().numpy()[0][0]
 
         return loss.cpu().detach().numpy(), cur_temp
 
