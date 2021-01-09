@@ -8,20 +8,20 @@ from d3rlpy.models.torch.q_functions import ContinuousMeanQFunction
 from d3rlpy.models.torch.q_functions import ContinuousQRQFunction
 from d3rlpy.models.torch.q_functions import ContinuousIQNQFunction
 from d3rlpy.models.torch.q_functions import ContinuousFQFQFunction
-from d3rlpy.q_functions import create_q_func_factory
-from d3rlpy.q_functions import MeanQFunctionFactory
-from d3rlpy.q_functions import QRQFunctionFactory
-from d3rlpy.q_functions import IQNQFunctionFactory
-from d3rlpy.q_functions import FQFQFunctionFactory
-from d3rlpy.encoders import VectorEncoderFactory
+from d3rlpy.models.q_functions import create_q_func_factory
+from d3rlpy.models.q_functions import MeanQFunctionFactory
+from d3rlpy.models.q_functions import QRQFunctionFactory
+from d3rlpy.models.q_functions import IQNQFunctionFactory
+from d3rlpy.models.q_functions import FQFQFunctionFactory
+from d3rlpy.models.encoders import VectorEncoderFactory
 
 
 def _create_encoder(observation_shape, action_size):
     factory = VectorEncoderFactory()
     if action_size is None:
-        encoder = factory.create(observation_shape, 2)
+        encoder = factory.create_with_action(observation_shape, 2)
     else:
-        encoder = factory.create(observation_shape, None)
+        encoder = factory.create(observation_shape)
     return encoder
 
 
@@ -31,15 +31,14 @@ def test_mean_q_function_factory(observation_shape, action_size):
     encoder = _create_encoder(observation_shape, action_size)
 
     factory = MeanQFunctionFactory()
-    q_func = factory.create(encoder, action_size)
-
     if action_size is None:
+        q_func = factory.create_continuous(encoder)
         assert isinstance(q_func, ContinuousMeanQFunction)
     else:
+        q_func = factory.create_discrete(encoder, action_size)
         assert isinstance(q_func, DiscreteMeanQFunction)
 
     assert factory.get_type() == "mean"
-
     params = factory.get_params()
     new_factory = MeanQFunctionFactory(**params)
     assert new_factory.get_params() == params
@@ -51,15 +50,14 @@ def test_qr_q_function_factory(observation_shape, action_size):
     encoder = _create_encoder(observation_shape, action_size)
 
     factory = QRQFunctionFactory()
-    q_func = factory.create(encoder, action_size)
-
     if action_size is None:
+        q_func = factory.create_continuous(encoder)
         assert isinstance(q_func, ContinuousQRQFunction)
     else:
+        q_func = factory.create_discrete(encoder, action_size)
         assert isinstance(q_func, DiscreteQRQFunction)
 
     assert factory.get_type() == "qr"
-
     params = factory.get_params()
     new_factory = QRQFunctionFactory(**params)
     assert new_factory.get_params() == params
@@ -71,15 +69,14 @@ def test_iqn_q_function_factory(observation_shape, action_size):
     encoder = _create_encoder(observation_shape, action_size)
 
     factory = IQNQFunctionFactory()
-    q_func = factory.create(encoder, action_size)
-
     if action_size is None:
+        q_func = factory.create_continuous(encoder)
         assert isinstance(q_func, ContinuousIQNQFunction)
     else:
+        q_func = factory.create_discrete(encoder, action_size)
         assert isinstance(q_func, DiscreteIQNQFunction)
 
     assert factory.get_type() == "iqn"
-
     params = factory.get_params()
     new_factory = IQNQFunctionFactory(**params)
     assert new_factory.get_params() == params
@@ -91,15 +88,14 @@ def test_fqf_q_function_factory(observation_shape, action_size):
     encoder = _create_encoder(observation_shape, action_size)
 
     factory = FQFQFunctionFactory()
-    q_func = factory.create(encoder, action_size)
-
     if action_size is None:
+        q_func = factory.create_continuous(encoder)
         assert isinstance(q_func, ContinuousFQFQFunction)
     else:
+        q_func = factory.create_discrete(encoder, action_size)
         assert isinstance(q_func, DiscreteFQFQFunction)
 
     assert factory.get_type() == "fqf"
-
     params = factory.get_params()
     new_factory = FQFQFunctionFactory(**params)
     assert new_factory.get_params() == params

@@ -2,9 +2,9 @@ from typing import Any, List, Optional, Sequence
 from .base import AlgoBase, DataGenerator
 from .torch.awac_impl import AWACImpl
 from ..dataset import TransitionMiniBatch
-from ..optimizers import OptimizerFactory, AdamFactory
-from ..encoders import EncoderFactory
-from ..q_functions import QFunctionFactory
+from ..models.optimizers import OptimizerFactory, AdamFactory
+from ..models.encoders import EncoderFactory
+from ..models.q_functions import QFunctionFactory
 from ..augmentation import AugmentationPipeline
 from ..gpu import Device
 from ..argument_utility import ScalerArg
@@ -42,15 +42,15 @@ class AWAC(AlgoBase):
     Args:
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
-        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the critic.
-        actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory for the critic.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.

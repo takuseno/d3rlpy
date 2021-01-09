@@ -2,9 +2,9 @@ from typing import Any, List, Optional, Sequence
 from .base import AlgoBase, DataGenerator
 from .torch.bear_impl import BEARImpl
 from ..dataset import TransitionMiniBatch
-from ..optimizers import OptimizerFactory, AdamFactory
-from ..encoders import EncoderFactory
-from ..q_functions import QFunctionFactory
+from ..models.optimizers import OptimizerFactory, AdamFactory
+from ..models.encoders import EncoderFactory
+from ..models.q_functions import QFunctionFactory
 from ..gpu import Device
 from ..augmentation import AugmentationPipeline
 from ..argument_utility import check_encoder, EncoderArg
@@ -63,23 +63,23 @@ class BEAR(AlgoBase):
             function.
         temp_learning_rate (float): learning rate for temperature parameter.
         alpha_learning_rate (float): learning rate for :math:`\alpha`.
-        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the critic.
-        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        imitator_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the behavior policy.
-        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        temp_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the temperature.
-        alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        alpha_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for :math:`\alpha`.
-        actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory for the critic.
-        imitator_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        imitator_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory for the behavior policy.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.

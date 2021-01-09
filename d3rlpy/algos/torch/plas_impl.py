@@ -5,15 +5,19 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...models.torch import DeterministicResidualPolicy
-from ...models.torch import DeterministicPolicy
-from ...models.torch import ConditionalVAE
-from ...models.torch import create_deterministic_policy
-from ...models.torch import create_deterministic_residual_policy
-from ...models.torch import create_conditional_vae
-from ...optimizers import OptimizerFactory
-from ...encoders import EncoderFactory
-from ...q_functions import QFunctionFactory
+from ...models.torch import (
+    DeterministicResidualPolicy,
+    DeterministicPolicy,
+    ConditionalVAE,
+)
+from ...models.builders import (
+    create_deterministic_policy,
+    create_deterministic_residual_policy,
+    create_conditional_vae,
+)
+from ...models.optimizers import OptimizerFactory
+from ...models.encoders import EncoderFactory
+from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline

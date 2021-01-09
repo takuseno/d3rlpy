@@ -1,28 +1,26 @@
-from typing import Sequence, TYPE_CHECKING, cast
+from typing import Sequence, cast
 
 import torch
 import torch.nn as nn
 
-from .encoders import Encoder, EncoderWithAction
-from .q_functions import EnsembleDiscreteQFunction, EnsembleContinuousQFunction
-from .policies import DeterministicPolicy, DeterministicResidualPolicy
-from .policies import NormalPolicy, CategoricalPolicy
-from .imitators import ConditionalVAE, DiscreteImitator
-from .imitators import DeterministicRegressor, ProbablisticRegressor
-from .v_functions import ValueFunction
-from .dynamics import EnsembleDynamics, ProbablisticDynamics
-from .parameters import Parameter
-
-if TYPE_CHECKING:
-    from ...encoders import EncoderFactory
-    from ...q_functions import QFunctionFactory
+from .torch import Encoder, EncoderWithAction
+from .torch import EnsembleDiscreteQFunction, EnsembleContinuousQFunction
+from .torch import DeterministicPolicy, DeterministicResidualPolicy
+from .torch import NormalPolicy, CategoricalPolicy
+from .torch import ConditionalVAE, DiscreteImitator
+from .torch import DeterministicRegressor, ProbablisticRegressor
+from .torch import ValueFunction
+from .torch import EnsembleDynamics, ProbablisticDynamics
+from .torch import Parameter
+from .encoders import EncoderFactory
+from .q_functions import QFunctionFactory
 
 
 def create_discrete_q_function(
     observation_shape: Sequence[int],
     action_size: int,
-    encoder_factory: "EncoderFactory",
-    q_func_factory: "QFunctionFactory",
+    encoder_factory: EncoderFactory,
+    q_func_factory: QFunctionFactory,
     n_ensembles: int = 1,
     bootstrap: bool = False,
     share_encoder: bool = False,
@@ -37,21 +35,23 @@ def create_discrete_q_function(
     for _ in range(n_ensembles):
         if not share_encoder:
             encoder = encoder_factory.create(observation_shape)
-        q_funcs.append(q_func_factory.create(encoder, action_size))
+        q_funcs.append(q_func_factory.create_discrete(encoder, action_size))
     return EnsembleDiscreteQFunction(q_funcs, bootstrap)
 
 
 def create_continuous_q_function(
     observation_shape: Sequence[int],
     action_size: int,
-    encoder_factory: "EncoderFactory",
-    q_func_factory: "QFunctionFactory",
+    encoder_factory: EncoderFactory,
+    q_func_factory: QFunctionFactory,
     n_ensembles: int = 1,
     bootstrap: bool = False,
     share_encoder: bool = False,
 ) -> EnsembleContinuousQFunction:
     if share_encoder:
-        encoder = encoder_factory.create(observation_shape, action_size)
+        encoder = encoder_factory.create_with_action(
+            observation_shape, action_size
+        )
         # normalize gradient scale by ensemble size
         for p in cast(nn.Module, encoder).parameters():
             p.register_hook(lambda grad: grad / n_ensembles)
@@ -59,15 +59,17 @@ def create_continuous_q_function(
     q_funcs = []
     for _ in range(n_ensembles):
         if not share_encoder:
-            encoder = encoder_factory.create(observation_shape, action_size)
-        q_funcs.append(q_func_factory.create(encoder))
+            encoder = encoder_factory.create_with_action(
+                observation_shape, action_size
+            )
+        q_funcs.append(q_func_factory.create_continuous(encoder))
     return EnsembleContinuousQFunction(q_funcs, bootstrap)
 
 
 def create_deterministic_policy(
     observation_shape: Sequence[int],
     action_size: int,
-    encoder_factory: "EncoderFactory",
+    encoder_factory: EncoderFactory,
 ) -> DeterministicPolicy:
     encoder = encoder_factory.create(observation_shape)
     assert isinstance(encoder, Encoder)
@@ -78,9 +80,9 @@ def create_deterministic_residual_policy(
     observation_shape: Sequence[int],
     action_size: int,
     scale: float,
-    encoder_factory: "EncoderFactory",
+    encoder_factory: EncoderFactory,
 ) -> DeterministicResidualPolicy:
-    encoder = encoder_factory.create(observation_shape, action_size)
+    encoder = encoder_factory.create_with_action(observation_shape, action_size)
     assert isinstance(encoder, EncoderWithAction)
     return DeterministicResidualPolicy(encoder, scale)
 
@@ -88,7 +90,7 @@ def create_deterministic_residual_policy(
 def create_normal_policy(
     observation_shape: Sequence[int],
     action_size: int,
-    encoder_factory: "EncoderFactory",
+    encoder_factory: EncoderFactory,
     min_logstd: float = -20.0,
     max_logstd: float = 2.0,
     use_std_parameter: bool = False,
@@ -107,7 +109,7 @@ def create_normal_policy(
 def create_categorical_policy(
     observation_shape: Sequence[int],
     action_size: int,
-    encoder_factory: "EncoderFactory",
+    encoder_factory: EncoderFactory,
 ) -> CategoricalPolicy:
     encoder = encoder_factory.create(observation_shape)
     assert isinstance(encoder, Encoder)
@@ -119,10 +121,14 @@ def create_conditional_vae(
     action_size: int,
     latent_size: int,
     beta: float,
-    encoder_factory: "EncoderFactory",
+    encoder_factory: EncoderFactory,
 ) -> ConditionalVAE:
-    encoder_encoder = encoder_factory.create(observation_shape, action_size)
-    decoder_encoder = encoder_factory.create(observation_shape, latent_size)
+    encoder_encoder = encoder_factory.create_with_action(
+        observation_shape, action_size
+    )
+    decoder_encoder = encoder_factory.create_with_action(
+        observation_shape, latent_size
+    )
     assert isinstance(encoder_encoder, EncoderWithAction)
     assert isinstance(decoder_encoder, EncoderWithAction)
     return ConditionalVAE(encoder_encoder, decoder_encoder, beta)
@@ -132,7 +138,7 @@ def create_discrete_imitator(
     observation_shape: Sequence[int],
     action_size: int,
     beta: float,
-    encoder_factory: "EncoderFactory",
+    encoder_factory: EncoderFactory,
 ) -> DiscreteImitator:
     encoder = encoder_factory.create(observation_shape)
     assert isinstance(encoder, Encoder)
@@ -142,7 +148,7 @@ def create_discrete_imitator(
 def create_deterministic_regressor(
     observation_shape: Sequence[int],
     action_size: int,
-    encoder_factory: "EncoderFactory",
+    encoder_factory: EncoderFactory,
 ) -> DeterministicRegressor:
     encoder = encoder_factory.create(observation_shape)
     assert isinstance(encoder, Encoder)
@@ -152,7 +158,7 @@ def create_deterministic_regressor(
 def create_probablistic_regressor(
     observation_shape: Sequence[int],
     action_size: int,
-    encoder_factory: "EncoderFactory",
+    encoder_factory: EncoderFactory,
 ) -> ProbablisticRegressor:
     encoder = encoder_factory.create(observation_shape)
     assert isinstance(encoder, Encoder)
@@ -160,7 +166,7 @@ def create_probablistic_regressor(
 
 
 def create_value_function(
-    observation_shape: Sequence[int], encoder_factory: "EncoderFactory"
+    observation_shape: Sequence[int], encoder_factory: EncoderFactory
 ) -> ValueFunction:
     encoder = encoder_factory.create(observation_shape)
     assert isinstance(encoder, Encoder)
@@ -170,13 +176,13 @@ def create_value_function(
 def create_probablistic_dynamics(
     observation_shape: Sequence[int],
     action_size: int,
-    encoder_factory: "EncoderFactory",
+    encoder_factory: EncoderFactory,
     n_ensembles: int = 5,
     discrete_action: bool = False,
 ) -> EnsembleDynamics:
     models = []
     for _ in range(n_ensembles):
-        encoder = encoder_factory.create(
+        encoder = encoder_factory.create_with_action(
             observation_shape=observation_shape,
             action_size=action_size,
             discrete_action=discrete_action,

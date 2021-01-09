@@ -32,7 +32,7 @@ You can also build your own encoder factory.
    import torch
    import torch.nn as nn
 
-   from d3rlpy.encoders import EncoderFactory
+   from d3rlpy.models.encoders import EncoderFactory
 
    # your own neural network
    class CustomEncoder(nn.Module):
@@ -118,7 +118,7 @@ your encoder configuration, you need to register your encoder factory.
 
 .. code-block:: python
 
-   from d3rlpy.encoders import register_encoder_factory
+   from d3rlpy.models.encoders import register_encoder_factory
 
    # register your own encoder factory
    register_encoder_factory(CustomEncoderFactory)
@@ -137,7 +137,7 @@ Once you register your encoder factory, you can specify it via ``TYPE`` value.
    :toctree: generated/
    :nosignatures:
 
-   d3rlpy.encoders.DefaultEncoderFactory
-   d3rlpy.encoders.PixelEncoderFactory
-   d3rlpy.encoders.VectorEncoderFactory
-   d3rlpy.encoders.DenseEncoderFactory
+   d3rlpy.models.encoders.DefaultEncoderFactory
+   d3rlpy.models.encoders.PixelEncoderFactory
+   d3rlpy.models.encoders.VectorEncoderFactory
+   d3rlpy.models.encoders.DenseEncoderFactory

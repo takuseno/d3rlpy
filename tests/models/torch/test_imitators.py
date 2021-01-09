@@ -2,7 +2,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from d3rlpy.encoders import DefaultEncoderFactory
+from d3rlpy.models.encoders import DefaultEncoderFactory
 
 from d3rlpy.models.torch.imitators import ConditionalVAE
 from d3rlpy.models.torch.imitators import DiscreteImitator

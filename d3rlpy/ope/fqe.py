@@ -4,15 +4,15 @@ from typing import Any, List, Optional, Sequence, Union
 import numpy as np
 
 from ..algos import AlgoBase
-from ..optimizers import OptimizerFactory, AdamFactory
 from ..argument_utility import check_encoder, EncoderArg
 from ..argument_utility import check_use_gpu, UseGPUArg
 from ..argument_utility import check_q_func, QFuncArg
 from ..argument_utility import ScalerArg
 from ..dataset import TransitionMiniBatch
-from ..encoders import EncoderFactory
+from ..models.encoders import EncoderFactory
+from ..models.optimizers import OptimizerFactory, AdamFactory
+from ..models.q_functions import QFunctionFactory
 from ..gpu import Device
-from ..q_functions import QFunctionFactory
 from .torch.fqe_impl import FQEBaseImpl, FQEImpl, DiscreteFQEImpl
 
 
@@ -134,11 +134,11 @@ class FQE(_FQEBase):
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
         learning_rate (float): learning rate.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory or str):
+        optim_factory (d3rlpy.models.optimizers.OptimizerFactory or str):
             optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
@@ -200,11 +200,11 @@ class DiscreteFQE(_FQEBase):
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
         learning_rate (float): learning rate.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory or str):
+        optim_factory (d3rlpy.models.optimizers.OptimizerFactory or str):
             optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.

@@ -12,7 +12,7 @@ initialize, which you can check more `here <https://pytorch.org/docs/stable/opti
 
    from torch.optim import Adam
    from d3rlpy.algos import DQN
-   from d3rlpy.optimizers import OptimizerFactory
+   from d3rlpy.models.optimizers import OptimizerFactory
 
    # modify weight decay
    optim_factory = OptimizerFactory(Adam, weight_decay=1e-4)
@@ -24,7 +24,7 @@ There are also convenient alises.
 
 .. code-block:: python
 
-   from d3rlpy.optimizers import AdamFactory
+   from d3rlpy.models.optimizers import AdamFactory
 
    # alias for Adam optimizer
    optim_factory = AdamFactory(weight_decay=1e-4)
@@ -36,7 +36,7 @@ There are also convenient alises.
    :toctree: generated/
    :nosignatures:
 
-   d3rlpy.optimizers.OptimizerFactory
-   d3rlpy.optimizers.SGDFactory
-   d3rlpy.optimizers.AdamFactory
-   d3rlpy.optimizers.RMSpropFactory
+   d3rlpy.models.optimizers.OptimizerFactory
+   d3rlpy.models.optimizers.SGDFactory
+   d3rlpy.models.optimizers.AdamFactory
+   d3rlpy.models.optimizers.RMSpropFactory

@@ -2,8 +2,8 @@ from typing import Any, List, Optional, Sequence
 from .base import DynamicsBase
 from .torch.mopo_impl import MOPOImpl
 from ..dataset import TransitionMiniBatch
-from ..optimizers import OptimizerFactory, AdamFactory
-from ..encoders import EncoderFactory
+from ..models.optimizers import OptimizerFactory, AdamFactory
+from ..models.encoders import EncoderFactory
 from ..gpu import Device
 from ..argument_utility import check_encoder, check_use_gpu
 from ..argument_utility import EncoderArg, UseGPUArg, ScalerArg
@@ -54,8 +54,9 @@ class MOPO(DynamicsBase):
 
     Args:
         learning_rate (float): learning rate for dynamics model.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory.
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.

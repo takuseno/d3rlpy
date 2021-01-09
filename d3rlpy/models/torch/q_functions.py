@@ -882,7 +882,7 @@ class EnsembleQFunction(nn.Module):  # type: ignore
 
     def __init__(
         self,
-        q_funcs: List[Union[DiscreteQFunction, ContinuousQFunction]],
+        q_funcs: Union[List[DiscreteQFunction], List[ContinuousQFunction]],
         bootstrap: bool = False,
     ):
         super().__init__()

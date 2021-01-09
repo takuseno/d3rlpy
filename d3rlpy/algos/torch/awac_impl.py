@@ -6,10 +6,11 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from ...models.torch import squash_action, create_normal_policy
-from ...optimizers import OptimizerFactory, AdamFactory
-from ...encoders import EncoderFactory
-from ...q_functions import QFunctionFactory
+from ...models.torch import squash_action
+from ...models.builders import create_normal_policy
+from ...models.optimizers import OptimizerFactory, AdamFactory
+from ...models.encoders import EncoderFactory
+from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline

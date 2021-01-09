@@ -6,10 +6,11 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
-from ...models.torch import Parameter, create_parameter
-from ...optimizers import OptimizerFactory
-from ...encoders import EncoderFactory
-from ...q_functions import QFunctionFactory
+from ...models.torch import Parameter
+from ...models.builders import create_parameter
+from ...models.optimizers import OptimizerFactory
+from ...models.encoders import EncoderFactory
+from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
 from ...augmentation import AugmentationPipeline
 from ...preprocessing import Scaler

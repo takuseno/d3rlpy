@@ -17,10 +17,6 @@ from ..argument_utility import ScalerArg
 
 class AlgoImplBase(ImplBase):
     @abstractmethod
-    def build(self) -> None:
-        pass
-
-    @abstractmethod
     def save_policy(self, fname: str, as_onnx: bool) -> None:
         pass
 

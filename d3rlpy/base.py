@@ -16,9 +16,9 @@ from .logger import D3RLPyLogger
 from .metrics.scorer import NEGATED_SCORER
 from .context import disable_parallel
 from .gpu import Device
-from .optimizers import OptimizerFactory
-from .encoders import EncoderFactory, create_encoder_factory
-from .q_functions import QFunctionFactory, create_q_func_factory
+from .models.optimizers import OptimizerFactory
+from .models.encoders import EncoderFactory, create_encoder_factory
+from .models.q_functions import QFunctionFactory, create_q_func_factory
 from .argument_utility import check_scaler, ScalerArg, UseGPUArg
 from .online.utility import get_action_size_from_env
 

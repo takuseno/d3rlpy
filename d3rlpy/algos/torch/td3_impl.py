@@ -2,9 +2,9 @@ from typing import Optional, Sequence
 
 import torch
 
-from ...optimizers import OptimizerFactory
-from ...encoders import EncoderFactory
-from ...q_functions import QFunctionFactory
+from ...models.optimizers import OptimizerFactory
+from ...models.encoders import EncoderFactory
+from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline

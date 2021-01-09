@@ -1,5 +1,5 @@
 from d3rlpy.algos import DQN
-from d3rlpy.optimizers import RMSpropFactory
+from d3rlpy.models.optimizers import RMSpropFactory
 from d3rlpy.online.buffers import ReplayBuffer
 from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
 from d4rl_atari.envs import AtariEnv

@@ -6,16 +6,21 @@ import torch
 import numpy as np
 from torch.optim import Optimizer
 
-from ...models.torch import NormalPolicy, CategoricalPolicy
-from ...models.torch import EnsembleDiscreteQFunction
-from ...models.torch import Parameter
-from ...models.torch import create_normal_policy
-from ...models.torch import create_categorical_policy
-from ...models.torch import create_discrete_q_function
-from ...models.torch import create_parameter
-from ...optimizers import OptimizerFactory
-from ...encoders import EncoderFactory
-from ...q_functions import QFunctionFactory
+from ...models.torch import (
+    NormalPolicy,
+    CategoricalPolicy,
+    EnsembleDiscreteQFunction,
+    Parameter,
+)
+from ...models.builders import (
+    create_normal_policy,
+    create_categorical_policy,
+    create_discrete_q_function,
+    create_parameter,
+)
+from ...models.optimizers import OptimizerFactory
+from ...models.encoders import EncoderFactory
+from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline

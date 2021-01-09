@@ -7,9 +7,9 @@ from .base import AlgoBase, DataGenerator
 from .torch.bc_impl import BCBaseImpl, BCImpl, DiscreteBCImpl
 from ..augmentation import AugmentationPipeline
 from ..dataset import TransitionMiniBatch
-from ..encoders import EncoderFactory
+from ..models.encoders import EncoderFactory
+from ..models.optimizers import OptimizerFactory, AdamFactory
 from ..gpu import Device
-from ..optimizers import OptimizerFactory, AdamFactory
 from ..argument_utility import check_encoder, check_use_gpu, check_augmentation
 from ..argument_utility import EncoderArg, UseGPUArg, AugmentationArg, ScalerArg
 
@@ -98,8 +98,9 @@ class BC(_BCBase):
 
     Args:
         learning_rate (float): learing rate.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory.
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
@@ -152,8 +153,9 @@ class DiscreteBC(_BCBase):
 
     Args:
         learning_rate (float): learing rate.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory.
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.

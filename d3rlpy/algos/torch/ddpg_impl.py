@@ -6,15 +6,20 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...models.torch import create_continuous_q_function
-from ...models.torch import create_deterministic_policy
-from ...models.torch import EnsembleContinuousQFunction
-from ...models.torch import Policy, DeterministicPolicy
 from ...augmentation import AugmentationPipeline
-from ...encoders import EncoderFactory
+from ...models.torch import (
+    EnsembleContinuousQFunction,
+    Policy,
+    DeterministicPolicy,
+)
+from ...models.builders import (
+    create_continuous_q_function,
+    create_deterministic_policy,
+)
+from ...models.encoders import EncoderFactory
+from ...models.optimizers import OptimizerFactory
+from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
-from ...optimizers import OptimizerFactory
-from ...q_functions import QFunctionFactory
 from ...preprocessing import Scaler
 from ...torch_utility import (
     soft_sync,

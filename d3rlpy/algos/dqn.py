@@ -3,9 +3,9 @@ from .base import AlgoBase, DataGenerator
 from .torch.dqn_impl import DQNImpl, DoubleDQNImpl
 from ..augmentation import AugmentationPipeline
 from ..dataset import TransitionMiniBatch
-from ..optimizers import OptimizerFactory, AdamFactory
-from ..encoders import EncoderFactory
-from ..q_functions import QFunctionFactory
+from ..models.optimizers import OptimizerFactory, AdamFactory
+from ..models.encoders import EncoderFactory
+from ..models.q_functions import QFunctionFactory
 from ..gpu import Device
 from ..argument_utility import ScalerArg
 from ..argument_utility import check_encoder, EncoderArg
@@ -31,11 +31,11 @@ class DQN(AlgoBase):
 
     Args:
         learning_rate (float): learning rate.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory or str):
+        optim_factory (d3rlpy.models.optimizers.OptimizerFactory or str):
             optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
@@ -174,10 +174,11 @@ class DoubleDQN(DQN):
 
     Args:
         learning_rate (float): learning rate.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory.
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.

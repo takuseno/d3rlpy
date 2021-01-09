@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from d3rlpy.encoders import DefaultEncoderFactory
+from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.dynamics import _compute_ensemble_variance
 from d3rlpy.models.torch.dynamics import ProbablisticDynamics
 from d3rlpy.models.torch.dynamics import EnsembleDynamics

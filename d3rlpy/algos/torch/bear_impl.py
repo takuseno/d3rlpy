@@ -5,12 +5,15 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...models.torch import create_probablistic_regressor, create_parameter
-from ...models.torch import ProbablisticRegressor, Parameter
-from ...models.torch import compute_max_with_n_actions_and_indices
-from ...optimizers import OptimizerFactory
-from ...encoders import EncoderFactory
-from ...q_functions import QFunctionFactory
+from ...models.torch import (
+    ProbablisticRegressor,
+    Parameter,
+    compute_max_with_n_actions_and_indices,
+)
+from ...models.builders import create_probablistic_regressor, create_parameter
+from ...models.optimizers import OptimizerFactory
+from ...models.encoders import EncoderFactory
+from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline

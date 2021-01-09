@@ -5,8 +5,10 @@ import torch
 import numpy as np
 
 from ...torch_utility import eval_api, torch_api
-from ...models.torch import EnsembleDiscreteQFunction
-from ...models.torch import EnsembleContinuousQFunction
+from ...models.torch import (
+    EnsembleDiscreteQFunction,
+    EnsembleContinuousQFunction,
+)
 
 
 class _DiscreteQFunctionProtocol(Protocol):

@@ -5,10 +5,10 @@ import numpy as np
 from .base import AlgoBase, DataGenerator
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 from ..augmentation import AugmentationPipeline
-from ..optimizers import OptimizerFactory, AdamFactory
-from ..encoders import EncoderFactory
 from ..dataset import TransitionMiniBatch
-from ..q_functions import QFunctionFactory
+from ..models.optimizers import OptimizerFactory, AdamFactory
+from ..models.encoders import EncoderFactory
+from ..models.q_functions import QFunctionFactory
 from ..gpu import Device
 from ..argument_utility import check_encoder, EncoderArg
 from ..argument_utility import check_use_gpu, UseGPUArg
@@ -96,19 +96,19 @@ class BCQ(AlgoBase):
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         imitator_learning_rate (float): learning rate for Conditional VAE.
-        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the critic.
-        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        imitator_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the conditional VAE.
-        actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory for the critic.
-        imitator_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        imitator_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory for the conditional VAE.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
@@ -342,10 +342,11 @@ class DiscreteBCQ(AlgoBase):
 
     Args:
         learning_rate (float): learning rate.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory.
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.

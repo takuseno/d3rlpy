@@ -4,11 +4,12 @@ from torch.optim import Optimizer
 import numpy as np
 import torch
 
-from ...optimizers import OptimizerFactory
-from ...encoders import EncoderFactory
+from ...models.torch import EnsembleDynamics
+from ...models.builders import create_probablistic_dynamics
+from ...models.optimizers import OptimizerFactory
+from ...models.encoders import EncoderFactory
 from ...preprocessing import Scaler
 from ...gpu import Device
-from ...models.torch import create_probablistic_dynamics, EnsembleDynamics
 from ...torch_utility import torch_api, train_api
 from .base import TorchImplBase
 

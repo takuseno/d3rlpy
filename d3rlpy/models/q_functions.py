@@ -1,38 +1,49 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, ClassVar, Dict, Optional, Union, Type
-from .models.torch import Encoder, EncoderWithAction
-from .models.torch import DiscreteQFunction
-from .models.torch import ContinuousQFunction
-from .models.torch import DiscreteMeanQFunction
-from .models.torch import DiscreteQRQFunction
-from .models.torch import DiscreteIQNQFunction
-from .models.torch import DiscreteFQFQFunction
-from .models.torch import ContinuousMeanQFunction
-from .models.torch import ContinuousQRQFunction
-from .models.torch import ContinuousIQNQFunction
-from .models.torch import ContinuousFQFQFunction
+from typing import Any, ClassVar, Dict, Type
+from .torch import Encoder, EncoderWithAction
+from .torch import DiscreteQFunction
+from .torch import ContinuousQFunction
+from .torch import DiscreteMeanQFunction
+from .torch import DiscreteQRQFunction
+from .torch import DiscreteIQNQFunction
+from .torch import DiscreteFQFQFunction
+from .torch import ContinuousMeanQFunction
+from .torch import ContinuousQRQFunction
+from .torch import ContinuousIQNQFunction
+from .torch import ContinuousFQFQFunction
 
 
 class QFunctionFactory(metaclass=ABCMeta):
     TYPE: ClassVar[str] = "none"
 
     @abstractmethod
-    def create(
-        self,
-        encoder: Union[Encoder, EncoderWithAction],
-        action_size: Optional[int] = None,
-    ) -> Union[DiscreteQFunction, ContinuousQFunction]:
+    def create_discrete(
+        self, encoder: Encoder, action_size: int
+    ) -> DiscreteQFunction:
         """Returns PyTorch's Q function module.
 
         Args:
-            encoder: an encoder module that processes
-                the observation (and action in continuous action-space) to
+            encoder: an encoder module that processes the observation to
                 obtain feature representations.
-            action_size: dimension of discrete action-space. If the
-                action-space is continous, ``None`` will be passed.
+            action_size: dimension of discrete action-space.
 
         Returns:
-            Q function object.
+            discrete Q function object.
+
+        """
+
+    @abstractmethod
+    def create_continuous(
+        self, encoder: EncoderWithAction
+    ) -> ContinuousQFunction:
+        """Returns PyTorch's Q function module.
+
+        Args:
+            encoder: an encoder module that processes the observation and
+                action to obtain feature representations.
+
+        Returns:
+            continuous Q function object.
 
         """
 
@@ -70,19 +81,18 @@ class MeanQFunctionFactory(QFunctionFactory):
 
     TYPE: ClassVar[str] = "mean"
 
-    def create(
+    def create_discrete(
         self,
-        encoder: Union[Encoder, EncoderWithAction],
-        action_size: Optional[int] = None,
-    ) -> Union[ContinuousMeanQFunction, DiscreteMeanQFunction]:
-        q_func: Union[ContinuousMeanQFunction, DiscreteMeanQFunction]
-        if action_size is None:
-            assert isinstance(encoder, EncoderWithAction)
-            q_func = ContinuousMeanQFunction(encoder)
-        else:
-            assert isinstance(encoder, Encoder)
-            q_func = DiscreteMeanQFunction(encoder, action_size)
-        return q_func
+        encoder: Encoder,
+        action_size: int,
+    ) -> DiscreteMeanQFunction:
+        return DiscreteMeanQFunction(encoder, action_size)
+
+    def create_continuous(
+        self,
+        encoder: EncoderWithAction,
+    ) -> ContinuousMeanQFunction:
+        return ContinuousMeanQFunction(encoder)
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {}
@@ -106,21 +116,16 @@ class QRQFunctionFactory(QFunctionFactory):
     def __init__(self, n_quantiles: int = 200):
         self._n_quantiles = n_quantiles
 
-    def create(
+    def create_discrete(
+        self, encoder: Encoder, action_size: int
+    ) -> DiscreteQRQFunction:
+        return DiscreteQRQFunction(encoder, action_size, self._n_quantiles)
+
+    def create_continuous(
         self,
-        encoder: Union[Encoder, EncoderWithAction],
-        action_size: Optional[int] = None,
-    ) -> Union[ContinuousQRQFunction, DiscreteQRQFunction]:
-        q_func: Union[ContinuousQRQFunction, DiscreteQRQFunction]
-        if action_size is None:
-            assert isinstance(encoder, EncoderWithAction)
-            q_func = ContinuousQRQFunction(encoder, self._n_quantiles)
-        else:
-            assert isinstance(encoder, Encoder)
-            q_func = DiscreteQRQFunction(
-                encoder, action_size, self._n_quantiles
-            )
-        return q_func
+        encoder: EncoderWithAction,
+    ) -> ContinuousQRQFunction:
+        return ContinuousQRQFunction(encoder, self._n_quantiles)
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {"n_quantiles": self._n_quantiles}
@@ -159,30 +164,29 @@ class IQNQFunctionFactory(QFunctionFactory):
         self._n_greedy_quantiles = n_greedy_quantiles
         self._embed_size = embed_size
 
-    def create(
+    def create_discrete(
         self,
-        encoder: Union[Encoder, EncoderWithAction],
-        action_size: Optional[int] = None,
-    ) -> Union[ContinuousIQNQFunction, DiscreteIQNQFunction]:
-        q_func: Union[DiscreteIQNQFunction, ContinuousIQNQFunction]
-        if action_size is None:
-            assert isinstance(encoder, EncoderWithAction)
-            q_func = ContinuousIQNQFunction(
-                encoder=encoder,
-                n_quantiles=self._n_quantiles,
-                n_greedy_quantiles=self._n_greedy_quantiles,
-                embed_size=self._embed_size,
-            )
-        else:
-            assert isinstance(encoder, Encoder)
-            q_func = DiscreteIQNQFunction(
-                encoder=encoder,
-                action_size=action_size,
-                n_quantiles=self._n_quantiles,
-                n_greedy_quantiles=self._n_greedy_quantiles,
-                embed_size=self._embed_size,
-            )
-        return q_func
+        encoder: Encoder,
+        action_size: int,
+    ) -> DiscreteIQNQFunction:
+        return DiscreteIQNQFunction(
+            encoder=encoder,
+            action_size=action_size,
+            n_quantiles=self._n_quantiles,
+            n_greedy_quantiles=self._n_greedy_quantiles,
+            embed_size=self._embed_size,
+        )
+
+    def create_continuous(
+        self,
+        encoder: EncoderWithAction,
+    ) -> ContinuousIQNQFunction:
+        return ContinuousIQNQFunction(
+            encoder=encoder,
+            n_quantiles=self._n_quantiles,
+            n_greedy_quantiles=self._n_greedy_quantiles,
+            embed_size=self._embed_size,
+        )
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
@@ -234,30 +238,29 @@ class FQFQFunctionFactory(QFunctionFactory):
         self._embed_size = embed_size
         self._entropy_coeff = entropy_coeff
 
-    def create(
+    def create_discrete(
         self,
-        encoder: Union[Encoder, EncoderWithAction],
-        action_size: Optional[int] = None,
-    ) -> Union[ContinuousFQFQFunction, DiscreteFQFQFunction]:
-        q_func: Union[ContinuousFQFQFunction, DiscreteFQFQFunction]
-        if action_size is None:
-            assert isinstance(encoder, EncoderWithAction)
-            q_func = ContinuousFQFQFunction(
-                encoder=encoder,
-                n_quantiles=self._n_quantiles,
-                embed_size=self._embed_size,
-                entropy_coeff=self._entropy_coeff,
-            )
-        else:
-            assert isinstance(encoder, Encoder)
-            q_func = DiscreteFQFQFunction(
-                encoder=encoder,
-                action_size=action_size,
-                n_quantiles=self._n_quantiles,
-                embed_size=self._embed_size,
-                entropy_coeff=self._entropy_coeff,
-            )
-        return q_func
+        encoder: Encoder,
+        action_size: int,
+    ) -> DiscreteFQFQFunction:
+        return DiscreteFQFQFunction(
+            encoder=encoder,
+            action_size=action_size,
+            n_quantiles=self._n_quantiles,
+            embed_size=self._embed_size,
+            entropy_coeff=self._entropy_coeff,
+        )
+
+    def create_continuous(
+        self,
+        encoder: EncoderWithAction,
+    ) -> ContinuousFQFQFunction:
+        return ContinuousFQFQFunction(
+            encoder=encoder,
+            n_quantiles=self._n_quantiles,
+            embed_size=self._embed_size,
+            entropy_coeff=self._entropy_coeff,
+        )
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {

@@ -2,7 +2,7 @@ import pytest
 import torch
 import copy
 
-from d3rlpy.encoders import DefaultEncoderFactory
+from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.policies import DeterministicPolicy
 from d3rlpy.models.torch.policies import DeterministicResidualPolicy
 from d3rlpy.models.torch.policies import NormalPolicy

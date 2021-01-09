@@ -5,15 +5,21 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...models.torch import PixelEncoder
-from ...models.torch import DeterministicResidualPolicy
-from ...models.torch import create_deterministic_residual_policy
-from ...models.torch import compute_max_with_n_actions
-from ...models.torch import create_conditional_vae, create_discrete_imitator
-from ...models.torch import ConditionalVAE, DiscreteImitator
-from ...optimizers import OptimizerFactory
-from ...encoders import EncoderFactory
-from ...q_functions import QFunctionFactory
+from ...models.torch import (
+    PixelEncoder,
+    DeterministicResidualPolicy,
+    compute_max_with_n_actions,
+    ConditionalVAE,
+    DiscreteImitator,
+)
+from ...models.builders import (
+    create_deterministic_residual_policy,
+    create_conditional_vae,
+    create_discrete_imitator,
+)
+from ...models.optimizers import OptimizerFactory
+from ...models.encoders import EncoderFactory
+from ...models.q_functions import QFunctionFactory
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline
 from ...gpu import Device

@@ -4,9 +4,9 @@ from .dqn import DoubleDQN
 from .torch.cql_impl import CQLImpl, DiscreteCQLImpl
 from ..augmentation import AugmentationPipeline
 from ..dataset import TransitionMiniBatch
-from ..encoders import EncoderFactory
-from ..q_functions import QFunctionFactory
-from ..optimizers import OptimizerFactory, AdamFactory
+from ..models.encoders import EncoderFactory
+from ..models.q_functions import QFunctionFactory
+from ..models.optimizers import OptimizerFactory, AdamFactory
 from ..gpu import Device
 from ..argument_utility import check_encoder, EncoderArg
 from ..argument_utility import check_use_gpu, UseGPUArg
@@ -64,19 +64,19 @@ class CQL(AlgoBase):
         temp_learning_rate (float):
             learning rate for temperature parameter of SAC.
         alpha_learning_rate (float): learning rate for :math:`\alpha`.
-        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the critic.
-        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        temp_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the temperature.
-        alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
+        alpha_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for :math:`\alpha`.
-        actor_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.encoders.EncoderFactory or str):
+        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory for the critic.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
@@ -290,9 +290,11 @@ class DiscreteCQL(DoubleDQN):
 
     Args:
         learning_rate (float): learning rate.
-        optim_factory (d3rlpy.optimizers.OptimizerFactory): optimizer factory.
-        encoder_factory (d3rlpy.encoders.EncoderFactory or str): encoder factory.
-        q_func_factory (d3rlpy.q_functions.QFunctionFactory or str):
+        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory.
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+            encoder factory.
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.

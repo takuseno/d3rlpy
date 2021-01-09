@@ -1,8 +1,8 @@
 import pytest
 
 from d3rlpy.dynamics.torch.mopo_impl import MOPOImpl
-from d3rlpy.optimizers import AdamFactory
-from d3rlpy.encoders import DefaultEncoderFactory
+from d3rlpy.models.optimizers import AdamFactory
+from d3rlpy.models.encoders import DefaultEncoderFactory
 from tests.algos.algo_test import DummyScaler
 from tests.dynamics.dynamics_test import torch_impl_tester
 

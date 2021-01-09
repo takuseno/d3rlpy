@@ -2,8 +2,9 @@ import numpy as np
 import pytest
 import torch
 
-from d3rlpy.encoders import DefaultEncoderFactory
-from d3rlpy.q_functions import MeanQFunctionFactory, QRQFunctionFactory
+from d3rlpy.models.builders import create_continuous_q_function
+from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory
 from d3rlpy.models.torch.q_functions import _pick_value_by_action
 from d3rlpy.models.torch.q_functions import _quantile_huber_loss
 from d3rlpy.models.torch.q_functions import _reduce_ensemble
@@ -19,7 +20,6 @@ from d3rlpy.models.torch.q_functions import EnsembleDiscreteQFunction
 from d3rlpy.models.torch.q_functions import ContinuousMeanQFunction
 from d3rlpy.models.torch.q_functions import EnsembleContinuousQFunction
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
-from d3rlpy.models.torch.utility import create_continuous_q_function
 from .model_test import check_parameter_updates, DummyEncoder
 
 

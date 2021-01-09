@@ -2,9 +2,9 @@ import pytest
 
 from d3rlpy.algos.torch.plas_impl import PLASImpl, PLASWithPerturbationImpl
 from d3rlpy.augmentation import DrQPipeline
-from d3rlpy.optimizers import AdamFactory
-from d3rlpy.encoders import DefaultEncoderFactory
-from d3rlpy.q_functions import create_q_func_factory
+from d3rlpy.models.optimizers import AdamFactory
+from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.q_functions import create_q_func_factory
 from tests.algos.algo_test import torch_impl_tester, DummyScaler
 
 

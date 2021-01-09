@@ -2,10 +2,10 @@ import pytest
 import torch
 
 from torch.optim import SGD, Adam, RMSprop
-from d3rlpy.optimizers import OptimizerFactory
-from d3rlpy.optimizers import SGDFactory
-from d3rlpy.optimizers import AdamFactory
-from d3rlpy.optimizers import RMSpropFactory
+from d3rlpy.models.optimizers import OptimizerFactory
+from d3rlpy.models.optimizers import SGDFactory
+from d3rlpy.models.optimizers import AdamFactory
+from d3rlpy.models.optimizers import RMSpropFactory
 
 
 @pytest.mark.parametrize("lr", [1e-4])

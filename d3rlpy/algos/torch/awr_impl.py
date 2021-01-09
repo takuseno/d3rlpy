@@ -5,13 +5,20 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...models.torch import create_value_function, create_normal_policy
-from ...models.torch import create_categorical_policy
-from ...models.torch import squash_action
-from ...models.torch import Policy, NormalPolicy, CategoricalPolicy
-from ...models.torch import ValueFunction
-from ...optimizers import OptimizerFactory
-from ...encoders import EncoderFactory
+from ...models.torch import (
+    Policy,
+    NormalPolicy,
+    CategoricalPolicy,
+    ValueFunction,
+    squash_action,
+)
+from ...models.optimizers import OptimizerFactory
+from ...models.encoders import EncoderFactory
+from ...models.builders import (
+    create_value_function,
+    create_normal_policy,
+    create_categorical_policy,
+)
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline

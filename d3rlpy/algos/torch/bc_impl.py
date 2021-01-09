@@ -5,12 +5,13 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...models.torch import Imitator
-from ...models.torch import DiscreteImitator, DeterministicRegressor
-from ...models.torch import create_deterministic_regressor
-from ...models.torch import create_discrete_imitator
-from ...optimizers import OptimizerFactory
-from ...encoders import EncoderFactory
+from ...models.torch import Imitator, DiscreteImitator, DeterministicRegressor
+from ...models.builders import (
+    create_deterministic_regressor,
+    create_discrete_imitator,
+)
+from ...models.optimizers import OptimizerFactory
+from ...models.encoders import EncoderFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline

@@ -1,7 +1,7 @@
 import pytest
 
-from d3rlpy.encoders import DefaultEncoderFactory
-from d3rlpy.q_functions import MeanQFunctionFactory
+from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.q_functions import MeanQFunctionFactory
 from d3rlpy.preprocessing.scalers import MinMaxScaler
 from d3rlpy.augmentation import AugmentationPipeline, RandomShift
 from d3rlpy.augmentation.base import Augmentation

@@ -1,8 +1,8 @@
 # pylint: disable=unidiomatic-typecheck
 
 from typing import List, Optional, Union, cast
-from .encoders import create_encoder_factory, EncoderFactory
-from .q_functions import create_q_func_factory, QFunctionFactory
+from .models.encoders import create_encoder_factory, EncoderFactory
+from .models.q_functions import create_q_func_factory, QFunctionFactory
 from .preprocessing.scalers import create_scaler, Scaler
 from .augmentation import create_augmentation, AugmentationPipeline
 from .augmentation import DrQPipeline, Augmentation

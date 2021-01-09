@@ -2,21 +2,21 @@ import pytest
 import torch
 import numpy as np
 
-from d3rlpy.encoders import DefaultEncoderFactory
-from d3rlpy.q_functions import MeanQFunctionFactory
-from d3rlpy.models.torch.utility import create_deterministic_policy
-from d3rlpy.models.torch.utility import create_deterministic_residual_policy
-from d3rlpy.models.torch.utility import create_normal_policy
-from d3rlpy.models.torch.utility import create_categorical_policy
-from d3rlpy.models.torch.utility import create_discrete_q_function
-from d3rlpy.models.torch.utility import create_continuous_q_function
-from d3rlpy.models.torch.utility import create_conditional_vae
-from d3rlpy.models.torch.utility import create_discrete_imitator
-from d3rlpy.models.torch.utility import create_deterministic_regressor
-from d3rlpy.models.torch.utility import create_probablistic_regressor
-from d3rlpy.models.torch.utility import create_value_function
-from d3rlpy.models.torch.utility import create_probablistic_dynamics
-from d3rlpy.models.torch.utility import create_parameter
+from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.q_functions import MeanQFunctionFactory
+from d3rlpy.models.builders import create_deterministic_policy
+from d3rlpy.models.builders import create_deterministic_residual_policy
+from d3rlpy.models.builders import create_normal_policy
+from d3rlpy.models.builders import create_categorical_policy
+from d3rlpy.models.builders import create_discrete_q_function
+from d3rlpy.models.builders import create_continuous_q_function
+from d3rlpy.models.builders import create_conditional_vae
+from d3rlpy.models.builders import create_discrete_imitator
+from d3rlpy.models.builders import create_deterministic_regressor
+from d3rlpy.models.builders import create_probablistic_regressor
+from d3rlpy.models.builders import create_value_function
+from d3rlpy.models.builders import create_probablistic_dynamics
+from d3rlpy.models.builders import create_parameter
 from d3rlpy.models.torch.policies import DeterministicPolicy
 from d3rlpy.models.torch.policies import DeterministicResidualPolicy
 from d3rlpy.models.torch.policies import NormalPolicy

@@ -7,19 +7,25 @@ import torch
 from torch.optim import Optimizer
 
 from ...augmentation import DrQPipeline
-from ...optimizers import OptimizerFactory
-from ...encoders import EncoderFactory
-from ...q_functions import QFunctionFactory
+from ...models.torch import (
+    EnsembleQFunction,
+    EnsembleDiscreteQFunction,
+    EnsembleContinuousQFunction,
+)
+from ...models.builders import (
+    create_continuous_q_function,
+    create_discrete_q_function,
+)
+from ...models.optimizers import OptimizerFactory
+from ...models.encoders import EncoderFactory
+from ...models.q_functions import QFunctionFactory
 from ...preprocessing import Scaler
 from ...gpu import Device
-from ...models.torch import create_continuous_q_function
-from ...models.torch import create_discrete_q_function
-from ...models.torch import EnsembleQFunction
-from ...models.torch import EnsembleDiscreteQFunction
-from ...models.torch import EnsembleContinuousQFunction
 from ...torch_utility import torch_api, train_api, hard_sync
-from ...algos.torch.utility import ContinuousQFunctionMixin
-from ...algos.torch.utility import DiscreteQFunctionMixin
+from ...algos.torch.utility import (
+    ContinuousQFunctionMixin,
+    DiscreteQFunctionMixin,
+)
 from ...algos.torch.base import TorchImplBase
 
 

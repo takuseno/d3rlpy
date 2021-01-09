@@ -5,13 +5,13 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...models.torch import create_discrete_q_function
-from ...models.torch import EnsembleDiscreteQFunction
 from ...augmentation import AugmentationPipeline
+from ...models.torch import EnsembleDiscreteQFunction
+from ...models.builders import create_discrete_q_function
+from ...models.optimizers import OptimizerFactory
+from ...models.encoders import EncoderFactory
+from ...models.q_functions import QFunctionFactory
 from ...preprocessing import Scaler
-from ...optimizers import OptimizerFactory
-from ...encoders import EncoderFactory
-from ...q_functions import QFunctionFactory
 from ...gpu import Device
 from ...torch_utility import hard_sync, torch_api, train_api, augmentation_api
 from .utility import DiscreteQFunctionMixin
