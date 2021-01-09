@@ -161,8 +161,7 @@ disable=print-statement,
         no-else-return,
         too-many-lines,
         no-self-use,
-        assignment-from-none,
-        cyclic-import
+        assignment-from-none
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
