@@ -1,7 +1,7 @@
 Q Functions
 ===========
 
-.. module:: d3rlpy.q_functions
+.. module:: d3rlpy.models.q_functions
 
 d3rlpy provides various Q functions including state-of-the-arts, which are
 internally used in algorithm objects.

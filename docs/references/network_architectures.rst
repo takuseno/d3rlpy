@@ -1,7 +1,7 @@
 Network Architectures
 =====================
 
-.. module:: d3rlpy.encoders
+.. module:: d3rlpy.models.encoders
 
 In d3rlpy, the neural network architecture is automatically selected based on
 observation shape.
@@ -16,7 +16,7 @@ over this neural netowrk architectures.
 .. code-block:: python
 
    from d3rlpy.algos import DQN
-   from d3rlpy.encoders import VectorEncoderFactory
+   from d3rlpy.models.encoders import VectorEncoderFactory
 
    # encoder factory
    encoder_factory = VectorEncoderFactory(hidden_units=[300, 400],

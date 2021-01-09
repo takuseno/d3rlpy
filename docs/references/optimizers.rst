@@ -1,7 +1,7 @@
 Optimizers
 ==========
 
-.. module:: d3rlpy.optimizers
+.. module:: d3rlpy.models.optimizers
 
 d3rlpy provides ``OptimizerFactory`` that gives you flexible control over
 optimizers.
