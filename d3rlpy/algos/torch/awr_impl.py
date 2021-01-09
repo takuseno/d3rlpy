@@ -15,7 +15,7 @@ from ...encoders import EncoderFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline
-from ...torch_utility import torch_api, train_api, eval_api
+from ...torch_utility import torch_api, train_api, eval_api, augmentation_api
 from .base import TorchImplBase
 
 
@@ -27,7 +27,6 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
     _critic_optim_factory: OptimizerFactory
     _actor_encoder_factory: EncoderFactory
     _critic_encoder_factory: EncoderFactory
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _v_func: Optional[ValueFunction]
     _policy: Optional[Policy]
@@ -48,14 +47,13 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
         scaler: Optional[Scaler],
         augmentation: AugmentationPipeline,
     ):
-        super().__init__(observation_shape, action_size, scaler)
+        super().__init__(observation_shape, action_size, scaler, augmentation)
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
         self._actor_optim_factory = actor_optim_factory
         self._critic_optim_factory = critic_optim_factory
         self._actor_encoder_factory = actor_encoder_factory
         self._critic_encoder_factory = critic_encoder_factory
-        self._augmentation = augmentation
         self._use_gpu = use_gpu
 
         # initialized in build
@@ -108,18 +106,15 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
 
         self._critic_optim.zero_grad()
 
-        loss = self._augmentation.process(
-            func=self._compute_critic_loss,
-            inputs={"observation": observation, "value": value},
-            targets=["observation"],
-        )
+        loss = self.compute_critic_loss(observation, value)
 
         loss.backward()
         self._critic_optim.step()
 
         return loss.cpu().detach().numpy()
 
-    def _compute_critic_loss(
+    @augmentation_api(targets=["observation"])
+    def compute_critic_loss(
         self, observation: torch.Tensor, value: torch.Tensor
     ) -> torch.Tensor:
         assert self._v_func is not None
@@ -137,20 +132,21 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
 
         self._actor_optim.zero_grad()
 
-        loss = self._augmentation.process(
-            func=self._compute_actor_loss,
-            inputs={
-                "observation": observation,
-                "action": action,
-                "weight": weight,
-            },
-            targets=["observation"],
-        )
+        loss = self.compute_actor_loss(observation, action, weight)
 
         loss.backward()
         self._actor_optim.step()
 
         return loss.cpu().detach().numpy()
+
+    @augmentation_api(targets=["observation"])
+    def compute_actor_loss(
+        self,
+        observation: torch.Tensor,
+        action: torch.Tensor,
+        weight: torch.Tensor,
+    ) -> torch.Tensor:
+        return self._compute_actor_loss(observation, action, weight)
 
     @abstractmethod
     def _compute_actor_loss(

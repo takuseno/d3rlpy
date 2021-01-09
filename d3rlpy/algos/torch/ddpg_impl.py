@@ -16,7 +16,13 @@ from ...gpu import Device
 from ...optimizers import OptimizerFactory
 from ...q_functions import QFunctionFactory
 from ...preprocessing import Scaler
-from ...torch_utility import soft_sync, torch_api, train_api, eval_api
+from ...torch_utility import (
+    soft_sync,
+    torch_api,
+    train_api,
+    eval_api,
+    augmentation_api,
+)
 from .utility import ContinuousQFunctionMixin
 from .base import TorchImplBase
 
@@ -35,7 +41,6 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
     _n_critics: int
     _bootstrap: bool
     _share_encoder: bool
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _q_func: Optional[EnsembleContinuousQFunction]
     _policy: Optional[Policy]
@@ -64,7 +69,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         scaler: Optional[Scaler],
         augmentation: AugmentationPipeline,
     ):
-        super().__init__(observation_shape, action_size, scaler)
+        super().__init__(observation_shape, action_size, scaler, augmentation)
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
         self._actor_optim_factory = actor_optim_factory
@@ -77,7 +82,6 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         self._n_critics = n_critics
         self._bootstrap = bootstrap
         self._share_encoder = share_encoder
-        self._augmentation = augmentation
         self._use_gpu = use_gpu
 
         # initialized in build
@@ -148,27 +152,26 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
 
         self._critic_optim.zero_grad()
 
-        q_tpn = self._augmentation.process(
-            func=self.compute_target, inputs={"x": obs_tpn}, targets=["x"]
-        )
+        q_tpn = self.compute_target(obs_tpn)
         q_tpn *= 1.0 - ter_tpn
 
-        loss = self._augmentation.process(
-            func=self._compute_critic_loss,
-            inputs={
-                "obs_t": obs_t,
-                "act_t": act_t,
-                "rew_tpn": rew_tpn,
-                "q_tpn": q_tpn,
-                "n_steps": n_steps,
-            },
-            targets=["obs_t"],
-        )
+        loss = self.compute_critic_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
 
         loss.backward()
         self._critic_optim.step()
 
         return loss.cpu().detach().numpy()
+
+    @augmentation_api(targets=["obs_t"])
+    def compute_critic_loss(
+        self,
+        obs_t: torch.Tensor,
+        act_t: torch.Tensor,
+        rew_tpn: torch.Tensor,
+        q_tpn: torch.Tensor,
+        n_steps: torch.Tensor,
+    ) -> torch.Tensor:
+        return self._compute_critic_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
 
     def _compute_critic_loss(
         self,
@@ -194,16 +197,16 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
 
         self._actor_optim.zero_grad()
 
-        loss = self._augmentation.process(
-            func=self._compute_actor_loss,
-            inputs={"obs_t": obs_t},
-            targets=["obs_t"],
-        )
+        loss = self.compute_actor_loss(obs_t)
 
         loss.backward()
         self._actor_optim.step()
 
         return loss.cpu().detach().numpy()
+
+    @augmentation_api(targets=["obs_t"])
+    def compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+        return self._compute_actor_loss(obs_t)
 
     @abstractmethod
     def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
@@ -254,6 +257,7 @@ class DDPGImpl(DDPGBaseImpl):
         q_t = self._q_func(obs_t, action, "min")
         return -q_t.mean()
 
+    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._targ_q_func is not None
         assert self._targ_policy is not None

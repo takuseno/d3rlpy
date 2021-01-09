@@ -8,6 +8,7 @@ from d3rlpy.torch_utility import soft_sync, hard_sync
 from d3rlpy.torch_utility import set_eval_mode, set_train_mode
 from d3rlpy.torch_utility import freeze, unfreeze
 from d3rlpy.torch_utility import torch_api, train_api, eval_api
+from d3rlpy.torch_utility import augmentation_api
 from d3rlpy.torch_utility import map_location
 from d3rlpy.torch_utility import get_state_dict, set_state_dict
 
@@ -62,6 +63,7 @@ class DummyImpl:
         self._optim = torch.optim.Adam(self._fc1.parameters())
         self._device = "cpu:0"
         self._scaler = None
+        self._augmentation = None
 
     @torch_api()
     def torch_api_func(self, x):
@@ -83,6 +85,10 @@ class DummyImpl:
         assert not self._fc1.training
         assert not self._fc2.training
 
+    @augmentation_api(targets=["x"])
+    def augmentation_api_func(self, x, y):
+        return x + y
+
     @property
     def device(self):
         return self._device
@@ -90,6 +96,10 @@ class DummyImpl:
     @property
     def scaler(self):
         return self._scaler
+
+    @property
+    def augmentation(self):
+        return self._augmentation
 
 
 def check_if_same_dict(a, b):
@@ -223,3 +233,20 @@ def test_eval_api():
     impl._fc2.train()
 
     impl.eval_api_func()
+
+
+def test_augmentation_api():
+    impl = DummyImpl()
+
+    class DummyAugmentationPipeline:
+        def process(self, f, inputs, targets):
+            for k, v in inputs.items():
+                if k in targets:
+                    inputs[k] = v + 1.0
+            return f(**inputs)
+
+    impl._augmentation = DummyAugmentationPipeline()
+
+    x = torch.tensor(1.0)
+    y = torch.tensor(2.0)
+    assert impl.augmentation_api_func(x, y).numpy() == 4.0

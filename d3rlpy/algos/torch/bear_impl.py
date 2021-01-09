@@ -14,7 +14,7 @@ from ...q_functions import QFunctionFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline
-from ...torch_utility import torch_api, train_api
+from ...torch_utility import torch_api, train_api, augmentation_api
 from .sac_impl import SACImpl
 
 
@@ -154,20 +154,22 @@ class BEARImpl(SACImpl):
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> np.ndarray:
         assert self._imitator_optim is not None
-        assert self._imitator is not None
 
         self._imitator_optim.zero_grad()
 
-        loss = self._augmentation.process(
-            func=self._imitator.compute_error,
-            inputs={"x": obs_t, "action": act_t},
-            targets=["x"],
-        )
+        loss = self.compute_imitator_loss(obs_t, act_t)
 
         loss.backward()
         self._imitator_optim.step()
 
         return loss.cpu().detach().numpy()
+
+    @augmentation_api(targets=["obs_t"])
+    def compute_imitator_loss(
+        self, obs_t: torch.Tensor, act_t: torch.Tensor
+    ) -> torch.Tensor:
+        assert self._imitator is not None
+        return self._imitator.compute_error(obs_t, act_t)
 
     @train_api
     @torch_api(scaler_targets=["obs_t"])
@@ -232,6 +234,7 @@ class BEARImpl(SACImpl):
 
         return (clipped_alpha * (mmd - self._alpha_threshold)).sum(dim=1).mean()
 
+    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         assert self._targ_q_func is not None

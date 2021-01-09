@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
+from ...augmentation import DrQPipeline
 from ...optimizers import OptimizerFactory
 from ...encoders import EncoderFactory
 from ...q_functions import QFunctionFactory
@@ -52,7 +53,7 @@ class FQEBaseImpl(TorchImplBase):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
     ):
-        super().__init__(observation_shape, action_size, scaler)
+        super().__init__(observation_shape, action_size, scaler, DrQPipeline())
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
         self._encoder_factory = encoder_factory

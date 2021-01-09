@@ -17,7 +17,7 @@ from ...q_functions import QFunctionFactory
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline
 from ...gpu import Device
-from ...torch_utility import torch_api, train_api
+from ...torch_utility import torch_api, train_api, augmentation_api
 from .ddpg_impl import DDPGBaseImpl
 from .dqn_impl import DoubleDQNImpl
 
@@ -149,16 +149,19 @@ class BCQImpl(DDPGBaseImpl):
 
         self._imitator_optim.zero_grad()
 
-        loss = self._augmentation.process(
-            func=self._imitator.compute_error,
-            inputs={"x": obs_t, "action": act_t},
-            targets=["x"],
-        )
+        loss = self.compute_imitator_loss(obs_t, act_t)
 
         loss.backward()
         self._imitator_optim.step()
 
         return loss.cpu().detach().numpy()
+
+    @augmentation_api(targets=["obs_t"])
+    def compute_imitator_loss(
+        self, obs_t: torch.Tensor, act_t: torch.Tensor
+    ) -> torch.Tensor:
+        assert self._imitator is not None
+        return self._imitator.compute_error(obs_t, act_t)
 
     def _repeat_observation(self, x: torch.Tensor) -> torch.Tensor:
         # (batch_size, *obs_shape) -> (batch_size, n, *obs_shape)
@@ -212,6 +215,7 @@ class BCQImpl(DDPGBaseImpl):
     def sample_action(self, x: np.ndarray) -> np.ndarray:
         raise NotImplementedError("BCQ does not support sampling action")
 
+    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._targ_q_func is not None
         # TODO: this seems to be slow with image observation
@@ -308,7 +312,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
     ) -> torch.Tensor:
         assert self._imitator is not None
         loss = super()._compute_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
-        imitator_loss = self._imitator.compute_error(obs_t, act_t.long())
+        imitator_loss = self._imitator.compute_error(obs_t, act_t)
         return loss + imitator_loss
 
     def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:

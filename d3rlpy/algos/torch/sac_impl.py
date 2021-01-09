@@ -19,7 +19,13 @@ from ...q_functions import QFunctionFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline
-from ...torch_utility import torch_api, train_api, eval_api, hard_sync
+from ...torch_utility import (
+    torch_api,
+    train_api,
+    eval_api,
+    hard_sync,
+    augmentation_api,
+)
 from .utility import DiscreteQFunctionMixin
 from .ddpg_impl import DDPGBaseImpl
 from .base import TorchImplBase
@@ -139,6 +145,7 @@ class SACImpl(DDPGBaseImpl):
 
         return loss.cpu().detach().numpy(), cur_temp
 
+    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         assert self._log_temp is not None
@@ -166,7 +173,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
     _share_encoder: bool
     _initial_temperature: float
     _use_gpu: Optional[Device]
-    _augmentation: AugmentationPipeline
     _policy: Optional[CategoricalPolicy]
     _q_func: Optional[EnsembleDiscreteQFunction]
     _targ_q_func: Optional[EnsembleDiscreteQFunction]
@@ -197,7 +203,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         scaler: Optional[Scaler],
         augmentation: AugmentationPipeline,
     ):
-        super().__init__(observation_shape, action_size, scaler)
+        super().__init__(observation_shape, action_size, scaler, augmentation)
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
         self._temp_learning_rate = temp_learning_rate
@@ -213,7 +219,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         self._share_encoder = share_encoder
         self._initial_temperature = initial_temperature
         self._use_gpu = use_gpu
-        self._augmentation = augmentation
 
         # initialized in build
         self._q_func = None
@@ -297,21 +302,11 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
 
         self._critic_optim.zero_grad()
 
-        q_tpn = self._augmentation.process(
-            func=self.compute_target, inputs={"x": obs_tpn}, targets=["x"]
-        )
+        q_tpn = self.compute_target(obs_tpn)
         q_tpn *= 1.0 - ter_tpn
 
-        loss = self._augmentation.process(
-            func=self._compute_critic_loss,
-            inputs={
-                "obs_t": obs_t,
-                "act_t": act_t.long(),
-                "rew_tpn": rew_tpn,
-                "q_tpn": q_tpn,
-                "n_steps": n_steps,
-            },
-            targets=["obs_t"],
+        loss = self.compute_critic_loss(
+            obs_t, act_t.long(), rew_tpn, q_tpn, n_steps
         )
 
         loss.backward()
@@ -319,6 +314,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
 
         return loss.cpu().detach().numpy()
 
+    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         assert self._log_temp is not None
@@ -334,6 +330,17 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
                 probs = probs.unsqueeze(-1)
                 keepdims = False
             return (probs * (target - entropy)).sum(dim=1, keepdim=keepdims)
+
+    @augmentation_api(targets=["obs_t"])
+    def compute_critic_loss(
+        self,
+        obs_t: torch.Tensor,
+        act_t: torch.Tensor,
+        rew_tpn: torch.Tensor,
+        q_tpn: torch.Tensor,
+        n_steps: torch.Tensor,
+    ) -> torch.Tensor:
+        return self._compute_critic_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
 
     def _compute_critic_loss(
         self,
@@ -359,16 +366,16 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
 
         self._actor_optim.zero_grad()
 
-        loss = self._augmentation.process(
-            func=self._compute_actor_loss,
-            inputs={"obs_t": obs_t},
-            targets=["obs_t"],
-        )
+        loss = self.compute_actor_loss(obs_t)
 
         loss.backward()
         self._actor_optim.step()
 
         return loss.cpu().detach().numpy()
+
+    @augmentation_api(targets=["obs_t"])
+    def compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+        return self._compute_actor_loss(obs_t)
 
     def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
         assert self._q_func is not None

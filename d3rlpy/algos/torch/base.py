@@ -4,6 +4,7 @@ import numpy as np
 import torch
 
 from ...gpu import Device
+from ...augmentation import AugmentationPipeline
 from ...preprocessing import Scaler
 from ...torch_utility import freeze, unfreeze
 from ...torch_utility import to_cuda, to_cpu
@@ -19,17 +20,20 @@ class TorchImplBase(AlgoImplBase):
     _action_size: int
     _scaler: Optional[Scaler]
     _device: str
+    _augmentation: AugmentationPipeline
 
     def __init__(
         self,
         observation_shape: Sequence[int],
         action_size: int,
         scaler: Optional[Scaler],
+        augmentation: AugmentationPipeline,
     ):
         self._observation_shape = observation_shape
         self._action_size = action_size
         self._scaler = scaler
         self._device = "cpu:0"
+        self._augmentation = augmentation
 
     @eval_api
     @torch_api(scaler_targets=["x"])
@@ -103,3 +107,7 @@ class TorchImplBase(AlgoImplBase):
     @property
     def scaler(self) -> Optional[Scaler]:
         return self._scaler
+
+    @property
+    def augmentation(self) -> AugmentationPipeline:
+        return self._augmentation

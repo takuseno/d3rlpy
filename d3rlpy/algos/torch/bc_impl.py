@@ -14,7 +14,7 @@ from ...encoders import EncoderFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline
-from ...torch_utility import torch_api, train_api
+from ...torch_utility import torch_api, train_api, augmentation_api
 from .base import TorchImplBase
 
 
@@ -23,7 +23,6 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
     _learning_rate: float
     _optim_factory: OptimizerFactory
     _encoder_factory: EncoderFactory
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _imitator: Optional[Imitator]
     _optim: Optional[Optimizer]
@@ -39,11 +38,10 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
         scaler: Optional[Scaler],
         augmentation: AugmentationPipeline,
     ):
-        super().__init__(observation_shape, action_size, scaler)
+        super().__init__(observation_shape, action_size, scaler, augmentation)
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
         self._encoder_factory = encoder_factory
-        self._augmentation = augmentation
         self._use_gpu = use_gpu
 
         # initialized in build
@@ -79,18 +77,15 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
 
         self._optim.zero_grad()
 
-        loss = self._augmentation.process(
-            func=self._compute_loss,
-            inputs={"obs_t": obs_t, "act_t": act_t},
-            targets=["obs_t"],
-        )
+        loss = self.compute_loss(obs_t, act_t)
 
         loss.backward()
         self._optim.step()
 
         return loss.cpu().detach().numpy()
 
-    def _compute_loss(
+    @augmentation_api(targets=["obs_t"])
+    def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
         assert self._imitator is not None
@@ -160,7 +155,8 @@ class DiscreteBCImpl(BCBaseImpl):
         assert self._imitator is not None
         return self._imitator(x).argmax(dim=1)
 
-    def _compute_loss(
+    @augmentation_api(targets=["obs_t"])
+    def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
         assert self._imitator is not None

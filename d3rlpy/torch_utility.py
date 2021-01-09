@@ -8,6 +8,7 @@ from torch.utils.data._utils.collate import default_collate
 from typing_extensions import Protocol
 
 from .preprocessing import Scaler
+from .augmentation import AugmentationPipeline
 
 
 def soft_sync(targ_model: nn.Module, model: nn.Module, tau: float) -> None:
@@ -156,6 +157,33 @@ def torch_api(
         return wrapper
 
     return _torch_api
+
+
+class _WithAugmentationProtocol(Protocol):
+    @property
+    def augmentation(self) -> AugmentationPipeline:
+        ...
+
+
+def augmentation_api(targets: List[str]) -> Callable[..., torch.Tensor]:
+    def _augmentation_api(
+        f: Callable[..., torch.Tensor]
+    ) -> Callable[..., torch.Tensor]:
+        sig = signature(f)
+        arg_keys = list(sig.parameters.keys())[1:]
+
+        def wrapper(
+            self: _WithAugmentationProtocol, *args: torch.Tensor
+        ) -> torch.Tensor:
+            inputs: Dict[str, torch.Tensor] = {}
+            for key, val in zip(arg_keys, args):
+                inputs[key] = val
+            inputs["self"] = self
+            return self.augmentation.process(f, inputs, targets)
+
+        return wrapper
+
+    return _augmentation_api
 
 
 def eval_api(f: Callable[..., np.ndarray]) -> Callable[..., np.ndarray]:

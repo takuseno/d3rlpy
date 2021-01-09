@@ -13,7 +13,7 @@ from ...optimizers import OptimizerFactory
 from ...encoders import EncoderFactory
 from ...q_functions import QFunctionFactory
 from ...gpu import Device
-from ...torch_utility import hard_sync, torch_api, train_api
+from ...torch_utility import hard_sync, torch_api, train_api, augmentation_api
 from .utility import DiscreteQFunctionMixin
 from .base import TorchImplBase
 
@@ -28,7 +28,6 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
     _n_critics: int
     _bootstrap: bool
     _share_encoder: bool
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _q_func: Optional[EnsembleDiscreteQFunction]
     _targ_q_func: Optional[EnsembleDiscreteQFunction]
@@ -50,7 +49,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         scaler: Optional[Scaler],
         augmentation: AugmentationPipeline,
     ):
-        super().__init__(observation_shape, action_size, scaler)
+        super().__init__(observation_shape, action_size, scaler, augmentation)
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
         self._encoder_factory = encoder_factory
@@ -59,7 +58,6 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         self._n_critics = n_critics
         self._bootstrap = bootstrap
         self._share_encoder = share_encoder
-        self._augmentation = augmentation
         self._use_gpu = use_gpu
 
         # initialized in build
@@ -114,27 +112,26 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
 
         self._optim.zero_grad()
 
-        q_tpn = self._augmentation.process(
-            func=self.compute_target, inputs={"x": obs_tpn}, targets=["x"]
-        )
+        q_tpn = self.compute_target(obs_tpn)
         q_tpn *= 1.0 - ter_tpn
 
-        loss = self._augmentation.process(
-            func=self._compute_loss,
-            inputs={
-                "obs_t": obs_t,
-                "act_t": act_t.long(),
-                "rew_tpn": rew_tpn,
-                "q_tpn": q_tpn,
-                "n_steps": n_steps,
-            },
-            targets=["obs_t"],
-        )
+        loss = self.compute_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
 
         loss.backward()
         self._optim.step()
 
         return loss.cpu().detach().numpy()
+
+    @augmentation_api(targets=["obs_t"])
+    def compute_loss(
+        self,
+        obs_t: torch.Tensor,
+        act_t: torch.Tensor,
+        rew_tpn: torch.Tensor,
+        q_tpn: torch.Tensor,
+        n_steps: torch.Tensor,
+    ) -> torch.Tensor:
+        return self._compute_loss(obs_t, act_t.long(), rew_tpn, q_tpn, n_steps)
 
     def _compute_loss(
         self,
@@ -149,6 +146,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
             obs_t, act_t, rew_tpn, q_tpn, self._gamma ** n_steps
         )
 
+    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._targ_q_func is not None
         with torch.no_grad():
@@ -169,6 +167,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
 
 
 class DoubleDQNImpl(DQNImpl):
+    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._targ_q_func is not None
         with torch.no_grad():

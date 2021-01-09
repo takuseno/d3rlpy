@@ -13,7 +13,7 @@ from ...q_functions import QFunctionFactory
 from ...gpu import Device
 from ...preprocessing import Scaler
 from ...augmentation import AugmentationPipeline
-from ...torch_utility import torch_api, train_api
+from ...torch_utility import torch_api, train_api, augmentation_api
 from .sac_impl import SACImpl
 
 
@@ -96,11 +96,7 @@ class AWACImpl(SACImpl):
 
         self._actor_optim.zero_grad()
 
-        loss = self._augmentation.process(
-            func=self._compute_actor_loss,
-            inputs={"obs_t": obs_t, "act_t": act_t},
-            targets=["obs_t"],
-        )
+        loss = self.compute_actor_loss(obs_t, act_t)
 
         loss.backward()
         self._actor_optim.step()
@@ -109,6 +105,12 @@ class AWACImpl(SACImpl):
         mean_std = self._policy.get_logstd_parameter().exp().mean()
 
         return loss.cpu().detach().numpy(), mean_std.cpu().detach().numpy()
+
+    @augmentation_api(targets=["obs_t"])
+    def compute_actor_loss(
+        self, obs_t: torch.Tensor, act_t: torch.Tensor
+    ) -> torch.Tensor:
+        return self._compute_actor_loss(obs_t, act_t)
 
     def _compute_actor_loss(  # type: ignore
         self, obs_t: torch.Tensor, act_t: torch.Tensor
