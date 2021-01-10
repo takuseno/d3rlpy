@@ -31,22 +31,19 @@ Documentation: https://d3rlpy.readthedocs.io
 
 ## key features
 
-### :zap: Designed for Data-Driven Deep Reinforcement Learning
-d3rlpy is designed for data-driven deep reinforcement learning algorithms
-where the algorithm finds the good policy within the given dataset,
-which is suitable to tasks where online interaction is not feasible.
-d3rlpy also supports the conventional online training paradigm to fit in with any cases.
+### :zap: Most Practical RL Library Ever
+- **offline RL**: d3rlpy supports state-of-the-art offline RL algorithms. Offline RL is extremely powerful when the online interaction is not feasible during training (e.g. robotics, medical).
+- **online RL**: d3rlpy also supports conventional state-of-the-art online training algorithms without any compromising, which means that you can solve any kinds of reinforcement learning problems only with `d3rlpy`.
+- **advanced engineering**: d3rlpy is designed to implement the faster and efficient training algorithms. For example, you can train Atari environments with x4 less memory space and as fast as the fastest RL library.
 
 ### :beginner: Easy-To-Use API
-d3rlpy provides state-of-the-art algorithms through scikit-learn style APIs
-without compromising flexibility that provides detailed configurations for professional users.
-Moreoever, d3rlpy is not just designed like scikit-learn, but also fully compatible with scikit-learn utilites.
+- **zero-knowledge of DL library**: d3rlpy provides many state-of-the-art algorithms through intuitive APIs. You can become a RL engineer even without knowing how to use deep learning libraries.
+- **scikit-learn compatibility**: d3rlpy is not only easy, but also completely compatible with scikit-learn API, which means that you can maximize your productivity with the useful scikit-learn's utilities.
 
 ### :rocket: Beyond State-Of-The-Art
-d3rlpy provides further tweeks to improve performance of state-of-the-art
-algorithms potentially beyond their original papers.
-Therefore, d3rlpy enables every user to achieve professional-level
-performance just in a few lines of codes.
+- **distributional Q function**: d3rlpy is the first library that supports distributional Q functions in the all algorithms. The distributional Q function is known as the very powerful method to achieve the state-of-the-performance.
+- **many tweek options**: d3rlpy is also the first to support N-step TD backup, ensemble value functions and data augmentation in the all algorithms, which lead you to the place no one ever reached yet.
+
 
 ## installation
 d3rlpy supports Linux, macOS and Windows.
@@ -91,11 +88,7 @@ Basically, all features are available with every algorithm.
 
 - [x] evaluation metrics in a scikit-learn scorer function style
 - [x] export greedy-policy as TorchScript or ONNX
-- [x] ensemble Q function
-- [x] N-step TD calculation
 - [x] parallel cross validation with multiple GPU
-- [x] online training
-- [x] [data augmentation](https://arxiv.org/abs/2004.13649)
 - [x] [model-based algorithm](https://arxiv.org/abs/2005.13239)
 
 ## examples
@@ -218,94 +211,6 @@ gscv = GridSearchCV(estimator=cql,
                     scoring={'td_error': td_error_scorer},
                     refit=False)
 gscv.fit(train_episodes)
-```
-
-## MDPDataset
-d3rlpy introduces `MDPDataset`, a convenient data structure for reinforcement
-learning.
-`MDPDataset` splits sequential data into transitions that includes a tuple of
-data observed at `t` and `t+1`, which is usually used for training.
-
-```py
-from d3rlpy.dataset import MDPDataset
-
-# offline data
-observations = np.random.random((100000, 100)) # 100-dim feature observations
-actions = np.random.random((100000, 4)) # 4-dim continuous actions
-rewards = np.random.random(100000)
-terminals = np.random.randint(2, size=100000)
-
-# builds MDPDataset from offline data
-dataset = MDPDataset(observations, actions, rewards, terminals)
-
-# splits offline data into episodes
-dataset.episodes[0].observations
-
-# splits episodes into transitions
-dataset.episodes[0].transitions[0].observation
-dataset.episodes[0].transitions[0].action
-dataset.episodes[0].transitions[0].next_reward
-dataset.episodes[0].transitions[0].next_observation
-dataset.episodes[0].transitions[0].terminal
-```
-
-`TransitionMiniBatch` is also a convenient class to make a mini-batch of
-sampled transitions.
-And, memory copies done in `TransitionMiniBatch` are implemented with Cython,
-which provides extremely fast computation.
-
-```py
-from random import sample
-from d3rlpy.dataset import TransitionMiniBatch
-
-transitions = sample(dataset.episodes[0].transitions, 100)
-
-# fast batching up with efficient-memory copy
-batch = TransitionMiniBatch(transitions)
-
-batch.observations.shape == (100, 100)
-```
-
-One more interesting feature in the dataset structure is that each transition
-has pointers to its next and previous transition.
-This feature enables JIT frame stacking just as serveral works do with Atari
-tasks, which is also implemented with Cython for reducing bottlenecks.
-
-```py
-observations = np.random.randint(256, size=(100000, 1, 84, 84), dtype=np.uint8) # 1x84x84 pixel images
-actions = np.random.randint(4, size=100000) # discrete actions with 4 options
-rewards = np.random.random(100000)
-terminals = np.random.randint(2, size=100000)
-
-# builds MDPDataset from offline data
-dataset = MDPDataset(observations, actions, rewards, terminals, discrete_action=True)
-
-# samples transitions
-transitions = sample(dataset.episodes[0].transitions, 32)
-
-# makes mini-batch with frame stacking
-batch = TransitionMiniBatch(transitions, n_frames=4)
-
-batch.observations.shape == (32, 4, 84, 84)
-```
-
-Finally, `TransitionMiniBatch` also supports N-step TD backup, which is also
-efficiently done with Cython.
-
-```py
-batch = TransitionMiniBatch(transitions, n_steps=1, gamma=0.99)
-
-# the number of steps before next observations at each batch index
-batch.n_steps.shape == (32, 1)
-
-# N step after batch.observations
-batch.next_observations
-
-# N step after batch.actions
-batch.next_actions
-
-# N-step return
-batch.next_rewards
 ```
 
 ## contributions
