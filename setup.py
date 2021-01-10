@@ -17,7 +17,7 @@ if __name__ == "__main__":
                     sources=['d3rlpy/dataset.pyx'],
                     include_dirs=[get_include(), 'd3rlpy/cpp/include'],
                     language='c++',
-                    extra_compile_args=["-std=c++11", "-O3", "-ffast-math", "-march=native"],
+                    extra_compile_args=["-std=c++11", "-O3", "-ffast-math"],
                     extra_link_args=["-std=c++11"])
 
     ext_modules = cythonize([ext],
