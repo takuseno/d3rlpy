@@ -185,7 +185,8 @@ sac.fit_online(env, buffer, n_steps=1000000, eval_env=eval_env)
 ## tutorials
 Try a cartpole example on Google Colaboratory!
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/takuseno/d3rlpy/blob/master/tutorials/cartpole.ipynb)
+- offline RL tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/takuseno/d3rlpy/blob/master/tutorials/cartpole.ipynb)
+- online RL tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/takuseno/d3rlpy/blob/master/tutorials/online.ipynb)
 
 ## scikit-learn compatibility
 This library is designed as if born from scikit-learn.
