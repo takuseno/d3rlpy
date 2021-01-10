@@ -1,3 +1,5 @@
+<p align="center"><img align="center" width="300px" src="assets/logo.png"></p>
+
 # d3rlpy: A data-driven deep reinforcement learning library as an out-of-the-box tool
 
 ![test](https://github.com/takuseno/d3rlpy/workflows/test/badge.svg)
