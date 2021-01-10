@@ -31,10 +31,8 @@ body {
   letter-spacing: 3px;
 }
 
-.minerva-logo {
-  letter-spacing: 4px;
-  font-weight: 700;
-  font-size: 4em;
+.minerva-logo > img {
+  width: 400px;
 }
 
 .minerva-subtitle {
