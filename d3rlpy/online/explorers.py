@@ -38,7 +38,9 @@ class ConstantEpsilonGreedy(Explorer):
     def __init__(self, epsilon: float):
         self._epsilon = epsilon
 
-    def sample(self, algo: _ActionProtocol, x: np.ndarray, step: int) -> np.ndarray:
+    def sample(
+        self, algo: _ActionProtocol, x: np.ndarray, step: int
+    ) -> np.ndarray:
         if np.random.random() < self._epsilon:
             assert algo.action_size is not None
             return np.random.randint(algo.action_size)
