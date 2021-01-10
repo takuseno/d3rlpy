@@ -4,7 +4,7 @@ from typing import Generic, List, Optional, TypeVar, Sequence
 import numpy as np
 import gym
 
-from ..dataset import Episode, Transition, TransitionMiniBatch
+from ..dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
 from .utility import get_action_size_from_env
 
 T = TypeVar("T")
@@ -115,6 +115,19 @@ class Buffer(metaclass=ABCMeta):
 
         Returns:
             the number of elements in buffer.
+
+        """
+
+    @abstractmethod
+    def to_mdp_dataset(self) -> MDPDataset:
+        """Convert replay data into static dataset.
+
+        The length of the dataset can be longer than the length of the replay
+        buffer because this conversion is done by tracing ``Transition``
+        objects.
+
+        Returns:
+            MDPDataset object.
 
         """
 
@@ -233,3 +246,51 @@ class ReplayBuffer(Buffer):
 
     def size(self) -> int:
         return len(self._transitions)
+
+    def to_mdp_dataset(self) -> MDPDataset:
+        head_transitions: List[Transition] = []
+
+        # get the first head transition
+        if self._transitions[0].prev_transition:
+            transition = self._transitions[0]
+            while True:
+                if transition.prev_transition:
+                    transition = transition.prev_transition
+                else:
+                    head_transitions.append(transition)
+                    break
+        else:
+            head_transitions.append(self._transitions[0])
+
+        for i in range(1, self.size()):
+            # check prev_transition=None
+            transition = self._transitions[i]
+            if transition.prev_transition is None:
+                head_transitions.append(transition)
+
+        observations = []
+        actions = []
+        rewards = []
+        terminals = []
+        for transition in head_transitions:
+            # stack data
+            while True:
+                observations.append(transition.observation)
+                actions.append(transition.action)
+                rewards.append(transition.reward)
+                terminals.append(0.0)
+                if transition.next_transition:
+                    transition = transition.next_transition
+                else:
+                    observations.append(transition.next_observation)
+                    actions.append(transition.next_action)
+                    rewards.append(transition.next_reward)
+                    terminals.append(1.0)
+                    break
+
+        if len(self._observation_shape) == 3:
+            observations = np.asarray(observations, dtype=np.uint8)
+        else:
+            observations = np.asarray(observations, dtype=np.float32)
+
+        return MDPDataset(observations, actions, rewards, terminals)

@@ -27,6 +27,13 @@ def test_replay_buffer(n_episodes, batch_size, maxlen):
 
     assert len(buffer) == maxlen
 
+    # check static dataset conversion
+    dataset = buffer.to_mdp_dataset()
+    transitions = []
+    for episode in dataset:
+        transitions += episode.transitions
+    assert len(transitions) >= len(buffer)
+
     observation_shape = env.observation_space.shape
     batch = buffer.sample(batch_size)
     assert len(batch) == batch_size
