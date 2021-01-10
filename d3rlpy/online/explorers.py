@@ -25,6 +25,26 @@ class Explorer(metaclass=ABCMeta):
         pass
 
 
+class ConstantEpsilonGreedy(Explorer):
+    """:math:`\\epsilon`-greedy explorer with constant :math:`\\epsilon`.
+
+    Args:
+        epsilon (float): the constant :math:`\\epsilon`.
+
+    """
+
+    _epsilon: float
+
+    def __init__(self, epsilon: float):
+        self._epsilon = epsilon
+
+    def sample(self, algo: _ActionProtocol, x: np.ndarray, step: int) -> np.ndarray:
+        if np.random.random() < self._epsilon:
+            assert algo.action_size is not None
+            return np.random.randint(algo.action_size)
+        return algo.predict([x])[0]
+
+
 class LinearDecayEpsilonGreedy(Explorer):
     """:math:`\\epsilon`-greedy explorer with linear decay schedule.
 

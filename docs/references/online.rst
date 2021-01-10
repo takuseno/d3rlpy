@@ -60,5 +60,6 @@ Explorers
    :toctree: generated/
    :nosignatures:
 
+   d3rlpy.online.explorers.ConstantEpsilonGreedy
    d3rlpy.online.explorers.LinearDecayEpsilonGreedy
    d3rlpy.online.explorers.NormalNoise

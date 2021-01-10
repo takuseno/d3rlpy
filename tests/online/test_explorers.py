@@ -1,8 +1,42 @@
 import numpy as np
 import pytest
 
+from d3rlpy.online.explorers import ConstantEpsilonGreedy
 from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
 from d3rlpy.online.explorers import NormalNoise
+
+
+@pytest.mark.parametrize("action_size", [3])
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("epsilon", [0.5])
+def test_constant_epsilon_greedy(action_size, observation_shape, epsilon):
+    explorer = ConstantEpsilonGreedy(epsilon)
+
+    ref_x = np.random.random(observation_shape)
+    ref_y = np.random.randint(action_size)
+
+    class DummyAlgo:
+        def predict(self, x):
+            assert np.all(x[0] == ref_x)
+            return [ref_y]
+
+        @property
+        def impl(self):
+            return self
+
+        @property
+        def action_size(self):
+            return action_size
+
+    algo = DummyAlgo()
+
+    # check sample
+    for i in range(10):
+        action = np.random.randint(action_size)
+        if action != explorer.sample(algo, ref_x, 0):
+            break
+        elif i == 9:
+            assert False
 
 
 @pytest.mark.parametrize("action_size", [3])
