@@ -109,7 +109,7 @@ class MDPDataset:
         actions: np.ndarray,
         rewards: np.ndarray,
         terminals: np.ndarray,
-        discrete_action: bool = ...,
+        discrete_action: Optional[bool] = ...,
     ): ...
     @property
     def observations(self) -> np.ndarray: ...

@@ -73,6 +73,12 @@ def _to_transitions(observation_shape, action_size, observations, actions,
     return rets
 
 
+def _check_discrete_action(actions):
+    float_actions = np.array(actions, dtype=np.float32)
+    int_actions = np.array(actions, dtype=np.int32)
+    return np.all(float_actions == int_actions)
+
+
 class MDPDataset:
     """ Markov-Decision Process Dataset class.
 
@@ -122,7 +128,8 @@ class MDPDataset:
         rewards (numpy.ndarray): array of scalar rewards.
         terminals (numpy.ndarray): array of binary terminal flags.
         discrete_action (bool): flag to use the given actions as discrete
-            action-space actions.
+            action-space actions. If ``None``, the action type is automatically
+            determined.
 
     """
     def __init__(self,
@@ -130,7 +137,7 @@ class MDPDataset:
                  actions,
                  rewards,
                  terminals,
-                 discrete_action=False):
+                 discrete_action=None):
         # validation
         assert isinstance(observations, np.ndarray)
         if len(observations.shape) == 4:
@@ -142,6 +149,11 @@ class MDPDataset:
         self._observations = observations
         self._rewards = np.asarray(rewards, dtype=np.float32).reshape(-1)
         self._terminals = np.asarray(terminals, dtype=np.float32).reshape(-1)
+
+        # automatic action type detection
+        if discrete_action is None:
+            discrete_action = _check_discrete_action(actions)
+
         self.discrete_action = discrete_action
         if discrete_action:
             self._actions = np.asarray(actions, dtype=np.int32).reshape(-1)

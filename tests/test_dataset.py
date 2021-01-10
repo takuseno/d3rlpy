@@ -5,7 +5,42 @@ import os
 from collections import deque
 from sklearn.model_selection import train_test_split
 from d3rlpy.dataset import MDPDataset, Episode, Transition, TransitionMiniBatch
-from d3rlpy.dataset import compute_lambda_return
+from d3rlpy.dataset import compute_lambda_return, _check_discrete_action
+
+
+@pytest.mark.parametrize("data_size", [100])
+def test_check_discrete_action(data_size):
+    # discrete action with int32
+    discrete_actions = np.random.randint(100, size=data_size)
+    assert _check_discrete_action(discrete_actions)
+
+    # discrete action with float32
+    assert _check_discrete_action(np.array(discrete_actions, dtype=np.float32))
+
+    # continuous action
+    continuous_actions = np.random.random(data_size)
+    assert not _check_discrete_action(continuous_actions)
+
+
+@pytest.mark.parametrize("data_size", [100])
+@pytest.mark.parametrize("observation_size", [4])
+@pytest.mark.parametrize("action_size", [2])
+def test_check_discrete_action_with_mdp_dataset(
+    data_size, observation_size, action_size
+):
+    observations = np.random.random((data_size, observation_size)).astype("f4")
+    rewards = np.random.random(data_size)
+    terminals = np.random.randint(2, size=data_size)
+
+    # check discrete_action
+    discrete_actions = np.random.randint(action_size, size=data_size)
+    dataset = MDPDataset(observations, discrete_actions, rewards, terminals)
+    assert dataset.is_action_discrete()
+
+    # check continuous action
+    continuous_actions = np.random.random((data_size, action_size))
+    dataset = MDPDataset(observations, continuous_actions, rewards, terminals)
+    assert not dataset.is_action_discrete()
 
 
 @pytest.mark.parametrize("data_size", [100])
