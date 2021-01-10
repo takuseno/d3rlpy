@@ -248,45 +248,37 @@ class ReplayBuffer(Buffer):
         return len(self._transitions)
 
     def to_mdp_dataset(self) -> MDPDataset:
-        head_transitions: List[Transition] = []
-
-        # get the first head transition
-        if self._transitions[0].prev_transition:
-            transition = self._transitions[0]
-            while True:
-                if transition.prev_transition:
-                    transition = transition.prev_transition
-                else:
-                    head_transitions.append(transition)
-                    break
-        else:
-            head_transitions.append(self._transitions[0])
-
-        for i in range(1, self.size()):
-            # check prev_transition=None
-            transition = self._transitions[i]
-            if transition.prev_transition is None:
-                head_transitions.append(transition)
+        # get the last transitions
+        tail_transitions: List[Transition] = []
+        for i in range(self.size()):
+            if self._transitions[i].next_transition is None:
+                tail_transitions.append(self._transitions[i])
 
         observations = []
         actions = []
         rewards = []
         terminals = []
-        for transition in head_transitions:
-            # stack data
+        for transition in tail_transitions:
+
+            # trace transition to the beginning
+            episode_transitions: List[Transition] = []
             while True:
-                observations.append(transition.observation)
-                actions.append(transition.action)
-                rewards.append(transition.reward)
-                terminals.append(0.0)
-                if transition.next_transition:
-                    transition = transition.next_transition
-                else:
-                    observations.append(transition.next_observation)
-                    actions.append(transition.next_action)
-                    rewards.append(transition.next_reward)
-                    terminals.append(1.0)
+                episode_transitions.append(transition)
+                if transition.prev_transition is None:
                     break
+                transition = transition.prev_transition
+            episode_transitions.reverse()
+
+            # stack data
+            for episode_transition in episode_transitions:
+                observations.append(episode_transition.observation)
+                actions.append(episode_transition.action)
+                rewards.append(episode_transition.reward)
+                terminals.append(0.0)
+            observations.append(episode_transitions[-1].next_observation)
+            actions.append(episode_transitions[-1].next_action)
+            rewards.append(episode_transitions[-1].next_reward)
+            terminals.append(1.0)
 
         if len(self._observation_shape) == 3:
             observations = np.asarray(observations, dtype=np.uint8)
