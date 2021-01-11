@@ -61,6 +61,11 @@ $ pip install d3rlpy
 $ conda install -c conda-forge d3rlpy
 ```
 
+### Docker
+```
+$ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
+```
+
 ## supported algorithms
 | algorithm | discrete control | continuous control | data-driven RL? |
 |:-|:-:|:-:|:-:|

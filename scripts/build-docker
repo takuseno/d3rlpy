@@ -1,0 +1,3 @@
+#!/bin/bash
+
+docker build -t takuseno/d3rlpy:latest docker

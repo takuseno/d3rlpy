@@ -25,6 +25,14 @@ d3rlpy is also available on `conda-forge`::
   $ conda install -c conda-forge d3rlpy
 
 
+Install via Docker
+~~~~~~~~~~~~~~~~~~
+
+d3rlpy is also available on Docker Hub::
+
+  $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
+
+
 Install from source
 ~~~~~~~~~~~~~~~~~~~
 
