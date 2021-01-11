@@ -101,7 +101,10 @@ class FQEBaseImpl(TorchImplBase):
         )
 
     @train_api
-    @torch_api(scaler_targets=["obs_t", "obs_tpn"])
+    @torch_api(
+        scaler_targets=["obs_t", "obs_tpn"],
+        action_scaler_targets=["act_t", "act_tpn"],
+    )
     def update(
         self,
         obs_t: torch.Tensor,
