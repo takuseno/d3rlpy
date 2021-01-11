@@ -62,6 +62,7 @@ $ conda install -c conda-forge d3rlpy
 ```
 
 ### Docker
+![Docker Pulls](https://img.shields.io/docker/pulls/takuseno/d3rlpy)
 ```
 $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 ```
