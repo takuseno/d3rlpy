@@ -9,9 +9,16 @@ from .algo_test import algo_pendulum_tester, algo_cartpole_tester
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-@pytest.mark.parametrize("scaler", [None, "standard"])
-def test_sac(observation_shape, action_size, q_func_factory, scaler):
-    sac = SAC(q_func_factory=q_func_factory, scaler=scaler)
+@pytest.mark.parametrize("scaler", [None, "min_max"])
+@pytest.mark.parametrize("action_scaler", [None, "min_max"])
+def test_sac(
+    observation_shape, action_size, q_func_factory, scaler, action_scaler
+):
+    sac = SAC(
+        q_func_factory=q_func_factory,
+        scaler=scaler,
+        action_scaler=action_scaler,
+    )
     algo_tester(sac, observation_shape)
     algo_update_tester(sac, observation_shape, action_size)
 
@@ -29,7 +36,7 @@ def test_sac_performance(q_func_factory):
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-@pytest.mark.parametrize("scaler", [None, "standard"])
+@pytest.mark.parametrize("scaler", [None, "min_max"])
 def test_discrete_sac(observation_shape, action_size, q_func_factory, scaler):
     sac = DiscreteSAC(q_func_factory=q_func_factory, scaler=scaler)
     algo_tester(sac, observation_shape)

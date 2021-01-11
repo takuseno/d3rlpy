@@ -15,7 +15,7 @@ from ...models.optimizers import OptimizerFactory
 from ...models.encoders import EncoderFactory
 from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...augmentation import AugmentationPipeline
 from ...torch_utility import torch_api, train_api, augmentation_api
 from .sac_impl import SACImpl
@@ -75,6 +75,7 @@ class BEARImpl(SACImpl):
         mmd_sigma: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
         super().__init__(
@@ -97,6 +98,7 @@ class BEARImpl(SACImpl):
             initial_temperature=initial_temperature,
             use_gpu=use_gpu,
             scaler=scaler,
+            action_scaler=action_scaler,
             augmentation=augmentation,
         )
         self._imitator_learning_rate = imitator_learning_rate
@@ -152,7 +154,7 @@ class BEARImpl(SACImpl):
         return loss + mmd_loss
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
+    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
     def update_imitator(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> np.ndarray:

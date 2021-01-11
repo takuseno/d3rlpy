@@ -4,7 +4,11 @@ from d3rlpy.algos.torch.awr_impl import AWRImpl, DiscreteAWRImpl
 from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.encoders import DefaultEncoderFactory
-from tests.algos.algo_test import torch_impl_tester, DummyScaler
+from tests.algos.algo_test import (
+    torch_impl_tester,
+    DummyScaler,
+    DummyActionScaler,
+)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -15,6 +19,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize("critic_optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
 def test_awr_impl(
     observation_shape,
@@ -25,6 +30,7 @@ def test_awr_impl(
     critic_optim_factory,
     encoder_factory,
     scaler,
+    action_scaler,
     augmentation,
 ):
     impl = AWRImpl(
@@ -38,6 +44,7 @@ def test_awr_impl(
         encoder_factory,
         use_gpu=False,
         scaler=scaler,
+        action_scaler=action_scaler,
         augmentation=augmentation,
     )
     torch_impl_tester(impl, discrete=False, test_with_std=False)
@@ -74,6 +81,7 @@ def test_discrete_awr_impl(
         encoder_factory,
         use_gpu=False,
         scaler=scaler,
+        action_scaler=None,
         augmentation=augmentation,
     )
     torch_impl_tester(impl, discrete=True, test_with_std=False)

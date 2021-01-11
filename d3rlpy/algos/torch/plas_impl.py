@@ -19,7 +19,7 @@ from ...models.optimizers import OptimizerFactory
 from ...models.encoders import EncoderFactory
 from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...augmentation import AugmentationPipeline
 from ...torch_utility import torch_api, train_api, soft_sync
 from .ddpg_impl import DDPGBaseImpl
@@ -61,6 +61,7 @@ class PLASImpl(DDPGBaseImpl):
         beta: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
         super().__init__(
@@ -80,6 +81,7 @@ class PLASImpl(DDPGBaseImpl):
             share_encoder=share_encoder,
             use_gpu=use_gpu,
             scaler=scaler,
+            action_scaler=action_scaler,
             augmentation=augmentation,
         )
         self._imitator_learning_rate = imitator_learning_rate
@@ -122,7 +124,7 @@ class PLASImpl(DDPGBaseImpl):
         )
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
+    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
     def update_imitator(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> np.ndarray:
@@ -153,6 +155,9 @@ class PLASImpl(DDPGBaseImpl):
         assert self._imitator is not None
         assert self._policy is not None
         return self._imitator.decode(x, 2.0 * self._policy(x))
+
+    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self._predict_best_action(x)
 
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None
@@ -193,6 +198,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         action_flexibility: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
         super().__init__(
@@ -217,6 +223,7 @@ class PLASWithPerturbationImpl(PLASImpl):
             beta=beta,
             use_gpu=use_gpu,
             scaler=scaler,
+            action_scaler=action_scaler,
             augmentation=augmentation,
         )
         self._action_flexibility = action_flexibility
@@ -262,6 +269,9 @@ class PLASWithPerturbationImpl(PLASImpl):
         assert self._perturbation is not None
         action = self._imitator.decode(x, 2.0 * self._policy(x))
         return self._perturbation(x, action)
+
+    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self._predict_best_action(x)
 
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None

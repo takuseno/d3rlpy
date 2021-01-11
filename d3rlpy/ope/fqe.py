@@ -7,7 +7,7 @@ from ..algos import AlgoBase
 from ..argument_utility import check_encoder, EncoderArg
 from ..argument_utility import check_use_gpu, UseGPUArg
 from ..argument_utility import check_q_func, QFuncArg
-from ..argument_utility import ScalerArg
+from ..argument_utility import ScalerArg, ActionScalerArg
 from ..dataset import TransitionMiniBatch
 from ..models.encoders import EncoderFactory
 from ..models.optimizers import OptimizerFactory, AdamFactory
@@ -48,6 +48,7 @@ class _FQEBase(AlgoBase):
         target_update_interval: int = 100,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
+        action_scaler: ActionScalerArg = None,
         impl: Optional[FQEBaseImpl] = None,
         **kwargs: Any
     ):
@@ -57,6 +58,7 @@ class _FQEBase(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
+            action_scaler=action_scaler,
             generator=None,
         )
         self._algo = algo
@@ -151,7 +153,9 @@ class FQE(_FQEBase):
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`
+            The available options are `['pixel', 'min_max', 'standard']`.
+        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
+            action preprocessor. The available options are ``['min_max']``.
         impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     """
@@ -174,6 +178,7 @@ class FQE(_FQEBase):
             share_encoder=self._share_encoder,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
+            action_scaler=self._action_scaler,
         )
         self._impl.build()
 
@@ -242,5 +247,6 @@ class DiscreteFQE(_FQEBase):
             share_encoder=self._share_encoder,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
+            action_scaler=None,
         )
         self._impl.build()

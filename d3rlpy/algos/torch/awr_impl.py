@@ -20,7 +20,7 @@ from ...models.builders import (
     create_categorical_policy,
 )
 from ...gpu import Device
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...augmentation import AugmentationPipeline
 from ...torch_utility import torch_api, train_api, eval_api, augmentation_api
 from .base import TorchImplBase
@@ -52,9 +52,12 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
         critic_encoder_factory: EncoderFactory,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
-        super().__init__(observation_shape, action_size, scaler, augmentation)
+        super().__init__(
+            observation_shape, action_size, scaler, action_scaler, augmentation
+        )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
         self._actor_optim_factory = actor_optim_factory
@@ -128,7 +131,7 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
         return self._v_func.compute_error(observation, value)
 
     @train_api
-    @torch_api(scaler_targets=["observation"])
+    @torch_api(scaler_targets=["observation"], action_scaler_targets=["action"])
     def update_actor(
         self,
         observation: torch.Tensor,
@@ -168,6 +171,10 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
         assert self._policy is not None
         return self._policy.best_action(x)
 
+    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        assert self._policy is not None
+        return self._policy.sample(x)
+
     @eval_api
     @torch_api(scaler_targets=["x"])
     def predict_value(
@@ -176,13 +183,6 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
         assert self._v_func is not None
         with torch.no_grad():
             return self._v_func(x).view(-1).cpu().detach().numpy()
-
-    @eval_api
-    @torch_api(scaler_targets=["x"])
-    def sample_action(self, x: torch.Tensor) -> np.ndarray:
-        assert self._policy is not None
-        with torch.no_grad():
-            return self._policy.sample(x).cpu().detach().numpy()
 
 
 class AWRImpl(AWRBaseImpl):

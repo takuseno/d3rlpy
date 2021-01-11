@@ -6,7 +6,11 @@ from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import create_q_func_factory
-from tests.algos.algo_test import torch_impl_tester, DummyScaler
+from tests.algos.algo_test import (
+    torch_impl_tester,
+    DummyScaler,
+    DummyActionScaler,
+)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (1, 48, 48)])
@@ -35,6 +39,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize("n_action_samples", [4])
 @pytest.mark.parametrize("mmd_sigma", [20.0])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
 def test_bear_impl(
     observation_shape,
@@ -63,6 +68,7 @@ def test_bear_impl(
     n_action_samples,
     mmd_sigma,
     scaler,
+    action_scaler,
     augmentation,
 ):
     impl = BEARImpl(
@@ -95,6 +101,7 @@ def test_bear_impl(
         mmd_sigma,
         use_gpu=False,
         scaler=scaler,
+        action_scaler=action_scaler,
         augmentation=augmentation,
     )
     impl.build()

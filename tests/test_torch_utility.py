@@ -63,6 +63,7 @@ class DummyImpl:
         self._optim = torch.optim.Adam(self._fc1.parameters())
         self._device = "cpu:0"
         self._scaler = None
+        self._action_scaler = None
         self._augmentation = None
 
     @torch_api()
@@ -71,6 +72,12 @@ class DummyImpl:
 
     @torch_api(scaler_targets=["x"])
     def torch_api_func_with_scaler(self, x, y, ref_x, ref_y):
+        assert isinstance(x, torch.Tensor)
+        assert torch.allclose(x, torch.tensor(ref_x, dtype=torch.float32))
+        assert torch.allclose(y, torch.tensor(ref_y, dtype=torch.float32))
+
+    @torch_api(action_scaler_targets=["x"])
+    def torch_api_func_with_action_scaler(self, x, y, ref_x, ref_y):
         assert isinstance(x, torch.Tensor)
         assert torch.allclose(x, torch.tensor(ref_x, dtype=torch.float32))
         assert torch.allclose(y, torch.tensor(ref_y, dtype=torch.float32))
@@ -96,6 +103,10 @@ class DummyImpl:
     @property
     def scaler(self):
         return self._scaler
+
+    @property
+    def action_scaler(self):
+        return self._action_scaler
 
     @property
     def augmentation(self):
@@ -217,6 +228,21 @@ def test_torch_api_with_scaler():
     x = np.random.random((100, 100))
     y = np.random.random((100, 100))
     impl.torch_api_func_with_scaler(x, y, ref_x=x + 0.1, ref_y=y)
+
+
+def test_torch_api_with_action_scaler():
+    impl = DummyImpl()
+
+    class DummyActionScaler:
+        def transform(self, action):
+            return action + 0.1
+
+    scaler = DummyActionScaler()
+    impl._action_scaler = scaler
+
+    x = np.random.random((100, 100))
+    y = np.random.random((100, 100))
+    impl.torch_api_func_with_action_scaler(x, y, ref_x=x + 0.1, ref_y=y)
 
 
 def test_train_api():

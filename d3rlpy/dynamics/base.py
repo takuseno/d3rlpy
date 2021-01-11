@@ -6,7 +6,7 @@ import numpy as np
 from ..base import ImplBase, LearnableBase
 from ..algos import AlgoBase, DataGenerator
 from ..dataset import Transition, TransitionMiniBatch
-from ..argument_utility import ScalerArg
+from ..argument_utility import ScalerArg, ActionScalerArg
 
 
 class DynamicsImplBase(ImplBase):
@@ -40,8 +40,9 @@ class DynamicsBase(DataGenerator, LearnableBase):
         n_transitions: int,
         horizon: int,
         scaler: ScalerArg,
+        action_scaler: ActionScalerArg,
     ):
-        super().__init__(batch_size, n_frames, 1, 1.0, scaler)
+        super().__init__(batch_size, n_frames, 1, 1.0, scaler, action_scaler)
         self._n_transitions = n_transitions
         self._horizon = horizon
         self._impl = None

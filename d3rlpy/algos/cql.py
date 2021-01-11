@@ -12,7 +12,7 @@ from ..argument_utility import check_encoder, EncoderArg
 from ..argument_utility import check_use_gpu, UseGPUArg
 from ..argument_utility import check_augmentation, AugmentationArg
 from ..argument_utility import check_q_func, QFuncArg
-from ..argument_utility import ScalerArg
+from ..argument_utility import ScalerArg, ActionScalerArg
 
 
 class CQL(AlgoBase):
@@ -95,7 +95,9 @@ class CQL(AlgoBase):
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`
+            The available options are `['pixel', 'min_max', 'standard']`.
+        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
+            action preprocessor. The available options are ``['min_max']``.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
@@ -157,6 +159,7 @@ class CQL(AlgoBase):
         n_action_samples: int = 10,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
+        action_scaler: ActionScalerArg = None,
         augmentation: AugmentationArg = None,
         generator: Optional[DataGenerator] = None,
         impl: Optional[CQLImpl] = None,
@@ -168,6 +171,7 @@ class CQL(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
+            action_scaler=action_scaler,
             generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
@@ -222,6 +226,7 @@ class CQL(AlgoBase):
             n_action_samples=self._n_action_samples,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
+            action_scaler=self._action_scaler,
             augmentation=self._augmentation,
         )
         self._impl.build()

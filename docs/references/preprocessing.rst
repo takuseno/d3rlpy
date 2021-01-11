@@ -3,8 +3,10 @@ Preprocessing
 
 .. module:: d3rlpy.preprocessing
 
-d3rlpy provides several preprocessors tightly incorporated with
-algorithms.
+Observation
+~~~~~~~~~~~
+
+d3rlpy provides several preprocessors tightly incorporated with algorithms.
 Each preprocessor is implemented with PyTorch operation, which will be included
 in the model exported by `save_policy` method.
 
@@ -45,3 +47,47 @@ You can also initialize scalers by yourself.
    d3rlpy.preprocessing.PixelScaler
    d3rlpy.preprocessing.MinMaxScaler
    d3rlpy.preprocessing.StandardScaler
+
+
+Action
+~~~~~~
+
+d3rlpy also provides the feature that preprocesses continuous action.
+With this preprocessing, you don't need to normalize actions in advance or
+implement normalization in the environment side.
+
+.. code-block:: python
+
+    from d3rlpy.algos import CQL
+    from d3rlpy.dataset import MDPDataset
+
+    dataset = MDPDataset(...)
+
+    # 'min_max' or None
+    cql = CQL(action_scaler='min_max')
+
+    # action scaler is fitted from the given episodes
+    cql.fit(dataset.episodes)
+
+    # postprocessing is included in TorchScript
+    cql.save_policy('policy.pt')
+
+    # you don't need to take care of postprocessing at production
+    policy = torch.jit.load('policy.pt')
+    action = policy(x)
+
+You can also initialize scalers by yourself.
+
+.. code-block:: python
+
+    from d3rlpy.preprocessing import MinMaxActionScaler
+
+    action_scaler = MinMaxActionScaler(minimum=..., maximum=...)
+
+    cql = CQL(action_scaler=action_scaler)
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   d3rlpy.preprocessing.MinMaxActionScaler

@@ -6,7 +6,7 @@ from ...models.optimizers import OptimizerFactory
 from ...models.encoders import EncoderFactory
 from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...augmentation import AugmentationPipeline
 from ...torch_utility import augmentation_api
 from .ddpg_impl import DDPGImpl
@@ -37,6 +37,7 @@ class TD3Impl(DDPGImpl):
         target_smoothing_clip: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
         super().__init__(
@@ -56,6 +57,7 @@ class TD3Impl(DDPGImpl):
             share_encoder=share_encoder,
             use_gpu=use_gpu,
             scaler=scaler,
+            action_scaler=action_scaler,
             augmentation=augmentation,
         )
         self._target_smoothing_sigma = target_smoothing_sigma

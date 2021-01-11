@@ -3,6 +3,7 @@ from typing import Any, ClassVar, Dict, List, Optional, Type
 
 import numpy as np
 import torch
+import gym
 
 from ..dataset import Episode, MDPDataset
 
@@ -13,15 +14,45 @@ class Scaler(metaclass=ABCMeta):
 
     @abstractmethod
     def fit(self, episodes: List[Episode]) -> None:
-        pass
+        """Estimates scaling parameters from dataset.
+
+        Args:
+            episodes: list of episodes.
+
+        """
+
+    @abstractmethod
+    def fit_with_env(self, env: gym.Env) -> None:
+        """Gets scaling parameters from environment.
+
+        Args:
+            env: gym environment.
+
+        """
 
     @abstractmethod
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        pass
+        """Returns processed observations.
+
+        Args:
+            x: observation.
+
+        Returns:
+            processed observation.
+
+        """
 
     @abstractmethod
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
-        pass
+        """Returns reversely transformed observations.
+
+        Args:
+            x: observation.
+
+        Returns:
+            reversely transformed observation.
+
+        """
 
     def get_type(self) -> str:
         """Returns a scaler type.
@@ -34,7 +65,15 @@ class Scaler(metaclass=ABCMeta):
 
     @abstractmethod
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        pass
+        """Returns scaling parameters.
+
+        Args:
+            deep: flag to deeply copy objects.
+
+        Returns:
+            scaler parameters.
+
+        """
 
 
 class PixelScaler(Scaler):
@@ -63,42 +102,16 @@ class PixelScaler(Scaler):
     def fit(self, episodes: List[Episode]) -> None:
         pass
 
+    def fit_with_env(self, env: gym.Env) -> None:
+        pass
+
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns normalized pixel observations.
-
-        Args:
-            x: pixel observation tensor.
-
-        Returns:
-            normalized pixel observation tensor.
-
-        """
         return x.float() / 255.0
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns reversely transformed observations.
-
-        Args:
-            x: normalized observation tensor.
-
-        Returns:
-            unnormalized pixel observation tensor.
-
-        """
         return (x * 255.0).long()
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns scaling parameters.
-
-        PixelScaler returns empty dictiornary.
-
-        Args:
-            deep: flag to deeply copy objects.
-
-        Returns:
-            empty dictionary.
-
-        """
         return {}
 
 
@@ -165,12 +178,6 @@ class MinMaxScaler(Scaler):
             self._maximum = np.asarray(maximum)
 
     def fit(self, episodes: List[Episode]) -> None:
-        """Fits minimum and maximum from list of episodes.
-
-        Args:
-            episodes: list of episodes.
-
-        """
         if self._minimum is not None and self._maximum is not None:
             return
 
@@ -186,16 +193,18 @@ class MinMaxScaler(Scaler):
         self._minimum = minimum.reshape((1,) + minimum.shape)
         self._maximum = maximum.reshape((1,) + maximum.shape)
 
+    def fit_with_env(self, env: gym.Env) -> None:
+        if self._minimum is not None and self._maximum is not None:
+            return
+
+        assert isinstance(env.observation_space, gym.spaces.Box)
+        shape = env.observation_space.shape
+        low = np.asarray(env.observation_space.low)
+        high = np.asarray(env.observation_space.high)
+        self._minimum = low.reshape((1,) + shape)
+        self._maximum = high.reshape((1,) + shape)
+
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns normalized observation tensor.
-
-        Args:
-            x: observation tensor.
-
-        Returns:
-            normalized observation tensor.
-
-        """
         assert self._minimum is not None and self._maximum is not None
         minimum = torch.tensor(
             self._minimum, dtype=torch.float32, device=x.device
@@ -206,15 +215,6 @@ class MinMaxScaler(Scaler):
         return (x - minimum) / (maximum - minimum)
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns reversely transformed observations.
-
-        Args:
-            x: normalized observation tensor.
-
-        Returns:
-            unnormalized observation tensor.
-
-        """
         assert self._minimum is not None and self._maximum is not None
         minimum = torch.tensor(
             self._minimum, dtype=torch.float32, device=x.device
@@ -225,15 +225,6 @@ class MinMaxScaler(Scaler):
         return ((maximum - minimum) * x) + minimum
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns scaling parameters.
-
-        Args:
-            deep: flag to deeply copy objects.
-
-        Returns:
-            `maximum` and `minimum`.
-
-        """
         if self._maximum is not None:
             maximum = self._maximum.copy() if deep else self._maximum
         else:
@@ -310,12 +301,6 @@ class StandardScaler(Scaler):
             self._std = np.asarray(std)
 
     def fit(self, episodes: List[Episode]) -> None:
-        """Fits mean and standard deviation from list of episodes.
-
-        Args:
-            episodes: list of episodes.
-
-        """
         if self._mean is not None and self._std is not None:
             return
 
@@ -339,46 +324,26 @@ class StandardScaler(Scaler):
         self._mean = mean.reshape((1,) + mean.shape)
         self._std = std.reshape((1,) + std.shape)
 
+    def fit_with_env(self, env: gym.Env) -> None:
+        if self._mean is not None and self._std is not None:
+            return
+        raise NotImplementedError(
+            "standard scaler does not support fit_with_env."
+        )
+
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns standardized observation tensor.
-
-        Args:
-            x: observation tensor.
-
-        Returns:
-            standardized observation tensor.
-
-        """
         assert self._mean is not None and self._std is not None
         mean = torch.tensor(self._mean, dtype=torch.float32, device=x.device)
         std = torch.tensor(self._std, dtype=torch.float32, device=x.device)
         return (x - mean) / std
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns reversely transformed observation tensor.
-
-        Args:
-            x: standardized observation tensor.
-
-        Returns:
-            unstandardized observation tensor.
-
-        """
         assert self._mean is not None and self._std is not None
         mean = torch.tensor(self._mean, dtype=torch.float32, device=x.device)
         std = torch.tensor(self._std, dtype=torch.float32, device=x.device)
         return (std * x) + mean
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns scaling parameters.
-
-        Args:
-            deep: flag to deeply copy objects.
-
-        Returns:
-            `mean` and `std`.
-
-        """
         if self._mean is not None:
             mean = self._mean.copy() if deep else self._mean
         else:

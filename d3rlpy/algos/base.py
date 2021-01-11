@@ -12,7 +12,7 @@ from ..online.buffers import Buffer
 from ..online.explorers import Explorer
 from ..preprocessing.stack import StackedObservation
 from ..metrics.scorer import evaluate_on_environment
-from ..argument_utility import ScalerArg
+from ..argument_utility import ScalerArg, ActionScalerArg
 
 
 class AlgoImplBase(ImplBase):
@@ -59,9 +59,12 @@ class AlgoBase(LearnableBase):
         n_steps: int,
         gamma: float,
         scaler: ScalerArg,
+        action_scaler: ActionScalerArg,
         generator: Optional[DataGenerator],
     ):
-        super().__init__(batch_size, n_frames, n_steps, gamma, scaler)
+        super().__init__(
+            batch_size, n_frames, n_steps, gamma, scaler, action_scaler
+        )
         self._generator = generator
 
     def save_policy(self, fname: str, as_onnx: bool = False) -> None:
@@ -217,6 +220,14 @@ class AlgoBase(LearnableBase):
                 (additional to the csv data)
 
         """
+        # initialize scaler
+        if self._scaler:
+            self._scaler.fit_with_env(env)
+
+        # initialize action scaler
+        if self._action_scaler:
+            self._action_scaler.fit_with_env(env)
+
         # setup logger
         if experiment_name is None:
             experiment_name = self.__class__.__name__ + "_online"

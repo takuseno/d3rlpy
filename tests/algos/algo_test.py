@@ -8,7 +8,7 @@ from unittest.mock import Mock
 from tests.base_test import base_tester, base_update_tester
 from d3rlpy.algos.torch.base import TorchImplBase
 from d3rlpy.datasets import get_cartpole, get_pendulum
-from d3rlpy.preprocessing import Scaler
+from d3rlpy.preprocessing import Scaler, ActionScaler
 
 
 class DummyImpl(TorchImplBase):
@@ -51,11 +51,34 @@ class DummyScaler(Scaler):
     def fit(self, episodes):
         pass
 
+    def fit_with_env(self, env):
+        pass
+
     def transform(self, x):
         return 0.1 * x
 
     def reverse_transform(self, x):
         return 10.0 * x
+
+    def get_type(self):
+        return "dummy"
+
+    def get_params(self):
+        return {}
+
+
+class DummyActionScaler(ActionScaler):
+    def fit(self, episodes):
+        pass
+
+    def fit_with_env(self, env):
+        pass
+
+    def transform(self, action):
+        return 0.1 * action
+
+    def reverse_transform(self, action):
+        return 10.0 * action
 
     def get_type(self):
         return "dummy"
@@ -266,7 +289,10 @@ def torch_impl_tester(
     # TODO: check probablistic policy
     # https://github.com/pytorch/pytorch/pull/25753
     if deterministic_best_action:
-        assert np.allclose(action, impl.predict_best_action(observations))
+        action = action.detach().numpy()
+        assert np.allclose(
+            action, impl.predict_best_action(observations), atol=1e-6
+        )
 
     # check save_policy as ONNX
     impl.save_policy(os.path.join("test_data", "model.onnx"), True)

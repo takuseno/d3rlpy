@@ -6,7 +6,11 @@ from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import create_q_func_factory
-from tests.algos.algo_test import torch_impl_tester, DummyScaler
+from tests.algos.algo_test import (
+    torch_impl_tester,
+    DummyScaler,
+    DummyActionScaler,
+)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (1, 48, 48)])
@@ -30,6 +34,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize("latent_size", [32])
 @pytest.mark.parametrize("beta", [0.5])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
 def test_bcq_impl(
     observation_shape,
@@ -53,6 +58,7 @@ def test_bcq_impl(
     latent_size,
     beta,
     scaler,
+    action_scaler,
     augmentation,
 ):
     impl = BCQImpl(
@@ -80,6 +86,7 @@ def test_bcq_impl(
         beta,
         use_gpu=False,
         scaler=scaler,
+        action_scaler=action_scaler,
         augmentation=augmentation,
     )
     impl.build()
@@ -90,7 +97,7 @@ def test_bcq_impl(
     repeated_x = impl._repeat_observation(x)
     assert repeated_x.shape == (32, n_action_samples) + observation_shape
 
-    action = impl._sample_action(repeated_x)
+    action = impl._sample_repeated_action(repeated_x)
     assert action.shape == (32, n_action_samples, action_size)
 
     value = impl._predict_value(repeated_x, action)

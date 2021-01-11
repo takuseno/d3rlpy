@@ -12,6 +12,7 @@ from ..models.optimizers import OptimizerFactory, AdamFactory
 from ..gpu import Device
 from ..argument_utility import check_encoder, check_use_gpu, check_augmentation
 from ..argument_utility import EncoderArg, UseGPUArg, AugmentationArg, ScalerArg
+from ..argument_utility import ActionScalerArg
 
 
 class _BCBase(AlgoBase):
@@ -32,6 +33,7 @@ class _BCBase(AlgoBase):
         n_frames: int = 1,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
+        action_scaler: ActionScalerArg = None,
         augmentation: AugmentationArg = None,
         generator: Optional[DataGenerator] = None,
         impl: Optional[BCBaseImpl] = None,
@@ -43,6 +45,7 @@ class _BCBase(AlgoBase):
             n_steps=1,
             gamma=1.0,
             scaler=scaler,
+            action_scaler=action_scaler,
             generator=generator,
         )
         self._learning_rate = learning_rate
@@ -107,7 +110,9 @@ class BC(_BCBase):
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`
+            The available options are `['pixel', 'min_max', 'standard']`.
+        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
+            action scaler. The available options are ``['min_max']``.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
@@ -130,6 +135,7 @@ class BC(_BCBase):
             encoder_factory=self._encoder_factory,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
+            action_scaler=self._action_scaler,
             augmentation=self._augmentation,
         )
         self._impl.build()

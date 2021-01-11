@@ -6,7 +6,7 @@ import torch
 
 from ..base import DynamicsImplBase
 from ...gpu import Device
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...torch_utility import to_cuda, to_cpu
 from ...torch_utility import torch_api, eval_api
 from ...torch_utility import map_location
@@ -18,6 +18,7 @@ class TorchImplBase(DynamicsImplBase):
     _observation_shape: Sequence[int]
     _action_size: int
     _scaler: Optional[Scaler]
+    _action_scaler: Optional[ActionScaler]
     _device: str
 
     def __init__(
@@ -25,14 +26,16 @@ class TorchImplBase(DynamicsImplBase):
         observation_shape: Sequence[int],
         action_size: int,
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
     ):
         self._observation_shape = observation_shape
         self._action_size = action_size
         self._scaler = scaler
+        self._action_scaler = action_scaler
         self._device = "cpu:0"
 
     @eval_api
-    @torch_api(scaler_targets=["x"])
+    @torch_api(scaler_targets=["x"], action_scaler_targets=["action"])
     def predict(
         self, x: torch.Tensor, action: torch.Tensor
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -55,7 +58,7 @@ class TorchImplBase(DynamicsImplBase):
         pass
 
     @eval_api
-    @torch_api(scaler_targets=["x"])
+    @torch_api(scaler_targets=["x"], action_scaler_targets=["action"])
     def generate(
         self, x: torch.Tensor, action: torch.Tensor
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -105,3 +108,7 @@ class TorchImplBase(DynamicsImplBase):
     @property
     def scaler(self) -> Optional[Scaler]:
         return self._scaler
+
+    @property
+    def action_scaler(self) -> Optional[ActionScaler]:
+        return self._action_scaler

@@ -8,7 +8,12 @@ import numpy as np
 import gym
 from tqdm.auto import tqdm
 
-from .preprocessing import create_scaler, Scaler
+from .preprocessing import (
+    create_scaler,
+    Scaler,
+    create_action_scaler,
+    ActionScaler,
+)
 from .augmentation import create_augmentation, AugmentationPipeline
 from .augmentation import DrQPipeline
 from .dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
@@ -19,7 +24,13 @@ from .gpu import Device
 from .models.optimizers import OptimizerFactory
 from .models.encoders import EncoderFactory, create_encoder_factory
 from .models.q_functions import QFunctionFactory, create_q_func_factory
-from .argument_utility import check_scaler, ScalerArg, UseGPUArg
+from .argument_utility import (
+    check_scaler,
+    ScalerArg,
+    check_action_scaler,
+    ActionScalerArg,
+    UseGPUArg,
+)
 from .online.utility import get_action_size_from_env
 
 
@@ -47,7 +58,9 @@ def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
     for key, value in params.items():
         if isinstance(value, Device):
             params[key] = value.get_id()
-        elif isinstance(value, (Scaler, EncoderFactory, QFunctionFactory)):
+        elif isinstance(
+            value, (Scaler, ActionScaler, EncoderFactory, QFunctionFactory)
+        ):
             params[key] = {
                 "type": value.get_type(),
                 "params": value.get_params(),
@@ -72,6 +85,11 @@ def _deseriealize_params(params: Dict[str, Any]) -> Dict[str, Any]:
             scaler_params = params["scaler"]["params"]
             scaler = create_scaler(scaler_type, **scaler_params)
             params[key] = scaler
+        if key == "action_scaler" and params["action_scaler"]:
+            scaler_type = params["action_scaler"]["type"]
+            scaler_params = params["action_scaler"]["params"]
+            action_scaler = create_action_scaler(scaler_type, **scaler_params)
+            params[key] = action_scaler
         elif key == "augmentation" and params["augmentation"]:
             augmentations = []
             for param in params[key]["augmentations"]:
@@ -100,6 +118,7 @@ class LearnableBase:
     _n_steps: int
     _gamma: float
     _scaler: Optional[Scaler]
+    _action_scaler: Optional[ActionScaler]
     _impl: Optional[ImplBase]
     _eval_results: DefaultDict[str, List[float]]
     _loss_history: DefaultDict[str, List[float]]
@@ -112,12 +131,14 @@ class LearnableBase:
         n_steps: int,
         gamma: float,
         scaler: ScalerArg,
+        action_scaler: ActionScalerArg,
     ):
         self._batch_size = batch_size
         self._n_frames = n_frames
         self._n_steps = n_steps
         self._gamma = gamma
         self._scaler = check_scaler(scaler)
+        self._action_scaler = check_action_scaler(action_scaler)
 
         self._impl = None
         self._eval_results = defaultdict(list)
@@ -342,6 +363,10 @@ class LearnableBase:
         # initialize scaler
         if self._scaler:
             self._scaler.fit(episodes)
+
+        # initialize action scaler
+        if self._action_scaler:
+            self._action_scaler.fit(episodes)
 
         # instantiate implementation
         if self._impl is None:
@@ -682,6 +707,20 @@ class LearnableBase:
     @scaler.setter
     def scaler(self, scaler: Scaler) -> None:
         self._scaler = scaler
+
+    @property
+    def action_scaler(self) -> Optional[ActionScaler]:
+        """Preprocessing action scaler.
+
+        Returns:
+            Optional[ActionScaler]: preprocessing action scaler.
+
+        """
+        return self._action_scaler
+
+    @action_scaler.setter
+    def action_scaler(self, action_scaler: ActionScaler) -> None:
+        self._action_scaler = action_scaler
 
     @property
     def impl(self) -> Optional[ImplBase]:

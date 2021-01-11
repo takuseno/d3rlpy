@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch.utils.data._utils.collate import default_collate
 from typing_extensions import Protocol
 
-from .preprocessing import Scaler
+from .preprocessing import Scaler, ActionScaler
 from .augmentation import AugmentationPipeline
 
 
@@ -105,9 +105,14 @@ class _WithDeviceAndScalerProtocol(Protocol):
     def scaler(self) -> Optional[Scaler]:
         ...
 
+    @property
+    def action_scaler(self) -> Optional[ActionScaler]:
+        ...
+
 
 def torch_api(
     scaler_targets: Optional[List[str]] = None,
+    action_scaler_targets: Optional[List[str]] = None,
 ) -> Callable[..., np.ndarray]:
     def _torch_api(f: Callable[..., np.ndarray]) -> Callable[..., np.ndarray]:
         # get argument names
@@ -146,6 +151,11 @@ def torch_api(
                 if self.scaler and scaler_targets:
                     if arg_keys[i] in scaler_targets:
                         tensor = self.scaler.transform(tensor)
+
+                # preprocess action
+                if self.action_scaler and action_scaler_targets:
+                    if arg_keys[i] in action_scaler_targets:
+                        tensor = self.action_scaler.transform(tensor)
 
                 # make sure if the tensor is float32 type
                 if tensor.dtype != torch.float32:

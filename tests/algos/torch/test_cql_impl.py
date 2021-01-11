@@ -5,7 +5,11 @@ from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import create_q_func_factory
-from tests.algos.algo_test import torch_impl_tester, DummyScaler
+from tests.algos.algo_test import (
+    torch_impl_tester,
+    DummyScaler,
+    DummyActionScaler,
+)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -30,6 +34,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize("alpha_threshold", [10.0])
 @pytest.mark.parametrize("n_action_samples", [10])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
 def test_cql_impl(
     observation_shape,
@@ -54,6 +59,7 @@ def test_cql_impl(
     alpha_threshold,
     n_action_samples,
     scaler,
+    action_scaler,
     augmentation,
 ):
     impl = CQLImpl(
@@ -81,6 +87,7 @@ def test_cql_impl(
         n_action_samples,
         use_gpu=False,
         scaler=scaler,
+        action_scaler=action_scaler,
         augmentation=augmentation,
     )
     torch_impl_tester(
@@ -100,7 +107,7 @@ def test_cql_impl(
 @pytest.mark.parametrize("share_encoder", [False, True])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
-def test_double_dqn_impl(
+def test_discrete_cql_impl(
     observation_shape,
     action_size,
     learning_rate,

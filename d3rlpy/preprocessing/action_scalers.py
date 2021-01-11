@@ -1,0 +1,237 @@
+from abc import ABCMeta, abstractmethod
+from typing import Any, ClassVar, Dict, List, Optional, Type
+
+import numpy as np
+import torch
+import gym
+
+from ..dataset import Episode, MDPDataset
+
+
+class ActionScaler(metaclass=ABCMeta):
+    TYPE: ClassVar[str] = "none"
+
+    @abstractmethod
+    def fit(self, episodes: List[Episode]) -> None:
+        """Estimates scaling parameters from dataset.
+
+        Args:
+            episodes: a list of episode objects.
+
+        """
+
+    @abstractmethod
+    def fit_with_env(self, env: gym.Env) -> None:
+        """Gets scaling parameters from environment.
+
+        Args:
+            env: gym environment.
+
+        """
+
+    @abstractmethod
+    def transform(self, action: torch.Tensor) -> torch.Tensor:
+        """Returns processed action.
+
+        Args:
+            action: action vector.
+
+        Returns:
+            processed action.
+
+        """
+
+    @abstractmethod
+    def reverse_transform(self, action: torch.Tensor) -> torch.Tensor:
+        """Returns reversely transformed action.
+
+        Args:
+            action: action vector.
+
+        Returns:
+            reversely transformed action.
+
+        """
+
+    def get_type(self) -> str:
+        """Returns action scaler type.
+
+        Returns:
+            action scaler type.
+
+        """
+        return self.TYPE
+
+    @abstractmethod
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
+        """Returns action scaler params.
+
+        Args:
+            deep: flag to deepcopy parameters.
+
+        Returns:
+            action scaler parameters.
+
+        """
+
+
+class MinMaxActionScaler(ActionScaler):
+    r"""Min-Max normalization action preprocessing.
+
+    Actions will be normalized in range ``[-1.0, 1.0]``.
+
+    .. math::
+
+        a' = (a - \min{a}) / (\max{a} - \min{a}) * 2 - 1
+
+    .. code-block:: python
+
+        from d3rlpy.dataset import MDPDataset
+        from d3rlpy.algos import CQL
+
+        dataset = MDPDataset(observations, actions, rewards, terminals)
+
+        # initialize algorithm with MinMaxActionScaler
+        cql = CQL(action_scaler='min_max')
+
+        # scaler is initialized from the given episodes
+        cql.fit(dataset.episodes)
+
+    You can also initialize with :class:`d3rlpy.dataset.MDPDataset` object or
+    manually.
+
+    .. code-block:: python
+
+        from d3rlpy.preprocessing import MinMaxActionScaler
+
+        # initialize with dataset
+        scaler = MinMaxActionScaler(dataset)
+
+        # initialize manually
+        minimum = actions.min(axis=0)
+        maximum = actions.max(axis=0)
+        action_scaler = MinMaxActionScaler(minimum=minimum, maximum=maximum)
+
+        cql = CQL(action_scaler=action_scaler)
+
+    Args:
+        dataset (d3rlpy.dataset.MDPDataset): dataset object.
+        min (numpy.ndarray): minimum values at each entry.
+        max (numpy.ndarray): maximum values at each entry.
+
+    """
+
+    TYPE: ClassVar[str] = "min_max"
+    _minimum: Optional[np.ndarray]
+    _maximum: Optional[np.ndarray]
+
+    def __init__(
+        self,
+        dataset: Optional[MDPDataset] = None,
+        maximum: Optional[np.ndarray] = None,
+        minimum: Optional[np.ndarray] = None,
+    ):
+        self._minimum = None
+        self._maximum = None
+        if dataset:
+            self.fit(dataset.episodes)
+        elif maximum is not None and minimum is not None:
+            self._minimum = np.asarray(minimum)
+            self._maximum = np.asarray(maximum)
+
+    def fit(self, episodes: List[Episode]) -> None:
+        if self._minimum is not None and self._maximum is not None:
+            return
+
+        for i, e in enumerate(episodes):
+            actions = np.asarray(e.actions)
+            if i == 0:
+                minimum = actions.min(axis=0)
+                maximum = actions.max(axis=0)
+            else:
+                minimum = np.minimum(minimum, actions.min(axis=0))
+                maximum = np.maximum(maximum, actions.max(axis=0))
+
+        self._minimum = minimum.reshape((1,) + minimum.shape)
+        self._maximum = maximum.reshape((1,) + maximum.shape)
+
+    def fit_with_env(self, env: gym.Env) -> None:
+        if self._minimum is not None and self._maximum is not None:
+            return
+
+        assert isinstance(env.action_space, gym.spaces.Box)
+        shape = env.action_space.shape
+        low = np.asarray(env.action_space.low)
+        high = np.asarray(env.action_space.high)
+        self._minimum = low.reshape((1,) + shape)
+        self._maximum = high.reshape((1,) + shape)
+
+    def transform(self, action: torch.Tensor) -> torch.Tensor:
+        assert self._minimum is not None and self._maximum is not None
+        minimum = torch.tensor(
+            self._minimum, dtype=torch.float32, device=action.device
+        )
+        maximum = torch.tensor(
+            self._maximum, dtype=torch.float32, device=action.device
+        )
+        # transform action into [-1.0, 1.0]
+        return ((action - minimum) / (maximum - minimum)) * 2.0 - 1.0
+
+    def reverse_transform(self, action: torch.Tensor) -> torch.Tensor:
+        assert self._minimum is not None and self._maximum is not None
+        minimum = torch.tensor(
+            self._minimum, dtype=torch.float32, device=action.device
+        )
+        maximum = torch.tensor(
+            self._maximum, dtype=torch.float32, device=action.device
+        )
+        # transform action from [-1.0, 1.0]
+        return ((maximum - minimum) * ((action + 1.0) / 2.0)) + minimum
+
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
+        if self._minimum is not None:
+            minimum = self._minimum.copy() if deep else self._minimum
+        else:
+            minimum = None
+
+        if self._maximum is not None:
+            maximum = self._maximum.copy() if deep else self._maximum
+        else:
+            maximum = None
+
+        return {"minimum": minimum, "maximum": maximum}
+
+
+ACTION_SCALER_LIST: Dict[str, Type[ActionScaler]] = {}
+
+
+def register_action_scaler(cls: Type[ActionScaler]) -> None:
+    """Registers action scaler class.
+
+    Args:
+        cls: action scaler class inheriting ``ActionScaler``.
+
+    """
+    is_registered = cls.TYPE in ACTION_SCALER_LIST
+    assert not is_registered, "%s seems to be already registered" % cls.TYPE
+    ACTION_SCALER_LIST[cls.TYPE] = cls
+
+
+def create_action_scaler(name: str, **kwargs: Any) -> ActionScaler:
+    """Returns registered action scaler object.
+
+    Args:
+        name: regsitered scaler type name.
+        kwargs: scaler arguments.
+
+    Returns:
+        scaler object.
+
+    """
+    assert name in ACTION_SCALER_LIST, "%s seems not to be registered." % name
+    scaler = ACTION_SCALER_LIST[name](**kwargs)  # type: ignore
+    assert isinstance(scaler, ActionScaler)
+    return scaler
+
+
+register_action_scaler(MinMaxActionScaler)

@@ -11,8 +11,8 @@ from ..models.optimizers import OptimizerFactory, SGDFactory
 from ..models.encoders import EncoderFactory
 from ..gpu import Device
 from ..argument_utility import check_encoder, check_use_gpu, check_augmentation
-from ..argument_utility import ScalerArg, EncoderArg, UseGPUArg
-from ..argument_utility import AugmentationArg
+from ..argument_utility import ScalerArg, ActionScalerArg, EncoderArg
+from ..argument_utility import UseGPUArg, AugmentationArg
 
 
 class _AWRBase(AlgoBase):
@@ -53,6 +53,7 @@ class _AWRBase(AlgoBase):
         max_weight: float = 20.0,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
+        action_scaler: ActionScalerArg = None,
         augmentation: AugmentationArg = None,
         generator: Optional[DataGenerator] = None,
         impl: Optional[AWRImpl] = None,
@@ -65,6 +66,7 @@ class _AWRBase(AlgoBase):
             n_steps=1,
             gamma=gamma,
             scaler=scaler,
+            action_scaler=action_scaler,
             generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
@@ -233,7 +235,9 @@ class AWR(_AWRBase):
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`
+            The available options are `['pixel', 'min_max', 'standard']`.
+        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
+            action preprocessor. The available options are ``['min_max']``.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
@@ -258,6 +262,7 @@ class AWR(_AWRBase):
             critic_encoder_factory=self._critic_encoder_factory,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
+            action_scaler=self._action_scaler,
             augmentation=self._augmentation,
         )
         self._impl.build()
@@ -316,7 +321,7 @@ class DiscreteAWR(_AWRBase):
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`
+            The available options are `['pixel', 'min_max', 'standard']`.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
@@ -342,6 +347,7 @@ class DiscreteAWR(_AWRBase):
             critic_encoder_factory=self._critic_encoder_factory,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
+            action_scaler=None,
             augmentation=self._augmentation,
         )
         self._impl.build()

@@ -13,7 +13,7 @@ from ...models.encoders import EncoderFactory
 from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
 from ...augmentation import AugmentationPipeline
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...torch_utility import torch_api, train_api
 from .sac_impl import SACImpl
 from .dqn_impl import DoubleDQNImpl
@@ -55,6 +55,7 @@ class CQLImpl(SACImpl):
         n_action_samples: int,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
         super().__init__(
@@ -77,6 +78,7 @@ class CQLImpl(SACImpl):
             initial_temperature=initial_temperature,
             use_gpu=use_gpu,
             scaler=scaler,
+            action_scaler=action_scaler,
             augmentation=augmentation,
         )
         self._alpha_learning_rate = alpha_learning_rate
@@ -119,7 +121,7 @@ class CQLImpl(SACImpl):
         return loss + conservative_loss
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
+    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
     def update_alpha(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> np.ndarray:

@@ -22,12 +22,11 @@ from ...models.optimizers import OptimizerFactory
 from ...models.encoders import EncoderFactory
 from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...augmentation import AugmentationPipeline
 from ...torch_utility import (
     torch_api,
     train_api,
-    eval_api,
     hard_sync,
     augmentation_api,
 )
@@ -67,6 +66,7 @@ class SACImpl(DDPGBaseImpl):
         initial_temperature: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
         super().__init__(
@@ -86,6 +86,7 @@ class SACImpl(DDPGBaseImpl):
             share_encoder=share_encoder,
             use_gpu=use_gpu,
             scaler=scaler,
+            action_scaler=action_scaler,
             augmentation=augmentation,
         )
         self._temp_learning_rate = temp_learning_rate
@@ -208,7 +209,9 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         scaler: Optional[Scaler],
         augmentation: AugmentationPipeline,
     ):
-        super().__init__(observation_shape, action_size, scaler, augmentation)
+        super().__init__(
+            observation_shape, action_size, scaler, None, augmentation
+        )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
         self._temp_learning_rate = temp_learning_rate
@@ -423,12 +426,9 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         assert self._policy is not None
         return self._policy.best_action(x)
 
-    @eval_api
-    @torch_api(scaler_targets=["x"])
-    def sample_action(self, x: torch.Tensor) -> np.ndarray:
+    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
-        with torch.no_grad():
-            return self._policy.sample(x).cpu().detach().numpy()
+        return self._policy.sample(x)
 
     def update_target(self) -> None:
         assert self._q_func is not None

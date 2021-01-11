@@ -4,6 +4,7 @@ from typing import List, Optional, Union, cast
 from .models.encoders import create_encoder_factory, EncoderFactory
 from .models.q_functions import create_q_func_factory, QFunctionFactory
 from .preprocessing.scalers import create_scaler, Scaler
+from .preprocessing.action_scalers import create_action_scaler, ActionScaler
 from .augmentation import create_augmentation, AugmentationPipeline
 from .augmentation import DrQPipeline, Augmentation
 from .gpu import Device
@@ -12,6 +13,7 @@ from .gpu import Device
 EncoderArg = Union[EncoderFactory, str]
 QFuncArg = Union[QFunctionFactory, str]
 ScalerArg = Optional[Union[Scaler, str]]
+ActionScalerArg = Optional[Union[ActionScaler, str]]
 AugmentationArg = Optional[
     Union[AugmentationPipeline, List[Union[str, Augmentation]]]
 ]
@@ -60,6 +62,22 @@ def check_scaler(value: ScalerArg) -> Optional[Scaler]:
     if value is None:
         return None
     raise ValueError("This argument must be str or Scaler object.")
+
+
+def check_action_scaler(value: ActionScalerArg) -> Optional[ActionScaler]:
+    """Checks value and returns Scaler object.
+
+    Returns:
+        d3rlpy.preprocessing.scalers.Scaler: scaler object.
+
+    """
+    if isinstance(value, ActionScaler):
+        return value
+    if isinstance(value, str):
+        return create_action_scaler(value)
+    if value is None:
+        return None
+    raise ValueError("This argument must be str or ActionScaler object.")
 
 
 def check_augmentation(value: AugmentationArg) -> AugmentationPipeline:

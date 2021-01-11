@@ -5,7 +5,11 @@ from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import create_q_func_factory
-from tests.algos.algo_test import torch_impl_tester, DummyScaler
+from tests.algos.algo_test import (
+    torch_impl_tester,
+    DummyScaler,
+    DummyActionScaler,
+)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -25,6 +29,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize("share_encoder", [False, True])
 @pytest.mark.parametrize("initial_temperature", [1.0])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
 def test_sac_impl(
     observation_shape,
@@ -44,6 +49,7 @@ def test_sac_impl(
     share_encoder,
     initial_temperature,
     scaler,
+    action_scaler,
     augmentation,
 ):
     impl = SACImpl(
@@ -66,6 +72,7 @@ def test_sac_impl(
         initial_temperature,
         use_gpu=False,
         scaler=scaler,
+        action_scaler=action_scaler,
         augmentation=augmentation,
     )
     torch_impl_tester(

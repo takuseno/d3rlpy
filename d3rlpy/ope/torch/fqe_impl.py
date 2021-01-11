@@ -1,6 +1,6 @@
 import copy
 from abc import abstractmethod
-from typing import Any, List, Optional, Sequence, Union
+from typing import Optional, Sequence
 
 import numpy as np
 import torch
@@ -19,7 +19,7 @@ from ...models.builders import (
 from ...models.optimizers import OptimizerFactory
 from ...models.encoders import EncoderFactory
 from ...models.q_functions import QFunctionFactory
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...gpu import Device
 from ...torch_utility import torch_api, train_api, hard_sync
 from ...algos.torch.utility import (
@@ -58,8 +58,11 @@ class FQEBaseImpl(TorchImplBase):
         share_encoder: bool,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
     ):
-        super().__init__(observation_shape, action_size, scaler, DrQPipeline())
+        super().__init__(
+            observation_shape, action_size, scaler, action_scaler, DrQPipeline()
+        )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
         self._encoder_factory = encoder_factory
@@ -140,12 +143,6 @@ class FQEBaseImpl(TorchImplBase):
         assert self._targ_q_func is not None
         with torch.no_grad():
             return self._targ_q_func.compute_target(x, action)
-
-    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
-        raise NotImplementedError
-
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
 
     def update_target(self) -> None:
         assert self._q_func is not None

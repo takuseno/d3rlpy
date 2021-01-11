@@ -6,7 +6,7 @@ from ..models.optimizers import OptimizerFactory, AdamFactory
 from ..models.encoders import EncoderFactory
 from ..gpu import Device
 from ..argument_utility import check_encoder, check_use_gpu
-from ..argument_utility import EncoderArg, UseGPUArg, ScalerArg
+from ..argument_utility import EncoderArg, UseGPUArg, ScalerArg, ActionScalerArg
 
 
 class MOPO(DynamicsBase):
@@ -67,6 +67,8 @@ class MOPO(DynamicsBase):
         discrete_action (bool): flag to take discrete actions.
         scaler (d3rlpy.preprocessing.scalers.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`.
+        action_scaler (d3rlpy.preprocessing.Actionscalers or str):
+            action preprocessor. The available options are ``['min_max']``.
         use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         impl (d3rlpy.dynamics.torch.MOPOImpl): dynamics implementation.
 
@@ -95,6 +97,7 @@ class MOPO(DynamicsBase):
         lam: float = 1.0,
         discrete_action: bool = False,
         scaler: ScalerArg = None,
+        action_scaler: ActionScalerArg = None,
         use_gpu: UseGPUArg = False,
         impl: Optional[MOPOImpl] = None,
         **kwargs: Any
@@ -105,6 +108,7 @@ class MOPO(DynamicsBase):
             n_transitions=n_transitions,
             horizon=horizon,
             scaler=scaler,
+            action_scaler=action_scaler,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
@@ -128,6 +132,7 @@ class MOPO(DynamicsBase):
             lam=self._lam,
             discrete_action=self._discrete_action,
             scaler=self._scaler,
+            action_scaler=self._action_scaler,
             use_gpu=self._use_gpu,
         )
         self._impl.build()

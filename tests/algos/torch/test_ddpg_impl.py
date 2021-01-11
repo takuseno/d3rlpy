@@ -5,7 +5,11 @@ from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import create_q_func_factory
-from tests.algos.algo_test import torch_impl_tester, DummyScaler
+from tests.algos.algo_test import (
+    torch_impl_tester,
+    DummyScaler,
+    DummyActionScaler,
+)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -22,6 +26,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize("bootstrap", [False])
 @pytest.mark.parametrize("share_encoder", [True])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
 def test_ddpg_impl(
     observation_shape,
@@ -38,6 +43,7 @@ def test_ddpg_impl(
     bootstrap,
     share_encoder,
     scaler,
+    action_scaler,
     augmentation,
 ):
     impl = DDPGImpl(
@@ -57,6 +63,7 @@ def test_ddpg_impl(
         share_encoder,
         use_gpu=False,
         scaler=scaler,
+        action_scaler=action_scaler,
         augmentation=augmentation,
     )
     torch_impl_tester(

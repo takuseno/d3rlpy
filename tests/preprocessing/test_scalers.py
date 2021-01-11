@@ -1,6 +1,7 @@
 import pytest
 import torch
 import numpy as np
+import gym
 
 from d3rlpy.dataset import MDPDataset, Episode
 from d3rlpy.preprocessing import create_scaler
@@ -43,15 +44,16 @@ def test_min_max_scaler(observation_shape, batch_size):
 
     max = observations.max(axis=0)
     min = observations.min(axis=0)
-
     scaler = MinMaxScaler(maximum=max, minimum=min)
 
+    # check range
+    y = scaler.transform(torch.tensor(observations))
+    assert np.all(y.numpy() >= 0.0)
+    assert np.all(y.numpy() <= 1.0)
+
     x = torch.rand((batch_size,) + observation_shape)
-
     y = scaler.transform(x)
-
     ref_y = (x.numpy() - min.reshape((1, -1))) / (max - min).reshape((1, -1))
-
     assert np.allclose(y.numpy(), ref_y)
 
     assert scaler.get_type() == "min_max"
@@ -90,6 +92,18 @@ def test_min_max_scaler_with_episode(observation_shape, batch_size):
     ref_y = (x.numpy() - min.reshape((1, -1))) / (max - min).reshape((1, -1))
 
     assert np.allclose(y.numpy(), ref_y)
+
+
+def test_min_max_scaler_with_env():
+    env = gym.make("BreakoutNoFrameskip-v4")
+
+    scaler = MinMaxScaler()
+    scaler.fit_with_env(env)
+
+    x = torch.tensor(env.reset().reshape((1,) + env.observation_space.shape))
+    y = scaler.transform(x)
+
+    assert torch.all(x / 255.0 == y)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])

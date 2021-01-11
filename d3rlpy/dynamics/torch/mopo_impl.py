@@ -8,7 +8,7 @@ from ...models.torch import EnsembleDynamics
 from ...models.builders import create_probablistic_dynamics
 from ...models.optimizers import OptimizerFactory
 from ...models.encoders import EncoderFactory
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...gpu import Device
 from ...torch_utility import torch_api, train_api
 from .base import TorchImplBase
@@ -37,9 +37,10 @@ class MOPOImpl(TorchImplBase):
         lam: float,
         discrete_action: bool,
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         use_gpu: Optional[Device],
     ):
-        super().__init__(observation_shape, action_size, scaler)
+        super().__init__(observation_shape, action_size, scaler, action_scaler)
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
         self._encoder_factory = encoder_factory
@@ -92,7 +93,9 @@ class MOPOImpl(TorchImplBase):
         return observations, rewards - self._lam * variances
 
     @train_api
-    @torch_api(scaler_targets=["obs_t", "obs_tp1"])
+    @torch_api(
+        scaler_targets=["obs_t", "obs_tp1"], action_scaler_targets=["act_t"]
+    )
     def update(
         self,
         obs_t: torch.Tensor,

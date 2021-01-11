@@ -6,7 +6,7 @@ from d3rlpy.ope.torch.fqe_impl import FQEImpl, DiscreteFQEImpl
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import create_q_func_factory
-from tests.algos.algo_test import DummyScaler
+from tests.algos.algo_test import DummyScaler, DummyActionScaler
 
 
 def torch_impl_tester(impl, discrete):
@@ -44,6 +44,7 @@ def torch_impl_tester(impl, discrete):
 @pytest.mark.parametrize("bootstrap", [False])
 @pytest.mark.parametrize("share_encoder", [True])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 def test_fqe_impl(
     observation_shape,
     action_size,
@@ -56,6 +57,7 @@ def test_fqe_impl(
     bootstrap,
     share_encoder,
     scaler,
+    action_scaler,
 ):
     fqe = FQEImpl(
         observation_shape,
@@ -70,6 +72,7 @@ def test_fqe_impl(
         share_encoder,
         use_gpu=False,
         scaler=scaler,
+        action_scaler=action_scaler,
     )
 
     torch_impl_tester(fqe, False)
@@ -112,6 +115,7 @@ def test_discrete_fqe_impl(
         share_encoder,
         use_gpu=False,
         scaler=scaler,
+        action_scaler=None,
     )
 
     torch_impl_tester(fqe, True)

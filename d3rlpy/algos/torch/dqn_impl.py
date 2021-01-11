@@ -49,7 +49,9 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         scaler: Optional[Scaler],
         augmentation: AugmentationPipeline,
     ):
-        super().__init__(observation_shape, action_size, scaler, augmentation)
+        super().__init__(
+            observation_shape, action_size, scaler, None, augmentation
+        )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
         self._encoder_factory = encoder_factory
@@ -157,8 +159,8 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         assert self._q_func is not None
         return self._q_func(x).argmax(dim=1)
 
-    def sample_action(self, x: np.ndarray) -> np.ndarray:
-        return self.predict_best_action(x)
+    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self._predict_best_action(x)
 
     def update_target(self) -> None:
         assert self._q_func is not None

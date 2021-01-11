@@ -13,7 +13,7 @@ from ...models.builders import (
 from ...models.optimizers import OptimizerFactory
 from ...models.encoders import EncoderFactory
 from ...gpu import Device
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...augmentation import AugmentationPipeline
 from ...torch_utility import torch_api, train_api, augmentation_api
 from .base import TorchImplBase
@@ -37,9 +37,12 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
         encoder_factory: EncoderFactory,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
-        super().__init__(observation_shape, action_size, scaler, augmentation)
+        super().__init__(
+            observation_shape, action_size, scaler, action_scaler, augmentation
+        )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
         self._encoder_factory = encoder_factory
@@ -70,7 +73,7 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
         )
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
+    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
     def update_imitator(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> np.ndarray:
@@ -100,9 +103,6 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
         self, x: np.ndarray, action: np.ndarray, with_std: bool
     ) -> np.ndarray:
         raise NotImplementedError("BC does not support value estimation")
-
-    def sample_action(self, x: np.ndarray) -> np.ndarray:
-        raise NotImplementedError("BC does not support sampling action")
 
 
 class BCImpl(BCBaseImpl):
@@ -140,6 +140,7 @@ class DiscreteBCImpl(BCBaseImpl):
             encoder_factory=encoder_factory,
             use_gpu=use_gpu,
             scaler=scaler,
+            action_scaler=None,
             augmentation=augmentation,
         )
         self._beta = beta

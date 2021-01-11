@@ -11,7 +11,7 @@ from ..argument_utility import check_encoder, EncoderArg
 from ..argument_utility import check_use_gpu, UseGPUArg
 from ..argument_utility import check_augmentation, AugmentationArg
 from ..argument_utility import check_q_func, QFuncArg
-from ..argument_utility import ScalerArg
+from ..argument_utility import ScalerArg, ActionScalerArg
 
 
 class BEAR(AlgoBase):
@@ -105,6 +105,8 @@ class BEAR(AlgoBase):
             flag to use GPU, device iD or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The avaiable options are `['pixel', 'min_max', 'standard']`.
+        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
+            action preprocessor. The avaiable options are ``['min_max']``.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
         generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
@@ -178,6 +180,7 @@ class BEAR(AlgoBase):
         rl_start_epoch: int = 0,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
+        action_scaler: ActionScalerArg = None,
         augmentation: AugmentationArg = None,
         generator: Optional[DataGenerator] = None,
         impl: Optional[BEARImpl] = None,
@@ -189,6 +192,7 @@ class BEAR(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
+            action_scaler=action_scaler,
             generator=generator,
         )
         self._actor_learning_rate = actor_learning_rate
@@ -254,6 +258,7 @@ class BEAR(AlgoBase):
             mmd_sigma=self._mmd_sigma,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
+            action_scaler=self._action_scaler,
             augmentation=self._augmentation,
         )
         self._impl.build()

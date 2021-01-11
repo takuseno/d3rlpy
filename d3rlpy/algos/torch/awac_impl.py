@@ -12,7 +12,7 @@ from ...models.optimizers import OptimizerFactory, AdamFactory
 from ...models.encoders import EncoderFactory
 from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...augmentation import AugmentationPipeline
 from ...torch_utility import torch_api, train_api, augmentation_api
 from .sac_impl import SACImpl
@@ -45,6 +45,7 @@ class AWACImpl(SACImpl):
         share_encoder: bool,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
         super().__init__(
@@ -67,6 +68,7 @@ class AWACImpl(SACImpl):
             initial_temperature=1e-20,
             use_gpu=use_gpu,
             scaler=scaler,
+            action_scaler=action_scaler,
             augmentation=augmentation,
         )
         self._lam = lam
@@ -84,7 +86,7 @@ class AWACImpl(SACImpl):
         )
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
+    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
     def update_actor(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> np.ndarray:

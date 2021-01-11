@@ -1,6 +1,6 @@
 import copy
 from abc import ABCMeta, abstractmethod
-from typing import Any, List, Optional, Sequence, Union
+from typing import Optional, Sequence
 
 import numpy as np
 import torch
@@ -20,12 +20,11 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...torch_utility import (
     soft_sync,
     torch_api,
     train_api,
-    eval_api,
     augmentation_api,
 )
 from .utility import ContinuousQFunctionMixin
@@ -72,9 +71,12 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         share_encoder: bool,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
-        super().__init__(observation_shape, action_size, scaler, augmentation)
+        super().__init__(
+            observation_shape, action_size, scaler, action_scaler, augmentation
+        )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
         self._actor_optim_factory = actor_optim_factory
@@ -143,7 +145,9 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         )
 
     @train_api
-    @torch_api(scaler_targets=["obs_t", "obs_tpn"])
+    @torch_api(
+        scaler_targets=["obs_t", "obs_tpn"], action_scaler_targets=["act_t"]
+    )
     def update_critic(
         self,
         obs_t: torch.Tensor,
@@ -225,12 +229,9 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         assert self._policy is not None
         return self._policy.best_action(x)
 
-    @eval_api
-    @torch_api(scaler_targets=["obs_t"])
-    def sample_action(self, x: torch.Tensor) -> np.ndarray:
+    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
-        with torch.no_grad():
-            return self._policy.sample(x).cpu().detach().numpy()
+        return self._policy.sample(x)
 
     def update_critic_target(self) -> None:
         assert self._q_func is not None
@@ -270,5 +271,5 @@ class DDPGImpl(DDPGBaseImpl):
             action = self._targ_policy(x)
             return self._targ_q_func.compute_target(x, action.clamp(-1.0, 1.0))
 
-    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
-        return self.predict_best_action(x)
+    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self._predict_best_action(x)

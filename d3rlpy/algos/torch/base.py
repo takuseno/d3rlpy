@@ -5,7 +5,7 @@ import torch
 
 from ...gpu import Device
 from ...augmentation import AugmentationPipeline
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...torch_utility import freeze, unfreeze
 from ...torch_utility import to_cuda, to_cpu
 from ...torch_utility import torch_api, eval_api
@@ -19,6 +19,7 @@ class TorchImplBase(AlgoImplBase):
     _observation_shape: Sequence[int]
     _action_size: int
     _scaler: Optional[Scaler]
+    _action_scaler: Optional[ActionScaler]
     _device: str
     _augmentation: AugmentationPipeline
 
@@ -27,11 +28,13 @@ class TorchImplBase(AlgoImplBase):
         observation_shape: Sequence[int],
         action_size: int,
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
         self._observation_shape = observation_shape
         self._action_size = action_size
         self._scaler = scaler
+        self._action_scaler = action_scaler
         self._device = "cpu:0"
         self._augmentation = augmentation
 
@@ -39,9 +42,30 @@ class TorchImplBase(AlgoImplBase):
     @torch_api(scaler_targets=["x"])
     def predict_best_action(self, x: torch.Tensor) -> np.ndarray:
         with torch.no_grad():
-            return self._predict_best_action(x).cpu().detach().numpy()
+            action = self._predict_best_action(x)
+
+            # transform action back to the original range
+            if self._action_scaler:
+                action = self._action_scaler.reverse_transform(action)
+
+            return action.cpu().detach().numpy()
 
     def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+    @eval_api
+    @torch_api(scaler_targets=["x"])
+    def sample_action(self, x: torch.Tensor) -> np.ndarray:
+        with torch.no_grad():
+            action = self._sample_action(x)
+
+            # transform action back to the original range
+            if self._action_scaler:
+                action = self._action_scaler.reverse_transform(action)
+
+            return action.cpu().detach().numpy()
+
+    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
 
     @eval_api
@@ -55,7 +79,13 @@ class TorchImplBase(AlgoImplBase):
         def _func(x: torch.Tensor) -> torch.Tensor:
             if self._scaler:
                 x = self._scaler.transform(x)
-            return self._predict_best_action(x)
+
+            action = self._predict_best_action(x)
+
+            if self._action_scaler:
+                action = self._action_scaler.reverse_transform(action)
+
+            return action
 
         traced_script = torch.jit.trace(_func, dummy_x, check_trace=False)
 
@@ -107,6 +137,10 @@ class TorchImplBase(AlgoImplBase):
     @property
     def scaler(self) -> Optional[Scaler]:
         return self._scaler
+
+    @property
+    def action_scaler(self) -> Optional[ActionScaler]:
+        return self._action_scaler
 
     @property
     def augmentation(self) -> AugmentationPipeline:

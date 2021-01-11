@@ -97,6 +97,7 @@ class DQN(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
+            action_scaler=None,
             generator=generator,
         )
         self._learning_rate = learning_rate

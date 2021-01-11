@@ -8,9 +8,16 @@ from .algo_test import algo_tester, algo_update_tester, algo_pendulum_tester
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-@pytest.mark.parametrize("scaler", [None, "standard"])
-def test_plas(observation_shape, action_size, q_func_factory, scaler):
-    plas = PLAS(q_func_factory=q_func_factory, scaler=scaler)
+@pytest.mark.parametrize("scaler", [None, "min_max"])
+@pytest.mark.parametrize("action_scaler", [None, "min_max"])
+def test_plas(
+    observation_shape, action_size, q_func_factory, scaler, action_scaler
+):
+    plas = PLAS(
+        q_func_factory=q_func_factory,
+        scaler=scaler,
+        action_scaler=action_scaler,
+    )
     algo_tester(plas, observation_shape)
     algo_update_tester(plas, observation_shape, action_size)
 
@@ -25,11 +32,16 @@ def test_plas_performance(q_func_factory):
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-@pytest.mark.parametrize("scaler", [None, "standard"])
+@pytest.mark.parametrize("scaler", [None, "min_max"])
+@pytest.mark.parametrize("action_scaler", [None, "min_max"])
 def test_plas_with_perturbation(
-    observation_shape, action_size, q_func_factory, scaler
+    observation_shape, action_size, q_func_factory, scaler, action_scaler
 ):
-    plas = PLASWithPerturbation(q_func_factory=q_func_factory, scaler=scaler)
+    plas = PLASWithPerturbation(
+        q_func_factory=q_func_factory,
+        scaler=scaler,
+        action_scaler=action_scaler,
+    )
     algo_tester(plas, observation_shape)
     algo_update_tester(plas, observation_shape, action_size)
 

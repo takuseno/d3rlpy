@@ -20,7 +20,7 @@ from ...models.builders import (
 from ...models.optimizers import OptimizerFactory
 from ...models.encoders import EncoderFactory
 from ...models.q_functions import QFunctionFactory
-from ...preprocessing import Scaler
+from ...preprocessing import Scaler, ActionScaler
 from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...torch_utility import torch_api, train_api, augmentation_api
@@ -69,6 +69,7 @@ class BCQImpl(DDPGBaseImpl):
         beta: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        action_scaler: Optional[ActionScaler],
         augmentation: AugmentationPipeline,
     ):
         super().__init__(
@@ -88,6 +89,7 @@ class BCQImpl(DDPGBaseImpl):
             share_encoder=share_encoder,
             use_gpu=use_gpu,
             scaler=scaler,
+            action_scaler=action_scaler,
             augmentation=augmentation,
         )
         self._imitator_learning_rate = imitator_learning_rate
@@ -146,7 +148,7 @@ class BCQImpl(DDPGBaseImpl):
         return -self._q_func(obs_t, action, "none")[0].mean()
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
+    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
     def update_imitator(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> np.ndarray:
@@ -175,7 +177,7 @@ class BCQImpl(DDPGBaseImpl):
         repeated_x = x.view(x.shape[0], 1, *x.shape[1:]).expand(repeat_shape)
         return repeated_x
 
-    def _sample_action(
+    def _sample_repeated_action(
         self, repeated_x: torch.Tensor, target: bool = False
     ) -> torch.Tensor:
         assert self._imitator is not None
@@ -212,13 +214,13 @@ class BCQImpl(DDPGBaseImpl):
     def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         # TODO: this seems to be slow with image observation
         repeated_x = self._repeat_observation(x)
-        action = self._sample_action(repeated_x)
+        action = self._sample_repeated_action(repeated_x)
         values = self._predict_value(repeated_x, action)[0]
         # pick the best (batch_size * n) -> (batch_size,)
         index = values.view(-1, self._n_action_samples).argmax(dim=1)
         return action[torch.arange(action.shape[0]), index]
 
-    def sample_action(self, x: np.ndarray) -> np.ndarray:
+    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError("BCQ does not support sampling action")
 
     @augmentation_api(targets=["x"])
@@ -227,7 +229,7 @@ class BCQImpl(DDPGBaseImpl):
         # TODO: this seems to be slow with image observation
         with torch.no_grad():
             repeated_x = self._repeat_observation(x)
-            actions = self._sample_action(repeated_x, True)
+            actions = self._sample_repeated_action(repeated_x, True)
 
             values = compute_max_with_n_actions(
                 x, actions, self._targ_q_func, self._lam
