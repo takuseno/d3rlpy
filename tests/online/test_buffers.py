@@ -48,6 +48,47 @@ def test_replay_buffer(n_episodes, batch_size, maxlen):
     assert isinstance(batch.next_observations, np.ndarray)
 
 
+@pytest.mark.parametrize("n_episodes", [10])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("maxlen", [50])
+@pytest.mark.parametrize("clip_episode_flag", [True, False])
+def test_replay_buffer_with_clip_episode(
+    n_episodes, batch_size, maxlen, clip_episode_flag
+):
+    env = gym.make("CartPole-v0")
+
+    buffer = ReplayBuffer(maxlen, env)
+
+    observation, reward, terminal = env.reset(), 0.0, False
+    clip_episode = False
+    while not clip_episode:
+        action = env.action_space.sample()
+        observation, reward, terminal, _ = env.step(action)
+        clip_episode = terminal
+        if clip_episode_flag and terminal:
+            terminal = False
+        buffer.append(
+            observation=observation.astype("f4"),
+            action=action,
+            reward=reward,
+            terminal=terminal,
+            clip_episode=clip_episode,
+        )
+
+    # make a transition for a new episode
+    for _ in range(2):
+        buffer.append(
+            observation=observation.astype("f4"),
+            action=action,
+            reward=reward,
+            terminal=False,
+        )
+
+    assert buffer.transitions[-2].terminal != clip_episode_flag
+    assert buffer.transitions[-2].next_transition is None
+    assert buffer.transitions[-1].prev_transition is None
+
+
 @pytest.mark.parametrize("maxlen", [200])
 @pytest.mark.parametrize("data_size", [100])
 def test_replay_buffer_with_episode(maxlen, data_size):

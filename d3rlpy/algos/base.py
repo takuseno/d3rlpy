@@ -194,6 +194,7 @@ class AlgoBase(LearnableBase):
         verbose: bool = True,
         show_progress: bool = True,
         tensorboard: bool = True,
+        timelimit_aware: bool = True,
     ) -> None:
         """Start training loop of online deep reinforcement learning.
 
@@ -218,6 +219,9 @@ class AlgoBase(LearnableBase):
             show_progress: flag to show progress bar for iterations.
             tensorboard: flag to save logged information in tensorboard
                 (additional to the csv data)
+            timelimit_aware: flag to turn ``terminal`` flag ``False`` when
+                ``TimeLimit.truncated`` flag is ``True``, which is designed to
+                incorporate with ``gym.wrappers.TimeLimit``.
 
         """
         # initialize scaler
@@ -275,6 +279,7 @@ class AlgoBase(LearnableBase):
 
         # start training loop
         observation, reward, terminal = env.reset(), 0.0, False
+        clip_episode = False
         for total_step in xrange(n_steps):
             with logger.measure_time("step"):
                 # stack observation if necessary
@@ -295,17 +300,31 @@ class AlgoBase(LearnableBase):
                         action = self.sample_action([fed_observation])[0]
 
                 # store observation
-                buffer.append(observation, action, reward, terminal)
+                buffer.append(
+                    observation=observation,
+                    action=action,
+                    reward=reward,
+                    terminal=terminal,
+                    clip_episode=clip_episode,
+                )
 
                 # get next observation
-                if terminal:
+                if clip_episode:
                     observation, reward, terminal = env.reset(), 0.0, False
+                    clip_episode = False
                     # for image observation
                     if is_image:
                         stacked_frame.clear()
                 else:
                     with logger.measure_time("environment_step"):
-                        observation, reward, terminal, _ = env.step(action)
+                        observation, reward, terminal, info = env.step(action)
+
+                    # special case for TimeLimit wrapper
+                    if timelimit_aware and "TimeLimit.truncated" in info:
+                        clip_episode = True
+                        terminal = False
+                    else:
+                        clip_episode = terminal
 
                 # psuedo epoch count
                 epoch = total_step // n_steps_per_epoch

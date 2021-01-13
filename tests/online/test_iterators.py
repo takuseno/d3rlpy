@@ -68,3 +68,30 @@ def test_fit_online_pendulum_with_sac():
         logdir="test_data",
         tensorboard=False,
     )
+
+
+@pytest.mark.parametrize("timelimit_aware", [False, True])
+def test_timelimit_aware(timelimit_aware):
+    env = gym.make("Pendulum-v0")
+
+    algo = SAC()
+
+    buffer = ReplayBuffer(1000, env)
+
+    algo.fit_online(
+        env,
+        buffer,
+        n_steps=500,
+        logdir="test_data",
+        tensorboard=False,
+        timelimit_aware=timelimit_aware,
+    )
+
+    terminal_count = 0
+    for i in range(len(buffer)):
+        terminal_count += int(buffer.transitions[i].terminal)
+
+    if timelimit_aware:
+        assert terminal_count == 0
+    else:
+        assert terminal_count > 0

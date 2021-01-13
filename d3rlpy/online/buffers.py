@@ -37,6 +37,11 @@ class FIFOQueue(Generic[T]):
 
     def __getitem__(self, index: int) -> T:
         assert index < self._size
+
+        # handle negative indexing
+        if index < 0:
+            index = self._size + index
+
         item = self._buffer[index]
         assert item is not None
         return item
@@ -53,6 +58,7 @@ class Buffer(metaclass=ABCMeta):
         action: np.ndarray,
         reward: float,
         terminal: float,
+        clip_episode: Optional[bool] = None,
     ) -> None:
         """Append observation, action, reward and terminal flag to buffer.
 
@@ -60,10 +66,12 @@ class Buffer(metaclass=ABCMeta):
         an entire episode and the whole transitions will be appended.
 
         Args:
-            observation (numpy.ndarray): observation.
-            action (numpy.ndarray or int): action.
-            reward (float): reward.
-            terminal (bool or float): terminal flag.
+            observation: observation.
+            action: action.
+            reward: reward.
+            terminal: terminal flag.
+            clip_episode: flag to clip the current episode. If ``None``, the
+                episode is clipped based on ``terminal``.
 
         """
 
@@ -183,7 +191,12 @@ class ReplayBuffer(Buffer):
         action: np.ndarray,
         reward: float,
         terminal: float,
+        clip_episode: Optional[bool] = None,
     ) -> None:
+        # if None, use terminal
+        if clip_episode is None:
+            clip_episode = bool(terminal)
+
         # validation
         assert observation.shape == self._observation_shape
         if isinstance(action, np.ndarray):
@@ -191,6 +204,8 @@ class ReplayBuffer(Buffer):
         else:
             action = int(action)
             assert action < self._action_size
+        # not allow terminal=True and clip_episode=False
+        assert not (terminal and not clip_episode)
 
         # create Transition object
         if self._prev_observation is not None:
@@ -221,7 +236,7 @@ class ReplayBuffer(Buffer):
         self._prev_action = action
         self._prev_reward = reward
 
-        if terminal:
+        if clip_episode:
             self._prev_observation = None
             self._prev_action = None
             self._prev_reward = 0.0
@@ -286,3 +301,13 @@ class ReplayBuffer(Buffer):
             observations = np.asarray(observations, dtype=np.float32)
 
         return MDPDataset(observations, actions, rewards, terminals)
+
+    @property
+    def transitions(self) -> FIFOQueue[Transition]:
+        """Returns a FIFO queue of transitions.
+
+        Returns:
+            d3rlpy.online.buffers.FIFOQueue: FIFO queue of transitions.
+
+        """
+        return self._transitions
