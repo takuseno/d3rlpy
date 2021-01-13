@@ -151,7 +151,11 @@ def test_mdp_dataset(
 
     # check extend
     another_dataset = MDPDataset(
-        observations, actions, rewards, terminals, discrete_action
+        observations,
+        actions,
+        rewards,
+        terminals,
+        discrete_action=discrete_action,
     )
     dataset.extend(another_dataset)
     assert len(dataset) == 3 * n_episodes
@@ -242,6 +246,45 @@ def test_episode(data_size, observation_size, action_size):
     for i, transition in enumerate(episode):
         assert isinstance(transition, Transition)
         assert transition is episode.transitions[i]
+
+
+@pytest.mark.parametrize("data_size", [100])
+@pytest.mark.parametrize("observation_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+def test_episode_terminals(data_size, observation_size, action_size):
+    observations = np.random.random((data_size, observation_size)).astype("f4")
+    actions = np.random.random((data_size, action_size)).astype("f4")
+    rewards = np.random.random(data_size).astype("f4")
+
+    # check default
+    terminals = np.zeros(data_size, dtype=np.float32)
+    terminals[49] = 1.0
+    terminals[-1] = 1.0
+    dataset1 = MDPDataset(observations, actions, rewards, terminals)
+    assert len(dataset1.episodes) == 2
+    assert np.all(dataset1.terminals == dataset1.episode_terminals)
+    assert dataset1.episodes[0].terminal
+    assert dataset1.episodes[0][-1].terminal
+
+    # check non-terminal episode
+    terminals = np.zeros(data_size, dtype=np.float32)
+    terminals[-1] = 1.0
+    episode_terminals = np.zeros(data_size, dtype=np.float32)
+    episode_terminals[49] = 1.0
+    episode_terminals[-1] = 1.0
+    dataset2 = MDPDataset(
+        observations, actions, rewards, terminals, episode_terminals
+    )
+    assert len(dataset2.episodes) == 2
+    assert not np.all(dataset2.terminals == dataset2.episode_terminals)
+    assert not dataset2.episodes[0].terminal
+    assert not dataset2.episodes[0][-1].terminal
+
+    # check extend
+    dataset1.extend(dataset2)
+    assert len(dataset1) == 4
+    assert not dataset1.episodes[2].terminal
+    assert dataset1.episodes[3].terminal
 
 
 @pytest.mark.parametrize("data_size", [100])

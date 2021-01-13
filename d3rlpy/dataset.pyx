@@ -23,23 +23,24 @@ def _safe_size(array):
 
 
 def _to_episodes(observation_shape, action_size, observations, actions,
-                 rewards, terminals):
+                 rewards, terminals, episode_terminals):
     rets = []
     head_index = 0
     for i in range(_safe_size(observations)):
-        if terminals[i]:
+        if episode_terminals[i]:
             episode = Episode(observation_shape=observation_shape,
                               action_size=action_size,
                               observations=observations[head_index:i + 1],
                               actions=actions[head_index:i + 1],
-                              rewards=rewards[head_index:i + 1])
+                              rewards=rewards[head_index:i + 1],
+                              terminal=terminals[i])
             rets.append(episode)
             head_index = i + 1
     return rets
 
 
 def _to_transitions(observation_shape, action_size, observations, actions,
-                    rewards):
+                    rewards, terminal):
     rets = []
     num_data = _safe_size(observations)
     prev_transition = None
@@ -50,7 +51,7 @@ def _to_transitions(observation_shape, action_size, observations, actions,
         next_observation = observations[i + 1]
         next_action = actions[i + 1]
         next_reward = rewards[i + 1]
-        terminal = 1.0 if i == num_data - 2 else 0.0
+        env_terminal = terminal if i == num_data - 2 else 0.0
 
         transition = Transition(observation_shape=observation_shape,
                                 action_size=action_size,
@@ -60,7 +61,7 @@ def _to_transitions(observation_shape, action_size, observations, actions,
                                 next_observation=next_observation,
                                 next_action=next_action,
                                 next_reward=next_reward,
-                                terminal=terminal,
+                                terminal=env_terminal,
                                 prev_transition=prev_transition)
 
         # set pointer to the next transition
@@ -127,6 +128,11 @@ class MDPDataset:
             action-space is discrete, the shape should be `(N,)`.
         rewards (numpy.ndarray): array of scalar rewards.
         terminals (numpy.ndarray): array of binary terminal flags.
+        episode_terminals (numpy.ndarray): array of binary episode terminal
+            flags. The given data will be splitted based on this flag.
+            This is useful if you want to specify the non-environment
+            terminations (e.g. timeout). If ``None``, the episode terminations
+            match the environment terminations.
         discrete_action (bool): flag to use the given actions as discrete
             action-space actions. If ``None``, the action type is automatically
             determined.
@@ -137,6 +143,7 @@ class MDPDataset:
                  actions,
                  rewards,
                  terminals,
+                 episode_terminals=None,
                  discrete_action=None):
         # validation
         assert isinstance(observations, np.ndarray)
@@ -149,6 +156,13 @@ class MDPDataset:
         self._observations = observations
         self._rewards = np.asarray(rewards, dtype=np.float32).reshape(-1)
         self._terminals = np.asarray(terminals, dtype=np.float32).reshape(-1)
+
+        if episode_terminals is None:
+            # if None, episode terminals match the environment terminals
+            self._episode_terminals = self._terminals
+        else:
+            self._episode_terminals = np.asarray(
+                episode_terminals, dtype=np.float32).reshape(-1)
 
         # automatic action type detection
         if discrete_action is None:
@@ -201,6 +215,16 @@ class MDPDataset:
 
         """
         return self._terminals
+
+    @property
+    def episode_terminals(self):
+        """ Returns the episode terminal flags.
+
+        Returns:
+            numpy.ndarray: array of episode terminal flags.
+
+        """
+        return self._episode_terminals
 
     @property
     def episodes(self):
@@ -359,7 +383,12 @@ class MDPDataset:
         if self._episodes:
             self.build_episodes()
 
-    def append(self, observations, actions, rewards, terminals):
+    def append(self,
+               observations,
+               actions,
+               rewards,
+               terminals,
+               episode_terminals=None):
         """ Appends new data.
 
         Args:
@@ -367,6 +396,7 @@ class MDPDataset:
             actions (numpy.ndarray): actions.
             rewards (numpy.ndarray): rewards.
             terminals (numpy.ndarray): terminals.
+            episode_terminals (numpy.ndarray): episode terminals.
 
         """
         # validation
@@ -389,6 +419,11 @@ class MDPDataset:
         # append rests
         self._rewards = np.hstack([self._rewards, rewards])
         self._terminals = np.hstack([self._terminals, terminals])
+        if episode_terminals is None:
+            episode_terminals = terminals
+        self._episode_terminals = np.hstack([self._episode_terminals,
+                                             episode_terminals])
+
 
         # convert new data to list of episodes
         episodes = _to_episodes(observation_shape=self.get_observation_shape(),
@@ -396,7 +431,8 @@ class MDPDataset:
                                 observations=observations,
                                 actions=actions,
                                 rewards=rewards,
-                                terminals=terminals)
+                                terminals=terminals,
+                                episode_terminals=episode_terminals)
 
         # append to episodes
         self._episodes += episodes
@@ -412,7 +448,7 @@ class MDPDataset:
         assert self.get_observation_shape() == dataset.get_observation_shape()
         assert self.get_action_size() == dataset.get_action_size()
         self.append(dataset.observations, dataset.actions, dataset.rewards,
-                    dataset.terminals)
+                    dataset.terminals, dataset.episode_terminals)
 
     def dump(self, fname):
         """ Saves dataset as HDF5.
@@ -426,6 +462,7 @@ class MDPDataset:
             f.create_dataset('actions', data=self._actions)
             f.create_dataset('rewards', data=self._rewards)
             f.create_dataset('terminals', data=self._terminals)
+            f.create_dataset('episode_terminals', data=self._episode_terminals)
             f.create_dataset('discrete_action', data=self.discrete_action)
             f.flush()
 
@@ -460,10 +497,17 @@ class MDPDataset:
             terminals = f['terminals'][()]
             discrete_action = f['discrete_action'][()]
 
+            # for backward compatibility
+            if 'episode_terminals' in f:
+                episode_terminals = f['episode_terminals'][()]
+            else:
+                episode_terminals = None
+
         dataset = cls(observations=observations,
                       actions=actions,
                       rewards=rewards,
                       terminals=terminals,
+                      episode_terminals=episode_terminals,
                       discrete_action=discrete_action)
 
         return dataset
@@ -481,7 +525,8 @@ class MDPDataset:
             observations=self._observations,
             actions=self._actions,
             rewards=self._rewards,
-            terminals=self._terminals)
+            terminals=self._terminals,
+            episode_terminals=self._episode_terminals)
 
     def __len__(self):
         return self.size()
@@ -521,11 +566,17 @@ class Episode:
         observations (numpy.ndarray): observations.
         actions (numpy.ndarray): actions.
         rewards (numpy.ndarray): scalar rewards.
-        terminals (numpy.ndarray): binary terminal flags.
+        terminal (bool): binary terminal flag. If False, the episode is not
+            terminated by the environment (e.g. timeout).
 
     """
-    def __init__(self, observation_shape, action_size, observations, actions,
-                 rewards):
+    def __init__(self,
+                 observation_shape,
+                 action_size,
+                 observations,
+                 actions,
+                 rewards,
+                 terminal=True):
         # validation
         assert isinstance(observations, np.ndarray)
         if len(observation_shape) == 3:
@@ -545,6 +596,7 @@ class Episode:
         self._observations = observations
         self._actions = actions
         self._rewards = np.asarray(rewards, dtype=np.float32)
+        self._terminal = terminal
         self._transitions = None
 
     @property
@@ -578,6 +630,16 @@ class Episode:
         return self._rewards
 
     @property
+    def terminal(self):
+        """ Returns the terminal flag.
+
+        Returns:
+            bool: the terminal flag.
+
+        """
+        return self._terminal
+
+    @property
     def transitions(self):
         """ Returns the transitions.
 
@@ -602,7 +664,8 @@ class Episode:
             action_size=self.action_size,
             observations=self._observations,
             actions=self._actions,
-            rewards=self._rewards)
+            rewards=self._rewards,
+            terminal=self._terminal)
 
     def size(self):
         """ Returns the number of transitions.
@@ -1045,10 +1108,12 @@ cdef class TransitionMiniBatch:
 
         # allocate batch data
         cdef int size = len(transitions)
-        self._observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
+        self._observations = np.empty((size,) + observation_shape,
+                                      dtype=observation_dtype)
         self._actions = np.empty((size,) + action_shape, dtype=action_dtype)
         self._rewards = np.empty((size, 1), dtype=np.float32)
-        self._next_observations = np.empty((size,) + observation_shape, dtype=observation_dtype)
+        self._next_observations = np.empty((size,) + observation_shape,
+                                           dtype=observation_dtype)
         self._next_actions = np.empty((size,) + action_shape, dtype=action_dtype)
         self._next_rewards = np.empty((size, 1), dtype=np.float32)
         self._terminals = np.empty((size, 1), dtype=np.float32)
