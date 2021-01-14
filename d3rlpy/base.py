@@ -463,7 +463,7 @@ class LearnableBase:
             # save metrics
             logger.commit(epoch, total_step)
 
-            # save model parameters and greedy policy
+            # save model parameters
             if epoch % save_interval == 0:
                 logger.save_model(epoch, self)
 

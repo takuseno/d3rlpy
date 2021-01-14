@@ -10,8 +10,14 @@ from d3rlpy.iterators.random_iterator import RandomIterator
 @pytest.mark.parametrize("observation_size", [10])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("set_ephemeral", [False, True])
 def test_random_iterator(
-    episode_size, n_episodes, observation_size, action_size, batch_size
+    episode_size,
+    n_episodes,
+    observation_size,
+    action_size,
+    batch_size,
+    set_ephemeral,
 ):
     episodes = []
     for _ in range(n_episodes):
@@ -25,6 +31,9 @@ def test_random_iterator(
 
     iterator = RandomIterator(episodes, batch_size)
 
+    if set_ephemeral:
+        iterator.set_ephemeral_transitions(episodes[0].transitions)
+
     count = 0
     for batch in iterator:
         assert batch.observations.shape == (batch_size, observation_size)
@@ -32,5 +41,9 @@ def test_random_iterator(
         assert batch.rewards.shape == (batch_size, 1)
         count += 1
 
-    assert count == episode_size * n_episodes // batch_size
-    assert len(iterator) == episode_size * n_episodes // batch_size
+    if set_ephemeral:
+        assert count == episode_size * (n_episodes + 1) // batch_size
+        assert len(iterator) == episode_size * (n_episodes + 1) // batch_size
+    else:
+        assert count == episode_size * n_episodes // batch_size
+        assert len(iterator) == episode_size * n_episodes // batch_size
