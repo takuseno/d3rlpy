@@ -22,14 +22,16 @@ class RandomIterator(TransitionIterator):
         self._n_samples_per_epoch = batch_size * (self.size() // batch_size)
         self._index = 0
 
-    def reset(self) -> None:
+    def _reset(self) -> None:
+        batch_size = self._batch_size
+        self._n_samples_per_epoch = batch_size * (self.size() // batch_size)
         self._index = 0
 
-    def get_next(self) -> Transition:
+    def _next(self) -> Transition:
         index = cast(int, np.random.randint(self.size()))
         transition = self._transitions[index]
         self._index += 1
         return transition
 
-    def has_finished(self) -> bool:
+    def _has_finished(self) -> bool:
         return self._index >= self._n_samples_per_epoch

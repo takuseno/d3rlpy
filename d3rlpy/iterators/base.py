@@ -8,6 +8,8 @@ class TransitionIterator(metaclass=ABCMeta):
 
     _episodes: List[Episode]
     _transitions: List[Transition]
+    _orig_transitions: List[Transition]
+    _ephemeral_transitions: List[Transition]
     _batch_size: int
     _n_steps: int
     _gamma: float
@@ -23,9 +25,11 @@ class TransitionIterator(metaclass=ABCMeta):
         n_frames: int = 1,
     ):
         self._episodes = episodes
-        self._transitions = []
+        self._orig_transitions = []
+        self._ephemeral_transitions = []
         for episode in episodes:
-            self._transitions += episode.transitions
+            self._orig_transitions += episode.transitions
+        self._transitions = self._orig_transitions
         self._batch_size = batch_size
         self._n_steps = n_steps
         self._gamma = gamma
@@ -36,7 +40,7 @@ class TransitionIterator(metaclass=ABCMeta):
         return self
 
     def __next__(self) -> TransitionMiniBatch:
-        transitions = [self._get_next() for _ in range(self._batch_size)]
+        transitions = [self.get_next() for _ in range(self._batch_size)]
         batch = TransitionMiniBatch(
             transitions,
             n_frames=self._n_frames,
@@ -45,22 +49,29 @@ class TransitionIterator(metaclass=ABCMeta):
         )
         return batch
 
-    @abstractmethod
     def reset(self) -> None:
+        self._transitions = self._orig_transitions + self._ephemeral_transitions
+        self._reset()
+
+    @abstractmethod
+    def _reset(self) -> None:
         pass
 
     @abstractmethod
+    def _next(self) -> Transition:
+        pass
+
+    @abstractmethod
+    def _has_finished(self) -> bool:
+        pass
+
+    def set_ephemeral_transitions(self, transitions: List[Transition]) -> None:
+        self._ephemeral_transitions = transitions
+
     def get_next(self) -> Transition:
-        pass
-
-    @abstractmethod
-    def has_finished(self) -> bool:
-        pass
-
-    def _get_next(self) -> Transition:
-        if self.has_finished():
+        if self._has_finished():
             raise StopIteration
-        return self.get_next()
+        return self._next()
 
     def __len__(self) -> int:
         return len(self._transitions) // self._batch_size

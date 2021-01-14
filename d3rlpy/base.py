@@ -32,6 +32,7 @@ from .argument_utility import (
     UseGPUArg,
 )
 from .online.utility import get_action_size_from_env
+from .iterators import RoundIterator
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -356,9 +357,14 @@ class LearnableBase:
 
         """
 
-        transitions = []
-        for episode in episodes:
-            transitions += episode.transitions
+        iterator = RoundIterator(
+            episodes,
+            batch_size=self._batch_size,
+            n_steps=self._n_steps,
+            gamma=self._gamma,
+            n_frames=self._n_frames,
+            shuffle=shuffle,
+        )
 
         # initialize scaler
         if self._scaler:
@@ -370,8 +376,9 @@ class LearnableBase:
 
         # instantiate implementation
         if self._impl is None:
-            action_size = transitions[0].get_action_size()
-            observation_shape = tuple(transitions[0].get_observation_shape())
+            transition = iterator.transitions[0]
+            action_size = transition.get_action_size()
+            observation_shape = tuple(transition.get_observation_shape())
             self.create_impl(
                 self._process_observation_shape(observation_shape), action_size
             )
@@ -398,50 +405,31 @@ class LearnableBase:
         # refresh loss history
         self._loss_history = defaultdict(list)
 
-        # hold original dataset
-        env_transitions = transitions
-
         # training loop
         total_step = 0
         for epoch in range(n_epochs):
 
             # data augmentation
-            new_transitions = self._generate_new_data(env_transitions)
+            new_transitions = self._generate_new_data(iterator.transitions)
             if new_transitions:
-                transitions = env_transitions + new_transitions
-
-            # shuffle data
-            if shuffle:
-                indices = np.random.permutation(np.arange(len(transitions)))
-            else:
-                indices = np.arange(len(transitions))
+                iterator.set_ephemeral_transitions(new_transitions)
 
             # dict to add incremental mean losses to epoch
             epoch_loss = defaultdict(list)
 
-            n_iters = len(transitions) // self._batch_size
             range_gen = tqdm(
-                range(n_iters),
+                range(len(iterator)),
                 disable=not show_progress,
                 desc="Epoch %d" % int(epoch),
             )
+
+            iterator.reset()
 
             for itr in range_gen:
                 with logger.measure_time("step"):
                     # pick transitions
                     with logger.measure_time("sample_batch"):
-                        sampled_transitions = []
-                        head_index = itr * self.batch_size
-                        tail_index = head_index + self.batch_size
-                        for index in indices[head_index:tail_index]:
-                            sampled_transitions.append(transitions[index])
-
-                        batch = TransitionMiniBatch(
-                            transitions=sampled_transitions,
-                            n_frames=self._n_frames,
-                            n_steps=self._n_steps,
-                            gamma=self._gamma,
-                        )
+                        batch = next(iterator)
 
                     # update parameters
                     with logger.measure_time("algorithm_update"):
