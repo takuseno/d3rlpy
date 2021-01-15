@@ -33,6 +33,7 @@ from .argument_utility import (
 )
 from .online.utility import get_action_size_from_env
 from .iterators import RoundIterator
+from .constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -294,7 +295,7 @@ class LearnableBase:
             fname: destination file path.
 
         """
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         self._impl.save_model(fname)
 
     def load_model(self, fname: str) -> None:
@@ -308,7 +309,7 @@ class LearnableBase:
             fname: source file path.
 
         """
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         self._impl.load_model(fname)
 
     def fit(
@@ -602,7 +603,7 @@ class LearnableBase:
                 self._eval_results[name].append(test_score)
 
     def _save_params(self, logger: D3RLPyLogger) -> None:
-        assert self._impl
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         # get hyperparameters without impl
         params = {}

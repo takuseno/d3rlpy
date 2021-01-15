@@ -146,9 +146,11 @@ class MDPDataset:
                  episode_terminals=None,
                  discrete_action=None):
         # validation
-        assert isinstance(observations, np.ndarray)
+        assert isinstance(observations, np.ndarray),\
+            'Observations must be numpy array.'
         if len(observations.shape) == 4:
-            assert observations.dtype == np.uint8
+            assert observations.dtype == np.uint8,\
+                'Image observation must be uint8 array.'
         else:
             if observations.dtype != np.float32:
                 observations = np.asarray(observations, dtype=np.float32)
@@ -401,11 +403,14 @@ class MDPDataset:
         """
         # validation
         for observation, action in zip(observations, actions):
-            assert observation.shape == self.get_observation_shape()
+            assert observation.shape == self.get_observation_shape(),\
+                f'Observation shape must be {self.get_observation_shape()}.'
             if self.discrete_action:
-                assert int(action) < self.get_action_size()
+                assert int(action) < self.get_action_size(),\
+                    f'Action size must be {self.get_action_size()}.'
             else:
-                assert action.shape == (self.get_action_size(), )
+                assert action.shape == (self.get_action_size(), ),\
+                    f'Action size must be {self.get_action_size()}.'
 
         # append observations
         self._observations = np.vstack([self._observations, observations])
@@ -444,9 +449,12 @@ class MDPDataset:
             dataset (d3rlpy.dataset.MDPDataset): dataset.
 
         """
-        assert self.is_action_discrete() == dataset.is_action_discrete()
-        assert self.get_observation_shape() == dataset.get_observation_shape()
-        assert self.get_action_size() == dataset.get_action_size()
+        assert self.is_action_discrete() == dataset.is_action_discrete(),\
+            'Dataset must have discrete action-space.'
+        assert self.get_observation_shape() == dataset.get_observation_shape(),\
+            f'Observation shape must be {self.get_observation_shape()}'
+        assert self.get_action_size() == dataset.get_action_size(),\
+            f'Action size must be {self.get_action_size()}'
         self.append(dataset.observations, dataset.actions, dataset.rewards,
                     dataset.terminals, dataset.episode_terminals)
 
@@ -578,9 +586,11 @@ class Episode:
                  rewards,
                  terminal=True):
         # validation
-        assert isinstance(observations, np.ndarray)
+        assert isinstance(observations, np.ndarray),\
+            'Observation must be numpy array.'
         if len(observation_shape) == 3:
-            assert observations.dtype == np.uint8
+            assert observations.dtype == np.uint8,\
+                'Image observation must be uint8 array.'
         else:
             if observations.dtype != np.float32:
                 observations = np.asarray(observations, dtype=np.float32)
@@ -772,8 +782,10 @@ cdef class Transition:
 
         # validation
         if observation_shape.size() == 3:
-            assert observation.dtype == np.uint8
-            assert next_observation.dtype == np.uint8
+            assert observation.dtype == np.uint8,\
+                'Image observation must be uint8 array.'
+            assert next_observation.dtype == np.uint8,\
+                'Image observation must be uint8 array.'
         else:
             if observation.dtype != np.float32:
                 observation = np.asarray(observation, dtype=np.float32)

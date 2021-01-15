@@ -12,6 +12,7 @@ from ..argument_utility import check_use_gpu, UseGPUArg
 from ..argument_utility import check_augmentation, AugmentationArg
 from ..argument_utility import check_q_func, QFuncArg
 from ..argument_utility import ScalerArg, ActionScalerArg
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class SAC(AlgoBase):
@@ -205,7 +206,7 @@ class SAC(AlgoBase):
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         critic_loss = self._impl.update_critic(
             batch.observations,
             batch.actions,
@@ -399,7 +400,7 @@ class DiscreteSAC(AlgoBase):
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         critic_loss = self._impl.update_critic(
             batch.observations,
             batch.actions,

@@ -7,6 +7,7 @@ from ..base import ImplBase, LearnableBase
 from ..algos import AlgoBase, DataGenerator
 from ..dataset import Transition, TransitionMiniBatch
 from ..argument_utility import ScalerArg, ActionScalerArg
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class DynamicsImplBase(ImplBase):
@@ -66,7 +67,7 @@ class DynamicsBase(DataGenerator, LearnableBase):
             tuple of predicted observation and reward.
 
         """
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         observations, rewards, variances = self._impl.predict(x, action)
         if with_variance:
             return observations, rewards, variances
@@ -85,7 +86,7 @@ class DynamicsBase(DataGenerator, LearnableBase):
             list: list of generated transitions.
 
         """
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         # uniformly sample transitions
         init_transitions: List[Transition] = []

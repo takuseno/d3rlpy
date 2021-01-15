@@ -13,6 +13,7 @@ from ..gpu import Device
 from ..argument_utility import check_encoder, check_use_gpu, check_augmentation
 from ..argument_utility import EncoderArg, UseGPUArg, AugmentationArg, ScalerArg
 from ..argument_utility import ActionScalerArg
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class _BCBase(AlgoBase):
@@ -64,7 +65,7 @@ class _BCBase(AlgoBase):
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         loss = self._impl.update_imitator(batch.observations, batch.actions)
         return [loss]
 

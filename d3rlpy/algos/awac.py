@@ -12,6 +12,7 @@ from ..argument_utility import check_encoder, EncoderArg
 from ..argument_utility import check_use_gpu, UseGPUArg
 from ..argument_utility import check_q_func, QFuncArg
 from ..argument_utility import check_augmentation, AugmentationArg
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class AWAC(AlgoBase):
@@ -187,7 +188,7 @@ class AWAC(AlgoBase):
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         critic_loss = self._impl.update_critic(
             batch.observations,
             batch.actions,

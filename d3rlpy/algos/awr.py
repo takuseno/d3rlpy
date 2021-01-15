@@ -13,6 +13,7 @@ from ..gpu import Device
 from ..argument_utility import check_encoder, check_use_gpu, check_augmentation
 from ..argument_utility import ScalerArg, ActionScalerArg, EncoderArg
 from ..argument_utility import UseGPUArg, AugmentationArg
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class _AWRBase(AlgoBase):
@@ -130,13 +131,13 @@ class _AWRBase(AlgoBase):
             predicted state values.
 
         """
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         return self._impl.predict_value(x)
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         # compute lmabda return
         lambda_returns = self._compute_lambda_returns(batch)

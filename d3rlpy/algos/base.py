@@ -13,6 +13,7 @@ from ..online.explorers import Explorer
 from ..preprocessing.stack import StackedObservation
 from ..metrics.scorer import evaluate_on_environment
 from ..argument_utility import ScalerArg, ActionScalerArg
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class AlgoImplBase(ImplBase):
@@ -93,7 +94,7 @@ class AlgoBase(LearnableBase):
             as_onnx: flag to save as ONNX format.
 
         """
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         self._impl.save_policy(fname, as_onnx)
 
     def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
@@ -115,7 +116,7 @@ class AlgoBase(LearnableBase):
             greedy actions
 
         """
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         return self._impl.predict_best_action(x)
 
     def predict_value(
@@ -157,7 +158,7 @@ class AlgoBase(LearnableBase):
             predicted action-values
 
         """
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         return self._impl.predict_value(x, action, with_std)
 
     def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
@@ -173,7 +174,7 @@ class AlgoBase(LearnableBase):
             sampled actions.
 
         """
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         return self._impl.sample_action(x)
 
     def fit_online(

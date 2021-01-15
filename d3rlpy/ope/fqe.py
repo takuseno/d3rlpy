@@ -14,6 +14,7 @@ from ..models.optimizers import OptimizerFactory, AdamFactory
 from ..models.q_functions import QFunctionFactory
 from ..gpu import Device
 from .torch.fqe_impl import FQEBaseImpl, FQEImpl, DiscreteFQEImpl
+from ..constants import IMPL_NOT_INITIALIZED_ERROR, ALGO_NOT_GIVEN_ERROR
 
 
 class _FQEBase(AlgoBase):
@@ -74,15 +75,15 @@ class _FQEBase(AlgoBase):
         self._impl = impl
 
     def save_policy(self, fname: str, as_onnx: bool = False) -> None:
-        assert self._algo is not None
+        assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         self._algo.save_policy(fname, as_onnx)
 
     def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
-        assert self._algo is not None
+        assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         return self._algo.predict(x)
 
     def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
-        assert self._algo is not None
+        assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         return self._algo.sample_action(x)
 
     @abstractmethod
@@ -94,8 +95,8 @@ class _FQEBase(AlgoBase):
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
-        assert self._algo is not None
-        assert self._impl is not None
+        assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         next_actions = self._algo.predict(batch.observations)
         loss = self._impl.update(
             batch.observations,

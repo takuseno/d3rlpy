@@ -7,6 +7,7 @@ from ..models.encoders import EncoderFactory
 from ..gpu import Device
 from ..argument_utility import check_encoder, check_use_gpu
 from ..argument_utility import EncoderArg, UseGPUArg, ScalerArg, ActionScalerArg
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class MOPO(DynamicsBase):
@@ -140,7 +141,7 @@ class MOPO(DynamicsBase):
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
-        assert self._impl is not None
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         loss = self._impl.update(
             batch.observations,
             batch.actions,
