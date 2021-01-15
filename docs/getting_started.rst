@@ -69,7 +69,7 @@ Q-learnig algorithm proposed as the first deep reinforcement learning algorithm.
 
   # initialize neural networks with the given observation shape and action size.
   # this is not necessary when you directly call fit or fit_online method.
-  dqn.build_with_dataset(dataest)
+  dqn.build_with_dataset(dataset)
 
 See more algorithms and configurations at :doc:`references/algos`.
 
