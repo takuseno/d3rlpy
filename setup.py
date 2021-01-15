@@ -65,6 +65,7 @@ if __name__ == "__main__":
                     "d3rlpy.augmentation",
                     "d3rlpy.dynamics",
                     "d3rlpy.dynamics.torch",
+                    "d3rlpy.iterators",
                     "d3rlpy.metrics",
                     "d3rlpy.models",
                     "d3rlpy.models.torch",
