@@ -22,7 +22,7 @@ Prepare Dataset
 ---------------
 
 You can make your own dataset without any efforts.
-In this tutorial, let's use integrated datasets to start. 
+In this tutorial, let's use integrated datasets to start.
 If you want to make a new dataset, see :doc:`references/dataset`.
 
 d3rlpy provides suites of datasets for testing algorithms and research.
@@ -66,6 +66,10 @@ Q-learnig algorithm proposed as the first deep reinforcement learning algorithm.
 
   # if you don't use GPU, set use_gpu=False instead.
   dqn = DQN(use_gpu=True)
+
+  # initialize neural networks with the given observation shape and action size.
+  # this is not necessary when you directly call fit or fit_online method.
+  dqn.build_with_dataset(dataest)
 
 See more algorithms and configurations at :doc:`references/algos`.
 
@@ -173,6 +177,7 @@ d3rlpy provides several ways to save trained models.
 
   # load full parameters
   dqn2 = DQN()
+  dqn2.build_with_dataset(dataset)
   dqn2.load_model('dqn.pt')
 
   # save the greedy-policy as TorchScript
