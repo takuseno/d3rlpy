@@ -62,13 +62,13 @@ This allows to use SB3 helpers like ``evaluate_policy``.
   # d3rlpy model is accessible via `wrapped_model.algo`
   wrapped_model = SB3Wrapper(offline_model)
 
-  obs = env.reset()
+  observation = env.reset()
 
   # We can now use SB3's predict style
   # it returns the action and the hidden states (for RNN policies)
-  actions, _ = wrapped_model.predict(observations, deterministic=True)
+  action, _ = wrapped_model.predict([observation], deterministic=True)
   # The following is equivalent to offline_model.sample_action(obs)
-  actions, _ = wrapped_model.predict(observations, deterministic=False)
+  action, _ = wrapped_model.predict([observation], deterministic=False)
 
   # Evaluate the trained model using SB3 helper
   mean_reward, std_reward = evaluate_policy(wrapped_model, env)
@@ -76,7 +76,7 @@ This allows to use SB3 helpers like ``evaluate_policy``.
   print(f"mean_reward={mean_reward} +/- {std_reward}")
 
   # Call methods from the wrapped d3rlpy model
-  wrapped_model.sample_action(obs)
+  wrapped_model.sample_action([observation])
   wrapped_model.fit(dataset.episodes, n_epochs=10)
 
   # Set attributes
