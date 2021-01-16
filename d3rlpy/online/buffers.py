@@ -1,10 +1,16 @@
 from abc import ABCMeta, abstractmethod
-from typing import Generic, List, Optional, TypeVar, Sequence
+from typing import Callable, Generic, List, Optional, TypeVar, Sequence
 
 import numpy as np
 import gym
 
-from ..dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
+from ..dataset import (
+    Episode,
+    MDPDataset,
+    Transition,
+    TransitionMiniBatch,
+    trace_back_and_clear,
+)
 from .utility import get_action_size_from_env
 
 T = TypeVar("T")
@@ -18,18 +24,29 @@ class FIFOQueue(Generic[T]):
     """
 
     _maxlen: int
+    _drop_callback: Optional[Callable[[T], None]]
     _buffer: List[Optional[T]]
     _cursor: int
     _size: int
 
-    def __init__(self, maxlen: int):
+    def __init__(
+        self, maxlen: int, drop_callback: Optional[Callable[[T], None]] = None
+    ):
         self._maxlen = maxlen
+        self._drop_callback = drop_callback
         self._buffer = [None for _ in range(maxlen)]
         self._cursor = 0
         self._size = 0
 
     def append(self, item: T) -> None:
+        # call drop callback if necessary
+        cur_item = self._buffer[self._cursor]
+        if cur_item and self._drop_callback:
+            self._drop_callback(cur_item)
+
         self._buffer[self._cursor] = item
+
+        # increment cursor
         self._cursor += 1
         if self._cursor == self._maxlen:
             self._cursor = 0
@@ -165,7 +182,7 @@ class ReplayBuffer(Buffer):
     def __init__(
         self,
         maxlen: int,
-        env: gym.Env,
+        env: Optional[gym.Env] = None,
         episodes: Optional[List[Episode]] = None,
     ):
         # temporary cache to hold transitions for an entire episode
@@ -174,11 +191,25 @@ class ReplayBuffer(Buffer):
         self._prev_reward = 0.0
         self._prev_transition = None
 
-        self._transitions = FIFOQueue(maxlen=maxlen)
+        # remove links when dropping the last transition
+        def drop_callback(transition: Transition) -> None:
+            if transition.next_transition is None:
+                trace_back_and_clear(transition)
+
+        self._transitions = FIFOQueue(maxlen, drop_callback)
 
         # extract shape information
-        self._observation_shape = env.observation_space.shape
-        self._action_size = get_action_size_from_env(env)
+        if env:
+            observation_shape = env.observation_space.shape
+            action_size = get_action_size_from_env(env)
+        elif episodes:
+            observation_shape = episodes[0].get_observation_shape()
+            action_size = episodes[0].get_action_size()
+        else:
+            raise ValueError("env or episodes are required to determine shape.")
+
+        self._observation_shape = observation_shape
+        self._action_size = action_size
 
         # add initial transitions
         if episodes:
@@ -273,6 +304,7 @@ class ReplayBuffer(Buffer):
         actions = []
         rewards = []
         terminals = []
+        episode_terminals = []
         for transition in tail_transitions:
 
             # trace transition to the beginning
@@ -290,17 +322,25 @@ class ReplayBuffer(Buffer):
                 actions.append(episode_transition.action)
                 rewards.append(episode_transition.reward)
                 terminals.append(0.0)
+                episode_terminals.append(0.0)
             observations.append(episode_transitions[-1].next_observation)
             actions.append(episode_transitions[-1].next_action)
             rewards.append(episode_transitions[-1].next_reward)
-            terminals.append(1.0)
+            terminals.append(episode_transitions[-1].terminal)
+            episode_terminals.append(1.0)
 
         if len(self._observation_shape) == 3:
             observations = np.asarray(observations, dtype=np.uint8)
         else:
             observations = np.asarray(observations, dtype=np.float32)
 
-        return MDPDataset(observations, actions, rewards, terminals)
+        return MDPDataset(
+            observations=observations,
+            actions=actions,
+            rewards=rewards,
+            terminals=terminals,
+            episode_terminals=episode_terminals,
+        )
 
     @property
     def transitions(self) -> FIFOQueue[Transition]:

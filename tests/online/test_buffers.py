@@ -50,7 +50,7 @@ def test_replay_buffer(n_episodes, batch_size, maxlen):
 
 @pytest.mark.parametrize("n_episodes", [10])
 @pytest.mark.parametrize("batch_size", [32])
-@pytest.mark.parametrize("maxlen", [50])
+@pytest.mark.parametrize("maxlen", [1000])
 @pytest.mark.parametrize("clip_episode_flag", [True, False])
 def test_replay_buffer_with_clip_episode(
     n_episodes, batch_size, maxlen, clip_episode_flag
