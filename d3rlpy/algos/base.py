@@ -6,8 +6,8 @@ import gym
 
 from ..base import ImplBase, LearnableBase
 from ..dataset import Transition
-from ..online.iterators import train_single_env
-from ..online.buffers import Buffer
+from ..online.iterators import train_single_env, train_batch_env
+from ..online.buffers import Buffer, BatchBuffer
 from ..online.explorers import Explorer
 from ..argument_utility import ScalerArg, ActionScalerArg
 from ..constants import IMPL_NOT_INITIALIZED_ERROR
@@ -223,6 +223,75 @@ class AlgoBase(LearnableBase):
 
         """
         train_single_env(
+            algo=self,
+            env=env,
+            buffer=buffer,
+            explorer=explorer,
+            n_steps=n_steps,
+            n_steps_per_epoch=n_steps_per_epoch,
+            update_interval=update_interval,
+            update_start_step=update_start_step,
+            eval_env=eval_env,
+            eval_epsilon=eval_epsilon,
+            save_metrics=save_metrics,
+            experiment_name=experiment_name,
+            with_timestamp=with_timestamp,
+            logdir=logdir,
+            verbose=verbose,
+            show_progress=show_progress,
+            tensorboard=tensorboard,
+            timelimit_aware=timelimit_aware,
+        )
+
+    def fit_batch_online(
+        self,
+        env: gym.Env,
+        buffer: BatchBuffer,
+        explorer: Optional[Explorer] = None,
+        n_steps: int = 1000000,
+        n_steps_per_epoch: int = 10000,
+        update_interval: int = 1,
+        update_start_step: int = 0,
+        eval_env: Optional[gym.Env] = None,
+        eval_epsilon: float = 0.0,
+        save_metrics: bool = True,
+        experiment_name: Optional[str] = None,
+        with_timestamp: bool = True,
+        logdir: str = "d3rlpy_logs",
+        verbose: bool = True,
+        show_progress: bool = True,
+        tensorboard: bool = True,
+        timelimit_aware: bool = True,
+    ) -> None:
+        """Start training loop of online deep reinforcement learning.
+
+        Args:
+            env: gym-like environment.
+            buffer : replay buffer.
+            explorer: action explorer.
+            n_steps: the number of total steps to train.
+            n_steps_per_epoch: the number of steps per epoch.
+            update_interval: the number of steps per update.
+            update_start_step: the steps before starting updates.
+            eval_env: gym-like environment. If None, evaluation is skipped.
+            eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
+            save_metrics: flag to record metrics. If False, the log
+                directory is not created and the model parameters are not saved.
+            experiment_name: experiment name for logging. If not passed,
+                the directory name will be ``{class name}_online_{timestamp}``.
+            with_timestamp: flag to add timestamp string to the last of
+                directory name.
+            logdir: root directory name to save logs.
+            verbose: flag to show logged information on stdout.
+            show_progress: flag to show progress bar for iterations.
+            tensorboard: flag to save logged information in tensorboard
+                (additional to the csv data)
+            timelimit_aware: flag to turn ``terminal`` flag ``False`` when
+                ``TimeLimit.truncated`` flag is ``True``, which is designed to
+                incorporate with ``gym.wrappers.TimeLimit``.
+
+        """
+        train_batch_env(
             algo=self,
             env=env,
             buffer=buffer,

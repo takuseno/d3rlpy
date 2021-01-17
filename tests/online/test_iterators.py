@@ -2,7 +2,8 @@ import pytest
 import gym
 
 from d3rlpy.algos import DQN, SAC
-from d3rlpy.online.buffers import ReplayBuffer
+from d3rlpy.envs import BatchEnvWrapper
+from d3rlpy.online.buffers import ReplayBuffer, BatchReplayBuffer
 from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
 
 
@@ -95,3 +96,69 @@ def test_timelimit_aware(timelimit_aware):
         assert terminal_count == 0
     else:
         assert terminal_count > 0
+
+
+def test_fit_batch_online_cartpole_with_dqn():
+    env = BatchEnvWrapper([gym.make("CartPole-v0") for _ in range(5)])
+    eval_env = gym.make("CartPole-v0")
+
+    algo = DQN()
+
+    buffer = BatchReplayBuffer(1000, 5, env)
+
+    explorer = LinearDecayEpsilonGreedy()
+
+    algo.fit_batch_online(
+        env,
+        buffer,
+        explorer,
+        n_steps=100,
+        eval_env=eval_env,
+        logdir="test_data",
+        tensorboard=False,
+    )
+
+
+def test_fit_batch_online_atari_with_dqn():
+    import d4rl_atari
+
+    env = BatchEnvWrapper(
+        [gym.make("breakout-mixed-v0", stack=False) for _ in range(5)]
+    )
+    eval_env = gym.make("breakout-mixed-v0", stack=False)
+
+    algo = DQN(n_frames=4)
+
+    buffer = BatchReplayBuffer(1000, 5, env)
+
+    explorer = LinearDecayEpsilonGreedy()
+
+    algo.fit_batch_online(
+        env,
+        buffer,
+        explorer,
+        n_steps=100,
+        eval_env=eval_env,
+        logdir="test_data",
+        tensorboard=False,
+    )
+
+    assert algo.impl.observation_shape == (4, 84, 84)
+
+
+def test_fit_batch_online_pendulum_with_sac():
+    env = BatchEnvWrapper([gym.make("Pendulum-v0") for _ in range(5)])
+    eval_env = gym.make("Pendulum-v0")
+
+    algo = SAC()
+
+    buffer = BatchReplayBuffer(1000, 5, env)
+
+    algo.fit_batch_online(
+        env,
+        buffer,
+        n_steps=500,
+        eval_env=eval_env,
+        logdir="test_data",
+        tensorboard=False,
+    )
