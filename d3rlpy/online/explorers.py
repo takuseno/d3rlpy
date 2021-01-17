@@ -41,10 +41,10 @@ class ConstantEpsilonGreedy(Explorer):
     def sample(
         self, algo: _ActionProtocol, x: np.ndarray, step: int
     ) -> np.ndarray:
-        if np.random.random() < self._epsilon:
-            assert algo.action_size is not None
-            return np.random.randint(algo.action_size)
-        return algo.predict([x])[0]
+        greedy_actions = algo.predict(x)
+        random_actions = np.random.randint(algo.action_size, size=x.shape[0])
+        is_random = np.random.random(x.shape[0]) < self._epsilon
+        return np.where(is_random, random_actions, greedy_actions)
 
 
 class LinearDecayEpsilonGreedy(Explorer):
@@ -85,10 +85,10 @@ class LinearDecayEpsilonGreedy(Explorer):
             :math:`\\epsilon`-greedy action.
 
         """
-        if np.random.random() < self.compute_epsilon(step):
-            assert algo.action_size is not None
-            return np.random.randint(algo.action_size)
-        return algo.predict([x])[0]
+        greedy_actions = algo.predict(x)
+        random_actions = np.random.randint(algo.action_size, size=x.shape[0])
+        is_random = np.random.random(x.shape[0]) < self.compute_epsilon(step)
+        return np.where(is_random, random_actions, greedy_actions)
 
     def compute_epsilon(self, step: int) -> float:
         """Returns decayed :math:`\\epsilon`.
@@ -132,6 +132,6 @@ class NormalNoise(Explorer):
             action with noise injection.
 
         """
-        action = algo.sample_action([x])[0]
+        action = algo.sample_action(x)
         noise = np.random.normal(self._mean, self._std, size=action.shape)
         return np.clip(action + noise, -1.0, 1.0)

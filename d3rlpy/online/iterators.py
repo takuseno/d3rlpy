@@ -186,7 +186,8 @@ def train_single_env(
             # sample exploration action
             with logger.measure_time("inference"):
                 if explorer:
-                    action = explorer.sample(algo, fed_observation, total_step)
+                    x = fed_observation.reshape((1,) + fed_observation.shape)
+                    action = explorer.sample(algo, x, total_step)[0]
                 else:
                     action = algo.sample_action([fed_observation])[0]
 
@@ -233,7 +234,11 @@ def train_single_env(
 
                     # update parameters
                     with logger.measure_time("algorithm_update"):
-                        loss = algo.update(epoch, total_step, batch)
+                        loss = algo.update(
+                            epoch=epoch,
+                            total_step=total_step // update_interval,
+                            batch=batch,
+                        )
 
                     # record metrics
                     for name, val in zip(algo.get_loss_labels(), loss):

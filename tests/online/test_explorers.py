@@ -12,13 +12,13 @@ from d3rlpy.online.explorers import NormalNoise
 def test_constant_epsilon_greedy(action_size, observation_shape, epsilon):
     explorer = ConstantEpsilonGreedy(epsilon)
 
-    ref_x = np.random.random(observation_shape)
-    ref_y = np.random.randint(action_size)
+    ref_x = np.random.random((1,) + observation_shape)
+    ref_y = np.random.randint(action_size, size=(1,))
 
     class DummyAlgo:
         def predict(self, x):
-            assert np.all(x[0] == ref_x)
-            return [ref_y]
+            assert np.all(x == ref_x)
+            return ref_y
 
         @property
         def impl(self):
@@ -32,7 +32,7 @@ def test_constant_epsilon_greedy(action_size, observation_shape, epsilon):
 
     # check sample
     for i in range(10):
-        action = np.random.randint(action_size)
+        action = np.random.randint(action_size, size=(1,))
         if action != explorer.sample(algo, ref_x, 0):
             break
         elif i == 9:
@@ -56,13 +56,13 @@ def test_linear_decay_epsilon_greedy(
     ref_epsilon = end_epsilon + base * (1.0 - 1.0 / duration)
     assert explorer.compute_epsilon(1) == ref_epsilon
 
-    ref_x = np.random.random(observation_shape)
-    ref_y = np.random.randint(action_size)
+    ref_x = np.random.random((1,) + observation_shape)
+    ref_y = np.random.randint(action_size, size=(1,))
 
     class DummyAlgo:
         def predict(self, x):
-            assert np.all(x[0] == ref_x)
-            return [ref_y]
+            assert np.all(x == ref_x)
+            return ref_y
 
         @property
         def impl(self):
@@ -90,14 +90,14 @@ def test_linear_decay_epsilon_greedy(
 def test_normal_noise(action_size, observation_shape, mean, std):
     explorer = NormalNoise(mean, std)
 
-    action = np.random.random(action_size)
-    ref_x = np.random.random(observation_shape)
-    ref_y = np.random.random(action_size)
+    action = np.random.random((1, action_size))
+    ref_x = np.random.random((1,) + observation_shape)
+    ref_y = np.random.random((1, action_size))
 
     class DummyAlgo:
         def sample_action(self, x):
-            assert np.all(x[0] == ref_x)
-            return [ref_y]
+            assert np.all(x == ref_x)
+            return ref_y
 
     algo = DummyAlgo()
 
