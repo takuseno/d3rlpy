@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 import gym
 
-from d3rlpy.online.buffers import ReplayBuffer
+from d3rlpy.envs import BatchEnvWrapper
+from d3rlpy.online.buffers import ReplayBuffer, BatchReplayBuffer
 from d3rlpy.dataset import TransitionMiniBatch, Episode
 
 
@@ -117,3 +118,42 @@ def test_replay_buffer_with_episode(maxlen, data_size):
     # check append_episode
     buffer.append_episode(episode)
     assert len(buffer) == 2 * (data_size - 1)
+
+
+@pytest.mark.parametrize("n_envs", [10])
+@pytest.mark.parametrize("n_steps", [200])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("maxlen", [50])
+def test_batch_replay_buffer(n_envs, n_steps, batch_size, maxlen):
+    env = BatchEnvWrapper([gym.make("CartPole-v0") for _ in range(n_envs)])
+
+    buffer = BatchReplayBuffer(maxlen, n_envs, env)
+
+    observations = env.reset()
+    rewards, terminals = np.zeros(n_envs), np.zeros(n_envs)
+    for _ in range(n_steps):
+        actions = np.random.randint(env.action_space.n, size=n_envs)
+        buffer.append(observations, actions, rewards, terminals)
+        observations, rewards, terminals, _ = env.step(actions)
+
+    assert len(buffer) == maxlen
+
+    # check static dataset conversion
+    dataset = buffer.to_mdp_dataset()
+    transitions = []
+    for episode in dataset:
+        transitions += episode.transitions
+    assert len(transitions) >= len(buffer)
+
+    observation_shape = env.observation_space.shape
+    batch = buffer.sample(batch_size)
+    assert len(batch) == batch_size
+    assert batch.observations.shape == (batch_size,) + observation_shape
+    assert batch.actions.shape == (batch_size,)
+    assert batch.rewards.shape == (batch_size, 1)
+    assert batch.next_observations.shape == (batch_size,) + observation_shape
+    assert batch.next_actions.shape == (batch_size,)
+    assert batch.next_rewards.shape == (batch_size, 1)
+    assert batch.terminals.shape == (batch_size, 1)
+    assert isinstance(batch.observations, np.ndarray)
+    assert isinstance(batch.next_observations, np.ndarray)
