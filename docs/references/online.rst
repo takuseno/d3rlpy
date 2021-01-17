@@ -79,32 +79,34 @@ d3rlpy supports computationally efficient batch concurrent training.
     from d3rlpy.online.buffers import BatchReplayBuffer
     from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
 
-    env = BatchEnvWrapper([lambda: gym.make('CartPole-v0') for _ in range(10)])
+    # this condition is necessary due to spawning processes
+    if __name__ == '__main__':
+        env = BatchEnvWrapper([lambda: gym.make('CartPole-v0') for _ in range(10)])
 
-    eval_env = gym.make('CartPole-v0')
+        eval_env = gym.make('CartPole-v0')
 
-    # setup algorithm
-    dqn = DQN(batch_size=32,
-              learning_rate=2.5e-4,
-              target_update_interval=100,
-              use_gpu=True)
+        # setup algorithm
+        dqn = DQN(batch_size=32,
+                  learning_rate=2.5e-4,
+                  target_update_interval=100,
+                  use_gpu=True)
 
-    # setup replay buffer
-    buffer = BatchReplayBuffer(maxlen=1000000, env=env)
+        # setup replay buffer
+        buffer = BatchReplayBuffer(maxlen=1000000, env=env)
 
-    # setup explorers
-    explorer = LinearDecayEpsilonGreedy(start_epsilon=1.0,
-                                        end_epsilon=0.1,
-                                        duration=10000)
+        # setup explorers
+        explorer = LinearDecayEpsilonGreedy(start_epsilon=1.0,
+                                            end_epsilon=0.1,
+                                            duration=10000)
 
-    # start training
-    dqn.fit_batch_online(env,
-                         buffer,
-                         explorer=explorer, # you don't need this with probablistic policy algorithms
-                         eval_env=eval_env,
-                         n_epochs=30,
-                         n_steps_per_epoch=1000,
-                         n_updates_per_epoch=100)
+        # start training
+        dqn.fit_batch_online(env,
+                             buffer,
+                             explorer=explorer, # you don't need this with probablistic policy algorithms
+                             eval_env=eval_env,
+                             n_epochs=30,
+                             n_steps_per_epoch=1000,
+                             n_updates_per_epoch=100)
 
 Replay Buffer
 -------------

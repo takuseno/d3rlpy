@@ -1,14 +1,38 @@
 # pylint: disable=arguments-differ
-
+import os
+import uuid
+import tempfile
 from typing import Any, Callable, Dict, List, Sequence, Tuple
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, get_context
 from multiprocessing.connection import Connection
 
 import numpy as np
 import gym
+import cloudpickle
 from gym.spaces import Discrete
 
 from ..online.utility import get_action_size_from_env
+
+
+def subproc(conn: Connection, fn_path: str) -> None:
+    with open(fn_path, "rb") as f:
+        env = cloudpickle.load(f)()
+
+    # notify if it's ready
+    conn.send("ready")
+
+    while True:
+        command = conn.recv()
+        if command[0] == "step":
+            observation, reward, terminal, info = env.step(command[1])
+            conn.send([observation, reward, terminal, info])
+        elif command[0] == "reset":
+            conn.send([env.reset()])
+        elif command[0] == "close":
+            conn.close()
+            break
+        else:
+            raise ValueError(f"invalid {command[0]}.")
 
 
 class SubprocEnv:
@@ -17,29 +41,19 @@ class SubprocEnv:
     _remote_conn: Connection
     _proc: Process
 
-    def __init__(self, make_env_fn: Callable[..., gym.Env]):
-        self._conn, self._remote_conn = Pipe()
-        self._proc = Process(
-            target=self._subproc, args=(make_env_fn, self._remote_conn)
+    def __init__(self, make_env_fn: Callable[..., gym.Env], dname: str):
+        # pickle function
+        fn_path = os.path.join(dname, str(uuid.uuid1()))
+        with open(fn_path, "wb") as f:
+            cloudpickle.dump(make_env_fn, f)
+
+        # spawn process otherwise PyTorch raises error
+        ctx = get_context("spawn")
+        self._conn, self._remote_conn = ctx.Pipe()
+        self._proc = ctx.Process(  # type: ignore
+            target=subproc, args=(self._remote_conn, fn_path)
         )
         self._proc.start()
-
-    def _subproc(
-        self, make_env_fn: Callable[..., gym.Env], conn: Connection
-    ) -> None:
-        env = make_env_fn()
-        while True:
-            command = conn.recv()
-            if command[0] == "step":
-                observation, reward, terminal, info = env.step(command[1])
-                conn.send([observation, reward, terminal, info])
-            elif command[0] == "reset":
-                conn.send([env.reset()])
-            elif command[0] == "close":
-                conn.close()
-                break
-            else:
-                raise ValueError(f"invalid {command[0]}.")
 
     def step_send(self, action: np.ndarray) -> None:
         self._conn.send(["step", action])
@@ -52,6 +66,10 @@ class SubprocEnv:
 
     def reset_get(self) -> np.ndarray:
         return self._conn.recv()[0]
+
+    def wait_for_ready(self) -> bool:
+        self._conn.recv()
+        return True
 
     def close(self) -> None:
         self._conn.send(["close"])
@@ -78,7 +96,16 @@ class BatchEnvWrapper(gym.Env):  # type: ignore
     _prev_terminals: np.ndarray
 
     def __init__(self, make_env_fns: List[Callable[..., gym.Env]]):
-        self._envs = [SubprocEnv(make_env) for make_env in make_env_fns]
+        # start multiprocesses
+        with tempfile.TemporaryDirectory() as dname:
+            self._envs = []
+            for make_env in make_env_fns:
+                self._envs.append(SubprocEnv(make_env, dname))
+
+            # make sure that all environements are created
+            for env in self._envs:
+                env.wait_for_ready()
+
         ref_env = make_env_fns[0]()
         self.observation_space = ref_env.observation_space
         self.action_space = ref_env.action_space
@@ -168,5 +195,9 @@ class BatchEnvWrapper(gym.Env):  # type: ignore
         return self.n_envs
 
     def __del__(self) -> None:
+        self.close()
+
+    def close(self) -> None:
         for env in self._envs:
             env.close()
+        self._envs = []

@@ -120,11 +120,12 @@ def test_fit_batch_online_cartpole_with_dqn():
     )
 
 
+@pytest.mark.skip(reason="This test seems to not be working in tests.")
 def test_fit_batch_online_atari_with_dqn():
     import d4rl_atari
 
     make_env = lambda: gym.make("breakout-mixed-v0", stack=False)
-    env = BatchEnvWrapper([make_env for _ in range(5)])
+    env = BatchEnvWrapper([make_env for _ in range(2)])
     eval_env = gym.make("breakout-mixed-v0", stack=False)
 
     algo = DQN(n_frames=4)

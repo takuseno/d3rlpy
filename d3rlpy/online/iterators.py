@@ -427,3 +427,6 @@ def train_batch_env(
             # save metrics
             logger.commit(epoch, total_step)
             logger.save_model(total_step, algo)
+
+    # finish all process
+    env.close()

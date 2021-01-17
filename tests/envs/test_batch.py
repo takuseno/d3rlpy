@@ -1,5 +1,6 @@
 import pytest
 import gym
+import tempfile
 import numpy as np
 
 from d3rlpy.envs.batch import SubprocEnv
@@ -7,21 +8,23 @@ from d3rlpy.envs import BatchEnvWrapper
 
 
 def test_subproc_env():
-    ref_env = gym.make("CartPole-v0")
-    env = SubprocEnv(lambda: gym.make("CartPole-v0"))
+    with tempfile.TemporaryDirectory() as dname:
+        ref_env = gym.make("CartPole-v0")
+        env = SubprocEnv(lambda: gym.make("CartPole-v0"), dname)
+        env.wait_for_ready()
 
-    env.reset_send()
-    observation = env.reset_get()
-    assert observation.shape == ref_env.observation_space.shape
+        env.reset_send()
+        observation = env.reset_get()
+        assert observation.shape == ref_env.observation_space.shape
 
-    env.step_send(0)
-    observation, reward, terminal, info = env.step_get()
-    assert observation.shape == ref_env.observation_space.shape
-    assert isinstance(reward, float)
-    assert isinstance(terminal, bool)
-    assert isinstance(info, dict)
+        env.step_send(0)
+        observation, reward, terminal, info = env.step_get()
+        assert observation.shape == ref_env.observation_space.shape
+        assert isinstance(reward, float)
+        assert isinstance(terminal, bool)
+        assert isinstance(info, dict)
 
-    env.close()
+        env.close()
 
 
 @pytest.mark.parametrize("n_envs", [5])
