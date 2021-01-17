@@ -310,7 +310,7 @@ class BEAR(AlgoBase):
             alpha,
         ]
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return [
             "critic_loss",
             "actor_loss",

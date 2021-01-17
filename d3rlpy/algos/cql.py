@@ -261,7 +261,7 @@ class CQL(AlgoBase):
 
         return [critic_loss, actor_loss, temp_loss, temp, alpha_loss, alpha]
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return [
             "critic_loss",
             "actor_loss",

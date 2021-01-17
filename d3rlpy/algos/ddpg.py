@@ -188,5 +188,5 @@ class DDPG(AlgoBase):
         self._impl.update_actor_target()
         return [critic_loss, actor_loss]
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return ["critic_loss", "actor_loss"]

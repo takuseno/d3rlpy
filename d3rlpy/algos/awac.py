@@ -208,5 +208,5 @@ class AWAC(AlgoBase):
             actor_loss, mean_std = None, None
         return [critic_loss, actor_loss, mean_std]
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return ["critic_loss", "actor_loss", "mean_std"]

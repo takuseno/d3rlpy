@@ -398,7 +398,7 @@ class LearnableBase:
         self._active_logger = logger
 
         # save hyperparameters
-        self._save_params(logger)
+        self.save_params(logger)
 
         # refresh evaluation metrics
         self._eval_results = defaultdict(list)
@@ -437,7 +437,7 @@ class LearnableBase:
                         loss = self.update(epoch, total_step, batch)
 
                     # record metrics
-                    for name, val in zip(self._get_loss_labels(), loss):
+                    for name, val in zip(self.get_loss_labels(), loss):
                         if val is not None:
                             logger.add_metric(name, val)
                             epoch_loss[name].append(val)
@@ -454,7 +454,7 @@ class LearnableBase:
             # save loss to loss history dict
             self._loss_history["epoch"].append(epoch)
             self._loss_history["step"].append(total_step)
-            for name in self._get_loss_labels():
+            for name in self.get_loss_labels():
                 if name in epoch_loss:
                     self._loss_history[name].append(np.mean(epoch_loss[name]))
 
@@ -554,7 +554,7 @@ class LearnableBase:
         """
         return None
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         raise NotImplementedError
 
     def _prepare_logger(
@@ -602,7 +602,13 @@ class LearnableBase:
             if test_score is not None:
                 self._eval_results[name].append(test_score)
 
-    def _save_params(self, logger: D3RLPyLogger) -> None:
+    def save_params(self, logger: D3RLPyLogger) -> None:
+        """Saves configurations as params.json.
+
+        Args:
+            logger: logger object.
+
+        """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         # get hyperparameters without impl

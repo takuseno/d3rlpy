@@ -1,17 +1,14 @@
 from abc import abstractmethod
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import gym
-from tqdm import trange
 
 from ..base import ImplBase, LearnableBase
-from ..logger import D3RLPyLogger
 from ..dataset import Transition
+from ..online.iterators import train_single_env
 from ..online.buffers import Buffer
 from ..online.explorers import Explorer
-from ..preprocessing.stack import StackedObservation
-from ..metrics.scorer import evaluate_on_environment
 from ..argument_utility import ScalerArg, ActionScalerArg
 from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
@@ -225,139 +222,26 @@ class AlgoBase(LearnableBase):
                 incorporate with ``gym.wrappers.TimeLimit``.
 
         """
-        # initialize scaler
-        if self._scaler:
-            self._scaler.fit_with_env(env)
-
-        # initialize action scaler
-        if self._action_scaler:
-            self._action_scaler.fit_with_env(env)
-
-        # setup logger
-        if experiment_name is None:
-            experiment_name = self.__class__.__name__ + "_online"
-
-        logger = D3RLPyLogger(
-            experiment_name,
+        train_single_env(
+            algo=self,
+            env=env,
+            buffer=buffer,
+            explorer=explorer,
+            n_steps=n_steps,
+            n_steps_per_epoch=n_steps_per_epoch,
+            update_interval=update_interval,
+            update_start_step=update_start_step,
+            eval_env=eval_env,
+            eval_epsilon=eval_epsilon,
             save_metrics=save_metrics,
-            root_dir=logdir,
-            verbose=verbose,
-            tensorboard=tensorboard,
+            experiment_name=experiment_name,
             with_timestamp=with_timestamp,
+            logdir=logdir,
+            verbose=verbose,
+            show_progress=show_progress,
+            tensorboard=tensorboard,
+            timelimit_aware=timelimit_aware,
         )
-
-        self._active_logger = logger
-
-        observation_shape = env.observation_space.shape
-        is_image = len(observation_shape) == 3
-
-        # prepare stacked observation
-        if is_image:
-            stacked_frame = StackedObservation(observation_shape, self.n_frames)
-            n_channels = observation_shape[0]
-            image_size = observation_shape[1:]
-            observation_shape = (n_channels * self.n_frames, *image_size)
-
-        # setup algorithm
-        if self._impl is None:
-            self.build_with_env(env)
-
-        # save hyperparameters
-        self._save_params(logger)
-        batch_size = self.batch_size
-
-        # switch based on show_progress flag
-        xrange = trange if show_progress else range
-
-        # setup evaluation scorer
-        eval_scorer: Optional[Callable[..., float]]
-        if eval_env:
-            eval_scorer = evaluate_on_environment(
-                eval_env, epsilon=eval_epsilon
-            )
-        else:
-            eval_scorer = None
-
-        # start training loop
-        observation, reward, terminal = env.reset(), 0.0, False
-        clip_episode = False
-        for total_step in xrange(n_steps):
-            with logger.measure_time("step"):
-                # stack observation if necessary
-                if is_image:
-                    stacked_frame.append(observation)
-                    fed_observation = stacked_frame.eval()
-                else:
-                    observation = observation.astype("f4")
-                    fed_observation = observation
-
-                # sample exploration action
-                with logger.measure_time("inference"):
-                    if explorer:
-                        action = explorer.sample(
-                            self, fed_observation, total_step
-                        )
-                    else:
-                        action = self.sample_action([fed_observation])[0]
-
-                # store observation
-                buffer.append(
-                    observation=observation,
-                    action=action,
-                    reward=reward,
-                    terminal=terminal,
-                    clip_episode=clip_episode,
-                )
-
-                # get next observation
-                if clip_episode:
-                    observation, reward, terminal = env.reset(), 0.0, False
-                    clip_episode = False
-                    # for image observation
-                    if is_image:
-                        stacked_frame.clear()
-                else:
-                    with logger.measure_time("environment_step"):
-                        observation, reward, terminal, info = env.step(action)
-
-                    # special case for TimeLimit wrapper
-                    if timelimit_aware and "TimeLimit.truncated" in info:
-                        clip_episode = True
-                        terminal = False
-                    else:
-                        clip_episode = terminal
-
-                # psuedo epoch count
-                epoch = total_step // n_steps_per_epoch
-
-                if total_step > update_start_step and len(buffer) > batch_size:
-                    if total_step % update_interval == 0:
-                        # sample mini-batch
-                        with logger.measure_time("sample_batch"):
-                            batch = buffer.sample(
-                                batch_size=batch_size,
-                                n_frames=self._n_frames,
-                                n_steps=self._n_steps,
-                                gamma=self._gamma,
-                            )
-
-                        # update parameters
-                        with logger.measure_time("algorithm_update"):
-                            loss = self.update(epoch, total_step, batch)
-
-                        # record metrics
-                        for name, val in zip(self._get_loss_labels(), loss):
-                            if val:
-                                logger.add_metric(name, val)
-
-            if epoch > 0 and total_step % n_steps_per_epoch == 0:
-                # evaluation
-                if eval_scorer:
-                    logger.add_metric("evaluation", eval_scorer(self))
-
-                # save metrics
-                logger.commit(epoch, total_step)
-                logger.save_model(total_step, self)
 
     def _generate_new_data(
         self, transitions: List[Transition]

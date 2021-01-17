@@ -179,7 +179,7 @@ class _AWRBase(AlgoBase):
 
         return [critic_loss_mean, actor_loss_mean, np.mean(clipped_weights)]
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return ["critic_loss", "actor_loss", "weights"]
 
 

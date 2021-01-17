@@ -150,5 +150,5 @@ class MOPO(DynamicsBase):
         )
         return [loss]
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return ["loss"]

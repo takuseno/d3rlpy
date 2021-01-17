@@ -227,7 +227,7 @@ class SAC(AlgoBase):
             temp = None
         return [critic_loss, actor_loss, temp_loss, temp]
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return ["critic_loss", "actor_loss", "temp_loss", "temp"]
 
 
@@ -415,5 +415,5 @@ class DiscreteSAC(AlgoBase):
             self._impl.update_target()
         return [critic_loss, actor_loss, temp_loss, temp]
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return ["critic_loss", "actor_loss", "temp_loss", "temp"]

@@ -111,7 +111,7 @@ class _FQEBase(AlgoBase):
             self._impl.update_target()
         return [loss]
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return ["value_loss"]
 
 

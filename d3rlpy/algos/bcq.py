@@ -303,7 +303,7 @@ class BCQ(AlgoBase):
         """BCQ does not support sampling action."""
         raise NotImplementedError("BCQ does not support sampling action.")
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return ["critic_loss", "actor_loss", "imitator_loss"]
 
 
@@ -478,5 +478,5 @@ class DiscreteBCQ(AlgoBase):
             self._impl.update_target()
         return [loss]
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return ["loss"]

@@ -42,7 +42,7 @@ def base_tester(model, impl, observation_shape, action_size=2):
 
     # check fit
     update_backup = model.update
-    model.update = Mock(return_value=range(len(model._get_loss_labels())))
+    model.update = Mock(return_value=range(len(model.get_loss_labels())))
     n_episodes = 4
     episode_length = 25
     n_batch = 32
@@ -87,7 +87,7 @@ def base_tester(model, impl, observation_shape, action_size=2):
         "test", root_dir="test_data", verbose=False, tensorboard=False
     )
     # save parameters to test_data/test/params.json
-    model._save_params(logger)
+    model.save_params(logger)
     # load params.json
     json_path = os.path.join(logger.logdir, "params.json")
     new_model = model.__class__.from_json(json_path)
@@ -166,6 +166,6 @@ def base_update_tester(model, observation_shape, action_size, discrete=False):
     model.create_impl(observation_shape, action_size)
     loss = model.update(0, 0, batch)
 
-    assert len(loss) == len(model._get_loss_labels())
+    assert len(loss) == len(model.get_loss_labels())
 
     return transitions

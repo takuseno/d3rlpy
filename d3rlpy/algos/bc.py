@@ -82,7 +82,7 @@ class _BCBase(AlgoBase):
         """sampling action is not supported by BC algorithm."""
         raise NotImplementedError("BC does not support sampling action.")
 
-    def _get_loss_labels(self) -> List[str]:
+    def get_loss_labels(self) -> List[str]:
         return ["loss"]
 
 
