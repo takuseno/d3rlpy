@@ -99,12 +99,13 @@ def test_timelimit_aware(timelimit_aware):
 
 
 def test_fit_batch_online_cartpole_with_dqn():
-    env = BatchEnvWrapper([gym.make("CartPole-v0") for _ in range(5)])
+    make_env = lambda: gym.make("CartPole-v0")
+    env = BatchEnvWrapper([make_env for _ in range(5)])
     eval_env = gym.make("CartPole-v0")
 
     algo = DQN()
 
-    buffer = BatchReplayBuffer(1000, 5, env)
+    buffer = BatchReplayBuffer(1000, env)
 
     explorer = LinearDecayEpsilonGreedy()
 
@@ -122,14 +123,13 @@ def test_fit_batch_online_cartpole_with_dqn():
 def test_fit_batch_online_atari_with_dqn():
     import d4rl_atari
 
-    env = BatchEnvWrapper(
-        [gym.make("breakout-mixed-v0", stack=False) for _ in range(5)]
-    )
+    make_env = lambda: gym.make("breakout-mixed-v0", stack=False)
+    env = BatchEnvWrapper([make_env for _ in range(5)])
     eval_env = gym.make("breakout-mixed-v0", stack=False)
 
     algo = DQN(n_frames=4)
 
-    buffer = BatchReplayBuffer(1000, 5, env)
+    buffer = BatchReplayBuffer(1000, env)
 
     explorer = LinearDecayEpsilonGreedy()
 
@@ -147,12 +147,13 @@ def test_fit_batch_online_atari_with_dqn():
 
 
 def test_fit_batch_online_pendulum_with_sac():
-    env = BatchEnvWrapper([gym.make("Pendulum-v0") for _ in range(5)])
+    make_env = lambda: gym.make("Pendulum-v0")
+    env = BatchEnvWrapper([make_env for _ in range(5)])
     eval_env = gym.make("Pendulum-v0")
 
     algo = SAC()
 
-    buffer = BatchReplayBuffer(1000, 5, env)
+    buffer = BatchReplayBuffer(1000, env)
 
     algo.fit_batch_online(
         env,

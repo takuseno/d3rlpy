@@ -264,7 +264,7 @@ class AlgoBase(LearnableBase):
         tensorboard: bool = True,
         timelimit_aware: bool = True,
     ) -> None:
-        """Start training loop of online deep reinforcement learning.
+        """Start training loop of batch online deep reinforcement learning.
 
         Args:
             env: gym-like environment.

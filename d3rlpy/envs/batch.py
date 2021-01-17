@@ -60,6 +60,16 @@ class SubprocEnv:
 
 
 class BatchEnvWrapper(gym.Env):  # type: ignore
+    """The environment wrapper for batch training.
+
+    Multiple environments are running in different processes to maximize the
+    computational efficiency.
+    Ideally, you can scale the training linearly up to the number of CPUs.
+
+    Args:
+        make_env_fns: a list of callable functions to return an environment.
+
+    """
 
     _envs: List[SubprocEnv]
     _observation_shape: Sequence[int]
@@ -80,6 +90,15 @@ class BatchEnvWrapper(gym.Env):  # type: ignore
     def step(
         self, actions: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict[str, Any]]]:
+        """Returns batch of next observations, actions, rewards and infos.
+
+        Args:
+            actions: batch action.
+
+        Returns:
+            batch of next data.
+
+        """
         n_envs = len(self._envs)
         is_image = len(self._observation_shape) == 3
         observations = np.empty(
@@ -113,6 +132,12 @@ class BatchEnvWrapper(gym.Env):  # type: ignore
         return observations, rewards, terminals, infos
 
     def reset(self) -> np.ndarray:
+        """Initializes environments and returns batch of observations.
+
+        Returns:
+            batch of observations.
+
+        """
         n_envs = len(self._envs)
         is_image = len(self._observation_shape) == 3
         observations = np.empty(
