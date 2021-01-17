@@ -6,6 +6,7 @@ from tqdm import trange
 from typing_extensions import Protocol
 
 from ..dataset import TransitionMiniBatch
+from ..envs import BatchEnvWrapper
 from ..logger import D3RLPyLogger
 from ..preprocessing import Scaler, ActionScaler
 from ..preprocessing.stack import StackedObservation, BatchStackedObservation
@@ -257,7 +258,7 @@ def train_single_env(
 
 def train_batch_env(
     algo: _AlgoProtocol,
-    env: gym.Env,
+    env: BatchEnvWrapper,
     buffer: BatchBuffer,
     explorer: Optional[Explorer] = None,
     n_steps: int = 1000000,

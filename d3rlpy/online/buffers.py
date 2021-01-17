@@ -13,6 +13,7 @@ from typing import (
 import numpy as np
 import gym
 
+from ..envs import BatchEnvWrapper
 from ..dataset import (
     Episode,
     MDPDataset,
@@ -428,16 +429,15 @@ class BatchReplayBuffer(BasicSampleMixin, BatchBuffer):
     def __init__(
         self,
         maxlen: int,
-        n_envs: int,
-        env: Optional[gym.Env] = None,
+        env: BatchEnvWrapper,
         episodes: Optional[List[Episode]] = None,
     ):
         super().__init__(maxlen, env, episodes)
-        self._n_envs = n_envs
-        self._prev_observations = [None for _ in range(n_envs)]
-        self._prev_actions = [None for _ in range(n_envs)]
-        self._prev_rewards = [None for _ in range(n_envs)]
-        self._prev_transitions = [None for _ in range(n_envs)]
+        self._n_envs = len(env)
+        self._prev_observations = [None for _ in range(len(env))]
+        self._prev_actions = [None for _ in range(len(env))]
+        self._prev_rewards = [None for _ in range(len(env))]
+        self._prev_transitions = [None for _ in range(len(env))]
 
     def append(
         self,

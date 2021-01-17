@@ -125,9 +125,10 @@ def test_replay_buffer_with_episode(maxlen, data_size):
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("maxlen", [50])
 def test_batch_replay_buffer(n_envs, n_steps, batch_size, maxlen):
-    env = BatchEnvWrapper([gym.make("CartPole-v0") for _ in range(n_envs)])
+    make_env_fn = lambda: gym.make("CartPole-v0")
+    env = BatchEnvWrapper([make_env_fn for _ in range(n_envs)])
 
-    buffer = BatchReplayBuffer(maxlen, n_envs, env)
+    buffer = BatchReplayBuffer(maxlen, env)
 
     observations = env.reset()
     rewards, terminals = np.zeros(n_envs), np.zeros(n_envs)
