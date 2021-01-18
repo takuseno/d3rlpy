@@ -249,10 +249,10 @@ class AlgoBase(LearnableBase):
         env: BatchEnvWrapper,
         buffer: BatchBuffer,
         explorer: Optional[Explorer] = None,
-        n_steps: int = 1000000,
-        n_steps_per_epoch: int = 10000,
-        update_interval: int = 1,
-        update_start_step: int = 0,
+        n_epochs: int = 1000,
+        n_steps_per_epoch: int = 1000,
+        n_updates_per_epoch: int = 1000,
+        eval_interval: int = 10,
         eval_env: Optional[gym.Env] = None,
         eval_epsilon: float = 0.0,
         save_metrics: bool = True,
@@ -270,10 +270,11 @@ class AlgoBase(LearnableBase):
             env: gym-like environment.
             buffer : replay buffer.
             explorer: action explorer.
-            n_steps: the number of total steps to train.
+            n_epochs: the number of epochs to train.
             n_steps_per_epoch: the number of steps per epoch.
             update_interval: the number of steps per update.
-            update_start_step: the steps before starting updates.
+            n_updates_per_epoch: the number of updates per epoch.
+            eval_interval: the number of epochs before evaluation.
             eval_env: gym-like environment. If None, evaluation is skipped.
             eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
             save_metrics: flag to record metrics. If False, the log
@@ -297,10 +298,10 @@ class AlgoBase(LearnableBase):
             env=env,
             buffer=buffer,
             explorer=explorer,
-            n_steps=n_steps,
+            n_epochs=n_epochs,
             n_steps_per_epoch=n_steps_per_epoch,
-            update_interval=update_interval,
-            update_start_step=update_start_step,
+            n_updates_per_epoch=n_updates_per_epoch,
+            eval_interval=eval_interval,
             eval_env=eval_env,
             eval_epsilon=eval_epsilon,
             save_metrics=save_metrics,

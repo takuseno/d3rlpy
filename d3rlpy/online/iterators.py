@@ -261,10 +261,10 @@ def train_batch_env(
     env: BatchEnvWrapper,
     buffer: BatchBuffer,
     explorer: Optional[Explorer] = None,
-    n_steps: int = 1000000,
-    n_steps_per_epoch: int = 10000,
-    update_interval: int = 1,
-    update_start_step: int = 0,
+    n_epochs: int = 1000,
+    n_steps_per_epoch: int = 1000,
+    n_updates_per_epoch: int = 1000,
+    eval_interval: int = 10,
     eval_env: Optional[gym.Env] = None,
     eval_epsilon: float = 0.0,
     save_metrics: bool = True,
@@ -283,10 +283,10 @@ def train_batch_env(
         env: gym-like environment.
         buffer : replay buffer.
         explorer: action explorer.
-        n_steps: the number of total steps to train.
+        n_epochs: the number of epochs to train.
         n_steps_per_epoch: the number of steps per epoch.
-        update_interval: the number of steps per update.
-        update_start_step: the steps before starting updates.
+        n_updates_per_epoch: the number of updates per epoch.
+        eval_interval: the number of epochs before evaluation.
         eval_env: gym-like environment. If None, evaluation is skipped.
         eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
         save_metrics: flag to record metrics. If False, the log
@@ -347,12 +347,11 @@ def train_batch_env(
     observation = env.reset()
     reward, terminal = np.zeros(len(env)), np.zeros(len(env))
     clip_episode = np.zeros(len(env))
-    for step in xrange(n_steps // len(env)):
+    for epoch in range(n_epochs):
+        for step in xrange(n_steps_per_epoch):
 
-        # multiply number of envs
-        total_step = step * len(env)
+            total_step = epoch * n_steps_per_epoch + step
 
-        with logger.measure_time("step"):
             # stack observation if necessary
             if is_image:
                 stacked_frame.append(observation)
@@ -392,41 +391,37 @@ def train_batch_env(
                 if clip_episode[i] and is_image:
                     stacked_frame.clear_by_index(i)
 
-            # psuedo epoch count
-            epoch = total_step // n_steps_per_epoch
+        for step in range(n_updates_per_epoch):
+            # sample mini-batch
+            with logger.measure_time("sample_batch"):
+                batch = buffer.sample(
+                    batch_size=algo.batch_size,
+                    n_frames=algo.n_frames,
+                    n_steps=algo.n_steps,
+                    gamma=algo.gamma,
+                )
 
-            if total_step > update_start_step and len(buffer) > algo.batch_size:
-                if total_step % update_interval == 0:
-                    # sample mini-batch
-                    with logger.measure_time("sample_batch"):
-                        batch = buffer.sample(
-                            batch_size=algo.batch_size,
-                            n_frames=algo.n_frames,
-                            n_steps=algo.n_steps,
-                            gamma=algo.gamma,
-                        )
+            # update parameters
+            with logger.measure_time("algorithm_update"):
+                loss = algo.update(
+                    epoch=epoch,
+                    total_step=epoch * n_updates_per_epoch + step,
+                    batch=batch,
+                )
 
-                    # update parameters
-                    with logger.measure_time("algorithm_update"):
-                        loss = algo.update(
-                            epoch=epoch,
-                            total_step=total_step // update_interval,
-                            batch=batch,
-                        )
+            # record metrics
+            for name, val in zip(algo.get_loss_labels(), loss):
+                if val:
+                    logger.add_metric(name, val)
 
-                    # record metrics
-                    for name, val in zip(algo.get_loss_labels(), loss):
-                        if val:
-                            logger.add_metric(name, val)
-
-        if epoch > 0 and total_step % n_steps_per_epoch == 0:
+        if epoch % eval_interval == 0:
             # evaluation
             if eval_scorer:
                 logger.add_metric("evaluation", eval_scorer(algo))
 
-            # save metrics
-            logger.commit(epoch, total_step)
-            logger.save_model(total_step, algo)
+        # save metrics
+        logger.commit(epoch, total_step)
+        logger.save_model(total_step, algo)
 
     # finish all process
     env.close()

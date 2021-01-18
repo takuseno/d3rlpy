@@ -27,7 +27,8 @@ if __name__ == '__main__':
     dqn.fit_batch_online(env,
                          buffer,
                          explorer,
-                         n_steps=100000,
+                         n_epochs=100,
+                         eval_interval=1,
                          eval_env=eval_env,
                          n_steps_per_epoch=1000,
-                         update_start_step=1000)
+                         n_updates_per_epoch=1000)
