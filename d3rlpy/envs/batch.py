@@ -14,7 +14,9 @@ from gym.spaces import Discrete
 from ..online.utility import get_action_size_from_env
 
 
-def subproc(conn: Connection, fn_path: str) -> None:
+def subproc(conn: Connection, remote_conn: Connection, fn_path: str) -> None:
+    remote_conn.close()
+
     with open(fn_path, "rb") as f:
         env = cloudpickle.load(f)()
 
@@ -49,11 +51,14 @@ class SubprocEnv:
 
         # spawn process otherwise PyTorch raises error
         ctx = get_context("spawn")
-        self._conn, self._remote_conn = ctx.Pipe()
+        self._conn, self._remote_conn = ctx.Pipe(duplex=True)
         self._proc = ctx.Process(  # type: ignore
-            target=subproc, args=(self._remote_conn, fn_path)
+            target=subproc,
+            args=(self._remote_conn, self._conn, fn_path),
+            daemon=True,
         )
         self._proc.start()
+        self._remote_conn.close()
 
     def step_send(self, action: np.ndarray) -> None:
         self._conn.send(["step", action])
