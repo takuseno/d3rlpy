@@ -350,7 +350,7 @@ def train_batch_env(
     for epoch in range(n_epochs):
         for step in xrange(n_steps_per_epoch):
 
-            total_step = epoch * n_steps_per_epoch + step
+            total_step = len(env) * (epoch * n_steps_per_epoch + step)
 
             # stack observation if necessary
             if is_image:
