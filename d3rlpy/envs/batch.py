@@ -9,12 +9,11 @@ from multiprocessing.connection import Connection
 import numpy as np
 import gym
 import cloudpickle
-from gym.spaces import Discrete
 
 from ..online.utility import get_action_size_from_env
 
 
-def subproc(conn: Connection, remote_conn: Connection, fn_path: str) -> None:
+def _subproc(conn: Connection, remote_conn: Connection, fn_path: str) -> None:
     remote_conn.close()
 
     with open(fn_path, "rb") as f:
@@ -53,7 +52,7 @@ class SubprocEnv:
         ctx = get_context("spawn")
         self._conn, self._remote_conn = ctx.Pipe(duplex=True)
         self._proc = ctx.Process(  # type: ignore
-            target=subproc,
+            target=_subproc,
             args=(self._remote_conn, self._conn, fn_path),
             daemon=True,
         )
@@ -82,22 +81,132 @@ class SubprocEnv:
         self._proc.join()
 
 
-class BatchEnvWrapper(gym.Env):  # type: ignore
-    """The environment wrapper for batch training.
+class BatchEnv(gym.Env):  # type: ignore
+    def step(
+        self, actions: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict[str, Any]]]:
+        """Returns batch of next observations, actions, rewards and infos.
+
+        Args:
+            actions: batch action.
+
+        Returns:
+            batch of next data.
+
+        """
+        raise NotImplementedError
+
+    def reset(self) -> np.ndarray:
+        """Initializes environments and returns batch of observations.
+
+        Returns:
+            batch of observations.
+
+        """
+        raise NotImplementedError
+
+    def render(self, mode: str = "human") -> Any:
+        raise NotImplementedError("BatchEnvWrapper does not support render.")
+
+    @property
+    def n_envs(self) -> int:
+        raise NotImplementedError
+
+    def __len__(self) -> int:
+        return self.n_envs
+
+    def close(self) -> None:
+        for env in self._envs:
+            env.close()
+
+
+class SyncBatchEnv(BatchEnv):
+    """The environment wrapper for batch training with synchronized
+    environments.
+
+    Multiple environments are serially running. Basically, the computational
+    cost is linearly increased depending on the number of environments.
+
+    Args:
+        envs (list(gym.Env)): a list of environments.
+
+    """
+
+    _envs: List[gym.Env]
+    _observation_shape: Sequence[int]
+    _action_size: int
+    _prev_terminals: np.ndarray
+
+    def __init__(self, envs: List[gym.Env]):
+        self._envs = envs
+        self.observation_space = envs[0].observation_space
+        self.action_space = envs[0].action_space
+        self._observation_shape = self.observation_space.shape
+        self._action_size = get_action_size_from_env(envs[0])
+        self._prev_terminals = np.ones(len(self._envs))
+
+    def step(
+        self, actions: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict[str, Any]]]:
+        n_envs = len(self._envs)
+        is_image = len(self._observation_shape) == 3
+        observations = np.empty(
+            (n_envs,) + tuple(self._observation_shape),
+            dtype=np.uint8 if is_image else np.float32,
+        )
+        rewards = np.empty(n_envs, dtype=np.float32)
+        terminals = np.empty(n_envs, dtype=np.float32)
+        infos = []
+        info: Dict[str, Any]
+        for i, (env, action) in enumerate(zip(self._envs, actions)):
+            if self._prev_terminals[i]:
+                observation = env.reset()
+                reward, terminal, info = 0.0, 0.0, {}
+            else:
+                observation, reward, terminal, info = env.step(action)
+            observations[i] = observation
+            rewards[i] = reward
+            terminals[i] = terminal
+            infos.append(info)
+            self._prev_terminals[i] = terminal
+        return observations, rewards, terminals, infos
+
+    def reset(self) -> np.ndarray:
+        n_envs = len(self._envs)
+        is_image = len(self._observation_shape) == 3
+        observations = np.empty(
+            (n_envs,) + tuple(self._observation_shape),
+            dtype=np.uint8 if is_image else np.float32,
+        )
+
+        for i, env in enumerate(self._envs):
+            observations[i] = env.reset()
+
+        self._prev_terminals = np.ones(len(self._envs))
+
+        return observations
+
+    @property
+    def n_envs(self) -> int:
+        return len(self._envs)
+
+
+class AsyncBatchEnv(BatchEnv):
+    """The environment wrapper for batch training with asynchronous environment
+    workers.
 
     Multiple environments are running in different processes to maximize the
     computational efficiency.
     Ideally, you can scale the training linearly up to the number of CPUs.
 
     Args:
-        make_env_fns: a list of callable functions to return an environment.
+        make_env_fns (list(callable)): a list of callable functions to return an environment.
 
     """
 
     _envs: List[SubprocEnv]
     _observation_shape: Sequence[int]
     _action_size: int
-    _discrete_action: bool
     _prev_terminals: np.ndarray
 
     def __init__(self, make_env_fns: List[Callable[..., gym.Env]]):
@@ -116,21 +225,11 @@ class BatchEnvWrapper(gym.Env):  # type: ignore
         self.action_space = ref_env.action_space
         self._observation_shape = self.observation_space.shape
         self._action_size = get_action_size_from_env(ref_env)
-        self._discrete_action = isinstance(self.action_space, Discrete)
         self._prev_terminals = np.ones(len(self._envs))
 
     def step(
         self, actions: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict[str, Any]]]:
-        """Returns batch of next observations, actions, rewards and infos.
-
-        Args:
-            actions: batch action.
-
-        Returns:
-            batch of next data.
-
-        """
         n_envs = len(self._envs)
         is_image = len(self._observation_shape) == 3
         observations = np.empty(
@@ -142,20 +241,20 @@ class BatchEnvWrapper(gym.Env):  # type: ignore
         infos = []
 
         # asynchronous environment step
-        for i, action in enumerate(actions):
+        for i, (env, action) in enumerate(zip(self._envs, actions)):
             if self._prev_terminals[i]:
-                self._envs[i].reset_send()
+                env.reset_send()
             else:
-                self._envs[i].step_send(action)
+                env.step_send(action)
 
         # get the result through pipes
         info: Dict[str, Any]
-        for i, action in enumerate(actions):
+        for i, (env, action) in enumerate(zip(self._envs, actions)):
             if self._prev_terminals[i]:
-                observation = self._envs[i].reset_get()
+                observation = env.reset_get()
                 reward, terminal, info = 0.0, 0.0, {}
             else:
-                observation, reward, terminal, info = self._envs[i].step_get()
+                observation, reward, terminal, info = env.step_get()
             observations[i] = observation
             rewards[i] = reward
             terminals[i] = terminal
@@ -164,12 +263,6 @@ class BatchEnvWrapper(gym.Env):  # type: ignore
         return observations, rewards, terminals, infos
 
     def reset(self) -> np.ndarray:
-        """Initializes environments and returns batch of observations.
-
-        Returns:
-            batch of observations.
-
-        """
         n_envs = len(self._envs)
         is_image = len(self._observation_shape) == 3
         observations = np.empty(
@@ -189,20 +282,6 @@ class BatchEnvWrapper(gym.Env):  # type: ignore
 
         return observations
 
-    def render(self, mode: str = "human") -> Any:
-        raise NotImplementedError("BatchEnvWrapper does not support render.")
-
     @property
     def n_envs(self) -> int:
         return len(self._envs)
-
-    def __len__(self) -> int:
-        return self.n_envs
-
-    def __del__(self) -> None:
-        self.close()
-
-    def close(self) -> None:
-        for env in self._envs:
-            env.close()
-        self._envs = []

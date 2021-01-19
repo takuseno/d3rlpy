@@ -1,6 +1,9 @@
 Online Training
 ===============
 
+Standard Training
+-----------------
+
 .. module:: d3rlpy.online
 
 d3rlpy provides not only offline training, but also online training utilities.
@@ -44,7 +47,7 @@ enough to be trained in an online manner with a few more utilities.
 
 
 Replay Buffer
--------------
+~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
@@ -54,7 +57,7 @@ Replay Buffer
 
 
 Explorers
----------
+~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
@@ -66,7 +69,7 @@ Explorers
 
 
 Batch Concurrent Training
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 d3rlpy supports computationally efficient batch concurrent training.
 
@@ -75,13 +78,13 @@ d3rlpy supports computationally efficient batch concurrent training.
     import gym
 
     from d3rlpy.algos import DQN
-    from d3rlpy.envs import BatchEnvWrapper
+    from d3rlpy.envs import AsyncBatchEnv
     from d3rlpy.online.buffers import BatchReplayBuffer
     from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
 
     # this condition is necessary due to spawning processes
     if __name__ == '__main__':
-        env = BatchEnvWrapper([lambda: gym.make('CartPole-v0') for _ in range(10)])
+        env = AsyncBatchEnv([lambda: gym.make('CartPole-v0') for _ in range(10)])
 
         eval_env = gym.make('CartPole-v0')
 
@@ -108,8 +111,11 @@ d3rlpy supports computationally efficient batch concurrent training.
                              n_steps_per_epoch=1000,
                              n_updates_per_epoch=100)
 
+For the environment wrapper, please see :class:`d3rlpy.envs.AsyncBatchEnv`
+and :class:`d3rlpy.envs.SyncBatchEnv`.
+
 Replay Buffer
--------------
+~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/

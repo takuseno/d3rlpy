@@ -1,11 +1,11 @@
 import gym
 
 from d3rlpy.algos import SAC
-from d3rlpy.envs import BatchEnvWrapper
+from d3rlpy.envs import AsyncBatchEnv
 from d3rlpy.online.buffers import BatchReplayBuffer
 
 if __name__ == '__main__':
-    env = BatchEnvWrapper([lambda: gym.make('Pendulum-v0') for _ in range(10)])
+    env = AsyncBatchEnv([lambda: gym.make('Pendulum-v0') for _ in range(10)])
     eval_env = gym.make('Pendulum-v0')
 
     # setup algorithm

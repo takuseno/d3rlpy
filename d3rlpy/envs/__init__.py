@@ -1,4 +1,4 @@
-from .batch import BatchEnvWrapper
+from .batch import BatchEnv, SyncBatchEnv, AsyncBatchEnv
 
 
-__all__ = ["BatchEnvWrapper"]
+__all__ = ["BatchEnv", "SyncBatchEnv", "AsyncBatchEnv"]

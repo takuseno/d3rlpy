@@ -5,7 +5,7 @@ import numpy as np
 import gym
 
 from ..base import ImplBase, LearnableBase
-from ..envs import BatchEnvWrapper
+from ..envs import BatchEnv
 from ..dataset import Transition
 from ..online.iterators import train_single_env, train_batch_env
 from ..online.buffers import Buffer, BatchBuffer
@@ -246,7 +246,7 @@ class AlgoBase(LearnableBase):
 
     def fit_batch_online(
         self,
-        env: BatchEnvWrapper,
+        env: BatchEnv,
         buffer: BatchBuffer,
         explorer: Optional[Explorer] = None,
         n_epochs: int = 1000,

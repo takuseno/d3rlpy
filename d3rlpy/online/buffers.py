@@ -13,7 +13,7 @@ from typing import (
 import numpy as np
 import gym
 
-from ..envs import BatchEnvWrapper
+from ..envs import BatchEnv
 from ..dataset import (
     Episode,
     MDPDataset,
@@ -429,7 +429,7 @@ class BatchReplayBuffer(BasicSampleMixin, BatchBuffer):
     def __init__(
         self,
         maxlen: int,
-        env: BatchEnvWrapper,
+        env: BatchEnv,
         episodes: Optional[List[Episode]] = None,
     ):
         super().__init__(maxlen, env, episodes)
