@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import gym
 
-from d3rlpy.envs import BatchEnvWrapper
+from d3rlpy.envs import SyncBatchEnv
 from d3rlpy.online.buffers import ReplayBuffer, BatchReplayBuffer
 from d3rlpy.dataset import TransitionMiniBatch, Episode
 
@@ -125,8 +125,7 @@ def test_replay_buffer_with_episode(maxlen, data_size):
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("maxlen", [50])
 def test_batch_replay_buffer(n_envs, n_steps, batch_size, maxlen):
-    make_env_fn = lambda: gym.make("CartPole-v0")
-    env = BatchEnvWrapper([make_env_fn for _ in range(n_envs)])
+    env = SyncBatchEnv([gym.make("CartPole-v0") for _ in range(n_envs)])
 
     buffer = BatchReplayBuffer(maxlen, env)
 
