@@ -4,7 +4,7 @@ from d3rlpy.metrics.scorer import evaluate_on_environment
 
 dataset, env = get_d4rl('hopper-medium-replay-v0')
 
-bear = BEAR(batch_size=256, use_gpu=True)
+bear = BEAR(use_gpu=True)
 
 bear.fit(dataset.episodes,
          eval_episodes=dataset.episodes,
