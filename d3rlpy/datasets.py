@@ -153,3 +153,37 @@ def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
             "d4rl-atari is not installed.\n"
             "pip install git+https://github.com/takuseno/d4rl-atari"
         ) from e
+
+
+def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
+    """Returns d4rl dataset and envrironment.
+
+    The dataset is provided through d4rl.
+
+    .. code-block:: python
+
+        from d3rlpy.datasets import get_d4rl
+
+        dataset, env = get_d4rl('hopper-medium-v0')
+
+    References:
+        * https://github.com/rail-berkeley/d4rl
+
+    Args:
+        env_name: environment id of d4rl dataset.
+
+    Returns:
+        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
+
+    """
+    try:
+        import d4rl  # type: ignore
+
+        env = gym.make(env_name)
+        dataset = MDPDataset(**env.get_dataset())
+        return dataset, env
+    except ImportError as e:
+        raise ImportError(
+            "d4rl is not installed.\n"
+            "pip install git+https://github.com/rail-berkeley/d4rl"
+        ) from e

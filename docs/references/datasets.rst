@@ -14,3 +14,4 @@ learning algorithms.
    d3rlpy.datasets.get_pendulum
    d3rlpy.datasets.get_pybullet
    d3rlpy.datasets.get_atari
+   d3rlpy.datasets.get_d4rl
