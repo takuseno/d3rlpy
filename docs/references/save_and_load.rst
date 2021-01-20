@@ -60,7 +60,7 @@ save_policy
 -----------
 
 ``save_policy`` method saves the only greedy-policy computation graph as
-TorchSciprt or ONNX.
+TorchScript or ONNX.
 When ``save_policy`` method is called, the greedy-policy graph is constructed
 and traced via ``torch.jit.trace`` function.
 

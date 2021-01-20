@@ -167,6 +167,8 @@ def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         dataset, env = get_d4rl('hopper-medium-v0')
 
     References:
+        * `Fu et al., D4RL: Datasets for Deep Data-Driven Reinforcement
+          Learning. <https://arxiv.org/abs/2004.07219>`_
         * https://github.com/rail-berkeley/d4rl
 
     Args:

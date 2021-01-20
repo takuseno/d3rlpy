@@ -16,7 +16,7 @@ performance only with offline datasets.
    cql.load_model('<path-to-model>/model.pt')
 
    # dataset to evaluate with
-   dataset, env = get_pybullet('hopper-bullet-miexed-v0')
+   dataset, env = get_pybullet('hopper-bullet-mixed-v0')
 
    from d3rlpy.ope import FQE
 
