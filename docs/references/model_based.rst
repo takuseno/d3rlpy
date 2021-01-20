@@ -42,12 +42,11 @@ Pick the best model based on evaluation metrics.
   # load trained dynamics model
   mopo = MOPO.from_json('<path-to-params.json>/params.json')
   mopo.load_model('<path-to-model>/model_xx.pt')
-  mopo.n_transitions = 400 # tunable parameter
-  mopo.horizon = 5 # tunable parameter
-  mopo.lam = 1.0 # tunable parameter
+  # adjust parameters based on your case
+  mopo.set_params(n_transitions=400, horizon=5, lam=1.0)
 
-  # give mopo as dynamics argument.
-  cql = CQL(dynamics=mopo)
+  # give mopo as generator argument.
+  cql = CQL(generator=mopo)
 
 If you pass a dynamics model to algorithms, new transitions are generated at
 the beginning of every epoch.
