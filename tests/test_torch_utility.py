@@ -11,7 +11,6 @@ from d3rlpy.torch_utility import torch_api, train_api, eval_api
 from d3rlpy.torch_utility import augmentation_api
 from d3rlpy.torch_utility import map_location
 from d3rlpy.torch_utility import get_state_dict, set_state_dict
-from d3rlpy.torch_utility import _query_cache
 
 
 @pytest.mark.parametrize("tau", [0.05])
@@ -277,21 +276,3 @@ def test_augmentation_api():
     x = torch.tensor(1.0)
     y = torch.tensor(2.0)
     assert impl.augmentation_api_func(x, y).numpy() == 4.0
-
-
-def test_query_cache():
-    for _ in range(20):
-        x1 = np.random.random((100, 100))
-        y1 = _query_cache(x1, "cpu:0")
-        y2 = _query_cache(x1, "cpu:0")
-        assert isinstance(y1, torch.Tensor)
-        assert isinstance(y2, torch.Tensor)
-        assert y1 is y2
-
-        x2 = np.random.random((100, 100))
-        y3 = _query_cache(x2, "cpu:0")
-        y4 = _query_cache(x2, "cpu:0")
-        assert isinstance(y3, torch.Tensor)
-        assert isinstance(y4, torch.Tensor)
-        assert y3 is y4
-        assert y1 is not y3

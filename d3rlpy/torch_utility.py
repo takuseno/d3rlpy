@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional, cast
+from typing import Any, Callable, Dict, List, Optional
 from inspect import signature
 
 import numpy as np
@@ -110,33 +110,6 @@ class _WithDeviceAndScalerProtocol(Protocol):
         ...
 
 
-NUMPY_ARRAY_QUEUE = [0 for _ in range(6)]
-TORCH_TENSOR_QUEUE = [None for _ in range(6)]
-
-
-def _query_cache(array: np.ndarray, device: str) -> torch.Tensor:
-    # cache hit
-    if id(array) in NUMPY_ARRAY_QUEUE:
-        tensor = TORCH_TENSOR_QUEUE[NUMPY_ARRAY_QUEUE.index(id(array))]
-        tensor = cast(torch.Tensor, tensor)
-        if array.shape == tensor.shape:
-            return tensor
-
-    NUMPY_ARRAY_QUEUE.pop(0)
-    NUMPY_ARRAY_QUEUE.append(id(array))
-
-    if array.dtype == np.uint8:
-        dtype = torch.uint8
-    else:
-        dtype = torch.float32
-    tensor = torch.tensor(data=array, dtype=dtype, device=device)
-
-    TORCH_TENSOR_QUEUE.pop(0)
-    TORCH_TENSOR_QUEUE.append(tensor)
-
-    return tensor
-
-
 def torch_api(
     scaler_targets: Optional[List[str]] = None,
     action_scaler_targets: Optional[List[str]] = None,
@@ -158,7 +131,15 @@ def torch_api(
                     tensor = default_collate(val)
                     tensor = tensor.to(self.device)
                 elif isinstance(val, np.ndarray):
-                    tensor = _query_cache(val, self.device)
+                    if val.dtype == np.uint8:
+                        dtype = torch.uint8
+                    else:
+                        dtype = torch.float32
+                    tensor = torch.tensor(
+                        data=val,
+                        dtype=dtype,
+                        device=self.device,
+                    )
                 else:
                     tensor = torch.tensor(
                         data=val,
