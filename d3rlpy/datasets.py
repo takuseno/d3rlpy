@@ -180,8 +180,25 @@ def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         import d4rl  # type: ignore
 
         env = gym.make(env_name)
-        dataset = MDPDataset(**env.get_dataset())
-        return dataset, env
+        dataset = env.get_dataset()
+
+        observations = dataset["observations"]
+        actions = dataset["actions"]
+        rewards = dataset["rewards"]
+        terminals = np.logical_and(
+            dataset["terminals"], np.logical_not(dataset["timeouts"])
+        )
+        episode_terminals = dataset["terminals"]
+
+        mdp_dataset = MDPDataset(
+            observations=observations,
+            actions=actions,
+            rewards=rewards,
+            terminals=terminals,
+            episode_terminals=episode_terminals,
+        )
+
+        return mdp_dataset, env
     except ImportError as e:
         raise ImportError(
             "d4rl is not installed.\n"
