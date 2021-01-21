@@ -8,7 +8,12 @@ from ..base import ImplBase, LearnableBase
 from ..envs import BatchEnv
 from ..dataset import Transition
 from ..online.iterators import train_single_env, train_batch_env
-from ..online.buffers import Buffer, BatchBuffer
+from ..online.buffers import (
+    Buffer,
+    BatchBuffer,
+    ReplayBuffer,
+    BatchReplayBuffer,
+)
 from ..online.explorers import Explorer
 from ..argument_utility import ScalerArg, ActionScalerArg
 from ..constants import IMPL_NOT_INITIALIZED_ERROR
@@ -178,7 +183,7 @@ class AlgoBase(LearnableBase):
     def fit_online(
         self,
         env: gym.Env,
-        buffer: Buffer,
+        buffer: Optional[Buffer] = None,
         explorer: Optional[Explorer] = None,
         n_steps: int = 1000000,
         n_steps_per_epoch: int = 10000,
@@ -223,6 +228,11 @@ class AlgoBase(LearnableBase):
                 incorporate with ``gym.wrappers.TimeLimit``.
 
         """
+
+        # create default replay buffer
+        if buffer is None:
+            buffer = ReplayBuffer(1000000, env=env)
+
         train_single_env(
             algo=self,
             env=env,
@@ -247,7 +257,7 @@ class AlgoBase(LearnableBase):
     def fit_batch_online(
         self,
         env: BatchEnv,
-        buffer: BatchBuffer,
+        buffer: Optional[BatchBuffer] = None,
         explorer: Optional[Explorer] = None,
         n_epochs: int = 1000,
         n_steps_per_epoch: int = 1000,
@@ -293,6 +303,11 @@ class AlgoBase(LearnableBase):
                 incorporate with ``gym.wrappers.TimeLimit``.
 
         """
+
+        # create default replay buffer
+        if buffer is None:
+            buffer = BatchReplayBuffer(1000000, env=env)
+
         train_batch_env(
             algo=self,
             env=env,
