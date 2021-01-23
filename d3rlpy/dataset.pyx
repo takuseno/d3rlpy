@@ -440,6 +440,8 @@ class MDPDataset:
                                 episode_terminals=episode_terminals)
 
         # append to episodes
+        if self._episodes is None:
+            self.build_episodes()
         self._episodes += episodes
 
     def extend(self, dataset):
