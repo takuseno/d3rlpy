@@ -37,6 +37,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("alpha_threshold", [0.05])
 @pytest.mark.parametrize("lam", [0.75])
 @pytest.mark.parametrize("n_action_samples", [4])
+@pytest.mark.parametrize("mmd_kernel", ["laplacian"])
 @pytest.mark.parametrize("mmd_sigma", [20.0])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
@@ -66,6 +67,7 @@ def test_bear_impl(
     alpha_threshold,
     lam,
     n_action_samples,
+    mmd_kernel,
     mmd_sigma,
     scaler,
     action_scaler,
@@ -98,6 +100,7 @@ def test_bear_impl(
         alpha_threshold,
         lam,
         n_action_samples,
+        mmd_kernel,
         mmd_sigma,
         use_gpu=False,
         scaler=scaler,
