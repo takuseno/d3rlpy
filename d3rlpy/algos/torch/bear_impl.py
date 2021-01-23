@@ -24,7 +24,13 @@ from .sac_impl import SACImpl
 def _gaussian_kernel(
     x: torch.Tensor, y: torch.Tensor, sigma: float
 ) -> torch.Tensor:
-    return (-((x - y) ** 2) / (2 * sigma ** 2)).exp()
+    return (-((x - y) ** 2) / (2 * sigma)).exp()
+
+
+def _laplacian_kernel(
+    x: torch.Tensor, y: torch.Tensor, sigma: float
+) -> torch.Tensor:
+    return (-(x - y).abs() / (2 * sigma)).exp()
 
 
 class BEARImpl(SACImpl):
@@ -38,6 +44,7 @@ class BEARImpl(SACImpl):
     _alpha_threshold: float
     _lam: float
     _n_action_samples: int
+    _mmd_kernel: str
     _mmd_sigma: float
     _imitator: Optional[ProbablisticRegressor]
     _imitator_optim: Optional[Optimizer]
@@ -72,6 +79,7 @@ class BEARImpl(SACImpl):
         alpha_threshold: float,
         lam: float,
         n_action_samples: int,
+        mmd_kernel: str,
         mmd_sigma: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
@@ -110,6 +118,7 @@ class BEARImpl(SACImpl):
         self._alpha_threshold = alpha_threshold
         self._lam = lam
         self._n_action_samples = n_action_samples
+        self._mmd_kernel = mmd_kernel
         self._mmd_sigma = mmd_sigma
 
         # initialized in build
@@ -150,8 +159,32 @@ class BEARImpl(SACImpl):
 
     def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
         loss = super()._compute_actor_loss(obs_t)
-        mmd_loss = self._compute_mmd(obs_t)
+        mmd_loss = self._compute_mmd_loss(obs_t)
         return loss + mmd_loss
+
+    @train_api
+    @torch_api(scaler_targets=["obs_t"])
+    def warmup_actor(self, obs_t: torch.Tensor) -> np.ndarray:
+        assert self._actor_optim is not None
+
+        self._actor_optim.zero_grad()
+
+        loss = self.compute_mmd_loss(obs_t)
+
+        loss.backward()
+        self._actor_optim.step()
+
+        return loss.cpu().detach().numpy()
+
+    @augmentation_api(targets=["obs_t"])
+    def compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+        return self._compute_mmd_loss(obs_t)
+
+    def _compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+        assert self._log_alpha
+        mmd = self._compute_mmd(obs_t)
+        alpha = self._log_alpha().clamp(-5.0, 10.0).exp()
+        return (alpha * (mmd - self._alpha_threshold)).sum(dim=1).mean()
 
     @train_api
     @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
@@ -165,6 +198,7 @@ class BEARImpl(SACImpl):
         loss = self.compute_imitator_loss(obs_t, act_t)
 
         loss.backward()
+
         self._imitator_optim.step()
 
         return loss.cpu().detach().numpy()
@@ -182,7 +216,7 @@ class BEARImpl(SACImpl):
         assert self._alpha_optim is not None
         assert self._log_alpha is not None
 
-        loss = -self._compute_mmd(obs_t)
+        loss = -self._compute_mmd_loss(obs_t)
 
         self._alpha_optim.zero_grad()
         loss.backward()
@@ -195,12 +229,18 @@ class BEARImpl(SACImpl):
     def _compute_mmd(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None
         assert self._policy is not None
-        assert self._log_alpha is not None
         with torch.no_grad():
             behavior_actions = self._imitator.sample_n(
                 x, self._n_action_samples
             )
         policy_actions = self._policy.sample_n(x, self._n_action_samples)
+
+        if self._mmd_kernel == "gaussian":
+            kernel = _gaussian_kernel
+        elif self._mmd_kernel == "laplacian":
+            kernel = _laplacian_kernel
+        else:
+            raise ValueError(f"Invalid kernel type: {self._mmd_kernel}")
 
         # (batch, n, action) -> (batch, n, 1, action)
         behavior_actions = behavior_actions.reshape(
@@ -218,26 +258,20 @@ class BEARImpl(SACImpl):
         )
 
         # 1 / N^2 \sum k(a_\pi, a_\pi)
-        inter_policy = _gaussian_kernel(
-            policy_actions, policy_actions_T, self._mmd_sigma
-        )
+        inter_policy = kernel(policy_actions, policy_actions_T, self._mmd_sigma)
         mmd = inter_policy.sum(dim=1).sum(dim=1) / self._n_action_samples ** 2
 
         # 1 / N^2 \sum k(a_\beta, a_\beta)
-        inter_data = _gaussian_kernel(
+        inter_data = kernel(
             behavior_actions, behavior_actions_T, self._mmd_sigma
         )
         mmd += inter_data.sum(dim=1).sum(dim=1) / self._n_action_samples ** 2
 
         # 2 / N^2 \sum k(a_\pi, a_\beta)
-        distance = _gaussian_kernel(
-            policy_actions, behavior_actions_T, self._mmd_sigma
-        )
+        distance = kernel(policy_actions, behavior_actions_T, self._mmd_sigma)
         mmd -= 2 * distance.sum(dim=1).sum(dim=1) / self._n_action_samples ** 2
 
-        clipped_alpha = self._log_alpha().clamp(-10.0, 2.0).exp()
-
-        return (clipped_alpha * (mmd - self._alpha_threshold)).sum(dim=1).mean()
+        return (mmd + 1e-6).sqrt()
 
     @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
@@ -246,9 +280,7 @@ class BEARImpl(SACImpl):
         assert self._log_temp is not None
         with torch.no_grad():
             # BCQ-like target computation
-            actions, log_probs = self._policy.sample_n_with_log_prob(
-                x, self._n_action_samples
-            )
+            actions, log_probs = self._policy.sample_n_with_log_prob(x, 100)
             values, indices = compute_max_with_n_actions_and_indices(
                 x, actions, self._targ_q_func, self._lam
             )

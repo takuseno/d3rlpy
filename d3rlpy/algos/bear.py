@@ -90,7 +90,6 @@ class BEAR(AlgoBase):
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
-        update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\alpha` value.
         alpha_threshold (float): threshold value described as
@@ -98,10 +97,12 @@ class BEAR(AlgoBase):
         lam (float): weight for critic ensemble.
         n_action_samples (int): the number of action samples to estimate
             action-values.
+        mmd_kernel (str): MMD kernel function. The available options are
+            ``['gaussian', 'laplacian']``.
         mmd_sigma (float): :math:`\sigma` for gaussian kernel in MMD
             calculation.
-        rl_start_epoch (int): epoch to start to update policy function and Q
-            functions. If this is large, RL training would be more stabilized.
+        warmup_epochs (int): the number of epochs to warmup the policy
+            function.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device iD or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -134,14 +135,14 @@ class BEAR(AlgoBase):
     _n_critics: int
     _bootstrap: bool
     _share_encoder: bool
-    _update_actor_interval: int
     _initial_temperature: float
     _initial_alpha: float
     _alpha_threshold: float
     _lam: float
     _n_action_samples: int
+    _mmd_kernel: str
     _mmd_sigma: float
-    _rl_start_epoch: int
+    _warmup_epochs: int
     _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _impl: Optional[BEARImpl]
@@ -149,10 +150,10 @@ class BEAR(AlgoBase):
     def __init__(
         self,
         *,
-        actor_learning_rate: float = 3e-4,
+        actor_learning_rate: float = 1e-4,
         critic_learning_rate: float = 3e-4,
-        imitator_learning_rate: float = 1e-3,
-        temp_learning_rate: float = 3e-4,
+        imitator_learning_rate: float = 3e-4,
+        temp_learning_rate: float = 1e-4,
         alpha_learning_rate: float = 1e-3,
         actor_optim_factory: OptimizerFactory = AdamFactory(),
         critic_optim_factory: OptimizerFactory = AdamFactory(),
@@ -163,7 +164,7 @@ class BEAR(AlgoBase):
         critic_encoder_factory: EncoderArg = "default",
         imitator_encoder_factory: EncoderArg = "default",
         q_func_factory: QFuncArg = "mean",
-        batch_size: int = 100,
+        batch_size: int = 256,
         n_frames: int = 1,
         n_steps: int = 1,
         gamma: float = 0.99,
@@ -171,14 +172,14 @@ class BEAR(AlgoBase):
         n_critics: int = 2,
         bootstrap: bool = False,
         share_encoder: bool = False,
-        update_actor_interval: int = 1,
         initial_temperature: float = 1.0,
         initial_alpha: float = 1.0,
         alpha_threshold: float = 0.05,
         lam: float = 0.75,
-        n_action_samples: int = 4,
+        n_action_samples: int = 10,
+        mmd_kernel: str = "laplacian",
         mmd_sigma: float = 20.0,
-        rl_start_epoch: int = 0,
+        warmup_epochs: int = 5,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
@@ -214,14 +215,14 @@ class BEAR(AlgoBase):
         self._n_critics = n_critics
         self._bootstrap = bootstrap
         self._share_encoder = share_encoder
-        self._update_actor_interval = update_actor_interval
         self._initial_temperature = initial_temperature
         self._initial_alpha = initial_alpha
         self._alpha_threshold = alpha_threshold
         self._lam = lam
         self._n_action_samples = n_action_samples
+        self._mmd_kernel = mmd_kernel
         self._mmd_sigma = mmd_sigma
-        self._rl_start_epoch = rl_start_epoch
+        self._warmup_epochs = warmup_epochs
         self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
@@ -256,6 +257,7 @@ class BEAR(AlgoBase):
             alpha_threshold=self._alpha_threshold,
             lam=self._lam,
             n_action_samples=self._n_action_samples,
+            mmd_kernel=self._mmd_kernel,
             mmd_sigma=self._mmd_sigma,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
@@ -272,34 +274,26 @@ class BEAR(AlgoBase):
         imitator_loss = self._impl.update_imitator(
             batch.observations, batch.actions
         )
-        if epoch >= self._rl_start_epoch:
-            critic_loss = self._impl.update_critic(
-                batch.observations,
-                batch.actions,
-                batch.next_rewards,
-                batch.next_observations,
-                batch.terminals,
-                batch.n_steps,
-            )
-            if total_step % self._update_actor_interval == 0:
-                actor_loss = self._impl.update_actor(batch.observations)
-                temp_loss, temp = self._impl.update_temp(batch.observations)
-                alpha_loss, alpha = self._impl.update_alpha(batch.observations)
-                self._impl.update_actor_target()
-                self._impl.update_critic_target()
-            else:
-                actor_loss = None
-                temp_loss = None
-                temp = None
-                alpha_loss = None
-                alpha = None
+
+        critic_loss = self._impl.update_critic(
+            batch.observations,
+            batch.actions,
+            batch.next_rewards,
+            batch.next_observations,
+            batch.terminals,
+            batch.n_steps,
+        )
+
+        if epoch < self._warmup_epochs:
+            actor_loss = self._impl.warmup_actor(batch.observations)
         else:
-            critic_loss = None
-            actor_loss = None
-            temp_loss = None
-            temp = None
-            alpha_loss = None
-            alpha = None
+            actor_loss = self._impl.update_actor(batch.observations)
+
+        temp_loss, temp = self._impl.update_temp(batch.observations)
+        alpha_loss, alpha = self._impl.update_alpha(batch.observations)
+        self._impl.update_actor_target()
+        self._impl.update_critic_target()
+
         return [
             critic_loss,
             actor_loss,
