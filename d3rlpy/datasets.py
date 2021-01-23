@@ -190,7 +190,9 @@ def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         terminals = np.logical_and(
             dataset["terminals"], np.logical_not(dataset["timeouts"])
         )
-        episode_terminals = dataset["terminals"]
+        episode_terminals = np.logical_or(
+            dataset["terminals"], dataset["timeouts"]
+        )
 
         mdp_dataset = MDPDataset(
             observations=observations,
