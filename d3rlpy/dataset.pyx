@@ -433,16 +433,13 @@ class MDPDataset:
         # convert new data to list of episodes
         episodes = _to_episodes(observation_shape=self.get_observation_shape(),
                                 action_size=self.get_action_size(),
-                                observations=observations,
-                                actions=actions,
-                                rewards=rewards,
-                                terminals=terminals,
-                                episode_terminals=episode_terminals)
+                                observations=self._observations,
+                                actions=self._actions,
+                                rewards=self._rewards,
+                                terminals=self._terminals,
+                                episode_terminals=self._episode_terminals)
 
-        # append to episodes
-        if self._episodes is None:
-            self.build_episodes()
-        self._episodes += episodes
+        self._episodes = episodes
 
     def extend(self, dataset):
         """ Extend dataset by another dataset.
