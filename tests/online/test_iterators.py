@@ -5,6 +5,7 @@ from d3rlpy.algos import DQN, SAC
 from d3rlpy.envs import AsyncBatchEnv
 from d3rlpy.online.buffers import ReplayBuffer, BatchReplayBuffer
 from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
+from d3rlpy.envs import ChannelFirst
 
 
 def test_fit_online_cartpole_with_dqn():
@@ -31,8 +32,8 @@ def test_fit_online_cartpole_with_dqn():
 def test_fit_online_atari_with_dqn():
     import d4rl_atari
 
-    env = gym.make("breakout-mixed-v0", stack=False)
-    eval_env = gym.make("breakout-mixed-v0", stack=False)
+    env = ChannelFirst(gym.make("breakout-mixed-v0"))
+    eval_env = ChannelFirst(gym.make("breakout-mixed-v0"))
 
     algo = DQN(n_frames=4)
 
