@@ -17,28 +17,41 @@ class ChannelFirst(gym.Wrapper):  # type: ignore
         high = self.observation_space.high
         dtype = self.observation_space.dtype
 
-        # only image observation is allowed
-        assert len(shape) == 3, "Image observation environment is only allowed"
-
-        self.observation_space = Box(
-            low=np.transpose(low, [2, 0, 1]),
-            high=np.transpose(high, [2, 0, 1]),
-            shape=(shape[2], shape[0], shape[1]),
-            dtype=dtype,
-        )
+        if len(shape) == 3:
+            self.observation_space = Box(
+                low=np.transpose(low, [2, 0, 1]),
+                high=np.transpose(high, [2, 0, 1]),
+                shape=(shape[2], shape[0], shape[1]),
+                dtype=dtype,
+            )
+        elif len(shape) == 2:
+            self.observation_space = Box(
+                low=np.reshape(low, (1, *shape)),
+                high=np.reshape(high, (1, *shape)),
+                shape=(1, *shape),
+                dtype=dtype,
+            )
+        else:
+            raise ValueError("image observation is only allowed.")
 
     def step(
         self, action: Union[int, np.ndarray]
     ) -> Tuple[np.ndarray, float, float, Dict[str, Any]]:
         observation, reward, terminal, info = self.env.step(action)
         # make channel first observation
-        observation_T = np.transpose(observation, [2, 0, 1])
+        if observation.ndim == 3:
+            observation_T = np.transpose(observation, [2, 0, 1])
+        else:
+            observation_T = np.reshape(observation, (1, *observation.shape))
         assert observation_T.shape == self.observation_space.shape
         return observation_T, reward, terminal, info
 
     def reset(self, **kwargs: Any) -> np.ndarray:
         observation = self.env.reset(**kwargs)
         # make channel first observation
-        observation_T = np.transpose(observation, [2, 0, 1])
+        if observation.ndim == 3:
+            observation_T = np.transpose(observation, [2, 0, 1])
+        else:
+            observation_T = np.reshape(observation, (1, *observation.shape))
         assert observation_T.shape == self.observation_space.shape
         return observation_T
