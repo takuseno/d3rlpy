@@ -78,6 +78,6 @@ class Atari(gym.Wrapper):  # type: ignore
 
     def __init__(self, env: gym.Env, is_eval: bool = False):
         env = AtariPreprocessing(env, terminal_on_life_loss=not is_eval)
-        if is_eval:
+        if not is_eval:
             env = TransformReward(env, lambda r: np.clip(r, -1.0, 1.0))
         super().__init__(ChannelFirst(env))
