@@ -4,9 +4,19 @@ import numpy as np
 import gym
 
 from gym.spaces import Box
+from gym.wrappers import AtariPreprocessing, TransformReward
 
 
 class ChannelFirst(gym.Wrapper):  # type: ignore
+    """Channel-first wrapper for image observation environments.
+
+    d3rlpy expects channel-first images since it's built with PyTorch.
+    You can transform the observation shape with ``ChannelFirst`` wrapper.
+
+    Args:
+        env (gym.Env): gym environment.
+
+    """
 
     observation_space: Box
 
@@ -55,3 +65,19 @@ class ChannelFirst(gym.Wrapper):  # type: ignore
             observation_T = np.reshape(observation, (1, *observation.shape))
         assert observation_T.shape == self.observation_space.shape
         return observation_T
+
+
+class Atari(gym.Wrapper):  # type: ignore
+    """Atari 2600 wrapper for experiments.
+
+    Args:
+        env (gym.Env): gym environment.
+        is_eval (bool): flag to enter evaluation mode.
+
+    """
+
+    def __init__(self, env: gym.Env, is_eval: bool = False):
+        env = AtariPreprocessing(env, terminal_on_life_loss=not is_eval)
+        if is_eval:
+            env = TransformReward(env, lambda r: np.clip(r, -1.0, 1.0))
+        super().__init__(ChannelFirst(env))

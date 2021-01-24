@@ -1,8 +1,9 @@
 import gym
+import pytest
 
 from gym.wrappers import AtariPreprocessing
 from d3rlpy.algos import DQN
-from d3rlpy.envs.wrappers import ChannelFirst
+from d3rlpy.envs.wrappers import ChannelFirst, Atari
 
 
 def test_channel_first():
@@ -45,3 +46,18 @@ def test_channel_first_with_2_dim_obs():
     dqn = DQN()
     dqn.build_with_env(wrapper)
     dqn.predict([observation])
+
+
+@pytest.mark.parametrize("is_eval", [100])
+def test_atari(is_eval):
+    env = Atari(gym.make("BreakoutNoFrameskip-v4"), is_eval)
+
+    assert env.observation_space.shape == (1, 84, 84)
+
+    # check reset
+    observation = env.reset()
+    assert observation.shape == (1, 84, 84)
+
+    # check step
+    observation, reward, done, info = env.step(env.action_space.sample())
+    assert observation.shape == (1, 84, 84)
