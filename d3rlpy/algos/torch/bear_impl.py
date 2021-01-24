@@ -183,7 +183,7 @@ class BEARImpl(SACImpl):
     def _compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
         assert self._log_alpha
         mmd = self._compute_mmd(obs_t)
-        alpha = self._log_alpha().clamp(-5.0, 10.0).exp()
+        alpha = self._log_alpha().exp()
         return (alpha * (mmd - self._alpha_threshold)).sum(dim=1).mean()
 
     @train_api
@@ -221,6 +221,9 @@ class BEARImpl(SACImpl):
         self._alpha_optim.zero_grad()
         loss.backward()
         self._alpha_optim.step()
+
+        # clip for stability
+        self._log_alpha.data.clamp_(-5.0, 10.0)
 
         cur_alpha = self._log_alpha().exp().cpu().detach().numpy()[0][0]
 

@@ -139,6 +139,9 @@ class CQLImpl(SACImpl):
         loss.backward()
         self._alpha_optim.step()
 
+        # clip for stability
+        self._log_alpha.data.clamp_(-10.0, 2.0)
+
         cur_alpha = self._log_alpha().exp().cpu().detach().numpy()[0][0]
 
         return loss.cpu().detach().numpy(), cur_alpha
@@ -193,7 +196,7 @@ class CQLImpl(SACImpl):
         element_wise_loss = logsumexp - data_values - self._alpha_threshold
 
         # this clipping seems to stabilize training
-        clipped_alpha = self._log_alpha().clamp(-10.0, 2.0).exp()
+        clipped_alpha = self._log_alpha().exp()
 
         return (clipped_alpha * element_wise_loss).sum(dim=0).mean()
 

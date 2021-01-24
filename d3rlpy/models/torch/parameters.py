@@ -15,3 +15,7 @@ class Parameter(nn.Module):  # type: ignore
 
     def __call__(self) -> torch.Tensor:
         return super().__call__()
+
+    @property
+    def data(self) -> torch.Tensor:
+        return self._parameter.data
