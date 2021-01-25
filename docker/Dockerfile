@@ -9,6 +9,9 @@ RUN apt-get update && \
       build-essential \
       software-properties-common \
       cmake \
+      git \
+      wget \
+      unzip \
       python3-dev \
       zlib1g \
       zlib1g-dev \
@@ -16,7 +19,6 @@ RUN apt-get update && \
       libgl1-mesa-glx \
       libglu1-mesa-dev \
       libasio-dev \
-      git \
       pkg-config \
       python3-tk \
       libsm6 \
@@ -29,11 +31,12 @@ RUN apt-get update && \
       git+https://github.com/takuseno/d4rl-atari && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /tmp/* && \
-    git clone https://github.com/takuseno/d3rlpy && \
-    cd d3rlpy && \
+    wget https://github.com/takuseno/d3rlpy/archive/master.zip && \
+    unzip master.zip && \
+    cd d3rlpy-master && \
     pip install --no-cache-dir . && \
     cd .. && \
-    rm -rf d3rlpy
+    rm -rf d3rlpy-master master.zip
 
 EXPOSE 6006
 
