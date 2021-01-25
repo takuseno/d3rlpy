@@ -220,35 +220,8 @@ gscv.fit(train_episodes)
 ```
 
 ## contributions
-### coding style
-This library is fully formatted with [black](https://github.com/psf/black)
-and [yapf](https://github.com/google/yapf).
-You can format the entire scripts as follows:
-```
-$ ./scripts/format
-```
-
-### linter
-This library is analyzed by [mypy](https://github.com/python/mypy) and
-[pylint](https://github.com/PyCQA/pylint).
-You can check the code structures as follows:
-```
-$ ./scripts/lint
-```
-
-### test
-The unit tests are provided as much as possible.
-This repository is using `pytest-cov` instead of `pytest`.
-You can run the entire tests as follows:
-```
-$ ./scripts/test
-```
-
-If you give `-p` option, the performance tests with toy tasks are also run
-(this will take minutes).
-```
-$ ./scripts/test -p
-```
+Any kind of contribution to d3rlpy would be highly appreciated!
+Please check the [contribution guide](CONTRIBUTING.md).
 
 ## citation
 ```
