@@ -1,19 +1,14 @@
+import gym
+
 from d3rlpy.algos import DQN
 from d3rlpy.models.optimizers import RMSpropFactory
 from d3rlpy.online.buffers import ReplayBuffer
 from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
-from d4rl_atari.envs import AtariEnv
+from d3rlpy.envs import Atari
 
 # get wrapped atari environment
-env = AtariEnv('Breakout',
-               stack=False,
-               clip_reward=True,
-               terminate_on_life_loss=True)
-
-eval_env = AtariEnv('Breakout',
-                    stack=False,
-                    clip_reward=False,
-                    terminate_on_life_loss=False)
+env = Atari(gym.make('BreakoutNoFrameskip-v4'))
+eval_env = Atari(gym.make('BreakoutNoFrameskip-v4'), is_eval=True)
 
 # setup algorithm
 dqn = DQN(batch_size=32,

@@ -9,6 +9,7 @@ import numpy as np
 import gym
 
 from .dataset import MDPDataset
+from .envs import ChannelFirst
 
 DATA_DIRECTORY = "d3rlpy_data"
 CARTPOLE_URL = "https://www.dropbox.com/s/2tmo7ul00268l3e/cartpole.pkl?dl=1"
@@ -145,7 +146,7 @@ def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
     try:
         import d4rl_atari  # type: ignore
 
-        env = gym.make(env_name, stack=False)
+        env = ChannelFirst(gym.make(env_name))
         dataset = MDPDataset(discrete_action=True, **env.get_dataset())
         return dataset, env
     except ImportError as e:
