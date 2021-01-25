@@ -1,6 +1,6 @@
 # Contributing to d3rlpy
 
-Any kind of contribution to PFRL would be highly appreciated!
+Any kind of contribution to d3rlpy would be highly appreciated!
 
 Contribution examples:
 - Thumbing up to good issues or pull requests :+1:
