@@ -7,6 +7,7 @@ from typing import List, TYPE_CHECKING, Optional
 
 import numpy as np
 import click
+from scipy.ndimage.filters import uniform_filter1d
 
 from . import algos
 from ._version import __version__
@@ -69,8 +70,8 @@ def plot(
     for p in path:
         data = np.loadtxt(p, delimiter=",")
 
-        # moving average
-        y_data = np.convolve(data[:, 2], np.ones(window) / window, mode="same")
+        # filter to smooth data
+        y_data = uniform_filter1d(data[:, 2], size=window)
 
         # create label
         if len(p.split(os.sep)) > 1:
