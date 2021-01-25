@@ -220,7 +220,8 @@ gscv.fit(train_episodes)
 ```
 
 ## contributions
-Any kind contributions are highly appreciated! Please check the [contribution guide](CONTRIBUTING.md).
+Any kind of contribution to d3rlpy would be highly appreciated!
+Please check the [contribution guide](CONTRIBUTING.md).
 
 ## citation
 ```
