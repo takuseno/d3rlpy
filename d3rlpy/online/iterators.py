@@ -98,6 +98,7 @@ def train_single_env(
     eval_env: Optional[gym.Env] = None,
     eval_epsilon: float = 0.0,
     save_metrics: bool = True,
+    save_interval: int = 1,
     experiment_name: Optional[str] = None,
     with_timestamp: bool = True,
     logdir: str = "d3rlpy_logs",
@@ -121,6 +122,7 @@ def train_single_env(
         eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
         save_metrics: flag to record metrics. If False, the log
             directory is not created and the model parameters are not saved.
+        save_interval: the number of epochs before saving models.
         experiment_name: experiment name for logging. If not passed,
             the directory name will be ``{class name}_online_{timestamp}``.
         with_timestamp: flag to add timestamp string to the last of
@@ -251,6 +253,7 @@ def train_single_env(
             if eval_scorer:
                 logger.add_metric("evaluation", eval_scorer(algo))
 
+        if epoch % save_interval == 0:
             # save metrics
             logger.commit(epoch, total_step)
             logger.save_model(total_step, algo)
@@ -268,6 +271,7 @@ def train_batch_env(
     eval_env: Optional[gym.Env] = None,
     eval_epsilon: float = 0.0,
     save_metrics: bool = True,
+    save_interval: int = 1,
     experiment_name: Optional[str] = None,
     with_timestamp: bool = True,
     logdir: str = "d3rlpy_logs",
@@ -291,6 +295,7 @@ def train_batch_env(
         eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
         save_metrics: flag to record metrics. If False, the log
             directory is not created and the model parameters are not saved.
+        save_interval: the number of epochs before saving models.
         experiment_name: experiment name for logging. If not passed,
             the directory name will be ``{class name}_online_{timestamp}``.
         with_timestamp: flag to add timestamp string to the last of
@@ -419,9 +424,10 @@ def train_batch_env(
             if eval_scorer:
                 logger.add_metric("evaluation", eval_scorer(algo))
 
-        # save metrics
-        logger.commit(epoch, total_step)
-        logger.save_model(total_step, algo)
+        if epoch % save_interval == 0:
+            # save metrics
+            logger.commit(epoch, total_step)
+            logger.save_model(total_step, algo)
 
     # finish all process
     env.close()
