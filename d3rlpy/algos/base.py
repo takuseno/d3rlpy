@@ -192,6 +192,7 @@ class AlgoBase(LearnableBase):
         eval_env: Optional[gym.Env] = None,
         eval_epsilon: float = 0.0,
         save_metrics: bool = True,
+        save_interval: int = 1,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
         logdir: str = "d3rlpy_logs",
@@ -214,6 +215,7 @@ class AlgoBase(LearnableBase):
             eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
             save_metrics: flag to record metrics. If False, the log
                 directory is not created and the model parameters are not saved.
+            save_interval: the number of epochs before saving models.
             experiment_name: experiment name for logging. If not passed,
                 the directory name will be ``{class name}_online_{timestamp}``.
             with_timestamp: flag to add timestamp string to the last of
@@ -245,6 +247,7 @@ class AlgoBase(LearnableBase):
             eval_env=eval_env,
             eval_epsilon=eval_epsilon,
             save_metrics=save_metrics,
+            save_interval=save_interval,
             experiment_name=experiment_name,
             with_timestamp=with_timestamp,
             logdir=logdir,
@@ -266,6 +269,7 @@ class AlgoBase(LearnableBase):
         eval_env: Optional[gym.Env] = None,
         eval_epsilon: float = 0.0,
         save_metrics: bool = True,
+        save_interval: int = 1,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
         logdir: str = "d3rlpy_logs",
@@ -289,6 +293,7 @@ class AlgoBase(LearnableBase):
             eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
             save_metrics: flag to record metrics. If False, the log
                 directory is not created and the model parameters are not saved.
+            save_interval: the number of epochs before saving models.
             experiment_name: experiment name for logging. If not passed,
                 the directory name will be ``{class name}_online_{timestamp}``.
             with_timestamp: flag to add timestamp string to the last of
@@ -320,6 +325,7 @@ class AlgoBase(LearnableBase):
             eval_env=eval_env,
             eval_epsilon=eval_epsilon,
             save_metrics=save_metrics,
+            save_interval=save_interval,
             experiment_name=experiment_name,
             with_timestamp=with_timestamp,
             logdir=logdir,
