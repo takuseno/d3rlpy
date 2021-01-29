@@ -32,6 +32,7 @@ powerful performance beyond the paper via several tweaks.
    references/index
    cli
    installation
+   tips
 
 .. toctree::
    :maxdepth: 2
