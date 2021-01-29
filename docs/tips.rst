@@ -4,8 +4,8 @@ Tips
 Reproducibility
 ---------------
 
-Reproducibility is one of the most important thing when doing research
-activigty.
+Reproducibility is one of the most important things when doing research
+activity.
 Here is a simple example in d3rlpy.
 
 .. code-block:: python
@@ -13,10 +13,10 @@ Here is a simple example in d3rlpy.
   import d3rlpy
   import gym
 
-  # fix random seeds at random module, numpy module and PyTorch module.
+  # set random seeds in random module, numpy module and PyTorch module.
   d3rlpy.seed(313)
 
-  # fix environment seed
+  # set environment seed
   env = gym.make('Hopper-v2')
   env.seed(313)
 
@@ -24,7 +24,7 @@ Learning from image observation
 -------------------------------
 
 d3rlpy supports both vector observations and image observations.
-There are several things you need to care if you want to train RL agents from
+There are several things you need to care about if you want to train RL agents from
 image observations.
 
 .. code-block:: python
@@ -51,7 +51,7 @@ Improve performance beyond the original paper
 d3rlpy provides many options that you can use to improve performance potentially
 beyond the original paper.
 All the options are powerful, but the best combinations and hyperparameters are
-always depedning on the tasks.
+always dependent on the tasks.
 
 .. code-block:: python
 
@@ -59,7 +59,7 @@ always depedning on the tasks.
   from d3rlpy.algos import DQN
 
   # use batch normalization
-  # this seems to improve performance with discrete action-space
+  # this seems to improve performance with discrete action-spaces
   encoder = DefaultEncoderFactory(use_batch_norm=True)
 
   dqn = DQN(encoder_factory=encoder,
