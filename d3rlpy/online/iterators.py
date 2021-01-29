@@ -253,11 +253,11 @@ def train_single_env(
             if eval_scorer:
                 logger.add_metric("evaluation", eval_scorer(algo))
 
-        # save metrics
-        logger.commit(epoch, total_step)
+            if epoch % save_interval == 0:
+                logger.save_model(total_step, algo)
 
-        if epoch % save_interval == 0:
-            logger.save_model(total_step, algo)
+            # save metrics
+            logger.commit(epoch, total_step)
 
 
 def train_batch_env(
