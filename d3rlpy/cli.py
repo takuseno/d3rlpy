@@ -1,16 +1,18 @@
-# pylint: disable=redefined-builtin
+# pylint: disable=redefined-builtin,exec-used
 
 import os
 import json
 import glob
-from typing import List, TYPE_CHECKING, Optional
+from typing import Any, Dict, List, TYPE_CHECKING, Optional
 
 import numpy as np
 import click
+import gym
 from scipy.ndimage.filters import uniform_filter1d
 
 from . import algos
 from ._version import __version__
+from .metrics.scorer import evaluate_on_environment
 
 
 if TYPE_CHECKING:
@@ -146,6 +148,16 @@ def plot_all(path: str) -> None:
     plt.show()
 
 
+def _get_params_json_path(path: str) -> str:
+    dirname = os.path.dirname(path)
+    if not os.path.exists(os.path.join(dirname, "params.json")):
+        raise RuntimeError(
+            "params.json is not found in %s. Please specify"
+            "the path to params.json by --params-json."
+        )
+    return os.path.join(dirname, "params.json")
+
+
 @cli.command(short_help="Export saved model as inference model format.")
 @click.argument("path")
 @click.option(
@@ -167,13 +179,7 @@ def export(
 
     # find params.json
     if params_json is None:
-        dirname = os.path.dirname(path)
-        if not os.path.exists(os.path.join(dirname, "params.json")):
-            raise RuntimeError(
-                "params.json is not found in %s. Please specify"
-                "the path to params.json by --params-json."
-            )
-        params_json = os.path.join(dirname, "params.json")
+        params_json = _get_params_json_path(path)
 
     # load params
     with open(params_json, "r") as f:
@@ -192,3 +198,56 @@ def export(
     # export inference model
     print("Exporting to %s..." % out)
     algo.save_policy(out, as_onnx=format == "onnx")
+
+
+@cli.command(short_help="Record episodes with the saved model.")
+@click.argument("model_path")
+@click.option("--env-id", default=None, help="Gym environment id.")
+@click.option(
+    "--env-header", default=None, help="one-liner to create environment."
+)
+@click.option("--out", default="videos", help="output directory path.")
+@click.option(
+    "--params-json", default=None, help="explicityly specify params.json."
+)
+@click.option(
+    "--n-episodes", default=10, help="the number of episodes to record."
+)
+def record(
+    model_path: str,
+    env_id: Optional[str],
+    env_header: Optional[str],
+    params_json: Optional[str],
+    out: str,
+    n_episodes: int,
+) -> None:
+    if params_json is None:
+        params_json = _get_params_json_path(model_path)
+
+    # load params
+    with open(params_json, "r") as f:
+        params = json.loads(f.read())
+
+    # load saved model
+    print("Loading %s..." % model_path)
+    algo = getattr(algos, params["algorithm"]).from_json(params_json)
+    algo.load_model(model_path)
+
+    # wrap environment with Monitor
+    env: gym.Env
+    if env_id is not None:
+        env = gym.wrappers.Monitor(
+            gym.make(env_id), out, video_callable=lambda ep: ep % 1 == 0
+        )
+    elif env_header is not None:
+        print(f"Executing '{env_header}'")
+        variables: Dict[str, Any] = {}
+        exec(env_header, globals(), variables)
+        if "env" not in variables:
+            raise RuntimeError("env must be defined in env_header.")
+        env = variables["env"]
+    else:
+        raise ValueError("env_id or env_header must be provided.")
+
+    # run episodes
+    evaluate_on_environment(env, n_episodes)(algo)
