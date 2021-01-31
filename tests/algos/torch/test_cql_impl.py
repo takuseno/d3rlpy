@@ -33,6 +33,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("initial_alpha", [5.0])
 @pytest.mark.parametrize("alpha_threshold", [10.0])
 @pytest.mark.parametrize("n_action_samples", [10])
+@pytest.mark.parametrize("soft_q_backup", [True])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
@@ -58,6 +59,7 @@ def test_cql_impl(
     initial_alpha,
     alpha_threshold,
     n_action_samples,
+    soft_q_backup,
     scaler,
     action_scaler,
     augmentation,
@@ -85,6 +87,7 @@ def test_cql_impl(
         initial_alpha,
         alpha_threshold,
         n_action_samples,
+        soft_q_backup,
         use_gpu=False,
         scaler=scaler,
         action_scaler=action_scaler,
