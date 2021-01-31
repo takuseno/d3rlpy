@@ -12,6 +12,7 @@ from scipy.ndimage.filters import uniform_filter1d
 
 from . import algos
 from ._version import __version__
+from .envs import Monitor
 from .metrics.scorer import evaluate_on_environment
 
 
@@ -236,7 +237,7 @@ def record(
     # wrap environment with Monitor
     env: gym.Env
     if env_id is not None:
-        env = gym.wrappers.Monitor(
+        env = Monitor(
             gym.make(env_id), out, video_callable=lambda ep: ep % 1 == 0
         )
     elif env_header is not None:

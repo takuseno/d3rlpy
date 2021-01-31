@@ -1,4 +1,5 @@
-from typing import Any, Dict, Tuple, Union
+import os
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
 import gym
@@ -51,7 +52,7 @@ class ChannelFirst(gym.Wrapper):  # type: ignore
 
     def step(
         self, action: Union[int, np.ndarray]
-    ) -> Tuple[np.ndarray, float, float, Dict[str, Any]]:
+    ) -> Tuple[np.ndarray, float, bool, Dict[str, Any]]:
         observation, reward, terminal, info = self.env.step(action)
         # make channel first observation
         if observation.ndim == 3:
@@ -260,3 +261,64 @@ class Atari(gym.Wrapper):  # type: ignore
         if not is_eval:
             env = TransformReward(env, lambda r: np.clip(r, -1.0, 1.0))
         super().__init__(ChannelFirst(env))
+
+
+class Monitor(gym.Wrapper):  # type: ignore
+
+    _directory: str
+    _video_callable: Callable[[int], bool]
+    _frame_rate: float
+    _episode: int
+    _buffer: np.ndarray
+
+    def __init__(
+        self,
+        env: gym.Env,
+        directory: str,
+        video_callable: Optional[Callable[[int], bool]],
+        force: bool = False,
+        frame_rate: float = 30.0,
+    ):
+        super().__init__(env)
+        # prepare directory
+        if os.path.exists(directory) and not force:
+            raise ValueError(f"{directory} already exists.")
+        os.makedirs(directory, exist_ok=True)
+        self._directory = directory
+
+        if video_callable:
+            self._video_callable = video_callable  # type: ignore
+        else:
+            self._video_callable = lambda ep: ep % 10 == 0  # type: ignore
+
+        self._frame_rate = frame_rate
+
+        self._episode = 0
+        self._buffer = []
+
+    def step(
+        self, action: Union[np.ndarray, int]
+    ) -> Tuple[np.ndarray, float, bool, Dict[str, Any]]:
+        obs, reward, done, info = super().step(action)
+
+        if self._video_callable(self._episode):  # type: ignore
+            # store rendering
+            self._buffer.append(super().render("rgb_array"))
+            if done:
+                self._save_video()
+
+        return obs, reward, done, info
+
+    def reset(self, **kwargs: Any) -> np.ndarray:
+        self._episode += 1
+        self._buffer = []
+        return super().reset(**kwargs)
+
+    def _save_video(self) -> None:
+        height, width = self._buffer[0].shape[:2]
+        path = os.path.join(self._directory, f"video{self._episode}.mp4")
+        fmt = cv2.VideoWriter_fourcc("m", "p", "4", "v")
+        writer = cv2.VideoWriter(path, fmt, self._frame_rate, (width, height))
+        for frame in self._buffer:
+            writer.write(frame)
+        writer.release()
