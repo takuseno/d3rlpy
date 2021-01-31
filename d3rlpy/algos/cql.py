@@ -236,6 +236,7 @@ class CQL(AlgoBase):
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
         critic_loss = self._impl.update_critic(
             batch.observations,
             batch.actions,
@@ -244,12 +245,24 @@ class CQL(AlgoBase):
             batch.terminals,
             batch.n_steps,
         )
+
         if total_step % self._update_actor_interval == 0:
             actor_loss = self._impl.update_actor(batch.observations)
-            temp_loss, temp = self._impl.update_temp(batch.observations)
-            alpha_loss, alpha = self._impl.update_alpha(
-                batch.observations, batch.actions
-            )
+
+            # lagrangian parameter update for SAC temperature
+            if self._temp_learning_rate > 0:
+                temp_loss, temp = self._impl.update_temp(batch.observations)
+            else:
+                temp_loss, temp = None, None
+
+            # lagrangian parameter update for conservative loss weight
+            if self._alpha_learning_rate > 0:
+                alpha_loss, alpha = self._impl.update_alpha(
+                    batch.observations, batch.actions
+                )
+            else:
+                alpha_loss, alpha = None, None
+
             self._impl.update_critic_target()
             self._impl.update_actor_target()
         else:

@@ -289,8 +289,18 @@ class BEAR(AlgoBase):
         else:
             actor_loss = self._impl.update_actor(batch.observations)
 
-        temp_loss, temp = self._impl.update_temp(batch.observations)
-        alpha_loss, alpha = self._impl.update_alpha(batch.observations)
+        # lagrangian parameter update for SAC temperature
+        if self._temp_learning_rate > 0:
+            temp_loss, temp = self._impl.update_temp(batch.observations)
+        else:
+            temp_loss, temp = None, None
+
+        # lagrangian parameter update for MMD loss weight
+        if self._alpha_learning_rate > 0:
+            alpha_loss, alpha = self._impl.update_alpha(batch.observations)
+        else:
+            alpha_loss, alpha = None, None
+
         self._impl.update_actor_target()
         self._impl.update_critic_target()
 

@@ -207,6 +207,7 @@ class SAC(AlgoBase):
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
         critic_loss = self._impl.update_critic(
             batch.observations,
             batch.actions,
@@ -215,16 +216,24 @@ class SAC(AlgoBase):
             batch.terminals,
             batch.n_steps,
         )
+
         # delayed policy update
         if total_step % self._update_actor_interval == 0:
             actor_loss = self._impl.update_actor(batch.observations)
-            temp_loss, temp = self._impl.update_temp(batch.observations)
+
+            # lagrangian parameter update for SAC temperature
+            if self._temp_learning_rate > 0:
+                temp_loss, temp = self._impl.update_temp(batch.observations)
+            else:
+                temp_loss, temp = None, None
+
             self._impl.update_critic_target()
             self._impl.update_actor_target()
         else:
             actor_loss = None
             temp_loss = None
             temp = None
+
         return [critic_loss, actor_loss, temp_loss, temp]
 
     def get_loss_labels(self) -> List[str]:
@@ -401,6 +410,7 @@ class DiscreteSAC(AlgoBase):
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
         critic_loss = self._impl.update_critic(
             batch.observations,
             batch.actions,
@@ -409,10 +419,18 @@ class DiscreteSAC(AlgoBase):
             batch.terminals,
             batch.n_steps,
         )
+
         actor_loss = self._impl.update_actor(batch.observations)
-        temp_loss, temp = self._impl.update_temp(batch.observations)
+
+        # lagrangian parameter update for SAC temeprature
+        if self._temp_learning_rate > 0:
+            temp_loss, temp = self._impl.update_temp(batch.observations)
+        else:
+            temp_loss, temp = None, None
+
         if total_step % self._target_update_interval == 0:
             self._impl.update_target()
+
         return [critic_loss, actor_loss, temp_loss, temp]
 
     def get_loss_labels(self) -> List[str]:

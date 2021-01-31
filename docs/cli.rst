@@ -64,3 +64,37 @@ example::
 
   $ d3rlpy export d3rlpy_logs/CQL_20201224224314/model_100.pt
 
+
+record
+------
+
+Record evaluation episodes as videos with the saved model::
+
+  $ d3rlpy record <path> --env-id <environment id>
+
+.. list-table:: options
+   :header-rows: 1
+
+   * - option
+     - description
+   * - ``--env-id``
+     - Gym environment id.
+   * - ``--env-header``
+     - arbitrary Python code to define environment to evaluate.
+   * - ``--out``
+     - output directory.
+   * - ``--params-json``
+     - explicitly specify params.json
+   * - ``--n-episodes``
+     - the number of episodes to record.
+   * - ``--framerate``
+     - video frame rate.
+
+example::
+
+  # record simple environment
+  $ d3rlpy record d3rlpy_logs/CQL_20201224224314/model_100.pt --env-id HopperBulletEnv-v0
+
+  # record wrapped environment
+  $ d3rlpy record d3rlpy_logs/Discrete_CQL_20201224224314/model_100.pt \
+      --env-header 'import gym; from d3rlpy.envs import Atari; env = Atari(gym.make("BreakoutNoFrameskip-v4"), is_eval=True)'
