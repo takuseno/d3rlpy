@@ -331,6 +331,7 @@ class Monitor(gym.Wrapper):  # type: ignore
         path = os.path.join(self._directory, f"video{self._episode}.avi")
         fmt = cv2.VideoWriter_fourcc(*"MJPG")
         writer = cv2.VideoWriter(path, fmt, self._framerate, (width, height))
+        print(f"Saving a recorded video to {path}...")
         for frame in self._buffer:
             writer.write(frame)
         writer.release()

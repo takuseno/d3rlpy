@@ -212,9 +212,9 @@ def export(
     "--params-json", default=None, help="explicityly specify params.json."
 )
 @click.option(
-    "--n-episodes", default=10, help="the number of episodes to record."
+    "--n-episodes", default=3, help="the number of episodes to record."
 )
-@click.option("--framerate", default=30, help="video frame rate.")
+@click.option("--framerate", default=60, help="video frame rate.")
 def record(
     model_path: str,
     env_id: Optional[str],
@@ -239,12 +239,7 @@ def record(
     # wrap environment with Monitor
     env: gym.Env
     if env_id is not None:
-        env = Monitor(
-            gym.make(env_id),
-            out,
-            video_callable=lambda ep: ep % 1 == 0,
-            framerate=framerate,
-        )
+        env = gym.make(env_id)
     elif env_header is not None:
         print(f"Executing '{env_header}'")
         variables: Dict[str, Any] = {}
@@ -255,5 +250,9 @@ def record(
     else:
         raise ValueError("env_id or env_header must be provided.")
 
+    wrapped_env = Monitor(
+        env, out, video_callable=lambda ep: ep % 1 == 0, framerate=framerate
+    )
+
     # run episodes
-    evaluate_on_environment(env, n_episodes)(algo)
+    evaluate_on_environment(wrapped_env, n_episodes)(algo)
