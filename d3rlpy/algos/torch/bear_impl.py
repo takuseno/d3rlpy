@@ -24,13 +24,15 @@ from .sac_impl import SACImpl
 def _gaussian_kernel(
     x: torch.Tensor, y: torch.Tensor, sigma: float
 ) -> torch.Tensor:
-    return (-((x - y) ** 2) / (2 * sigma)).exp()
+    # x: (batch, n, 1, action), y: (batch, 1, n, action) -> (batch, n, n)
+    return (-((x - y) ** 2).sum(dim=3) / (2 * sigma)).exp()
 
 
 def _laplacian_kernel(
     x: torch.Tensor, y: torch.Tensor, sigma: float
 ) -> torch.Tensor:
-    return (-(x - y).abs() / (2 * sigma)).exp()
+    # x: (batch, n, 1, action), y: (batch, 1, n, action) -> (batch, n, n)
+    return (-(x - y).abs().sum(dim=3) / (2 * sigma)).exp()
 
 
 class BEARImpl(SACImpl):
@@ -274,7 +276,7 @@ class BEARImpl(SACImpl):
         distance = kernel(policy_actions, behavior_actions_T, self._mmd_sigma)
         mmd -= 2 * distance.sum(dim=1).sum(dim=1) / self._n_action_samples ** 2
 
-        return (mmd + 1e-6).sqrt()
+        return (mmd + 1e-6).sqrt().view(-1, 1)
 
     @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:

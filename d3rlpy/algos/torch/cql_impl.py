@@ -139,9 +139,6 @@ class CQLImpl(SACImpl):
         loss.backward()
         self._alpha_optim.step()
 
-        # clip for stability
-        self._log_alpha.data.clamp_(-10.0, 2.0)
-
         cur_alpha = self._log_alpha().exp().cpu().detach().numpy()[0][0]
 
         return loss.cpu().detach().numpy(), cur_alpha
@@ -157,46 +154,45 @@ class CQLImpl(SACImpl):
                 obs_t, self._n_action_samples
             )
 
-        repeated_obs_t = obs_t.expand(self._n_action_samples, *obs_t.shape)
+        # policy action for t
+        repeated_obs = obs_t.expand(self._n_action_samples, *obs_t.shape)
         # (n, batch, observation) -> (batch, n, observation)
-        transposed_obs_t = repeated_obs_t.transpose(0, 1)
+        transposed_obs = repeated_obs.transpose(0, 1)
         # (batch, n, observation) -> (batch * n, observation)
-        flat_obs_t = transposed_obs_t.reshape(-1, *obs_t.shape[1:])
+        flat_obs = transposed_obs.reshape(-1, *obs_t.shape[1:])
         # (batch, n, action) -> (batch * n, action)
         flat_policy_acts = policy_actions.reshape(-1, self.action_size)
 
         # estimate action-values for policy actions
-        policy_values = self._q_func(flat_obs_t, flat_policy_acts, "none")
+        policy_values = self._q_func(flat_obs, flat_policy_acts, "none")
         policy_values = policy_values.view(
-            self._n_critics, obs_t.shape[0], self._n_action_samples, 1
+            self._n_critics, obs_t.shape[0], self._n_action_samples
         )
-        log_probs = n_log_probs.view(1, -1, self._n_action_samples, 1)
+        log_probs = n_log_probs.view(1, -1, self._n_action_samples)
 
         # estimate action-values for actions from uniform distribution
         # uniform distribution between [-1.0, 1.0]
         random_actions = torch.zeros_like(flat_policy_acts).uniform_(-1.0, 1.0)
-        random_values = self._q_func(flat_obs_t, random_actions, "none")
+        random_values = self._q_func(flat_obs, random_actions, "none")
         random_values = random_values.view(
-            self._n_critics, obs_t.shape[0], self._n_action_samples, 1
+            self._n_critics, obs_t.shape[0], self._n_action_samples
         )
-
-        # get maximum value to avoid overflow
-        base = torch.max(policy_values.max(), random_values.max()).detach()
+        random_log_probs = math.log(0.5 ** self._action_size)
 
         # compute logsumexp
-        policy_meanexp = (policy_values - base - log_probs).exp().mean(dim=2)
-        random_meanexp = (random_values - base).exp().mean(dim=2) / 0.5
-        # small constant value seems to be necessary to avoid nan
-        logsumexp = (0.5 * random_meanexp + 0.5 * policy_meanexp + 1e-10).log()
-        logsumexp += base
+        # (n critics, batch, 2 * n samples) -> (n critics, batch, 1)
+        target_values = torch.cat(
+            [policy_values - log_probs, random_values - random_log_probs], dim=2
+        )
+        logsumexp = torch.logsumexp(target_values, dim=2, keepdim=True)
 
         # estimate action-values for data actions
         data_values = self._q_func(obs_t, act_t, "none")
 
         element_wise_loss = logsumexp - data_values - self._alpha_threshold
 
-        # this clipping seems to stabilize training
-        clipped_alpha = self._log_alpha().exp()
+        # clip for stability
+        clipped_alpha = self._log_alpha().exp().clamp(0, 1e6)
 
         return (clipped_alpha * element_wise_loss).sum(dim=0).mean()
 

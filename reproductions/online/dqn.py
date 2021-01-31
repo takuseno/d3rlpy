@@ -14,7 +14,7 @@ eval_env = Atari(gym.make('BreakoutNoFrameskip-v4'), is_eval=True)
 dqn = DQN(batch_size=32,
           learning_rate=2.5e-4,
           optim_factory=RMSpropFactory(),
-          target_update_interval=10000,
+          target_update_interval=10000 // 4,
           q_func_factory='mean',
           scaler='pixel',
           n_frames=4,
