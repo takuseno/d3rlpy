@@ -264,10 +264,21 @@ class Atari(gym.Wrapper):  # type: ignore
 
 
 class Monitor(gym.Wrapper):  # type: ignore
+    """gym.wrappers.Monitor-style Monitor wrapper.
+
+    Args:
+        env (gym.Env): gym environment.
+        directory (str): directory to save.
+        video_callable (callable): callable function that takes episode counter
+            to control record frequency.
+        force (bool): flag to allow existing directory.
+        framerate (float): video frame rate.
+
+    """
 
     _directory: str
     _video_callable: Callable[[int], bool]
-    _frame_rate: float
+    _framerate: float
     _episode: int
     _buffer: np.ndarray
 
@@ -275,9 +286,9 @@ class Monitor(gym.Wrapper):  # type: ignore
         self,
         env: gym.Env,
         directory: str,
-        video_callable: Optional[Callable[[int], bool]],
+        video_callable: Optional[Callable[[int], bool]] = None,
         force: bool = False,
-        frame_rate: float = 30.0,
+        framerate: float = 30.0,
     ):
         super().__init__(env)
         # prepare directory
@@ -291,7 +302,7 @@ class Monitor(gym.Wrapper):  # type: ignore
         else:
             self._video_callable = lambda ep: ep % 10 == 0  # type: ignore
 
-        self._frame_rate = frame_rate
+        self._framerate = framerate
 
         self._episode = 0
         self._buffer = []
@@ -303,7 +314,8 @@ class Monitor(gym.Wrapper):  # type: ignore
 
         if self._video_callable(self._episode):  # type: ignore
             # store rendering
-            self._buffer.append(super().render("rgb_array"))
+            frame = cv2.cvtColor(super().render("rgb_array"), cv2.COLOR_BGR2RGB)
+            self._buffer.append(frame)
             if done:
                 self._save_video()
 
@@ -316,9 +328,9 @@ class Monitor(gym.Wrapper):  # type: ignore
 
     def _save_video(self) -> None:
         height, width = self._buffer[0].shape[:2]
-        path = os.path.join(self._directory, f"video{self._episode}.mp4")
-        fmt = cv2.VideoWriter_fourcc("m", "p", "4", "v")
-        writer = cv2.VideoWriter(path, fmt, self._frame_rate, (width, height))
+        path = os.path.join(self._directory, f"video{self._episode}.avi")
+        fmt = cv2.VideoWriter_fourcc(*"MJPG")
+        writer = cv2.VideoWriter(path, fmt, self._framerate, (width, height))
         for frame in self._buffer:
             writer.write(frame)
         writer.release()
