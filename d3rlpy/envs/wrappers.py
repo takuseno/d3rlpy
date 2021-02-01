@@ -273,13 +273,15 @@ class Monitor(gym.Wrapper):  # type: ignore
         video_callable (callable): callable function that takes episode counter
             to control record frequency.
         force (bool): flag to allow existing directory.
-        framerate (float): video frame rate.
+        frame_rate (float): video frame rate.
+        record_rate (int): images are record every ``record_rate`` frames.
 
     """
 
     _directory: str
     _video_callable: Callable[[int], bool]
-    _framerate: float
+    _frame_rate: float
+    _record_rate: int
     _episode: int
     _episode_return: float
     _episode_step: int
@@ -291,7 +293,8 @@ class Monitor(gym.Wrapper):  # type: ignore
         directory: str,
         video_callable: Optional[Callable[[int], bool]] = None,
         force: bool = False,
-        framerate: float = 30.0,
+        frame_rate: float = 30.0,
+        record_rate: int = 1,
     ):
         super().__init__(env)
         # prepare directory
@@ -305,7 +308,8 @@ class Monitor(gym.Wrapper):  # type: ignore
         else:
             self._video_callable = lambda ep: ep % 10 == 0  # type: ignore
 
-        self._framerate = framerate
+        self._frame_rate = frame_rate
+        self._record_rate = record_rate
 
         self._episode = 0
         self._episode_return = 0.0
@@ -340,10 +344,11 @@ class Monitor(gym.Wrapper):  # type: ignore
         height, width = self._buffer[0].shape[:2]
         path = os.path.join(self._directory, f"video{self._episode}.avi")
         fmt = cv2.VideoWriter_fourcc(*"MJPG")
-        writer = cv2.VideoWriter(path, fmt, self._framerate, (width, height))
+        writer = cv2.VideoWriter(path, fmt, self._frame_rate, (width, height))
         print(f"Saving a recorded video to {path}...")
-        for frame in self._buffer:
-            writer.write(frame)
+        for i, frame in enumerate(self._buffer):
+            if i % self._record_rate == 0:
+                writer.write(frame)
         writer.release()
 
     def _save_stats(self) -> None:

@@ -87,8 +87,10 @@ Record evaluation episodes as videos with the saved model::
      - explicitly specify params.json
    * - ``--n-episodes``
      - the number of episodes to record.
-   * - ``--framerate``
+   * - ``--frame-rate``
      - video frame rate.
+   * - ``--record-rate``
+     - images are recored every ``record-rate`` frames.
 
 example::
 

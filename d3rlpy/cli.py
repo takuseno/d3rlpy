@@ -214,7 +214,8 @@ def export(
 @click.option(
     "--n-episodes", default=3, help="the number of episodes to record."
 )
-@click.option("--framerate", default=60, help="video frame rate.")
+@click.option("--frame-rate", default=60, help="video frame rate.")
+@click.option("--record-rate", default=1, help="record frame rate.")
 def record(
     model_path: str,
     env_id: Optional[str],
@@ -222,7 +223,8 @@ def record(
     params_json: Optional[str],
     out: str,
     n_episodes: int,
-    framerate: float,
+    frame_rate: float,
+    record_rate: int,
 ) -> None:
     if params_json is None:
         params_json = _get_params_json_path(model_path)
@@ -251,7 +253,11 @@ def record(
         raise ValueError("env_id or env_header must be provided.")
 
     wrapped_env = Monitor(
-        env, out, video_callable=lambda ep: ep % 1 == 0, framerate=framerate
+        env,
+        out,
+        video_callable=lambda ep: ep % 1 == 0,
+        frame_rate=float(frame_rate),
+        record_rate=int(record_rate),
     )
 
     # run episodes
