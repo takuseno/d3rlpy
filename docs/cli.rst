@@ -100,3 +100,33 @@ example::
   # record wrapped environment
   $ d3rlpy record d3rlpy_logs/Discrete_CQL_20201224224314/model_100.pt \
       --env-header 'import gym; from d3rlpy.envs import Atari; env = Atari(gym.make("BreakoutNoFrameskip-v4"), is_eval=True)'
+
+play
+----
+
+Run evaluation episodes with rendering::
+
+  $ d3rlpy play <path> --env-id <environment id>
+
+.. list-table:: options
+   :header-rows: 1
+
+   * - option
+     - description
+   * - ``--env-id``
+     - Gym environment id.
+   * - ``--env-header``
+     - arbitrary Python code to define environment to evaluate.
+   * - ``--params-json``
+     - explicitly specify params.json
+   * - ``--n-episodes``
+     - the number of episodes to run.
+
+example::
+
+  # record simple environment
+  $ d3rlpy play d3rlpy_logs/CQL_20201224224314/model_100.pt --env-id HopperBulletEnv-v0
+
+  # record wrapped environment
+  $ d3rlpy play d3rlpy_logs/Discrete_CQL_20201224224314/model_100.pt \
+      --env-header 'import gym; from d3rlpy.envs import Atari; env = Atari(gym.make("BreakoutNoFrameskip-v4"), is_eval=True)'
