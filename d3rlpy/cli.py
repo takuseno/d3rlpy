@@ -3,7 +3,7 @@
 import os
 import json
 import glob
-from typing import Any, Dict, List, TYPE_CHECKING, Optional
+from typing import Any, Dict, List, TYPE_CHECKING, Optional, Sequence, Tuple
 
 import numpy as np
 import click
@@ -61,8 +61,19 @@ def stats(path: str) -> None:
 )
 @click.option("--show-steps", is_flag=True, help="use iterations on x-axis.")
 @click.option("--show-max", is_flag=True, help="show maximum value.")
+@click.option("--label", multiple=True, help="label in legend.")
+@click.option("--xlim", nargs=2, type=float, help="limit on x-axis (tuple).")
+@click.option("--ylim", nargs=2, type=float, help="limit on y-axis (tuple).")
+@click.option("--title", help="title of the plot.")
 def plot(
-    path: List[str], window: int, show_steps: bool, show_max: bool
+    path: List[str],
+    window: int,
+    show_steps: bool,
+    show_max: bool,
+    label: Optional[Sequence[str]],
+    xlim: Optional[Tuple[float, float]],
+    ylim: Optional[Tuple[float, float]],
+    title: Optional[str],
 ) -> None:
     plt = get_plt()
 
@@ -70,17 +81,24 @@ def plot(
     min_x_values = []
     max_x_values = []
 
-    for p in path:
+    if label:
+        assert len(label) == len(
+            path
+        ), "--labels must be provided as many as the number of paths"
+
+    for i, p in enumerate(path):
         data = np.loadtxt(p, delimiter=",")
 
         # filter to smooth data
         y_data = uniform_filter1d(data[:, 2], size=window)
 
         # create label
-        if len(p.split(os.sep)) > 1:
-            label = "/".join(p.split(os.sep)[-2:])
+        if label:
+            _label = label[i]
+        elif len(p.split(os.sep)) > 1:
+            _label = "/".join(p.split(os.sep)[-2:])
         else:
-            label = p
+            _label = p
 
         if show_steps:
             x_data = data[:, 1]
@@ -95,7 +113,7 @@ def plot(
         print("")
         print_stats(p)
 
-        plt.plot(x_data, y_data, label=label)
+        plt.plot(x_data, y_data, label=_label)
 
     if show_max:
         plt.plot(
@@ -107,6 +125,15 @@ def plot(
 
     plt.xlabel("steps" if show_steps else "epochs")
     plt.ylabel("value")
+
+    if xlim:
+        plt.xlim(xlim[0], xlim[1])
+    if ylim:
+        plt.ylim(ylim[0], ylim[1])
+
+    if title:
+        plt.title(title)
+
     plt.legend()
     plt.show()
 

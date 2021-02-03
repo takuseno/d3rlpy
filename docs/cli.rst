@@ -21,6 +21,14 @@ Plot the saved metrics by specifying paths::
      - use iterations on x-axis.
    * - ``--show-max``
      - show maximum value.
+   * - ``--label``
+     - label in legend.
+   * - ``--xlim``
+     - limit on x-axis (tuple).
+   * - ``--ylim``
+     - limit on y-axis (tuple).
+   * - ``--title``
+     - title of the plot.
 
 example::
 
