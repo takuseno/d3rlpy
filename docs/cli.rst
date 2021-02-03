@@ -99,6 +99,8 @@ Record evaluation episodes as videos with the saved model::
      - video frame rate.
    * - ``--record-rate``
      - images are recored every ``record-rate`` frames.
+   * - ``--epsilon``
+     - :math:`\epsilon`-greedy evaluation.
 
 example::
 
