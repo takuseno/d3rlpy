@@ -252,6 +252,7 @@ def _exec_to_create_env(code: str) -> gym.Env:
 )
 @click.option("--frame-rate", default=60, help="video frame rate.")
 @click.option("--record-rate", default=1, help="record frame rate.")
+@click.option("--epsilon", default=0.0, help="epsilon-greedy evaluation.")
 def record(
     model_path: str,
     env_id: Optional[str],
@@ -261,6 +262,7 @@ def record(
     n_episodes: int,
     frame_rate: float,
     record_rate: int,
+    epsilon: float,
 ) -> None:
     if params_json is None:
         params_json = _get_params_json_path(model_path)
@@ -292,7 +294,7 @@ def record(
     )
 
     # run episodes
-    evaluate_on_environment(wrapped_env, n_episodes)(algo)
+    evaluate_on_environment(wrapped_env, n_episodes, epsilon=epsilon)(algo)
 
 
 @cli.command(short_help="Run evaluation episodes with rendering.")
