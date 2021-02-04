@@ -14,7 +14,7 @@ from ...models.q_functions import QFunctionFactory
 from ...gpu import Device
 from ...augmentation import AugmentationPipeline
 from ...preprocessing import Scaler, ActionScaler
-from ...torch_utility import torch_api, train_api
+from ...torch_utility import torch_api, train_api, augmentation_api
 from .sac_impl import SACImpl
 from .dqn_impl import DoubleDQNImpl
 
@@ -26,6 +26,7 @@ class CQLImpl(SACImpl):
     _initial_alpha: float
     _alpha_threshold: float
     _n_action_samples: int
+    _soft_q_backup: bool
     _log_alpha: Optional[Parameter]
     _alpha_optim: Optional[Optimizer]
 
@@ -53,6 +54,7 @@ class CQLImpl(SACImpl):
         initial_alpha: float,
         alpha_threshold: float,
         n_action_samples: int,
+        soft_q_backup: bool,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
@@ -86,6 +88,7 @@ class CQLImpl(SACImpl):
         self._initial_alpha = initial_alpha
         self._alpha_threshold = alpha_threshold
         self._n_action_samples = n_action_samples
+        self._soft_q_backup = soft_q_backup
 
         # initialized in build
         self._log_alpha = None
@@ -194,7 +197,20 @@ class CQLImpl(SACImpl):
         # clip for stability
         clipped_alpha = self._log_alpha().exp().clamp(0, 1e6)
 
-        return (clipped_alpha * element_wise_loss).sum(dim=0).mean()
+        return (clipped_alpha[0][0] * element_wise_loss).sum(dim=0).mean()
+
+    @augmentation_api(targets=["x"])
+    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+        assert self._policy is not None
+        assert self._log_temp is not None
+        assert self._targ_q_func is not None
+        with torch.no_grad():
+            action, log_prob = self._policy.sample_with_log_prob(x)
+            target_value = self._targ_q_func.compute_target(x, action)
+            if self._soft_q_backup:
+                entropy = self._log_temp().exp() * log_prob
+                target_value -= entropy
+            return target_value
 
 
 class DiscreteCQLImpl(DoubleDQNImpl):

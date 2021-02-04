@@ -3,7 +3,7 @@
 import os
 import json
 import glob
-from typing import Any, Dict, List, TYPE_CHECKING, Optional
+from typing import Any, Dict, List, TYPE_CHECKING, Optional, Sequence, Tuple
 
 import numpy as np
 import click
@@ -61,8 +61,19 @@ def stats(path: str) -> None:
 )
 @click.option("--show-steps", is_flag=True, help="use iterations on x-axis.")
 @click.option("--show-max", is_flag=True, help="show maximum value.")
+@click.option("--label", multiple=True, help="label in legend.")
+@click.option("--xlim", nargs=2, type=float, help="limit on x-axis (tuple).")
+@click.option("--ylim", nargs=2, type=float, help="limit on y-axis (tuple).")
+@click.option("--title", help="title of the plot.")
 def plot(
-    path: List[str], window: int, show_steps: bool, show_max: bool
+    path: List[str],
+    window: int,
+    show_steps: bool,
+    show_max: bool,
+    label: Optional[Sequence[str]],
+    xlim: Optional[Tuple[float, float]],
+    ylim: Optional[Tuple[float, float]],
+    title: Optional[str],
 ) -> None:
     plt = get_plt()
 
@@ -70,17 +81,24 @@ def plot(
     min_x_values = []
     max_x_values = []
 
-    for p in path:
+    if label:
+        assert len(label) == len(
+            path
+        ), "--labels must be provided as many as the number of paths"
+
+    for i, p in enumerate(path):
         data = np.loadtxt(p, delimiter=",")
 
         # filter to smooth data
         y_data = uniform_filter1d(data[:, 2], size=window)
 
         # create label
-        if len(p.split(os.sep)) > 1:
-            label = "/".join(p.split(os.sep)[-2:])
+        if label:
+            _label = label[i]
+        elif len(p.split(os.sep)) > 1:
+            _label = "/".join(p.split(os.sep)[-2:])
         else:
-            label = p
+            _label = p
 
         if show_steps:
             x_data = data[:, 1]
@@ -95,7 +113,7 @@ def plot(
         print("")
         print_stats(p)
 
-        plt.plot(x_data, y_data, label=label)
+        plt.plot(x_data, y_data, label=_label)
 
     if show_max:
         plt.plot(
@@ -107,6 +125,15 @@ def plot(
 
     plt.xlabel("steps" if show_steps else "epochs")
     plt.ylabel("value")
+
+    if xlim:
+        plt.xlim(xlim[0], xlim[1])
+    if ylim:
+        plt.ylim(ylim[0], ylim[1])
+
+    if title:
+        plt.title(title)
+
     plt.legend()
     plt.show()
 
@@ -201,6 +228,15 @@ def export(
     algo.save_policy(out, as_onnx=format == "onnx")
 
 
+def _exec_to_create_env(code: str) -> gym.Env:
+    print(f"Executing '{code}'")
+    variables: Dict[str, Any] = {}
+    exec(code, globals(), variables)
+    if "env" not in variables:
+        raise RuntimeError("env must be defined in env_header.")
+    return variables["env"]
+
+
 @cli.command(short_help="Record episodes with the saved model.")
 @click.argument("model_path")
 @click.option("--env-id", default=None, help="Gym environment id.")
@@ -214,7 +250,9 @@ def export(
 @click.option(
     "--n-episodes", default=3, help="the number of episodes to record."
 )
-@click.option("--framerate", default=60, help="video frame rate.")
+@click.option("--frame-rate", default=60, help="video frame rate.")
+@click.option("--record-rate", default=1, help="record frame rate.")
+@click.option("--epsilon", default=0.0, help="epsilon-greedy evaluation.")
 def record(
     model_path: str,
     env_id: Optional[str],
@@ -222,7 +260,9 @@ def record(
     params_json: Optional[str],
     out: str,
     n_episodes: int,
-    framerate: float,
+    frame_rate: float,
+    record_rate: int,
+    epsilon: float,
 ) -> None:
     if params_json is None:
         params_json = _get_params_json_path(model_path)
@@ -241,18 +281,59 @@ def record(
     if env_id is not None:
         env = gym.make(env_id)
     elif env_header is not None:
-        print(f"Executing '{env_header}'")
-        variables: Dict[str, Any] = {}
-        exec(env_header, globals(), variables)
-        if "env" not in variables:
-            raise RuntimeError("env must be defined in env_header.")
-        env = variables["env"]
+        env = _exec_to_create_env(env_header)
     else:
         raise ValueError("env_id or env_header must be provided.")
 
     wrapped_env = Monitor(
-        env, out, video_callable=lambda ep: ep % 1 == 0, framerate=framerate
+        env,
+        out,
+        video_callable=lambda ep: ep % 1 == 0,
+        frame_rate=float(frame_rate),
+        record_rate=int(record_rate),
     )
 
     # run episodes
-    evaluate_on_environment(wrapped_env, n_episodes)(algo)
+    evaluate_on_environment(wrapped_env, n_episodes, epsilon=epsilon)(algo)
+
+
+@cli.command(short_help="Run evaluation episodes with rendering.")
+@click.argument("model_path")
+@click.option("--env-id", default=None, help="Gym environment id.")
+@click.option(
+    "--env-header", default=None, help="one-liner to create environment."
+)
+@click.option(
+    "--params-json", default=None, help="explicityly specify params.json."
+)
+@click.option("--n-episodes", default=3, help="the number of episodes to run.")
+def play(
+    model_path: str,
+    env_id: Optional[str],
+    env_header: Optional[str],
+    params_json: Optional[str],
+    n_episodes: int,
+) -> None:
+    if params_json is None:
+        params_json = _get_params_json_path(model_path)
+
+    # load params
+    with open(params_json, "r") as f:
+        params = json.loads(f.read())
+
+    # load saved model
+    print("Loading %s..." % model_path)
+    algo = getattr(algos, params["algorithm"]).from_json(params_json)
+    algo.load_model(model_path)
+
+    # wrap environment with Monitor
+    env: gym.Env
+    if env_id is not None:
+        env = gym.make(env_id)
+    elif env_header is not None:
+        env = _exec_to_create_env(env_header)
+    else:
+        raise ValueError("env_id or env_header must be provided.")
+
+    # run episodes
+    evaluate_on_environment(env, n_episodes, render=True)(algo)
