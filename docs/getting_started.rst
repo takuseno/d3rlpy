@@ -10,6 +10,13 @@ First of all, let's install ``d3rlpy`` on your machine::
 
   $ pip install d3rlpy
 
+See more information at :doc:`/installation`.
+
+.. note::
+
+  If ``core dump`` error occurs in this tutorial, please try
+  ``Install from source``.
+
 .. note::
 
   ``d3rlpy`` supports Python 3.6+. Make sure which version you use.
@@ -34,6 +41,7 @@ See more documents at :doc:`references/datasets`.
   from d3rlpy.datasets import get_pendulum # Pendulum-v0 dataset
   from d3rlpy.datasets import get_pybullet # PyBullet task datasets
   from d3rlpy.datasets import get_atari    # Atari 2600 task datasets
+  from d3rlpy.datasets import get_d4rl     # D4RL datasets
 
 Here, we use the CartPole dataset to instantly check training results.
 

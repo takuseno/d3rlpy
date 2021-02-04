@@ -93,6 +93,7 @@ class CQL(AlgoBase):
         alpha_threshold (float): threshold value described as :math:`\tau`.
         n_action_samples (int): the number of sampled actions to compute
             :math:`\log{\sum_a \exp{Q(s, a)}}`.
+        soft_q_backup (bool): flag to use SAC-style backup.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -127,6 +128,7 @@ class CQL(AlgoBase):
     _initial_alpha: float
     _alpha_threshold: float
     _n_action_samples: int
+    _soft_q_backup: bool
     _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _impl: Optional[CQLImpl]
@@ -158,6 +160,7 @@ class CQL(AlgoBase):
         initial_alpha: float = 5.0,
         alpha_threshold: float = 10.0,
         n_action_samples: int = 10,
+        soft_q_backup: bool = False,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
@@ -195,6 +198,7 @@ class CQL(AlgoBase):
         self._initial_alpha = initial_alpha
         self._alpha_threshold = alpha_threshold
         self._n_action_samples = n_action_samples
+        self._soft_q_backup = soft_q_backup
         self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
@@ -225,6 +229,7 @@ class CQL(AlgoBase):
             initial_alpha=self._initial_alpha,
             alpha_threshold=self._alpha_threshold,
             n_action_samples=self._n_action_samples,
+            soft_q_backup=self._soft_q_backup,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,

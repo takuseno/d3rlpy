@@ -11,7 +11,10 @@ _, test_episodes = train_test_split(dataset, test_size=0.2)
 
 vae_encoder = VectorEncoderFactory(hidden_units=[750, 750])
 
-bear = BEAR(imitator_encoder_factory=vae_encoder, use_gpu=True)
+bear = BEAR(imitator_encoder_factory=vae_encoder,
+            temp_learning_rate=0.0,
+            initial_temperature=1e-20,
+            use_gpu=True)
 
 bear.fit(dataset.episodes,
          eval_episodes=dataset.episodes,
