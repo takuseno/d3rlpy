@@ -28,10 +28,10 @@ class CQL(AlgoBase):
 
     .. math::
 
-        L(\theta_i) = \alpha \mathbb{E}_{s_t \sim D}
-            [\log{\sum_a \exp{Q_{\theta_i}(s_t, a)}}
-             - \mathbb{E}_{a \sim D} [Q_{\theta_i}(s, a)] - \tau]
-            + L_{SAC}(\theta_i)
+        L(\theta_i) = \alpha\, \mathbb{E}_{s_t \sim D}
+            \left[\log{\sum_a \exp{Q_{\theta_i}(s_t, a)}}
+             - \mathbb{E}_{a \sim D} \big[Q_{\theta_i}(s, a)\big] - \tau\right]
+            + L_\mathrm{SAC}(\theta_i)
 
     where :math:`\alpha` is an automatically adjustable value via Lagrangian
     dual gradient descent and :math:`\tau` is a threshold value.
@@ -45,11 +45,11 @@ class CQL(AlgoBase):
 
     .. math::
 
-        \log{\sum_a \exp{Q(s, a)}} \approx \log{(
+        \log{\sum_a \exp{Q(s, a)}} \approx \log{\left(
             \frac{1}{2N} \sum_{a_i \sim \text{Unif}(a)}^N
-                [\frac{\exp{Q(s, a_i)}}{\text{Unif}(a)}]
+                \left[\frac{\exp{Q(s, a_i)}}{\text{Unif}(a)}\right]
             + \frac{1}{2N} \sum_{a_i \sim \pi_\phi(a|s)}^N
-                [\frac{\exp{Q(s, a_i)}}{\pi_\phi(a_i|s)}])}
+                \left[\frac{\exp{Q(s, a_i)}}{\pi_\phi(a_i|s)}\right]\right)}
 
     where :math:`N` is the number of sampled actions.
 

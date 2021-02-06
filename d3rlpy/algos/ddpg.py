@@ -23,13 +23,13 @@ class DDPG(AlgoBase):
 
     .. math::
 
-        L(\theta) = \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D} [(r_{t+1}
-            + \gamma Q_{\theta'}(s_{t+1}, \pi_{\phi'}(s_{t+1}))
-            - Q_\theta(s_t, a_t))^2]
+        L(\theta) = \mathbb{E}_{s_t,\, a_t,\, r_{t+1},\, s_{t+1} \sim D} \Big[(r_{t+1}
+            + \gamma Q_{\theta'}\big(s_{t+1}, \pi_{\phi'}(s_{t+1}))
+            - Q_\theta(s_t, a_t)\big)^2\Big]
 
     .. math::
 
-        J(\phi) = \mathbb{E}_{s_t \sim D} [Q_\theta(s_t, \pi_\phi(s_t))]
+        J(\phi) = \mathbb{E}_{s_t \sim D} \Big[Q_\theta\big(s_t, \pi_\phi(s_t)\big)\Big]
 
     where :math:`\theta'` and :math:`\phi` are the target network parameters.
     There target network parameters are updated every iteration.

@@ -16,7 +16,7 @@ deep reinforcement learning library.
 d3rlpy provides state-of-the-art data-driven deep reinforcement learning
 algorithms through out-of-the-box scikit-learn-style APIs.
 Unlike other RL libraries, the provided algorithms can achieve extremely
-powerful performance beyond the paper via several tweaks.
+powerful performance beyond their papers via several tweaks.
 
 .. toctree::
    :maxdepth: 2
