@@ -47,7 +47,8 @@ Documentation: https://d3rlpy.readthedocs.io
 
 ## installation
 d3rlpy supports Linux, macOS and Windows.
-### PyPI
+
+### PyPI (recommended)
 [![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/d3rlpy)
 ```
@@ -65,6 +66,14 @@ $ conda install -c conda-forge d3rlpy
 ![Docker Pulls](https://img.shields.io/docker/pulls/takuseno/d3rlpy)
 ```
 $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
+```
+
+### build from source (please try this if `core dumped` error occurs)
+```
+$ git clone https://github.com/takuseno/d3rlpy
+$ cd d3rlpy
+$ pip install Cython numpy # if not installed yet
+$ pip install -e .
 ```
 
 ## supported algorithms
