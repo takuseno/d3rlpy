@@ -907,8 +907,9 @@ class EnsembleQFunction(nn.Module):  # type: ignore
             if self._bootstrap:
                 mask = torch.randint(0, 2, loss.shape, device=obs_t.device)
                 loss *= mask.float()
-
-            td_sum += loss.mean()
+                td_sum += loss.sum() / (mask.sum().float() + 1e-10)
+            else:
+                td_sum += loss.mean()
 
         return td_sum
 
