@@ -3,6 +3,7 @@ import gym
 from gym.wrappers import AtariPreprocessing, TransformReward
 from d3rlpy.algos import DQN
 from d3rlpy.models.optimizers import AdamFactory
+from d3rlpy.models.q_functions import QRQFunctionFactory
 from d3rlpy.online.buffers import ReplayBuffer
 from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
 from d3rlpy.envs import Atari
@@ -16,7 +17,7 @@ dqn = DQN(batch_size=32,
           learning_rate=5e-5,
           optim_factory=AdamFactory(eps=1e-2 / 32),
           target_update_interval=10000 // 4,
-          q_func_factory='qr',
+          q_func_factory=QRQFunctionFactory(n_quantiles=200),
           scaler='pixel',
           n_frames=4,
           use_gpu=True)

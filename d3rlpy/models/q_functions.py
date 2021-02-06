@@ -113,7 +113,7 @@ class QRQFunctionFactory(QFunctionFactory):
     TYPE: ClassVar[str] = "qr"
     _n_quantiles: int
 
-    def __init__(self, n_quantiles: int = 200):
+    def __init__(self, n_quantiles: int = 32):
         self._n_quantiles = n_quantiles
 
     def create_discrete(
