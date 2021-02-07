@@ -176,7 +176,7 @@ def train_single_env(
     # start training loop
     observation, reward, terminal = env.reset(), 0.0, False
     clip_episode = False
-    for total_step in xrange(n_steps):
+    for total_step in xrange(1, n_steps + 1):
         with logger.measure_time("step"):
             # stack observation if necessary
             if is_image:
