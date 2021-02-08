@@ -15,7 +15,7 @@ See more information at :doc:`/installation`.
 .. note::
 
   If ``core dump`` error occurs in this tutorial, please try
-  ``Install from source``.
+  :ref:`install_from_source`.
 
 .. note::
 

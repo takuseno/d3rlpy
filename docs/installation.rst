@@ -33,6 +33,8 @@ d3rlpy is also available on Docker Hub::
   $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 
 
+.. _install_from_source:
+
 Install from source
 ~~~~~~~~~~~~~~~~~~~
 
