@@ -19,10 +19,9 @@ over this neural netowrk architectures.
    from d3rlpy.models.encoders import VectorEncoderFactory
 
    # encoder factory
-   encoder_factory = VectorEncoderFactory(hidden_units=[300, 400],
-                                          activation='tanh')
+   encoder_factory = VectorEncoderFactory(hidden_units=[300, 400], activation='tanh')
 
-   # set OptimizerFactory
+   # set EncoderFactory
    dqn = DQN(encoder_factory=encoder_factory)
 
 You can also build your own encoder factory.
@@ -57,18 +56,18 @@ You can also build your own encoder factory.
        def __init__(self, feature_size):
            self.feature_size = feature_size
 
-       def create(self, observation_shape, action_size=None, discrete_action=False):
+       def create(self, observation_shape):
            return CustomEncoder(observation_shape, self.feature_size)
 
        def get_params(self, deep=False):
-           return {
-               'feature_size': self.feature_size
-           }
+           return {'feature_size': self.feature_size}
 
    dqn = DQN(encoder_factory=CustomEncoderFactory(feature_size=64))
 
 
-You can also share the factory across functions as below.
+You can also define action-conditioned networks such as Q-functions for continuous
+controls.
+``create`` or ``create_with_action`` will be called depending on the function.
 
 .. code-block:: python
 
@@ -93,19 +92,14 @@ You can also share the factory across functions as below.
        def __init__(self, feature_size):
            self.feature_size = feature_size
 
-       def create(self, observation_shape, action_size=None, discrete_action=False):
-           # branch based on if ``action_size`` is given.
-           if action_size is None:
-               return CustomEncoder(observation_shape, self.feature_size)
-           else:
-               return CustomEncoderWithAction(observation_shape,
-                                              action_size,
-                                              self.feature_size)
+       def create(self, observation_shape):
+           return CustomEncoder(observation_shape, self.feature_size)
+
+       def create_with_action(observation_shape, action_size, discrete_action):
+           return CustomEncoderWithAction(observation_shape, action_size, self.feature_size)
 
        def get_params(self, deep=False):
-           return {
-               'feature_size': self.feature_size
-           }
+           return {'feature_size': self.feature_size}
 
    from d3rlpy.algos import SAC
 

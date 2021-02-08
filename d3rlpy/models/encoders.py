@@ -1,5 +1,4 @@
 import copy
-from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Union, Type
 from typing import Sequence
 
@@ -24,10 +23,9 @@ def _create_activation(
     raise ValueError("invalid activation_type.")
 
 
-class EncoderFactory(metaclass=ABCMeta):
+class EncoderFactory:
     TYPE: ClassVar[str] = "none"
 
-    @abstractmethod
     def create(self, observation_shape: Sequence[int]) -> Encoder:
         """Returns PyTorch's state enocder module.
 
@@ -38,8 +36,8 @@ class EncoderFactory(metaclass=ABCMeta):
             an enocder object.
 
         """
+        raise NotImplementedError
 
-    @abstractmethod
     def create_with_action(
         self,
         observation_shape: Sequence[int],
@@ -58,6 +56,7 @@ class EncoderFactory(metaclass=ABCMeta):
             an enocder object.
 
         """
+        raise NotImplementedError
 
     def get_type(self) -> str:
         """Returns encoder type.
@@ -68,7 +67,6 @@ class EncoderFactory(metaclass=ABCMeta):
         """
         return self.TYPE
 
-    @abstractmethod
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         """Returns encoder parameters.
 
@@ -79,6 +77,7 @@ class EncoderFactory(metaclass=ABCMeta):
             encoder parameters.
 
         """
+        raise NotImplementedError
 
 
 class PixelEncoderFactory(EncoderFactory):
