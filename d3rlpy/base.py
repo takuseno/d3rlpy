@@ -18,7 +18,7 @@ from .augmentation import create_augmentation, AugmentationPipeline
 from .augmentation import DrQPipeline
 from .dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
 from .logger import D3RLPyLogger
-from .metrics.scorer import NEGATED_SCORER
+from .metrics.scorer import NEGATIVE_SCORERS
 from .context import disable_parallel
 from .gpu import Device
 from .models.optimizers import OptimizerFactory
@@ -592,7 +592,7 @@ class LearnableBase:
 
             # higher scorer's scores are better in scikit-learn.
             # make it back to its original sign here.
-            if scorer in NEGATED_SCORER:
+            if scorer in NEGATIVE_SCORERS:
                 test_score *= -1
 
             # logging metrics

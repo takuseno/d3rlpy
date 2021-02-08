@@ -572,7 +572,7 @@ def dynamics_prediction_variance_scorer(
     return -float(np.mean(total_variances))
 
 
-NEGATED_SCORER: List[Callable[[Any, List[Episode]], float]] = [
+NEGATIVE_SCORERS: List[Callable[[Any, List[Episode]], float]] = [
     td_error_scorer,
     value_estimation_std_scorer,
     average_value_estimation_scorer,
