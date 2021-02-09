@@ -408,7 +408,7 @@ class LearnableBase:
 
         # training loop
         total_step = 0
-        for epoch in range(n_epochs):
+        for epoch in range(1, n_epochs + 1):
 
             # data augmentation
             new_transitions = self._generate_new_data(iterator.transitions)
