@@ -353,7 +353,7 @@ def train_batch_env(
     observation = env.reset()
     reward, terminal = np.zeros(len(env)), np.zeros(len(env))
     clip_episode = np.zeros(len(env))
-    for epoch in range(n_epochs):
+    for epoch in range(1, n_epochs + 1):
         for step in xrange(n_steps_per_epoch):
 
             total_step = len(env) * (epoch * n_steps_per_epoch + step)
