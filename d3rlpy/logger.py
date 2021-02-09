@@ -112,7 +112,10 @@ class D3RLPyLogger:
                     print("%d,%d,%f" % (epoch, step, metric), file=f)
 
             if self._verbose:
-                print("epoch=%d step=%d %s=%f" % (epoch, step, name, metric))
+                message = "%s epoch=%d step=%d %s=%f"
+                print(
+                    message % (self._experiment_name, epoch, step, name, metric)
+                )
 
             if self._writer:
                 self._writer.add_scalar("metrics/" + name, metric, epoch)
