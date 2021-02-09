@@ -77,7 +77,7 @@ def base_tester(model, impl, observation_shape, action_size=2):
     for i, call in enumerate(model.update.call_args_list):
         epoch = i // (data_size // n_batch)
         total_step = i
-        assert call[0][0] == epoch
+        assert call[0][0] == epoch + 1
         assert call[0][1] == total_step
         assert isinstance(call[0][2], TransitionMiniBatch)
         assert len(call[0][2]) == n_batch
