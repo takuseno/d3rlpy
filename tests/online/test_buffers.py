@@ -48,7 +48,7 @@ def test_replay_buffer(n_episodes, batch_size, maxlen, n_critics):
     assert batch.terminals.shape == (batch_size, 1)
     assert isinstance(batch.observations, np.ndarray)
     assert isinstance(batch.next_observations, np.ndarray)
-    assert batch.get_additional_data("mask").shape == (batch_size, n_critics)
+    assert batch.get_additional_data("mask").shape == (n_critics, batch_size, 1)
 
 
 @pytest.mark.parametrize("n_episodes", [10])
@@ -160,4 +160,4 @@ def test_batch_replay_buffer(n_envs, n_steps, batch_size, maxlen, n_critics):
     assert batch.terminals.shape == (batch_size, 1)
     assert isinstance(batch.observations, np.ndarray)
     assert isinstance(batch.next_observations, np.ndarray)
-    assert batch.get_additional_data("mask").shape == (batch_size, n_critics)
+    assert batch.get_additional_data("mask").shape == (n_critics, batch_size, 1)

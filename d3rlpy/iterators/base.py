@@ -60,13 +60,14 @@ class TransitionIterator(metaclass=ABCMeta):
         )
 
         # add mask
-        masks = np.empty((self._batch_size, self._n_critics), dtype=np.float32)
+        mask_shape = (self._batch_size, self._n_critics, 1)
+        masks = np.empty(mask_shape, dtype=np.float32)
         for i, transition in enumerate(transitions):
             if transition in self._masks:
-                masks[i, ...] = self._masks[transition].astype("f4")
+                masks[i, ..., 0] = self._masks[transition].astype("f4")
             else:
                 masks[i, :] = 1.0
-        batch.add_additional_data("mask", masks)
+        batch.add_additional_data("mask", np.transpose(masks, [1, 0, 2]))
 
         return batch
 

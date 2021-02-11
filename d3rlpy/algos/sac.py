@@ -221,6 +221,7 @@ class SAC(AlgoBase):
             batch.next_observations,
             batch.terminals,
             batch.n_steps,
+            batch.get_additional_data("mask"),
         )
 
         # delayed policy update
@@ -423,6 +424,7 @@ class DiscreteSAC(AlgoBase):
             batch.next_observations,
             batch.terminals,
             batch.n_steps,
+            batch.get_additional_data("mask"),
         )
 
         actor_loss = self._impl.update_actor(batch.observations)

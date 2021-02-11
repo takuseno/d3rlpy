@@ -333,12 +333,12 @@ class BasicSampleMixin:
         batch = TransitionMiniBatch(transitions, n_frames, n_steps, gamma)
 
         # create masks
-        masks = np.empty((batch_size, n_critics), dtype=np.float32)
+        masks = np.empty((batch_size, n_critics, 1), dtype=np.float32)
         for i, t in enumerate(transitions):
             if t not in self._masks or self._masks[t].size != n_critics:
                 self._masks[t] = np.random.randint(2, size=n_critics)
-            masks[i] = self._masks[t].astype("f4")
-        batch.add_additional_data("mask", masks)
+            masks[i, ..., 0] = self._masks[t].astype("f4")
+        batch.add_additional_data("mask", np.transpose(masks, [1, 0, 2]))
 
         return batch
 

@@ -217,6 +217,7 @@ class PLAS(AlgoBase):
                 batch.next_observations,
                 batch.terminals,
                 batch.n_steps,
+                batch.get_additional_data("mask"),
             )
             if total_step % self._update_actor_interval == 0:
                 actor_loss = self._impl.update_actor(batch.observations)

@@ -202,6 +202,7 @@ class AWAC(AlgoBase):
             batch.next_observations,
             batch.terminals,
             batch.n_steps,
+            batch.get_additional_data("mask"),
         )
         # delayed policy update
         if total_step % self._update_actor_interval == 0:

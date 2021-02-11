@@ -1,4 +1,5 @@
 import copy
+import warnings
 
 import numpy as np
 cimport numpy as np
@@ -1312,6 +1313,8 @@ cdef class TransitionMiniBatch:
     def get_additional_data(self, key):
         """Returns specified additional data.
 
+        If the key does not exist, ``None`` will be returned.
+
         Args:
             key (str): key of data.
 
@@ -1319,8 +1322,11 @@ cdef class TransitionMiniBatch:
             any: value.
 
         """
-        assert key in self._additional_data, '%s has not been added.' % key
-        return self._additional_data[key]
+        if key in self._additional_data:
+            return self._additional_data[key]
+        else:
+            warnings.warn('%s does not exist.' % key, UserWarning)
+            return None
 
     @property
     def observations(self):

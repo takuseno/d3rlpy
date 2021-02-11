@@ -112,6 +112,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         obs_tpn: torch.Tensor,
         ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: Optional[torch.Tensor],
     ) -> np.ndarray:
         assert self._optim is not None
 
@@ -119,7 +120,9 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
 
         q_tpn = self.compute_target(obs_tpn)
 
-        loss = self.compute_loss(obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps)
+        loss = self.compute_loss(
+            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps, masks
+        )
 
         loss.backward()
         self._optim.step()
@@ -135,9 +138,10 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         q_tpn: torch.Tensor,
         ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: Optional[torch.Tensor],
     ) -> torch.Tensor:
         return self._compute_loss(
-            obs_t, act_t.long(), rew_tpn, q_tpn, ter_tpn, n_steps
+            obs_t, act_t.long(), rew_tpn, q_tpn, ter_tpn, n_steps, masks
         )
 
     def _compute_loss(
@@ -148,6 +152,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         q_tpn: torch.Tensor,
         ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: Optional[torch.Tensor],
     ) -> torch.Tensor:
         assert self._q_func is not None
         return self._q_func.compute_error(
@@ -158,6 +163,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
             ter_tpn,
             self._gamma ** n_steps,
             use_independent_target=self._target_reduction_type == "none",
+            masks=masks,
         )
 
     @augmentation_api(targets=["x"])

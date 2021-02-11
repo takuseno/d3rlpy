@@ -140,6 +140,8 @@ def torch_api(
                         dtype=dtype,
                         device=self.device,
                     )
+                elif val is None:
+                    tensor = None
                 else:
                     tensor = torch.tensor(
                         data=val,
@@ -158,7 +160,7 @@ def torch_api(
                         tensor = self.action_scaler.transform(tensor)
 
                 # make sure if the tensor is float32 type
-                if tensor.dtype != torch.float32:
+                if tensor is not None and tensor.dtype != torch.float32:
                     tensor = tensor.float()
 
                 tensors.append(tensor)

@@ -313,6 +313,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         obs_tpn: torch.Tensor,
         ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: torch.Tensor,
     ) -> np.ndarray:
         assert self._critic_optim is not None
 
@@ -322,7 +323,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         q_tpn *= 1.0 - ter_tpn
 
         loss = self.compute_critic_loss(
-            obs_t, act_t.long(), rew_tpn, q_tpn, n_steps
+            obs_t, act_t.long(), rew_tpn, q_tpn, n_steps, masks
         )
 
         loss.backward()
@@ -355,8 +356,11 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         rew_tpn: torch.Tensor,
         q_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: torch.Tensor,
     ) -> torch.Tensor:
-        return self._compute_critic_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
+        return self._compute_critic_loss(
+            obs_t, act_t, rew_tpn, q_tpn, n_steps, masks
+        )
 
     def _compute_critic_loss(
         self,
@@ -365,10 +369,11 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         rew_tpn: torch.Tensor,
         q_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: torch.Tensor,
     ) -> torch.Tensor:
         assert self._q_func is not None
         return self._q_func.compute_error(
-            obs_t, act_t, rew_tpn, q_tpn, self._gamma ** n_steps
+            obs_t, act_t, rew_tpn, q_tpn, self._gamma ** n_steps, masks=masks
         )
 
     @train_api

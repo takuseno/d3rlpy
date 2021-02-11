@@ -321,10 +321,11 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         q_tpn: torch.Tensor,
         ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: torch.Tensor,
     ) -> torch.Tensor:
         assert self._imitator is not None
         loss = super()._compute_loss(
-            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps
+            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps, masks
         )
         imitator_loss = self._imitator.compute_error(obs_t, act_t)
         return loss + imitator_loss

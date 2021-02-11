@@ -281,6 +281,7 @@ class BEAR(AlgoBase):
             batch.next_observations,
             batch.terminals,
             batch.n_steps,
+            batch.get_additional_data("mask"),
         )
 
         if epoch < self._warmup_epochs:

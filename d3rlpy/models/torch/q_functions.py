@@ -915,6 +915,7 @@ class EnsembleQFunction(nn.Module):  # type: ignore
         ter_tp1: torch.Tensor,
         gamma: float = 0.99,
         use_independent_target: bool = False,
+        masks: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         if use_independent_target:
             assert q_tp1.ndim == 3
@@ -932,7 +933,10 @@ class EnsembleQFunction(nn.Module):  # type: ignore
             )
 
             if self._bootstrap:
-                mask = torch.randint(0, 2, loss.shape, device=obs_t.device)
+                if masks is None:
+                    mask = torch.randint(0, 2, loss.shape, device=obs_t.device)
+                else:
+                    mask = masks[i]
                 loss *= mask.float()
                 td_sum += loss.sum() / (mask.sum().float() + 1e-10)
             else:

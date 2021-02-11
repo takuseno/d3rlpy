@@ -606,6 +606,19 @@ def test_ensemble_discrete_q_function(
     elif q_func_type != "iqn":
         assert torch.allclose(ref_td_sum, loss)
 
+    # with mask
+    mask = torch.rand(ensemble_size, batch_size, 1)
+    loss = q_func.compute_error(
+        obs_t,
+        act_t,
+        rew_tp1,
+        q_tp1,
+        ter_tp1,
+        gamma,
+        use_independent_target,
+        mask,
+    )
+
     # check layer connection
     check_parameter_updates(
         q_func,
@@ -748,6 +761,19 @@ def test_ensemble_continuous_q_function(
         assert not torch.allclose(ref_td_sum, loss)
     elif q_func_type != "iqn":
         assert torch.allclose(ref_td_sum, loss)
+
+    # with mask
+    mask = torch.rand(ensemble_size, batch_size, 1)
+    loss = q_func.compute_error(
+        obs_t,
+        act_t,
+        rew_tp1,
+        q_tp1,
+        ter_tp1,
+        gamma,
+        use_independent_target,
+        mask,
+    )
 
     # check layer connection
     check_parameter_updates(

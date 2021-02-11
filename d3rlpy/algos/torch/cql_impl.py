@@ -119,9 +119,10 @@ class CQLImpl(SACImpl):
         q_tpn: torch.Tensor,
         ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: Optional[torch.Tensor],
     ) -> torch.Tensor:
         loss = super()._compute_critic_loss(
-            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps
+            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps, masks
         )
         conservative_loss = self._compute_conservative_loss(obs_t, act_t)
         return loss + conservative_loss
@@ -230,9 +231,16 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         q_tpn: torch.Tensor,
         ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: torch.Tensor,
     ) -> torch.Tensor:
         loss = super()._compute_loss(
-            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps
+            obs_t,
+            act_t,
+            rew_tpn,
+            q_tpn,
+            ter_tpn,
+            n_steps,
+            masks,
         )
         conservative_loss = self._compute_conservative_loss(obs_t, act_t)
         return loss + conservative_loss

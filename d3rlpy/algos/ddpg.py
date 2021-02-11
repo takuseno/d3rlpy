@@ -181,6 +181,7 @@ class DDPG(AlgoBase):
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
         critic_loss = self._impl.update_critic(
             batch.observations,
             batch.actions,
@@ -188,10 +189,12 @@ class DDPG(AlgoBase):
             batch.next_observations,
             batch.terminals,
             batch.n_steps,
+            batch.get_additional_data("mask"),
         )
         actor_loss = self._impl.update_actor(batch.observations)
         self._impl.update_critic_target()
         self._impl.update_actor_target()
+
         return [critic_loss, actor_loss]
 
     def get_loss_labels(self) -> List[str]:

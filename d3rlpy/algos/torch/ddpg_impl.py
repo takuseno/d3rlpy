@@ -159,6 +159,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         obs_tpn: torch.Tensor,
         ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: Optional[torch.Tensor],
     ) -> np.ndarray:
         assert self._critic_optim is not None
 
@@ -167,7 +168,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         q_tpn = self.compute_target(obs_tpn)
 
         loss = self.compute_critic_loss(
-            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps
+            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps, masks
         )
 
         loss.backward()
@@ -184,9 +185,10 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         q_tpn: torch.Tensor,
         ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: Optional[torch.Tensor],
     ) -> torch.Tensor:
         return self._compute_critic_loss(
-            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps
+            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps, masks
         )
 
     def _compute_critic_loss(
@@ -197,6 +199,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         q_tpn: torch.Tensor,
         ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
+        masks: Optional[torch.Tensor],
     ) -> torch.Tensor:
         assert self._q_func is not None
         return self._q_func.compute_error(
@@ -207,6 +210,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
             ter_tpn,
             self._gamma ** n_steps,
             use_independent_target=self._target_reduction_type == "none",
+            masks=masks,
         )
 
     @train_api

@@ -150,6 +150,7 @@ class DQN(AlgoBase):
             batch.next_observations,
             batch.terminals,
             batch.n_steps,
+            batch.get_additional_data("mask"),
         )
         if total_step % self._target_update_interval == 0:
             self._impl.update_target()

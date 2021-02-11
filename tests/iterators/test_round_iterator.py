@@ -46,7 +46,7 @@ def test_round_iterator(
         assert batch.actions.shape == (batch_size, action_size)
         assert batch.rewards.shape == (batch_size, 1)
         mask = batch.get_additional_data("mask")
-        assert mask.shape == (batch_size, n_critics)
+        assert mask.shape == (n_critics, batch_size, 1)
         count += 1
 
     if set_ephemeral:
