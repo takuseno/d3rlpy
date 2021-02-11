@@ -57,6 +57,7 @@ class PLASImpl(DDPGBaseImpl):
         n_critics: int,
         bootstrap: bool,
         share_encoder: bool,
+        target_reduction_type: str,
         lam: float,
         beta: float,
         use_gpu: Optional[Device],
@@ -79,6 +80,7 @@ class PLASImpl(DDPGBaseImpl):
             n_critics=n_critics,
             bootstrap=bootstrap,
             share_encoder=share_encoder,
+            target_reduction_type=target_reduction_type,
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
@@ -165,7 +167,9 @@ class PLASImpl(DDPGBaseImpl):
         assert self._targ_q_func is not None
         with torch.no_grad():
             action = self._imitator.decode(x, 2.0 * self._targ_policy(x))
-            return self._targ_q_func.compute_target(x, action, "mix", self._lam)
+            return self._targ_q_func.compute_target(
+                x, action, self._target_reduction_type, self._lam
+            )
 
 
 class PLASWithPerturbationImpl(PLASImpl):
@@ -193,6 +197,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         n_critics: int,
         bootstrap: bool,
         share_encoder: bool,
+        target_reduction_type: str,
         lam: float,
         beta: float,
         action_flexibility: float,
@@ -219,6 +224,7 @@ class PLASWithPerturbationImpl(PLASImpl):
             n_critics=n_critics,
             bootstrap=bootstrap,
             share_encoder=share_encoder,
+            target_reduction_type=target_reduction_type,
             lam=lam,
             beta=beta,
             use_gpu=use_gpu,
@@ -282,7 +288,10 @@ class PLASWithPerturbationImpl(PLASImpl):
             action = self._imitator.decode(x, 2.0 * self._targ_policy(x))
             residual_action = self._targ_perturbation(x, action)
             return self._targ_q_func.compute_target(
-                x, residual_action, reduction="mix", lam=self._lam
+                x,
+                residual_action,
+                reduction=self._target_reduction_type,
+                lam=self._lam,
             )
 
     def update_actor_target(self) -> None:

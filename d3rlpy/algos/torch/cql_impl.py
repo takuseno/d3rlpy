@@ -50,6 +50,7 @@ class CQLImpl(SACImpl):
         n_critics: int,
         bootstrap: bool,
         share_encoder: bool,
+        target_reduction_type: str,
         initial_temperature: float,
         initial_alpha: float,
         alpha_threshold: float,
@@ -77,6 +78,7 @@ class CQLImpl(SACImpl):
             n_critics=n_critics,
             bootstrap=bootstrap,
             share_encoder=share_encoder,
+            target_reduction_type=target_reduction_type,
             initial_temperature=initial_temperature,
             use_gpu=use_gpu,
             scaler=scaler,
@@ -115,10 +117,11 @@ class CQLImpl(SACImpl):
         act_t: torch.Tensor,
         rew_tpn: torch.Tensor,
         q_tpn: torch.Tensor,
+        ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
     ) -> torch.Tensor:
         loss = super()._compute_critic_loss(
-            obs_t, act_t, rew_tpn, q_tpn, n_steps
+            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps
         )
         conservative_loss = self._compute_conservative_loss(obs_t, act_t)
         return loss + conservative_loss
@@ -206,10 +209,15 @@ class CQLImpl(SACImpl):
         assert self._targ_q_func is not None
         with torch.no_grad():
             action, log_prob = self._policy.sample_with_log_prob(x)
-            target_value = self._targ_q_func.compute_target(x, action)
+            target_value = self._targ_q_func.compute_target(
+                x, action, reduction=self._target_reduction_type
+            )
             if self._soft_q_backup:
                 entropy = self._log_temp().exp() * log_prob
-                target_value -= entropy
+                if self._target_reduction_type == "none":
+                    target_value -= entropy.view(1, -1, 1)
+                else:
+                    target_value -= entropy
             return target_value
 
 
@@ -220,9 +228,12 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         act_t: torch.Tensor,
         rew_tpn: torch.Tensor,
         q_tpn: torch.Tensor,
+        ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
     ) -> torch.Tensor:
-        loss = super()._compute_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
+        loss = super()._compute_loss(
+            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps
+        )
         conservative_loss = self._compute_conservative_loss(obs_t, act_t)
         return loss + conservative_loss
 

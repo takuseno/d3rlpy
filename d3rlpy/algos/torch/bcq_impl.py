@@ -87,6 +87,7 @@ class BCQImpl(DDPGBaseImpl):
             n_critics=n_critics,
             bootstrap=bootstrap,
             share_encoder=share_encoder,
+            target_reduction_type="mix",
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
@@ -256,6 +257,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         n_critics: int,
         bootstrap: bool,
         share_encoder: bool,
+        target_reduction_type: str,
         action_flexibility: float,
         beta: float,
         use_gpu: Optional[Device],
@@ -273,6 +275,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             n_critics=n_critics,
             bootstrap=bootstrap,
             share_encoder=share_encoder,
+            target_reduction_type=target_reduction_type,
             use_gpu=use_gpu,
             scaler=scaler,
             augmentation=augmentation,
@@ -316,10 +319,13 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         act_t: torch.Tensor,
         rew_tpn: torch.Tensor,
         q_tpn: torch.Tensor,
+        ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
     ) -> torch.Tensor:
         assert self._imitator is not None
-        loss = super()._compute_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
+        loss = super()._compute_loss(
+            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps
+        )
         imitator_loss = self._imitator.compute_error(obs_t, act_t)
         return loss + imitator_loss
 

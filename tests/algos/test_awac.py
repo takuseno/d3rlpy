@@ -10,13 +10,20 @@ from .algo_test import algo_tester, algo_update_tester, algo_pendulum_tester
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("scaler", [None, "min_max"])
 @pytest.mark.parametrize("action_scaler", [None, "min_max"])
+@pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 def test_awac(
-    observation_shape, action_size, q_func_factory, scaler, action_scaler
+    observation_shape,
+    action_size,
+    q_func_factory,
+    scaler,
+    action_scaler,
+    target_reduction_type,
 ):
     awac = AWAC(
         q_func_factory=q_func_factory,
         scaler=scaler,
         action_scaler=action_scaler,
+        target_reduction_type=target_reduction_type,
     )
     algo_tester(awac, observation_shape)
     algo_update_tester(awac, observation_shape, action_size)

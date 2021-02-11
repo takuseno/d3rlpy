@@ -63,6 +63,7 @@ class SACImpl(DDPGBaseImpl):
         n_critics: int,
         bootstrap: bool,
         share_encoder: bool,
+        target_reduction_type: str,
         initial_temperature: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
@@ -84,6 +85,7 @@ class SACImpl(DDPGBaseImpl):
             n_critics=n_critics,
             bootstrap=bootstrap,
             share_encoder=share_encoder,
+            target_reduction_type=target_reduction_type,
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
@@ -159,7 +161,13 @@ class SACImpl(DDPGBaseImpl):
         with torch.no_grad():
             action, log_prob = self._policy.sample_with_log_prob(x)
             entropy = self._log_temp().exp() * log_prob
-            return self._targ_q_func.compute_target(x, action) - entropy
+            target = self._targ_q_func.compute_target(
+                x, action, reduction=self._target_reduction_type
+            )
+            if self._target_reduction_type == "none":
+                return target - entropy.view(1, -1, 1)
+            else:
+                return target - entropy
 
 
 class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):

@@ -27,6 +27,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("n_critics", [2])
 @pytest.mark.parametrize("bootstrap", [False])
 @pytest.mark.parametrize("share_encoder", [False, True])
+@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("initial_temperature", [1.0])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
@@ -47,6 +48,7 @@ def test_sac_impl(
     n_critics,
     bootstrap,
     share_encoder,
+    target_reduction_type,
     initial_temperature,
     scaler,
     action_scaler,
@@ -69,6 +71,7 @@ def test_sac_impl(
         n_critics,
         bootstrap,
         share_encoder,
+        target_reduction_type,
         initial_temperature,
         use_gpu=False,
         scaler=scaler,

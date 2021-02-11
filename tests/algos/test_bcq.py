@@ -31,10 +31,24 @@ def test_bcq_performance():
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_critics", [1, 2])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("scaler", [None, "min_max"])
-def test_discrete_bcq(observation_shape, action_size, q_func_factory, scaler):
-    bcq = DiscreteBCQ(q_func_factory=q_func_factory, scaler=scaler)
+@pytest.mark.parametrize("target_reduction_type", ["min", "none"])
+def test_discrete_bcq(
+    observation_shape,
+    action_size,
+    n_critics,
+    q_func_factory,
+    scaler,
+    target_reduction_type,
+):
+    bcq = DiscreteBCQ(
+        n_critics=n_critics,
+        q_func_factory=q_func_factory,
+        scaler=scaler,
+        target_reduction_type=target_reduction_type,
+    )
     algo_tester(bcq, observation_shape)
     algo_update_tester(bcq, observation_shape, action_size, discrete=True)
 

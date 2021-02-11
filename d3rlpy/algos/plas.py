@@ -59,6 +59,9 @@ class PLAS(AlgoBase):
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
+        target_reduction_type (str): ensemble reduction method at target value
+            estimation. The available options are
+            ``['min', 'max', 'mean', 'mix', 'none']``.
         update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
         rl_start_epoch (int): epoch to start to update policy function and Q
@@ -92,6 +95,7 @@ class PLAS(AlgoBase):
     _n_critics: int
     _bootstrap: bool
     _share_encoder: bool
+    _target_reduction_type: str
     _update_actor_interval: int
     _lam: float
     _rl_start_epoch: int
@@ -121,6 +125,7 @@ class PLAS(AlgoBase):
         n_critics: int = 2,
         bootstrap: bool = False,
         share_encoder: bool = False,
+        target_reduction_type: str = "mix",
         update_actor_interval: int = 1,
         lam: float = 0.75,
         rl_start_epoch: int = 10,
@@ -156,6 +161,7 @@ class PLAS(AlgoBase):
         self._n_critics = n_critics
         self._bootstrap = bootstrap
         self._share_encoder = share_encoder
+        self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
         self._lam = lam
         self._rl_start_epoch = rl_start_epoch
@@ -185,6 +191,7 @@ class PLAS(AlgoBase):
             n_critics=self._n_critics,
             bootstrap=self._bootstrap,
             share_encoder=self._share_encoder,
+            target_reduction_type=self._target_reduction_type,
             lam=self._lam,
             beta=self._beta,
             use_gpu=self._use_gpu,
@@ -261,6 +268,9 @@ class PLASWithPerturbation(PLAS):
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
+        target_reduction_type (str): ensemble reduction method at target value
+            estimation. The available options are
+            ``['min', 'max', 'mean', 'mix', 'none']``.
         update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
         action_flexibility (float): output scale of perturbation layer.
@@ -305,6 +315,7 @@ class PLASWithPerturbation(PLAS):
         n_critics: int = 2,
         bootstrap: bool = False,
         share_encoder: bool = False,
+        target_reduction_type: str = "mix",
         update_actor_interval: int = 1,
         lam: float = 0.75,
         action_flexibility: float = 0.05,
@@ -337,6 +348,7 @@ class PLASWithPerturbation(PLAS):
             n_critics=n_critics,
             bootstrap=bootstrap,
             share_encoder=share_encoder,
+            target_reduction_type=target_reduction_type,
             update_actor_interval=update_actor_interval,
             lam=lam,
             rl_start_epoch=rl_start_epoch,
@@ -371,6 +383,7 @@ class PLASWithPerturbation(PLAS):
             n_critics=self._n_critics,
             bootstrap=self._bootstrap,
             share_encoder=self._share_encoder,
+            target_reduction_type=self._target_reduction_type,
             lam=self._lam,
             beta=self._beta,
             action_flexibility=self._action_flexibility,

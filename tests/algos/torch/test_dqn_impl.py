@@ -18,6 +18,7 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("bootstrap", [False])
 @pytest.mark.parametrize("share_encoder", [False, True])
+@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
 def test_dqn_impl(
@@ -31,6 +32,7 @@ def test_dqn_impl(
     n_critics,
     bootstrap,
     share_encoder,
+    target_reduction_type,
     scaler,
     augmentation,
 ):
@@ -45,6 +47,7 @@ def test_dqn_impl(
         n_critics,
         bootstrap,
         share_encoder,
+        target_reduction_type,
         use_gpu=False,
         scaler=scaler,
         augmentation=augmentation,
@@ -64,6 +67,7 @@ def test_dqn_impl(
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("bootstrap", [False])
 @pytest.mark.parametrize("share_encoder", [False, True])
+@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
 def test_double_dqn_impl(
@@ -77,6 +81,7 @@ def test_double_dqn_impl(
     n_critics,
     bootstrap,
     share_encoder,
+    target_reduction_type,
     scaler,
     augmentation,
 ):
@@ -91,6 +96,7 @@ def test_double_dqn_impl(
         n_critics,
         bootstrap,
         share_encoder,
+        target_reduction_type,
         use_gpu=False,
         scaler=scaler,
         augmentation=augmentation,

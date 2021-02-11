@@ -87,6 +87,9 @@ class CQL(AlgoBase):
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
+        target_reduction_type (str): ensemble reduction method at target value
+            estimation. The available options are
+            ``['min', 'max', 'mean', 'mix', 'none']``.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\alpha` value.
@@ -123,6 +126,7 @@ class CQL(AlgoBase):
     _n_critics: int
     _bootstrap: bool
     _share_encoder: bool
+    _target_reduction_type: str
     _update_actor_interval: int
     _initial_temperature: float
     _initial_alpha: float
@@ -155,6 +159,7 @@ class CQL(AlgoBase):
         n_critics: int = 2,
         bootstrap: bool = False,
         share_encoder: bool = False,
+        target_reduction_type: str = "min",
         update_actor_interval: int = 1,
         initial_temperature: float = 1.0,
         initial_alpha: float = 5.0,
@@ -193,6 +198,7 @@ class CQL(AlgoBase):
         self._n_critics = n_critics
         self._bootstrap = bootstrap
         self._share_encoder = share_encoder
+        self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
         self._initial_temperature = initial_temperature
         self._initial_alpha = initial_alpha
@@ -225,6 +231,7 @@ class CQL(AlgoBase):
             n_critics=self._n_critics,
             bootstrap=self._bootstrap,
             share_encoder=self._share_encoder,
+            target_reduction_type=self._target_reduction_type,
             initial_temperature=self._initial_temperature,
             initial_alpha=self._initial_alpha,
             alpha_threshold=self._alpha_threshold,
@@ -326,6 +333,10 @@ class DiscreteCQL(DoubleDQN):
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
+        target_reduction_type (str): ensemble reduction method at target value
+            estimation. The available options are
+            ``['min', 'max', 'mean', 'mix', 'none']``.
         target_update_interval (int): interval to synchronize the target
             network.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -357,6 +368,7 @@ class DiscreteCQL(DoubleDQN):
             n_critics=self._n_critics,
             bootstrap=self._bootstrap,
             share_encoder=self._share_encoder,
+            target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             augmentation=self._augmentation,

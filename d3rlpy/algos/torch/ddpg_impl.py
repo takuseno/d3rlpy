@@ -45,6 +45,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
     _n_critics: int
     _bootstrap: bool
     _share_encoder: bool
+    _target_reduction_type: str
     _use_gpu: Optional[Device]
     _q_func: Optional[EnsembleContinuousQFunction]
     _policy: Optional[Policy]
@@ -69,6 +70,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         n_critics: int,
         bootstrap: bool,
         share_encoder: bool,
+        target_reduction_type: str,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
@@ -89,6 +91,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         self._n_critics = n_critics
         self._bootstrap = bootstrap
         self._share_encoder = share_encoder
+        self._target_reduction_type = target_reduction_type
         self._use_gpu = use_gpu
 
         # initialized in build
@@ -162,9 +165,10 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         self._critic_optim.zero_grad()
 
         q_tpn = self.compute_target(obs_tpn)
-        q_tpn *= 1.0 - ter_tpn
 
-        loss = self.compute_critic_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
+        loss = self.compute_critic_loss(
+            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps
+        )
 
         loss.backward()
         self._critic_optim.step()
@@ -178,9 +182,12 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         act_t: torch.Tensor,
         rew_tpn: torch.Tensor,
         q_tpn: torch.Tensor,
+        ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
     ) -> torch.Tensor:
-        return self._compute_critic_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
+        return self._compute_critic_loss(
+            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps
+        )
 
     def _compute_critic_loss(
         self,
@@ -188,11 +195,18 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         act_t: torch.Tensor,
         rew_tpn: torch.Tensor,
         q_tpn: torch.Tensor,
+        ter_tpn: torch.Tensor,
         n_steps: torch.Tensor,
     ) -> torch.Tensor:
         assert self._q_func is not None
         return self._q_func.compute_error(
-            obs_t, act_t, rew_tpn, q_tpn, self._gamma ** n_steps
+            obs_t,
+            act_t,
+            rew_tpn,
+            q_tpn,
+            ter_tpn,
+            self._gamma ** n_steps,
+            use_independent_target=self._target_reduction_type == "none",
         )
 
     @train_api
@@ -269,7 +283,11 @@ class DDPGImpl(DDPGBaseImpl):
         assert self._targ_policy is not None
         with torch.no_grad():
             action = self._targ_policy(x)
-            return self._targ_q_func.compute_target(x, action.clamp(-1.0, 1.0))
+            return self._targ_q_func.compute_target(
+                x,
+                action.clamp(-1.0, 1.0),
+                reduction=self._target_reduction_type,
+            )
 
     def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
         return self._predict_best_action(x)

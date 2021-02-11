@@ -27,6 +27,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("n_critics", [2])
 @pytest.mark.parametrize("bootstrap", [False])
 @pytest.mark.parametrize("share_encoder", [False])
+@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("lam", [0.75])
 @pytest.mark.parametrize("beta", [0.5])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
@@ -48,6 +49,7 @@ def test_plas_impl(
     n_critics,
     bootstrap,
     share_encoder,
+    target_reduction_type,
     lam,
     beta,
     scaler,
@@ -72,6 +74,7 @@ def test_plas_impl(
         n_critics,
         bootstrap,
         share_encoder,
+        target_reduction_type,
         lam,
         beta,
         use_gpu=False,
@@ -99,6 +102,7 @@ def test_plas_impl(
 @pytest.mark.parametrize("n_critics", [2])
 @pytest.mark.parametrize("bootstrap", [False])
 @pytest.mark.parametrize("share_encoder", [False])
+@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("lam", [0.75])
 @pytest.mark.parametrize("beta", [0.5])
 @pytest.mark.parametrize("action_flexibility", [0.05])
@@ -121,6 +125,7 @@ def test_plas_with_perturbation_impl(
     n_critics,
     bootstrap,
     share_encoder,
+    target_reduction_type,
     lam,
     beta,
     action_flexibility,
@@ -146,6 +151,7 @@ def test_plas_with_perturbation_impl(
         n_critics,
         bootstrap,
         share_encoder,
+        target_reduction_type,
         lam,
         beta,
         action_flexibility,

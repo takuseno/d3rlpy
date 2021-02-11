@@ -105,6 +105,7 @@ class BEARImpl(SACImpl):
             n_critics=n_critics,
             bootstrap=bootstrap,
             share_encoder=share_encoder,
+            target_reduction_type="mix",
             initial_temperature=initial_temperature,
             use_gpu=use_gpu,
             scaler=scaler,

@@ -361,6 +361,9 @@ class DiscreteBCQ(AlgoBase):
         n_critics (int): the number of Q functions for ensemble.
         bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder network.
+        target_reduction_type (str): ensemble reduction method at target value
+            estimation. The available options are
+            ``['min', 'max', 'mean', 'mix', 'none']``.
         action_flexibility (float): probability threshold represented as
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
@@ -385,6 +388,7 @@ class DiscreteBCQ(AlgoBase):
     _n_critics: int
     _bootstrap: bool
     _share_encoder: bool
+    _target_reduction_type: str
     _action_flexibility: float
     _beta: float
     _target_update_interval: int
@@ -406,6 +410,7 @@ class DiscreteBCQ(AlgoBase):
         n_critics: int = 1,
         bootstrap: bool = False,
         share_encoder: bool = False,
+        target_reduction_type: str = "min",
         action_flexibility: float = 0.3,
         beta: float = 0.5,
         target_update_interval: int = 8000,
@@ -432,6 +437,7 @@ class DiscreteBCQ(AlgoBase):
         self._n_critics = n_critics
         self._bootstrap = bootstrap
         self._share_encoder = share_encoder
+        self._target_reduction_type = target_reduction_type
         self._action_flexibility = action_flexibility
         self._beta = beta
         self._target_update_interval = target_update_interval
@@ -453,6 +459,7 @@ class DiscreteBCQ(AlgoBase):
             n_critics=self._n_critics,
             bootstrap=self._bootstrap,
             share_encoder=self._share_encoder,
+            target_reduction_type=self._target_reduction_type,
             action_flexibility=self._action_flexibility,
             beta=self._beta,
             use_gpu=self._use_gpu,

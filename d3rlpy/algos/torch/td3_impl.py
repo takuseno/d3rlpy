@@ -33,6 +33,7 @@ class TD3Impl(DDPGImpl):
         n_critics: int,
         bootstrap: bool,
         share_encoder: bool,
+        target_reduction_type: str,
         target_smoothing_sigma: float,
         target_smoothing_clip: float,
         use_gpu: Optional[Device],
@@ -55,6 +56,7 @@ class TD3Impl(DDPGImpl):
             n_critics=n_critics,
             bootstrap=bootstrap,
             share_encoder=share_encoder,
+            target_reduction_type=target_reduction_type,
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
@@ -77,4 +79,6 @@ class TD3Impl(DDPGImpl):
             )
             smoothed_action = action + clipped_noise
             clipped_action = smoothed_action.clamp(-1.0, 1.0)
-            return self._targ_q_func.compute_target(x, clipped_action)
+            return self._targ_q_func.compute_target(
+                x, clipped_action, reduction=self._target_reduction_type
+            )
