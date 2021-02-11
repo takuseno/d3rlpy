@@ -58,6 +58,7 @@ class QFunction(metaclass=ABCMeta):
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         q_tp1: torch.Tensor,
+        ter_tp1: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
@@ -128,12 +129,13 @@ class DiscreteMeanQFunction(nn.Module, DiscreteQFunction):  # type: ignore
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         q_tp1: torch.Tensor,
+        ter_tp1: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
         one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
         q_t = (self.forward(obs_t) * one_hot.float()).sum(dim=1, keepdim=True)
-        y = rew_tp1 + gamma * q_tp1
+        y = rew_tp1 + gamma * q_tp1 * (1 - ter_tp1)
         loss = _huber_loss(q_t, y)
         return _reduce(loss, reduction)
 
@@ -173,11 +175,12 @@ class ContinuousMeanQFunction(nn.Module, ContinuousQFunction):  # type: ignore
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         q_tp1: torch.Tensor,
+        ter_tp1: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
         q_t = self.forward(obs_t, act_t)
-        y = rew_tp1 + gamma * q_tp1
+        y = rew_tp1 + gamma * q_tp1 * (1 - ter_tp1)
         loss = F.mse_loss(q_t, y, reduction="none")
         return _reduce(loss, reduction)
 
@@ -215,11 +218,12 @@ class QRQFunction(nn.Module):  # type: ignore
         quantiles_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         q_tp1: torch.Tensor,
+        ter_tp1: torch.Tensor,
         taus: torch.Tensor,
         gamma: float,
     ) -> torch.Tensor:
         batch_size = rew_tp1.shape[0]
-        y = (rew_tp1 + gamma * q_tp1).view(batch_size, -1, 1)
+        y = (rew_tp1 + gamma * q_tp1 * (1 - ter_tp1)).view(batch_size, -1, 1)
         quantiles_t = quantiles_t.view(batch_size, 1, -1)
         expanded_taus = taus.view(-1, 1, self._n_quantiles)
         return _quantile_huber_loss(quantiles_t, y, expanded_taus)
@@ -256,6 +260,7 @@ class DiscreteQRQFunction(QRQFunction, DiscreteQFunction):
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         q_tp1: torch.Tensor,
+        ter_tp1: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
@@ -271,6 +276,7 @@ class DiscreteQRQFunction(QRQFunction, DiscreteQFunction):
             quantiles_t=quantiles_t,
             rew_tp1=rew_tp1,
             q_tp1=q_tp1,
+            ter_tp1=ter_tp1,
             taus=taus,
             gamma=gamma,
         )
@@ -324,6 +330,7 @@ class ContinuousQRQFunction(QRQFunction, ContinuousQFunction):
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         q_tp1: torch.Tensor,
+        ter_tp1: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
@@ -337,6 +344,7 @@ class ContinuousQRQFunction(QRQFunction, ContinuousQFunction):
             quantiles_t=quantiles_t,
             rew_tp1=rew_tp1,
             q_tp1=q_tp1,
+            ter_tp1=ter_tp1,
             taus=taus,
             gamma=gamma,
         )
@@ -448,6 +456,7 @@ class DiscreteIQNQFunction(IQNQFunction, DiscreteQFunction):
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         q_tp1: torch.Tensor,
+        ter_tp1: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
@@ -463,6 +472,7 @@ class DiscreteIQNQFunction(IQNQFunction, DiscreteQFunction):
             quantiles_t=quantiles_t,
             rew_tp1=rew_tp1,
             q_tp1=q_tp1,
+            ter_tp1=ter_tp1,
             taus=taus,
             gamma=gamma,
         )
@@ -530,6 +540,7 @@ class ContinuousIQNQFunction(IQNQFunction, ContinuousQFunction):
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         q_tp1: torch.Tensor,
+        ter_tp1: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
@@ -543,6 +554,7 @@ class ContinuousIQNQFunction(IQNQFunction, ContinuousQFunction):
             quantiles_t=quantiles_t,
             rew_tp1=rew_tp1,
             q_tp1=q_tp1,
+            ter_tp1=ter_tp1,
             taus=taus,
             gamma=gamma,
         )
@@ -636,6 +648,7 @@ class DiscreteFQFQFunction(FQFQFunction, DiscreteQFunction):
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         q_tp1: torch.Tensor,
+        ter_tp1: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
@@ -651,6 +664,7 @@ class DiscreteFQFQFunction(FQFQFunction, DiscreteQFunction):
             quantiles_t=quantiles_t,
             rew_tp1=rew_tp1,
             q_tp1=q_tp1,
+            ter_tp1=ter_tp1,
             taus=taus_prime.detach(),
             gamma=gamma,
         )
@@ -752,6 +766,7 @@ class ContinuousFQFQFunction(FQFQFunction, ContinuousQFunction):
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         q_tp1: torch.Tensor,
+        ter_tp1: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
@@ -765,6 +780,7 @@ class ContinuousFQFQFunction(FQFQFunction, ContinuousQFunction):
             quantiles_t=quantiles_t,
             rew_tp1=rew_tp1,
             q_tp1=q_tp1,
+            ter_tp1=ter_tp1,
             taus=taus_prime.detach(),
             gamma=gamma,
         )
@@ -896,12 +912,23 @@ class EnsembleQFunction(nn.Module):  # type: ignore
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         q_tp1: torch.Tensor,
+        ter_tp1: torch.Tensor,
         gamma: float = 0.99,
+        use_independent_target: bool = False,
     ) -> torch.Tensor:
+        if use_independent_target:
+            assert q_tp1.ndim == 3
+        else:
+            assert q_tp1.ndim == 2
         td_sum = torch.tensor(0.0, dtype=torch.float32, device=obs_t.device)
-        for q_func in self._q_funcs:
+        for i, q_func in enumerate(self._q_funcs):
+            if use_independent_target:
+                target = q_tp1[i]
+            else:
+                target = q_tp1
+
             loss = q_func.compute_error(
-                obs_t, act_t, rew_tp1, q_tp1, gamma, reduction="none"
+                obs_t, act_t, rew_tp1, target, ter_tp1, gamma, reduction="none"
             )
 
             if self._bootstrap:
