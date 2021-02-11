@@ -119,6 +119,7 @@ class LearnableBase:
     _n_frames: int
     _n_steps: int
     _gamma: float
+    _n_critics: int
     _scaler: Optional[Scaler]
     _action_scaler: Optional[ActionScaler]
     _impl: Optional[ImplBase]
@@ -132,6 +133,7 @@ class LearnableBase:
         n_frames: int,
         n_steps: int,
         gamma: float,
+        n_critics: int,
         scaler: ScalerArg,
         action_scaler: ActionScalerArg,
     ):
@@ -139,6 +141,7 @@ class LearnableBase:
         self._n_frames = n_frames
         self._n_steps = n_steps
         self._gamma = gamma
+        self._n_critics = n_critics
         self._scaler = check_scaler(scaler)
         self._action_scaler = check_action_scaler(action_scaler)
 
@@ -364,6 +367,7 @@ class LearnableBase:
             n_steps=self._n_steps,
             gamma=self._gamma,
             n_frames=self._n_frames,
+            n_critics=self._n_critics,
             shuffle=shuffle,
         )
 
@@ -688,6 +692,14 @@ class LearnableBase:
     @gamma.setter
     def gamma(self, gamma: float) -> None:
         self._gamma = gamma
+
+    @property
+    def n_critics(self) -> int:
+        return self._n_critics
+
+    @n_critics.setter
+    def n_critics(self, n_critics: int) -> None:
+        self._n_critics = n_critics
 
     @property
     def scaler(self) -> Optional[Scaler]:

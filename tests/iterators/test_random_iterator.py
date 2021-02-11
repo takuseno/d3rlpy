@@ -10,6 +10,7 @@ from d3rlpy.iterators.random_iterator import RandomIterator
 @pytest.mark.parametrize("observation_size", [10])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("n_critics", [2])
 @pytest.mark.parametrize("set_ephemeral", [False, True])
 def test_random_iterator(
     episode_size,
@@ -17,6 +18,7 @@ def test_random_iterator(
     observation_size,
     action_size,
     batch_size,
+    n_critics,
     set_ephemeral,
 ):
     episodes = []
@@ -29,7 +31,7 @@ def test_random_iterator(
         )
         episodes.append(episode)
 
-    iterator = RandomIterator(episodes, batch_size)
+    iterator = RandomIterator(episodes, batch_size, n_critics=n_critics)
 
     if set_ephemeral:
         iterator.set_ephemeral_transitions(episodes[0].transitions)
@@ -39,6 +41,8 @@ def test_random_iterator(
         assert batch.observations.shape == (batch_size, observation_size)
         assert batch.actions.shape == (batch_size, action_size)
         assert batch.rewards.shape == (batch_size, 1)
+        mask = batch.get_additional_data("mask")
+        assert mask.shape == (batch_size, n_critics)
         count += 1
 
     if set_ephemeral:

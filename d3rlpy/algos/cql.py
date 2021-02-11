@@ -123,7 +123,6 @@ class CQL(AlgoBase):
     _critic_encoder_factory: EncoderFactory
     _q_func_factory: QFunctionFactory
     _tau: float
-    _n_critics: int
     _bootstrap: bool
     _share_encoder: bool
     _target_reduction_type: str
@@ -179,6 +178,7 @@ class CQL(AlgoBase):
             n_frames=n_frames,
             n_steps=n_steps,
             gamma=gamma,
+            n_critics=n_critics,
             scaler=scaler,
             action_scaler=action_scaler,
             generator=generator,
@@ -195,7 +195,6 @@ class CQL(AlgoBase):
         self._critic_encoder_factory = check_encoder(critic_encoder_factory)
         self._q_func_factory = check_q_func(q_func_factory)
         self._tau = tau
-        self._n_critics = n_critics
         self._bootstrap = bootstrap
         self._share_encoder = share_encoder
         self._target_reduction_type = target_reduction_type

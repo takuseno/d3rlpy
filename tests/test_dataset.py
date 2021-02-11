@@ -383,6 +383,11 @@ def test_transition_minibatch(
         assert np.allclose(batch.next_rewards[i][0], next_reward)
         assert np.all(batch.terminals[i][0] == terminal)
 
+    # check additional data
+    value = np.random.random(100)
+    batch.add_additional_data("test", value)
+    assert np.all(batch.get_additional_data("test") == value)
+
     # check list-like behavior
     assert len(batch) == data_size - 1
     assert batch[0] is episode.transitions[0]

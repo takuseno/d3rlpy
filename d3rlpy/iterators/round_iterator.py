@@ -19,9 +19,12 @@ class RoundIterator(TransitionIterator):
         n_steps: int = 1,
         gamma: float = 0.99,
         n_frames: int = 1,
+        n_critics: int = 1,
         shuffle: bool = True,
     ):
-        super().__init__(episodes, batch_size, n_steps, gamma, n_frames)
+        super().__init__(
+            episodes, batch_size, n_steps, gamma, n_frames, n_critics
+        )
         self._shuffle = shuffle
         self._indices = np.arange(self.size())
         self._index = 0

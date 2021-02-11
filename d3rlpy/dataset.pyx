@@ -748,6 +748,7 @@ cdef class Transition:
         next_action (numpy.ndarray or int): action at `t+1`.
         next_reward (float): reward at `t+1`.
         terminal (int): terminal flag at `t+1`.
+        mask (numpy.ndarray): binary mask for bootstrapping.
         prev_transition (d3rlpy.dataset.Transition):
             pointer to the previous transition.
         next_transition (d3rlpy.dataset.Transition):
@@ -1085,6 +1086,7 @@ cdef class TransitionMiniBatch:
 
     """
     cdef list _transitions
+    cdef dict _additional_data
     cdef np.ndarray _observations
     cdef np.ndarray _actions
     cdef np.ndarray _rewards
@@ -1173,6 +1175,9 @@ cdef class TransitionMiniBatch:
                                   gamma=gamma,
                                   is_image=is_image,
                                   is_discrete=is_discrete)
+
+        # additional data
+        self._additional_data = {}
 
     cdef void _assign_observation(self,
                                   int batch_index,
@@ -1293,6 +1298,29 @@ cdef class TransitionMiniBatch:
         next_rewards_ptr[batch_index] = n_step_return
         terminals_ptr[batch_index] = next_ptr.get().terminal
         n_steps_ptr[batch_index] = i + 1
+
+    def add_additional_data(self, key, value):
+        """Add arbitrary additional data.
+
+        Args:
+            key (str): key of data.
+            value (any): value.
+
+        """
+        self._additional_data[key] = value
+
+    def get_additional_data(self, key):
+        """Returns specified additional data.
+
+        Args:
+            key (str): key of data.
+
+        Returns:
+            any: value.
+
+        """
+        assert key in self._additional_data, '%s has not been added.' % key
+        return self._additional_data[key]
 
     @property
     def observations(self):

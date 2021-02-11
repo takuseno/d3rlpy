@@ -1,5 +1,7 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Iterator
+from typing import Dict, List, Iterator
+
+import numpy as np
 
 from ..dataset import Episode, Transition, TransitionMiniBatch
 
@@ -10,10 +12,12 @@ class TransitionIterator(metaclass=ABCMeta):
     _transitions: List[Transition]
     _orig_transitions: List[Transition]
     _ephemeral_transitions: List[Transition]
+    _masks: Dict[Transition, np.ndarray]
     _batch_size: int
     _n_steps: int
     _gamma: float
     _n_frames: int
+    _n_critics: int
     _index: int
 
     def __init__(
@@ -23,6 +27,7 @@ class TransitionIterator(metaclass=ABCMeta):
         n_steps: int = 1,
         gamma: float = 0.99,
         n_frames: int = 1,
+        n_critics: int = 1,
     ):
         self._episodes = episodes
         self._orig_transitions = []
@@ -34,6 +39,12 @@ class TransitionIterator(metaclass=ABCMeta):
         self._n_steps = n_steps
         self._gamma = gamma
         self._n_frames = n_frames
+        self._n_critics = n_critics
+
+        # create mask
+        self._masks = {}
+        for transition in self._transitions:
+            self._masks[transition] = np.random.randint(2, size=n_critics)
 
     def __iter__(self) -> Iterator[TransitionMiniBatch]:
         self.reset()
@@ -47,6 +58,16 @@ class TransitionIterator(metaclass=ABCMeta):
             n_steps=self._n_steps,
             gamma=self._gamma,
         )
+
+        # add mask
+        masks = np.empty((self._batch_size, self._n_critics), dtype=np.float32)
+        for i, transition in enumerate(transitions):
+            if transition in self._masks:
+                masks[i, ...] = self._masks[transition].astype("f4")
+            else:
+                masks[i, :] = 1.0
+        batch.add_additional_data("mask", masks)
+
         return batch
 
     def reset(self) -> None:

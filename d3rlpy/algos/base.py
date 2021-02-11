@@ -62,12 +62,19 @@ class AlgoBase(LearnableBase):
         n_frames: int,
         n_steps: int,
         gamma: float,
+        n_critics: int,
         scaler: ScalerArg,
         action_scaler: ActionScalerArg,
         generator: Optional[DataGenerator],
     ):
         super().__init__(
-            batch_size, n_frames, n_steps, gamma, scaler, action_scaler
+            batch_size,
+            n_frames,
+            n_steps,
+            gamma,
+            n_critics,
+            scaler,
+            action_scaler,
         )
         self._generator = generator
 

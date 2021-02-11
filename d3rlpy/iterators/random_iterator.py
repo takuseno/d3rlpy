@@ -17,8 +17,11 @@ class RandomIterator(TransitionIterator):
         n_steps: int = 1,
         gamma: float = 0.99,
         n_frames: int = 1,
+        n_critics: int = 1,
     ):
-        super().__init__(episodes, batch_size, n_steps, gamma, n_frames)
+        super().__init__(
+            episodes, batch_size, n_steps, gamma, n_frames, n_critics
+        )
         self._n_samples_per_epoch = batch_size * (self.size() // batch_size)
         self._index = 0
 

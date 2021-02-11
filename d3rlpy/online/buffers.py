@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import (
     Callable,
+    Dict,
     Generic,
     Iterator,
     List,
@@ -94,6 +95,7 @@ class FIFOQueue(Generic[T]):
 class _Buffer(metaclass=ABCMeta):
 
     _transitions: FIFOQueue[Transition]
+    _masks: Dict[Transition, np.ndarray]
     _observation_shape: Sequence[int]
     _action_size: int
 
@@ -103,12 +105,16 @@ class _Buffer(metaclass=ABCMeta):
         env: Optional[gym.Env] = None,
         episodes: Optional[List[Episode]] = None,
     ):
-        # remove links when dropping the last transition
         def drop_callback(transition: Transition) -> None:
+            # remove links when dropping the last transition
             if transition.next_transition is None:
                 trace_back_and_clear(transition)
+            # remove mask
+            if transition in self._masks:
+                del self._masks[transition]
 
         self._transitions = FIFOQueue(maxlen, drop_callback)
+        self._masks = {}
 
         # extract shape information
         if env:
@@ -147,6 +153,7 @@ class _Buffer(metaclass=ABCMeta):
         n_frames: int = 1,
         n_steps: int = 1,
         gamma: float = 0.99,
+        n_critics: int = 1,
     ) -> TransitionMiniBatch:
         """Returns sampled mini-batch of transitions.
 
@@ -167,6 +174,7 @@ class _Buffer(metaclass=ABCMeta):
             n_frames: the number of frames to stack for image observation.
             n_steps: the number of steps before the next observation.
             gamma: discount factor used in N-step return calculation.
+            n_critics: ensemble size for Q-functions.
 
         Returns:
             mini-batch.
@@ -310,6 +318,7 @@ class BatchBuffer(_Buffer):
 class BasicSampleMixin:
 
     _transitions: FIFOQueue[Transition]
+    _masks: Dict[Transition, np.ndarray]
 
     def sample(
         self,
@@ -317,10 +326,21 @@ class BasicSampleMixin:
         n_frames: int = 1,
         n_steps: int = 1,
         gamma: float = 0.99,
+        n_critics: int = 1,
     ) -> TransitionMiniBatch:
         indices = np.random.choice(len(self._transitions), batch_size)
         transitions = [self._transitions[index] for index in indices]
-        return TransitionMiniBatch(transitions, n_frames, n_steps, gamma)
+        batch = TransitionMiniBatch(transitions, n_frames, n_steps, gamma)
+
+        # create masks
+        masks = np.empty((batch_size, n_critics), dtype=np.float32)
+        for i, t in enumerate(transitions):
+            if t not in self._masks or self._masks[t].size != n_critics:
+                self._masks[t] = np.random.randint(2, size=n_critics)
+            masks[i] = self._masks[t].astype("f4")
+        batch.add_additional_data("mask", masks)
+
+        return batch
 
 
 class ReplayBuffer(BasicSampleMixin, Buffer):
