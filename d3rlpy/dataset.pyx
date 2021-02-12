@@ -1,5 +1,4 @@
 import copy
-import warnings
 
 import numpy as np
 cimport numpy as np
@@ -1325,7 +1324,6 @@ cdef class TransitionMiniBatch:
         if key in self._additional_data:
             return self._additional_data[key]
         else:
-            warnings.warn('%s does not exist.' % key, UserWarning)
             return None
 
     @property
