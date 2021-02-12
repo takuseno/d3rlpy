@@ -10,6 +10,7 @@ from d3rlpy.iterators.round_iterator import RoundIterator
 @pytest.mark.parametrize("observation_size", [10])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("bootstrap", [True, False])
 @pytest.mark.parametrize("n_critics", [2])
 @pytest.mark.parametrize("shuffle", [False, True])
 @pytest.mark.parametrize("set_ephemeral", [False, True])
@@ -19,6 +20,7 @@ def test_round_iterator(
     observation_size,
     action_size,
     batch_size,
+    bootstrap,
     n_critics,
     shuffle,
     set_ephemeral,
@@ -34,7 +36,11 @@ def test_round_iterator(
         episodes.append(episode)
 
     iterator = RoundIterator(
-        episodes, batch_size, n_critics=n_critics, shuffle=shuffle
+        episodes,
+        batch_size,
+        bootstrap=bootstrap,
+        n_critics=n_critics,
+        shuffle=shuffle,
     )
 
     if set_ephemeral:
@@ -46,7 +52,10 @@ def test_round_iterator(
         assert batch.actions.shape == (batch_size, action_size)
         assert batch.rewards.shape == (batch_size, 1)
         mask = batch.get_additional_data("mask")
-        assert mask.shape == (n_critics, batch_size, 1)
+        if bootstrap:
+            assert mask.shape == (n_critics, batch_size, 1)
+        else:
+            assert mask is None
         count += 1
 
     if set_ephemeral:

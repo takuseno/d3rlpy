@@ -64,6 +64,10 @@ class _AlgoProtocol(Protocol):
         ...
 
     @property
+    def bootstrap(self) -> bool:
+        ...
+
+    @property
     def n_critics(self) -> int:
         ...
 
@@ -237,6 +241,7 @@ def train_single_env(
                             n_frames=algo.n_frames,
                             n_steps=algo.n_steps,
                             gamma=algo.gamma,
+                            bootstrap=algo.bootstrap,
                             n_critics=algo.n_critics,
                         )
 
@@ -410,6 +415,7 @@ def train_batch_env(
                     n_frames=algo.n_frames,
                     n_steps=algo.n_steps,
                     gamma=algo.gamma,
+                    bootstrap=algo.bootstrap,
                     n_critics=algo.n_critics,
                 )
 

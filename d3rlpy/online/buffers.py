@@ -153,6 +153,7 @@ class _Buffer(metaclass=ABCMeta):
         n_frames: int = 1,
         n_steps: int = 1,
         gamma: float = 0.99,
+        bootstrap: bool = False,
         n_critics: int = 1,
     ) -> TransitionMiniBatch:
         """Returns sampled mini-batch of transitions.
@@ -174,6 +175,7 @@ class _Buffer(metaclass=ABCMeta):
             n_frames: the number of frames to stack for image observation.
             n_steps: the number of steps before the next observation.
             gamma: discount factor used in N-step return calculation.
+            bootstrap: flag to create binary masks for bootstrapping.
             n_critics: ensemble size for Q-functions.
 
         Returns:
@@ -326,6 +328,7 @@ class BasicSampleMixin:
         n_frames: int = 1,
         n_steps: int = 1,
         gamma: float = 0.99,
+        bootstrap: bool = False,
         n_critics: int = 1,
     ) -> TransitionMiniBatch:
         indices = np.random.choice(len(self._transitions), batch_size)
@@ -333,12 +336,14 @@ class BasicSampleMixin:
         batch = TransitionMiniBatch(transitions, n_frames, n_steps, gamma)
 
         # create masks
-        masks = np.empty((batch_size, n_critics, 1), dtype=np.float32)
-        for i, t in enumerate(transitions):
-            if t not in self._masks or self._masks[t].size != n_critics:
-                self._masks[t] = np.random.randint(2, size=n_critics)
-            masks[i, ..., 0] = self._masks[t].astype("f4")
-        batch.add_additional_data("mask", np.transpose(masks, [1, 0, 2]))
+        if bootstrap:
+            masks = np.empty((batch_size, n_critics, 1), dtype=np.float32)
+            for i, t in enumerate(transitions):
+                if t not in self._masks or self._masks[t].size != n_critics:
+                    mask = np.random.randint(2, size=n_critics)
+                    self._masks[t] = np.array(mask, dtype=np.float32)
+                masks[i, ..., 0] = self._masks[t]
+            batch.add_additional_data("mask", np.transpose(masks, [1, 0, 2]))
 
         return batch
 

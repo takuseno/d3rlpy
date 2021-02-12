@@ -94,7 +94,6 @@ class AWAC(AlgoBase):
     _lam: float
     _n_action_samples: int
     _max_weight: float
-    _bootstrap: bool
     _share_encoder: bool
     _target_reduction_type: str
     _update_actor_interval: int
@@ -138,6 +137,7 @@ class AWAC(AlgoBase):
             n_frames=n_frames,
             n_steps=n_steps,
             gamma=gamma,
+            bootstrap=bootstrap,
             n_critics=n_critics,
             scaler=scaler,
             action_scaler=action_scaler,
@@ -154,7 +154,6 @@ class AWAC(AlgoBase):
         self._lam = lam
         self._n_action_samples = n_action_samples
         self._max_weight = max_weight
-        self._bootstrap = bootstrap
         self._share_encoder = share_encoder
         self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
