@@ -24,6 +24,8 @@ class _FQEBase(AlgoBase):
     _optim_factory: OptimizerFactory
     _encoder_factory: EncoderFactory
     _q_func_factory: QFunctionFactory
+    _bootstrap: bool
+    _n_critics: int
     _share_encoder: bool
     _target_update_interval: int
     _use_gpu: Optional[Device]
@@ -56,8 +58,6 @@ class _FQEBase(AlgoBase):
             n_frames=n_frames,
             n_steps=n_steps,
             gamma=gamma,
-            bootstrap=bootstrap,
-            n_critics=n_critics,
             scaler=scaler,
             action_scaler=action_scaler,
             generator=None,
@@ -67,6 +67,8 @@ class _FQEBase(AlgoBase):
         self._optim_factory = optim_factory
         self._encoder_factory = check_encoder(encoder_factory)
         self._q_func_factory = check_q_func(q_func_factory)
+        self._bootstrap = bootstrap
+        self._n_critics = n_critics
         self._share_encoder = share_encoder
         self._target_update_interval = target_update_interval
         self._use_gpu = check_use_gpu(use_gpu)

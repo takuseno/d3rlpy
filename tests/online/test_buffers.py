@@ -10,12 +10,14 @@ from d3rlpy.dataset import TransitionMiniBatch, Episode
 @pytest.mark.parametrize("n_episodes", [10])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("maxlen", [50])
-@pytest.mark.parametrize("bootstrap", [False, True])
-@pytest.mark.parametrize("n_critics", [2])
-def test_replay_buffer(n_episodes, batch_size, maxlen, bootstrap, n_critics):
+@pytest.mark.parametrize("create_mask", [False, True])
+@pytest.mark.parametrize("mask_size", [4])
+def test_replay_buffer(n_episodes, batch_size, maxlen, create_mask, mask_size):
     env = gym.make("CartPole-v0")
 
-    buffer = ReplayBuffer(maxlen, env)
+    buffer = ReplayBuffer(
+        maxlen, env, create_mask=create_mask, mask_size=mask_size
+    )
 
     total_step = 0
     for episode in range(n_episodes):
@@ -38,7 +40,7 @@ def test_replay_buffer(n_episodes, batch_size, maxlen, bootstrap, n_critics):
     assert len(transitions) >= len(buffer)
 
     observation_shape = env.observation_space.shape
-    batch = buffer.sample(batch_size, bootstrap=bootstrap, n_critics=n_critics)
+    batch = buffer.sample(batch_size)
     assert len(batch) == batch_size
     assert batch.observations.shape == (batch_size,) + observation_shape
     assert batch.actions.shape == (batch_size,)
@@ -49,11 +51,10 @@ def test_replay_buffer(n_episodes, batch_size, maxlen, bootstrap, n_critics):
     assert batch.terminals.shape == (batch_size, 1)
     assert isinstance(batch.observations, np.ndarray)
     assert isinstance(batch.next_observations, np.ndarray)
-    mask = batch.get_additional_data("mask")
-    if bootstrap:
-        assert mask.shape == (n_critics, batch_size, 1)
+    if create_mask:
+        assert batch.masks.shape == (mask_size, batch_size, 1)
     else:
-        assert mask is None
+        assert batch.masks is None
 
 
 @pytest.mark.parametrize("n_episodes", [10])
@@ -131,14 +132,16 @@ def test_replay_buffer_with_episode(maxlen, data_size):
 @pytest.mark.parametrize("n_steps", [200])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("maxlen", [50])
-@pytest.mark.parametrize("bootstrap", [False, True])
-@pytest.mark.parametrize("n_critics", [2])
+@pytest.mark.parametrize("create_mask", [False, True])
+@pytest.mark.parametrize("mask_size", [4])
 def test_batch_replay_buffer(
-    n_envs, n_steps, batch_size, maxlen, bootstrap, n_critics
+    n_envs, n_steps, batch_size, maxlen, create_mask, mask_size
 ):
     env = SyncBatchEnv([gym.make("CartPole-v0") for _ in range(n_envs)])
 
-    buffer = BatchReplayBuffer(maxlen, env)
+    buffer = BatchReplayBuffer(
+        maxlen, env, create_mask=create_mask, mask_size=mask_size
+    )
 
     observations = env.reset()
     rewards, terminals = np.zeros(n_envs), np.zeros(n_envs)
@@ -157,7 +160,7 @@ def test_batch_replay_buffer(
     assert len(transitions) >= len(buffer)
 
     observation_shape = env.observation_space.shape
-    batch = buffer.sample(batch_size, bootstrap=bootstrap, n_critics=n_critics)
+    batch = buffer.sample(batch_size)
     assert len(batch) == batch_size
     assert batch.observations.shape == (batch_size,) + observation_shape
     assert batch.actions.shape == (batch_size,)
@@ -168,8 +171,7 @@ def test_batch_replay_buffer(
     assert batch.terminals.shape == (batch_size, 1)
     assert isinstance(batch.observations, np.ndarray)
     assert isinstance(batch.next_observations, np.ndarray)
-    mask = batch.get_additional_data("mask")
-    if bootstrap:
-        assert mask.shape == (n_critics, batch_size, 1)
+    if create_mask:
+        assert batch.masks.shape == (mask_size, batch_size, 1)
     else:
-        assert mask is None
+        assert batch.masks is None

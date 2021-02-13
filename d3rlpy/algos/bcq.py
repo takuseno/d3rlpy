@@ -154,6 +154,8 @@ class BCQ(AlgoBase):
     _imitator_encoder_factory: EncoderFactory
     _q_func_factory: QFunctionFactory
     _tau: float
+    _bootstrap: bool
+    _n_critics: int
     _share_encoder: bool
     _update_actor_interval: int
     _lam: float
@@ -207,8 +209,6 @@ class BCQ(AlgoBase):
             n_frames=n_frames,
             n_steps=n_steps,
             gamma=gamma,
-            bootstrap=bootstrap,
-            n_critics=n_critics,
             scaler=scaler,
             action_scaler=action_scaler,
             generator=generator,
@@ -224,6 +224,8 @@ class BCQ(AlgoBase):
         self._imitator_encoder_factory = check_encoder(imitator_encoder_factory)
         self._q_func_factory = check_q_func(q_func_factory)
         self._tau = tau
+        self._bootstrap = bootstrap
+        self._n_critics = n_critics
         self._share_encoder = share_encoder
         self._update_actor_interval = update_actor_interval
         self._lam = lam
@@ -285,7 +287,7 @@ class BCQ(AlgoBase):
                 batch.next_observations,
                 batch.terminals,
                 batch.n_steps,
-                batch.get_additional_data("mask"),
+                batch.masks,
             )
             if total_step % self._update_actor_interval == 0:
                 actor_loss = self._impl.update_actor(batch.observations)
@@ -384,6 +386,8 @@ class DiscreteBCQ(AlgoBase):
     _optim_factory: OptimizerFactory
     _encoder_factory: EncoderFactory
     _q_func_factory: QFunctionFactory
+    _bootstrap: bool
+    _n_critics: int
     _share_encoder: bool
     _target_reduction_type: str
     _action_flexibility: float
@@ -423,8 +427,6 @@ class DiscreteBCQ(AlgoBase):
             n_frames=n_frames,
             n_steps=n_steps,
             gamma=gamma,
-            bootstrap=bootstrap,
-            n_critics=n_critics,
             scaler=scaler,
             action_scaler=None,
             generator=generator,
@@ -433,6 +435,8 @@ class DiscreteBCQ(AlgoBase):
         self._optim_factory = optim_factory
         self._encoder_factory = check_encoder(encoder_factory)
         self._q_func_factory = check_q_func(q_func_factory)
+        self._bootstrap = bootstrap
+        self._n_critics = n_critics
         self._share_encoder = share_encoder
         self._target_reduction_type = target_reduction_type
         self._action_flexibility = action_flexibility
@@ -477,7 +481,7 @@ class DiscreteBCQ(AlgoBase):
             batch.next_observations,
             batch.terminals,
             batch.n_steps,
-            batch.get_additional_data("mask"),
+            batch.masks,
         )
         if total_step % self._target_update_interval == 0:
             self._impl.update_target()

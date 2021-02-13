@@ -45,8 +45,6 @@ class _BCBase(AlgoBase):
             n_frames=n_frames,
             n_steps=1,
             gamma=1.0,
-            bootstrap=False,
-            n_critics=1,
             scaler=scaler,
             action_scaler=action_scaler,
             generator=generator,

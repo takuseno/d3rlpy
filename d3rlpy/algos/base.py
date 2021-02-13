@@ -62,8 +62,6 @@ class AlgoBase(LearnableBase):
         n_frames: int,
         n_steps: int,
         gamma: float,
-        bootstrap: bool,
-        n_critics: int,
         scaler: ScalerArg,
         action_scaler: ActionScalerArg,
         generator: Optional[DataGenerator],
@@ -73,8 +71,6 @@ class AlgoBase(LearnableBase):
             n_frames,
             n_steps,
             gamma,
-            bootstrap,
-            n_critics,
             scaler,
             action_scaler,
         )

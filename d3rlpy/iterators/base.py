@@ -17,8 +17,6 @@ class TransitionIterator(metaclass=ABCMeta):
     _n_steps: int
     _gamma: float
     _n_frames: int
-    _bootstrap: bool
-    _n_critics: int
     _index: int
 
     def __init__(
@@ -28,8 +26,6 @@ class TransitionIterator(metaclass=ABCMeta):
         n_steps: int = 1,
         gamma: float = 0.99,
         n_frames: int = 1,
-        bootstrap: bool = False,
-        n_critics: int = 1,
     ):
         self._episodes = episodes
         self._orig_transitions = []
@@ -41,15 +37,6 @@ class TransitionIterator(metaclass=ABCMeta):
         self._n_steps = n_steps
         self._gamma = gamma
         self._n_frames = n_frames
-        self._bootstrap = bootstrap
-        self._n_critics = n_critics
-
-        # create mask for bootstrapping
-        self._masks = {}
-        if bootstrap:
-            for transition in self._transitions:
-                mask = np.random.randint(2, size=n_critics)
-                self._masks[transition] = np.array(mask, dtype=np.float32)
 
     def __iter__(self) -> Iterator[TransitionMiniBatch]:
         self.reset()
@@ -63,18 +50,6 @@ class TransitionIterator(metaclass=ABCMeta):
             n_steps=self._n_steps,
             gamma=self._gamma,
         )
-
-        # add mask for bootstrapping
-        if self._bootstrap:
-            mask_shape = (self._batch_size, self._n_critics, 1)
-            masks = np.empty(mask_shape, dtype=np.float32)
-            for i, transition in enumerate(transitions):
-                if transition in self._masks:
-                    masks[i, ..., 0] = self._masks[transition]
-                else:
-                    masks[i, :] = 1.0
-            batch.add_additional_data("mask", np.transpose(masks, [1, 0, 2]))
-
         return batch
 
     def reset(self) -> None:

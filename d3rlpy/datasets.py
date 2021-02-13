@@ -16,11 +16,17 @@ CARTPOLE_URL = "https://www.dropbox.com/s/2tmo7ul00268l3e/cartpole.pkl?dl=1"
 PENDULUM_URL = "https://www.dropbox.com/s/90z7a84ngndrqt4/pendulum.pkl?dl=1"
 
 
-def get_cartpole() -> Tuple[MDPDataset, gym.Env]:
+def get_cartpole(
+    create_mask: bool = False, mask_size: int = 1
+) -> Tuple[MDPDataset, gym.Env]:
     """Returns cartpole dataset and environment.
 
     The dataset is automatically downloaded to `d3rlpy_data/cartpole.pkl` if it
     does not exist.
+
+    Args:
+        create_mask: flag to create binary mask for bootstrapping.
+        mask_size: ensemble size for binary mask.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -47,16 +53,24 @@ def get_cartpole() -> Tuple[MDPDataset, gym.Env]:
         rewards=rewards,
         terminals=terminals,
         discrete_action=True,
+        create_mask=create_mask,
+        mask_size=mask_size,
     )
 
     return dataset, env
 
 
-def get_pendulum() -> Tuple[MDPDataset, gym.Env]:
+def get_pendulum(
+    create_mask: bool = False, mask_size: int = 1
+) -> Tuple[MDPDataset, gym.Env]:
     """Returns pendulum dataset and environment.
 
     The dataset is automatically downloaded to `d3rlpy_data/pendulum.pkl` if it
     does not exist.
+
+    Args:
+        create_mask: flag to create binary mask for bootstrapping.
+        mask_size: ensemble size for binary mask.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -81,12 +95,16 @@ def get_pendulum() -> Tuple[MDPDataset, gym.Env]:
         actions=actions,
         rewards=rewards,
         terminals=terminals,
+        create_mask=create_mask,
+        mask_size=mask_size,
     )
 
     return dataset, env
 
 
-def get_pybullet(env_name: str) -> Tuple[MDPDataset, gym.Env]:
+def get_pybullet(
+    env_name: str, create_mask: bool = False, mask_size: int = 1
+) -> Tuple[MDPDataset, gym.Env]:
     """Returns pybullet dataset and envrironment.
 
     The dataset is provided through d4rl-pybullet. See more details including
@@ -103,6 +121,8 @@ def get_pybullet(env_name: str) -> Tuple[MDPDataset, gym.Env]:
 
     Args:
         env_name: environment id of d4rl-pybullet dataset.
+        create_mask: flag to create binary mask for bootstrapping.
+        mask_size: ensemble size for binary mask.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -112,7 +132,9 @@ def get_pybullet(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         import d4rl_pybullet  # type: ignore
 
         env = gym.make(env_name)
-        dataset = MDPDataset(**env.get_dataset())
+        dataset = MDPDataset(
+            create_mask=create_mask, mask_size=mask_size, **env.get_dataset()
+        )
         return dataset, env
     except ImportError as e:
         raise ImportError(
@@ -121,7 +143,9 @@ def get_pybullet(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         ) from e
 
 
-def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
+def get_atari(
+    env_name: str, create_mask: bool = False, mask_size: int = 1
+) -> Tuple[MDPDataset, gym.Env]:
     """Returns atari dataset and envrironment.
 
     The dataset is provided through d4rl-atari. See more details including
@@ -138,6 +162,8 @@ def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
 
     Args:
         env_name: environment id of d4rl-atari dataset.
+        create_mask: flag to create binary mask for bootstrapping.
+        mask_size: ensemble size for binary mask.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -147,7 +173,12 @@ def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         import d4rl_atari  # type: ignore
 
         env = ChannelFirst(gym.make(env_name))
-        dataset = MDPDataset(discrete_action=True, **env.get_dataset())
+        dataset = MDPDataset(
+            discrete_action=True,
+            create_mask=create_mask,
+            mask_size=mask_size,
+            **env.get_dataset()
+        )
         return dataset, env
     except ImportError as e:
         raise ImportError(
@@ -156,7 +187,9 @@ def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         ) from e
 
 
-def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
+def get_d4rl(
+    env_name: str, create_mask: bool = False, mask_size: int = 1
+) -> Tuple[MDPDataset, gym.Env]:
     """Returns d4rl dataset and envrironment.
 
     The dataset is provided through d4rl.
@@ -174,6 +207,8 @@ def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
 
     Args:
         env_name: environment id of d4rl dataset.
+        create_mask: flag to create binary mask for bootstrapping.
+        mask_size: ensemble size for binary mask.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -201,6 +236,8 @@ def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
             rewards=rewards,
             terminals=terminals,
             episode_terminals=episode_terminals,
+            create_mask=create_mask,
+            mask_size=mask_size,
         )
 
         return mdp_dataset, env
