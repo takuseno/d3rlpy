@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Iterator
 
 import numpy as np
+import structlog
 from typing_extensions import Protocol
 from tensorboardX import SummaryWriter
 
@@ -36,6 +37,7 @@ class D3RLPyLogger:
     _metrics_buffer: Dict[str, List[float]]
     _params: Optional[Dict[str, float]]
     _writer: Optional[SummaryWriter]
+    _logger: structlog.BoundLogger
 
     def __init__(
         self,
@@ -48,6 +50,7 @@ class D3RLPyLogger:
     ):
         self._save_metrics = save_metrics
         self._verbose = verbose
+        self._logger = structlog.get_logger()
 
         # add timestamp to prevent unintentional overwrites
         while True:
@@ -61,6 +64,7 @@ class D3RLPyLogger:
                 self._logdir = os.path.join(root_dir, self._experiment_name)
                 if not os.path.exists(self._logdir):
                     os.makedirs(self._logdir)
+                    self._logger.info(f"Directory is created at {self._logdir}")
                     break
                 if with_timestamp:
                     time.sleep(1.0)
@@ -84,15 +88,19 @@ class D3RLPyLogger:
 
         if self._save_metrics:
             # save dictionary as json file
-            with open(os.path.join(self._logdir, "params.json"), "w") as f:
+            params_path = os.path.join(self._logdir, "params.json")
+            with open(params_path, "w") as f:
                 json_str = json.dumps(
                     params, default=default_json_encoder, indent=2
                 )
                 f.write(json_str)
 
-        if self._verbose:
-            for key, val in params.items():
-                print("{}={}".format(key, val))
+            if self._verbose:
+                self._logger.info(
+                    f"Parameters are saved to {params_path}", params=params
+                )
+        elif self._verbose:
+            self._logger.info("Parameters", params=params)
 
         # remove non-scaler values for HParams
         self._params = {k: v for k, v in params.items() if np.isscalar(v)}
@@ -105,22 +113,26 @@ class D3RLPyLogger:
     def commit(self, epoch: int, step: int) -> None:
         metrics = {}
         for name, buffer in self._metrics_buffer.items():
+
             metric = sum(buffer) / len(buffer)
 
             if self._save_metrics:
-                with open(os.path.join(self._logdir, name + ".csv"), "a") as f:
+                path = os.path.join(self._logdir, f"{name}.csv")
+                with open(path, "a") as f:
                     print("%d,%d,%f" % (epoch, step, metric), file=f)
 
-            if self._verbose:
-                message = "%s epoch=%d step=%d %s=%f"
-                print(
-                    message % (self._experiment_name, epoch, step, name, metric)
-                )
-
-            if self._writer:
-                self._writer.add_scalar("metrics/" + name, metric, epoch)
+                if self._writer:
+                    self._writer.add_scalar(f"metrics/{name}", metric, epoch)
 
             metrics[name] = metric
+
+        if self._verbose:
+            self._logger.info(
+                f"{self._experiment_name}: epoch={epoch} step={step}",
+                epoch=epoch,
+                step=step,
+                **metrics,
+            )
 
         if self._params and self._writer:
             self._writer.add_hparams(
@@ -138,6 +150,7 @@ class D3RLPyLogger:
             # save entire model
             model_path = os.path.join(self._logdir, "model_%d.pt" % epoch)
             algo.save_model(model_path)
+            self._logger.info(f"Model parameters are saved to {model_path}")
 
     @contextmanager
     def measure_time(self, name: str) -> Iterator[None]:
@@ -155,3 +168,9 @@ class D3RLPyLogger:
     @property
     def experiment_name(self) -> str:
         return self._experiment_name
+
+    def info(self, message: str, **kwargs: Any) -> None:
+        self._logger.info(message, **kwargs)
+
+    def warning(self, message: str, **kwargs: Any) -> None:
+        self._logger.warning(message, **kwargs)
