@@ -131,7 +131,7 @@ class D3RLPyLogger:
                 f"{self._experiment_name}: epoch={epoch} step={step}",
                 epoch=epoch,
                 step=step,
-                **metrics,
+                metrics=metrics,
             )
 
         if self._params and self._writer:
