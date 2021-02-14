@@ -223,9 +223,9 @@
 
   dataset, env = get_pybullet('hopper-bullet-mixed-v0')
 
-  cql = CQL(n_epochs=100, use_gpu=True)
+  cql = CQL(use_gpu=True)
 
-  cql.fit(dataset.episodes)
+  cql.fit(dataset.episodes, n_epochs=100)
 
   evaluate_on_environment(env, render=True)(cql)
                 </code>
@@ -259,9 +259,9 @@
 
   dataset, env = get_atari('breakout-mixed-v0')
 
-  cql = DiscreteCQL(n_epochs=100, n_frames=4, scaler='pixel', use_gpu=True)
+  cql = DiscreteCQL(n_frames=4, scaler='pixel', use_gpu=True)
 
-  cql.fit(dataset.episodes)
+  cql.fit(dataset.episodes, n_epochs=100)
 
   evaluate_on_environment(env, render=True)(cql)
                 </code>
@@ -272,6 +272,22 @@
 
         </div>
 
+      </div>
+    </section>
+
+    <section class="section video">
+      <div class="container has-text-centered">
+          <h1 class="title">video</h1>
+          <div class="youtube is-fullwidth">
+            <iframe
+              width="1280"
+              height="720"
+              src="https://www.youtube.com/embed/7YBfFLNK3mQ"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen>
+            </iframe>
+          </div>
       </div>
     </section>
 
