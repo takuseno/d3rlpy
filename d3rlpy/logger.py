@@ -110,7 +110,7 @@ class D3RLPyLogger:
             self._metrics_buffer[name] = []
         self._metrics_buffer[name].append(value)
 
-    def commit(self, epoch: int, step: int) -> dict:
+    def commit(self, epoch: int, step: int) -> Dict[str, float]:
         metrics = {}
         for name, buffer in self._metrics_buffer.items():
 
