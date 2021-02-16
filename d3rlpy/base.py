@@ -389,7 +389,7 @@ class LearnableBase:
         if self._action_scaler:
             logger.debug(
                 "Fitting action scaler...",
-                action_scaler=self._action_scaler.get_type()
+                action_scaler=self._action_scaler.get_type(),
             )
             self._action_scaler.fit(episodes)
 

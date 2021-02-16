@@ -84,7 +84,7 @@ def _setup_algo(
     if algo.action_scaler:
         logger.debug(
             "Fitting action scaler...",
-            action_scler=algo.action_scaler.get_type()
+            action_scler=algo.action_scaler.get_type(),
         )
         algo.action_scaler.fit_with_env(env)
 
