@@ -173,5 +173,8 @@ class D3RLPyLogger:
     def info(self, message: str, **kwargs: Any) -> None:
         self._logger.info(message, **kwargs)
 
+    def debug(self, message: str, **kwargs: Any) -> None:
+        self._logger.debug(message, **kwargs)
+
     def warning(self, message: str, **kwargs: Any) -> None:
         self._logger.warning(message, **kwargs)

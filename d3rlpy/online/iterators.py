@@ -77,19 +77,22 @@ def _setup_algo(
 ) -> None:
     # initialize scaler
     if algo.scaler:
-        logger.info("Fitting scaler...")
+        logger.debug("Fitting scaler...", scler=algo.scaler.get_type())
         algo.scaler.fit_with_env(env)
 
     # initialize action scaler
     if algo.action_scaler:
-        logger.info("Fitting action scaler...")
+        logger.debug(
+            "Fitting action scaler...",
+            action_scler=algo.action_scaler.get_type()
+        )
         algo.action_scaler.fit_with_env(env)
 
     # setup algorithm
     if algo.impl is None:
-        logger.info("Building model...")
+        logger.debug("Building model...")
         algo.build_with_env(env)
-        logger.info("Model has been built.")
+        logger.debug("Model has been built.")
 
 
 def train_single_env(

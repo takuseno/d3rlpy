@@ -382,24 +382,27 @@ class LearnableBase:
 
         # initialize scaler
         if self._scaler:
-            logger.info("Fitting scaler...")
+            logger.debug("Fitting scaler...", scaler=self._scaler.get_type())
             self._scaler.fit(episodes)
 
         # initialize action scaler
         if self._action_scaler:
-            logger.info("Fitting action scaler...")
+            logger.debug(
+                "Fitting action scaler...",
+                action_scaler=self._action_scaler.get_type()
+            )
             self._action_scaler.fit(episodes)
 
         # instantiate implementation
         if self._impl is None:
-            logger.info("Building model...")
+            logger.debug("Building model...")
             transition = iterator.transitions[0]
             action_size = transition.get_action_size()
             observation_shape = tuple(transition.get_observation_shape())
             self.create_impl(
                 self._process_observation_shape(observation_shape), action_size
             )
-            logger.info("Model has been built.")
+            logger.debug("Model has been built.")
 
         # save hyperparameters
         self.save_params(logger)
