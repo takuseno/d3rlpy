@@ -402,11 +402,9 @@ class LearnableBase:
         tensorboard: bool = True,
         eval_episodes: Optional[List[Episode]] = None,
         save_interval: int = 1,
-        scorers: Optional[
-            Dict[str, Callable[[Any, List[Episode]], float]]
-        ] = None,
+        scorers: Optional[Dict[str, Callable[[Any, List[Episode]], float]]] = None,
         shuffle: bool = True,
-    ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
+    ) -> Generator:
         """Iterate over epochs steps to train with the given dataset. At each
              iteration algo methods and properties can be changed or queried.
 
@@ -520,11 +518,7 @@ class LearnableBase:
                 with logger.measure_time("step"):
                     # pick transitions
                     with logger.measure_time("sample_batch"):
-                        # PEP 479
-                        try:
-                            batch = next(iterator)
-                        except (StopIteration, RuntimeError):
-                            break
+                        batch = next(iterator)
 
                     # update parameters
                     with logger.measure_time("algorithm_update"):
