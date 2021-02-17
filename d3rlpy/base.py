@@ -563,6 +563,7 @@ class LearnableBase:
         # drop reference to active logger since out of fit there is no active
         # logger
         self._active_logger = None
+        return None
 
     def create_impl(
         self, observation_shape: Sequence[int], action_size: int
