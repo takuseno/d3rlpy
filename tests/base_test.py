@@ -40,7 +40,7 @@ def base_tester(model, impl, observation_shape, action_size=2):
     for key, val in clone.get_params(deep=False).items():
         assert params[key] is val
 
-    # check fit
+    # check fit and fitter
     update_backup = model.update
     model.update = Mock(return_value=range(len(model.get_loss_labels())))
     n_episodes = 4
@@ -61,7 +61,8 @@ def base_tester(model, impl, observation_shape, action_size=2):
         terminals[(i + 1) * episode_length - 1] = 1.0
     dataset = MDPDataset(observations, actions, rewards, terminals)
 
-    model.fit(
+    # check fit
+    results = model.fit(
         dataset.episodes,
         n_epochs=n_epochs,
         logdir="test_data",
@@ -69,6 +70,37 @@ def base_tester(model, impl, observation_shape, action_size=2):
         show_progress=False,
         tensorboard=False,
     )
+
+    assert isinstance(results, list)
+    assert len(results) == n_epochs
+
+    # check if the correct number of iterations are performed
+    assert len(model.update.call_args_list) == data_size // n_batch * n_epochs
+
+    # check arguments at each iteration
+    for i, call in enumerate(model.update.call_args_list):
+        epoch = i // (data_size // n_batch)
+        total_step = i
+        assert call[0][0] == epoch + 1
+        assert call[0][1] == total_step
+        assert isinstance(call[0][2], TransitionMiniBatch)
+        assert len(call[0][2]) == n_batch
+
+    # check fitter
+    fitter = model.fitter(
+        dataset.episodes,
+        n_epochs=n_epochs,
+        logdir="test_data",
+        verbose=False,
+        show_progress=False,
+        tensorboard=False,
+    )
+
+    for epoch, metrics in fitter:
+        assert isinstance(epoch, int)
+        assert isinstance(metrics, dict)
+
+    assert epoch == n_epochs
 
     # check if the correct number of iterations are performed
     assert len(model.update.call_args_list) == data_size // n_batch * n_epochs
