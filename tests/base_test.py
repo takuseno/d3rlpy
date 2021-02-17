@@ -102,18 +102,6 @@ def base_tester(model, impl, observation_shape, action_size=2):
 
     assert epoch == n_epochs
 
-    # check if the correct number of iterations are performed
-    assert len(model.update.call_args_list) == data_size // n_batch * n_epochs
-
-    # check arguments at each iteration
-    for i, call in enumerate(model.update.call_args_list):
-        epoch = i // (data_size // n_batch)
-        total_step = i
-        assert call[0][0] == epoch + 1
-        assert call[0][1] == total_step
-        assert isinstance(call[0][2], TransitionMiniBatch)
-        assert len(call[0][2]) == n_batch
-
     # save params.json
     logger = D3RLPyLogger(
         "test", root_dir="test_data", verbose=False, tensorboard=False
