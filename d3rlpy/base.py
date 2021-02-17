@@ -402,9 +402,11 @@ class LearnableBase:
         tensorboard: bool = True,
         eval_episodes: Optional[List[Episode]] = None,
         save_interval: int = 1,
-        scorers: Optional[Dict[str, Callable[[Any, List[Episode]], float]]] = None,
+        scorers: Optional[
+            Dict[str, Callable[[Any, List[Episode]], float]]
+        ] = None,
         shuffle: bool = True,
-    ) -> Generator:
+    ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
         """Iterate over epochs steps to train with the given dataset. At each
              iteration algo methods and properties can be changed or queried.
 
@@ -556,12 +558,12 @@ class LearnableBase:
             if epoch % save_interval == 0:
                 logger.save_model(epoch, self)
 
-            metrics["epoch"] = epoch
-            yield metrics
+            yield epoch, metrics
 
         # drop reference to active logger since out of fit there is no active
         # logger
         self._active_logger = None
+        return
 
     def create_impl(
         self, observation_shape: Sequence[int], action_size: int
