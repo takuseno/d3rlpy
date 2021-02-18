@@ -520,7 +520,11 @@ class LearnableBase:
                 with logger.measure_time("step"):
                     # pick transitions
                     with logger.measure_time("sample_batch"):
-                        batch = next(iterator)
+                        # PEP 479
+                        try:
+                            batch = next(iterator)
+                        except (StopIteration, RuntimeError):
+                            break
 
                     # update parameters
                     with logger.measure_time("algorithm_update"):
@@ -563,7 +567,6 @@ class LearnableBase:
         # drop reference to active logger since out of fit there is no active
         # logger
         self._active_logger = None
-        return None
 
     def create_impl(
         self, observation_shape: Sequence[int], action_size: int
