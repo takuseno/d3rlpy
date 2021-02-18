@@ -34,7 +34,7 @@ def test_ddpg(
 def test_ddpg_performance(q_func_factory):
     # not good enough for batch RL, but check if it works without errors.
     try:
-        ddpg = DDPG(q_func_type=q_func_factory)
+        ddpg = DDPG(q_func_factory=q_func_factory)
         algo_pendulum_tester(ddpg, n_trials=1)
     except AssertionError:
         pass

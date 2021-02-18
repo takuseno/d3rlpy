@@ -506,7 +506,7 @@ def test_discrete_mean_q_function(feature_size, action_size, batch_size, gamma):
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("ensemble_size", [5])
-@pytest.mark.parametrize("q_func_type", ["mean", "qr", "iqn", "fqf"])
+@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("embed_size", [64])
 @pytest.mark.parametrize("bootstrap", [False, True])
@@ -517,7 +517,7 @@ def test_ensemble_discrete_q_function(
     batch_size,
     gamma,
     ensemble_size,
-    q_func_type,
+    q_func_factory,
     n_quantiles,
     embed_size,
     bootstrap,
@@ -526,15 +526,15 @@ def test_ensemble_discrete_q_function(
     q_funcs = []
     for _ in range(ensemble_size):
         encoder = DummyEncoder(feature_size)
-        if q_func_type == "mean":
+        if q_func_factory == "mean":
             q_func = DiscreteMeanQFunction(encoder, action_size)
-        elif q_func_type == "qr":
+        elif q_func_factory == "qr":
             q_func = DiscreteQRQFunction(encoder, action_size, n_quantiles)
-        elif q_func_type == "iqn":
+        elif q_func_factory == "iqn":
             q_func = DiscreteIQNQFunction(
                 encoder, action_size, n_quantiles, n_quantiles, embed_size
             )
-        elif q_func_type == "fqf":
+        elif q_func_factory == "fqf":
             q_func = DiscreteFQFQFunction(
                 encoder, action_size, n_quantiles, embed_size
             )
@@ -549,7 +549,7 @@ def test_ensemble_discrete_q_function(
     # check compute_target
     action = torch.randint(high=action_size, size=(batch_size,))
     target = q_func.compute_target(x, action)
-    if q_func_type == "mean":
+    if q_func_factory == "mean":
         assert target.shape == (batch_size, 1)
         min_values = values.min(dim=0).values
         assert torch.allclose(
@@ -560,13 +560,13 @@ def test_ensemble_discrete_q_function(
 
     # check compute_target with action=None
     targets = q_func.compute_target(x)
-    if q_func_type == "mean":
+    if q_func_factory == "mean":
         assert targets.shape == (batch_size, action_size)
     else:
         assert targets.shape == (batch_size, action_size, n_quantiles)
 
     # check reductions
-    if q_func_type != "iqn":
+    if q_func_factory != "iqn":
         assert torch.allclose(values.min(dim=0).values, q_func(x, "min"))
         assert torch.allclose(values.max(dim=0).values, q_func(x, "max"))
         assert torch.allclose(values.mean(dim=0), q_func(x, "mean"))
@@ -578,7 +578,7 @@ def test_ensemble_discrete_q_function(
     )
     rew_tp1 = torch.rand(batch_size, 1)
     ter_tp1 = torch.randint(2, size=(batch_size, 1))
-    if q_func_type == "mean":
+    if q_func_factory == "mean":
         if use_independent_target:
             q_tp1 = torch.rand(ensemble_size, batch_size, 1)
         else:
@@ -603,7 +603,7 @@ def test_ensemble_discrete_q_function(
     )
     if bootstrap:
         assert not torch.allclose(ref_td_sum, loss)
-    elif q_func_type != "iqn":
+    elif q_func_factory != "iqn":
         assert torch.allclose(ref_td_sum, loss)
 
     # with mask
@@ -675,7 +675,7 @@ def test_continuous_mean_q_function(
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("ensemble_size", [5])
 @pytest.mark.parametrize("n_quantiles", [200])
-@pytest.mark.parametrize("q_func_type", ["mean", "qr", "iqn", "fqf"])
+@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("embed_size", [64])
 @pytest.mark.parametrize("bootstrap", [False, True])
 @pytest.mark.parametrize("use_independent_target", [False, True])
@@ -685,7 +685,7 @@ def test_ensemble_continuous_q_function(
     batch_size,
     gamma,
     ensemble_size,
-    q_func_type,
+    q_func_factory,
     n_quantiles,
     embed_size,
     bootstrap,
@@ -694,15 +694,15 @@ def test_ensemble_continuous_q_function(
     q_funcs = []
     for _ in range(ensemble_size):
         encoder = DummyEncoder(feature_size, action_size, concat=True)
-        if q_func_type == "mean":
+        if q_func_factory == "mean":
             q_func = ContinuousMeanQFunction(encoder)
-        elif q_func_type == "qr":
+        elif q_func_factory == "qr":
             q_func = ContinuousQRQFunction(encoder, n_quantiles)
-        elif q_func_type == "iqn":
+        elif q_func_factory == "iqn":
             q_func = ContinuousIQNQFunction(
                 encoder, n_quantiles, n_quantiles, embed_size
             )
-        elif q_func_type == "fqf":
+        elif q_func_factory == "fqf":
             q_func = ContinuousFQFQFunction(encoder, n_quantiles, embed_size)
         q_funcs.append(q_func)
 
@@ -716,7 +716,7 @@ def test_ensemble_continuous_q_function(
 
     # check compute_target
     target = q_func.compute_target(x, action)
-    if q_func_type == "mean":
+    if q_func_factory == "mean":
         assert target.shape == (batch_size, 1)
         min_values = values.min(dim=0).values
         assert (target == min_values).all()
@@ -724,7 +724,7 @@ def test_ensemble_continuous_q_function(
         assert target.shape == (batch_size, n_quantiles)
 
     # check reductions
-    if q_func_type != "iqn":
+    if q_func_factory != "iqn":
         assert torch.allclose(values.min(dim=0)[0], q_func(x, action, "min"))
         assert torch.allclose(values.max(dim=0)[0], q_func(x, action, "max"))
         assert torch.allclose(values.mean(dim=0), q_func(x, action, "mean"))
@@ -734,7 +734,7 @@ def test_ensemble_continuous_q_function(
     act_t = torch.rand(batch_size, action_size)
     rew_tp1 = torch.rand(batch_size, 1)
     ter_tp1 = torch.randint(2, size=(batch_size, 1))
-    if q_func_type == "mean":
+    if q_func_factory == "mean":
         if use_independent_target:
             q_tp1 = torch.rand(ensemble_size, batch_size, 1)
         else:
@@ -759,7 +759,7 @@ def test_ensemble_continuous_q_function(
     )
     if bootstrap:
         assert not torch.allclose(ref_td_sum, loss)
-    elif q_func_type != "iqn":
+    elif q_func_factory != "iqn":
         assert torch.allclose(ref_td_sum, loss)
 
     # with mask
