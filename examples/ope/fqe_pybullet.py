@@ -1,10 +1,10 @@
+from sklearn.model_selection import train_test_split
 from d3rlpy.datasets import get_pybullet
 from d3rlpy.algos import CQL
-from d3rlpy.metrics.ope import FQE
+from d3rlpy.ope import FQE
 from d3rlpy.metrics.scorer import evaluate_on_environment
 from d3rlpy.metrics.scorer import initial_state_value_estimation_scorer
 from d3rlpy.metrics.scorer import soft_opc_scorer
-from sklearn.model_selection import train_test_split
 
 dataset, env = get_pybullet('hopper-bullet-mixed-v0')
 
@@ -27,7 +27,7 @@ cql.fit(train_episodes,
 # evaluate the trained policy
 fqe = FQE(algo=cql,
           n_epochs=200,
-          q_func_type='qr',
+          q_func_factory='qr',
           learning_rate=1e-4,
           use_gpu=True,
           encoder_params={'hidden_units': [1024, 1024, 1024, 1024]})
