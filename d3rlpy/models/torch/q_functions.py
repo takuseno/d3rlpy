@@ -921,6 +921,13 @@ class EnsembleQFunction(nn.Module):  # type: ignore
             assert q_tp1.ndim == 3
         else:
             assert q_tp1.ndim == 2
+
+        if self._bootstrap and masks is not None:
+            assert masks.shape == (len(self._q_funcs), obs_t.shape[0], 1,), (
+                "Invalid mask shape is detected. "
+                f"mask_size must be {len(self._q_funcs)}."
+            )
+
         td_sum = torch.tensor(0.0, dtype=torch.float32, device=obs_t.device)
         for i, q_func in enumerate(self._q_funcs):
             if use_independent_target:
