@@ -6,6 +6,7 @@ from .bc import BC, DiscreteBC
 from .bcq import BCQ, DiscreteBCQ
 from .bear import BEAR
 from .cql import CQL, DiscreteCQL
+from .crr import CRR
 from .ddpg import DDPG
 from .dqn import DQN, DoubleDQN
 from .plas import PLAS, PLASWithPerturbation
@@ -25,6 +26,7 @@ __all__ = [
     "BEAR",
     "CQL",
     "DiscreteCQL",
+    "CRR",
     "DDPG",
     "DQN",
     "DoubleDQN",
@@ -56,6 +58,7 @@ CONTINUOUS_ALGORITHMS: Dict[str, Type[AlgoBase]] = {
     "bcq": BCQ,
     "bear": BEAR,
     "cql": CQL,
+    "crr": CRR,
     "ddpg": DDPG,
     "sac": SAC,
     "plas": PLASWithPerturbation,
