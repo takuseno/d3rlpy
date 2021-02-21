@@ -154,14 +154,18 @@ class NormalPolicy(Policy):
         else:
             self._logstd = nn.Linear(encoder.get_feature_size(), action_size)
 
-    def dist(self, x: torch.Tensor) -> Normal:
-        h = self._encoder(x)
-        mu = self._mu(h)
+    def _compute_logstd(self, h: torch.Tensor) -> torch.Tensor:
         if self._use_std_parameter:
             clipped_logstd = self.get_logstd_parameter()
         else:
             logstd = cast(nn.Linear, self._logstd)(h)
             clipped_logstd = logstd.clamp(self._min_logstd, self._max_logstd)
+        return clipped_logstd
+
+    def dist(self, x: torch.Tensor) -> Normal:
+        h = self._encoder(x)
+        mu = self._mu(h)
+        clipped_logstd = self._compute_logstd(h)
         return Normal(mu, clipped_logstd.exp())
 
     def forward(
@@ -206,6 +210,21 @@ class NormalPolicy(Policy):
         log_prob = log_prob_T.transpose(0, 1)
 
         return squashed_action, log_prob
+
+    def onnx_safe_sample_n(self, x: torch.Tensor, n: int) -> torch.Tensor:
+        h = self._encoder(x)
+        mean = self._mu(h)
+        std = self._compute_logstd(h).exp()
+
+        # expand shape
+        # (batch_size, action_size) -> (batch_size, N, action_size)
+        expanded_mean = mean.view(-1, 1, self._action_size).repeat((1, n, 1))
+        expanded_std = std.view(-1, 1, self._action_size).repeat((1, n, 1))
+
+        # sample noise from Gaussian distribution
+        noise = torch.randn(x.shape[0], n, self._action_size)
+
+        return expanded_mean + noise * expanded_std
 
     def best_action(self, x: torch.Tensor) -> torch.Tensor:
         action = self.forward(x, deterministic=True, with_log_prob=False)

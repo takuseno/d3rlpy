@@ -3,6 +3,7 @@
 from typing import Optional, Sequence
 
 import torch
+import torch.nn.functional as F
 import numpy as np
 
 from ...augmentation import AugmentationPipeline
@@ -194,6 +195,37 @@ class CRRImpl(DDPGBaseImpl):
                 action.clamp(-1.0, 1.0),
                 reduction=self._target_reduction_type,
             )
+
+    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+        assert self._policy is not None
+        assert self._q_func is not None
+
+        # compute CWP
+
+        actions = self._policy.onnx_safe_sample_n(x, self._n_action_samples)
+        # (batch_size, N, action_size) -> (batch_size * N, action_size)
+        flat_actions = actions.reshape(-1, self._action_size)
+
+        # repeat observation
+        # (batch_size, obs_size) -> (batch_size, 1, obs_size)
+        reshaped_obs_t = x.view(x.shape[0], 1, *x.shape[1:])
+        # (batch_size, 1, obs_size) -> (batch_size, N, obs_size)
+        repeated_obs_t = reshaped_obs_t.expand(
+            x.shape[0], self._n_action_samples, *x.shape[1:]
+        )
+        # (batch_size, N, obs_size) -> (batch_size * N, obs_size)
+        flat_obs_t = repeated_obs_t.reshape(-1, *x.shape[1:])
+
+        # (batch_size * N, 1)
+        flat_values = self._q_func(flat_obs_t, flat_actions)
+        # (batch_size * N, 1) -> (batch_size, N)
+        reshaped_values = flat_values.view(x.shape[0], -1)
+
+        # re-sampling
+        probs = F.softmax(reshaped_values, dim=1)
+        indices = torch.multinomial(probs, 1, replacement=True)
+
+        return actions[torch.arange(x.shape[0]), indices.view(-1)]
 
     def update_critic_target(self) -> None:
         assert self._targ_q_func is not None

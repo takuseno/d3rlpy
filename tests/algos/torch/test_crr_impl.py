@@ -81,6 +81,4 @@ def test_crr_impl(
         action_scaler=action_scaler,
         augmentation=augmentation,
     )
-    torch_impl_tester(
-        impl, discrete=False, deterministic_best_action=q_func_factory != "iqn"
-    )
+    torch_impl_tester(impl, discrete=False, deterministic_best_action=False)

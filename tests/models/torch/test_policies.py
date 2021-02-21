@@ -95,6 +95,10 @@ def test_normal_policy(
     assert y_n.shape == (batch_size, n, action_size)
     assert log_prob_n.shape == (batch_size, n, 1)
 
+    # check onnx_safe_sample_n
+    y_n = policy.onnx_safe_sample_n(x, n)
+    assert y_n.shape == (batch_size, n, action_size)
+
     # check layer connection
     check_parameter_updates(policy, (x,))
 
