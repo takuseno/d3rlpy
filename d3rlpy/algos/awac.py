@@ -79,7 +79,7 @@ class AWAC(AlgoBase):
             augmentation pipeline.
         generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
             (e.g. model-based RL).
-        impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.awac_impl.AWACImpl): algorithm implementation.
 
     """
 

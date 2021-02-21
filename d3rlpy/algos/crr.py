@@ -16,6 +16,98 @@ from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class CRR(AlgoBase):
+    r"""Critic Reguralized Regression algorithm.
+
+    CRR is a simple offline RL method similar to AWAC.
+
+    The policy is trained as a supervised regression.
+
+    .. math::
+
+        J(\phi) = \mathbb{E}_{s_t, a_t \sim D}
+            [\log \pi_\phi(a_t|s_t) f(Q_\theta, \pi_\phi, s_t, a_t)]
+
+    where :math:`f` is a filter function which has several options. The first
+    option is ``binary`` function.
+
+    .. math::
+
+        f := \mathbb{1} [A_\theta(s, a) > 0]
+
+    The other is ``exp`` function.
+
+    .. math::
+
+        f := \exp(A(s, a) / \beta)
+
+    The :math:`A(s, a)` is an average function which also has several options.
+    The first option is ``mean``.
+
+    .. math::
+
+        A(s, a) = Q_\theta (s, a) - \frac{1}{m} \sum^m_j Q(s, a_j)
+
+    The other one is ``max``.
+
+    .. math::
+
+        A(s, a) = Q_\theta (s, a) - \max^m_j Q(s, a_j)
+
+    where :math:`a_j \sim \pi_\phi(s)`.
+
+    In evaluation, the action is determined by Critic Weighted Policy (CWP).
+    In CWP, the several actions are sampled from the policy function, and the
+    final action is re-sampled from the estimated action-value distribution.
+
+    References:
+        * `Wang et al., Critic Reguralized Regression.
+          <https://arxiv.org/abs/2006.15134>`_
+
+    Args:
+        actor_learning_rate (float): learning rate for policy function.
+        critic_learning_rate (float): learning rate for Q functions.
+        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+            encoder factory for the actor.
+        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+            encoder factory for the critic.
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
+            Q function factory.
+        batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
+        gamma (float): discount factor.
+        beta (float): temperature value defined as :math:`\beta` above.
+        n_action_samples (int): the number of sampled actions to calculate
+            :math:`A(s, a)` and for CWP.
+        advantage_type (str): advantage function type. The available options
+            are ``['mean', 'max']``.
+        weight_type (str): filter function type. The available options
+            are ``['binary', 'exp']``.
+        max_weight (float): maximum weight for cross-entropy loss.
+        n_critics (int): the number of Q functions for ensemble.
+        bootstrap (bool): flag to bootstrap Q functions.
+        share_encoder (bool): flag to share encoder network.
+        target_reduction_type (str): ensemble reduction method at target value
+            estimation. The available options are
+            ``['min', 'max', 'mean', 'mix', 'none']``.
+        update_actor_interval (int): interval to update policy function.
+        use_gpu (bool, int or d3rlpy.gpu.Device):
+            flag to use GPU, device ID or device.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+            The available options are `['pixel', 'min_max', 'standard']`
+        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
+            action preprocessor. The available options are ``['min_max']``.
+        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
+            augmentation pipeline.
+        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
+            (e.g. model-based RL).
+        impl (d3rlpy.algos.torch.crr_impl.CRRImpl): algorithm implementation.
+
+    """
 
     _actor_learning_rate: float
     _critic_learning_rate: float
