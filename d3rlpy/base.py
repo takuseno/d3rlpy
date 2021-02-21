@@ -367,7 +367,7 @@ class LearnableBase:
             shuffle: flag to shuffle transitions on each epoch.
 
         Returns:
-            results: list of result tuples (epoch, metrics) per epoch.
+            list of result tuples (epoch, metrics) per epoch.
 
         """
         results = list(
@@ -437,7 +437,7 @@ class LearnableBase:
             shuffle: flag to shuffle transitions on each epoch.
 
         Returns:
-            epoch, metrics: iterator yielding current epoch and metrics dict.
+            iterator yielding current epoch and metrics dict.
 
         """
 
@@ -520,11 +520,7 @@ class LearnableBase:
                 with logger.measure_time("step"):
                     # pick transitions
                     with logger.measure_time("sample_batch"):
-                        # PEP 479
-                        try:
-                            batch = next(iterator)
-                        except (StopIteration, RuntimeError):
-                            break
+                        batch = next(iterator)
 
                     # update parameters
                     with logger.measure_time("algorithm_update"):
