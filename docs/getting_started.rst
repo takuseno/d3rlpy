@@ -141,7 +141,7 @@ Then, you will see training progress in the console like below::
   n_augmentations=1
   n_critics=1
   n_frames=1
-  q_func_type=mean
+  q_func_factory=mean
   scaler=None
   share_encoder=False
   target_update_interval=8000.0

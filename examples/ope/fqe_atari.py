@@ -1,10 +1,10 @@
+from sklearn.model_selection import train_test_split
 from d3rlpy.datasets import get_atari
 from d3rlpy.algos import DiscreteCQL
-from d3rlpy.metrics.ope import DiscreteFQE
+from d3rlpy.ope import DiscreteFQE
 from d3rlpy.metrics.scorer import evaluate_on_environment
 from d3rlpy.metrics.scorer import initial_state_value_estimation_scorer
 from d3rlpy.metrics.scorer import soft_opc_scorer
-from sklearn.model_selection import train_test_split
 
 dataset, env = get_atari('breakout-expert-v0')
 
@@ -13,7 +13,7 @@ train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 # train algorithm
 cql = DiscreteCQL(n_epochs=100,
                   scaler='pixel',
-                  q_func_type='qr',
+                  q_func_factory='qr',
                   n_frames=4,
                   use_gpu=True)
 cql.fit(train_episodes,
@@ -31,7 +31,7 @@ cql.fit(train_episodes,
 # evaluate the trained policy
 fqe = DiscreteFQE(algo=cql,
                   n_epochs=100,
-                  q_func_type='qr',
+                  q_func_factory='qr',
                   learning_rate=1e-4,
                   scaler='pixel',
                   n_frames=4,
