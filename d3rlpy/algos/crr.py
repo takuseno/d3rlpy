@@ -58,7 +58,7 @@ class CRR(AlgoBase):
         advantage_type: str = "mean",
         weight_type: str = "exp",
         max_weight: float = 20.0,
-        n_critics: int = 2,
+        n_critics: int = 1,
         bootstrap: bool = False,
         share_encoder: bool = False,
         target_update_interval: int = 100,
