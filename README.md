@@ -108,6 +108,8 @@ Basically, all features are available with every algorithm.
 
 ## examples
 ### MuJoCo
+<p align="center"><img align="center" width="160px" src="assets/mujoco_hopper.gif"></p>
+
 ```py
 import d3rlpy
 
@@ -133,7 +135,7 @@ See more datasets at [d4rl](https://github.com/rail-berkeley/d4rl).
 <p align="center"><img align="center" width="160px" src="assets/breakout.gif"></p>
 
 ```py
-from d3rlpy.datasets import get_atari
+import d3rlpy
 from sklearn.model_selection import train_test_split
 
 # prepare dataset
