@@ -224,7 +224,7 @@ class NormalPolicy(Policy):
         # sample noise from Gaussian distribution
         noise = torch.randn(x.shape[0], n, self._action_size)
 
-        return expanded_mean + noise * expanded_std
+        return torch.tanh(expanded_mean + noise * expanded_std)
 
     def best_action(self, x: torch.Tensor) -> torch.Tensor:
         action = self.forward(x, deterministic=True, with_log_prob=False)
