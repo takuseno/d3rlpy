@@ -212,6 +212,12 @@ Try a cartpole example on Google Colaboratory!
 Any kind of contribution to d3rlpy would be highly appreciated!
 Please check the [contribution guide](CONTRIBUTING.md).
 
+## community
+| Channel | Link |
+|:-|:-|
+| Chat | [Gitter](https://gitter.im/d3rlpy/d3rlpy) |
+| Issues/Discussion | [GitHub Issues](https://github.com/takuseno/d3rlpy/issues) |
+
 ## citation
 ```
 @misc{seno2020d3rlpy,
