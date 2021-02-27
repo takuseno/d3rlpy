@@ -1,7 +1,17 @@
 import copy
 import json
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, DefaultDict, Dict, List, Optional, Sequence
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+)
 from collections import defaultdict
 
 import numpy as np
@@ -329,7 +339,7 @@ class LearnableBase:
             Dict[str, Callable[[Any, List[Episode]], float]]
         ] = None,
         shuffle: bool = True,
-    ) -> None:
+    ) -> List[Tuple[int, Dict[str, float]]]:
         """Trains with the given dataset.
 
         .. code-block:: python
@@ -355,6 +365,79 @@ class LearnableBase:
             save_interval: interval to save parameters.
             scorers: list of scorer functions used with `eval_episodes`.
             shuffle: flag to shuffle transitions on each epoch.
+
+        Returns:
+            list of result tuples (epoch, metrics) per epoch.
+
+        """
+        results = list(
+            self.fitter(
+                episodes,
+                n_epochs,
+                save_metrics,
+                experiment_name,
+                with_timestamp,
+                logdir,
+                verbose,
+                show_progress,
+                tensorboard,
+                eval_episodes,
+                save_interval,
+                scorers,
+                shuffle,
+            )
+        )
+        return results
+
+    def fitter(
+        self,
+        episodes: List[Episode],
+        n_epochs: int = 1000,
+        save_metrics: bool = True,
+        experiment_name: Optional[str] = None,
+        with_timestamp: bool = True,
+        logdir: str = "d3rlpy_logs",
+        verbose: bool = True,
+        show_progress: bool = True,
+        tensorboard: bool = True,
+        eval_episodes: Optional[List[Episode]] = None,
+        save_interval: int = 1,
+        scorers: Optional[
+            Dict[str, Callable[[Any, List[Episode]], float]]
+        ] = None,
+        shuffle: bool = True,
+    ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
+        """Iterate over epochs steps to train with the given dataset. At each
+             iteration algo methods and properties can be changed or queried.
+
+        .. code-block:: python
+
+            for epoch, metrics in algo.fitter(episodes):
+                my_plot(metrics)
+                algo.save_model(my_path)
+
+        Args:
+            episodes: list of episodes to train.
+            n_epochs: the number of epochs to train.
+            save_metrics: flag to record metrics in files. If False,
+                the log directory is not created and the model parameters are
+                not saved during training.
+            experiment_name: experiment name for logging. If not passed,
+                the directory name will be `{class name}_{timestamp}`.
+            with_timestamp: flag to add timestamp string to the last of
+                directory name.
+            logdir: root directory name to save logs.
+            verbose: flag to show logged information on stdout.
+            show_progress: flag to show progress bar for iterations.
+            tensorboard: flag to save logged information in tensorboard
+                (additional to the csv data)
+            eval_episodes: list of episodes to test.
+            save_interval: interval to save parameters.
+            scorers: list of scorer functions used with `eval_episodes`.
+            shuffle: flag to shuffle transitions on each epoch.
+
+        Returns:
+            iterator yielding current epoch and metrics dict.
 
         """
 
@@ -469,11 +552,13 @@ class LearnableBase:
                 self._evaluate(eval_episodes, scorers, logger)
 
             # save metrics
-            logger.commit(epoch, total_step)
+            metrics = logger.commit(epoch, total_step)
 
             # save model parameters
             if epoch % save_interval == 0:
                 logger.save_model(epoch, self)
+
+            yield epoch, metrics
 
         # drop reference to active logger since out of fit there is no active
         # logger
