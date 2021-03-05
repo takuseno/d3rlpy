@@ -65,7 +65,7 @@ def stats(path: str) -> None:
 @click.option("--xlim", nargs=2, type=float, help="limit on x-axis (tuple).")
 @click.option("--ylim", nargs=2, type=float, help="limit on y-axis (tuple).")
 @click.option("--title", help="title of the plot.")
-@click.option("--ylabel", default='value', help="label on y-axis.")
+@click.option("--ylabel", default="value", help="label on y-axis.")
 def plot(
     path: List[str],
     window: int,
