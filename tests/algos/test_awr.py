@@ -15,6 +15,8 @@ def test_awr(observation_shape, action_size, scaler, action_scaler):
     awr = AWR(
         batch_size=100,
         batch_size_per_update=20,
+        n_actor_updates=5,
+        n_critic_updates=5,
         scaler=scaler,
         action_scaler=action_scaler,
     )
@@ -32,7 +34,13 @@ def test_awr_performance():
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("scaler", [None, "min_max"])
 def test_discrete_awr(observation_shape, action_size, scaler):
-    awr = DiscreteAWR(batch_size=100, batch_size_per_update=20, scaler=scaler)
+    awr = DiscreteAWR(
+        batch_size=100,
+        batch_size_per_update=20,
+        n_actor_updates=5,
+        n_critic_updates=5,
+        scaler=scaler,
+    )
     algo_tester(awr, observation_shape, state_value=True)
     algo_update_tester(awr, observation_shape, action_size, True)
 
