@@ -7,13 +7,13 @@ import numpy as np
 from torch.optim import Optimizer
 
 from ...models.torch import (
-    NormalPolicy,
+    SquashedNormalPolicy,
     CategoricalPolicy,
     EnsembleDiscreteQFunction,
     Parameter,
 )
 from ...models.builders import (
-    create_normal_policy,
+    create_squashed_normal_policy,
     create_categorical_policy,
     create_discrete_q_function,
     create_parameter,
@@ -37,8 +37,8 @@ from .base import TorchImplBase
 
 class SACImpl(DDPGBaseImpl):
 
-    _policy: Optional[NormalPolicy]
-    _targ_policy: Optional[NormalPolicy]
+    _policy: Optional[SquashedNormalPolicy]
+    _targ_policy: Optional[SquashedNormalPolicy]
     _temp_learning_rate: float
     _temp_optim_factory: OptimizerFactory
     _initial_temperature: float
@@ -101,7 +101,7 @@ class SACImpl(DDPGBaseImpl):
         self._build_temperature_optim()
 
     def _build_actor(self) -> None:
-        self._policy = create_normal_policy(
+        self._policy = create_squashed_normal_policy(
             self._observation_shape,
             self._action_size,
             self._actor_encoder_factory,

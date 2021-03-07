@@ -7,7 +7,7 @@ from torch.optim import Optimizer
 
 from ...models.torch import (
     Policy,
-    NormalPolicy,
+    SquashedNormalPolicy,
     CategoricalPolicy,
     ValueFunction,
     squash_action,
@@ -16,7 +16,7 @@ from ...models.optimizers import OptimizerFactory
 from ...models.encoders import EncoderFactory
 from ...models.builders import (
     create_value_function,
-    create_normal_policy,
+    create_squashed_normal_policy,
     create_categorical_policy,
 )
 from ...gpu import Device
@@ -187,10 +187,10 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
 
 class AWRImpl(AWRBaseImpl):
 
-    _policy: Optional[NormalPolicy]
+    _policy: Optional[SquashedNormalPolicy]
 
     def _build_actor(self) -> None:
-        self._policy = create_normal_policy(
+        self._policy = create_squashed_normal_policy(
             self._observation_shape,
             self._action_size,
             self._actor_encoder_factory,

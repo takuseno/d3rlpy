@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from .torch import EnsembleDiscreteQFunction, EnsembleContinuousQFunction
 from .torch import DeterministicPolicy, DeterministicResidualPolicy
-from .torch import NormalPolicy, CategoricalPolicy
+from .torch import SquashedNormalPolicy, CategoricalPolicy
 from .torch import ConditionalVAE, DiscreteImitator
 from .torch import DeterministicRegressor, ProbablisticRegressor
 from .torch import ValueFunction
@@ -84,16 +84,16 @@ def create_deterministic_residual_policy(
     return DeterministicResidualPolicy(encoder, scale)
 
 
-def create_normal_policy(
+def create_squashed_normal_policy(
     observation_shape: Sequence[int],
     action_size: int,
     encoder_factory: EncoderFactory,
     min_logstd: float = -20.0,
     max_logstd: float = 2.0,
     use_std_parameter: bool = False,
-) -> NormalPolicy:
+) -> SquashedNormalPolicy:
     encoder = encoder_factory.create(observation_shape)
-    return NormalPolicy(
+    return SquashedNormalPolicy(
         encoder,
         action_size,
         min_logstd=min_logstd,

@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 
 from ...models.torch import squash_action
-from ...models.builders import create_normal_policy
+from ...models.builders import create_squashed_normal_policy
 from ...models.optimizers import OptimizerFactory, AdamFactory
 from ...models.encoders import EncoderFactory
 from ...models.q_functions import QFunctionFactory
@@ -74,7 +74,7 @@ class AWACImpl(SACImpl):
         self._max_weight = max_weight
 
     def _build_actor(self) -> None:
-        self._policy = create_normal_policy(
+        self._policy = create_squashed_normal_policy(
             self._observation_shape,
             self._action_size,
             self._actor_encoder_factory,

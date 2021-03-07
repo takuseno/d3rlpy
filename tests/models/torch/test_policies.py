@@ -5,7 +5,7 @@ import copy
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.policies import DeterministicPolicy
 from d3rlpy.models.torch.policies import DeterministicResidualPolicy
-from d3rlpy.models.torch.policies import NormalPolicy
+from d3rlpy.models.torch.policies import SquashedNormalPolicy
 from d3rlpy.models.torch.policies import CategoricalPolicy
 from .model_test import check_parameter_updates, DummyEncoder
 
@@ -65,7 +65,7 @@ def test_deterministic_residual_policy(
 @pytest.mark.parametrize("max_logstd", [2.0])
 @pytest.mark.parametrize("use_std_parameter", [True, False])
 @pytest.mark.parametrize("n", [10])
-def test_normal_policy(
+def test_squashed_normal_policy(
     feature_size,
     action_size,
     batch_size,
@@ -75,7 +75,7 @@ def test_normal_policy(
     n,
 ):
     encoder = DummyEncoder(feature_size)
-    policy = NormalPolicy(
+    policy = SquashedNormalPolicy(
         encoder, action_size, min_logstd, max_logstd, use_std_parameter
     )
 

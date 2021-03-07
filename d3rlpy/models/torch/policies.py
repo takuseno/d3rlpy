@@ -123,7 +123,7 @@ class DeterministicResidualPolicy(Policy):
         )
 
 
-class NormalPolicy(Policy):
+class SquashedNormalPolicy(Policy):
 
     _encoder: Encoder
     _action_size: int

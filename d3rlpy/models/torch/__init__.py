@@ -3,7 +3,7 @@ from .encoders import PixelEncoder, PixelEncoderWithAction
 from .encoders import VectorEncoder, VectorEncoderWithAction
 from .policies import Policy, squash_action
 from .policies import DeterministicPolicy, DeterministicResidualPolicy
-from .policies import NormalPolicy, CategoricalPolicy
+from .policies import SquashedNormalPolicy, CategoricalPolicy
 from .q_functions import DiscreteQFunction, ContinuousQFunction
 from .q_functions import DiscreteMeanQFunction, ContinuousMeanQFunction
 from .q_functions import DiscreteQRQFunction, ContinuousQRQFunction
@@ -31,7 +31,7 @@ __all__ = [
     "squash_action",
     "DeterministicPolicy",
     "DeterministicResidualPolicy",
-    "NormalPolicy",
+    "SquashedNormalPolicy",
     "CategoricalPolicy",
     "DiscreteQFunction",
     "ContinuousQFunction",

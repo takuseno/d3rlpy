@@ -7,8 +7,8 @@ import torch.nn.functional as F
 import numpy as np
 
 from ...augmentation import AugmentationPipeline
-from ...models.torch import NormalPolicy, squash_action
-from ...models.builders import create_normal_policy
+from ...models.torch import SquashedNormalPolicy, squash_action
+from ...models.builders import create_squashed_normal_policy
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
@@ -30,8 +30,8 @@ class CRRImpl(DDPGBaseImpl):
     _advantage_type: str
     _weight_type: str
     _max_weight: float
-    _policy: Optional[NormalPolicy]
-    _targ_policy: Optional[NormalPolicy]
+    _policy: Optional[SquashedNormalPolicy]
+    _targ_policy: Optional[SquashedNormalPolicy]
 
     def __init__(
         self,
@@ -83,7 +83,7 @@ class CRRImpl(DDPGBaseImpl):
         self._max_weight = max_weight
 
     def _build_actor(self) -> None:
-        self._policy = create_normal_policy(
+        self._policy = create_squashed_normal_policy(
             self._observation_shape,
             self._action_size,
             self._actor_encoder_factory,
