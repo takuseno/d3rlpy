@@ -212,6 +212,8 @@ Try a cartpole example on Google Colaboratory!
 Any kind of contribution to d3rlpy would be highly appreciated!
 Please check the [contribution guide](CONTRIBUTING.md).
 
+The release planning can be checked at [milestones](https://github.com/takuseno/d3rlpy/milestones).
+
 ## community
 | Channel | Link |
 |:-|:-|
