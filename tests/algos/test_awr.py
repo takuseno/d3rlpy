@@ -14,9 +14,9 @@ from .algo_test import algo_pendulum_tester, algo_cartpole_tester
 def test_awr(observation_shape, action_size, scaler, action_scaler):
     awr = AWR(
         batch_size=100,
-        batch_size_per_update=20,
-        n_actor_updates=5,
-        n_critic_updates=5,
+        batch_size_per_update=30,
+        n_actor_updates=1,
+        n_critic_updates=1,
         scaler=scaler,
         action_scaler=action_scaler,
     )
@@ -36,9 +36,9 @@ def test_awr_performance():
 def test_discrete_awr(observation_shape, action_size, scaler):
     awr = DiscreteAWR(
         batch_size=100,
-        batch_size_per_update=20,
-        n_actor_updates=5,
-        n_critic_updates=5,
+        batch_size_per_update=30,
+        n_actor_updates=1,
+        n_critic_updates=1,
         scaler=scaler,
     )
     algo_tester(awr, observation_shape, state_value=True)
