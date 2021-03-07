@@ -26,8 +26,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [False, True])
 @pytest.mark.parametrize("lam", [0.75])
 @pytest.mark.parametrize("n_action_samples", [10])  # small for test
 @pytest.mark.parametrize("action_flexibility", [0.05])
@@ -50,8 +48,6 @@ def test_bcq_impl(
     gamma,
     tau,
     n_critics,
-    bootstrap,
-    share_encoder,
     lam,
     n_action_samples,
     action_flexibility,
@@ -77,8 +73,6 @@ def test_bcq_impl(
         gamma,
         tau,
         n_critics,
-        bootstrap,
-        share_encoder,
         lam,
         n_action_samples,
         action_flexibility,
@@ -123,8 +117,6 @@ def test_bcq_impl(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [False, True])
 @pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("action_flexibility", [0.3])
 @pytest.mark.parametrize("beta", [1e-2])
@@ -139,8 +131,6 @@ def test_discrete_bcq_impl(
     q_func_factory,
     gamma,
     n_critics,
-    bootstrap,
-    share_encoder,
     target_reduction_type,
     action_flexibility,
     beta,
@@ -156,8 +146,6 @@ def test_discrete_bcq_impl(
         create_q_func_factory(q_func_factory),
         gamma,
         n_critics,
-        bootstrap,
-        share_encoder,
         target_reduction_type,
         action_flexibility,
         beta,

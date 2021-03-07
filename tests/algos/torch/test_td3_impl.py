@@ -23,8 +23,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [False, True])
 @pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("target_smoothing_sigma", [0.2])
 @pytest.mark.parametrize("target_smoothing_clip", [0.5])
@@ -43,8 +41,6 @@ def test_td3_impl(
     gamma,
     tau,
     n_critics,
-    bootstrap,
-    share_encoder,
     target_reduction_type,
     target_smoothing_sigma,
     target_smoothing_clip,
@@ -65,8 +61,6 @@ def test_td3_impl(
         gamma,
         tau,
         n_critics,
-        bootstrap,
-        share_encoder,
         target_reduction_type,
         target_smoothing_sigma,
         target_smoothing_clip,

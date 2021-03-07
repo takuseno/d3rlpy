@@ -63,8 +63,6 @@ class AWAC(AlgoBase):
             :math:`A^\pi(s_t, a_t)`.
         max_weight (float): maximum weight for cross-entropy loss.
         n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
         target_reduction_type (str): ensemble reduction method at target value
             estimation. The available options are
             ``['min', 'max', 'mean', 'mix', 'none']``.
@@ -94,9 +92,7 @@ class AWAC(AlgoBase):
     _lam: float
     _n_action_samples: int
     _max_weight: float
-    _bootstrap: bool
     _n_critics: int
-    _share_encoder: bool
     _target_reduction_type: str
     _update_actor_interval: int
     _use_gpu: Optional[Device]
@@ -122,8 +118,6 @@ class AWAC(AlgoBase):
         n_action_samples: int = 1,
         max_weight: float = 20.0,
         n_critics: int = 2,
-        bootstrap: bool = False,
-        share_encoder: bool = False,
         target_reduction_type: str = "min",
         update_actor_interval: int = 1,
         use_gpu: UseGPUArg = False,
@@ -154,9 +148,7 @@ class AWAC(AlgoBase):
         self._lam = lam
         self._n_action_samples = n_action_samples
         self._max_weight = max_weight
-        self._bootstrap = bootstrap
         self._n_critics = n_critics
-        self._share_encoder = share_encoder
         self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
         self._augmentation = check_augmentation(augmentation)
@@ -182,8 +174,6 @@ class AWAC(AlgoBase):
             n_action_samples=self._n_action_samples,
             max_weight=self._max_weight,
             n_critics=self._n_critics,
-            bootstrap=self._bootstrap,
-            share_encoder=self._share_encoder,
             target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,

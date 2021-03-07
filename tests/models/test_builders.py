@@ -111,27 +111,34 @@ def test_create_categorical_policy(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("n_ensembles", [1, 5])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
-@pytest.mark.parametrize("q_func_factory", [MeanQFunctionFactory()])
 @pytest.mark.parametrize("share_encoder", [False, True])
+@pytest.mark.parametrize("bootstrap", [False, True])
 def test_create_discrete_q_function(
     observation_shape,
     action_size,
     batch_size,
     n_ensembles,
     encoder_factory,
-    q_func_factory,
     share_encoder,
+    bootstrap,
 ):
+    q_func_factory = MeanQFunctionFactory(
+        share_encoder=share_encoder, bootstrap=bootstrap
+    )
+
     q_func = create_discrete_q_function(
         observation_shape,
         action_size,
         encoder_factory,
         q_func_factory,
         n_ensembles,
-        share_encoder=share_encoder,
     )
 
     assert isinstance(q_func, EnsembleDiscreteQFunction)
+    if n_ensembles == 1:
+        assert q_func.bootstrap == False
+    else:
+        assert q_func.bootstrap == bootstrap
 
     # check share_encoder
     encoder = q_func.q_funcs[0].encoder
@@ -151,27 +158,34 @@ def test_create_discrete_q_function(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("n_ensembles", [1, 2])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
-@pytest.mark.parametrize("q_func_factory", [MeanQFunctionFactory()])
 @pytest.mark.parametrize("share_encoder", [False, True])
+@pytest.mark.parametrize("bootstrap", [False, True])
 def test_create_continuous_q_function(
     observation_shape,
     action_size,
     batch_size,
     n_ensembles,
     encoder_factory,
-    q_func_factory,
     share_encoder,
+    bootstrap,
 ):
+    q_func_factory = MeanQFunctionFactory(
+        share_encoder=share_encoder, bootstrap=bootstrap
+    )
+
     q_func = create_continuous_q_function(
         observation_shape,
         action_size,
         encoder_factory,
         q_func_factory,
         n_ensembles,
-        share_encoder=share_encoder,
     )
 
     assert isinstance(q_func, EnsembleContinuousQFunction)
+    if n_ensembles == 1:
+        assert q_func.bootstrap == False
+    else:
+        assert q_func.bootstrap == bootstrap
 
     # check share_encoder
     encoder = q_func.q_funcs[0].encoder

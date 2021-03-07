@@ -983,6 +983,10 @@ class EnsembleQFunction(nn.Module):  # type: ignore
     def q_funcs(self) -> nn.ModuleList:
         return self._q_funcs
 
+    @property
+    def bootstrap(self) -> bool:
+        return self._bootstrap
+
 
 class EnsembleDiscreteQFunction(EnsembleQFunction):
     def forward(self, x: torch.Tensor, reduction: str = "mean") -> torch.Tensor:

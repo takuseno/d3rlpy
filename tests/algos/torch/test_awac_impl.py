@@ -26,8 +26,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("n_action_samples", [10])
 @pytest.mark.parametrize("max_weight", [20.0])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [True])
 @pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
@@ -47,8 +45,6 @@ def test_awac_impl(
     n_action_samples,
     max_weight,
     n_critics,
-    bootstrap,
-    share_encoder,
     target_reduction_type,
     scaler,
     action_scaler,
@@ -70,8 +66,6 @@ def test_awac_impl(
         n_action_samples,
         max_weight,
         n_critics,
-        bootstrap,
-        share_encoder,
         target_reduction_type,
         use_gpu=False,
         scaler=scaler,

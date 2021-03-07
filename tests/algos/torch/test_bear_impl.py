@@ -30,8 +30,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [False, True])
 @pytest.mark.parametrize("initial_temperature", [1.0])
 @pytest.mark.parametrize("initial_alpha", [1.0])
 @pytest.mark.parametrize("alpha_threshold", [0.05])
@@ -60,8 +58,6 @@ def test_bear_impl(
     gamma,
     tau,
     n_critics,
-    bootstrap,
-    share_encoder,
     initial_temperature,
     initial_alpha,
     alpha_threshold,
@@ -93,8 +89,6 @@ def test_bear_impl(
         gamma,
         tau,
         n_critics,
-        bootstrap,
-        share_encoder,
         initial_temperature,
         initial_alpha,
         alpha_threshold,

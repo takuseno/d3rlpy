@@ -89,8 +89,6 @@ class CRR(AlgoBase):
             are ``['binary', 'exp']``.
         max_weight (float): maximum weight for cross-entropy loss.
         n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
         target_reduction_type (str): ensemble reduction method at target value
             estimation. The available options are
             ``['min', 'max', 'mean', 'mix', 'none']``.
@@ -116,14 +114,12 @@ class CRR(AlgoBase):
     _actor_encoder_factory: EncoderFactory
     _critic_encoder_factory: EncoderFactory
     _q_func_factory: QFunctionFactory
-    _bootstrap: bool
     _beta: float
     _n_action_samples: int
     _advantage_type: str
     _weight_type: str
     _max_weight: float
     _n_critics: int
-    _share_encoder: bool
     _target_update_interval: int
     _target_reduction_type: str
     _update_actor_interval: int
@@ -151,8 +147,6 @@ class CRR(AlgoBase):
         weight_type: str = "exp",
         max_weight: float = 20.0,
         n_critics: int = 1,
-        bootstrap: bool = False,
-        share_encoder: bool = False,
         target_update_interval: int = 100,
         target_reduction_type: str = "min",
         update_actor_interval: int = 1,
@@ -180,14 +174,12 @@ class CRR(AlgoBase):
         self._actor_encoder_factory = check_encoder(actor_encoder_factory)
         self._critic_encoder_factory = check_encoder(critic_encoder_factory)
         self._q_func_factory = check_q_func(q_func_factory)
-        self._bootstrap = bootstrap
         self._beta = beta
         self._n_action_samples = n_action_samples
         self._advantage_type = advantage_type
         self._weight_type = weight_type
         self._max_weight = max_weight
         self._n_critics = n_critics
-        self._share_encoder = share_encoder
         self._target_update_interval = target_update_interval
         self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
@@ -215,8 +207,6 @@ class CRR(AlgoBase):
             weight_type=self._weight_type,
             max_weight=self._max_weight,
             n_critics=self._n_critics,
-            bootstrap=self._bootstrap,
-            share_encoder=self._share_encoder,
             target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,

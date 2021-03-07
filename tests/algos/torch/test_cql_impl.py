@@ -27,8 +27,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [False, True])
 @pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("initial_temperature", [1.0])
 @pytest.mark.parametrize("initial_alpha", [5.0])
@@ -54,8 +52,6 @@ def test_cql_impl(
     gamma,
     tau,
     n_critics,
-    bootstrap,
-    share_encoder,
     target_reduction_type,
     initial_temperature,
     initial_alpha,
@@ -83,8 +79,6 @@ def test_cql_impl(
         gamma,
         tau,
         n_critics,
-        bootstrap,
-        share_encoder,
         target_reduction_type,
         initial_temperature,
         initial_alpha,
@@ -109,8 +103,6 @@ def test_cql_impl(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [False, True])
 @pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
@@ -123,8 +115,6 @@ def test_discrete_cql_impl(
     q_func_factory,
     gamma,
     n_critics,
-    bootstrap,
-    share_encoder,
     target_reduction_type,
     scaler,
     augmentation,
@@ -138,8 +128,6 @@ def test_discrete_cql_impl(
         create_q_func_factory(q_func_factory),
         gamma,
         n_critics,
-        bootstrap,
-        share_encoder,
         target_reduction_type,
         use_gpu=False,
         scaler=scaler,

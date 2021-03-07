@@ -21,10 +21,8 @@ def create_discrete_q_function(
     encoder_factory: EncoderFactory,
     q_func_factory: QFunctionFactory,
     n_ensembles: int = 1,
-    bootstrap: bool = False,
-    share_encoder: bool = False,
 ) -> EnsembleDiscreteQFunction:
-    if share_encoder:
+    if q_func_factory.share_encoder:
         encoder = encoder_factory.create(observation_shape)
         # normalize gradient scale by ensemble size
         for p in cast(nn.Module, encoder).parameters():
@@ -32,10 +30,12 @@ def create_discrete_q_function(
 
     q_funcs = []
     for _ in range(n_ensembles):
-        if not share_encoder:
+        if not q_func_factory.share_encoder:
             encoder = encoder_factory.create(observation_shape)
         q_funcs.append(q_func_factory.create_discrete(encoder, action_size))
-    return EnsembleDiscreteQFunction(q_funcs, bootstrap)
+    return EnsembleDiscreteQFunction(
+        q_funcs, bootstrap=q_func_factory.bootstrap
+    )
 
 
 def create_continuous_q_function(
@@ -44,10 +44,8 @@ def create_continuous_q_function(
     encoder_factory: EncoderFactory,
     q_func_factory: QFunctionFactory,
     n_ensembles: int = 1,
-    bootstrap: bool = False,
-    share_encoder: bool = False,
 ) -> EnsembleContinuousQFunction:
-    if share_encoder:
+    if q_func_factory.share_encoder:
         encoder = encoder_factory.create_with_action(
             observation_shape, action_size
         )
@@ -57,12 +55,14 @@ def create_continuous_q_function(
 
     q_funcs = []
     for _ in range(n_ensembles):
-        if not share_encoder:
+        if not q_func_factory.share_encoder:
             encoder = encoder_factory.create_with_action(
                 observation_shape, action_size
             )
         q_funcs.append(q_func_factory.create_continuous(encoder))
-    return EnsembleContinuousQFunction(q_funcs, bootstrap)
+    return EnsembleContinuousQFunction(
+        q_funcs, bootstrap=q_func_factory.bootstrap
+    )
 
 
 def create_deterministic_policy(

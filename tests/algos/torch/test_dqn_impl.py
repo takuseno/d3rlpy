@@ -16,8 +16,6 @@ from tests.algos.algo_test import torch_impl_tester, DummyScaler
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [False, True])
 @pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
@@ -30,8 +28,6 @@ def test_dqn_impl(
     q_func_factory,
     gamma,
     n_critics,
-    bootstrap,
-    share_encoder,
     target_reduction_type,
     scaler,
     augmentation,
@@ -45,8 +41,6 @@ def test_dqn_impl(
         create_q_func_factory(q_func_factory),
         gamma,
         n_critics,
-        bootstrap,
-        share_encoder,
         target_reduction_type,
         use_gpu=False,
         scaler=scaler,
@@ -65,8 +59,6 @@ def test_dqn_impl(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [False, True])
 @pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("augmentation", [DrQPipeline()])
@@ -79,8 +71,6 @@ def test_double_dqn_impl(
     q_func_factory,
     gamma,
     n_critics,
-    bootstrap,
-    share_encoder,
     target_reduction_type,
     scaler,
     augmentation,
@@ -94,8 +84,6 @@ def test_double_dqn_impl(
         create_q_func_factory(q_func_factory),
         gamma,
         n_critics,
-        bootstrap,
-        share_encoder,
         target_reduction_type,
         use_gpu=False,
         scaler=scaler,

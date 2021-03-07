@@ -56,6 +56,7 @@ always dependent on the tasks.
 .. code-block:: python
 
   from d3rlpy.models.encoders import DefaultEncoderFactory
+  from d3rlpy.models.q_functions import QRQFunctionFactory
   from d3rlpy.algos import DQN
 
   # use batch normalization
@@ -64,7 +65,6 @@ always dependent on the tasks.
 
   dqn = DQN(encoder_factory=encoder,
             n_critics=5,  # Q function ensemble size
-            bootstrap=True, # if True, each Q function trains from different distribution
             n_steps=5, # N-step TD backup
             q_func_factory='qr', # use distributional Q function
             augmentation=['color_jitter', 'random_shift'])  # data augmentation

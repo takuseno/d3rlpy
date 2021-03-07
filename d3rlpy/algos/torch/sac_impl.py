@@ -61,8 +61,6 @@ class SACImpl(DDPGBaseImpl):
         gamma: float,
         tau: float,
         n_critics: int,
-        bootstrap: bool,
-        share_encoder: bool,
         target_reduction_type: str,
         initial_temperature: float,
         use_gpu: Optional[Device],
@@ -83,8 +81,6 @@ class SACImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             n_critics=n_critics,
-            bootstrap=bootstrap,
-            share_encoder=share_encoder,
             target_reduction_type=target_reduction_type,
             use_gpu=use_gpu,
             scaler=scaler,
@@ -183,8 +179,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
     _q_func_factory: QFunctionFactory
     _gamma: float
     _n_critics: int
-    _bootstrap: bool
-    _share_encoder: bool
     _initial_temperature: float
     _use_gpu: Optional[Device]
     _policy: Optional[CategoricalPolicy]
@@ -210,8 +204,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         q_func_factory: QFunctionFactory,
         gamma: float,
         n_critics: int,
-        bootstrap: bool,
-        share_encoder: bool,
         initial_temperature: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
@@ -231,8 +223,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         self._q_func_factory = q_func_factory
         self._gamma = gamma
         self._n_critics = n_critics
-        self._bootstrap = bootstrap
-        self._share_encoder = share_encoder
         self._initial_temperature = initial_temperature
         self._use_gpu = use_gpu
 
@@ -270,8 +260,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
             self._critic_encoder_factory,
             self._q_func_factory,
             n_ensembles=self._n_critics,
-            bootstrap=self._bootstrap,
-            share_encoder=self._share_encoder,
         )
 
     def _build_critic_optim(self) -> None:

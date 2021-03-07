@@ -85,8 +85,6 @@ class CQL(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
         target_reduction_type (str): ensemble reduction method at target value
             estimation. The available options are
             ``['min', 'max', 'mean', 'mix', 'none']``.
@@ -123,9 +121,7 @@ class CQL(AlgoBase):
     _critic_encoder_factory: EncoderFactory
     _q_func_factory: QFunctionFactory
     _tau: float
-    _bootstrap: bool
     _n_critics: int
-    _share_encoder: bool
     _target_reduction_type: str
     _update_actor_interval: int
     _initial_temperature: float
@@ -157,8 +153,6 @@ class CQL(AlgoBase):
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 2,
-        bootstrap: bool = False,
-        share_encoder: bool = False,
         target_reduction_type: str = "min",
         update_actor_interval: int = 1,
         initial_temperature: float = 1.0,
@@ -195,9 +189,7 @@ class CQL(AlgoBase):
         self._critic_encoder_factory = check_encoder(critic_encoder_factory)
         self._q_func_factory = check_q_func(q_func_factory)
         self._tau = tau
-        self._bootstrap = bootstrap
         self._n_critics = n_critics
-        self._share_encoder = share_encoder
         self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
         self._initial_temperature = initial_temperature
@@ -229,8 +221,6 @@ class CQL(AlgoBase):
             gamma=self._gamma,
             tau=self._tau,
             n_critics=self._n_critics,
-            bootstrap=self._bootstrap,
-            share_encoder=self._share_encoder,
             target_reduction_type=self._target_reduction_type,
             initial_temperature=self._initial_temperature,
             initial_alpha=self._initial_alpha,
@@ -333,8 +323,6 @@ class DiscreteCQL(DoubleDQN):
         n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
         target_reduction_type (str): ensemble reduction method at target value
             estimation. The available options are
             ``['min', 'max', 'mean', 'mix', 'none']``.
@@ -367,8 +355,6 @@ class DiscreteCQL(DoubleDQN):
             q_func_factory=self._q_func_factory,
             gamma=self._gamma,
             n_critics=self._n_critics,
-            bootstrap=self._bootstrap,
-            share_encoder=self._share_encoder,
             target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,

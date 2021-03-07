@@ -37,8 +37,6 @@ class FQEBaseImpl(TorchImplBase):
     _q_func_factory: QFunctionFactory
     _gamma: float
     _n_critics: int
-    _bootstrap: bool
-    _share_encoder: bool
     _use_gpu: Optional[Device]
     _q_func: Optional[EnsembleQFunction]
     _targ_q_func: Optional[EnsembleQFunction]
@@ -54,8 +52,6 @@ class FQEBaseImpl(TorchImplBase):
         q_func_factory: QFunctionFactory,
         gamma: float,
         n_critics: int,
-        bootstrap: bool,
-        share_encoder: bool,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
@@ -69,8 +65,6 @@ class FQEBaseImpl(TorchImplBase):
         self._q_func_factory = q_func_factory
         self._gamma = gamma
         self._n_critics = n_critics
-        self._bootstrap = bootstrap
-        self._share_encoder = share_encoder
         self._use_gpu = use_gpu
 
         # initialized in build
@@ -168,8 +162,6 @@ class FQEImpl(ContinuousQFunctionMixin, FQEBaseImpl):
             self._encoder_factory,
             self._q_func_factory,
             n_ensembles=self._n_critics,
-            bootstrap=self._bootstrap,
-            share_encoder=self._share_encoder,
         )
 
 
@@ -185,8 +177,6 @@ class DiscreteFQEImpl(DiscreteQFunctionMixin, FQEBaseImpl):
             self._encoder_factory,
             self._q_func_factory,
             n_ensembles=self._n_critics,
-            bootstrap=self._bootstrap,
-            share_encoder=self._share_encoder,
         )
 
     def _compute_loss(

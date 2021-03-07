@@ -25,8 +25,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [False])
 @pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("lam", [0.75])
 @pytest.mark.parametrize("beta", [0.5])
@@ -47,8 +45,6 @@ def test_plas_impl(
     gamma,
     tau,
     n_critics,
-    bootstrap,
-    share_encoder,
     target_reduction_type,
     lam,
     beta,
@@ -72,8 +68,6 @@ def test_plas_impl(
         gamma,
         tau,
         n_critics,
-        bootstrap,
-        share_encoder,
         target_reduction_type,
         lam,
         beta,
@@ -100,8 +94,6 @@ def test_plas_impl(
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [False])
 @pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("lam", [0.75])
 @pytest.mark.parametrize("beta", [0.5])
@@ -123,8 +115,6 @@ def test_plas_with_perturbation_impl(
     gamma,
     tau,
     n_critics,
-    bootstrap,
-    share_encoder,
     target_reduction_type,
     lam,
     beta,
@@ -149,8 +139,6 @@ def test_plas_with_perturbation_impl(
         gamma,
         tau,
         n_critics,
-        bootstrap,
-        share_encoder,
         target_reduction_type,
         lam,
         beta,

@@ -57,8 +57,6 @@ class PLAS(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
         target_reduction_type (str): ensemble reduction method at target value
             estimation. The available options are
             ``['min', 'max', 'mean', 'mix', 'none']``.
@@ -92,9 +90,7 @@ class PLAS(AlgoBase):
     _imitator_encoder_factory: EncoderFactory
     _q_func_factory: QFunctionFactory
     _tau: float
-    _bootstrap: bool
     _n_critics: int
-    _share_encoder: bool
     _target_reduction_type: str
     _update_actor_interval: int
     _lam: float
@@ -123,8 +119,6 @@ class PLAS(AlgoBase):
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 2,
-        bootstrap: bool = False,
-        share_encoder: bool = False,
         target_reduction_type: str = "mix",
         update_actor_interval: int = 1,
         lam: float = 0.75,
@@ -158,9 +152,7 @@ class PLAS(AlgoBase):
         self._imitator_encoder_factory = check_encoder(imitator_encoder_factory)
         self._q_func_factory = check_q_func(q_func_factory)
         self._tau = tau
-        self._bootstrap = bootstrap
         self._n_critics = n_critics
-        self._share_encoder = share_encoder
         self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
         self._lam = lam
@@ -189,8 +181,6 @@ class PLAS(AlgoBase):
             gamma=self._gamma,
             tau=self._tau,
             n_critics=self._n_critics,
-            bootstrap=self._bootstrap,
-            share_encoder=self._share_encoder,
             target_reduction_type=self._target_reduction_type,
             lam=self._lam,
             beta=self._beta,
@@ -267,8 +257,6 @@ class PLASWithPerturbation(PLAS):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
         target_reduction_type (str): ensemble reduction method at target value
             estimation. The available options are
             ``['min', 'max', 'mean', 'mix', 'none']``.
@@ -314,8 +302,6 @@ class PLASWithPerturbation(PLAS):
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 2,
-        bootstrap: bool = False,
-        share_encoder: bool = False,
         target_reduction_type: str = "mix",
         update_actor_interval: int = 1,
         lam: float = 0.75,
@@ -347,8 +333,6 @@ class PLASWithPerturbation(PLAS):
             gamma=gamma,
             tau=tau,
             n_critics=n_critics,
-            bootstrap=bootstrap,
-            share_encoder=share_encoder,
             target_reduction_type=target_reduction_type,
             update_actor_interval=update_actor_interval,
             lam=lam,
@@ -382,8 +366,6 @@ class PLASWithPerturbation(PLAS):
             gamma=self._gamma,
             tau=self._tau,
             n_critics=self._n_critics,
-            bootstrap=self._bootstrap,
-            share_encoder=self._share_encoder,
             target_reduction_type=self._target_reduction_type,
             lam=self._lam,
             beta=self._beta,

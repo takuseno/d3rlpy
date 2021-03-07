@@ -41,8 +41,6 @@ def torch_impl_tester(impl, discrete):
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [True])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 def test_fqe_impl(
@@ -54,8 +52,6 @@ def test_fqe_impl(
     q_func_factory,
     gamma,
     n_critics,
-    bootstrap,
-    share_encoder,
     scaler,
     action_scaler,
 ):
@@ -68,8 +64,6 @@ def test_fqe_impl(
         create_q_func_factory(q_func_factory),
         gamma,
         n_critics,
-        bootstrap,
-        share_encoder,
         use_gpu=False,
         scaler=scaler,
         action_scaler=action_scaler,
@@ -86,8 +80,6 @@ def test_fqe_impl(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("bootstrap", [False])
-@pytest.mark.parametrize("share_encoder", [True])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 def test_discrete_fqe_impl(
     observation_shape,
@@ -98,8 +90,6 @@ def test_discrete_fqe_impl(
     q_func_factory,
     gamma,
     n_critics,
-    bootstrap,
-    share_encoder,
     scaler,
 ):
     fqe = DiscreteFQEImpl(
@@ -111,8 +101,6 @@ def test_discrete_fqe_impl(
         create_q_func_factory(q_func_factory),
         gamma,
         n_critics,
-        bootstrap,
-        share_encoder,
         use_gpu=False,
         scaler=scaler,
         action_scaler=None,

@@ -24,9 +24,7 @@ class _FQEBase(AlgoBase):
     _optim_factory: OptimizerFactory
     _encoder_factory: EncoderFactory
     _q_func_factory: QFunctionFactory
-    _bootstrap: bool
     _n_critics: int
-    _share_encoder: bool
     _target_update_interval: int
     _use_gpu: Optional[Device]
     _impl: Optional[FQEBaseImpl]
@@ -44,8 +42,6 @@ class _FQEBase(AlgoBase):
         n_steps: int = 1,
         gamma: float = 0.99,
         n_critics: int = 1,
-        bootstrap: bool = False,
-        share_encoder: bool = False,
         target_update_interval: int = 100,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
@@ -67,9 +63,7 @@ class _FQEBase(AlgoBase):
         self._optim_factory = optim_factory
         self._encoder_factory = check_encoder(encoder_factory)
         self._q_func_factory = check_q_func(q_func_factory)
-        self._bootstrap = bootstrap
         self._n_critics = n_critics
-        self._share_encoder = share_encoder
         self._target_update_interval = target_update_interval
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
@@ -148,8 +142,6 @@ class FQE(_FQEBase):
         n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
         target_update_interval (int): interval to update the target network.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -175,8 +167,6 @@ class FQE(_FQEBase):
             q_func_factory=self._q_func_factory,
             gamma=self._gamma,
             n_critics=self._n_critics,
-            bootstrap=self._bootstrap,
-            share_encoder=self._share_encoder,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
@@ -217,8 +207,6 @@ class DiscreteFQE(_FQEBase):
         n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
-        bootstrap (bool): flag to bootstrap Q functions.
-        share_encoder (bool): flag to share encoder network.
         target_update_interval (int): interval to update the target network.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -244,8 +232,6 @@ class DiscreteFQE(_FQEBase):
             q_func_factory=self._q_func_factory,
             gamma=self._gamma,
             n_critics=self._n_critics,
-            bootstrap=self._bootstrap,
-            share_encoder=self._share_encoder,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=None,
