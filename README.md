@@ -216,7 +216,8 @@ Please check the [contribution guide](CONTRIBUTING.md).
 | Channel | Link |
 |:-|:-|
 | Chat | [Gitter](https://gitter.im/d3rlpy/d3rlpy) |
-| Issues/Discussion | [GitHub Issues](https://github.com/takuseno/d3rlpy/issues) |
+| Issues | [GitHub Issues](https://github.com/takuseno/d3rlpy/issues) |
+| Discussion | [GitHub Discussions](https://github.com/takuseno/d3rlpy/discussions)
 
 ## family projects
 | Project | Description |
