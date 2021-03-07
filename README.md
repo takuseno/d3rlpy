@@ -18,7 +18,7 @@ import d3rlpy
 # MDPDataset takes arrays of state transitions
 dataset = d3rlpy.dataset.MDPDataset(observations, actions, rewards, terminals)
 
-# train data-driven deep RL
+# train offline deep RL
 cql = d3rlpy.algos.CQL()
 cql.fit(dataset.episodes)
 
@@ -76,7 +76,7 @@ $ pip install -e .
 ```
 
 ## supported algorithms
-| algorithm | discrete control | continuous control | data-driven RL? |
+| algorithm | discrete control | continuous control | offline RL? |
 |:-|:-:|:-:|:-:|
 | Behavior Cloning (supervised learning) | :white_check_mark: | :white_check_mark: | |
 | [Deep Q-Network (DQN)](https://www.nature.com/articles/nature14236) | :white_check_mark: | :no_entry: | |
@@ -229,7 +229,7 @@ Please check the [contribution guide](CONTRIBUTING.md).
 ```
 @misc{seno2020d3rlpy,
   author = {Takuma Seno},
-  title = {d3rlpy: A data-driven deep reinforcement library as an out-of-the-box tool},
+  title = {d3rlpy: An offline deep reinforcement library},
   year = {2020},
   publisher = {GitHub},
   journal = {GitHub repository},

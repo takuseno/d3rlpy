@@ -3,7 +3,7 @@ Algorithms
 
 .. module:: d3rlpy.algos
 
-d3rlpy provides state-of-the-art data-driven deep reinforcement
+d3rlpy provides state-of-the-art offline deep reinforcement
 learning algorithms as well as online algorithms for the base implementations.
 
 Continuous control algorithms

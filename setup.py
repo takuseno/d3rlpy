@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # main setup
     setup(name="d3rlpy",
           version=__version__,
-          description="Data-driven Deep Reinforcement Learning Library as an Out-of-the-box Tool",
+          description="An offline deep reinforcement learning library",
           long_description=open("README.md").read(),
           long_description_content_type="text/markdown",
           url="https://github.com/takuseno/d3rlpy",
