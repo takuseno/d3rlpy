@@ -203,7 +203,7 @@ class AlgoBase(LearnableBase):
         logdir: str = "d3rlpy_logs",
         verbose: bool = True,
         show_progress: bool = True,
-        tensorboard: bool = True,
+        tensorboard_dir: Optional[str] = None,
         timelimit_aware: bool = True,
     ) -> None:
         """Start training loop of online deep reinforcement learning.
@@ -228,8 +228,9 @@ class AlgoBase(LearnableBase):
             logdir: root directory name to save logs.
             verbose: flag to show logged information on stdout.
             show_progress: flag to show progress bar for iterations.
-            tensorboard: flag to save logged information in tensorboard
-                (additional to the csv data)
+            tensorboard_dir: directory to save logged information in
+                tensorboard (additional to the csv data).  if ``None``, the
+                directory will not be created.
             timelimit_aware: flag to turn ``terminal`` flag ``False`` when
                 ``TimeLimit.truncated`` flag is ``True``, which is designed to
                 incorporate with ``gym.wrappers.TimeLimit``.
@@ -258,7 +259,7 @@ class AlgoBase(LearnableBase):
             logdir=logdir,
             verbose=verbose,
             show_progress=show_progress,
-            tensorboard=tensorboard,
+            tensorboard_dir=tensorboard_dir,
             timelimit_aware=timelimit_aware,
         )
 
@@ -280,7 +281,7 @@ class AlgoBase(LearnableBase):
         logdir: str = "d3rlpy_logs",
         verbose: bool = True,
         show_progress: bool = True,
-        tensorboard: bool = True,
+        tensorboard_dir: Optional[str] = None,
         timelimit_aware: bool = True,
     ) -> None:
         """Start training loop of batch online deep reinforcement learning.
@@ -306,8 +307,9 @@ class AlgoBase(LearnableBase):
             logdir: root directory name to save logs.
             verbose: flag to show logged information on stdout.
             show_progress: flag to show progress bar for iterations.
-            tensorboard: flag to save logged information in tensorboard
-                (additional to the csv data)
+            tensorboard_dir: directory to save logged information in
+                tensorboard (additional to the csv data).  if ``None``, the
+                directory will not be created.
             timelimit_aware: flag to turn ``terminal`` flag ``False`` when
                 ``TimeLimit.truncated`` flag is ``True``, which is designed to
                 incorporate with ``gym.wrappers.TimeLimit``.
@@ -336,7 +338,7 @@ class AlgoBase(LearnableBase):
             logdir=logdir,
             verbose=verbose,
             show_progress=show_progress,
-            tensorboard=tensorboard,
+            tensorboard_dir=tensorboard_dir,
             timelimit_aware=timelimit_aware,
         )
 

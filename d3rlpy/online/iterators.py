@@ -113,7 +113,7 @@ def train_single_env(
     logdir: str = "d3rlpy_logs",
     verbose: bool = True,
     show_progress: bool = True,
-    tensorboard: bool = True,
+    tensorboard_dir: Optional[str] = None,
     timelimit_aware: bool = True,
 ) -> None:
     """Start training loop of online deep reinforcement learning.
@@ -139,8 +139,9 @@ def train_single_env(
         logdir: root directory name to save logs.
         verbose: flag to show logged information on stdout.
         show_progress: flag to show progress bar for iterations.
-        tensorboard: flag to save logged information in tensorboard
-            (additional to the csv data)
+        tensorboard_dir: directory to save logged information in
+                tensorboard (additional to the csv data).  if ``None``, the
+                directory will not be created.
         timelimit_aware: flag to turn ``terminal`` flag ``False`` when
             ``TimeLimit.truncated`` flag is ``True``, which is designed to
             incorporate with ``gym.wrappers.TimeLimit``.
@@ -155,7 +156,7 @@ def train_single_env(
         save_metrics=save_metrics,
         root_dir=logdir,
         verbose=verbose,
-        tensorboard=tensorboard,
+        tensorboard_dir=tensorboard_dir,
         with_timestamp=with_timestamp,
     )
 
@@ -287,7 +288,7 @@ def train_batch_env(
     logdir: str = "d3rlpy_logs",
     verbose: bool = True,
     show_progress: bool = True,
-    tensorboard: bool = True,
+    tensorboard_dir: Optional[str] = None,
     timelimit_aware: bool = True,
 ) -> None:
     """Start training loop of online deep reinforcement learning.
@@ -313,8 +314,9 @@ def train_batch_env(
         logdir: root directory name to save logs.
         verbose: flag to show logged information on stdout.
         show_progress: flag to show progress bar for iterations.
-        tensorboard: flag to save logged information in tensorboard
-            (additional to the csv data)
+        tensorboard_dir: directory to save logged information in
+                tensorboard (additional to the csv data).  if ``None``, the
+                directory will not be created.
         timelimit_aware: flag to turn ``terminal`` flag ``False`` when
             ``TimeLimit.truncated`` flag is ``True``, which is designed to
             incorporate with ``gym.wrappers.TimeLimit``.
@@ -329,7 +331,7 @@ def train_batch_env(
         save_metrics=save_metrics,
         root_dir=logdir,
         verbose=verbose,
-        tensorboard=tensorboard,
+        tensorboard_dir=tensorboard_dir,
         with_timestamp=with_timestamp,
     )
 

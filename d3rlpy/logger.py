@@ -42,10 +42,10 @@ class D3RLPyLogger:
     def __init__(
         self,
         experiment_name: str,
+        tensorboard_dir: Optional[str] = None,
         save_metrics: bool = True,
         root_dir: str = "logs",
         verbose: bool = True,
-        tensorboard: bool = True,
         with_timestamp: bool = True,
     ):
         self._save_metrics = save_metrics
@@ -75,8 +75,10 @@ class D3RLPyLogger:
 
         self._metrics_buffer = {}
 
-        if tensorboard:
-            tfboard_path = os.path.join("runs", self._experiment_name)
+        if tensorboard_dir:
+            tfboard_path = os.path.join(
+                tensorboard_dir, "runs", self._experiment_name
+            )
             self._writer = SummaryWriter(logdir=tfboard_path)
         else:
             self._writer = None
