@@ -42,8 +42,8 @@ You can interactively visualize training metrics easily.
     $ pip install tensorboard
     $ tensorboard --logdir runs
 
-This tensorboard logs can be disabled by passing `tensorboard=False`.
+This tensorboard logs can be enabled by passing `tensorboard_dir=/path/to/log_dir`.
 
 .. code-block:: python
 
-    dqn.fit(dataset.episodes, tensorboard=False)
+    dqn.fit(dataset.episodes, tensorboard_dir='runs')

@@ -25,7 +25,6 @@ def test_fit_online_cartpole_with_dqn():
         n_steps=100,
         eval_env=eval_env,
         logdir="test_data",
-        tensorboard=False,
     )
 
 
@@ -48,7 +47,6 @@ def test_fit_online_atari_with_dqn():
         n_steps=100,
         eval_env=eval_env,
         logdir="test_data",
-        tensorboard=False,
     )
 
     assert algo.impl.observation_shape == (4, 84, 84)
@@ -68,7 +66,6 @@ def test_fit_online_pendulum_with_sac():
         n_steps=500,
         eval_env=eval_env,
         logdir="test_data",
-        tensorboard=False,
     )
 
 
@@ -85,7 +82,6 @@ def test_timelimit_aware(timelimit_aware):
         buffer,
         n_steps=500,
         logdir="test_data",
-        tensorboard=False,
         timelimit_aware=timelimit_aware,
     )
 
@@ -119,7 +115,6 @@ def test_fit_batch_online_cartpole_with_dqn():
         n_updates_per_epoch=1,
         eval_env=eval_env,
         logdir="test_data",
-        tensorboard=False,
     )
 
 
@@ -146,7 +141,6 @@ def test_fit_batch_online_atari_with_dqn():
         n_updates_per_epoch=1,
         eval_env=eval_env,
         logdir="test_data",
-        tensorboard=False,
     )
 
     assert algo.impl.observation_shape == (4, 84, 84)
@@ -169,5 +163,4 @@ def test_fit_batch_online_pendulum_with_sac():
         n_updates_per_epoch=1,
         eval_env=eval_env,
         logdir="test_data",
-        tensorboard=False,
     )

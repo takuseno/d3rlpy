@@ -151,7 +151,6 @@ def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
             n_epochs=3,
             logdir="test_data",
             verbose=False,
-            tensorboard=False,
         )
 
         # evaluation loop
@@ -195,7 +194,6 @@ def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
             n_epochs=3,
             logdir="test_data",
             verbose=False,
-            tensorboard=False,
         )
 
         # evaluation loop

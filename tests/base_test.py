@@ -68,7 +68,6 @@ def base_tester(model, impl, observation_shape, action_size=2):
         logdir="test_data",
         verbose=False,
         show_progress=False,
-        tensorboard=False,
     )
 
     assert isinstance(results, list)
@@ -93,7 +92,6 @@ def base_tester(model, impl, observation_shape, action_size=2):
         logdir="test_data",
         verbose=False,
         show_progress=False,
-        tensorboard=False,
     )
 
     for epoch, metrics in fitter:
@@ -103,9 +101,7 @@ def base_tester(model, impl, observation_shape, action_size=2):
     assert epoch == n_epochs
 
     # save params.json
-    logger = D3RLPyLogger(
-        "test", root_dir="test_data", verbose=False, tensorboard=False
-    )
+    logger = D3RLPyLogger("test", root_dir="test_data", verbose=False)
     # save parameters to test_data/test/params.json
     model.save_params(logger)
     # load params.json

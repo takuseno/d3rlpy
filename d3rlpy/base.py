@@ -332,7 +332,7 @@ class LearnableBase:
         logdir: str = "d3rlpy_logs",
         verbose: bool = True,
         show_progress: bool = True,
-        tensorboard: bool = True,
+        tensorboard_dir: Optional[str] = None,
         eval_episodes: Optional[List[Episode]] = None,
         save_interval: int = 1,
         scorers: Optional[
@@ -359,8 +359,9 @@ class LearnableBase:
             logdir: root directory name to save logs.
             verbose: flag to show logged information on stdout.
             show_progress: flag to show progress bar for iterations.
-            tensorboard: flag to save logged information in tensorboard
-                (additional to the csv data)
+            tensorboard_dir: directory to save logged information in
+                tensorboard (additional to the csv data).  if None, the
+                directory will not be created.
             eval_episodes: list of episodes to test.
             save_interval: interval to save parameters.
             scorers: list of scorer functions used with `eval_episodes`.
@@ -380,7 +381,7 @@ class LearnableBase:
                 logdir,
                 verbose,
                 show_progress,
-                tensorboard,
+                tensorboard_dir,
                 eval_episodes,
                 save_interval,
                 scorers,
@@ -399,7 +400,7 @@ class LearnableBase:
         logdir: str = "d3rlpy_logs",
         verbose: bool = True,
         show_progress: bool = True,
-        tensorboard: bool = True,
+        tensorboard_dir: Optional[str] = None,
         eval_episodes: Optional[List[Episode]] = None,
         save_interval: int = 1,
         scorers: Optional[
@@ -429,8 +430,9 @@ class LearnableBase:
             logdir: root directory name to save logs.
             verbose: flag to show logged information on stdout.
             show_progress: flag to show progress bar for iterations.
-            tensorboard: flag to save logged information in tensorboard
-                (additional to the csv data)
+            tensorboard_dir: directory to save logged information in
+                tensorboard (additional to the csv data).  if None, the
+                directory will not be created.
             eval_episodes: list of episodes to test.
             save_interval: interval to save parameters.
             scorers: list of scorer functions used with `eval_episodes`.
@@ -457,7 +459,7 @@ class LearnableBase:
             with_timestamp,
             logdir,
             verbose,
-            tensorboard,
+            tensorboard_dir,
         )
 
         # add reference to active logger to algo class during fit
@@ -656,7 +658,7 @@ class LearnableBase:
         with_timestamp: bool,
         logdir: str,
         verbose: bool,
-        tensorboard: bool,
+        tensorboard_dir: Optional[str],
     ) -> D3RLPyLogger:
         if experiment_name is None:
             experiment_name = self.__class__.__name__
@@ -666,7 +668,7 @@ class LearnableBase:
             save_metrics=save_metrics,
             root_dir=logdir,
             verbose=verbose,
-            tensorboard=tensorboard,
+            tensorboard_dir=tensorboard_dir,
             with_timestamp=with_timestamp,
         )
 
