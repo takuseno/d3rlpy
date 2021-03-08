@@ -1,8 +1,8 @@
 <!doctype html>
 <html>
   <head>
-    <title>d3rlpy: A data-driven deep reinforcement learning library as an out-of-the-box tool</title>
-    <meta name="description" content="d3rlpy is a Python library providing the state-of-the-art data-driven deep reinforcement learning algorithms through scikit-learn style API.">
+    <title>d3rlpy: An offline reinforcement learning library</title>
+    <meta name="description" content="d3rlpy is a Python library providing the state-of-the-art offline deep reinforcement learning algorithms through scikit-learn style API.">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css">
@@ -40,33 +40,33 @@
         <div class="container has-text-centered">
           <p class="title text-center minerva-logo"><img src="logo.png"></p>
           <h2 class="subtitle text-center minerva-subtitle">
-            A data-driven deep reinforcement learning library as an out-of-the-box tool
+            An offline deep reinforcement learning library
           </h2>
           <div class="buttons is-fullwidth is-centered">
+            <a class="button is-success" href="https://d3rlpy.readthedocs.io/en/latest/getting_started.html">Get started</a>
+            <a class="button" href="https://d3rlpy.readthedocs.io">API docs</a>
             <a class="button" href="https://github.com/takuseno/d3rlpy">
               <span class="icon">
                 <i class="fab fa-github"></i>
               </span>
               <span>GitHub</span>
             </a>
-            <a class="button" href="https://d3rlpy.readthedocs.io">Documentation</a>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section">
+    <section class="section main-message">
       <div class="container has-text-centered">
         <h2 class="title">
           The library providing professional-level deep reinforcement learning algorithms for everyone.
         </h2>
         <div class="content is-medium">
         <p>
-          d3rlpy is especially designed for practical projects unlike other
-          reinforcement learning libraries that focus on reproducing papers.
-          The goal of this library is to provide any kinds of users with
-          professional-level algorithms, which actually work with extremely
-          powerful performance.
+          d3rlpy is the first library designed for not only researchers, but
+          also practioners working on practical projects. This library provides
+          both online and offline deep reinforcement learning algorithms with
+          additional powerful features through the easy-to-use API.
         </p>
         </div>
       </div>
@@ -87,10 +87,10 @@
                 </span>
               </h1>
               <h1 class="subtitle has-text-weight-semibold">
-                DESIGNED FOR DATA-DRIVEN DEEP REINFORCEMENT LEARNING
+                OFFLINE RL ALGORITHMS
               </h1>
               <p class="has-text-weight-medium">
-                d3rlpy is designed for data-driven deep reinforcement learning
+                d3rlpy is the first to support offline deep reinforcement learning
                 algorithms where the algorithm finds the good policy within the
                 given dataset, which is suitable to tasks where online
                 interaction is not feasible.
@@ -143,47 +143,6 @@
       </div>
     </section>
 
-    <section class="section">
-      <div class="container has-text-centered">
-        <h1 class="title">online and offline</h1>
-        <h2 class="subtitle has-text-weight-medium mb-4">
-          d3rlpy supports both online and offline paradigms.
-        </h2>
-
-        <div class="columns">
-
-          <div class="column">
-            <h2 class="has-text-weight-bold is-size-5">
-              Reinforcement Learning
-            </h2>
-            <p class="mb-2">
-              The system learns to maximize rewards through online interaction
-              with the environment.
-            </p>
-            <div>
-              <img class="figure" src="reinforcement_learning.jpg"></img>
-            </div>
-          </div>
-
-          <div class="column">
-            <h2 class="has-text-weight-bold is-size-5">
-              Data-Driven Reinforcement Learning
-            </h2>
-            <p class="mb-2">
-              The system learns to maximize rewards with the given dataset
-              without interaction.
-            </p>
-            <div>
-              <img class="figure" src="data_driven_reinforcement_learning.jpg"></img>
-            </div>
-          </div>
-
-        </div>
-
-
-      </div>
-    </section>
-
     <section class="section quick-start">
       <div class="container">
         <div class="has-text-centered">
@@ -192,7 +151,7 @@
 
         <div class="container has-text-centered install">
           <pre>
-            <code>$ pip install d3rlpy</code>
+            <code class="plaintext">$ pip install d3rlpy</code>
           </pre>
         </div>
 
@@ -210,24 +169,21 @@
 
             <div class="install-dataset mb-2">
               <pre>
-                <code>  $ pip install git+https://github.com/takuseno/d4rl-pybullet</code>
+                <code class="plaintext">  $ pip install git+https://github.com/takuseno/d4rl-pybullet</code>
               </pre>
             </div>
 
             <div class="example">
               <pre>
-                <code>
-  from d3rlpy.datasets import get_pybullet
-  from d3rlpy.algos import CQL
-  from d3rlpy.metrics.scorer import evaluate_on_environment
+                <code class="python">
+  import d3rlpy
 
-  dataset, env = get_pybullet('hopper-bullet-mixed-v0')
-
-  cql = CQL(use_gpu=True)
-
+  # prepare dataset
+  dataset, _ = d3rlpy.datasets.get_pybullet('hopper-bullet-mixed-v0')
+  # prepare algorithm
+  cql = d3rlpy.algos.CQL(use_gpu=True)
+  # start training
   cql.fit(dataset.episodes, n_epochs=100)
-
-  evaluate_on_environment(env, render=True)(cql)
                 </code>
               </pre>
             </div>
@@ -246,24 +202,21 @@
 
             <div class="install-dataset mb-2">
               <pre>
-                <code>  $ pip install git+https://github.com/takuseno/d4rl-atari</code>
+                <code class="plaintext">  $ pip install git+https://github.com/takuseno/d4rl-atari</code>
               </pre>
             </div>
 
             <div class="example">
               <pre>
-                <code>
-  from d3rlpy.datasets import get_atari
-  from d3rlpy.algos import DiscreteCQL
-  from d3rlpy.metrics.scorer import evaluate_on_environment
+                <code class="python">
+  import d3rlpy
 
-  dataset, env = get_atari('breakout-mixed-v0')
-
-  cql = DiscreteCQL(n_frames=4, scaler='pixel', use_gpu=True)
-
+  # prepare dataset
+  dataset, _ = d3rlpy.datasets.get_atari('breakout-mixed-v0')
+  # prepare algorithm
+  cql = d3rlpy.algos.DiscreteCQL(n_frames=4, scaler='pixel', use_gpu=True)
+  # start training
   cql.fit(dataset.episodes, n_epochs=100)
-
-  evaluate_on_environment(env, render=True)(cql)
                 </code>
               </pre>
             </div>
@@ -294,7 +247,7 @@
     <section class="section library">
       <div class="container has-text-centered">
 
-        <h1 class="title">d3rlpy family</h1>
+        <h1 class="title">family projects</h1>
 
         <div class="card">
           <div class="card-content">
@@ -347,11 +300,11 @@
           <div class="card-content">
             <h1 class="title">MINERVA</h1>
             <h2 class="subtitle has-text-weight-medium">
-              An out-of-the-box GUI tool for data-driven deep reinforcement learning
+              An out-of-the-box GUI tool for offline deep reinforcement learning
             </h2>
             <div class="content">
               <p class="has-text-weight-medium">
-                MINERVA is a GUI tool providing professional-level data-driven deep reinforcement learning libraries without any coding.
+                MINERVA is a GUI tool for offline deep reinforcement learning without any coding.
               </p>
             </div>
             <div class="buttons is-centered">
@@ -371,11 +324,15 @@
 
     <footer class="footer">
       <div class="content has-text-centered">
-        <p>Copyright &copy; 2020 Takuma Seno.</p>
+        <p>Copyright &copy; 2021 Takuma Seno.</p>
       </div>
     </footer>
 
     <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
     <script defer src="script.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.6.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.6.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.6.0/languages/python.min.js"></script>
+    <script>hljs.highlightAll();</script>
   </body>
 </html>

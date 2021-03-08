@@ -17,7 +17,7 @@ body {
 }
 
 .hero {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.99);
   background-image: url('hero.svg');
   background-blend-mode: lighten;
 }
@@ -120,7 +120,7 @@ body {
   border-radius: 4px;
   margin-left: auto;
   margin-right: auto;
-  height: 18em;
+  height: 14em;
   width: 42em;
   overflow-y: hidden;
   max-width: 100%;
