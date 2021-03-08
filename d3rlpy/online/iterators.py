@@ -140,7 +140,7 @@ def train_single_env(
         verbose: flag to show logged information on stdout.
         show_progress: flag to show progress bar for iterations.
         tensorboard_dir: directory to save logged information in
-                tensorboard (additional to the csv data).  if None, the
+                tensorboard (additional to the csv data).  if ``None``, the
                 directory will not be created.
         timelimit_aware: flag to turn ``terminal`` flag ``False`` when
             ``TimeLimit.truncated`` flag is ``True``, which is designed to
@@ -315,7 +315,7 @@ def train_batch_env(
         verbose: flag to show logged information on stdout.
         show_progress: flag to show progress bar for iterations.
         tensorboard_dir: directory to save logged information in
-                tensorboard (additional to the csv data).  if None, the
+                tensorboard (additional to the csv data).  if ``None``, the
                 directory will not be created.
         timelimit_aware: flag to turn ``terminal`` flag ``False`` when
             ``TimeLimit.truncated`` flag is ``True``, which is designed to

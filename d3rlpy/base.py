@@ -360,7 +360,7 @@ class LearnableBase:
             verbose: flag to show logged information on stdout.
             show_progress: flag to show progress bar for iterations.
             tensorboard_dir: directory to save logged information in
-                tensorboard (additional to the csv data).  if None, the
+                tensorboard (additional to the csv data).  if ``None``, the
                 directory will not be created.
             eval_episodes: list of episodes to test.
             save_interval: interval to save parameters.
@@ -431,7 +431,7 @@ class LearnableBase:
             verbose: flag to show logged information on stdout.
             show_progress: flag to show progress bar for iterations.
             tensorboard_dir: directory to save logged information in
-                tensorboard (additional to the csv data).  if None, the
+                tensorboard (additional to the csv data).  if ``None``, the
                 directory will not be created.
             eval_episodes: list of episodes to test.
             save_interval: interval to save parameters.
