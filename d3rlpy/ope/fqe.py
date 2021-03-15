@@ -80,12 +80,6 @@ class _FQEBase(AlgoBase):
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         return self._algo.sample_action(x)
 
-    @abstractmethod
-    def create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
-        pass
-
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> List[Optional[float]]:
