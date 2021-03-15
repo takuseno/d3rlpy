@@ -1,5 +1,4 @@
 from typing import Any, List, Optional, Sequence, Union
-from abc import abstractmethod
 
 import numpy as np
 
@@ -55,12 +54,6 @@ class _BCBase(AlgoBase):
         self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
-
-    @abstractmethod
-    def create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
-        pass
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
@@ -125,7 +118,7 @@ class BC(_BCBase):
 
     _impl: Optional[BCImpl]
 
-    def create_impl(
+    def _create_impl(
         self, observation_shape: Sequence[int], action_size: int
     ) -> None:
         self._impl = BCImpl(
@@ -214,7 +207,7 @@ class DiscreteBC(_BCBase):
         )
         self._beta = beta
 
-    def create_impl(
+    def _create_impl(
         self, observation_shape: Sequence[int], action_size: int
     ) -> None:
         self._impl = DiscreteBCImpl(

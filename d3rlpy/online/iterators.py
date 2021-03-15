@@ -7,7 +7,7 @@ from typing_extensions import Protocol
 
 from ..dataset import TransitionMiniBatch
 from ..envs import BatchEnv
-from ..logger import D3RLPyLogger
+from ..logger import D3RLPyLogger, LOG
 from ..preprocessing import Scaler, ActionScaler
 from ..preprocessing.stack import StackedObservation, BatchStackedObservation
 from ..metrics.scorer import evaluate_on_environment
@@ -72,17 +72,15 @@ class _AlgoProtocol(Protocol):
         ...
 
 
-def _setup_algo(
-    algo: _AlgoProtocol, env: gym.Env, logger: D3RLPyLogger
-) -> None:
+def _setup_algo(algo: _AlgoProtocol, env: gym.Env) -> None:
     # initialize scaler
     if algo.scaler:
-        logger.debug("Fitting scaler...", scler=algo.scaler.get_type())
+        LOG.debug("Fitting scaler...", scler=algo.scaler.get_type())
         algo.scaler.fit_with_env(env)
 
     # initialize action scaler
     if algo.action_scaler:
-        logger.debug(
+        LOG.debug(
             "Fitting action scaler...",
             action_scler=algo.action_scaler.get_type(),
         )
@@ -90,9 +88,9 @@ def _setup_algo(
 
     # setup algorithm
     if algo.impl is None:
-        logger.debug("Building model...")
+        LOG.debug("Building model...")
         algo.build_with_env(env)
-        logger.debug("Model has been built.")
+        LOG.debug("Model has been built.")
 
 
 def train_single_env(
@@ -161,7 +159,7 @@ def train_single_env(
     )
 
     # initialize algorithm parameters
-    _setup_algo(algo, env, logger)
+    _setup_algo(algo, env)
 
     observation_shape = env.observation_space.shape
     is_image = len(observation_shape) == 3
@@ -336,7 +334,7 @@ def train_batch_env(
     )
 
     # initialize algorithm parameters
-    _setup_algo(algo, env, logger)
+    _setup_algo(algo, env)
 
     observation_shape = env.observation_space.shape
     is_image = len(observation_shape) == 3

@@ -1,5 +1,4 @@
 from typing import Any, List, Optional, Union, Sequence
-from abc import abstractmethod
 
 import numpy as np
 
@@ -85,12 +84,6 @@ class _AWRBase(AlgoBase):
         self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
-
-    @abstractmethod
-    def create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
-        pass
 
     def _compute_lambda_returns(self, batch: TransitionMiniBatch) -> np.ndarray:
         # compute TD(lambda)
@@ -249,7 +242,7 @@ class AWR(_AWRBase):
 
     _impl: Optional[AWRImpl]
 
-    def create_impl(
+    def _create_impl(
         self, observation_shape: Sequence[int], action_size: int
     ) -> None:
         self._impl = AWRImpl(
@@ -334,7 +327,7 @@ class DiscreteAWR(_AWRBase):
 
     _impl: Optional[DiscreteAWRImpl]
 
-    def create_impl(
+    def _create_impl(
         self, observation_shape: Sequence[int], action_size: int
     ) -> None:
         self._impl = DiscreteAWRImpl(

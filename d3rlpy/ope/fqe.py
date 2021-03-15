@@ -155,7 +155,7 @@ class FQE(_FQEBase):
 
     _impl: Optional[FQEImpl]
 
-    def create_impl(
+    def _create_impl(
         self, observation_shape: Sequence[int], action_size: int
     ) -> None:
         self._impl = FQEImpl(
@@ -220,7 +220,7 @@ class DiscreteFQE(_FQEBase):
 
     _impl: Optional[DiscreteFQEImpl]
 
-    def create_impl(
+    def _create_impl(
         self, observation_shape: Sequence[int], action_size: int
     ) -> None:
         self._impl = DiscreteFQEImpl(

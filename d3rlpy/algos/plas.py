@@ -162,7 +162,7 @@ class PLAS(AlgoBase):
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
-    def create_impl(
+    def _create_impl(
         self, observation_shape: Sequence[int], action_size: int
     ) -> None:
         self._impl = PLASImpl(
@@ -347,7 +347,7 @@ class PLASWithPerturbation(PLAS):
         )
         self._action_flexibility = action_flexibility
 
-    def create_impl(
+    def _create_impl(
         self, observation_shape: Sequence[int], action_size: int
     ) -> None:
         self._impl = PLASWithPerturbationImpl(

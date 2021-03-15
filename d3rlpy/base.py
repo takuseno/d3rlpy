@@ -27,7 +27,7 @@ from .preprocessing import (
 from .augmentation import create_augmentation, AugmentationPipeline
 from .augmentation import DrQPipeline
 from .dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
-from .logger import D3RLPyLogger
+from .logger import D3RLPyLogger, LOG
 from .metrics.scorer import NEGATIVE_SCORERS
 from .context import disable_parallel
 from .gpu import Device
@@ -467,12 +467,12 @@ class LearnableBase:
 
         # initialize scaler
         if self._scaler:
-            logger.debug("Fitting scaler...", scaler=self._scaler.get_type())
+            LOG.debug("Fitting scaler...", scaler=self._scaler.get_type())
             self._scaler.fit(episodes)
 
         # initialize action scaler
         if self._action_scaler:
-            logger.debug(
+            LOG.debug(
                 "Fitting action scaler...",
                 action_scaler=self._action_scaler.get_type(),
             )
@@ -480,14 +480,14 @@ class LearnableBase:
 
         # instantiate implementation
         if self._impl is None:
-            logger.debug("Building model...")
+            LOG.debug("Building model...")
             transition = iterator.transitions[0]
             action_size = transition.get_action_size()
             observation_shape = tuple(transition.get_observation_shape())
             self.create_impl(
                 self._process_observation_shape(observation_shape), action_size
             )
-            logger.debug("Model has been built.")
+            LOG.debug("Model has been built.")
 
         # save hyperparameters
         self.save_params(logger)
@@ -578,6 +578,13 @@ class LearnableBase:
             action_size: dimension of action-space.
 
         """
+        if self._impl:
+            LOG.warn("Parameters will be reinitialized.")
+        self._create_impl(observation_shape, action_size)
+
+    def _create_impl(
+        self, observation_shape: Sequence[int], action_size: int
+    ) -> None:
         raise NotImplementedError
 
     def build_with_dataset(self, dataset: MDPDataset) -> None:
