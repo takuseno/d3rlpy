@@ -21,7 +21,7 @@ jobs:
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          pip install Cython numpy wheel setuptools
+          pip install Cython numpy==1.19.5 wheel setuptools
       - name: Build wheel package for Linux
         if: ${{ matrix.os == 'ubuntu-16.04' }}
         run: |
