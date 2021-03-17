@@ -12,8 +12,8 @@ from .dataset import MDPDataset
 from .envs import ChannelFirst
 
 DATA_DIRECTORY = "d3rlpy_data"
-CARTPOLE_URL = "https://www.dropbox.com/s/2tmo7ul00268l3e/cartpole.pkl?dl=1"
-PENDULUM_URL = "https://www.dropbox.com/s/90z7a84ngndrqt4/pendulum.pkl?dl=1"
+CARTPOLE_URL = "https://www.dropbox.com/s/l1sdnq3zvoot2um/cartpole.h5?dl=1"
+PENDULUM_URL = "https://www.dropbox.com/s/vsiz9pwvshj7sly/pendulum.h5?dl=1"
 
 
 def get_cartpole(
@@ -21,8 +21,8 @@ def get_cartpole(
 ) -> Tuple[MDPDataset, gym.Env]:
     """Returns cartpole dataset and environment.
 
-    The dataset is automatically downloaded to `d3rlpy_data/cartpole.pkl` if it
-    does not exist.
+    The dataset is automatically downloaded to ``d3rlpy_data/cartpole.h5`` if
+    it does not exist.
 
     Args:
         create_mask: flag to create binary mask for bootstrapping.
@@ -32,7 +32,7 @@ def get_cartpole(
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
-    data_path = os.path.join(DATA_DIRECTORY, "cartpole.pkl")
+    data_path = os.path.join(DATA_DIRECTORY, "cartpole.h5")
 
     # download dataset
     if not os.path.exists(data_path):
@@ -41,21 +41,12 @@ def get_cartpole(
         request.urlretrieve(CARTPOLE_URL, data_path)
 
     # load dataset
-    with open(data_path, "rb") as f:
-        observations, actions, rewards, terminals = pickle.load(f)
+    dataset = MDPDataset.load(
+        data_path, create_mask=create_mask, mask_size=mask_size
+    )
 
     # environment
     env = gym.make("CartPole-v0")
-
-    dataset = MDPDataset(
-        observations=np.array(observations, dtype=np.float32),
-        actions=actions,
-        rewards=rewards,
-        terminals=terminals,
-        discrete_action=True,
-        create_mask=create_mask,
-        mask_size=mask_size,
-    )
 
     return dataset, env
 
@@ -65,8 +56,8 @@ def get_pendulum(
 ) -> Tuple[MDPDataset, gym.Env]:
     """Returns pendulum dataset and environment.
 
-    The dataset is automatically downloaded to `d3rlpy_data/pendulum.pkl` if it
-    does not exist.
+    The dataset is automatically downloaded to ``d3rlpy_data/pendulum.h5`` if
+    it does not exist.
 
     Args:
         create_mask: flag to create binary mask for bootstrapping.
@@ -76,7 +67,7 @@ def get_pendulum(
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
-    data_path = os.path.join(DATA_DIRECTORY, "pendulum.pkl")
+    data_path = os.path.join(DATA_DIRECTORY, "pendulum.h5")
 
     if not os.path.exists(data_path):
         os.makedirs(DATA_DIRECTORY, exist_ok=True)
@@ -84,20 +75,12 @@ def get_pendulum(
         request.urlretrieve(PENDULUM_URL, data_path)
 
     # load dataset
-    with open(data_path, "rb") as f:
-        observations, actions, rewards, terminals = pickle.load(f)
+    dataset = MDPDataset.load(
+        data_path, create_mask=create_mask, mask_size=mask_size
+    )
 
     # environment
     env = gym.make("Pendulum-v0")
-
-    dataset = MDPDataset(
-        observations=np.array(observations, dtype=np.float32),
-        actions=actions,
-        rewards=rewards,
-        terminals=terminals,
-        create_mask=create_mask,
-        mask_size=mask_size,
-    )
 
     return dataset, env
 

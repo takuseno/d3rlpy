@@ -526,7 +526,7 @@ class MDPDataset:
             f.flush()
 
     @classmethod
-    def load(cls, fname):
+    def load(cls, fname, create_mask=False, mask_size=1):
         """ Loads dataset from HDF5.
 
         .. code-block:: python
@@ -547,6 +547,8 @@ class MDPDataset:
 
         Args:
             fname (str): file path.
+            create_mask (bool): flag to create bootstrapping masks.
+            mask_size (int): size of bootstrapping masks.
 
         """
         with h5py.File(fname, 'r') as f:
@@ -561,14 +563,6 @@ class MDPDataset:
                 episode_terminals = f['episode_terminals'][()]
             else:
                 episode_terminals = None
-            if 'create_mask' in f:
-                create_mask = f['create_mask'][()]
-            else:
-                create_mask = False
-            if 'mask_size' in f:
-                mask_size = f['mask_size'][()]
-            else:
-                mask_size = 1
 
         dataset = cls(
             observations=observations,
