@@ -11,6 +11,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    Union,
 )
 from collections import defaultdict
 
@@ -324,7 +325,7 @@ class LearnableBase:
 
     def fit(
         self,
-        episodes: List[Episode],
+        dataset: Union[List[Episode], MDPDataset],
         n_epochs: int = 1000,
         save_metrics: bool = True,
         experiment_name: Optional[str] = None,
@@ -347,7 +348,7 @@ class LearnableBase:
             algo.fit(episodes)
 
         Args:
-            episodes: list of episodes to train.
+            dataset: list of episodes to train.
             n_epochs: the number of epochs to train.
             save_metrics: flag to record metrics in files. If False,
                 the log directory is not created and the model parameters are
@@ -373,7 +374,7 @@ class LearnableBase:
         """
         results = list(
             self.fitter(
-                episodes,
+                dataset,
                 n_epochs,
                 save_metrics,
                 experiment_name,
@@ -392,7 +393,7 @@ class LearnableBase:
 
     def fitter(
         self,
-        episodes: List[Episode],
+        dataset: Union[List[Episode], MDPDataset],
         n_epochs: int = 1000,
         save_metrics: bool = True,
         experiment_name: Optional[str] = None,
@@ -418,7 +419,7 @@ class LearnableBase:
                 algo.save_model(my_path)
 
         Args:
-            episodes: list of episodes to train.
+            dataset: list of episodes to train.
             n_epochs: the number of epochs to train.
             save_metrics: flag to record metrics in files. If False,
                 the log directory is not created and the model parameters are
@@ -442,6 +443,11 @@ class LearnableBase:
             iterator yielding current epoch and metrics dict.
 
         """
+
+        if isinstance(dataset, MDPDataset):
+            episodes = dataset.episodes
+        else:
+            episodes = dataset
 
         iterator = RoundIterator(
             episodes,
