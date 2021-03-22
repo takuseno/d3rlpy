@@ -1,25 +1,38 @@
-from d3rlpy.algos import CQL
-from d3rlpy.datasets import get_d4rl
-from d3rlpy.models.encoders import VectorEncoderFactory
-from d3rlpy.metrics.scorer import evaluate_on_environment
-from d3rlpy.metrics.scorer import average_value_estimation_scorer
+import argparse
+import d3rlpy
 from sklearn.model_selection import train_test_split
 
-dataset, env = get_d4rl('hopper-medium-v0')
 
-_, test_episodes = train_test_split(dataset, test_size=0.2)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', type=str, default='hopper-medium-v0')
+    parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--gpu', action='store_true')
+    args = parser.parse_args()
 
-encoder = VectorEncoderFactory(hidden_units=[256, 256, 256])
+    d3rlpy.seed(args.seed)
 
-cql = CQL(actor_encoder_factory=encoder,
-          critic_encoder_factory=encoder,
-          alpha_learning_rate=0.0,
-          use_gpu=True)
+    dataset, env = d3rlpy.datasets.get_d4rl(args.dataset)
 
-cql.fit(dataset.episodes,
-        eval_episodes=test_episodes,
-        n_epochs=2000,
-        scorers={
-            'environment': evaluate_on_environment(env),
-            'value_scale': average_value_estimation_scorer
-        })
+    _, test_episodes = train_test_split(dataset, test_size=0.2)
+
+    encoder = d3rlpy.models.encoders.VectorEncoderFactory([256, 256, 256])
+
+    cql = d3rlpy.algos.CQL(actor_encoder_factory=encoder,
+                           critic_encoder_factory=encoder,
+                           alpha_learning_rate=0.0,
+                           use_gpu=args.gpu)
+
+    scorers = {
+        'environment': d3rlpy.metrics.scorer.evaluate_on_environment(env),
+        'value_scale': d3rlpy.metrics.scorer.average_value_estimation_scorer
+    }
+
+    cql.fit(dataset.episodes,
+            eval_episodes=test_episodes,
+            n_epochs=2000,
+            scorers=scorers)
+
+
+if __name__ == '__main__':
+    main()
