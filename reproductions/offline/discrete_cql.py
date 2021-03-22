@@ -1,24 +1,39 @@
-from d3rlpy.algos import DiscreteCQL
-from d3rlpy.models.optimizers import AdamFactory
-from d3rlpy.datasets import get_atari
-from d3rlpy.metrics.scorer import evaluate_on_environment
-from d3rlpy.metrics.scorer import average_value_estimation_scorer
+import argparse
+import d3rlpy
 from sklearn.model_selection import train_test_split
 
-dataset, env = get_atari('breakout-medium-v0')
 
-_, test_episodes = train_test_split(dataset, test_size=0.2)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', type=str, default='breakout-medium-v0')
+    parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--gpu', action='store_true')
+    args = parser.parse_args()
 
-cql = DiscreteCQL(optim_factory=AdamFactory(eps=1e-2 / 32),
-                  scaler='pixel',
-                  n_frames=4,
-                  q_func_factory='qr',
-                  use_gpu=True)
+    d3rlpy.seed(args.seed)
 
-cql.fit(dataset.episodes,
-        eval_episodes=test_episodes,
-        n_epochs=2000,
-        scorers={
-            'environment': evaluate_on_environment(env, epsilon=0.001),
-            'value_scale': average_value_estimation_scorer
-        })
+    dataset, env = d3rlpy.datasets.get_atari(args.dataset)
+
+    _, test_episodes = train_test_split(dataset, test_size=0.2)
+
+    cql = d3rlpy.algos.DiscreteCQL(
+        optim_factory=d3rlpy.models.optimizers.AdamFactory(eps=1e-2 / 32),
+        scaler='pixel',
+        n_frames=4,
+        q_func_factory='qr',
+        use_gpu=args.gpu)
+
+    scorers = {
+        'env': d3rlpy.metrics.scorer.evaluate_on_environment(env,
+                                                             epsilon=0.001),
+        'value_scale': d3rlpy.metrics.scorer.average_value_estimation_scorer
+    }
+
+    cql.fit(dataset.episodes,
+            eval_episodes=test_episodes,
+            n_epochs=2000,
+            scorers=scorers)
+
+
+if __name__ == '__main__':
+    main()
