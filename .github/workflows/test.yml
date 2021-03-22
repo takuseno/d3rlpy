@@ -35,6 +35,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install numpy Cython pytest-cov gym flask onnxruntime stable-baselines3
           pip install git+https://github.com/takuseno/d4rl-atari
+          pip install git+https://github.com/takuseno/d4rl-pybullet
       - name: Build Cython
         run: |
           pip install -e .

@@ -15,3 +15,4 @@ learning algorithms.
    d3rlpy.datasets.get_pybullet
    d3rlpy.datasets.get_atari
    d3rlpy.datasets.get_d4rl
+   d3rlpy.datasets.get_dataset

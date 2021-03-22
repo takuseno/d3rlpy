@@ -3,6 +3,7 @@
 import urllib.request as request
 import os
 import pickle
+import re
 from typing import Tuple
 
 import numpy as np
@@ -160,7 +161,7 @@ def get_atari(
             discrete_action=True,
             create_mask=create_mask,
             mask_size=mask_size,
-            **env.get_dataset()
+            **env.get_dataset(),
         )
         return dataset, env
     except ImportError as e:
@@ -229,3 +230,125 @@ def get_d4rl(
             "d4rl is not installed.\n"
             "pip install git+https://github.com/rail-berkeley/d4rl"
         ) from e
+
+
+ATARI_GAMES = [
+    "adventure",
+    "air-raid",
+    "alien",
+    "amidar",
+    "assault",
+    "asterix",
+    "asteroids",
+    "atlantis",
+    "bank-heist",
+    "battle-zone",
+    "beam-rider",
+    "berzerk",
+    "bowling",
+    "boxing",
+    "breakout",
+    "carnival",
+    "centipede",
+    "chopper-command",
+    "crazy-climber",
+    "defender",
+    "demon-attack",
+    "double-dunk",
+    "elevator-action",
+    "enduro",
+    "fishing-derby",
+    "freeway",
+    "frostbite",
+    "gopher",
+    "gravitar",
+    "hero",
+    "ice-hockey",
+    "jamesbond",
+    "journey-escape",
+    "kangaroo",
+    "krull",
+    "kung-fu-master",
+    "montezuma-revenge",
+    "ms-pacman",
+    "name-this-game",
+    "phoenix",
+    "pitfall",
+    "pong",
+    "pooyan",
+    "private-eye",
+    "qbert",
+    "riverraid",
+    "road-runner",
+    "robotank",
+    "seaquest",
+    "skiing",
+    "solaris",
+    "space-invaders",
+    "star-gunner",
+    "tennis",
+    "time-pilot",
+    "tutankham",
+    "up-n-down",
+    "venture",
+    "video-pinball",
+    "wizard-of-wor",
+    "yars-revenge",
+    "zaxxon",
+]
+
+
+def get_dataset(
+    env_name: str, create_mask: bool = False, mask_size: int = 1
+) -> Tuple[MDPDataset, gym.Env]:
+    """Returns dataset and envrironment by guessing from name.
+
+    This function returns dataset by matching name with the following datasets.
+
+    - cartpole
+    - pendulum
+    - d4rl-pybullet
+    - d4rl-atari
+    - d4rl
+
+    .. code-block:: python
+
+       import d3rlpy
+
+       # cartpole dataset
+       dataset, env = d3rlpy.datasets.get_dataset('cartpole')
+
+       # pendulum dataset
+       dataset, env = d3rlpy.datasets.get_dataset('pendulum')
+
+       # d4rl-pybullet dataset
+       dataset, env = d3rlpy.datasets.get_dataset('hopper-bullet-mixed-v0')
+
+       # d4rl-atari dataset
+       dataset, env = d3rlpy.datasets.get_dataset('breakout-mixed-v0')
+
+       # d4rl dataset
+       dataset, env = d3rlpy.datasets.get_dataset('hopper-medium-v0')
+
+    Args:
+        env_name: environment id of the dataset.
+        create_mask: flag to create binary mask for bootstrapping.
+        mask_size: ensemble size for binary mask.
+
+    Returns:
+        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
+
+    """
+    if env_name == "cartpole":
+        return get_cartpole(create_mask, mask_size)
+    elif env_name == "pendulum":
+        return get_pendulum(create_mask, mask_size)
+    elif re.match(r"^bullet-.+$", env_name):
+        return get_d4rl(env_name, create_mask, mask_size)
+    elif re.match(r"^.+-bullet-.+$", env_name):
+        return get_pybullet(env_name, create_mask, mask_size)
+    elif re.match(r"hopper|halfcheetah|walker|ant", env_name):
+        return get_d4rl(env_name, create_mask, mask_size)
+    elif re.match(re.compile("|".join(ATARI_GAMES)), env_name):
+        return get_atari(env_name, create_mask, mask_size)
+    raise ValueError(f"Unrecognized env_name: {env_name}.")
