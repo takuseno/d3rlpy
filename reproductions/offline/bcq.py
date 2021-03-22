@@ -12,7 +12,7 @@ def main():
 
     d3rlpy.seed(args.seed)
 
-    dataset, env = d3rlpy.datasets.get_d4rl(args.gpu)
+    dataset, env = d3rlpy.datasets.get_d4rl(args.dataset)
 
     _, test_episodes = train_test_split(dataset, test_size=0.2)
 

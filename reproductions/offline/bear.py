@@ -16,7 +16,7 @@ def main():
 
     _, test_episodes = train_test_split(dataset, test_size=0.2)
 
-    vae_encoder = d3rlpy.models.encodersVectorEncoderFactory([750, 750])
+    vae_encoder = d3rlpy.models.encoders.VectorEncoderFactory([750, 750])
 
     if 'halfcheetah' in env.unwrapped.spec.id.lower():
         kernel = 'gaussian'
@@ -35,7 +35,7 @@ def main():
     }
 
     bear.fit(dataset.episodes,
-             eval_episodes=dataset.episodes,
+             eval_episodes=test_episodes,
              n_epochs=2000,
              scorers=scorers)
 
