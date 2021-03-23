@@ -1,13 +1,17 @@
-import pytest
-import torch
 import copy
 
+import pytest
+import torch
+
 from d3rlpy.models.encoders import DefaultEncoderFactory
-from d3rlpy.models.torch.policies import DeterministicPolicy
-from d3rlpy.models.torch.policies import DeterministicResidualPolicy
-from d3rlpy.models.torch.policies import SquashedNormalPolicy
-from d3rlpy.models.torch.policies import CategoricalPolicy
-from .model_test import check_parameter_updates, DummyEncoder
+from d3rlpy.models.torch.policies import (
+    CategoricalPolicy,
+    DeterministicPolicy,
+    DeterministicResidualPolicy,
+    SquashedNormalPolicy,
+)
+
+from .model_test import DummyEncoder, check_parameter_updates
 
 
 @pytest.mark.parametrize("feature_size", [100])

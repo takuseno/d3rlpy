@@ -1,22 +1,22 @@
 from abc import abstractmethod
 from typing import Any, List, Optional, Tuple, Union
 
-import numpy as np
 import gym
+import numpy as np
 
+from ..argument_utility import ActionScalerArg, ScalerArg
 from ..base import ImplBase, LearnableBase
-from ..envs import BatchEnv
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
 from ..dataset import Transition
-from ..online.iterators import train_single_env, train_batch_env
+from ..envs import BatchEnv
 from ..online.buffers import (
-    Buffer,
     BatchBuffer,
-    ReplayBuffer,
     BatchReplayBuffer,
+    Buffer,
+    ReplayBuffer,
 )
 from ..online.explorers import Explorer
-from ..argument_utility import ScalerArg, ActionScalerArg
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..online.iterators import train_batch_env, train_single_env
 
 
 class AlgoImplBase(ImplBase):

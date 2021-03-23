@@ -1,6 +1,5 @@
-from .batch import BatchEnv, SyncBatchEnv, AsyncBatchEnv
-from .wrappers import ChannelFirst, Atari, Monitor
-
+from .batch import AsyncBatchEnv, BatchEnv, SyncBatchEnv
+from .wrappers import Atari, ChannelFirst, Monitor
 
 __all__ = [
     "BatchEnv",

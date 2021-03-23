@@ -2,8 +2,10 @@ import pytest
 import torch
 
 from d3rlpy.augmentation import create_augmentation
-from d3rlpy.augmentation.vector import SingleAmplitudeScaling
-from d3rlpy.augmentation.vector import MultipleAmplitudeScaling
+from d3rlpy.augmentation.vector import (
+    MultipleAmplitudeScaling,
+    SingleAmplitudeScaling,
+)
 
 
 @pytest.mark.parametrize(

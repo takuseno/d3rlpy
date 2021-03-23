@@ -1,7 +1,6 @@
 cimport numpy as np
-
-from libcpp.vector cimport vector
 from libcpp.memory cimport make_shared, shared_ptr
+from libcpp.vector cimport vector
 
 
 cdef extern from "d3rlpy/dataset.h" namespace "d3rlpy" nogil:

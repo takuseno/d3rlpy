@@ -1,9 +1,9 @@
 from abc import ABCMeta, abstractmethod
 from typing import Any, ClassVar, Dict, List, Optional, Type
 
+import gym
 import numpy as np
 import torch
-import gym
 
 from ..dataset import Episode, MDPDataset
 

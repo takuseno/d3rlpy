@@ -2,17 +2,24 @@ from typing import Any, List, Optional, Sequence, Union
 
 import numpy as np
 
+from ..argument_utility import (
+    ActionScalerArg,
+    AugmentationArg,
+    EncoderArg,
+    ScalerArg,
+    UseGPUArg,
+    check_augmentation,
+    check_encoder,
+    check_use_gpu,
+)
+from ..augmentation import AugmentationPipeline
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..dataset import TransitionMiniBatch
+from ..gpu import Device
+from ..models.encoders import EncoderFactory
+from ..models.optimizers import AdamFactory, OptimizerFactory
 from .base import AlgoBase, DataGenerator
 from .torch.bc_impl import BCBaseImpl, BCImpl, DiscreteBCImpl
-from ..augmentation import AugmentationPipeline
-from ..dataset import TransitionMiniBatch
-from ..models.encoders import EncoderFactory
-from ..models.optimizers import OptimizerFactory, AdamFactory
-from ..gpu import Device
-from ..argument_utility import check_encoder, check_use_gpu, check_augmentation
-from ..argument_utility import EncoderArg, UseGPUArg, AugmentationArg, ScalerArg
-from ..argument_utility import ActionScalerArg
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class _BCBase(AlgoBase):

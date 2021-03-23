@@ -2,7 +2,8 @@ import pytest
 
 from d3rlpy.algos.crr import CRR
 from tests import performance_test
-from .algo_test import algo_tester, algo_update_tester, algo_pendulum_tester
+
+from .algo_test import algo_pendulum_tester, algo_tester, algo_update_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])

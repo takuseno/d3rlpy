@@ -5,25 +5,25 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...models.torch import (
-    PixelEncoder,
-    DeterministicResidualPolicy,
-    compute_max_with_n_actions,
-    ConditionalVAE,
-    DiscreteImitator,
-)
-from ...models.builders import (
-    create_deterministic_residual_policy,
-    create_conditional_vae,
-    create_discrete_imitator,
-)
-from ...models.optimizers import OptimizerFactory
-from ...models.encoders import EncoderFactory
-from ...models.q_functions import QFunctionFactory
-from ...preprocessing import Scaler, ActionScaler
 from ...augmentation import AugmentationPipeline
 from ...gpu import Device
-from ...torch_utility import torch_api, train_api, augmentation_api
+from ...models.builders import (
+    create_conditional_vae,
+    create_deterministic_residual_policy,
+    create_discrete_imitator,
+)
+from ...models.encoders import EncoderFactory
+from ...models.optimizers import OptimizerFactory
+from ...models.q_functions import QFunctionFactory
+from ...models.torch import (
+    ConditionalVAE,
+    DeterministicResidualPolicy,
+    DiscreteImitator,
+    PixelEncoder,
+    compute_max_with_n_actions,
+)
+from ...preprocessing import ActionScaler, Scaler
+from ...torch_utility import augmentation_api, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 from .dqn_impl import DoubleDQNImpl
 

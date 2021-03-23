@@ -1,9 +1,10 @@
-import torch
-import pytest
-
 from unittest.mock import Mock
-from d3rlpy.augmentation.pipeline import DrQPipeline
+
+import pytest
+import torch
+
 from d3rlpy.augmentation.base import Augmentation
+from d3rlpy.augmentation.pipeline import DrQPipeline
 
 
 class DummyAugmentation(Augmentation):

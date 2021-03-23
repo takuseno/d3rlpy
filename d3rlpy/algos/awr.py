@@ -1,18 +1,25 @@
-from typing import Any, List, Optional, Union, Sequence
+from typing import Any, List, Optional, Sequence, Union
 
 import numpy as np
 
+from ..argument_utility import (
+    ActionScalerArg,
+    AugmentationArg,
+    EncoderArg,
+    ScalerArg,
+    UseGPUArg,
+    check_augmentation,
+    check_encoder,
+    check_use_gpu,
+)
+from ..augmentation import AugmentationPipeline
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..dataset import TransitionMiniBatch, compute_lambda_return
+from ..gpu import Device
+from ..models.encoders import EncoderFactory
+from ..models.optimizers import OptimizerFactory, SGDFactory
 from .base import AlgoBase, DataGenerator
 from .torch.awr_impl import AWRBaseImpl, AWRImpl, DiscreteAWRImpl
-from ..augmentation import AugmentationPipeline
-from ..dataset import compute_lambda_return, TransitionMiniBatch
-from ..models.optimizers import OptimizerFactory, SGDFactory
-from ..models.encoders import EncoderFactory
-from ..gpu import Device
-from ..argument_utility import check_encoder, check_use_gpu, check_augmentation
-from ..argument_utility import ScalerArg, ActionScalerArg, EncoderArg
-from ..argument_utility import UseGPUArg, AugmentationArg
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class _AWRBase(AlgoBase):

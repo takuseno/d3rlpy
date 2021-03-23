@@ -1,10 +1,15 @@
-import pytest
 import numpy as np
+import pytest
 
 from d3rlpy.algos.awr import AWR, DiscreteAWR
 from tests import performance_test
-from .algo_test import algo_tester, algo_update_tester
-from .algo_test import algo_pendulum_tester, algo_cartpole_tester
+
+from .algo_test import (
+    algo_cartpole_tester,
+    algo_pendulum_tester,
+    algo_tester,
+    algo_update_tester,
+)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])

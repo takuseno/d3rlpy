@@ -6,16 +6,16 @@ import torch
 from torch.optim import Optimizer
 
 from ...augmentation import AugmentationPipeline
-from ...models.torch import EnsembleDiscreteQFunction
-from ...models.builders import create_discrete_q_function
-from ...models.optimizers import OptimizerFactory
-from ...models.encoders import EncoderFactory
-from ...models.q_functions import QFunctionFactory
-from ...preprocessing import Scaler
 from ...gpu import Device
-from ...torch_utility import hard_sync, torch_api, train_api, augmentation_api
-from .utility import DiscreteQFunctionMixin
+from ...models.builders import create_discrete_q_function
+from ...models.encoders import EncoderFactory
+from ...models.optimizers import OptimizerFactory
+from ...models.q_functions import QFunctionFactory
+from ...models.torch import EnsembleDiscreteQFunction
+from ...preprocessing import Scaler
+from ...torch_utility import augmentation_api, hard_sync, torch_api, train_api
 from .base import TorchImplBase
+from .utility import DiscreteQFunctionMixin
 
 
 class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):

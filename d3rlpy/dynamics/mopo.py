@@ -1,13 +1,20 @@
 from typing import Any, List, Optional, Sequence
+
+from ..argument_utility import (
+    ActionScalerArg,
+    EncoderArg,
+    ScalerArg,
+    UseGPUArg,
+    check_encoder,
+    check_use_gpu,
+)
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..dataset import TransitionMiniBatch
+from ..gpu import Device
+from ..models.encoders import EncoderFactory
+from ..models.optimizers import AdamFactory, OptimizerFactory
 from .base import DynamicsBase
 from .torch.mopo_impl import MOPOImpl
-from ..dataset import TransitionMiniBatch
-from ..models.optimizers import OptimizerFactory, AdamFactory
-from ..models.encoders import EncoderFactory
-from ..gpu import Device
-from ..argument_utility import check_encoder, check_use_gpu
-from ..argument_utility import EncoderArg, UseGPUArg, ScalerArg, ActionScalerArg
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class MOPO(DynamicsBase):

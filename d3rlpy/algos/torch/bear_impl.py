@@ -5,19 +5,19 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
+from ...augmentation import AugmentationPipeline
+from ...gpu import Device
+from ...models.builders import create_parameter, create_probablistic_regressor
+from ...models.encoders import EncoderFactory
+from ...models.optimizers import OptimizerFactory
+from ...models.q_functions import QFunctionFactory
 from ...models.torch import (
-    ProbablisticRegressor,
     Parameter,
+    ProbablisticRegressor,
     compute_max_with_n_actions_and_indices,
 )
-from ...models.builders import create_probablistic_regressor, create_parameter
-from ...models.optimizers import OptimizerFactory
-from ...models.encoders import EncoderFactory
-from ...models.q_functions import QFunctionFactory
-from ...gpu import Device
-from ...preprocessing import Scaler, ActionScaler
-from ...augmentation import AugmentationPipeline
-from ...torch_utility import torch_api, train_api, augmentation_api
+from ...preprocessing import ActionScaler, Scaler
+from ...torch_utility import augmentation_api, torch_api, train_api
 from .sac_impl import SACImpl
 
 

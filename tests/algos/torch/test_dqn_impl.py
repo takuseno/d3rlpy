@@ -1,11 +1,11 @@
 import pytest
 
+from d3rlpy.algos.torch.dqn_impl import DoubleDQNImpl, DQNImpl
 from d3rlpy.augmentation import DrQPipeline
-from d3rlpy.algos.torch.dqn_impl import DQNImpl, DoubleDQNImpl
-from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import create_q_func_factory
-from tests.algos.algo_test import torch_impl_tester, DummyScaler
+from tests.algos.algo_test import DummyScaler, torch_impl_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])

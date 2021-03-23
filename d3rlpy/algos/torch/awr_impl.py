@@ -1,28 +1,28 @@
-from typing import Any, Optional, Sequence
 from abc import ABCMeta, abstractmethod
+from typing import Any, Optional, Sequence
 
 import numpy as np
 import torch
 from torch.optim import Optimizer
 
+from ...augmentation import AugmentationPipeline
+from ...gpu import Device
+from ...models.builders import (
+    create_categorical_policy,
+    create_squashed_normal_policy,
+    create_value_function,
+)
+from ...models.encoders import EncoderFactory
+from ...models.optimizers import OptimizerFactory
 from ...models.torch import (
+    CategoricalPolicy,
     Policy,
     SquashedNormalPolicy,
-    CategoricalPolicy,
     ValueFunction,
     squash_action,
 )
-from ...models.optimizers import OptimizerFactory
-from ...models.encoders import EncoderFactory
-from ...models.builders import (
-    create_value_function,
-    create_squashed_normal_policy,
-    create_categorical_policy,
-)
-from ...gpu import Device
-from ...preprocessing import Scaler, ActionScaler
-from ...augmentation import AugmentationPipeline
-from ...torch_utility import torch_api, train_api, eval_api, augmentation_api
+from ...preprocessing import ActionScaler, Scaler
+from ...torch_utility import augmentation_api, eval_api, torch_api, train_api
 from .base import TorchImplBase
 
 

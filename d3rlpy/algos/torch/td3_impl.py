@@ -2,12 +2,12 @@ from typing import Optional, Sequence
 
 import torch
 
-from ...models.optimizers import OptimizerFactory
-from ...models.encoders import EncoderFactory
-from ...models.q_functions import QFunctionFactory
-from ...gpu import Device
-from ...preprocessing import Scaler, ActionScaler
 from ...augmentation import AugmentationPipeline
+from ...gpu import Device
+from ...models.encoders import EncoderFactory
+from ...models.optimizers import OptimizerFactory
+from ...models.q_functions import QFunctionFactory
+from ...preprocessing import ActionScaler, Scaler
 from ...torch_utility import augmentation_api
 from .ddpg_impl import DDPGImpl
 

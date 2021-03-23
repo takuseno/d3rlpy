@@ -2,12 +2,12 @@ import pytest
 
 from d3rlpy.algos.torch.bc_impl import BCImpl, DiscreteBCImpl
 from d3rlpy.augmentation import DrQPipeline
-from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.optimizers import AdamFactory
 from tests.algos.algo_test import (
-    torch_impl_tester,
-    DummyScaler,
     DummyActionScaler,
+    DummyScaler,
+    torch_impl_tester,
 )
 
 

@@ -1,14 +1,26 @@
 import copy
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Union, Type
-from typing import Sequence
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+)
 
 import torch
 
-from .torch import Encoder, EncoderWithAction
-from .torch import PixelEncoder
-from .torch import PixelEncoderWithAction
-from .torch import VectorEncoder
-from .torch import VectorEncoderWithAction
+from .torch import (
+    Encoder,
+    EncoderWithAction,
+    PixelEncoder,
+    PixelEncoderWithAction,
+    VectorEncoder,
+    VectorEncoderWithAction,
+)
 
 
 def _create_activation(

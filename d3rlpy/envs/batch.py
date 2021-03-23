@@ -1,14 +1,14 @@
 # pylint: disable=arguments-differ
 import os
-import uuid
 import tempfile
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+import uuid
 from multiprocessing import Process, get_context
 from multiprocessing.connection import Connection
+from typing import Any, Callable, Dict, List, Sequence, Tuple
 
-import numpy as np
-import gym
 import cloudpickle
+import gym
+import numpy as np
 
 from ..online.utility import get_action_size_from_env
 

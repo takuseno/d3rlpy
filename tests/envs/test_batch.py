@@ -1,10 +1,11 @@
-import pytest
-import gym
 import tempfile
-import numpy as np
 
-from d3rlpy.envs.batch import SubprocEnv
+import gym
+import numpy as np
+import pytest
+
 from d3rlpy.envs import AsyncBatchEnv, SyncBatchEnv
+from d3rlpy.envs.batch import SubprocEnv
 
 
 def test_subproc_env():

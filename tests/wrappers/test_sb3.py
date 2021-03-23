@@ -1,6 +1,6 @@
 import numpy as np
-import stable_baselines3 as sb3
 import pytest
+import stable_baselines3 as sb3
 
 from d3rlpy.algos import SAC
 from d3rlpy.dataset import MDPDataset

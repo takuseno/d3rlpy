@@ -2,8 +2,8 @@ from typing import Callable, List
 
 import numpy as np
 
-from .scorer import _make_batches, AlgoProtocol, WINDOW_SIZE
 from ..dataset import Episode
+from .scorer import WINDOW_SIZE, AlgoProtocol, _make_batches
 
 
 def compare_continuous_action_diff(

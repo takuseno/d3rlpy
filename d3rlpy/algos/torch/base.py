@@ -3,14 +3,20 @@ from typing import Optional, Sequence
 import numpy as np
 import torch
 
-from ...gpu import Device
 from ...augmentation import AugmentationPipeline
-from ...preprocessing import Scaler, ActionScaler
-from ...torch_utility import freeze, unfreeze
-from ...torch_utility import to_cuda, to_cpu
-from ...torch_utility import torch_api, eval_api
-from ...torch_utility import map_location
-from ...torch_utility import get_state_dict, set_state_dict
+from ...gpu import Device
+from ...preprocessing import ActionScaler, Scaler
+from ...torch_utility import (
+    eval_api,
+    freeze,
+    get_state_dict,
+    map_location,
+    set_state_dict,
+    to_cpu,
+    to_cuda,
+    torch_api,
+    unfreeze,
+)
 from ..base import AlgoImplBase
 
 

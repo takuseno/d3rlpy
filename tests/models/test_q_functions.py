@@ -1,19 +1,23 @@
 import pytest
 
-from d3rlpy.models.torch.q_functions import DiscreteMeanQFunction
-from d3rlpy.models.torch.q_functions import DiscreteQRQFunction
-from d3rlpy.models.torch.q_functions import DiscreteIQNQFunction
-from d3rlpy.models.torch.q_functions import DiscreteFQFQFunction
-from d3rlpy.models.torch.q_functions import ContinuousMeanQFunction
-from d3rlpy.models.torch.q_functions import ContinuousQRQFunction
-from d3rlpy.models.torch.q_functions import ContinuousIQNQFunction
-from d3rlpy.models.torch.q_functions import ContinuousFQFQFunction
-from d3rlpy.models.q_functions import create_q_func_factory
-from d3rlpy.models.q_functions import MeanQFunctionFactory
-from d3rlpy.models.q_functions import QRQFunctionFactory
-from d3rlpy.models.q_functions import IQNQFunctionFactory
-from d3rlpy.models.q_functions import FQFQFunctionFactory
 from d3rlpy.models.encoders import VectorEncoderFactory
+from d3rlpy.models.q_functions import (
+    FQFQFunctionFactory,
+    IQNQFunctionFactory,
+    MeanQFunctionFactory,
+    QRQFunctionFactory,
+    create_q_func_factory,
+)
+from d3rlpy.models.torch.q_functions import (
+    ContinuousFQFQFunction,
+    ContinuousIQNQFunction,
+    ContinuousMeanQFunction,
+    ContinuousQRQFunction,
+    DiscreteFQFQFunction,
+    DiscreteIQNQFunction,
+    DiscreteMeanQFunction,
+    DiscreteQRQFunction,
+)
 
 
 def _create_encoder(observation_shape, action_size):

@@ -1,7 +1,8 @@
 from typing import Any, Dict, Type
-from .base import AlgoBase, DataGenerator
+
 from .awac import AWAC
 from .awr import AWR, DiscreteAWR
+from .base import AlgoBase, DataGenerator
 from .bc import BC, DiscreteBC
 from .bcq import BCQ, DiscreteBCQ
 from .bear import BEAR
@@ -12,7 +13,6 @@ from .dqn import DQN, DoubleDQN
 from .plas import PLAS, PLASWithPerturbation
 from .sac import SAC, DiscreteSAC
 from .td3 import TD3
-
 
 __all__ = [
     "AlgoBase",

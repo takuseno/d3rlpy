@@ -1,13 +1,13 @@
 # pylint: disable=unused-import
 
-import urllib.request as request
 import os
 import pickle
 import re
+import urllib.request as request
 from typing import Tuple
 
-import numpy as np
 import gym
+import numpy as np
 
 from .dataset import MDPDataset
 from .envs import ChannelFirst

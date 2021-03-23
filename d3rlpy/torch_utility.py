@@ -1,5 +1,5 @@
-from typing import Any, Callable, Dict, List, Optional
 from inspect import signature
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -7,8 +7,8 @@ import torch.nn as nn
 from torch.utils.data._utils.collate import default_collate
 from typing_extensions import Protocol
 
-from .preprocessing import Scaler, ActionScaler
 from .augmentation import AugmentationPipeline
+from .preprocessing import ActionScaler, Scaler
 
 
 def soft_sync(targ_model: nn.Module, model: nn.Module, tau: float) -> None:

@@ -2,15 +2,19 @@ import numpy as np
 import pytest
 
 from d3rlpy.augmentation import create_augmentation
-from d3rlpy.augmentation.image import RandomShift
-from d3rlpy.augmentation.image import Cutout
-from d3rlpy.augmentation.image import HorizontalFlip
-from d3rlpy.augmentation.image import VerticalFlip
-from d3rlpy.augmentation.image import RandomRotation
-from d3rlpy.augmentation.image import Intensity
-from d3rlpy.augmentation.image import ColorJitter
-from d3rlpy.augmentation.vector import SingleAmplitudeScaling
-from d3rlpy.augmentation.vector import MultipleAmplitudeScaling
+from d3rlpy.augmentation.image import (
+    ColorJitter,
+    Cutout,
+    HorizontalFlip,
+    Intensity,
+    RandomRotation,
+    RandomShift,
+    VerticalFlip,
+)
+from d3rlpy.augmentation.vector import (
+    MultipleAmplitudeScaling,
+    SingleAmplitudeScaling,
+)
 
 
 @pytest.mark.parametrize(

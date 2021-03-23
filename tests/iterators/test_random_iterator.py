@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 from d3rlpy.dataset import Episode
 from d3rlpy.iterators.random_iterator import RandomIterator

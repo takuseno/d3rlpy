@@ -1,9 +1,11 @@
 import numpy as np
 import pytest
 
-from d3rlpy.online.explorers import ConstantEpsilonGreedy
-from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
-from d3rlpy.online.explorers import NormalNoise
+from d3rlpy.online.explorers import (
+    ConstantEpsilonGreedy,
+    LinearDecayEpsilonGreedy,
+    NormalNoise,
+)
 
 
 @pytest.mark.parametrize("action_size", [3])

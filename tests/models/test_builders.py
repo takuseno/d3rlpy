@@ -1,35 +1,43 @@
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
+from d3rlpy.models.builders import (
+    create_categorical_policy,
+    create_conditional_vae,
+    create_continuous_q_function,
+    create_deterministic_policy,
+    create_deterministic_regressor,
+    create_deterministic_residual_policy,
+    create_discrete_imitator,
+    create_discrete_q_function,
+    create_parameter,
+    create_probablistic_dynamics,
+    create_probablistic_regressor,
+    create_squashed_normal_policy,
+    create_value_function,
+)
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory
-from d3rlpy.models.builders import create_deterministic_policy
-from d3rlpy.models.builders import create_deterministic_residual_policy
-from d3rlpy.models.builders import create_squashed_normal_policy
-from d3rlpy.models.builders import create_categorical_policy
-from d3rlpy.models.builders import create_discrete_q_function
-from d3rlpy.models.builders import create_continuous_q_function
-from d3rlpy.models.builders import create_conditional_vae
-from d3rlpy.models.builders import create_discrete_imitator
-from d3rlpy.models.builders import create_deterministic_regressor
-from d3rlpy.models.builders import create_probablistic_regressor
-from d3rlpy.models.builders import create_value_function
-from d3rlpy.models.builders import create_probablistic_dynamics
-from d3rlpy.models.builders import create_parameter
-from d3rlpy.models.torch.policies import DeterministicPolicy
-from d3rlpy.models.torch.policies import DeterministicResidualPolicy
-from d3rlpy.models.torch.policies import SquashedNormalPolicy
-from d3rlpy.models.torch.policies import CategoricalPolicy
-from d3rlpy.models.torch.q_functions import EnsembleDiscreteQFunction
-from d3rlpy.models.torch.q_functions import EnsembleContinuousQFunction
-from d3rlpy.models.torch.imitators import ConditionalVAE
-from d3rlpy.models.torch.imitators import DiscreteImitator
-from d3rlpy.models.torch.imitators import DeterministicRegressor
-from d3rlpy.models.torch.imitators import ProbablisticRegressor
-from d3rlpy.models.torch.v_functions import ValueFunction
 from d3rlpy.models.torch.dynamics import EnsembleDynamics
+from d3rlpy.models.torch.imitators import (
+    ConditionalVAE,
+    DeterministicRegressor,
+    DiscreteImitator,
+    ProbablisticRegressor,
+)
 from d3rlpy.models.torch.parameters import Parameter
+from d3rlpy.models.torch.policies import (
+    CategoricalPolicy,
+    DeterministicPolicy,
+    DeterministicResidualPolicy,
+    SquashedNormalPolicy,
+)
+from d3rlpy.models.torch.q_functions import (
+    EnsembleContinuousQFunction,
+    EnsembleDiscreteQFunction,
+)
+from d3rlpy.models.torch.v_functions import ValueFunction
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])

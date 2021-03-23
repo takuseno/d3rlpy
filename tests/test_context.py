@@ -1,4 +1,4 @@
-from d3rlpy.context import get_parallel_flag, parallel, disable_parallel
+from d3rlpy.context import disable_parallel, get_parallel_flag, parallel
 
 
 def test_parallel():

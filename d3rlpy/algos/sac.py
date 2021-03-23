@@ -1,18 +1,26 @@
 from typing import Any, List, Optional, Sequence
-from .base import AlgoBase, DataGenerator
-from .torch.sac_impl import SACImpl, DiscreteSACImpl
+
+from ..argument_utility import (
+    ActionScalerArg,
+    AugmentationArg,
+    EncoderArg,
+    QFuncArg,
+    ScalerArg,
+    UseGPUArg,
+    check_augmentation,
+    check_encoder,
+    check_q_func,
+    check_use_gpu,
+)
 from ..augmentation import AugmentationPipeline
-from ..dataset import TransitionMiniBatch
-from ..models.encoders import EncoderFactory
-from ..models.q_functions import QFunctionFactory
-from ..models.optimizers import OptimizerFactory, AdamFactory
-from ..gpu import Device
-from ..argument_utility import check_encoder, EncoderArg
-from ..argument_utility import check_use_gpu, UseGPUArg
-from ..argument_utility import check_augmentation, AugmentationArg
-from ..argument_utility import check_q_func, QFuncArg
-from ..argument_utility import ScalerArg, ActionScalerArg
 from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..dataset import TransitionMiniBatch
+from ..gpu import Device
+from ..models.encoders import EncoderFactory
+from ..models.optimizers import AdamFactory, OptimizerFactory
+from ..models.q_functions import QFunctionFactory
+from .base import AlgoBase, DataGenerator
+from .torch.sac_impl import DiscreteSACImpl, SACImpl
 
 
 class SAC(AlgoBase):

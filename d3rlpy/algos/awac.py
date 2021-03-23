@@ -1,18 +1,26 @@
 from typing import Any, List, Optional, Sequence
+
+from ..argument_utility import (
+    ActionScalerArg,
+    AugmentationArg,
+    EncoderArg,
+    QFuncArg,
+    ScalerArg,
+    UseGPUArg,
+    check_augmentation,
+    check_encoder,
+    check_q_func,
+    check_use_gpu,
+)
+from ..augmentation import AugmentationPipeline
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..dataset import TransitionMiniBatch
+from ..gpu import Device
+from ..models.encoders import EncoderFactory
+from ..models.optimizers import AdamFactory, OptimizerFactory
+from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase, DataGenerator
 from .torch.awac_impl import AWACImpl
-from ..dataset import TransitionMiniBatch
-from ..models.optimizers import OptimizerFactory, AdamFactory
-from ..models.encoders import EncoderFactory
-from ..models.q_functions import QFunctionFactory
-from ..augmentation import AugmentationPipeline
-from ..gpu import Device
-from ..argument_utility import ScalerArg, ActionScalerArg
-from ..argument_utility import check_encoder, EncoderArg
-from ..argument_utility import check_use_gpu, UseGPUArg
-from ..argument_utility import check_q_func, QFuncArg
-from ..argument_utility import check_augmentation, AugmentationArg
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class AWAC(AlgoBase):

@@ -1,11 +1,10 @@
-import pytest
 import gym
+import pytest
 
 from d3rlpy.algos import DQN, SAC
-from d3rlpy.envs import AsyncBatchEnv
-from d3rlpy.online.buffers import ReplayBuffer, BatchReplayBuffer
+from d3rlpy.envs import AsyncBatchEnv, ChannelFirst
+from d3rlpy.online.buffers import BatchReplayBuffer, ReplayBuffer
 from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
-from d3rlpy.envs import ChannelFirst
 
 
 def test_fit_online_cartpole_with_dqn():

@@ -1,11 +1,10 @@
+import gym
+import numpy as np
 import pytest
 import torch
-import numpy as np
-import gym
 
-from d3rlpy.dataset import MDPDataset, Episode
-from d3rlpy.preprocessing import create_action_scaler
-from d3rlpy.preprocessing import MinMaxActionScaler
+from d3rlpy.dataset import Episode, MDPDataset
+from d3rlpy.preprocessing import MinMaxActionScaler, create_action_scaler
 
 
 @pytest.mark.parametrize("scaler_type", ["min_max"])

@@ -1,6 +1,6 @@
-import torch
 import copy
 
+import torch
 from torch.optim import SGD
 
 

@@ -1,7 +1,8 @@
-import numpy as np
 import os
-
 from unittest.mock import Mock
+
+import numpy as np
+
 from d3rlpy.dataset import MDPDataset, Transition, TransitionMiniBatch
 from d3rlpy.logger import D3RLPyLogger
 

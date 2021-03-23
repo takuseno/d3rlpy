@@ -1,8 +1,8 @@
 import copy
-
 from unittest.mock import patch
-from d3rlpy.gpu import Device
+
 from d3rlpy.context import parallel
+from d3rlpy.gpu import Device
 
 
 @patch("d3rlpy.gpu.get_gpu_count", return_value=2)

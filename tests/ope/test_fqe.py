@@ -1,12 +1,12 @@
-import pytest
-import numpy as np
-
 from unittest.mock import Mock
-from d3rlpy.ope.fqe import FQE, DiscreteFQE
+
+import numpy as np
+import pytest
+
 from d3rlpy.algos import DDPG, DQN
+from d3rlpy.ope.fqe import FQE, DiscreteFQE
+from tests.algos.algo_test import DummyImpl, algo_update_tester
 from tests.base_test import base_tester
-from tests.algos.algo_test import algo_update_tester
-from tests.algos.algo_test import DummyImpl
 
 
 def ope_tester(ope, observation_shape, action_size=2):

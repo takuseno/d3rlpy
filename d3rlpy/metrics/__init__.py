@@ -1,2 +1,1 @@
-from . import scorer
-from . import comparer
+from . import comparer, scorer

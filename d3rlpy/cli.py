@@ -1,20 +1,19 @@
 # pylint: disable=redefined-builtin,exec-used
 
-import os
-import json
 import glob
-from typing import Any, Dict, List, TYPE_CHECKING, Optional, Sequence, Tuple
+import json
+import os
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple
 
-import numpy as np
 import click
 import gym
+import numpy as np
 from scipy.ndimage.filters import uniform_filter1d
 
 from . import algos
 from ._version import __version__
 from .envs import Monitor
 from .metrics.scorer import evaluate_on_environment
-
 
 if TYPE_CHECKING:
     import matplotlib.pyplot

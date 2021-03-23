@@ -1,15 +1,14 @@
-import os
 import json
+import os
 import time
-
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Iterator
+from typing import Any, Dict, Iterator, List, Optional
 
 import numpy as np
 import structlog
-from typing_extensions import Protocol
 from tensorboardX import SummaryWriter
+from typing_extensions import Protocol
 
 
 class _SaveProtocol(Protocol):

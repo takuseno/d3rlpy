@@ -1,18 +1,20 @@
 import pytest
 
-from d3rlpy.models.encoders import DefaultEncoderFactory
-from d3rlpy.models.q_functions import MeanQFunctionFactory
-from d3rlpy.preprocessing.scalers import MinMaxScaler
-from d3rlpy.preprocessing.action_scalers import MinMaxActionScaler
+from d3rlpy.argument_utility import (
+    check_action_scaler,
+    check_augmentation,
+    check_encoder,
+    check_q_func,
+    check_scaler,
+    check_use_gpu,
+)
 from d3rlpy.augmentation import AugmentationPipeline, RandomShift
 from d3rlpy.augmentation.base import Augmentation
 from d3rlpy.gpu import Device
-from d3rlpy.argument_utility import check_encoder
-from d3rlpy.argument_utility import check_q_func
-from d3rlpy.argument_utility import check_scaler
-from d3rlpy.argument_utility import check_action_scaler
-from d3rlpy.argument_utility import check_augmentation
-from d3rlpy.argument_utility import check_use_gpu
+from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.q_functions import MeanQFunctionFactory
+from d3rlpy.preprocessing.action_scalers import MinMaxActionScaler
+from d3rlpy.preprocessing.scalers import MinMaxScaler
 
 
 @pytest.mark.parametrize("value", ["default", DefaultEncoderFactory()])

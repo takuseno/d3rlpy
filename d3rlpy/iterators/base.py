@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Dict, List, Iterator
+from typing import Dict, Iterator, List
 
 import numpy as np
 

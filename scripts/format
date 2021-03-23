@@ -1,12 +1,16 @@
 #!/bin/bash -ex
 
 if [[ -z $CI ]]; then
+  ISORT_ARG=""
   BLACK_ARG=""
   YAPF_ARG="-i"
 else
+  ISORT_ARG="--check --diff"
   BLACK_ARG="--check"
   YAPF_ARG="-d"
 fi
+
+isort -l 80 --profile black $ISORT_ARG d3rlpy tests
 
 # use black for the better type annotations
 black -l 80 $BLACK_ARG d3rlpy tests

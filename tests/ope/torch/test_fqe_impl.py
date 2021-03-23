@@ -1,12 +1,13 @@
-import pytest
-import numpy as np
 import os
 
-from d3rlpy.ope.torch.fqe_impl import FQEImpl, DiscreteFQEImpl
-from d3rlpy.models.optimizers import AdamFactory
+import numpy as np
+import pytest
+
 from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import create_q_func_factory
-from tests.algos.algo_test import DummyScaler, DummyActionScaler
+from d3rlpy.ope.torch.fqe_impl import DiscreteFQEImpl, FQEImpl
+from tests.algos.algo_test import DummyActionScaler, DummyScaler
 
 
 def torch_impl_tester(impl, discrete):

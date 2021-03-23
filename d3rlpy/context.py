@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import List, Iterator
+from typing import Iterator, List
 
 PARALLEL_FLAG_STACK: List[bool] = [False]
 

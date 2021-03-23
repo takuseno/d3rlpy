@@ -1,6 +1,7 @@
 import pytest
 
 from d3rlpy.dynamics.mopo import MOPO
+
 from .dynamics_test import dynamics_tester, dynamics_update_tester
 
 

@@ -1,9 +1,9 @@
 from typing import Any, ClassVar, Dict, Optional, Tuple, cast
 
+import kornia.augmentation as aug
 import numpy as np
 import torch
 import torch.nn as nn
-import kornia.augmentation as aug
 from kornia.color.hsv import hsv_to_rgb, rgb_to_hsv
 
 from .base import Augmentation

@@ -1,17 +1,17 @@
 from typing import Any, Callable, List, Optional, Union
 
-import numpy as np
 import gym
+import numpy as np
 from tqdm import trange
 from typing_extensions import Protocol
 
 from ..dataset import TransitionMiniBatch
 from ..envs import BatchEnv
-from ..logger import D3RLPyLogger, LOG
-from ..preprocessing import Scaler, ActionScaler
-from ..preprocessing.stack import StackedObservation, BatchStackedObservation
+from ..logger import LOG, D3RLPyLogger
 from ..metrics.scorer import evaluate_on_environment
-from .buffers import Buffer, BatchBuffer
+from ..preprocessing import ActionScaler, Scaler
+from ..preprocessing.stack import BatchStackedObservation, StackedObservation
+from .buffers import BatchBuffer, Buffer
 from .explorers import Explorer
 
 

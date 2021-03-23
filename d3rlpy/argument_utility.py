@@ -1,14 +1,18 @@
 # pylint: disable=unidiomatic-typecheck
 
 from typing import List, Optional, Union, cast
-from .models.encoders import create_encoder_factory, EncoderFactory
-from .models.q_functions import create_q_func_factory, QFunctionFactory
-from .preprocessing.scalers import create_scaler, Scaler
-from .preprocessing.action_scalers import create_action_scaler, ActionScaler
-from .augmentation import create_augmentation, AugmentationPipeline
-from .augmentation import DrQPipeline, Augmentation
-from .gpu import Device
 
+from .augmentation import (
+    Augmentation,
+    AugmentationPipeline,
+    DrQPipeline,
+    create_augmentation,
+)
+from .gpu import Device
+from .models.encoders import EncoderFactory, create_encoder_factory
+from .models.q_functions import QFunctionFactory, create_q_func_factory
+from .preprocessing.action_scalers import ActionScaler, create_action_scaler
+from .preprocessing.scalers import Scaler, create_scaler
 
 EncoderArg = Union[EncoderFactory, str]
 QFuncArg = Union[QFunctionFactory, str]

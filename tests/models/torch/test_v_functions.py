@@ -3,7 +3,8 @@ import torch
 import torch.nn.functional as F
 
 from d3rlpy.models.torch.v_functions import ValueFunction
-from .model_test import check_parameter_updates, DummyEncoder
+
+from .model_test import DummyEncoder, check_parameter_updates
 
 
 @pytest.mark.parametrize("feature_size", [100])

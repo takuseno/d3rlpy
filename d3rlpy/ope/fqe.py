@@ -3,17 +3,23 @@ from typing import Any, List, Optional, Sequence, Union
 import numpy as np
 
 from ..algos import AlgoBase
-from ..argument_utility import check_encoder, EncoderArg
-from ..argument_utility import check_use_gpu, UseGPUArg
-from ..argument_utility import check_q_func, QFuncArg
-from ..argument_utility import ScalerArg, ActionScalerArg
+from ..argument_utility import (
+    ActionScalerArg,
+    EncoderArg,
+    QFuncArg,
+    ScalerArg,
+    UseGPUArg,
+    check_encoder,
+    check_q_func,
+    check_use_gpu,
+)
+from ..constants import ALGO_NOT_GIVEN_ERROR, IMPL_NOT_INITIALIZED_ERROR
 from ..dataset import TransitionMiniBatch
-from ..models.encoders import EncoderFactory
-from ..models.optimizers import OptimizerFactory, AdamFactory
-from ..models.q_functions import QFunctionFactory
 from ..gpu import Device
-from .torch.fqe_impl import FQEBaseImpl, FQEImpl, DiscreteFQEImpl
-from ..constants import IMPL_NOT_INITIALIZED_ERROR, ALGO_NOT_GIVEN_ERROR
+from ..models.encoders import EncoderFactory
+from ..models.optimizers import AdamFactory, OptimizerFactory
+from ..models.q_functions import QFunctionFactory
+from .torch.fqe_impl import DiscreteFQEImpl, FQEBaseImpl, FQEImpl
 
 
 class _FQEBase(AlgoBase):

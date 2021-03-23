@@ -6,27 +6,27 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...augmentation import DrQPipeline
-from ...models.torch import (
-    EnsembleQFunction,
-    EnsembleDiscreteQFunction,
-    EnsembleContinuousQFunction,
-)
-from ...models.builders import (
-    create_continuous_q_function,
-    create_discrete_q_function,
-)
-from ...models.optimizers import OptimizerFactory
-from ...models.encoders import EncoderFactory
-from ...models.q_functions import QFunctionFactory
-from ...preprocessing import Scaler, ActionScaler
-from ...gpu import Device
-from ...torch_utility import torch_api, train_api, hard_sync
+from ...algos.torch.base import TorchImplBase
 from ...algos.torch.utility import (
     ContinuousQFunctionMixin,
     DiscreteQFunctionMixin,
 )
-from ...algos.torch.base import TorchImplBase
+from ...augmentation import DrQPipeline
+from ...gpu import Device
+from ...models.builders import (
+    create_continuous_q_function,
+    create_discrete_q_function,
+)
+from ...models.encoders import EncoderFactory
+from ...models.optimizers import OptimizerFactory
+from ...models.q_functions import QFunctionFactory
+from ...models.torch import (
+    EnsembleContinuousQFunction,
+    EnsembleDiscreteQFunction,
+    EnsembleQFunction,
+)
+from ...preprocessing import ActionScaler, Scaler
+from ...torch_utility import hard_sync, torch_api, train_api
 
 
 class FQEBaseImpl(TorchImplBase):

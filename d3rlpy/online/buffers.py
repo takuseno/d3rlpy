@@ -5,15 +5,14 @@ from typing import (
     Iterator,
     List,
     Optional,
-    TypeVar,
     Sequence,
+    TypeVar,
     cast,
 )
 
-import numpy as np
 import gym
+import numpy as np
 
-from ..envs import BatchEnv
 from ..dataset import (
     Episode,
     MDPDataset,
@@ -21,6 +20,7 @@ from ..dataset import (
     TransitionMiniBatch,
     trace_back_and_clear,
 )
+from ..envs import BatchEnv
 from .utility import get_action_size_from_env
 
 T = TypeVar("T")

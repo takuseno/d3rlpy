@@ -1,8 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from typing import Any, List, Optional, Union
-from typing_extensions import Protocol
 
 import numpy as np
+from typing_extensions import Protocol
 
 
 class _ActionProtocol(Protocol):

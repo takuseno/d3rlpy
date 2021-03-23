@@ -1,8 +1,13 @@
 import pytest
 import torch
 
-from d3rlpy.models.torch.encoders import PixelEncoder, PixelEncoderWithAction
-from d3rlpy.models.torch.encoders import VectorEncoder, VectorEncoderWithAction
+from d3rlpy.models.torch.encoders import (
+    PixelEncoder,
+    PixelEncoderWithAction,
+    VectorEncoder,
+    VectorEncoderWithAction,
+)
+
 from .model_test import check_parameter_updates
 
 

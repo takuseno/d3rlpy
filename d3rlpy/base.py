@@ -1,6 +1,7 @@
 import copy
 import json
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from typing import (
     Any,
     Callable,
@@ -13,38 +14,36 @@ from typing import (
     Tuple,
     Union,
 )
-from collections import defaultdict
 
-import numpy as np
 import gym
+import numpy as np
 from tqdm.auto import tqdm
 
+from .argument_utility import (
+    ActionScalerArg,
+    ScalerArg,
+    UseGPUArg,
+    check_action_scaler,
+    check_scaler,
+)
+from .augmentation import AugmentationPipeline, DrQPipeline, create_augmentation
+from .constants import IMPL_NOT_INITIALIZED_ERROR
+from .context import disable_parallel
+from .dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
+from .gpu import Device
+from .iterators import RoundIterator
+from .logger import LOG, D3RLPyLogger
+from .metrics.scorer import NEGATIVE_SCORERS
+from .models.encoders import EncoderFactory, create_encoder_factory
+from .models.optimizers import OptimizerFactory
+from .models.q_functions import QFunctionFactory, create_q_func_factory
+from .online.utility import get_action_size_from_env
 from .preprocessing import (
-    create_scaler,
+    ActionScaler,
     Scaler,
     create_action_scaler,
-    ActionScaler,
+    create_scaler,
 )
-from .augmentation import create_augmentation, AugmentationPipeline
-from .augmentation import DrQPipeline
-from .dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
-from .logger import D3RLPyLogger, LOG
-from .metrics.scorer import NEGATIVE_SCORERS
-from .context import disable_parallel
-from .gpu import Device
-from .models.optimizers import OptimizerFactory
-from .models.encoders import EncoderFactory, create_encoder_factory
-from .models.q_functions import QFunctionFactory, create_q_func_factory
-from .argument_utility import (
-    check_scaler,
-    ScalerArg,
-    check_action_scaler,
-    ActionScalerArg,
-    UseGPUArg,
-)
-from .online.utility import get_action_size_from_env
-from .iterators import RoundIterator
-from .constants import IMPL_NOT_INITIALIZED_ERROR
 
 
 class ImplBase(metaclass=ABCMeta):

@@ -1,14 +1,18 @@
 import pytest
 
-from d3rlpy.models.torch.encoders import PixelEncoder
-from d3rlpy.models.torch.encoders import PixelEncoderWithAction
-from d3rlpy.models.torch.encoders import VectorEncoder
-from d3rlpy.models.torch.encoders import VectorEncoderWithAction
-from d3rlpy.models.encoders import create_encoder_factory
-from d3rlpy.models.encoders import PixelEncoderFactory
-from d3rlpy.models.encoders import VectorEncoderFactory
-from d3rlpy.models.encoders import DefaultEncoderFactory
-from d3rlpy.models.encoders import DenseEncoderFactory
+from d3rlpy.models.encoders import (
+    DefaultEncoderFactory,
+    DenseEncoderFactory,
+    PixelEncoderFactory,
+    VectorEncoderFactory,
+    create_encoder_factory,
+)
+from d3rlpy.models.torch.encoders import (
+    PixelEncoder,
+    PixelEncoderWithAction,
+    VectorEncoder,
+    VectorEncoderWithAction,
+)
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84)])

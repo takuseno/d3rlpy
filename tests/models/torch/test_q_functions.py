@@ -5,22 +5,25 @@ import torch
 from d3rlpy.models.builders import create_continuous_q_function
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory
-from d3rlpy.models.torch.q_functions import _pick_value_by_action
-from d3rlpy.models.torch.q_functions import _quantile_huber_loss
-from d3rlpy.models.torch.q_functions import _reduce_ensemble
-from d3rlpy.models.torch.q_functions import _reduce_quantile_ensemble
-from d3rlpy.models.torch.q_functions import DiscreteQRQFunction
-from d3rlpy.models.torch.q_functions import ContinuousQRQFunction
-from d3rlpy.models.torch.q_functions import DiscreteIQNQFunction
-from d3rlpy.models.torch.q_functions import ContinuousIQNQFunction
-from d3rlpy.models.torch.q_functions import DiscreteFQFQFunction
-from d3rlpy.models.torch.q_functions import ContinuousFQFQFunction
-from d3rlpy.models.torch.q_functions import DiscreteMeanQFunction
-from d3rlpy.models.torch.q_functions import EnsembleDiscreteQFunction
-from d3rlpy.models.torch.q_functions import ContinuousMeanQFunction
-from d3rlpy.models.torch.q_functions import EnsembleContinuousQFunction
-from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
-from .model_test import check_parameter_updates, DummyEncoder
+from d3rlpy.models.torch.q_functions import (
+    ContinuousFQFQFunction,
+    ContinuousIQNQFunction,
+    ContinuousMeanQFunction,
+    ContinuousQRQFunction,
+    DiscreteFQFQFunction,
+    DiscreteIQNQFunction,
+    DiscreteMeanQFunction,
+    DiscreteQRQFunction,
+    EnsembleContinuousQFunction,
+    EnsembleDiscreteQFunction,
+    _pick_value_by_action,
+    _quantile_huber_loss,
+    _reduce_ensemble,
+    _reduce_quantile_ensemble,
+    compute_max_with_n_actions,
+)
+
+from .model_test import DummyEncoder, check_parameter_updates
 
 
 @pytest.mark.parametrize("batch_size", [32])

@@ -28,6 +28,7 @@ $ ./scripts/test
 ### coding style
 This repository is styled with [black](https://github.com/psf/black) formatter
 (partially styled with [yapf](https://github.com/google/yapf)).
+Also, [isort](https://github.com/PyCQA/isort) is used to format package imports.
 ```
 $ pip install black yapf # formatters
 $ ./scripts/format

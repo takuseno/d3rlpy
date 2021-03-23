@@ -1,11 +1,10 @@
-from typing import Any, List, Tuple, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List, Tuple, Union
 
 import numpy as np
 from gym.spaces import Discrete
 
-from ..dataset import MDPDataset
 from ..algos import AlgoBase
-
+from ..dataset import MDPDataset
 
 if TYPE_CHECKING:
     from stable_baselines3.common.buffers import ReplayBuffer

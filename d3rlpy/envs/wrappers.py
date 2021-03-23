@@ -2,8 +2,8 @@ import json
 import os
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
-import numpy as np
 import gym
+import numpy as np
 
 try:
     import cv2  # this is used in AtariPreprocessing

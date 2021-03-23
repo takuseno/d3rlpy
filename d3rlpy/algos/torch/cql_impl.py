@@ -6,17 +6,17 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
-from ...models.torch import Parameter
-from ...models.builders import create_parameter
-from ...models.optimizers import OptimizerFactory
-from ...models.encoders import EncoderFactory
-from ...models.q_functions import QFunctionFactory
-from ...gpu import Device
 from ...augmentation import AugmentationPipeline
-from ...preprocessing import Scaler, ActionScaler
-from ...torch_utility import torch_api, train_api, augmentation_api
-from .sac_impl import SACImpl
+from ...gpu import Device
+from ...models.builders import create_parameter
+from ...models.encoders import EncoderFactory
+from ...models.optimizers import OptimizerFactory
+from ...models.q_functions import QFunctionFactory
+from ...models.torch import Parameter
+from ...preprocessing import ActionScaler, Scaler
+from ...torch_utility import augmentation_api, torch_api, train_api
 from .dqn_impl import DoubleDQNImpl
+from .sac_impl import SACImpl
 
 
 class CQLImpl(SACImpl):

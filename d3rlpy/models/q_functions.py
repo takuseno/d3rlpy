@@ -1,15 +1,19 @@
 from typing import Any, ClassVar, Dict, Type
-from .torch import Encoder, EncoderWithAction
-from .torch import DiscreteQFunction
-from .torch import ContinuousQFunction
-from .torch import DiscreteMeanQFunction
-from .torch import DiscreteQRQFunction
-from .torch import DiscreteIQNQFunction
-from .torch import DiscreteFQFQFunction
-from .torch import ContinuousMeanQFunction
-from .torch import ContinuousQRQFunction
-from .torch import ContinuousIQNQFunction
-from .torch import ContinuousFQFQFunction
+
+from .torch import (
+    ContinuousFQFQFunction,
+    ContinuousIQNQFunction,
+    ContinuousMeanQFunction,
+    ContinuousQFunction,
+    ContinuousQRQFunction,
+    DiscreteFQFQFunction,
+    DiscreteIQNQFunction,
+    DiscreteMeanQFunction,
+    DiscreteQFunction,
+    DiscreteQRQFunction,
+    Encoder,
+    EncoderWithAction,
+)
 
 
 class QFunctionFactory:

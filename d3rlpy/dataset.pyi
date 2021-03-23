@@ -1,9 +1,9 @@
 # pylint: disable=multiple-statements
 
-from typing import Any, Dict, List, Iterator, Optional, Sequence, Union
-from typing_extensions import Protocol
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
 
 import numpy as np
+from typing_extensions import Protocol
 
 class Transition:
     def __init__(

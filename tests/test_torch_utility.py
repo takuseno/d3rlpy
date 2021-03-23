@@ -1,16 +1,25 @@
-import numpy as np
-import torch
-import pytest
 import copy
-
 from unittest.mock import Mock
-from d3rlpy.torch_utility import soft_sync, hard_sync
-from d3rlpy.torch_utility import set_eval_mode, set_train_mode
-from d3rlpy.torch_utility import freeze, unfreeze
-from d3rlpy.torch_utility import torch_api, train_api, eval_api
-from d3rlpy.torch_utility import augmentation_api
-from d3rlpy.torch_utility import map_location
-from d3rlpy.torch_utility import get_state_dict, set_state_dict
+
+import numpy as np
+import pytest
+import torch
+
+from d3rlpy.torch_utility import (
+    augmentation_api,
+    eval_api,
+    freeze,
+    get_state_dict,
+    hard_sync,
+    map_location,
+    set_eval_mode,
+    set_state_dict,
+    set_train_mode,
+    soft_sync,
+    torch_api,
+    train_api,
+    unfreeze,
+)
 
 
 @pytest.mark.parametrize("tau", [0.05])

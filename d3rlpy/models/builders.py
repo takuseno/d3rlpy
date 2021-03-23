@@ -3,16 +3,24 @@ from typing import Sequence, cast
 import torch
 import torch.nn as nn
 
-from .torch import EnsembleDiscreteQFunction, EnsembleContinuousQFunction
-from .torch import DeterministicPolicy, DeterministicResidualPolicy
-from .torch import SquashedNormalPolicy, CategoricalPolicy
-from .torch import ConditionalVAE, DiscreteImitator
-from .torch import DeterministicRegressor, ProbablisticRegressor
-from .torch import ValueFunction
-from .torch import EnsembleDynamics, ProbablisticDynamics
-from .torch import Parameter
 from .encoders import EncoderFactory
 from .q_functions import QFunctionFactory
+from .torch import (
+    CategoricalPolicy,
+    ConditionalVAE,
+    DeterministicPolicy,
+    DeterministicRegressor,
+    DeterministicResidualPolicy,
+    DiscreteImitator,
+    EnsembleContinuousQFunction,
+    EnsembleDiscreteQFunction,
+    EnsembleDynamics,
+    Parameter,
+    ProbablisticDynamics,
+    ProbablisticRegressor,
+    SquashedNormalPolicy,
+    ValueFunction,
+)
 
 
 def create_discrete_q_function(

@@ -1,7 +1,7 @@
 import pytest
-
-from d4rl_pybullet.envs import OfflineHopperBulletEnv
 from d4rl_atari.offline_env import OfflineEnv
+from d4rl_pybullet.envs import OfflineHopperBulletEnv
+
 from d3rlpy.datasets import get_dataset
 
 

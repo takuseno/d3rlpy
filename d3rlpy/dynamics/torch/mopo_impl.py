@@ -1,15 +1,15 @@
 from typing import Optional, Sequence, Tuple
-from torch.optim import Optimizer
 
 import numpy as np
 import torch
+from torch.optim import Optimizer
 
-from ...models.torch import EnsembleDynamics
-from ...models.builders import create_probablistic_dynamics
-from ...models.optimizers import OptimizerFactory
-from ...models.encoders import EncoderFactory
-from ...preprocessing import Scaler, ActionScaler
 from ...gpu import Device
+from ...models.builders import create_probablistic_dynamics
+from ...models.encoders import EncoderFactory
+from ...models.optimizers import OptimizerFactory
+from ...models.torch import EnsembleDynamics
+from ...preprocessing import ActionScaler, Scaler
 from ...torch_utility import torch_api, train_api
 from .base import TorchImplBase
 

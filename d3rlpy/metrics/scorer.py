@@ -1,12 +1,11 @@
-from typing import Any, Callable, List, Iterator, Tuple, Union, cast
+from typing import Any, Callable, Iterator, List, Tuple, Union, cast
+
+import gym
+import numpy as np
 from typing_extensions import Protocol
 
-import numpy as np
-import gym
-
-from ..preprocessing.stack import StackedObservation
 from ..dataset import Episode, TransitionMiniBatch
-
+from ..preprocessing.stack import StackedObservation
 
 WINDOW_SIZE = 1024
 

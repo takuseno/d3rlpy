@@ -3,12 +3,14 @@ import torch
 import torch.nn.functional as F
 
 from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.torch.imitators import (
+    ConditionalVAE,
+    DeterministicRegressor,
+    DiscreteImitator,
+    ProbablisticRegressor,
+)
 
-from d3rlpy.models.torch.imitators import ConditionalVAE
-from d3rlpy.models.torch.imitators import DiscreteImitator
-from d3rlpy.models.torch.imitators import DeterministicRegressor
-from d3rlpy.models.torch.imitators import ProbablisticRegressor
-from .model_test import check_parameter_updates, DummyEncoder
+from .model_test import DummyEncoder, check_parameter_updates
 
 
 @pytest.mark.parametrize("feature_size", [100])

@@ -1,38 +1,33 @@
-import math
 import copy
+import math
 from typing import Optional, Sequence, Tuple
 
-import torch
 import numpy as np
+import torch
 from torch.optim import Optimizer
 
-from ...models.torch import (
-    SquashedNormalPolicy,
-    CategoricalPolicy,
-    EnsembleDiscreteQFunction,
-    Parameter,
-)
+from ...augmentation import AugmentationPipeline
+from ...gpu import Device
 from ...models.builders import (
-    create_squashed_normal_policy,
     create_categorical_policy,
     create_discrete_q_function,
     create_parameter,
+    create_squashed_normal_policy,
 )
-from ...models.optimizers import OptimizerFactory
 from ...models.encoders import EncoderFactory
+from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
-from ...gpu import Device
-from ...preprocessing import Scaler, ActionScaler
-from ...augmentation import AugmentationPipeline
-from ...torch_utility import (
-    torch_api,
-    train_api,
-    hard_sync,
-    augmentation_api,
+from ...models.torch import (
+    CategoricalPolicy,
+    EnsembleDiscreteQFunction,
+    Parameter,
+    SquashedNormalPolicy,
 )
-from .utility import DiscreteQFunctionMixin
-from .ddpg_impl import DDPGBaseImpl
+from ...preprocessing import ActionScaler, Scaler
+from ...torch_utility import augmentation_api, hard_sync, torch_api, train_api
 from .base import TorchImplBase
+from .ddpg_impl import DDPGBaseImpl
+from .utility import DiscreteQFunctionMixin
 
 
 class SACImpl(DDPGBaseImpl):

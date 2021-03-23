@@ -1,9 +1,12 @@
 import numpy as np
 import pytest
 
-from d3rlpy.metrics.comparer import compare_continuous_action_diff
-from d3rlpy.metrics.comparer import compare_discrete_action_match
 from d3rlpy.dataset import Episode, TransitionMiniBatch
+from d3rlpy.metrics.comparer import (
+    compare_continuous_action_diff,
+    compare_discrete_action_match,
+)
+
 from .test_scorer import DummyAlgo
 
 

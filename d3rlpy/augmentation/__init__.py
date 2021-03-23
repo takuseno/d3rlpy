@@ -1,16 +1,17 @@
 from typing import Any, Dict, Type
+
 from .base import Augmentation
-from .image import RandomShift
-from .image import Cutout
-from .image import HorizontalFlip
-from .image import VerticalFlip
-from .image import RandomRotation
-from .image import Intensity
-from .image import ColorJitter
-from .vector import SingleAmplitudeScaling
-from .vector import MultipleAmplitudeScaling
-from .pipeline import AugmentationPipeline
-from .pipeline import DrQPipeline
+from .image import (
+    ColorJitter,
+    Cutout,
+    HorizontalFlip,
+    Intensity,
+    RandomRotation,
+    RandomShift,
+    VerticalFlip,
+)
+from .pipeline import AugmentationPipeline, DrQPipeline
+from .vector import MultipleAmplitudeScaling, SingleAmplitudeScaling
 
 __all__ = [
     "Augmentation",

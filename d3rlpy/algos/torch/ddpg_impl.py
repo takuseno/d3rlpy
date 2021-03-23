@@ -7,11 +7,7 @@ import torch
 from torch.optim import Optimizer
 
 from ...augmentation import AugmentationPipeline
-from ...models.torch import (
-    EnsembleContinuousQFunction,
-    Policy,
-    DeterministicPolicy,
-)
+from ...gpu import Device
 from ...models.builders import (
     create_continuous_q_function,
     create_deterministic_policy,
@@ -19,16 +15,15 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
-from ...gpu import Device
-from ...preprocessing import Scaler, ActionScaler
-from ...torch_utility import (
-    soft_sync,
-    torch_api,
-    train_api,
-    augmentation_api,
+from ...models.torch import (
+    DeterministicPolicy,
+    EnsembleContinuousQFunction,
+    Policy,
 )
-from .utility import ContinuousQFunctionMixin
+from ...preprocessing import ActionScaler, Scaler
+from ...torch_utility import augmentation_api, soft_sync, torch_api, train_api
 from .base import TorchImplBase
+from .utility import ContinuousQFunctionMixin
 
 
 class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):

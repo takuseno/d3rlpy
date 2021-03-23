@@ -1,9 +1,9 @@
 import gym
 import pytest
-
 from gym.wrappers import AtariPreprocessing
+
 from d3rlpy.algos import DQN
-from d3rlpy.envs.wrappers import ChannelFirst, Atari
+from d3rlpy.envs.wrappers import Atari, ChannelFirst
 
 
 def test_channel_first():

@@ -1,10 +1,10 @@
+import gym
 import numpy as np
 import pytest
-import gym
 
+from d3rlpy.dataset import Episode, TransitionMiniBatch
 from d3rlpy.envs import SyncBatchEnv
-from d3rlpy.online.buffers import ReplayBuffer, BatchReplayBuffer
-from d3rlpy.dataset import TransitionMiniBatch, Episode
+from d3rlpy.online.buffers import BatchReplayBuffer, ReplayBuffer
 
 
 @pytest.mark.parametrize("n_episodes", [10])

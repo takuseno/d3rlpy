@@ -1,8 +1,10 @@
-import pytest
 import numpy as np
+import pytest
 
-from d3rlpy.preprocessing.stack import StackedObservation
-from d3rlpy.preprocessing.stack import BatchStackedObservation
+from d3rlpy.preprocessing.stack import (
+    BatchStackedObservation,
+    StackedObservation,
+)
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84)])

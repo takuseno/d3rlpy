@@ -1,14 +1,14 @@
 from typing import Optional, Tuple, Union
+
+import numpy as np
+import torch
 from typing_extensions import Protocol
 
-import torch
-import numpy as np
-
-from ...torch_utility import eval_api, torch_api
 from ...models.torch import (
-    EnsembleDiscreteQFunction,
     EnsembleContinuousQFunction,
+    EnsembleDiscreteQFunction,
 )
+from ...torch_utility import eval_api, torch_api
 
 
 class _DiscreteQFunctionProtocol(Protocol):

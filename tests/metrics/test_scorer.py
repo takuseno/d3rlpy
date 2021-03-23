@@ -1,23 +1,25 @@
-import numpy as np
-import pytest
-
 from functools import reduce
 from operator import mul
+
+import numpy as np
+import pytest
 from gym import spaces
 
-from d3rlpy.metrics.scorer import td_error_scorer
-from d3rlpy.metrics.scorer import discounted_sum_of_advantage_scorer
-from d3rlpy.metrics.scorer import average_value_estimation_scorer
-from d3rlpy.metrics.scorer import value_estimation_std_scorer
-from d3rlpy.metrics.scorer import initial_state_value_estimation_scorer
-from d3rlpy.metrics.scorer import soft_opc_scorer
-from d3rlpy.metrics.scorer import continuous_action_diff_scorer
-from d3rlpy.metrics.scorer import discrete_action_match_scorer
-from d3rlpy.metrics.scorer import evaluate_on_environment
-from d3rlpy.metrics.scorer import dynamics_observation_prediction_error_scorer
-from d3rlpy.metrics.scorer import dynamics_reward_prediction_error_scorer
-from d3rlpy.metrics.scorer import dynamics_prediction_variance_scorer
 from d3rlpy.dataset import Episode, TransitionMiniBatch
+from d3rlpy.metrics.scorer import (
+    average_value_estimation_scorer,
+    continuous_action_diff_scorer,
+    discounted_sum_of_advantage_scorer,
+    discrete_action_match_scorer,
+    dynamics_observation_prediction_error_scorer,
+    dynamics_prediction_variance_scorer,
+    dynamics_reward_prediction_error_scorer,
+    evaluate_on_environment,
+    initial_state_value_estimation_scorer,
+    soft_opc_scorer,
+    td_error_scorer,
+    value_estimation_std_scorer,
+)
 
 
 # dummy algorithm with deterministic outputs

@@ -5,17 +5,17 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...models.torch import Imitator, DiscreteImitator, DeterministicRegressor
+from ...augmentation import AugmentationPipeline
+from ...gpu import Device
 from ...models.builders import (
     create_deterministic_regressor,
     create_discrete_imitator,
 )
-from ...models.optimizers import OptimizerFactory
 from ...models.encoders import EncoderFactory
-from ...gpu import Device
-from ...preprocessing import Scaler, ActionScaler
-from ...augmentation import AugmentationPipeline
-from ...torch_utility import torch_api, train_api, augmentation_api
+from ...models.optimizers import OptimizerFactory
+from ...models.torch import DeterministicRegressor, DiscreteImitator, Imitator
+from ...preprocessing import ActionScaler, Scaler
+from ...torch_utility import augmentation_api, torch_api, train_api
 from .base import TorchImplBase
 
 

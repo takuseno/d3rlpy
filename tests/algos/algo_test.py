@@ -1,14 +1,15 @@
-import numpy as np
 import os
-import torch
-import gym
-import onnxruntime as ort
-
 from unittest.mock import Mock
-from tests.base_test import base_tester, base_update_tester
+
+import gym
+import numpy as np
+import onnxruntime as ort
+import torch
+
 from d3rlpy.algos.torch.base import TorchImplBase
 from d3rlpy.datasets import get_cartpole, get_pendulum
-from d3rlpy.preprocessing import Scaler, ActionScaler
+from d3rlpy.preprocessing import ActionScaler, Scaler
+from tests.base_test import base_tester, base_update_tester
 
 
 class DummyImpl(TorchImplBase):

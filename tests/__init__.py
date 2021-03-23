@@ -1,6 +1,6 @@
-import pytest
 import os
 
+import pytest
 
 is_skipping_performance_test = os.environ.get("TEST_PERFORMANCE") != "TRUE"
 performance_test = pytest.mark.skipif(

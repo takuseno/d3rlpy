@@ -1,13 +1,15 @@
+import gym
+import numpy as np
 import pytest
 import torch
-import numpy as np
-import gym
 
-from d3rlpy.dataset import MDPDataset, Episode
-from d3rlpy.preprocessing import create_scaler
-from d3rlpy.preprocessing import PixelScaler
-from d3rlpy.preprocessing import MinMaxScaler
-from d3rlpy.preprocessing import StandardScaler
+from d3rlpy.dataset import Episode, MDPDataset
+from d3rlpy.preprocessing import (
+    MinMaxScaler,
+    PixelScaler,
+    StandardScaler,
+    create_scaler,
+)
 
 
 @pytest.mark.parametrize("scaler_type", ["pixel", "min_max", "standard"])

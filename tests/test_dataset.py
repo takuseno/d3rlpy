@@ -1,11 +1,18 @@
+import os
+from collections import deque
+
 import numpy as np
 import pytest
-import os
-
-from collections import deque
 from sklearn.model_selection import train_test_split
-from d3rlpy.dataset import MDPDataset, Episode, Transition, TransitionMiniBatch
-from d3rlpy.dataset import compute_lambda_return, _check_discrete_action
+
+from d3rlpy.dataset import (
+    Episode,
+    MDPDataset,
+    Transition,
+    TransitionMiniBatch,
+    _check_discrete_action,
+    compute_lambda_return,
+)
 
 
 @pytest.mark.parametrize("data_size", [100])

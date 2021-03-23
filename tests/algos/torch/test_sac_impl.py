@@ -1,14 +1,14 @@
 import pytest
 
-from d3rlpy.algos.torch.sac_impl import SACImpl, DiscreteSACImpl
+from d3rlpy.algos.torch.sac_impl import DiscreteSACImpl, SACImpl
 from d3rlpy.augmentation import DrQPipeline
-from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import create_q_func_factory
 from tests.algos.algo_test import (
-    torch_impl_tester,
-    DummyScaler,
     DummyActionScaler,
+    DummyScaler,
+    torch_impl_tester,
 )
 
 
