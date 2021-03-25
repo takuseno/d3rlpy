@@ -57,7 +57,7 @@ always dependent on the tasks.
 
   from d3rlpy.models.encoders import DefaultEncoderFactory
   from d3rlpy.models.q_functions import QRQFunctionFactory
-  from d3rlpy.algos import DQN
+  from d3rlpy.algos import DQN, SAC
 
   # use batch normalization
   # this seems to improve performance with discrete action-spaces
@@ -68,3 +68,9 @@ always dependent on the tasks.
             n_steps=5, # N-step TD backup
             q_func_factory='qr', # use distributional Q function
             augmentation=['color_jitter', 'random_shift'])  # data augmentation
+
+  # use dropout
+  # this will dramatically improve performance
+  encoder = DefaultEncoderFactory(dropout_rate=0.2)
+
+  sac = SAC(actor_encoder_factory=encoder)
