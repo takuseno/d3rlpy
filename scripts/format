@@ -10,6 +10,7 @@ else
   YAPF_ARG="-d"
 fi
 
+# format package imports
 isort -l 80 --profile black $ISORT_ARG d3rlpy tests
 
 # use black for the better type annotations
