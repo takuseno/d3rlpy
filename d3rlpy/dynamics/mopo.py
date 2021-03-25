@@ -117,6 +117,7 @@ class MOPO(DynamicsBase):
             horizon=horizon,
             scaler=scaler,
             action_scaler=action_scaler,
+            kwargs=kwargs,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory

@@ -54,6 +54,7 @@ class _BCBase(AlgoBase):
             scaler=scaler,
             action_scaler=action_scaler,
             generator=generator,
+            kwargs=kwargs,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
@@ -210,7 +211,7 @@ class DiscreteBC(_BCBase):
             augmentation=augmentation,
             generator=generator,
             impl=impl,
-            **kwargs
+            **kwargs,
         )
         self._beta = beta
 

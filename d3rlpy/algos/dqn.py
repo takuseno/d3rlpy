@@ -96,7 +96,7 @@ class DQN(AlgoBase):
         augmentation: AugmentationArg = None,
         generator: Optional[DataGenerator] = None,
         impl: Optional[DQNImpl] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         super().__init__(
             batch_size=batch_size,
@@ -106,6 +106,7 @@ class DQN(AlgoBase):
             scaler=scaler,
             action_scaler=None,
             generator=generator,
+            kwargs=kwargs,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory

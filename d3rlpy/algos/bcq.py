@@ -213,6 +213,7 @@ class BCQ(AlgoBase):
             scaler=scaler,
             action_scaler=action_scaler,
             generator=generator,
+            kwargs=kwargs,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -421,6 +422,7 @@ class DiscreteBCQ(AlgoBase):
             scaler=scaler,
             action_scaler=None,
             generator=generator,
+            kwargs=kwargs,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory

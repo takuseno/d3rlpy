@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import gym
 import numpy as np
@@ -65,14 +65,16 @@ class AlgoBase(LearnableBase):
         scaler: ScalerArg,
         action_scaler: ActionScalerArg,
         generator: Optional[DataGenerator],
+        kwargs: Dict[str, Any],
     ):
         super().__init__(
-            batch_size,
-            n_frames,
-            n_steps,
-            gamma,
-            scaler,
-            action_scaler,
+            batch_size=batch_size,
+            n_frames=n_frames,
+            n_steps=n_steps,
+            gamma=gamma,
+            scaler=scaler,
+            action_scaler=action_scaler,
+            kwargs=kwargs,
         )
         self._generator = generator
 

@@ -184,6 +184,7 @@ class CQL(AlgoBase):
             scaler=scaler,
             action_scaler=action_scaler,
             generator=generator,
+            kwargs=kwargs,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate

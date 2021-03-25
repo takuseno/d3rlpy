@@ -144,6 +144,7 @@ class LearnableBase:
         gamma: float,
         scaler: ScalerArg,
         action_scaler: ActionScalerArg,
+        kwargs: Dict[str, Any],
     ):
         self._batch_size = batch_size
         self._n_frames = n_frames
@@ -156,6 +157,9 @@ class LearnableBase:
         self._eval_results = defaultdict(list)
         self._loss_history = defaultdict(list)
         self._active_logger = None
+
+        if len(kwargs.keys()) > 0:
+            LOG.warning("Unused arguments are passed.", **kwargs)
 
     def __setattr__(self, name: str, value: Any) -> None:
         super().__setattr__(name, value)
@@ -235,10 +239,10 @@ class LearnableBase:
                     setattr(self, key, val)
                 except AttributeError:
                     # try passing to protected keys
-                    if hasattr(self, "_" + key):
-                        setattr(self, "_" + key, val)
+                    assert hasattr(self, "_" + key), f"{key} does not exist."
+                    setattr(self, "_" + key, val)
             else:
-                assert hasattr(self, "_" + key)
+                assert hasattr(self, "_" + key), f"{key} does not exist."
                 setattr(self, "_" + key, val)
         return self
 

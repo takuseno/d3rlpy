@@ -62,6 +62,7 @@ class _FQEBase(AlgoBase):
             scaler=scaler,
             action_scaler=action_scaler,
             generator=None,
+            kwargs=kwargs,
         )
         self._algo = algo
         self._learning_rate = learning_rate

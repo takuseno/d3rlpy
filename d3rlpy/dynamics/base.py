@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -42,8 +42,17 @@ class DynamicsBase(DataGenerator, LearnableBase):
         horizon: int,
         scaler: ScalerArg,
         action_scaler: ActionScalerArg,
+        kwargs: Dict[str, Any],
     ):
-        super().__init__(batch_size, n_frames, 1, 1.0, scaler, action_scaler)
+        super().__init__(
+            batch_size=batch_size,
+            n_frames=n_frames,
+            n_steps=1,
+            gamma=1.0,
+            scaler=scaler,
+            action_scaler=action_scaler,
+            kwargs=kwargs,
+        )
         self._n_transitions = n_transitions
         self._horizon = horizon
         self._impl = None
