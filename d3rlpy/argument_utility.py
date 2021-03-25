@@ -72,7 +72,7 @@ def check_action_scaler(value: ActionScalerArg) -> Optional[ActionScaler]:
     """Checks value and returns Scaler object.
 
     Returns:
-        d3rlpy.preprocessing.scalers.Scaler: scaler object.
+        d3rlpy.preprocessing.action_scalers.ActionScaler: action scaler object.
 
     """
     if isinstance(value, ActionScaler):
