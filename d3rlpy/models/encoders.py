@@ -13,6 +13,7 @@ from typing import (
 
 import torch
 
+from ..decorators import pretty_repr
 from .torch import (
     Encoder,
     EncoderWithAction,
@@ -35,6 +36,7 @@ def _create_activation(
     raise ValueError("invalid activation_type.")
 
 
+@pretty_repr
 class EncoderFactory:
     TYPE: ClassVar[str] = "none"
 

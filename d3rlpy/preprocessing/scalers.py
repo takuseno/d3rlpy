@@ -1,4 +1,3 @@
-from abc import ABCMeta, abstractmethod
 from typing import Any, ClassVar, Dict, List, Optional, Type
 
 import gym
@@ -6,13 +5,14 @@ import numpy as np
 import torch
 
 from ..dataset import Episode, MDPDataset
+from ..decorators import pretty_repr
 
 
-class Scaler(metaclass=ABCMeta):
+@pretty_repr
+class Scaler:
 
     TYPE: ClassVar[str] = "none"
 
-    @abstractmethod
     def fit(self, episodes: List[Episode]) -> None:
         """Estimates scaling parameters from dataset.
 
@@ -20,8 +20,8 @@ class Scaler(metaclass=ABCMeta):
             episodes: list of episodes.
 
         """
+        raise NotImplementedError
 
-    @abstractmethod
     def fit_with_env(self, env: gym.Env) -> None:
         """Gets scaling parameters from environment.
 
@@ -29,8 +29,8 @@ class Scaler(metaclass=ABCMeta):
             env: gym environment.
 
         """
+        raise NotImplementedError
 
-    @abstractmethod
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         """Returns processed observations.
 
@@ -41,8 +41,8 @@ class Scaler(metaclass=ABCMeta):
             processed observation.
 
         """
+        raise NotImplementedError
 
-    @abstractmethod
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         """Returns reversely transformed observations.
 
@@ -53,6 +53,7 @@ class Scaler(metaclass=ABCMeta):
             reversely transformed observation.
 
         """
+        raise NotImplementedError
 
     def get_type(self) -> str:
         """Returns a scaler type.
@@ -63,7 +64,6 @@ class Scaler(metaclass=ABCMeta):
         """
         return self.TYPE
 
-    @abstractmethod
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         """Returns scaling parameters.
 
@@ -74,6 +74,7 @@ class Scaler(metaclass=ABCMeta):
             scaler parameters.
 
         """
+        raise NotImplementedError
 
 
 class PixelScaler(Scaler):

@@ -1,4 +1,3 @@
-from abc import ABCMeta, abstractmethod
 from typing import Any, ClassVar, Dict, List, Optional, Type
 
 import gym
@@ -6,12 +5,13 @@ import numpy as np
 import torch
 
 from ..dataset import Episode, MDPDataset
+from ..decorators import pretty_repr
 
 
-class ActionScaler(metaclass=ABCMeta):
+@pretty_repr
+class ActionScaler:
     TYPE: ClassVar[str] = "none"
 
-    @abstractmethod
     def fit(self, episodes: List[Episode]) -> None:
         """Estimates scaling parameters from dataset.
 
@@ -19,8 +19,8 @@ class ActionScaler(metaclass=ABCMeta):
             episodes: a list of episode objects.
 
         """
+        raise NotImplementedError
 
-    @abstractmethod
     def fit_with_env(self, env: gym.Env) -> None:
         """Gets scaling parameters from environment.
 
@@ -28,8 +28,8 @@ class ActionScaler(metaclass=ABCMeta):
             env: gym environment.
 
         """
+        raise NotImplementedError
 
-    @abstractmethod
     def transform(self, action: torch.Tensor) -> torch.Tensor:
         """Returns processed action.
 
@@ -40,8 +40,8 @@ class ActionScaler(metaclass=ABCMeta):
             processed action.
 
         """
+        raise NotImplementedError
 
-    @abstractmethod
     def reverse_transform(self, action: torch.Tensor) -> torch.Tensor:
         """Returns reversely transformed action.
 
@@ -52,6 +52,7 @@ class ActionScaler(metaclass=ABCMeta):
             reversely transformed action.
 
         """
+        raise NotImplementedError
 
     def get_type(self) -> str:
         """Returns action scaler type.
@@ -62,7 +63,6 @@ class ActionScaler(metaclass=ABCMeta):
         """
         return self.TYPE
 
-    @abstractmethod
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         """Returns action scaler params.
 
@@ -73,6 +73,7 @@ class ActionScaler(metaclass=ABCMeta):
             action scaler parameters.
 
         """
+        raise NotImplementedError
 
 
 class MinMaxActionScaler(ActionScaler):

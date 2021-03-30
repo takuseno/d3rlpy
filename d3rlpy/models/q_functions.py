@@ -1,5 +1,6 @@
 from typing import Any, ClassVar, Dict, Type
 
+from ..decorators import pretty_repr
 from .torch import (
     ContinuousFQFQFunction,
     ContinuousIQNQFunction,
@@ -16,6 +17,7 @@ from .torch import (
 )
 
 
+@pretty_repr
 class QFunctionFactory:
     TYPE: ClassVar[str] = "none"
 

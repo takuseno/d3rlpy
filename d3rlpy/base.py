@@ -30,6 +30,7 @@ from .augmentation import AugmentationPipeline, DrQPipeline, create_augmentation
 from .constants import IMPL_NOT_INITIALIZED_ERROR
 from .context import disable_parallel
 from .dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
+from .decorators import pretty_repr
 from .gpu import Device
 from .iterators import RoundIterator
 from .logger import LOG, D3RLPyLogger
@@ -123,6 +124,7 @@ def _deseriealize_params(params: Dict[str, Any]) -> Dict[str, Any]:
     return params
 
 
+@pretty_repr
 class LearnableBase:
 
     _batch_size: int

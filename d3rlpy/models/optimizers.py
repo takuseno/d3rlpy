@@ -5,7 +5,10 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim import SGD, Adam, Optimizer, RMSprop
 
+from ..decorators import pretty_repr
 
+
+@pretty_repr
 class OptimizerFactory:
     """A factory class that creates an optimizer object in a lazy way.
 

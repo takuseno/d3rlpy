@@ -1,12 +1,13 @@
-from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, Dict, List, Optional
 
 import torch
 
+from ..decorators import pretty_repr
 from .base import Augmentation
 
 
-class AugmentationPipeline(metaclass=ABCMeta):
+@pretty_repr
+class AugmentationPipeline:
     _augmentations: List[Augmentation]
 
     def __init__(self, augmentations: List[Augmentation]):
@@ -42,7 +43,6 @@ class AugmentationPipeline(metaclass=ABCMeta):
         """
         return [aug.get_params() for aug in self._augmentations]
 
-    @abstractmethod
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         """Returns pipeline parameters.
 
@@ -50,6 +50,7 @@ class AugmentationPipeline(metaclass=ABCMeta):
             piple parameters.
 
         """
+        raise NotImplementedError
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         """Returns observation processed by all augmentations.
@@ -69,7 +70,6 @@ class AugmentationPipeline(metaclass=ABCMeta):
 
         return x
 
-    @abstractmethod
     def process(
         self,
         func: Callable[..., torch.Tensor],
@@ -87,6 +87,7 @@ class AugmentationPipeline(metaclass=ABCMeta):
             the computation result.
 
         """
+        raise NotImplementedError
 
     @property
     def augmentations(self) -> List[Augmentation]:

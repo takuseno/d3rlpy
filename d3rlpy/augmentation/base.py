@@ -1,14 +1,15 @@
-from abc import ABCMeta, abstractmethod
 from typing import Any, ClassVar, Dict
 
 import torch
 
+from ..decorators import pretty_repr
 
-class Augmentation(metaclass=ABCMeta):
+
+@pretty_repr
+class Augmentation:
 
     TYPE: ClassVar[str] = "none"
 
-    @abstractmethod
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         """Returns augmented observation.
 
@@ -19,6 +20,7 @@ class Augmentation(metaclass=ABCMeta):
             augmented observation.
 
         """
+        raise NotImplementedError
 
     def get_type(self) -> str:
         """Returns augmentation type.
@@ -29,7 +31,6 @@ class Augmentation(metaclass=ABCMeta):
         """
         return self.TYPE
 
-    @abstractmethod
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         """Returns augmentation parameters.
 
@@ -40,3 +41,4 @@ class Augmentation(metaclass=ABCMeta):
             augmentation parameters.
 
         """
+        raise NotImplementedError
