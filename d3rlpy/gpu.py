@@ -1,14 +1,16 @@
-from typing import Any
+from typing import Any, Dict
 
 import GPUtil
 
 from .context import get_parallel_flag
+from .decorators import pretty_repr
 
 
 def get_gpu_count() -> int:
     return len(GPUtil.getGPUs())
 
 
+@pretty_repr
 class Device:
     """GPU Device class.
 
@@ -65,3 +67,6 @@ class Device:
 
     def __ne__(self, obj: Any) -> bool:
         return not self.__eq__(obj)
+
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
+        return {"idx": self._idx}
