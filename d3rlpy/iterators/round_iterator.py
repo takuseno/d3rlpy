@@ -39,3 +39,6 @@ class RoundIterator(TransitionIterator):
 
     def _has_finished(self) -> bool:
         return self._index >= self.size()
+
+    def __len__(self) -> int:
+        return len(self._transitions) // self._batch_size

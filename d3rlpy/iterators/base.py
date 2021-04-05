@@ -76,8 +76,9 @@ class TransitionIterator(metaclass=ABCMeta):
             raise StopIteration
         return self._next()
 
+    @abstractmethod
     def __len__(self) -> int:
-        return len(self._transitions) // self._batch_size
+        pass
 
     def size(self) -> int:
         return len(self._transitions)

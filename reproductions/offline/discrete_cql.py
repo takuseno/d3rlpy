@@ -31,7 +31,8 @@ def main():
 
     cql.fit(dataset.episodes,
             eval_episodes=test_episodes,
-            n_epochs=2000,
+            n_steps=50000000,
+            n_steps_per_epoch=10000,
             scorers=scorers)
 
 

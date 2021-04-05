@@ -12,7 +12,7 @@ def main():
 
     d3rlpy.seed(args.seed)
 
-    dataset, env = d3rlpy.datasets.get_d4rl(args.dataset)
+    dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
 
     _, test_episodes = train_test_split(dataset, test_size=0.2)
 
@@ -32,7 +32,8 @@ def main():
 
     bcq.fit(dataset.episodes,
             eval_episodes=test_episodes,
-            n_epochs=2000,
+            n_steps=1000000,
+            n_steps_per_epoch=5000,
             scorers=scorers)
 
 

@@ -32,7 +32,7 @@ from .context import disable_parallel
 from .dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
 from .decorators import pretty_repr
 from .gpu import Device
-from .iterators import RoundIterator
+from .iterators import RandomIterator, RoundIterator, TransitionIterator
 from .logger import LOG, D3RLPyLogger
 from .metrics.scorer import NEGATIVE_SCORERS
 from .models.encoders import EncoderFactory, create_encoder_factory
@@ -331,7 +331,9 @@ class LearnableBase:
     def fit(
         self,
         dataset: Union[List[Episode], MDPDataset],
-        n_epochs: int = 1000,
+        n_epochs: Optional[int] = None,
+        n_steps: Optional[int] = None,
+        n_steps_per_epoch: int = 10000,
         save_metrics: bool = True,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
@@ -350,11 +352,14 @@ class LearnableBase:
 
         .. code-block:: python
 
-            algo.fit(episodes)
+            algo.fit(episodes, n_steps=1000000)
 
         Args:
             dataset: list of episodes to train.
             n_epochs: the number of epochs to train.
+            n_steps: the number of steps to train.
+            n_steps_per_epoch: the number of steps per epoch. This value will
+                be ignored when ``n_steps`` is ``None``.
             save_metrics: flag to record metrics in files. If False,
                 the log directory is not created and the model parameters are
                 not saved during training.
@@ -381,6 +386,8 @@ class LearnableBase:
             self.fitter(
                 dataset,
                 n_epochs,
+                n_steps,
+                n_steps_per_epoch,
                 save_metrics,
                 experiment_name,
                 with_timestamp,
@@ -399,7 +406,9 @@ class LearnableBase:
     def fitter(
         self,
         dataset: Union[List[Episode], MDPDataset],
-        n_epochs: int = 1000,
+        n_epochs: Optional[int] = None,
+        n_steps: Optional[int] = None,
+        n_steps_per_epoch: int = 10000,
         save_metrics: bool = True,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
@@ -426,6 +435,9 @@ class LearnableBase:
         Args:
             dataset: list of episodes to train.
             n_epochs: the number of epochs to train.
+            n_steps: the number of steps to train.
+            n_steps_per_epoch: the number of steps per epoch. This value will
+                be ignored when ``n_steps`` is ``None``.
             save_metrics: flag to record metrics in files. If False,
                 the log directory is not created and the model parameters are
                 not saved during training.
@@ -454,14 +466,30 @@ class LearnableBase:
         else:
             episodes = dataset
 
-        iterator = RoundIterator(
-            episodes,
-            batch_size=self._batch_size,
-            n_steps=self._n_steps,
-            gamma=self._gamma,
-            n_frames=self._n_frames,
-            shuffle=shuffle,
-        )
+        iterator: TransitionIterator
+        if n_epochs is None and n_steps is not None:
+            n_epochs = n_steps // n_steps_per_epoch
+            iterator = RandomIterator(
+                episodes,
+                n_steps_per_epoch,
+                batch_size=self._batch_size,
+                n_steps=self._n_steps,
+                gamma=self._gamma,
+                n_frames=self._n_frames,
+            )
+            LOG.info("RandomIterator is selected.")
+        elif n_epochs is not None and n_steps is None:
+            iterator = RoundIterator(
+                episodes,
+                batch_size=self._batch_size,
+                n_steps=self._n_steps,
+                gamma=self._gamma,
+                n_frames=self._n_frames,
+                shuffle=shuffle,
+            )
+            LOG.info("RoundIterator is selected.")
+        else:
+            raise ValueError("Either of n_epochs or n_steps must be given.")
 
         # setup logger
         logger = self._prepare_logger(
