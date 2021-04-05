@@ -477,7 +477,7 @@ class LearnableBase:
                 gamma=self._gamma,
                 n_frames=self._n_frames,
             )
-            LOG.info("RandomIterator is selected.")
+            LOG.debug("RandomIterator is selected.")
         elif n_epochs is not None and n_steps is None:
             iterator = RoundIterator(
                 episodes,
@@ -487,7 +487,7 @@ class LearnableBase:
                 n_frames=self._n_frames,
                 shuffle=shuffle,
             )
-            LOG.info("RoundIterator is selected.")
+            LOG.debug("RoundIterator is selected.")
         else:
             raise ValueError("Either of n_epochs or n_steps must be given.")
 
