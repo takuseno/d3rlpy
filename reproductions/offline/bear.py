@@ -26,7 +26,7 @@ def main():
     bear = d3rlpy.algos.BEAR(imitator_encoder_factory=vae_encoder,
                              temp_learning_rate=0.0,
                              initial_temperature=1e-20,
-                             kernel_type=kernel,
+                             mmd_kernel=kernel,
                              use_gpu=args.gpu)
 
     scorers = {
