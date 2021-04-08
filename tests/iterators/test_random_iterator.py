@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from d3rlpy.dataset import Episode
+from d3rlpy.dataset import Episode, Transition
 from d3rlpy.iterators.random_iterator import RandomIterator
 
 
@@ -11,7 +11,8 @@ from d3rlpy.iterators.random_iterator import RandomIterator
 @pytest.mark.parametrize("observation_size", [10])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
-@pytest.mark.parametrize("set_ephemeral", [False, True])
+@pytest.mark.parametrize("real_ratio", [0.5])
+@pytest.mark.parametrize("generated_maxlen", [10])
 def test_random_iterator(
     episode_size,
     n_steps_per_epoch,
@@ -19,7 +20,8 @@ def test_random_iterator(
     observation_size,
     action_size,
     batch_size,
-    set_ephemeral,
+    real_ratio,
+    generated_maxlen,
 ):
     episodes = []
     for _ in range(n_episodes):
@@ -27,25 +29,58 @@ def test_random_iterator(
         actions = np.random.random((episode_size, action_size))
         rewards = np.random.random(episode_size)
         episode = Episode(
-            (observation_size,), action_size, observations, actions, rewards
+            (observation_size,),
+            action_size,
+            observations,
+            actions,
+            rewards,
+            terminal=False,
         )
         episodes.append(episode)
 
-    iterator = RandomIterator(episodes, n_steps_per_epoch, batch_size)
+    iterator = RandomIterator(
+        episodes,
+        n_steps_per_epoch,
+        batch_size,
+        real_ratio=real_ratio,
+        generated_maxlen=generated_maxlen,
+    )
 
-    if set_ephemeral:
-        iterator.set_ephemeral_transitions(episodes[0].transitions)
-
+    # check without generated transitions
     count = 0
     for batch in iterator:
         assert batch.observations.shape == (batch_size, observation_size)
         assert batch.actions.shape == (batch_size, action_size)
         assert batch.rewards.shape == (batch_size, 1)
         count += 1
+    assert count == n_steps_per_epoch
+    assert len(iterator) == n_steps_per_epoch
 
-    if set_ephemeral:
-        assert count == n_steps_per_epoch
-        assert len(iterator) == n_steps_per_epoch
-    else:
-        assert count == n_steps_per_epoch
-        assert len(iterator) == n_steps_per_epoch
+    # check adding generated transitions
+    transitions = []
+    for _ in range(episode_size):
+        transition = Transition(
+            (observation_size,),
+            action_size,
+            np.random.random(observation_size),
+            np.random.random(action_size),
+            np.random.random(),
+            np.random.random(observation_size),
+            np.random.random(action_size),
+            np.random.random(),
+            terminal=True,
+        )
+        transitions.append(transition)
+    iterator.add_generated_transitions(transitions)
+    assert len(iterator.generated_transitions) == generated_maxlen
+
+    # check with generated transitions
+    count = 0
+    for batch in iterator:
+        assert batch.observations.shape == (batch_size, observation_size)
+        assert batch.actions.shape == (batch_size, action_size)
+        assert batch.rewards.shape == (batch_size, 1)
+        assert batch.terminals.sum() == int(batch_size * (1 - real_ratio))
+        count += 1
+    assert count == n_steps_per_epoch
+    assert len(iterator) == n_steps_per_epoch

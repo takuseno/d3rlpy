@@ -19,15 +19,25 @@ class RoundIterator(TransitionIterator):
         n_steps: int = 1,
         gamma: float = 0.99,
         n_frames: int = 1,
+        real_ratio: float = 1.0,
+        generated_maxlen: int = 100000,
         shuffle: bool = True,
     ):
-        super().__init__(episodes, batch_size, n_steps, gamma, n_frames)
+        super().__init__(
+            episodes=episodes,
+            batch_size=batch_size,
+            n_steps=n_steps,
+            gamma=gamma,
+            n_frames=n_frames,
+            real_ratio=real_ratio,
+            generated_maxlen=generated_maxlen,
+        )
         self._shuffle = shuffle
-        self._indices = np.arange(self.size())
+        self._indices = np.arange(len(self._transitions))
         self._index = 0
 
     def _reset(self) -> None:
-        self._indices = np.arange(self.size())
+        self._indices = np.arange(len(self._transitions))
         if self._shuffle:
             np.random.shuffle(self._indices)
         self._index = 0
@@ -38,7 +48,7 @@ class RoundIterator(TransitionIterator):
         return transition
 
     def _has_finished(self) -> bool:
-        return self._index >= self.size()
+        return self._index >= len(self._transitions)
 
     def __len__(self) -> int:
-        return len(self._transitions) // self._batch_size
+        return len(self._transitions) // self._real_batch_size

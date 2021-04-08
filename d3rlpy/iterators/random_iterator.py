@@ -9,8 +9,6 @@ from .base import TransitionIterator
 class RandomIterator(TransitionIterator):
 
     _n_steps_per_epoch: int
-    _n_samples_per_epoch: int
-    _index: int
 
     def __init__(
         self,
@@ -20,23 +18,30 @@ class RandomIterator(TransitionIterator):
         n_steps: int = 1,
         gamma: float = 0.99,
         n_frames: int = 1,
+        real_ratio: float = 1.0,
+        generated_maxlen: int = 100000,
     ):
-        super().__init__(episodes, batch_size, n_steps, gamma, n_frames)
+        super().__init__(
+            episodes=episodes,
+            batch_size=batch_size,
+            n_steps=n_steps,
+            gamma=gamma,
+            n_frames=n_frames,
+            real_ratio=real_ratio,
+            generated_maxlen=generated_maxlen,
+        )
         self._n_steps_per_epoch = n_steps_per_epoch
-        self._n_samples_per_epoch = batch_size * n_steps_per_epoch
-        self._index = 0
 
     def _reset(self) -> None:
-        self._index = 0
+        pass
 
     def _next(self) -> Transition:
-        index = cast(int, np.random.randint(self.size()))
+        index = cast(int, np.random.randint(len(self._transitions)))
         transition = self._transitions[index]
-        self._index += 1
         return transition
 
     def _has_finished(self) -> bool:
-        return self._index >= self._n_samples_per_epoch
+        return self._count >= self._n_steps_per_epoch
 
     def __len__(self) -> int:
         return self._n_steps_per_epoch

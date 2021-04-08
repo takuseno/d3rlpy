@@ -26,6 +26,7 @@ def test_fifo_queue(maxlen):
 @pytest.mark.parametrize("maxlen", [100])
 def test_fifo_queue_with_drop_callback(maxlen):
     count = 0
+
     def callback(value):
         assert value == count - 100
 
