@@ -19,7 +19,7 @@ from ..gpu import Device
 from ..models.encoders import EncoderFactory
 from ..models.optimizers import AdamFactory, OptimizerFactory
 from ..models.q_functions import QFunctionFactory
-from .base import AlgoBase, DataGenerator
+from .base import AlgoBase
 from .torch.bear_impl import BEARImpl
 
 
@@ -117,8 +117,6 @@ class BEAR(AlgoBase):
             action preprocessor. The avaiable options are ``['min_max']``.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
-            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.bear_impl.BEARImpl): algorithm implementation.
 
     """
@@ -186,7 +184,6 @@ class BEAR(AlgoBase):
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
         augmentation: AugmentationArg = None,
-        generator: Optional[DataGenerator] = None,
         impl: Optional[BEARImpl] = None,
         **kwargs: Any
     ):
@@ -197,7 +194,6 @@ class BEAR(AlgoBase):
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,
-            generator=generator,
             kwargs=kwargs,
         )
         self._actor_learning_rate = actor_learning_rate

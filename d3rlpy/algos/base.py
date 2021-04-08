@@ -1,13 +1,11 @@
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import gym
 import numpy as np
 
-from ..argument_utility import ActionScalerArg, ScalerArg
 from ..base import ImplBase, LearnableBase
 from ..constants import IMPL_NOT_INITIALIZED_ERROR
-from ..dataset import Transition
 from ..envs import BatchEnv
 from ..online.buffers import (
     BatchBuffer,
@@ -44,39 +42,9 @@ class AlgoImplBase(ImplBase):
         pass
 
 
-class DataGenerator:
-    def generate(
-        self, algo: "AlgoBase", transitions: List[Transition]
-    ) -> List[Transition]:
-        pass
-
-
 class AlgoBase(LearnableBase):
 
-    _generator: Optional[DataGenerator]
     _impl: Optional[AlgoImplBase]
-
-    def __init__(
-        self,
-        batch_size: int,
-        n_frames: int,
-        n_steps: int,
-        gamma: float,
-        scaler: ScalerArg,
-        action_scaler: ActionScalerArg,
-        generator: Optional[DataGenerator],
-        kwargs: Dict[str, Any],
-    ):
-        super().__init__(
-            batch_size=batch_size,
-            n_frames=n_frames,
-            n_steps=n_steps,
-            gamma=gamma,
-            scaler=scaler,
-            action_scaler=action_scaler,
-            kwargs=kwargs,
-        )
-        self._generator = generator
 
     def save_policy(self, fname: str, as_onnx: bool = False) -> None:
         """Save the greedy-policy computational graph as TorchScript or ONNX.
@@ -343,11 +311,3 @@ class AlgoBase(LearnableBase):
             tensorboard_dir=tensorboard_dir,
             timelimit_aware=timelimit_aware,
         )
-
-    def _generate_new_data(
-        self, transitions: List[Transition]
-    ) -> List[Transition]:
-        new_data = []
-        if self._generator:
-            new_data += self._generator.generate(self, transitions)
-        return new_data

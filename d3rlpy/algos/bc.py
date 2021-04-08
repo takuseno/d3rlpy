@@ -18,7 +18,7 @@ from ..dataset import TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
 from ..models.optimizers import AdamFactory, OptimizerFactory
-from .base import AlgoBase, DataGenerator
+from .base import AlgoBase
 from .torch.bc_impl import BCBaseImpl, BCImpl, DiscreteBCImpl
 
 
@@ -42,7 +42,6 @@ class _BCBase(AlgoBase):
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
         augmentation: AugmentationArg = None,
-        generator: Optional[DataGenerator] = None,
         impl: Optional[BCBaseImpl] = None,
         **kwargs: Any
     ):
@@ -53,7 +52,6 @@ class _BCBase(AlgoBase):
             gamma=1.0,
             scaler=scaler,
             action_scaler=action_scaler,
-            generator=generator,
             kwargs=kwargs,
         )
         self._learning_rate = learning_rate
@@ -117,8 +115,6 @@ class BC(_BCBase):
             action scaler. The available options are ``['min_max']``.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
-            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.bc_impl.BCImpl):
             implemenation of the algorithm.
 
@@ -174,8 +170,6 @@ class DiscreteBC(_BCBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
-            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
             implemenation of the algorithm.
 
@@ -196,7 +190,6 @@ class DiscreteBC(_BCBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        generator: Optional[DataGenerator] = None,
         impl: Optional[DiscreteBCImpl] = None,
         **kwargs: Any
     ):
@@ -209,7 +202,6 @@ class DiscreteBC(_BCBase):
             use_gpu=use_gpu,
             scaler=scaler,
             augmentation=augmentation,
-            generator=generator,
             impl=impl,
             **kwargs,
         )

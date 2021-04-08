@@ -18,7 +18,7 @@ from ..dataset import TransitionMiniBatch, compute_lambda_return
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
 from ..models.optimizers import OptimizerFactory, SGDFactory
-from .base import AlgoBase, DataGenerator
+from .base import AlgoBase
 from .torch.awr_impl import AWRBaseImpl, AWRImpl, DiscreteAWRImpl
 
 
@@ -62,7 +62,6 @@ class _AWRBase(AlgoBase):
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
         augmentation: AugmentationArg = None,
-        generator: Optional[DataGenerator] = None,
         impl: Optional[AWRImpl] = None,
         **kwargs: Any
     ):
@@ -74,7 +73,6 @@ class _AWRBase(AlgoBase):
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,
-            generator=generator,
             kwargs=kwargs,
         )
         self._actor_learning_rate = actor_learning_rate
@@ -242,8 +240,6 @@ class AWR(_AWRBase):
             action preprocessor. The available options are ``['min_max']``.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
-            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.awr_impl.AWRImpl): algorithm implementation.
 
     """
@@ -326,8 +322,6 @@ class DiscreteAWR(_AWRBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
-            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.awr_impl.DiscreteAWRImpl):
             algorithm implementation.
 

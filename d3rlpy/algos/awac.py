@@ -19,7 +19,7 @@ from ..gpu import Device
 from ..models.encoders import EncoderFactory
 from ..models.optimizers import AdamFactory, OptimizerFactory
 from ..models.q_functions import QFunctionFactory
-from .base import AlgoBase, DataGenerator
+from .base import AlgoBase
 from .torch.awac_impl import AWACImpl
 
 
@@ -83,8 +83,6 @@ class AWAC(AlgoBase):
             action preprocessor. The available options are ``['min_max']``.
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
-            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.awac_impl.AWACImpl): algorithm implementation.
 
     """
@@ -132,7 +130,6 @@ class AWAC(AlgoBase):
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
         augmentation: AugmentationArg = None,
-        generator: Optional[DataGenerator] = None,
         impl: Optional[AWACImpl] = None,
         **kwargs: Any
     ):
@@ -143,7 +140,6 @@ class AWAC(AlgoBase):
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,
-            generator=generator,
             kwargs=kwargs,
         )
         self._actor_learning_rate = actor_learning_rate

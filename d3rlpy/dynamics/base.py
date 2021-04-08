@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-from ..algos import AlgoBase, DataGenerator
+from ..algos import AlgoBase
 from ..argument_utility import ActionScalerArg, ScalerArg
 from ..base import ImplBase, LearnableBase
 from ..constants import IMPL_NOT_INITIALIZED_ERROR
@@ -28,7 +28,7 @@ class DynamicsImplBase(ImplBase):
         pass
 
 
-class DynamicsBase(DataGenerator, LearnableBase):
+class DynamicsBase(LearnableBase):
 
     _n_transitions: int
     _horizon: int

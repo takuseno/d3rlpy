@@ -18,7 +18,7 @@ from ..gpu import Device
 from ..models.encoders import EncoderFactory
 from ..models.optimizers import AdamFactory, OptimizerFactory
 from ..models.q_functions import QFunctionFactory
-from .base import AlgoBase, DataGenerator
+from .base import AlgoBase
 from .torch.dqn_impl import DoubleDQNImpl, DQNImpl
 
 
@@ -60,8 +60,6 @@ class DQN(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
-            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.dqn_impl.DQNImpl): algorithm implementation.
 
     """
@@ -94,7 +92,6 @@ class DQN(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         augmentation: AugmentationArg = None,
-        generator: Optional[DataGenerator] = None,
         impl: Optional[DQNImpl] = None,
         **kwargs: Any,
     ):
@@ -105,7 +102,6 @@ class DQN(AlgoBase):
             gamma=gamma,
             scaler=scaler,
             action_scaler=None,
-            generator=generator,
             kwargs=kwargs,
         )
         self._learning_rate = learning_rate
@@ -204,8 +200,6 @@ class DoubleDQN(DQN):
             The available options are `['pixel', 'min_max', 'standard']`
         augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
             augmentation pipeline.
-        generator (d3rlpy.algos.base.DataGenerator): dynamic dataset generator
-            (e.g. model-based RL).
         impl (d3rlpy.algos.torch.dqn_impl.DoubleDQNImpl):
             algorithm implementation.
 
