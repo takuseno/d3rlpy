@@ -5,25 +5,25 @@ import torch
 from torch.optim import Optimizer
 
 from ...gpu import Device
-from ...models.builders import create_probablistic_dynamics
+from ...models.builders import create_probabilistic_ensemble_dynamics_model
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
-from ...models.torch import EnsembleDynamics
+from ...models.torch import ProbabilisticEnsembleDynamicsModel
 from ...preprocessing import ActionScaler, Scaler
 from ...torch_utility import torch_api, train_api
 from .base import TorchImplBase
 
 
-class MOPOImpl(TorchImplBase):
+class ProbabilisticEnsembleDynamicsImpl(TorchImplBase):
 
     _learning_rate: float
     _optim_factory: OptimizerFactory
     _encoder_factory: EncoderFactory
     _n_ensembles: int
-    _lam: float
+    _variance_type: str
     _discrete_action: bool
     _use_gpu: Optional[Device]
-    _dynamics: Optional[EnsembleDynamics]
+    _dynamics: Optional[ProbabilisticEnsembleDynamicsModel]
     _optim: Optional[Optimizer]
 
     def __init__(
@@ -34,7 +34,7 @@ class MOPOImpl(TorchImplBase):
         optim_factory: OptimizerFactory,
         encoder_factory: EncoderFactory,
         n_ensembles: int,
-        lam: float,
+        variance_type: str,
         discrete_action: bool,
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
@@ -45,7 +45,7 @@ class MOPOImpl(TorchImplBase):
         self._optim_factory = optim_factory
         self._encoder_factory = encoder_factory
         self._n_ensembles = n_ensembles
-        self._lam = lam
+        self._variance_type = variance_type
         self._discrete_action = discrete_action
         self._use_gpu = use_gpu
 
@@ -63,7 +63,7 @@ class MOPOImpl(TorchImplBase):
         self._build_optim()
 
     def _build_dynamics(self) -> None:
-        self._dynamics = create_probablistic_dynamics(
+        self._dynamics = create_probabilistic_ensemble_dynamics_model(
             self._observation_shape,
             self._action_size,
             self._encoder_factory,
@@ -81,16 +81,9 @@ class MOPOImpl(TorchImplBase):
         self, x: torch.Tensor, action: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         assert self._dynamics is not None
-        return self._dynamics.predict_with_variance(x, action, "max")
-
-    def _generate(
-        self, x: torch.Tensor, action: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        assert self._dynamics is not None
-        observations, rewards, variances = self._dynamics.predict_with_variance(
-            x, action, "max"
+        return self._dynamics.predict_with_variance(
+            x, action, self._variance_type
         )
-        return observations, rewards - self._lam * variances
 
     @train_api
     @torch_api(

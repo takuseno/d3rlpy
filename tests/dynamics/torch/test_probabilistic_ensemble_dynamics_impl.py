@@ -1,6 +1,8 @@
 import pytest
 
-from d3rlpy.dynamics.torch.mopo_impl import MOPOImpl
+from d3rlpy.dynamics.torch.probabilistic_ensemble_dynamics_impl import (
+    ProbabilisticEnsembleDynamicsImpl,
+)
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
 from tests.algos.algo_test import DummyActionScaler, DummyScaler
@@ -13,30 +15,30 @@ from tests.dynamics.dynamics_test import torch_impl_tester
 @pytest.mark.parametrize("optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize("n_ensembles", [5])
-@pytest.mark.parametrize("lam", [1.0])
+@pytest.mark.parametrize("variance_type", ["max"])
 @pytest.mark.parametrize("discrete_action", [False, True])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
-def test_mopo_impl(
+def test_probabilistic_ensemble_dynamics_impl(
     observation_shape,
     action_size,
     learning_rate,
     optim_factory,
     encoder_factory,
     n_ensembles,
-    lam,
+    variance_type,
     discrete_action,
     scaler,
     action_scaler,
 ):
-    impl = MOPOImpl(
+    impl = ProbabilisticEnsembleDynamicsImpl(
         observation_shape=observation_shape,
         action_size=action_size,
         learning_rate=learning_rate,
         optim_factory=optim_factory,
         encoder_factory=encoder_factory,
         n_ensembles=n_ensembles,
-        lam=lam,
+        variance_type=variance_type,
         discrete_action=discrete_action,
         use_gpu=None,
         scaler=scaler,

@@ -50,17 +50,6 @@ class DummyImpl(TorchImplBase):
         return self._scaler
 
 
-class DummyAlgo:
-    def __init__(self, action_size, discrete_action):
-        self.action_size = action_size
-        self.discrete_action = discrete_action
-
-    def sample_action(self, x):
-        if self.discrete_action:
-            return np.random.randint(0, self.action_size, size=x.shape[0])
-        return np.random.random((x.shape[0], self.action_size))
-
-
 def dynamics_tester(dynamics, observation_shape, action_size=2):
     # dummy impl object
     impl = DummyImpl(observation_shape, action_size)
@@ -93,12 +82,6 @@ def dynamics_update_tester(
         dynamics, observation_shape, action_size, discrete
     )
 
-    # dummy algo
-    algo = DummyAlgo(action_size, discrete)
-
-    new_transitions = dynamics.generate(algo, transitions)
-    assert len(new_transitions) == dynamics.horizon * dynamics.n_transitions
-
 
 def impl_tester(impl, discrete):
     observations = np.random.random((100,) + impl.observation_shape)
@@ -112,11 +95,6 @@ def impl_tester(impl, discrete):
     assert y.shape == (100,) + impl.observation_shape
     assert rewards.shape == (100, 1)
     assert variance.shape == (100, 1)
-
-    # check generate
-    y, rewards = impl.generate(observations, actions)
-    assert y.shape == (100,) + impl.observation_shape
-    assert rewards.shape == (100, 1)
 
 
 def torch_impl_tester(impl, discrete):

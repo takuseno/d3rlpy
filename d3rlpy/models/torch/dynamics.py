@@ -20,7 +20,7 @@ def _compute_ensemble_variance(
     elif variance_type == "data":
         data = torch.cat([observations, rewards], dim=2)
         return (data.std(dim=1) ** 2).sum(dim=1, keepdim=True)
-    raise ValueError("invalid variance_type.")
+    raise ValueError(f"invalid variance_type: {variance_type}")
 
 
 def _apply_spectral_norm_recursively(model: nn.Module) -> None:
@@ -39,8 +39,8 @@ def _gaussian_likelihood(
     return (((mu - x) ** 2) * inv_std).mean(dim=1, keepdim=True)
 
 
-class ProbablisticDynamics(nn.Module):  # type: ignore
-    """Probablistic dynamics model.
+class ProbabilisticDynamicsModel(nn.Module):  # type: ignore
+    """Probabilistic dynamics model.
 
     References:
         * `Janner et al., When to Trust Your Model: Model-Based Policy
@@ -139,10 +139,10 @@ class ProbablisticDynamics(nn.Module):  # type: ignore
         return loss.view(-1, 1)
 
 
-class EnsembleDynamics(nn.Module):  # type: ignore
+class ProbabilisticEnsembleDynamicsModel(nn.Module):  # type: ignore
     _models: nn.ModuleList
 
-    def __init__(self, models: List[ProbablisticDynamics]):
+    def __init__(self, models: List[ProbabilisticDynamicsModel]):
         super().__init__()
         self._models = nn.ModuleList(models)
 

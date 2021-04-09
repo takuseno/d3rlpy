@@ -62,27 +62,6 @@ class TorchImplBase(DynamicsImplBase):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         pass
 
-    @eval_api
-    @torch_api(scaler_targets=["x"], action_scaler_targets=["action"])
-    def generate(
-        self, x: torch.Tensor, action: torch.Tensor
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        with torch.no_grad():
-            observation, reward = self._generate(x, action)
-
-            if self._scaler:
-                observation = self._scaler.reverse_transform(observation)
-
-        observation = observation.cpu().detach().numpy()
-        reward = reward.cpu().detach().numpy()
-        return observation, reward
-
-    @abstractmethod
-    def _generate(
-        self, x: torch.Tensor, action: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        pass
-
     def to_gpu(self, device: Device = Device()) -> None:
         self._device = "cuda:%d" % device.get_id()
         to_cuda(self, self._device)

@@ -1,4 +1,7 @@
-from .dynamics import EnsembleDynamics, ProbablisticDynamics
+from .dynamics import (
+    ProbabilisticDynamicsModel,
+    ProbabilisticEnsembleDynamicsModel,
+)
 from .encoders import (
     Encoder,
     EncoderWithAction,
@@ -76,7 +79,7 @@ __all__ = [
     "DiscreteImitator",
     "DeterministicRegressor",
     "ProbablisticRegressor",
-    "EnsembleDynamics",
-    "ProbablisticDynamics",
+    "ProbabilisticEnsembleDynamicsModel",
+    "ProbabilisticDynamicsModel",
     "Parameter",
 ]
