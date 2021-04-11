@@ -1,4 +1,4 @@
-from typing import List, Tuple, cast
+from typing import List, Optional, Tuple, cast
 
 import torch
 import torch.nn as nn
@@ -147,19 +147,30 @@ class ProbabilisticEnsembleDynamicsModel(nn.Module):  # type: ignore
         self._models = nn.ModuleList(models)
 
     def forward(
-        self, x: torch.Tensor, action: torch.Tensor
+        self,
+        x: torch.Tensor,
+        action: torch.Tensor,
+        indices: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.predict_with_variance(x, action)[:2]
+        return self.predict_with_variance(x, action, indices=indices)[:2]
 
     def __call__(
-        self, x: torch.Tensor, action: torch.Tensor
+        self,
+        x: torch.Tensor,
+        action: torch.Tensor,
+        indices: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         return cast(
-            Tuple[torch.Tensor, torch.Tensor], super().__call__(x, action)
+            Tuple[torch.Tensor, torch.Tensor],
+            super().__call__(x, action, indices),
         )
 
     def predict_with_variance(
-        self, x: torch.Tensor, action: torch.Tensor, variance_type: str = "data"
+        self,
+        x: torch.Tensor,
+        action: torch.Tensor,
+        variance_type: str = "data",
+        indices: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         observations_list: List[torch.Tensor] = []
         rewards_list: List[torch.Tensor] = []
@@ -172,20 +183,25 @@ class ProbabilisticEnsembleDynamicsModel(nn.Module):  # type: ignore
             rewards_list.append(rew.view(1, x.shape[0], 1))
             variances_list.append(var.view(1, x.shape[0], 1))
 
-        all_observations = torch.cat(observations_list, dim=0).transpose(0, 1)
-        all_rewards = torch.cat(rewards_list, dim=0).transpose(0, 1)
+        # (ensemble, batch, -1) -> (batch, ensemble, -1)
+        observations = torch.cat(observations_list, dim=0).transpose(0, 1)
+        rewards = torch.cat(rewards_list, dim=0).transpose(0, 1)
         variances = torch.cat(variances_list, dim=0).transpose(0, 1)
 
-        # uniformly sample from ensemble outputs
-        indices = torch.randint(0, len(self._models), size=(x.shape[0],))
-        observations = all_observations[torch.arange(x.shape[0]), indices]
-        rewards = all_rewards[torch.arange(x.shape[0]), indices]
-
         variances = _compute_ensemble_variance(
-            all_observations, all_rewards, variances, variance_type
+            observations=observations,
+            rewards=rewards,
+            variances=variances,
+            variance_type=variance_type,
         )
 
-        return observations, rewards, variances
+        if indices is None:
+            return observations, rewards, variances
+
+        # pick samples based on indices
+        partial_observations = observations[torch.arange(x.shape[0]), indices]
+        partial_rewards = rewards[torch.arange(x.shape[0]), indices]
+        return partial_observations, partial_rewards, variances
 
     def compute_error(
         self,

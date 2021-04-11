@@ -78,11 +78,21 @@ class ProbabilisticEnsembleDynamicsImpl(TorchImplBase):
         )
 
     def _predict(
-        self, x: torch.Tensor, action: torch.Tensor
+        self,
+        x: torch.Tensor,
+        action: torch.Tensor,
+        indices: Optional[torch.Tensor],
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         assert self._dynamics is not None
+        if indices is None:
+            indices = torch.randint(self._n_ensembles, size=(x.shape[0],))
+        else:
+            assert indices.shape == (x.shape[0],)
         return self._dynamics.predict_with_variance(
-            x, action, self._variance_type
+            x,
+            action,
+            variance_type=self._variance_type,
+            indices=indices.long(),
         )
 
     @train_api

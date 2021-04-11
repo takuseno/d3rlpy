@@ -45,4 +45,4 @@ def test_probabilistic_ensemble_dynamics_impl(
         action_scaler=action_scaler if not discrete_action else None,
     )
     impl.build()
-    torch_impl_tester(impl, discrete=discrete_action)
+    torch_impl_tester(impl, discrete=discrete_action, n_ensembles=n_ensembles)

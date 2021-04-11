@@ -68,7 +68,6 @@ def dynamics_tester(dynamics, observation_shape, action_size=2):
     y, reward = dynamics.predict(x, action)
     assert y == ref_y
     assert reward == ref_reward
-    impl.predict.assert_called_with(x, action)
 
     # check with_variance
     y, reward, variance = dynamics.predict(x, action, with_variance=True)
@@ -83,22 +82,29 @@ def dynamics_update_tester(
     )
 
 
-def impl_tester(impl, discrete):
+def impl_tester(impl, discrete, n_ensembles):
     observations = np.random.random((100,) + impl.observation_shape)
     if discrete:
         actions = np.random.randint(impl.action_size, size=100)
     else:
         actions = np.random.random((100, impl.action_size))
 
-    # check predict
-    y, rewards, variance = impl.predict(observations, actions)
+    # check predict without indices
+    y, rewards, variance = impl.predict(observations, actions, None)
+    assert y.shape == (100,) + impl.observation_shape
+    assert rewards.shape == (100, 1)
+    assert variance.shape == (100, 1)
+
+    # check predict with indices
+    indices = np.random.randint(n_ensembles, size=100)
+    y, rewards, variance = impl.predict(observations, actions, indices)
     assert y.shape == (100,) + impl.observation_shape
     assert rewards.shape == (100, 1)
     assert variance.shape == (100, 1)
 
 
-def torch_impl_tester(impl, discrete):
-    impl_tester(impl, discrete)
+def torch_impl_tester(impl, discrete, n_ensembles):
+    impl_tester(impl, discrete, n_ensembles)
 
     # check save_model and load_model
     impl.save_model(os.path.join("test_data", "model.pt"))

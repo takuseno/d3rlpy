@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Optional, Sequence, Tuple
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -42,10 +42,13 @@ class TorchImplBase(DynamicsImplBase):
     @eval_api
     @torch_api(scaler_targets=["x"], action_scaler_targets=["action"])
     def predict(
-        self, x: torch.Tensor, action: torch.Tensor
+        self,
+        x: torch.Tensor,
+        action: torch.Tensor,
+        indices: torch.Tensor,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         with torch.no_grad():
-            observation, reward, variance = self._predict(x, action)
+            observation, reward, variance = self._predict(x, action, indices)
 
             if self._scaler:
                 observation = self._scaler.reverse_transform(observation)
@@ -58,7 +61,10 @@ class TorchImplBase(DynamicsImplBase):
 
     @abstractmethod
     def _predict(
-        self, x: torch.Tensor, action: torch.Tensor
+        self,
+        x: torch.Tensor,
+        action: torch.Tensor,
+        indices: Optional[torch.Tensor],
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         pass
 

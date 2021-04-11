@@ -14,6 +14,7 @@ class DynamicsImplBase(ImplBase):
         self,
         x: Union[np.ndarray, List[Any]],
         action: Union[np.ndarray, List[Any]],
+        indices: Optional[np.ndarray],
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         pass
 
@@ -46,6 +47,7 @@ class DynamicsBase(LearnableBase):
         x: Union[np.ndarray, List[Any]],
         action: Union[np.ndarray, List[Any]],
         with_variance: bool = False,
+        indices: Optional[np.ndarray] = None,
     ) -> Union[
         Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]
     ]:
@@ -55,13 +57,18 @@ class DynamicsBase(LearnableBase):
             x: observation
             action: action
             with_variance: flag to return prediction variance.
+            indices: index of ensemble model to return.
 
         Returns:
             tuple of predicted observation and reward.
 
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        observations, rewards, variances = self._impl.predict(x, action)
+        observations, rewards, variances = self._impl.predict(
+            x=x,
+            action=action,
+            indices=indices,
+        )
         if with_variance:
             return observations, rewards, variances
         return observations, rewards
