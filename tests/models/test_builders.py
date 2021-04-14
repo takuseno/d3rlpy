@@ -12,14 +12,14 @@ from d3rlpy.models.builders import (
     create_discrete_imitator,
     create_discrete_q_function,
     create_parameter,
-    create_probablistic_dynamics,
+    create_probabilistic_ensemble_dynamics_model,
     create_probablistic_regressor,
     create_squashed_normal_policy,
     create_value_function,
 )
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory
-from d3rlpy.models.torch.dynamics import EnsembleDynamics
+from d3rlpy.models.torch.dynamics import ProbabilisticEnsembleDynamicsModel
 from d3rlpy.models.torch.imitators import (
     ConditionalVAE,
     DeterministicRegressor,
@@ -309,7 +309,7 @@ def test_create_value_function(observation_shape, encoder_factory, batch_size):
 @pytest.mark.parametrize("n_ensembles", [5])
 @pytest.mark.parametrize("discrete_action", [False, True])
 @pytest.mark.parametrize("batch_size", [32])
-def test_create_probablistic_dynamics(
+def test_create_probabilistic_ensemble_dynamics_model(
     observation_shape,
     action_size,
     encoder_factory,
@@ -317,7 +317,7 @@ def test_create_probablistic_dynamics(
     discrete_action,
     batch_size,
 ):
-    dynamics = create_probablistic_dynamics(
+    dynamics = create_probabilistic_ensemble_dynamics_model(
         observation_shape,
         action_size,
         encoder_factory,
@@ -325,15 +325,16 @@ def test_create_probablistic_dynamics(
         discrete_action,
     )
 
-    assert isinstance(dynamics, EnsembleDynamics)
+    assert isinstance(dynamics, ProbabilisticEnsembleDynamicsModel)
     assert len(dynamics.models) == n_ensembles
 
     x = torch.rand((batch_size,) + observation_shape)
+    indices = torch.randint(n_ensembles, size=(batch_size,))
     if discrete_action:
         action = torch.randint(0, action_size, size=(batch_size, 1))
     else:
         action = torch.rand(batch_size, action_size)
-    observation, reward = dynamics(x, action)
+    observation, reward = dynamics(x, action, indices)
     assert observation.shape == (batch_size,) + observation_shape
     assert reward.shape == (batch_size, 1)
 

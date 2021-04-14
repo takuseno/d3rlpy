@@ -14,9 +14,9 @@ from .torch import (
     DiscreteImitator,
     EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
-    EnsembleDynamics,
     Parameter,
-    ProbablisticDynamics,
+    ProbabilisticDynamicsModel,
+    ProbabilisticEnsembleDynamicsModel,
     ProbablisticRegressor,
     SquashedNormalPolicy,
     ValueFunction,
@@ -170,13 +170,13 @@ def create_value_function(
     return ValueFunction(encoder)
 
 
-def create_probablistic_dynamics(
+def create_probabilistic_ensemble_dynamics_model(
     observation_shape: Sequence[int],
     action_size: int,
     encoder_factory: EncoderFactory,
     n_ensembles: int = 5,
     discrete_action: bool = False,
-) -> EnsembleDynamics:
+) -> ProbabilisticEnsembleDynamicsModel:
     models = []
     for _ in range(n_ensembles):
         encoder = encoder_factory.create_with_action(
@@ -184,9 +184,9 @@ def create_probablistic_dynamics(
             action_size=action_size,
             discrete_action=discrete_action,
         )
-        model = ProbablisticDynamics(encoder)
+        model = ProbabilisticDynamicsModel(encoder)
         models.append(model)
-    return EnsembleDynamics(models)
+    return ProbabilisticEnsembleDynamicsModel(models)
 
 
 def create_parameter(shape: Sequence[int], initial_value: float) -> Parameter:

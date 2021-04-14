@@ -1,4 +1,4 @@
 from .base import DynamicsBase
-from .mopo import MOPO
+from .probabilistic_ensemble_dynamics import ProbabilisticEnsembleDynamics
 
-__all__ = ["DynamicsBase", "MOPO"]
+__all__ = ["DynamicsBase", "ProbabilisticEnsembleDynamics"]

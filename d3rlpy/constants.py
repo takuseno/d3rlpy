@@ -7,5 +7,10 @@ IMPL_NOT_INITIALIZED_ERROR = (
 
 ALGO_NOT_GIVEN_ERROR = (
     "The algorithm to evaluate is not given. Please give the trained algorithm"
-    "to the argument."
+    " to the argument."
+)
+
+DYNAMICS_NOT_GIVEN_ERROR = (
+    "The dynamics to generate transitions is not given. Please give the trained"
+    " dynamics to the argument."
 )

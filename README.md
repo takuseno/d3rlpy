@@ -91,6 +91,7 @@ $ pip install -e .
 | [Advantage Weighted Actor-Critic (AWAC)](https://arxiv.org/abs/2006.09359) | :no_entry: | :white_check_mark: | :white_check_mark: |
 | [Critic Reguralized Regression (CRR)](https://arxiv.org/abs/2006.15134) | :no_entry: | :white_check_mark: | :white_check_mark: |
 | [Policy in Latent Action Space (PLAS)](https://arxiv.org/abs/2011.07213) | :no_entry: | :white_check_mark: | :white_check_mark: |
+| [Model-based Offline Policy Optimization (MOPO)](https://arxiv.org/abs/2005.13239) | :no_entry: | :white_check_mark: | :white_check_mark: |
 
 ## supported Q functions
 - [x] standard Q function
@@ -104,7 +105,6 @@ Basically, all features are available with every algorithm.
 - [x] evaluation metrics in a scikit-learn scorer function style
 - [x] export greedy-policy as TorchScript or ONNX
 - [x] parallel cross validation with multiple GPU
-- [x] [model-based algorithm](https://arxiv.org/abs/2005.13239)
 
 ## examples
 ### MuJoCo

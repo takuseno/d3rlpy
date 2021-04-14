@@ -133,6 +133,8 @@ class LearnableBase:
     _gamma: float
     _scaler: Optional[Scaler]
     _action_scaler: Optional[ActionScaler]
+    _real_ratio: float
+    _generated_maxlen: int
     _impl: Optional[ImplBase]
     _eval_results: DefaultDict[str, List[float]]
     _loss_history: DefaultDict[str, List[float]]
@@ -146,7 +148,9 @@ class LearnableBase:
         gamma: float,
         scaler: ScalerArg,
         action_scaler: ActionScalerArg,
-        kwargs: Dict[str, Any],
+        real_ratio: float = 1.0,
+        generated_maxlen: int = 100000,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         self._batch_size = batch_size
         self._n_frames = n_frames
@@ -154,13 +158,15 @@ class LearnableBase:
         self._gamma = gamma
         self._scaler = check_scaler(scaler)
         self._action_scaler = check_action_scaler(action_scaler)
+        self._real_ratio = real_ratio
+        self._generated_maxlen = generated_maxlen
 
         self._impl = None
         self._eval_results = defaultdict(list)
         self._loss_history = defaultdict(list)
         self._active_logger = None
 
-        if len(kwargs.keys()) > 0:
+        if kwargs and len(kwargs.keys()) > 0:
             LOG.warning("Unused arguments are passed.", **kwargs)
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -476,6 +482,8 @@ class LearnableBase:
                 n_steps=self._n_steps,
                 gamma=self._gamma,
                 n_frames=self._n_frames,
+                real_ratio=self._real_ratio,
+                generated_maxlen=self._generated_maxlen,
             )
             LOG.debug("RandomIterator is selected.")
         elif n_epochs is not None and n_steps is None:
@@ -485,6 +493,8 @@ class LearnableBase:
                 n_steps=self._n_steps,
                 gamma=self._gamma,
                 n_frames=self._n_frames,
+                real_ratio=self._real_ratio,
+                generated_maxlen=self._generated_maxlen,
                 shuffle=shuffle,
             )
             LOG.debug("RoundIterator is selected.")
@@ -541,11 +551,6 @@ class LearnableBase:
         total_step = 0
         for epoch in range(1, n_epochs + 1):
 
-            # data augmentation
-            new_transitions = self._generate_new_data(iterator.transitions)
-            if new_transitions:
-                iterator.set_ephemeral_transitions(new_transitions)
-
             # dict to add incremental mean losses to epoch
             epoch_loss = defaultdict(list)
 
@@ -558,6 +563,19 @@ class LearnableBase:
             iterator.reset()
 
             for itr in range_gen:
+
+                # generate new transitions with dynamics models
+                new_transitions = self.generate_new_data(
+                    epoch=epoch,
+                    total_step=total_step,
+                    transitions=iterator.transitions,
+                )
+                if new_transitions:
+                    iterator.add_generated_transitions(new_transitions)
+                    LOG.debug(
+                        f"{len(new_transitions)} transitions are generated."
+                    )
+
                 with logger.measure_time("step"):
                     # pick transitions
                     with logger.measure_time("sample_batch"):
@@ -678,14 +696,16 @@ class LearnableBase:
         """
         raise NotImplementedError
 
-    def _generate_new_data(
-        self, transitions: List[Transition]
+    def generate_new_data(
+        self, epoch: int, total_step: int, transitions: List[Transition]
     ) -> Optional[List[Transition]]:
         """Returns generated transitions for data augmentation.
 
-        This method is called at the beginning of every epoch.
+        This method is for model-based RL algorithms.
 
         Args:
+            epoch: the current epoch.
+            total_step: the total update steps.
             transitions: list of transitions.
 
         Returns:

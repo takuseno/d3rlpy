@@ -61,7 +61,6 @@ class _FQEBase(AlgoBase):
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,
-            generator=None,
             kwargs=kwargs,
         )
         self._algo = algo

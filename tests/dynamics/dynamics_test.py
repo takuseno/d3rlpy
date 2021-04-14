@@ -50,40 +50,29 @@ class DummyImpl(TorchImplBase):
         return self._scaler
 
 
-class DummyAlgo:
-    def __init__(self, action_size, discrete_action):
-        self.action_size = action_size
-        self.discrete_action = discrete_action
-
-    def sample_action(self, x):
-        if self.discrete_action:
-            return np.random.randint(0, self.action_size, size=x.shape[0])
-        return np.random.random((x.shape[0], self.action_size))
-
-
-def dynamics_tester(dynamics, observation_shape, action_size=2):
+def dynamics_tester(
+    dynamics, observation_shape, action_size=2, discrete_action=False
+):
     # dummy impl object
     impl = DummyImpl(observation_shape, action_size)
 
     base_tester(dynamics, impl, observation_shape, action_size)
 
-    dynamics._impl = impl
+    dynamics.create_impl(observation_shape, action_size)
 
     # check predict
-    x = np.random.random((2, 3)).tolist()
-    action = np.random.random((2, 3)).tolist()
-    ref_y = np.random.random((2, 3)).tolist()
-    ref_reward = np.random.random((2, 1)).tolist()
-    ref_variance = np.random.random((2, 1)).tolist()
-    impl.predict = Mock(return_value=(ref_y, ref_reward, ref_variance))
+    x = np.random.random((2, *observation_shape))
+    if discrete_action:
+        action = np.random.randint(action_size, size=2)
+    else:
+        action = np.random.random((2, action_size))
     y, reward = dynamics.predict(x, action)
-    assert y == ref_y
-    assert reward == ref_reward
-    impl.predict.assert_called_with(x, action)
+    assert y.shape == (2, *observation_shape)
+    assert reward.shape == (2, 1)
 
     # check with_variance
     y, reward, variance = dynamics.predict(x, action, with_variance=True)
-    assert variance == ref_variance
+    assert variance.shape == (2, 1)
 
 
 def dynamics_update_tester(
@@ -93,34 +82,30 @@ def dynamics_update_tester(
         dynamics, observation_shape, action_size, discrete
     )
 
-    # dummy algo
-    algo = DummyAlgo(action_size, discrete)
 
-    new_transitions = dynamics.generate(algo, transitions)
-    assert len(new_transitions) == dynamics.horizon * dynamics.n_transitions
-
-
-def impl_tester(impl, discrete):
+def impl_tester(impl, discrete, n_ensembles):
     observations = np.random.random((100,) + impl.observation_shape)
     if discrete:
         actions = np.random.randint(impl.action_size, size=100)
     else:
         actions = np.random.random((100, impl.action_size))
 
-    # check predict
-    y, rewards, variance = impl.predict(observations, actions)
+    # check predict without indices
+    y, rewards, variance = impl.predict(observations, actions, None)
     assert y.shape == (100,) + impl.observation_shape
     assert rewards.shape == (100, 1)
     assert variance.shape == (100, 1)
 
-    # check generate
-    y, rewards = impl.generate(observations, actions)
+    # check predict with indices
+    indices = np.random.randint(n_ensembles, size=100)
+    y, rewards, variance = impl.predict(observations, actions, indices)
     assert y.shape == (100,) + impl.observation_shape
     assert rewards.shape == (100, 1)
+    assert variance.shape == (100, 1)
 
 
-def torch_impl_tester(impl, discrete):
-    impl_tester(impl, discrete)
+def torch_impl_tester(impl, discrete, n_ensembles):
+    impl_tester(impl, discrete, n_ensembles)
 
     # check save_model and load_model
     impl.save_model(os.path.join("test_data", "model.pt"))

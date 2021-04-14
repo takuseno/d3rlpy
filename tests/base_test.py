@@ -47,7 +47,9 @@ def base_tester(model, impl, observation_shape, action_size=2):
     n_episodes = 4
     episode_length = 25
     n_batch = 32
-    n_epochs = 3
+    n_steps = 10
+    n_steps_per_epoch = 5
+    n_epochs = n_steps // n_steps_per_epoch
     data_size = n_episodes * episode_length
     model._batch_size = n_batch
     shape = (data_size,) + observation_shape
@@ -65,7 +67,8 @@ def base_tester(model, impl, observation_shape, action_size=2):
     # check fit
     results = model.fit(
         dataset.episodes,
-        n_epochs=n_epochs,
+        n_steps=n_steps,
+        n_steps_per_epoch=n_steps_per_epoch,
         logdir="test_data",
         verbose=False,
         show_progress=False,
@@ -75,11 +78,11 @@ def base_tester(model, impl, observation_shape, action_size=2):
     assert len(results) == n_epochs
 
     # check if the correct number of iterations are performed
-    assert len(model.update.call_args_list) == data_size // n_batch * n_epochs
+    assert len(model.update.call_args_list) == n_steps
 
     # check arguments at each iteration
     for i, call in enumerate(model.update.call_args_list):
-        epoch = i // (data_size // n_batch)
+        epoch = i // n_steps_per_epoch
         total_step = i
         assert call[0][0] == epoch + 1
         assert call[0][1] == total_step
@@ -89,7 +92,8 @@ def base_tester(model, impl, observation_shape, action_size=2):
     # check fitter
     fitter = model.fitter(
         dataset.episodes,
-        n_epochs=n_epochs,
+        n_steps=n_steps,
+        n_steps_per_epoch=n_steps_per_epoch,
         logdir="test_data",
         verbose=False,
         show_progress=False,
