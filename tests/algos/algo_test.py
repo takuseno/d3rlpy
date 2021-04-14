@@ -31,13 +31,13 @@ class DummyImpl(TorchImplBase):
         pass
 
     def predict_best_action(self, x):
-        pass
+        return np.random.random((x.shape[0], self._action_size))
 
     def predict_value(self, x, action, with_std):
         pass
 
     def sample_action(self, x):
-        pass
+        return np.random.random((x.shape[0], self._action_size))
 
     @property
     def observation_shape(self):

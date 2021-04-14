@@ -565,7 +565,7 @@ class LearnableBase:
             for itr in range_gen:
 
                 # generate new transitions with dynamics models
-                new_transitions = self._generate_new_data(
+                new_transitions = self.generate_new_data(
                     epoch=epoch,
                     total_step=total_step,
                     transitions=iterator.transitions,
@@ -696,12 +696,12 @@ class LearnableBase:
         """
         raise NotImplementedError
 
-    def _generate_new_data(
+    def generate_new_data(
         self, epoch: int, total_step: int, transitions: List[Transition]
     ) -> Optional[List[Transition]]:
         """Returns generated transitions for data augmentation.
 
-        This method is called at the beginning of every epoch.
+        This method is for model-based RL algorithms.
 
         Args:
             epoch: the current epoch.

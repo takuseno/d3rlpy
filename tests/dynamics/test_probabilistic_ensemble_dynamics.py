@@ -21,7 +21,7 @@ def test_probabilistic_ensemble_dynamics(
         action_scaler=action_scaler,
         discrete_action=discrete_action,
     )
-    dynamics_tester(dynamics, observation_shape, action_size)
+    dynamics_tester(dynamics, observation_shape, action_size, discrete_action)
     dynamics_update_tester(
         dynamics, observation_shape, action_size, discrete_action
     )

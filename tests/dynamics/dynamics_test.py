@@ -50,28 +50,29 @@ class DummyImpl(TorchImplBase):
         return self._scaler
 
 
-def dynamics_tester(dynamics, observation_shape, action_size=2):
+def dynamics_tester(
+    dynamics, observation_shape, action_size=2, discrete_action=False
+):
     # dummy impl object
     impl = DummyImpl(observation_shape, action_size)
 
     base_tester(dynamics, impl, observation_shape, action_size)
 
-    dynamics._impl = impl
+    dynamics.create_impl(observation_shape, action_size)
 
     # check predict
-    x = np.random.random((2, 3)).tolist()
-    action = np.random.random((2, 3)).tolist()
-    ref_y = np.random.random((2, 3)).tolist()
-    ref_reward = np.random.random((2, 1)).tolist()
-    ref_variance = np.random.random((2, 1)).tolist()
-    impl.predict = Mock(return_value=(ref_y, ref_reward, ref_variance))
+    x = np.random.random((2, *observation_shape))
+    if discrete_action:
+        action = np.random.randint(action_size, size=2)
+    else:
+        action = np.random.random((2, action_size))
     y, reward = dynamics.predict(x, action)
-    assert y == ref_y
-    assert reward == ref_reward
+    assert y.shape == (2, *observation_shape)
+    assert reward.shape == (2, 1)
 
     # check with_variance
     y, reward, variance = dynamics.predict(x, action, with_variance=True)
-    assert variance == ref_variance
+    assert variance.shape == (2, 1)
 
 
 def dynamics_update_tester(

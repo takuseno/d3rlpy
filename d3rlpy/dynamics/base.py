@@ -60,14 +60,15 @@ class DynamicsBase(LearnableBase):
             indices: index of ensemble model to return.
 
         Returns:
-            tuple of predicted observation and reward.
+            tuple of predicted observation and reward. If ``with_variance`` is
+            ``True``, the prediction variance will be added as the 3rd element.
 
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         observations, rewards, variances = self._impl.predict(
-            x=x,
-            action=action,
-            indices=indices,
+            x,
+            action,
+            indices,
         )
         if with_variance:
             return observations, rewards, variances
