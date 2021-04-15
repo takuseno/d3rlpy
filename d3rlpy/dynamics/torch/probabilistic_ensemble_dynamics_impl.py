@@ -105,11 +105,18 @@ class ProbabilisticEnsembleDynamicsImpl(TorchImplBase):
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         obs_tp1: torch.Tensor,
+        masks: Optional[torch.Tensor],
     ) -> np.ndarray:
         assert self._dynamics is not None
         assert self._optim is not None
 
-        loss = self._dynamics.compute_error(obs_t, act_t, rew_tp1, obs_tp1)
+        loss = self._dynamics.compute_error(
+            obs_t=obs_t,
+            act_t=act_t,
+            rew_tp1=rew_tp1,
+            obs_tp1=obs_tp1,
+            masks=masks,
+        )
 
         self._optim.zero_grad()
         loss.backward()

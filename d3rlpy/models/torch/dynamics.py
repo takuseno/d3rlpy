@@ -209,13 +209,19 @@ class ProbabilisticEnsembleDynamicsModel(nn.Module):  # type: ignore
         act_t: torch.Tensor,
         rew_tp1: torch.Tensor,
         obs_tp1: torch.Tensor,
+        masks: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         loss_sum = torch.tensor(0.0, dtype=torch.float32, device=obs_t.device)
-        for model in self._models:
-            # bootstrapping
+        for i, model in enumerate(self._models):
             loss = model.compute_error(obs_t, act_t, rew_tp1, obs_tp1)
             assert loss.shape == (obs_t.shape[0], 1)
-            mask = torch.randint(0, 2, size=loss.shape, device=obs_t.device)
+
+            # create mask if necessary
+            if masks is None:
+                mask = torch.randint(0, 2, size=loss.shape, device=obs_t.device)
+            else:
+                mask = masks[i]
+
             loss_sum += (loss * mask).mean()
 
         return loss_sum

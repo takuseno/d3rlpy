@@ -133,6 +133,7 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
             batch.actions,
             batch.next_rewards,
             batch.next_observations,
+            batch.masks,
         )
         return [loss]
 
