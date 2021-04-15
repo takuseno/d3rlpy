@@ -8,7 +8,7 @@ def pretty_repr(cls: Type[T]) -> Type[T]:
 
     def _repr(self: T) -> str:
         pairs = []
-        for k, v in self.get_params().items():  # type: ignore
+        for k, v in self.get_params(deep=False).items():  # type: ignore
             if isinstance(v, str):
                 pairs.append(f"{k}='{v}'")
             else:
