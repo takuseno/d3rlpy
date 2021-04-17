@@ -1,9 +1,12 @@
 from abc import ABCMeta, abstractmethod
-from typing import Callable, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from ...itertools import last_flag
+from ...torch_utility import View
 
 
 class Encoder(metaclass=ABCMeta):
@@ -22,6 +25,13 @@ class Encoder(metaclass=ABCMeta):
     @abstractmethod
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         pass
+
+    def reverse(self) -> Sequence[torch.nn.Module]:
+        raise NotImplementedError
+
+    @property
+    def last_layer(self) -> nn.Linear:
+        raise NotImplementedError
 
 
 class EncoderWithAction(metaclass=ABCMeta):
@@ -45,6 +55,13 @@ class EncoderWithAction(metaclass=ABCMeta):
     def __call__(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         pass
 
+    def reverse(self) -> Sequence[torch.nn.Module]:
+        raise NotImplementedError
+
+    @property
+    def last_layer(self) -> nn.Linear:
+        raise NotImplementedError
+
 
 class _PixelEncoder(nn.Module):  # type: ignore
 
@@ -52,7 +69,7 @@ class _PixelEncoder(nn.Module):  # type: ignore
     _feature_size: int
     _use_batch_norm: bool
     _dropout_rate: Optional[float]
-    _activation: Callable[[torch.Tensor], torch.Tensor]
+    _activation: nn.Module
     _convs: nn.ModuleList
     _conv_bns: nn.ModuleList
     _fc: nn.Linear
@@ -66,7 +83,7 @@ class _PixelEncoder(nn.Module):  # type: ignore
         feature_size: int = 512,
         use_batch_norm: bool = False,
         dropout_rate: Optional[float] = False,
-        activation: Callable[[torch.Tensor], torch.Tensor] = torch.relu,
+        activation: nn.Module = nn.ReLU(),
     ):
         super().__init__()
 
@@ -79,7 +96,7 @@ class _PixelEncoder(nn.Module):  # type: ignore
         self._observation_shape = observation_shape
         self._use_batch_norm = use_batch_norm
         self._dropout_rate = dropout_rate
-        self._activation = activation  # type: ignore
+        self._activation = activation
         self._feature_size = feature_size
 
         # convolutional layers
@@ -114,10 +131,15 @@ class _PixelEncoder(nn.Module):  # type: ignore
         with torch.no_grad():
             return self._conv_encode(x).view(1, -1).shape[1]  # type: ignore
 
+    def _get_last_conv_shape(self) -> Sequence[int]:
+        x = torch.rand((1,) + tuple(self._observation_shape))
+        with torch.no_grad():
+            return self._conv_encode(x).shape  # type: ignore
+
     def _conv_encode(self, x: torch.Tensor) -> torch.Tensor:
         h = x
         for i in range(len(self._convs)):
-            h = self._activation(self._convs[i](h))  # type: ignore
+            h = self._activation(self._convs[i](h))
             if self._use_batch_norm:
                 h = self._conv_bns[i](h)
             if self._dropout_rate is not None:
@@ -131,18 +153,47 @@ class _PixelEncoder(nn.Module):  # type: ignore
     def observation_shape(self) -> Sequence[int]:
         return self._observation_shape
 
+    @property
+    def last_layer(self) -> nn.Linear:
+        return self._fc
+
 
 class PixelEncoder(_PixelEncoder, Encoder):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self._conv_encode(x)
 
-        h = self._activation(self._fc(h.view(h.shape[0], -1)))  # type: ignore
+        h = self._activation(self._fc(h.view(h.shape[0], -1)))
         if self._use_batch_norm:
             h = self._fc_bn(h)
         if self._dropout_rate is not None:
             h = self._dropouts[-1](h)
 
         return h
+
+    def reverse(self) -> Sequence[torch.nn.Module]:
+        modules: List[torch.nn.Module] = []
+
+        # add linear layer
+        modules.append(nn.Linear(self.get_feature_size(), self._fc.in_features))
+        modules.append(self._activation)
+
+        # reshape output
+        modules.append(View((-1, *self._get_last_conv_shape()[1:])))
+
+        # add conv layers
+        for is_last, conv in last_flag(reversed(self._convs)):
+            deconv = nn.ConvTranspose2d(
+                conv.out_channels,
+                conv.in_channels,
+                kernel_size=conv.kernel_size,
+                stride=conv.stride,
+            )
+            modules.append(deconv)
+
+            if not is_last:
+                modules.append(self._activation)
+
+        return modules
 
 
 class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
@@ -159,7 +210,7 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
         use_batch_norm: bool = False,
         dropout_rate: Optional[float] = None,
         discrete_action: bool = False,
-        activation: Callable[[torch.Tensor], torch.Tensor] = torch.relu,
+        activation: nn.Module = nn.ReLU(),
     ):
         self._action_size = action_size
         self._discrete_action = discrete_action
@@ -186,7 +237,7 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
 
         # cocat feature and action
         h = torch.cat([h.view(h.shape[0], -1), action], dim=1)
-        h = self._activation(self._fc(h))  # type: ignore
+        h = self._activation(self._fc(h))
         if self._use_batch_norm:
             h = self._fc_bn(h)
         if self._dropout_rate is not None:
@@ -198,6 +249,32 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
     def action_size(self) -> int:
         return self._action_size
 
+    def reverse(self) -> Sequence[torch.nn.Module]:
+        modules: List[torch.nn.Module] = []
+
+        # add linear layer
+        in_features = self._fc.in_features - self._action_size
+        modules.append(nn.Linear(self.get_feature_size(), in_features))
+        modules.append(self._activation)
+
+        # reshape output
+        modules.append(View((-1, *self._get_last_conv_shape()[1:])))
+
+        # add conv layers
+        for is_last, conv in last_flag(reversed(self._convs)):
+            deconv = nn.ConvTranspose2d(
+                conv.out_channels,
+                conv.in_channels,
+                kernel_size=conv.kernel_size,
+                stride=conv.stride,
+            )
+            modules.append(deconv)
+
+            if not is_last:
+                modules.append(self._activation)
+
+        return modules
+
 
 class _VectorEncoder(nn.Module):  # type: ignore
 
@@ -205,7 +282,7 @@ class _VectorEncoder(nn.Module):  # type: ignore
     _use_batch_norm: bool
     _dropout_rate: Optional[float]
     _use_dense: bool
-    _activation: Callable[[torch.Tensor], torch.Tensor]
+    _activation: nn.Module
     _feature_size: int
     _fcs: nn.ModuleList
     _bns: nn.ModuleList
@@ -218,7 +295,7 @@ class _VectorEncoder(nn.Module):  # type: ignore
         use_batch_norm: bool = False,
         dropout_rate: Optional[float] = None,
         use_dense: bool = False,
-        activation: Callable[[torch.Tensor], torch.Tensor] = torch.relu,
+        activation: nn.Module = nn.ReLU(),
     ):
         super().__init__()
         self._observation_shape = observation_shape
@@ -229,7 +306,7 @@ class _VectorEncoder(nn.Module):  # type: ignore
         self._use_batch_norm = use_batch_norm
         self._dropout_rate = dropout_rate
         self._feature_size = hidden_units[-1]
-        self._activation = activation  # type: ignore
+        self._activation = activation
         self._use_dense = use_dense
 
         in_units = [observation_shape[0]] + list(hidden_units[:-1])
@@ -250,7 +327,7 @@ class _VectorEncoder(nn.Module):  # type: ignore
         for i in range(len(self._fcs)):
             if self._use_dense and i > 0:
                 h = torch.cat([h, x], dim=1)
-            h = self._activation(self._fcs[i](h))  # type: ignore
+            h = self._activation(self._fcs[i](h))
             if self._use_batch_norm:
                 h = self._bns[i](h)
             if self._dropout_rate is not None:
@@ -264,6 +341,10 @@ class _VectorEncoder(nn.Module):  # type: ignore
     def observation_shape(self) -> Sequence[int]:
         return self._observation_shape
 
+    @property
+    def last_layer(self) -> nn.Linear:
+        return self._fcs[-1]
+
 
 class VectorEncoder(_VectorEncoder, Encoder):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -273,6 +354,15 @@ class VectorEncoder(_VectorEncoder, Encoder):
         if self._dropout_rate is not None:
             h = self._dropouts[-1](h)
         return h
+
+    def reverse(self) -> Sequence[torch.nn.Module]:
+        assert not self._use_dense, "use_dense=True is not supported yet"
+        modules: List[torch.nn.Module] = []
+        for is_last, fc in last_flag(reversed(self._fcs)):
+            modules.append(nn.Linear(fc.out_features, fc.in_features))
+            if not is_last:
+                modules.append(self._activation)
+        return modules
 
 
 class VectorEncoderWithAction(_VectorEncoder, EncoderWithAction):
@@ -289,7 +379,7 @@ class VectorEncoderWithAction(_VectorEncoder, EncoderWithAction):
         dropout_rate: Optional[float] = None,
         use_dense: bool = False,
         discrete_action: bool = False,
-        activation: Callable[[torch.Tensor], torch.Tensor] = torch.relu,
+        activation: nn.Module = nn.ReLU(),
     ):
         self._action_size = action_size
         self._discrete_action = discrete_action
@@ -320,3 +410,18 @@ class VectorEncoderWithAction(_VectorEncoder, EncoderWithAction):
     @property
     def action_size(self) -> int:
         return self._action_size
+
+    def reverse(self) -> Sequence[torch.nn.Module]:
+        assert not self._use_dense, "use_dense=True is not supported yet"
+        modules: List[torch.nn.Module] = []
+        for is_last, fc in last_flag(reversed(self._fcs)):
+            if is_last:
+                in_features = fc.in_features - self._action_size
+            else:
+                in_features = fc.in_features
+
+            modules.append(nn.Linear(fc.out_features, in_features))
+
+            if not is_last:
+                modules.append(self._activation)
+        return modules

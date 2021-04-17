@@ -1,3 +1,5 @@
+# pylint: disable=protected-access
+
 from typing import List, Optional, Tuple, cast
 
 import torch
@@ -29,7 +31,8 @@ def _apply_spectral_norm_recursively(model: nn.Module) -> None:
             for m in module:
                 _apply_spectral_norm_recursively(m)
         else:
-            spectral_norm(module)
+            if "weight" in module._parameters:
+                spectral_norm(module)
 
 
 def _gaussian_likelihood(

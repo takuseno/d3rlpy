@@ -6,6 +6,8 @@ import pytest
 import torch
 
 from d3rlpy.torch_utility import (
+    Swish,
+    View,
     augmentation_api,
     eval_api,
     freeze,
@@ -285,3 +287,20 @@ def test_augmentation_api():
     x = torch.tensor(1.0)
     y = torch.tensor(2.0)
     assert impl.augmentation_api_func(x, y).numpy() == 4.0
+
+
+@pytest.mark.parametrize("in_shape", [(1, 2, 3)])
+@pytest.mark.parametrize("out_shape", [(1, 6)])
+def test_view(in_shape, out_shape):
+    x = torch.rand(in_shape)
+    view = View(out_shape)
+    assert view(x).shape == out_shape
+
+
+@pytest.mark.parametrize("in_shape", [(1, 2, 3)])
+def test_swish(in_shape):
+    x = torch.rand(in_shape)
+    swish = Swish()
+    y = swish(x)
+    assert y.shape == in_shape
+    assert torch.allclose(y, x * torch.sigmoid(x))
