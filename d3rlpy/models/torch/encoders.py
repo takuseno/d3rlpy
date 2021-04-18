@@ -26,7 +26,7 @@ class Encoder(metaclass=ABCMeta):
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
-    def reverse(self) -> Sequence[torch.nn.Module]:
+    def create_reverse(self) -> Sequence[torch.nn.Module]:
         raise NotImplementedError
 
     @property
@@ -55,7 +55,7 @@ class EncoderWithAction(metaclass=ABCMeta):
     def __call__(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         pass
 
-    def reverse(self) -> Sequence[torch.nn.Module]:
+    def create_reverse(self) -> Sequence[torch.nn.Module]:
         raise NotImplementedError
 
     @property
@@ -170,7 +170,7 @@ class PixelEncoder(_PixelEncoder, Encoder):
 
         return h
 
-    def reverse(self) -> Sequence[torch.nn.Module]:
+    def create_reverse(self) -> Sequence[torch.nn.Module]:
         modules: List[torch.nn.Module] = []
 
         # add linear layer
@@ -249,7 +249,7 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
     def action_size(self) -> int:
         return self._action_size
 
-    def reverse(self) -> Sequence[torch.nn.Module]:
+    def create_reverse(self) -> Sequence[torch.nn.Module]:
         modules: List[torch.nn.Module] = []
 
         # add linear layer
@@ -355,7 +355,7 @@ class VectorEncoder(_VectorEncoder, Encoder):
             h = self._dropouts[-1](h)
         return h
 
-    def reverse(self) -> Sequence[torch.nn.Module]:
+    def create_reverse(self) -> Sequence[torch.nn.Module]:
         assert not self._use_dense, "use_dense=True is not supported yet"
         modules: List[torch.nn.Module] = []
         for is_last, fc in last_flag(reversed(self._fcs)):
@@ -411,7 +411,7 @@ class VectorEncoderWithAction(_VectorEncoder, EncoderWithAction):
     def action_size(self) -> int:
         return self._action_size
 
-    def reverse(self) -> Sequence[torch.nn.Module]:
+    def create_reverse(self) -> Sequence[torch.nn.Module]:
         assert not self._use_dense, "use_dense=True is not supported yet"
         modules: List[torch.nn.Module] = []
         for is_last, fc in last_flag(reversed(self._fcs)):

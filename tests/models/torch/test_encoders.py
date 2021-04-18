@@ -56,7 +56,7 @@ def test_pixel_encoder(
     check_parameter_updates(encoder, (x,))
 
     # check reverse
-    reverse_modules = encoder.reverse()
+    reverse_modules = encoder.create_reverse()
     h = eval_y
     for module in reverse_modules:
         h = module(h)
@@ -118,7 +118,7 @@ def test_pixel_encoder_with_action(
     check_parameter_updates(encoder, (x, action))
 
     # check reverse
-    reverse_modules = encoder.reverse()
+    reverse_modules = encoder.create_reverse()
     h = eval_y
     for module in reverse_modules:
         h = module(h)
@@ -170,7 +170,7 @@ def test_vector_encoder(
 
     # check reverse
     if not use_dense:
-        reverse_modules = encoder.reverse()
+        reverse_modules = encoder.create_reverse()
         h = eval_y
         for module in reverse_modules:
             h = module(h)
@@ -232,7 +232,7 @@ def test_vector_encoder_with_action(
 
     # check reverse
     if not use_dense:
-        reverse_modules = encoder.reverse()
+        reverse_modules = encoder.create_reverse()
         h = eval_y
         for module in reverse_modules:
             h = module(h)
