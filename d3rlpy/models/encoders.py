@@ -1,19 +1,10 @@
 import copy
-from typing import (
-    Any,
-    Callable,
-    ClassVar,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Type,
-    Union,
-)
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Type, Union
 
-import torch
+import torch.nn as nn
 
 from ..decorators import pretty_repr
+from ..torch_utility import Swish
 from .torch import (
     Encoder,
     EncoderWithAction,
@@ -24,15 +15,13 @@ from .torch import (
 )
 
 
-def _create_activation(
-    activation_type: str,
-) -> Callable[[torch.Tensor], torch.Tensor]:
+def _create_activation(activation_type: str) -> nn.Module:
     if activation_type == "relu":
-        return torch.relu  # type: ignore
+        return nn.ReLU()
     elif activation_type == "tanh":
-        return torch.tanh  # type: ignore
+        return nn.Tanh()
     elif activation_type == "swish":
-        return lambda x: x * torch.sigmoid(x)
+        return Swish()
     raise ValueError("invalid activation_type.")
 
 

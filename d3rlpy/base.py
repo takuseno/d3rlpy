@@ -474,6 +474,7 @@ class LearnableBase:
 
         iterator: TransitionIterator
         if n_epochs is None and n_steps is not None:
+            assert n_steps > n_steps_per_epoch
             n_epochs = n_steps // n_steps_per_epoch
             iterator = RandomIterator(
                 episodes,
@@ -557,7 +558,7 @@ class LearnableBase:
             range_gen = tqdm(
                 range(len(iterator)),
                 disable=not show_progress,
-                desc="Epoch %d" % int(epoch),
+                desc=f"Epoch {int(epoch)}/{n_epochs}",
             )
 
             iterator.reset()

@@ -102,9 +102,13 @@ def test_probabilistic_ensemble_dynamics_dynamics_model(
     assert pred_reward.shape == (batch_size, 1)
     assert variances.shape == (batch_size, 1)
 
-    # TODO: check error
+    # check error
     reward = torch.rand(batch_size, 1)
     loss = dynamics.compute_error(x, action, reward, x)
+
+    # check error with mask
+    masks = torch.randint(2, size=(n_ensembles, batch_size, 1))
+    loss = dynamics.compute_error(x, action, reward, x, masks)
 
     # check layer connection
     check_parameter_updates(dynamics, (x, action, reward, x))

@@ -1,5 +1,5 @@
 from inspect import signature
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import numpy as np
 import torch
@@ -212,3 +212,20 @@ def train_api(f: Callable[..., np.ndarray]) -> Callable[..., np.ndarray]:
         return f(self, *args, **kwargs)
 
     return wrapper
+
+
+class View(nn.Module):  # type: ignore
+
+    _shape: Sequence[int]
+
+    def __init__(self, shape: Sequence[int]):
+        super().__init__()
+        self._shape = shape
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x.view(self._shape)
+
+
+class Swish(nn.Module):  # type: ignore
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x * torch.sigmoid(x)

@@ -199,23 +199,20 @@ class CQLImpl(SACImpl):
 
         return (clipped_alpha[0][0] * element_wise_loss).sum(dim=0).mean()
 
-    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._policy is not None
-        assert self._log_temp is not None
-        assert self._targ_q_func is not None
+        if self._soft_q_backup:
+            return super().compute_target(x)
+        return self._compute_deterministic_target(x)
+
+    @augmentation_api(targets=["x"])
+    def _compute_deterministic_target(self, x: torch.Tensor) -> torch.Tensor:
+        assert self._policy
+        assert self._targ_q_func
         with torch.no_grad():
-            action, log_prob = self._policy.sample_with_log_prob(x)
-            target_value = self._targ_q_func.compute_target(
+            action = self._policy.best_action(x)
+            return self._targ_q_func.compute_target(
                 x, action, reduction=self._target_reduction_type
             )
-            if self._soft_q_backup:
-                entropy = self._log_temp().exp() * log_prob
-                if self._target_reduction_type == "none":
-                    target_value -= entropy.view(1, -1, 1)
-                else:
-                    target_value -= entropy
-            return target_value
 
 
 class DiscreteCQLImpl(DoubleDQNImpl):
