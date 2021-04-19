@@ -558,7 +558,7 @@ class LearnableBase:
             range_gen = tqdm(
                 range(len(iterator)),
                 disable=not show_progress,
-                desc="Epoch %d" % int(epoch),
+                desc=f"Epoch {int(epoch)}/{n_epochs}",
             )
 
             iterator.reset()
