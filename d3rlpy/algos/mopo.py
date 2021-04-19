@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence, Tuple, cast
+from typing import Any, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -15,7 +15,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..augmentation import AugmentationPipeline
-from ..constants import DYNAMICS_NOT_GIVEN_ERROR, IMPL_NOT_INITIALIZED_ERROR
+from ..constants import IMPL_NOT_INITIALIZED_ERROR
 from ..dataset import Transition, TransitionMiniBatch
 from ..dynamics import DynamicsBase
 from ..gpu import Device
@@ -24,9 +24,10 @@ from ..models.optimizers import AdamFactory, OptimizerFactory
 from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
 from .torch.sac_impl import SACImpl
+from .utility import ModelBaseMixin
 
 
-class MOPO(AlgoBase):
+class MOPO(ModelBaseMixin, AlgoBase):
     r"""Model-based Offline Policy Optimization.
 
     MOPO is a model-based RL approach for offline policy optimization.
@@ -271,68 +272,29 @@ class MOPO(AlgoBase):
     def get_loss_labels(self) -> List[str]:
         return ["critic_loss", "actor_loss", "temp_loss", "temp"]
 
-    def generate_new_data(
-        self, epoch: int, total_step: int, transitions: List[Transition]
-    ) -> Optional[List[Transition]]:
-        assert self._impl, IMPL_NOT_INITIALIZED_ERROR
-        assert self._dynamics, DYNAMICS_NOT_GIVEN_ERROR
+    def _is_generating_new_data(self, epoch: int, total_step: int) -> bool:
+        return total_step % self._rollout_interval == 0
 
-        if total_step % self._rollout_interval != 0:
-            return None
-
+    def _sample_initial_transitions(
+        self, transitions: List[Transition]
+    ) -> List[Transition]:
         # uniformly sample transitions
-        init_transitions: List[Transition] = []
-        indices = np.random.randint(
-            len(transitions), size=self._n_initial_transitions
-        )
-        for i in indices:
-            init_transitions.append(transitions[i])
+        n_transitions = self._n_initial_transitions
+        indices = np.random.randint(len(transitions), size=n_transitions)
+        return [transitions[i] for i in indices]
 
-        rets: List[Transition] = []
+    def _rollout_policy(self, observations: np.ndarray) -> np.ndarray:
+        return self.sample_action(observations)
 
-        # rollout
-        batch = TransitionMiniBatch(init_transitions)
-        observations = batch.observations
-        actions = self.sample_action(observations)
-        rewards = batch.rewards
-        prev_transitions: List[Transition] = []
-        for _ in range(self._horizon):
-            # predict next state
-            pred = self._dynamics.predict(observations, actions, True)
-            pred = cast(Tuple[np.ndarray, np.ndarray, np.ndarray], pred)
-            next_observations, next_rewards, variances = pred
+    def _rollout_length(self) -> int:
+        return self._horizon
 
-            # regularize by uncertainty
-            next_rewards -= self._lam * variances
-
-            # sample policy action
-            next_actions = self.sample_action(next_observations)
-
-            # append new transitions
-            new_transitions = []
-            for i in range(self._n_initial_transitions):
-                transition = Transition(
-                    observation_shape=self._impl.observation_shape,
-                    action_size=self._impl.action_size,
-                    observation=observations[i],
-                    action=actions[i],
-                    reward=float(rewards[i][0]),
-                    next_observation=next_observations[i],
-                    next_action=next_actions[i],
-                    next_reward=float(next_rewards[i][0]),
-                    terminal=0.0,
-                )
-
-                if prev_transitions:
-                    prev_transitions[i].next_transition = transition
-                    transition.prev_transition = prev_transitions[i]
-
-                new_transitions.append(transition)
-
-            prev_transitions = new_transitions
-            rets += new_transitions
-            observations = next_observations.copy()
-            actions = next_actions.copy()
-            rewards = next_rewards.copy()
-
-        return rets
+    def _mutate_transition(
+        self,
+        observations: np.ndarray,
+        rewards: np.ndarray,
+        variances: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        # regularize by uncertainty
+        rewards -= self._lam * variances
+        return observations, rewards
