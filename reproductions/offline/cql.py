@@ -7,7 +7,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='hopper-medium-v0')
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--gpu', action='store_true')
+    parser.add_argument('--gpu', type=int)
     args = parser.parse_args()
 
     d3rlpy.seed(args.seed)
@@ -32,7 +32,8 @@ def main():
             eval_episodes=test_episodes,
             n_steps=1000000,
             n_steps_per_epoch=5000,
-            scorers=scorers)
+            scorers=scorers,
+            experiment_name=f"CQL_{args.dataset}_{args.seed}")
 
 
 if __name__ == '__main__':

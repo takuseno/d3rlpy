@@ -43,7 +43,7 @@ def base_tester(model, impl, observation_shape, action_size=2):
 
     # check fit and fitter
     update_backup = model.update
-    model.update = Mock(return_value=range(len(model.get_loss_labels())))
+    model.update = Mock(return_value={"loss": np.random.random()})
     n_episodes = 4
     episode_length = 25
     n_batch = 32
@@ -187,6 +187,6 @@ def base_update_tester(model, observation_shape, action_size, discrete=False):
     model.create_impl(observation_shape, action_size)
     loss = model.update(0, 0, batch)
 
-    assert len(loss) == len(model.get_loss_labels())
+    assert len(loss.items()) > 0
 
     return transitions

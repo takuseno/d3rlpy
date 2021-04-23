@@ -587,10 +587,9 @@ class LearnableBase:
                         loss = self.update(epoch, total_step, batch)
 
                     # record metrics
-                    for name, val in zip(self.get_loss_labels(), loss):
-                        if val is not None:
-                            logger.add_metric(name, val)
-                            epoch_loss[name].append(val)
+                    for name, val in loss.items():
+                        logger.add_metric(name, val)
+                        epoch_loss[name].append(val)
 
                     # update progress postfix with losses
                     if itr % 10 == 0:
@@ -604,9 +603,9 @@ class LearnableBase:
             # save loss to loss history dict
             self._loss_history["epoch"].append(epoch)
             self._loss_history["step"].append(total_step)
-            for name in self.get_loss_labels():
-                if name in epoch_loss:
-                    self._loss_history[name].append(np.mean(epoch_loss[name]))
+            for name, vals in epoch_loss.items():
+                if vals:
+                    self._loss_history[name].append(np.mean(vals))
 
             if scorers and eval_episodes:
                 self._evaluate(eval_episodes, scorers, logger)
@@ -683,7 +682,7 @@ class LearnableBase:
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         """Update parameters with mini-batch of data.
 
         Args:
@@ -692,7 +691,7 @@ class LearnableBase:
             batch: mini-batch data.
 
         Returns:
-            list: loss values.
+            dictionary of metrics.
 
         """
         raise NotImplementedError
@@ -714,9 +713,6 @@ class LearnableBase:
 
         """
         return None
-
-    def get_loss_labels(self) -> List[str]:
-        raise NotImplementedError
 
     def _prepare_logger(
         self,

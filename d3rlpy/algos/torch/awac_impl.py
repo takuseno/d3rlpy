@@ -1,6 +1,6 @@
 # pylint: disable=arguments-differ
 
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -87,7 +87,7 @@ class AWACImpl(SACImpl):
     @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
     def update_actor(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> np.ndarray:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         assert self._q_func is not None
         assert self._policy is not None
         assert self._actor_optim is not None

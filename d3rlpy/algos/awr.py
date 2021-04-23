@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -135,8 +135,10 @@ class _AWRBase(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
+        metrics = {}
 
         # compute lmabda return
         lambda_returns = self._compute_lambda_returns(batch)
@@ -146,6 +148,7 @@ class _AWRBase(AlgoBase):
 
         # compute weights
         clipped_weights = self._compute_clipped_weights(advantages)
+        metrics.update({"weights": np.mean(clipped_weights)})
 
         n_steps_per_batch = self.batch_size // self._batch_size_per_update
 
@@ -160,6 +163,7 @@ class _AWRBase(AlgoBase):
                 critic_loss = self._impl.update_critic(observations, returns)
                 critic_loss_history.append(critic_loss)
         critic_loss_mean = np.mean(critic_loss_history)
+        metrics.update({"critic_loss": critic_loss_mean})
 
         # update actor
         actor_loss_history = []
@@ -175,11 +179,9 @@ class _AWRBase(AlgoBase):
                 )
                 actor_loss_history.append(actor_loss)
         actor_loss_mean = np.mean(actor_loss_history)
+        metrics.update({"actor_loss": actor_loss_mean})
 
-        return [critic_loss_mean, actor_loss_mean, np.mean(clipped_weights)]
-
-    def get_loss_labels(self) -> List[str]:
-        return ["critic_loss", "actor_loss", "weights"]
+        return metrics
 
 
 class AWR(_AWRBase):

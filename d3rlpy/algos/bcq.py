@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -267,12 +267,16 @@ class BCQ(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
+        metrics = {}
 
         imitator_loss = self._impl.update_imitator(
             batch.observations, batch.actions
         )
+        metrics.update({"imitator_loss": imitator_loss})
+
         if epoch >= self._rl_start_epoch:
             critic_loss = self._impl.update_critic(
                 batch.observations,
@@ -283,23 +287,19 @@ class BCQ(AlgoBase):
                 batch.n_steps,
                 batch.masks,
             )
+            metrics.update({"critic_loss": critic_loss})
+
             if total_step % self._update_actor_interval == 0:
                 actor_loss = self._impl.update_actor(batch.observations)
+                metrics.update({"actor_loss": actor_loss})
                 self._impl.update_actor_target()
                 self._impl.update_critic_target()
-            else:
-                actor_loss = None
-        else:
-            critic_loss = None
-            actor_loss = None
-        return [critic_loss, actor_loss, imitator_loss]
+
+        return metrics
 
     def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
         """BCQ does not support sampling action."""
         raise NotImplementedError("BCQ does not support sampling action.")
-
-    def get_loss_labels(self) -> List[str]:
-        return ["critic_loss", "actor_loss", "imitator_loss"]
 
 
 class DiscreteBCQ(AlgoBase):
@@ -452,7 +452,7 @@ class DiscreteBCQ(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         loss = self._impl.update(
@@ -466,7 +466,5 @@ class DiscreteBCQ(AlgoBase):
         )
         if total_step % self._target_update_interval == 0:
             self._impl.update_target()
-        return [loss]
 
-    def get_loss_labels(self) -> List[str]:
-        return ["loss"]
+        return {"loss": loss}

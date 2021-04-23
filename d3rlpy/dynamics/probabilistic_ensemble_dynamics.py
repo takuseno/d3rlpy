@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     ActionScalerArg,
@@ -126,7 +126,7 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         loss = self._impl.update(
             batch.observations,
@@ -135,7 +135,4 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
             batch.next_observations,
             batch.masks,
         )
-        return [loss]
-
-    def get_loss_labels(self) -> List[str]:
-        return ["loss"]
+        return {"loss": loss}

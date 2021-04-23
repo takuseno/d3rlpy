@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     ActionScalerArg,
@@ -241,8 +241,10 @@ class CQL(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
+        metrics = {}
 
         critic_loss = self._impl.update_critic(
             batch.observations,
@@ -253,44 +255,28 @@ class CQL(AlgoBase):
             batch.n_steps,
             batch.masks,
         )
+        metrics.update({"critic_loss": critic_loss})
 
         if total_step % self._update_actor_interval == 0:
             actor_loss = self._impl.update_actor(batch.observations)
+            metrics.update({"actor_loss": actor_loss})
 
             # lagrangian parameter update for SAC temperature
             if self._temp_learning_rate > 0:
                 temp_loss, temp = self._impl.update_temp(batch.observations)
-            else:
-                temp_loss, temp = None, None
+                metrics.update({"temp_loss": temp_loss, "temp": temp})
 
             # lagrangian parameter update for conservative loss weight
             if self._alpha_learning_rate > 0:
                 alpha_loss, alpha = self._impl.update_alpha(
                     batch.observations, batch.actions
                 )
-            else:
-                alpha_loss, alpha = None, None
+                metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
 
             self._impl.update_critic_target()
             self._impl.update_actor_target()
-        else:
-            actor_loss = None
-            temp_loss = None
-            temp = None
-            alpha_loss = None
-            alpha = None
 
-        return [critic_loss, actor_loss, temp_loss, temp, alpha_loss, alpha]
-
-    def get_loss_labels(self) -> List[str]:
-        return [
-            "critic_loss",
-            "actor_loss",
-            "temp_loss",
-            "temp",
-            "alpha_loss",
-            "alpha",
-        ]
+        return metrics
 
 
 class DiscreteCQL(DoubleDQN):

@@ -38,7 +38,8 @@ def main():
              eval_episodes=test_episodes,
              n_steps=1000000,
              n_steps_per_epoch=5000,
-             scorers=scorers)
+             scorers=scorers,
+             experiment_name=f"BEAR_{args.dataset}_{args.seed}")
 
 
 if __name__ == '__main__':

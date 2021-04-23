@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     ActionScalerArg,
@@ -198,13 +198,16 @@ class PLAS(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
+        metrics = {}
+
         if epoch < self._rl_start_epoch:
             imitator_loss = self._impl.update_imitator(
                 batch.observations, batch.actions
             )
-            critic_loss, actor_loss = None, None
+            metrics.update({"imitator_loss": imitator_loss})
         else:
             critic_loss = self._impl.update_critic(
                 batch.observations,
@@ -215,17 +218,14 @@ class PLAS(AlgoBase):
                 batch.n_steps,
                 batch.masks,
             )
+            metrics.update({"critic_loss": critic_loss})
             if total_step % self._update_actor_interval == 0:
                 actor_loss = self._impl.update_actor(batch.observations)
+                metrics.update({"actor_loss": actor_loss})
                 self._impl.update_actor_target()
                 self._impl.update_critic_target()
-            else:
-                actor_loss = None
-            imitator_loss = None
-        return [critic_loss, actor_loss, imitator_loss]
 
-    def get_loss_labels(self) -> List[str]:
-        return ["critic_loss", "actor_loss", "imitator_loss"]
+        return metrics
 
 
 class PLASWithPerturbation(PLAS):
