@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     ActionScalerArg,
@@ -207,8 +207,10 @@ class SAC(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
+        metrics = {}
 
         critic_loss = self._impl.update_critic(
             batch.observations,
@@ -219,28 +221,22 @@ class SAC(AlgoBase):
             batch.n_steps,
             batch.masks,
         )
+        metrics.update({"critic_loss": critic_loss})
 
         # delayed policy update
         if total_step % self._update_actor_interval == 0:
             actor_loss = self._impl.update_actor(batch.observations)
+            metrics.update({"actor_loss": actor_loss})
 
             # lagrangian parameter update for SAC temperature
             if self._temp_learning_rate > 0:
                 temp_loss, temp = self._impl.update_temp(batch.observations)
-            else:
-                temp_loss, temp = None, None
+                metrics.update({"temp_loss": temp_loss, "temp": temp})
 
             self._impl.update_critic_target()
             self._impl.update_actor_target()
-        else:
-            actor_loss = None
-            temp_loss = None
-            temp = None
 
-        return [critic_loss, actor_loss, temp_loss, temp]
-
-    def get_loss_labels(self) -> List[str]:
-        return ["critic_loss", "actor_loss", "temp_loss", "temp"]
+        return metrics
 
 
 class DiscreteSAC(AlgoBase):
@@ -398,8 +394,10 @@ class DiscreteSAC(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
+        metrics = {}
 
         critic_loss = self._impl.update_critic(
             batch.observations,
@@ -410,19 +408,17 @@ class DiscreteSAC(AlgoBase):
             batch.n_steps,
             batch.masks,
         )
+        metrics.update({"critic_loss": critic_loss})
 
         actor_loss = self._impl.update_actor(batch.observations)
+        metrics.update({"actor_loss": actor_loss})
 
         # lagrangian parameter update for SAC temeprature
         if self._temp_learning_rate > 0:
             temp_loss, temp = self._impl.update_temp(batch.observations)
-        else:
-            temp_loss, temp = None, None
+            metrics.update({"temp_loss": temp_loss, "temp": temp})
 
         if total_step % self._target_update_interval == 0:
             self._impl.update_target()
 
-        return [critic_loss, actor_loss, temp_loss, temp]
-
-    def get_loss_labels(self) -> List[str]:
-        return ["critic_loss", "actor_loss", "temp_loss", "temp"]
+        return metrics

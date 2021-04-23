@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     ActionScalerArg,
@@ -263,12 +263,15 @@ class BEAR(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
+        metrics = {}
 
         imitator_loss = self._impl.update_imitator(
             batch.observations, batch.actions
         )
+        metrics.update({"imitator_loss": imitator_loss})
 
         critic_loss = self._impl.update_critic(
             batch.observations,
@@ -279,44 +282,25 @@ class BEAR(AlgoBase):
             batch.n_steps,
             batch.masks,
         )
+        metrics.update({"critic_loss": critic_loss})
 
         if epoch < self._warmup_epochs:
             actor_loss = self._impl.warmup_actor(batch.observations)
         else:
             actor_loss = self._impl.update_actor(batch.observations)
+        metrics.update({"actor_loss": actor_loss})
 
         # lagrangian parameter update for SAC temperature
         if self._temp_learning_rate > 0:
             temp_loss, temp = self._impl.update_temp(batch.observations)
-        else:
-            temp_loss, temp = None, None
+            metrics.update({"temp_loss": temp_loss, "temp": temp})
 
         # lagrangian parameter update for MMD loss weight
         if self._alpha_learning_rate > 0:
             alpha_loss, alpha = self._impl.update_alpha(batch.observations)
-        else:
-            alpha_loss, alpha = None, None
+            metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
 
         self._impl.update_actor_target()
         self._impl.update_critic_target()
 
-        return [
-            critic_loss,
-            actor_loss,
-            imitator_loss,
-            temp_loss,
-            temp,
-            alpha_loss,
-            alpha,
-        ]
-
-    def get_loss_labels(self) -> List[str]:
-        return [
-            "critic_loss",
-            "actor_loss",
-            "imitator_loss",
-            "temp_loss",
-            "temp",
-            "alpha_loss",
-            "alpha",
-        ]
+        return metrics

@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     AugmentationArg,
@@ -136,7 +136,7 @@ class DQN(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         loss = self._impl.update(
             batch.observations,
@@ -149,10 +149,7 @@ class DQN(AlgoBase):
         )
         if total_step % self._target_update_interval == 0:
             self._impl.update_target()
-        return [loss]
-
-    def get_loss_labels(self) -> List[str]:
-        return ["value_loss"]
+        return {"loss": loss}
 
 
 class DoubleDQN(DQN):

@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -63,10 +63,10 @@ class _BCBase(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         loss = self._impl.update_imitator(batch.observations, batch.actions)
-        return [loss]
+        return {"loss": loss}
 
     def predict_value(
         self,
@@ -80,9 +80,6 @@ class _BCBase(AlgoBase):
     def sample_action(self, x: Union[np.ndarray, List[Any]]) -> None:
         """sampling action is not supported by BC algorithm."""
         raise NotImplementedError("BC does not support sampling action.")
-
-    def get_loss_labels(self) -> List[str]:
-        return ["loss"]
 
 
 class BC(_BCBase):

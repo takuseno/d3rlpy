@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     ActionScalerArg,
@@ -175,7 +175,7 @@ class DDPG(AlgoBase):
 
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         critic_loss = self._impl.update_critic(
@@ -191,7 +191,4 @@ class DDPG(AlgoBase):
         self._impl.update_critic_target()
         self._impl.update_actor_target()
 
-        return [critic_loss, actor_loss]
-
-    def get_loss_labels(self) -> List[str]:
-        return ["critic_loss", "actor_loss"]
+        return {"critic_loss": critic_loss, "actor_loss": actor_loss}

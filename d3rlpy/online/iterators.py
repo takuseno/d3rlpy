@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import gym
 import numpy as np
@@ -18,7 +18,7 @@ from .explorers import Explorer
 class _AlgoProtocol(Protocol):
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> List[Optional[float]]:
+    ) -> Dict[str, float]:
         ...
 
     def build_with_env(self, env: gym.Env) -> None:
@@ -31,9 +31,6 @@ class _AlgoProtocol(Protocol):
         ...
 
     def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
-        ...
-
-    def get_loss_labels(self) -> List[str]:
         ...
 
     def save_model(self, fname: str) -> None:
@@ -252,9 +249,8 @@ def train_single_env(
                         )
 
                     # record metrics
-                    for name, val in zip(algo.get_loss_labels(), loss):
-                        if val:
-                            logger.add_metric(name, val)
+                    for name, val in loss.items():
+                        logger.add_metric(name, val)
 
         if epoch > 0 and total_step % n_steps_per_epoch == 0:
             # evaluation
@@ -425,9 +421,8 @@ def train_batch_env(
                 )
 
             # record metrics
-            for name, val in zip(algo.get_loss_labels(), loss):
-                if val:
-                    logger.add_metric(name, val)
+            for name, val in loss.items():
+                logger.add_metric(name, val)
 
         if epoch % eval_interval == 0:
             # evaluation
