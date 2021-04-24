@@ -67,14 +67,6 @@ $ conda install -c conda-forge d3rlpy
 $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 ```
 
-### build from source (please try this if `core dumped` error occurs)
-```
-$ git clone https://github.com/takuseno/d3rlpy
-$ cd d3rlpy
-$ pip install Cython numpy # if not installed yet
-$ pip install -e .
-```
-
 ## supported algorithms
 | algorithm | discrete control | continuous control | offline RL? |
 |:-|:-:|:-:|:-:|
