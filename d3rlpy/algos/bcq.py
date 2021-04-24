@@ -15,7 +15,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..augmentation import AugmentationPipeline
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
@@ -301,6 +301,9 @@ class BCQ(AlgoBase):
         """BCQ does not support sampling action."""
         raise NotImplementedError("BCQ does not support sampling action.")
 
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.CONTINUOUS
+
 
 class DiscreteBCQ(AlgoBase):
     r"""Discrete version of Batch-Constrained Q-learning algorithm.
@@ -468,3 +471,6 @@ class DiscreteBCQ(AlgoBase):
             self._impl.update_target()
 
         return {"loss": loss}
+
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.DISCRETE

@@ -13,7 +13,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..augmentation import AugmentationPipeline
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
@@ -215,3 +215,6 @@ class AWAC(AlgoBase):
             self._impl.update_actor_target()
 
         return metrics
+
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.CONTINUOUS

@@ -13,7 +13,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..augmentation import AugmentationPipeline
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
@@ -238,6 +238,9 @@ class SAC(AlgoBase):
 
         return metrics
 
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.CONTINUOUS
+
 
 class DiscreteSAC(AlgoBase):
     r"""Soft Actor-Critic algorithm for discrete action-space.
@@ -422,3 +425,6 @@ class DiscreteSAC(AlgoBase):
             self._impl.update_target()
 
         return metrics
+
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.DISCRETE

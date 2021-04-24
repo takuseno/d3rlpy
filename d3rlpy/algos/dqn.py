@@ -12,7 +12,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..augmentation import AugmentationPipeline
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
@@ -150,6 +150,9 @@ class DQN(AlgoBase):
         if total_step % self._target_update_interval == 0:
             self._impl.update_target()
         return {"loss": loss}
+
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.DISCRETE
 
 
 class DoubleDQN(DQN):

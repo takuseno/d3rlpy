@@ -13,7 +13,11 @@ from ..argument_utility import (
     check_q_func,
     check_use_gpu,
 )
-from ..constants import ALGO_NOT_GIVEN_ERROR, IMPL_NOT_INITIALIZED_ERROR
+from ..constants import (
+    ALGO_NOT_GIVEN_ERROR,
+    IMPL_NOT_INITIALIZED_ERROR,
+    ActionSpace,
+)
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
@@ -169,6 +173,9 @@ class FQE(_FQEBase):
         )
         self._impl.build()
 
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.CONTINUOUS
+
 
 class DiscreteFQE(_FQEBase):
     r"""Fitted Q Evaluation for discrete action-space.
@@ -233,3 +240,6 @@ class DiscreteFQE(_FQEBase):
             action_scaler=None,
         )
         self._impl.build()
+
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.DISCRETE

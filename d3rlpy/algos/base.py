@@ -5,7 +5,12 @@ import gym
 import numpy as np
 
 from ..base import ImplBase, LearnableBase
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..constants import (
+    CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR,
+    DISCRETE_ACTION_SPACE_MISMATCH_ERROR,
+    IMPL_NOT_INITIALIZED_ERROR,
+    ActionSpace,
+)
 from ..envs import BatchEnv
 from ..online.buffers import (
     BatchBuffer,
@@ -15,6 +20,20 @@ from ..online.buffers import (
 )
 from ..online.explorers import Explorer
 from ..online.iterators import train_batch_env, train_single_env
+
+
+def _assert_action_space(algo: LearnableBase, env: gym.Env) -> None:
+    if isinstance(env.action_space, gym.spaces.Box):
+        assert (
+            algo.get_action_type() == ActionSpace.CONTINUOUS
+        ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
+    elif isinstance(env.action_space, gym.spaces.discrete.Discrete):
+        assert (
+            algo.get_action_type() == ActionSpace.DISCRETE
+        ), DISCRETE_ACTION_SPACE_MISMATCH_ERROR
+    else:
+        action_space = type(env.action_space)
+        raise ValueError(f"The action-space is not supported: {action_space}")
 
 
 class AlgoImplBase(ImplBase):
@@ -211,6 +230,9 @@ class AlgoBase(LearnableBase):
         if buffer is None:
             buffer = ReplayBuffer(1000000, env=env)
 
+        # check action-space
+        _assert_action_space(self, env)
+
         train_single_env(
             algo=self,
             env=env,
@@ -289,6 +311,9 @@ class AlgoBase(LearnableBase):
         # create default replay buffer
         if buffer is None:
             buffer = BatchReplayBuffer(1000000, env=env)
+
+        # check action-space
+        _assert_action_space(self, env)
 
         train_batch_env(
             algo=self,

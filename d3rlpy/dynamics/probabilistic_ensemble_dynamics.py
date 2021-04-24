@@ -8,7 +8,7 @@ from ..argument_utility import (
     check_encoder,
     check_use_gpu,
 )
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
@@ -136,3 +136,6 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
             batch.masks,
         )
         return {"loss": loss}
+
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.BOTH

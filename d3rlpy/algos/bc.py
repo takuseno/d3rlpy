@@ -13,7 +13,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..augmentation import AugmentationPipeline
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
@@ -135,6 +135,9 @@ class BC(_BCBase):
         )
         self._impl.build()
 
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.CONTINUOUS
+
 
 class DiscreteBC(_BCBase):
     r"""Behavior Cloning algorithm for discrete control.
@@ -219,3 +222,6 @@ class DiscreteBC(_BCBase):
             augmentation=self._augmentation,
         )
         self._impl.build()
+
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.DISCRETE

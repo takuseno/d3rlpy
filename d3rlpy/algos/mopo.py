@@ -15,7 +15,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..augmentation import AugmentationPipeline
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Transition, TransitionMiniBatch
 from ..dynamics import DynamicsBase
 from ..gpu import Device
@@ -266,6 +266,9 @@ class MOPO(ModelBaseMixin, AlgoBase):
             self._impl.update_actor_target()
 
         return metrics
+
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.CONTINUOUS
 
     def _is_generating_new_data(self, epoch: int, total_step: int) -> bool:
         return total_step % self._rollout_interval == 0

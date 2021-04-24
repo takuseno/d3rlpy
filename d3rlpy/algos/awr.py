@@ -13,7 +13,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..augmentation import AugmentationPipeline
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch, compute_lambda_return
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
@@ -267,6 +267,9 @@ class AWR(_AWRBase):
         )
         self._impl.build()
 
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.CONTINUOUS
+
 
 class DiscreteAWR(_AWRBase):
     r"""Discrete veriosn of Advantage-Weighted Regression algorithm.
@@ -349,3 +352,6 @@ class DiscreteAWR(_AWRBase):
             augmentation=self._augmentation,
         )
         self._impl.build()
+
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.DISCRETE

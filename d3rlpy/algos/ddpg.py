@@ -13,7 +13,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..augmentation import AugmentationPipeline
-from ..constants import IMPL_NOT_INITIALIZED_ERROR
+from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
@@ -192,3 +192,6 @@ class DDPG(AlgoBase):
         self._impl.update_actor_target()
 
         return {"critic_loss": critic_loss, "actor_loss": actor_loss}
+
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.CONTINUOUS

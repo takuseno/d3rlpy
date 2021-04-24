@@ -27,7 +27,12 @@ from .argument_utility import (
     check_scaler,
 )
 from .augmentation import AugmentationPipeline, DrQPipeline, create_augmentation
-from .constants import IMPL_NOT_INITIALIZED_ERROR
+from .constants import (
+    CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR,
+    DISCRETE_ACTION_SPACE_MISMATCH_ERROR,
+    IMPL_NOT_INITIALIZED_ERROR,
+    ActionSpace,
+)
 from .context import disable_parallel
 from .dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
 from .decorators import pretty_repr
@@ -472,6 +477,18 @@ class LearnableBase:
         else:
             episodes = dataset
 
+        # check action space
+        if self.get_action_type() == ActionSpace.BOTH:
+            pass
+        elif len(episodes[0].actions.shape) > 1:
+            assert (
+                self.get_action_type() == ActionSpace.CONTINUOUS
+            ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
+        else:
+            assert (
+                self.get_action_type() == ActionSpace.DISCRETE
+            ), DISCRETE_ACTION_SPACE_MISMATCH_ERROR
+
         iterator: TransitionIterator
         if n_epochs is None and n_steps is not None:
             assert n_steps > n_steps_per_epoch
@@ -787,6 +804,15 @@ class LearnableBase:
         params = _serialize_params(params)
 
         logger.add_params(params)
+
+    def get_action_type(self) -> ActionSpace:
+        """Returns action type (continuous or discrete).
+
+        Returns:
+            action type.
+
+        """
+        raise NotImplementedError
 
     @property
     def batch_size(self) -> int:
