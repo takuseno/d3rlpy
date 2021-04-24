@@ -32,6 +32,7 @@ def main():
             eval_episodes=test_episodes,
             n_steps=1000000,
             n_steps_per_epoch=5000,
+            save_interval=2,
             scorers=scorers,
             experiment_name=f"CQL_{args.dataset}_{args.seed}")
 
