@@ -57,7 +57,11 @@ class FQEBaseImpl(TorchImplBase):
         action_scaler: Optional[ActionScaler],
     ):
         super().__init__(
-            observation_shape, action_size, scaler, action_scaler, DrQPipeline()
+            observation_shape=observation_shape,
+            action_size=action_size,
+            scaler=scaler,
+            action_scaler=action_scaler,
+            augmentation=DrQPipeline(),
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
