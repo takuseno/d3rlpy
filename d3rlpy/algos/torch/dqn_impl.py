@@ -48,7 +48,11 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         augmentation: AugmentationPipeline,
     ):
         super().__init__(
-            observation_shape, action_size, scaler, None, augmentation
+            observation_shape=observation_shape,
+            action_size=action_size,
+            scaler=scaler,
+            action_scaler=None,
+            augmentation=augmentation,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory

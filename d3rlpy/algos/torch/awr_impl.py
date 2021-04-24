@@ -56,7 +56,11 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
         augmentation: AugmentationPipeline,
     ):
         super().__init__(
-            observation_shape, action_size, scaler, action_scaler, augmentation
+            observation_shape=observation_shape,
+            action_size=action_size,
+            scaler=scaler,
+            action_scaler=action_scaler,
+            augmentation=augmentation,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
