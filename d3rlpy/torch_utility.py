@@ -127,6 +127,7 @@ class TorchMiniBatch:
     _terminals: torch.Tensor
     _masks: Optional[torch.Tensor]
     _n_steps: torch.Tensor
+    _device: str
 
     def __init__(
         self,
@@ -167,6 +168,7 @@ class TorchMiniBatch:
         self._terminals = terminals
         self._masks = masks
         self._n_steps = n_steps
+        self._device = device
 
     @property
     def observations(self) -> torch.Tensor:
@@ -203,6 +205,10 @@ class TorchMiniBatch:
     @property
     def n_steps(self) -> torch.Tensor:
         return self._n_steps
+
+    @property
+    def device(self) -> str:
+        return self._device
 
 
 def torch_api(

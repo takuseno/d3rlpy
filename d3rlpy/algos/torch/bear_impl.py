@@ -16,7 +16,7 @@ from ...models.torch import (
     compute_max_with_n_actions_and_indices,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import torch_api, train_api
+from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .sac_impl import SACImpl
 
 
@@ -153,27 +153,24 @@ class BEARImpl(SACImpl):
             self._log_alpha.parameters(), lr=self._alpha_learning_rate
         )
 
-    def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
-        loss = super()._compute_actor_loss(obs_t)
-        mmd_loss = self._compute_mmd_loss(obs_t)
+    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
+        loss = super().compute_actor_loss(batch)
+        mmd_loss = self._compute_mmd_loss(batch.observations)
         return loss + mmd_loss
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
-    def warmup_actor(self, obs_t: torch.Tensor) -> np.ndarray:
+    @torch_api()
+    def warmup_actor(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._actor_optim is not None
 
         self._actor_optim.zero_grad()
 
-        loss = self.compute_mmd_loss(obs_t)
+        loss = self._compute_mmd_loss(batch.observations)
 
         loss.backward()
         self._actor_optim.step()
 
         return loss.cpu().detach().numpy()
-
-    def compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
-        return self._compute_mmd_loss(obs_t)
 
     def _compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
         assert self._log_alpha
@@ -182,15 +179,13 @@ class BEARImpl(SACImpl):
         return (alpha * (mmd - self._alpha_threshold)).sum(dim=1).mean()
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
-    def update_imitator(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> np.ndarray:
+    @torch_api()
+    def update_imitator(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._imitator_optim is not None
 
         self._imitator_optim.zero_grad()
 
-        loss = self.compute_imitator_loss(obs_t, act_t)
+        loss = self.compute_imitator_loss(batch)
 
         loss.backward()
 
@@ -198,19 +193,17 @@ class BEARImpl(SACImpl):
 
         return loss.cpu().detach().numpy()
 
-    def compute_imitator_loss(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> torch.Tensor:
+    def compute_imitator_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._imitator is not None
-        return self._imitator.compute_error(obs_t, act_t)
+        return self._imitator.compute_error(batch.observations, batch.actions)
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
-    def update_alpha(self, obs_t: torch.Tensor) -> np.ndarray:
+    @torch_api()
+    def update_alpha(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._alpha_optim is not None
         assert self._log_alpha is not None
 
-        loss = -self._compute_mmd_loss(obs_t)
+        loss = -self._compute_mmd_loss(batch.observations)
 
         self._alpha_optim.zero_grad()
         loss.backward()
@@ -270,18 +263,21 @@ class BEARImpl(SACImpl):
 
         return (mmd + 1e-6).sqrt().view(-1, 1)
 
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy is not None
         assert self._targ_q_func is not None
         assert self._log_temp is not None
         with torch.no_grad():
             # BCQ-like target computation
-            actions, log_probs = self._policy.sample_n_with_log_prob(x, 100)
+            actions, log_probs = self._policy.sample_n_with_log_prob(
+                batch.next_observations, 100
+            )
             values, indices = compute_max_with_n_actions_and_indices(
-                x, actions, self._targ_q_func, self._lam
+                batch.next_observations, actions, self._targ_q_func, self._lam
             )
 
             # (batch, n, 1) -> (batch, 1)
-            max_log_prob = log_probs[torch.arange(x.shape[0]), indices]
+            batch_size = batch.observations.shape[0]
+            max_log_prob = log_probs[torch.arange(batch_size), indices]
 
             return values - self._log_temp().exp() * max_log_prob

@@ -20,7 +20,7 @@ from ...models.torch import (
     Policy,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import soft_sync, torch_api, train_api
+from ...torch_utility import TorchMiniBatch, soft_sync, torch_api, train_api
 from .base import TorchImplBase
 from .utility import ContinuousQFunctionMixin
 
@@ -136,28 +136,15 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         )
 
     @train_api
-    @torch_api(
-        scaler_targets=["obs_t", "obs_tpn"], action_scaler_targets=["act_t"]
-    )
-    def update_critic(
-        self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
-        obs_tpn: torch.Tensor,
-        ter_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: Optional[torch.Tensor],
-    ) -> np.ndarray:
+    @torch_api()
+    def update_critic(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._critic_optim is not None
 
         self._critic_optim.zero_grad()
 
-        q_tpn = self.compute_target(obs_tpn)
+        q_tpn = self.compute_target(batch)
 
-        loss = self.compute_critic_loss(
-            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps, masks
-        )
+        loss = self.compute_critic_loss(batch, q_tpn)
 
         loss.backward()
         self._critic_optim.step()
@@ -165,44 +152,23 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         return loss.cpu().detach().numpy()
 
     def compute_critic_loss(
-        self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
-        q_tpn: torch.Tensor,
-        ter_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: Optional[torch.Tensor],
-    ) -> torch.Tensor:
-        return self._compute_critic_loss(
-            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps, masks
-        )
-
-    def _compute_critic_loss(
-        self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
-        q_tpn: torch.Tensor,
-        ter_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: Optional[torch.Tensor],
+        self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> torch.Tensor:
         assert self._q_func is not None
         return self._q_func.compute_error(
-            obs_t,
-            act_t,
-            rew_tpn,
-            q_tpn,
-            ter_tpn,
-            self._gamma ** n_steps,
+            obs_t=batch.observations,
+            act_t=batch.actions,
+            rew_tp1=batch.next_rewards,
+            q_tp1=q_tpn,
+            ter_tp1=batch.terminals,
+            gamma=self._gamma ** batch.n_steps,
             use_independent_target=self._target_reduction_type == "none",
-            masks=masks,
+            masks=batch.masks,
         )
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
-    def update_actor(self, obs_t: torch.Tensor) -> np.ndarray:
+    @torch_api()
+    def update_actor(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._q_func is not None
         assert self._actor_optim is not None
 
@@ -211,22 +177,19 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
 
         self._actor_optim.zero_grad()
 
-        loss = self.compute_actor_loss(obs_t)
+        loss = self.compute_actor_loss(batch)
 
         loss.backward()
         self._actor_optim.step()
 
         return loss.cpu().detach().numpy()
 
-    def compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
-        return self._compute_actor_loss(obs_t)
-
     @abstractmethod
-    def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         pass
 
     @abstractmethod
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         pass
 
     def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
@@ -260,20 +223,20 @@ class DDPGImpl(DDPGBaseImpl):
             self._actor_encoder_factory,
         )
 
-    def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy is not None
         assert self._q_func is not None
-        action = self._policy(obs_t)
-        q_t = self._q_func(obs_t, action, "min")
+        action = self._policy(batch.observations)
+        q_t = self._q_func(batch.observations, action, "min")
         return -q_t.mean()
 
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._targ_q_func is not None
         assert self._targ_policy is not None
         with torch.no_grad():
-            action = self._targ_policy(x)
+            action = self._targ_policy(batch.next_observations)
             return self._targ_q_func.compute_target(
-                x,
+                batch.next_observations,
                 action.clamp(-1.0, 1.0),
                 reduction=self._target_reduction_type,
             )

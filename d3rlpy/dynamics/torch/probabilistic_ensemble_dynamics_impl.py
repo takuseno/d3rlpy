@@ -10,7 +10,7 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.torch import ProbabilisticEnsembleDynamicsModel
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import torch_api, train_api
+from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .base import TorchImplBase
 
 
@@ -96,26 +96,17 @@ class ProbabilisticEnsembleDynamicsImpl(TorchImplBase):
         )
 
     @train_api
-    @torch_api(
-        scaler_targets=["obs_t", "obs_tp1"], action_scaler_targets=["act_t"]
-    )
-    def update(
-        self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tp1: torch.Tensor,
-        obs_tp1: torch.Tensor,
-        masks: Optional[torch.Tensor],
-    ) -> np.ndarray:
+    @torch_api()
+    def update(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._dynamics is not None
         assert self._optim is not None
 
         loss = self._dynamics.compute_error(
-            obs_t=obs_t,
-            act_t=act_t,
-            rew_tp1=rew_tp1,
-            obs_tp1=obs_tp1,
-            masks=masks,
+            obs_t=batch.observations,
+            act_t=batch.actions,
+            rew_tp1=batch.next_rewards,
+            obs_tp1=batch.next_observations,
+            masks=batch.masks,
         )
 
         self._optim.zero_grad()

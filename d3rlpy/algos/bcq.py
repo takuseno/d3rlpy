@@ -263,25 +263,15 @@ class BCQ(AlgoBase):
 
         metrics = {}
 
-        imitator_loss = self._impl.update_imitator(
-            batch.observations, batch.actions
-        )
+        imitator_loss = self._impl.update_imitator(batch)
         metrics.update({"imitator_loss": imitator_loss})
 
         if epoch >= self._rl_start_epoch:
-            critic_loss = self._impl.update_critic(
-                batch.observations,
-                batch.actions,
-                batch.next_rewards,
-                batch.next_observations,
-                batch.terminals,
-                batch.n_steps,
-                batch.masks,
-            )
+            critic_loss = self._impl.update_critic(batch)
             metrics.update({"critic_loss": critic_loss})
 
             if total_step % self._update_actor_interval == 0:
-                actor_loss = self._impl.update_actor(batch.observations)
+                actor_loss = self._impl.update_actor(batch)
                 metrics.update({"actor_loss": actor_loss})
                 self._impl.update_actor_target()
                 self._impl.update_critic_target()
@@ -442,19 +432,9 @@ class DiscreteBCQ(AlgoBase):
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        loss = self._impl.update(
-            batch.observations,
-            batch.actions,
-            batch.next_rewards,
-            batch.next_observations,
-            batch.terminals,
-            batch.n_steps,
-            batch.masks,
-        )
+        loss = self._impl.update(batch)
         if total_step % self._target_update_interval == 0:
             self._impl.update_target()
-
         return {"loss": loss}
 
     def get_action_type(self) -> ActionSpace:

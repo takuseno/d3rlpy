@@ -216,17 +216,8 @@ class CRR(AlgoBase):
     ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
-        critic_loss = self._impl.update_critic(
-            batch.observations,
-            batch.actions,
-            batch.next_rewards,
-            batch.next_observations,
-            batch.terminals,
-            batch.n_steps,
-            batch.masks,
-        )
-
-        actor_loss = self._impl.update_actor(batch.observations, batch.actions)
+        critic_loss = self._impl.update_critic(batch)
+        actor_loss = self._impl.update_actor(batch)
 
         if total_step % self._target_update_interval == 0:
             self._impl.update_critic_target()

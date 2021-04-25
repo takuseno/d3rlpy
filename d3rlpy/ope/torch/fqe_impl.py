@@ -25,7 +25,7 @@ from ...models.torch import (
     EnsembleQFunction,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import hard_sync, torch_api, train_api
+from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
 
 
 class FQEBaseImpl(TorchImplBase):
@@ -97,25 +97,14 @@ class FQEBaseImpl(TorchImplBase):
         )
 
     @train_api
-    @torch_api(
-        scaler_targets=["obs_t", "obs_tpn"],
-        action_scaler_targets=["act_t", "act_tpn"],
-    )
+    @torch_api()
     def update(
-        self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
-        act_tpn: torch.Tensor,
-        obs_tpn: torch.Tensor,
-        ter_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
+        self, batch: TorchMiniBatch, next_actions: torch.Tensor
     ) -> np.ndarray:
         assert self._optim is not None
 
-        q_tpn = self.compute_target(obs_tpn, act_tpn)
-        q_tpn *= 1.0 - ter_tpn
-        loss = self._compute_loss(obs_t, act_t, rew_tpn, q_tpn, n_steps)
+        q_tpn = self.compute_target(batch, next_actions)
+        loss = self.compute_loss(batch, q_tpn)
 
         self._optim.zero_grad()
         loss.backward()
@@ -123,25 +112,29 @@ class FQEBaseImpl(TorchImplBase):
 
         return loss.cpu().detach().numpy()
 
-    def _compute_loss(
+    def compute_loss(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
+        batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
     ) -> torch.Tensor:
         assert self._q_func is not None
         return self._q_func.compute_error(
-            obs_t, act_t, rew_tpn, q_tpn, self._gamma ** n_steps
+            obs_t=batch.observations,
+            act_t=batch.actions,
+            rew_tp1=batch.next_rewards,
+            q_tp1=q_tpn,
+            ter_tp1=batch.terminals,
+            gamma=self._gamma ** batch.n_steps,
         )
 
     def compute_target(
-        self, x: torch.Tensor, action: torch.Tensor
+        self, batch: TorchMiniBatch, next_actions: torch.Tensor
     ) -> torch.Tensor:
         assert self._targ_q_func is not None
         with torch.no_grad():
-            return self._targ_q_func.compute_target(x, action)
+            return self._targ_q_func.compute_target(
+                batch.next_observations, next_actions
+            )
 
     def update_target(self) -> None:
         assert self._q_func is not None
@@ -181,19 +174,27 @@ class DiscreteFQEImpl(DiscreteQFunctionMixin, FQEBaseImpl):
             n_ensembles=self._n_critics,
         )
 
-    def _compute_loss(
+    def compute_loss(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
+        batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
     ) -> torch.Tensor:
-        return super()._compute_loss(
-            obs_t, act_t.long(), rew_tpn, q_tpn, n_steps
+        assert self._q_func is not None
+        return self._q_func.compute_error(
+            obs_t=batch.observations,
+            act_t=batch.actions.long(),
+            rew_tp1=batch.next_rewards,
+            q_tp1=q_tpn,
+            ter_tp1=batch.terminals,
+            gamma=self._gamma ** batch.n_steps,
         )
 
     def compute_target(
-        self, x: torch.Tensor, action: torch.Tensor
+        self, batch: TorchMiniBatch, next_actions: torch.Tensor
     ) -> torch.Tensor:
-        return super().compute_target(x, action.long())
+        assert self._targ_q_func is not None
+        with torch.no_grad():
+            return self._targ_q_func.compute_target(
+                batch.next_observations,
+                next_actions.long(),
+            )

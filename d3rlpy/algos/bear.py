@@ -259,36 +259,26 @@ class BEAR(AlgoBase):
 
         metrics = {}
 
-        imitator_loss = self._impl.update_imitator(
-            batch.observations, batch.actions
-        )
+        imitator_loss = self._impl.update_imitator(batch)
         metrics.update({"imitator_loss": imitator_loss})
 
-        critic_loss = self._impl.update_critic(
-            batch.observations,
-            batch.actions,
-            batch.next_rewards,
-            batch.next_observations,
-            batch.terminals,
-            batch.n_steps,
-            batch.masks,
-        )
+        critic_loss = self._impl.update_critic(batch)
         metrics.update({"critic_loss": critic_loss})
 
         if epoch < self._warmup_epochs:
-            actor_loss = self._impl.warmup_actor(batch.observations)
+            actor_loss = self._impl.warmup_actor(batch)
         else:
-            actor_loss = self._impl.update_actor(batch.observations)
+            actor_loss = self._impl.update_actor(batch)
         metrics.update({"actor_loss": actor_loss})
 
         # lagrangian parameter update for SAC temperature
         if self._temp_learning_rate > 0:
-            temp_loss, temp = self._impl.update_temp(batch.observations)
+            temp_loss, temp = self._impl.update_temp(batch)
             metrics.update({"temp_loss": temp_loss, "temp": temp})
 
         # lagrangian parameter update for MMD loss weight
         if self._alpha_learning_rate > 0:
-            alpha_loss, alpha = self._impl.update_alpha(batch.observations)
+            alpha_loss, alpha = self._impl.update_alpha(batch)
             metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
 
         self._impl.update_actor_target()

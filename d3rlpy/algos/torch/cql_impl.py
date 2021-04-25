@@ -13,7 +13,7 @@ from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import Parameter
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import torch_api, train_api
+from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .dqn_impl import DoubleDQNImpl
 from .sac_impl import SACImpl
 
@@ -107,27 +107,18 @@ class CQLImpl(SACImpl):
             self._log_alpha.parameters(), lr=self._alpha_learning_rate
         )
 
-    def _compute_critic_loss(
-        self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
-        q_tpn: torch.Tensor,
-        ter_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: Optional[torch.Tensor],
+    def compute_critic_loss(
+        self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> torch.Tensor:
-        loss = super()._compute_critic_loss(
-            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps, masks
+        loss = super().compute_critic_loss(batch, q_tpn)
+        conservative_loss = self._compute_conservative_loss(
+            batch.observations, batch.actions
         )
-        conservative_loss = self._compute_conservative_loss(obs_t, act_t)
         return loss + self._conservative_weight * conservative_loss
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
-    def update_alpha(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> np.ndarray:
+    @torch_api()
+    def update_alpha(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._alpha_optim is not None
         assert self._q_func is not None
         assert self._log_alpha is not None
@@ -138,7 +129,9 @@ class CQLImpl(SACImpl):
         self._alpha_optim.zero_grad()
 
         # the original implementation does scale the loss value
-        conservative_loss = -self._compute_conservative_loss(obs_t, act_t)
+        conservative_loss = -self._compute_conservative_loss(
+            batch.observations, batch.actions
+        )
         loss = self._conservative_weight * conservative_loss
 
         loss.backward()
@@ -201,42 +194,37 @@ class CQLImpl(SACImpl):
 
         return clipped_alpha[0][0] * loss - self._alpha_threshold
 
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         if self._soft_q_backup:
-            return super().compute_target(x)
-        return self._compute_deterministic_target(x)
+            target_value = super().compute_target(batch)
+        else:
+            target_value = self._compute_deterministic_target(batch)
+        return target_value
 
-    def _compute_deterministic_target(self, x: torch.Tensor) -> torch.Tensor:
+    def _compute_deterministic_target(
+        self, batch: TorchMiniBatch
+    ) -> torch.Tensor:
         assert self._policy
         assert self._targ_q_func
         with torch.no_grad():
-            action = self._policy.best_action(x)
+            action = self._policy.best_action(batch.next_observations)
             return self._targ_q_func.compute_target(
-                x, action, reduction=self._target_reduction_type
+                batch.next_observations,
+                action,
+                reduction=self._target_reduction_type,
             )
 
 
 class DiscreteCQLImpl(DoubleDQNImpl):
-    def _compute_loss(
+    def compute_loss(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
+        batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
-        ter_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: torch.Tensor,
     ) -> torch.Tensor:
-        loss = super()._compute_loss(
-            obs_t,
-            act_t,
-            rew_tpn,
-            q_tpn,
-            ter_tpn,
-            n_steps,
-            masks,
+        loss = super().compute_loss(batch, q_tpn)
+        conservative_loss = self._compute_conservative_loss(
+            batch.observations, batch.actions.long()
         )
-        conservative_loss = self._compute_conservative_loss(obs_t, act_t)
         return loss + conservative_loss
 
     def _compute_conservative_loss(

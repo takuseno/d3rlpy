@@ -23,7 +23,7 @@ from ...models.torch import (
     SquashedNormalPolicy,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import hard_sync, torch_api, train_api
+from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
 from .base import TorchImplBase
 from .ddpg_impl import DDPGBaseImpl
 from .utility import DiscreteQFunctionMixin
@@ -109,18 +109,20 @@ class SACImpl(DDPGBaseImpl):
             self._log_temp.parameters(), lr=self._temp_learning_rate
         )
 
-    def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy is not None
         assert self._log_temp is not None
         assert self._q_func is not None
-        action, log_prob = self._policy.sample_with_log_prob(obs_t)
+        action, log_prob = self._policy.sample_with_log_prob(batch.observations)
         entropy = self._log_temp().exp() * log_prob
-        q_t = self._q_func(obs_t, action, "min")
+        q_t = self._q_func(batch.observations, action, "min")
         return (entropy - q_t).mean()
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
-    def update_temp(self, obs_t: torch.Tensor) -> Tuple[np.ndarray, np.ndarray]:
+    @torch_api()
+    def update_temp(
+        self, batch: TorchMiniBatch
+    ) -> Tuple[np.ndarray, np.ndarray]:
         assert self._temp_optim is not None
         assert self._policy is not None
         assert self._log_temp is not None
@@ -128,7 +130,7 @@ class SACImpl(DDPGBaseImpl):
         self._temp_optim.zero_grad()
 
         with torch.no_grad():
-            _, log_prob = self._policy.sample_with_log_prob(obs_t)
+            _, log_prob = self._policy.sample_with_log_prob(batch.observations)
             targ_temp = log_prob - self._action_size
 
         loss = -(self._log_temp().exp() * targ_temp).mean()
@@ -141,15 +143,19 @@ class SACImpl(DDPGBaseImpl):
 
         return loss.cpu().detach().numpy(), cur_temp
 
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy is not None
         assert self._log_temp is not None
         assert self._targ_q_func is not None
         with torch.no_grad():
-            action, log_prob = self._policy.sample_with_log_prob(x)
+            action, log_prob = self._policy.sample_with_log_prob(
+                batch.next_observations
+            )
             entropy = self._log_temp().exp() * log_prob
             target = self._targ_q_func.compute_target(
-                x, action, reduction=self._target_reduction_type
+                batch.next_observations,
+                action,
+                reduction=self._target_reduction_type,
             )
             if self._target_reduction_type == "none":
                 return target - entropy.view(1, -1, 1)
@@ -285,42 +291,29 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         )
 
     @train_api
-    @torch_api(scaler_targets=["obs_t", "obs_tpn"])
-    def update_critic(
-        self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
-        obs_tpn: torch.Tensor,
-        ter_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: torch.Tensor,
-    ) -> np.ndarray:
+    @torch_api()
+    def update_critic(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._critic_optim is not None
 
         self._critic_optim.zero_grad()
 
-        q_tpn = self.compute_target(obs_tpn)
-        q_tpn *= 1.0 - ter_tpn
-
-        loss = self.compute_critic_loss(
-            obs_t, act_t.long(), rew_tpn, q_tpn, n_steps, masks
-        )
+        q_tpn = self.compute_target(batch)
+        loss = self.compute_critic_loss(batch, q_tpn)
 
         loss.backward()
         self._critic_optim.step()
 
         return loss.cpu().detach().numpy()
 
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy is not None
         assert self._log_temp is not None
         assert self._targ_q_func is not None
         with torch.no_grad():
-            log_probs = self._policy.log_probs(x)
+            log_probs = self._policy.log_probs(batch.next_observations)
             probs = log_probs.exp()
             entropy = self._log_temp().exp() * log_probs
-            target = self._targ_q_func.compute_target(x)
+            target = self._targ_q_func.compute_target(batch.next_observations)
             keepdims = True
             if target.dim() == 3:
                 entropy = entropy.unsqueeze(-1)
@@ -330,34 +323,23 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
 
     def compute_critic_loss(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
+        batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: torch.Tensor,
-    ) -> torch.Tensor:
-        return self._compute_critic_loss(
-            obs_t, act_t, rew_tpn, q_tpn, n_steps, masks
-        )
-
-    def _compute_critic_loss(
-        self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
-        q_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: torch.Tensor,
     ) -> torch.Tensor:
         assert self._q_func is not None
         return self._q_func.compute_error(
-            obs_t, act_t, rew_tpn, q_tpn, self._gamma ** n_steps, masks=masks
+            obs_t=batch.observations,
+            act_t=batch.actions.long(),
+            rew_tp1=batch.next_rewards,
+            q_tp1=q_tpn,
+            ter_tp1=batch.terminals,
+            gamma=self._gamma ** batch.n_steps,
+            masks=batch.masks,
         )
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
-    def update_actor(self, obs_t: torch.Tensor) -> np.ndarray:
+    @torch_api()
+    def update_actor(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._q_func is not None
         assert self._actor_optim is not None
 
@@ -366,30 +348,27 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
 
         self._actor_optim.zero_grad()
 
-        loss = self.compute_actor_loss(obs_t)
+        loss = self.compute_actor_loss(batch)
 
         loss.backward()
         self._actor_optim.step()
 
         return loss.cpu().detach().numpy()
 
-    def compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
-        return self._compute_actor_loss(obs_t)
-
-    def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._q_func is not None
         assert self._policy is not None
         assert self._log_temp is not None
         with torch.no_grad():
-            q_t = self._q_func(obs_t, reduction="min")
-        log_probs = self._policy.log_probs(obs_t)
+            q_t = self._q_func(batch.observations, reduction="min")
+        log_probs = self._policy.log_probs(batch.observations)
         probs = log_probs.exp()
         entropy = self._log_temp().exp() * log_probs
         return (probs * (entropy - q_t)).sum(dim=1).mean()
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"])
-    def update_temp(self, obs_t: torch.Tensor) -> np.ndarray:
+    @torch_api()
+    def update_temp(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._temp_optim is not None
         assert self._policy is not None
         assert self._log_temp is not None
@@ -397,7 +376,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         self._temp_optim.zero_grad()
 
         with torch.no_grad():
-            log_probs = self._policy.log_probs(obs_t)
+            log_probs = self._policy.log_probs(batch.observations)
             probs = log_probs.exp()
             expct_log_probs = (probs * log_probs).sum(dim=1, keepdim=True)
             entropy_target = 0.98 * (-math.log(1 / self.action_size))

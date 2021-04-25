@@ -195,23 +195,13 @@ class PLAS(AlgoBase):
         metrics = {}
 
         if epoch < self._rl_start_epoch:
-            imitator_loss = self._impl.update_imitator(
-                batch.observations, batch.actions
-            )
+            imitator_loss = self._impl.update_imitator(batch)
             metrics.update({"imitator_loss": imitator_loss})
         else:
-            critic_loss = self._impl.update_critic(
-                batch.observations,
-                batch.actions,
-                batch.next_rewards,
-                batch.next_observations,
-                batch.terminals,
-                batch.n_steps,
-                batch.masks,
-            )
+            critic_loss = self._impl.update_critic(batch)
             metrics.update({"critic_loss": critic_loss})
             if total_step % self._update_actor_interval == 0:
-                actor_loss = self._impl.update_actor(batch.observations)
+                actor_loss = self._impl.update_actor(batch)
                 metrics.update({"actor_loss": actor_loss})
                 self._impl.update_actor_target()
                 self._impl.update_critic_target()

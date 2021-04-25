@@ -128,13 +128,7 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update(
-            batch.observations,
-            batch.actions,
-            batch.next_rewards,
-            batch.next_observations,
-            batch.masks,
-        )
+        loss = self._impl.update(batch)
         return {"loss": loss}
 
     def get_action_type(self) -> ActionSpace:

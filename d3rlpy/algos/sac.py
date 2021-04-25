@@ -203,25 +203,17 @@ class SAC(AlgoBase):
 
         metrics = {}
 
-        critic_loss = self._impl.update_critic(
-            batch.observations,
-            batch.actions,
-            batch.next_rewards,
-            batch.next_observations,
-            batch.terminals,
-            batch.n_steps,
-            batch.masks,
-        )
+        critic_loss = self._impl.update_critic(batch)
         metrics.update({"critic_loss": critic_loss})
 
         # delayed policy update
         if total_step % self._update_actor_interval == 0:
-            actor_loss = self._impl.update_actor(batch.observations)
+            actor_loss = self._impl.update_actor(batch)
             metrics.update({"actor_loss": actor_loss})
 
             # lagrangian parameter update for SAC temperature
             if self._temp_learning_rate > 0:
-                temp_loss, temp = self._impl.update_temp(batch.observations)
+                temp_loss, temp = self._impl.update_temp(batch)
                 metrics.update({"temp_loss": temp_loss, "temp": temp})
 
             self._impl.update_critic_target()
@@ -387,23 +379,15 @@ class DiscreteSAC(AlgoBase):
 
         metrics = {}
 
-        critic_loss = self._impl.update_critic(
-            batch.observations,
-            batch.actions,
-            batch.next_rewards,
-            batch.next_observations,
-            batch.terminals,
-            batch.n_steps,
-            batch.masks,
-        )
+        critic_loss = self._impl.update_critic(batch)
         metrics.update({"critic_loss": critic_loss})
 
-        actor_loss = self._impl.update_actor(batch.observations)
+        actor_loss = self._impl.update_actor(batch)
         metrics.update({"actor_loss": actor_loss})
 
         # lagrangian parameter update for SAC temeprature
         if self._temp_learning_rate > 0:
-            temp_loss, temp = self._impl.update_temp(batch.observations)
+            temp_loss, temp = self._impl.update_temp(batch)
             metrics.update({"temp_loss": temp_loss, "temp": temp})
 
         if total_step % self._target_update_interval == 0:

@@ -185,22 +185,12 @@ class AWAC(AlgoBase):
 
         metrics = {}
 
-        critic_loss = self._impl.update_critic(
-            batch.observations,
-            batch.actions,
-            batch.next_rewards,
-            batch.next_observations,
-            batch.terminals,
-            batch.n_steps,
-            batch.masks,
-        )
+        critic_loss = self._impl.update_critic(batch)
         metrics.update({"critic_loss": critic_loss})
 
         # delayed policy update
         if total_step % self._update_actor_interval == 0:
-            actor_loss, mean_std = self._impl.update_actor(
-                batch.observations, batch.actions
-            )
+            actor_loss, mean_std = self._impl.update_actor(batch)
             metrics.update({"actor_loss": actor_loss, "mean_std": mean_std})
             self._impl.update_critic_target()
             self._impl.update_actor_target()

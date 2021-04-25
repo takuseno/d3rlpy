@@ -23,6 +23,7 @@ def test_bcq(
         q_func_factory=q_func_factory,
         scaler=scaler,
         action_scaler=action_scaler,
+        rl_start_epoch=0,
     )
     algo_tester(bcq, observation_shape)
     algo_update_tester(bcq, observation_shape, action_size)

@@ -20,7 +20,7 @@ from ...models.torch import (
     DeterministicResidualPolicy,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import soft_sync, torch_api, train_api
+from ...torch_utility import TorchMiniBatch, soft_sync, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 
 
@@ -119,28 +119,27 @@ class PLASImpl(DDPGBaseImpl):
         )
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
-    def update_imitator(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> np.ndarray:
+    @torch_api()
+    def update_imitator(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._imitator is not None
         assert self._imitator_optim is not None
 
         self._imitator_optim.zero_grad()
 
-        loss = self._imitator.compute_error(obs_t, act_t)
+        loss = self._imitator.compute_error(batch.observations, batch.actions)
 
         loss.backward()
         self._imitator_optim.step()
 
         return loss.cpu().detach().numpy()
 
-    def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._imitator is not None
         assert self._policy is not None
         assert self._q_func is not None
-        action = self._imitator.decode(obs_t, 2.0 * self._policy(obs_t))
-        return -self._q_func(obs_t, action, "none")[0].mean()
+        latent_actions = 2.0 * self._policy(batch.observations)
+        actions = self._imitator.decode(batch.observations, latent_actions)
+        return -self._q_func(batch.observations, actions, "none")[0].mean()
 
     def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None
@@ -150,14 +149,20 @@ class PLASImpl(DDPGBaseImpl):
     def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
         return self._predict_best_action(x)
 
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._imitator is not None
         assert self._targ_policy is not None
         assert self._targ_q_func is not None
         with torch.no_grad():
-            action = self._imitator.decode(x, 2.0 * self._targ_policy(x))
+            latent_actions = 2.0 * self._targ_policy(batch.next_observations)
+            actions = self._imitator.decode(
+                batch.next_observations, latent_actions
+            )
             return self._targ_q_func.compute_target(
-                x, action, self._target_reduction_type, self._lam
+                batch.next_observations,
+                actions,
+                self._target_reduction_type,
+                self._lam,
             )
 
 
@@ -243,14 +248,16 @@ class PLASWithPerturbationImpl(PLASImpl):
             params=parameters, lr=self._actor_learning_rate
         )
 
-    def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._imitator is not None
         assert self._policy is not None
         assert self._perturbation is not None
         assert self._q_func is not None
-        action = self._imitator.decode(obs_t, 2.0 * self._policy(obs_t))
-        residual_action = self._perturbation(obs_t, action)
-        return -self._q_func(obs_t, residual_action, "none")[0].mean()
+        latent_actions = 2.0 * self._policy(batch.observations)
+        actions = self._imitator.decode(batch.observations, latent_actions)
+        residual_actions = self._perturbation(batch.observations, actions)
+        q_value = self._q_func(batch.observations, residual_actions, "none")
+        return -q_value[0].mean()
 
     def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None
@@ -262,17 +269,22 @@ class PLASWithPerturbationImpl(PLASImpl):
     def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
         return self._predict_best_action(x)
 
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._imitator is not None
         assert self._targ_policy is not None
         assert self._targ_perturbation is not None
         assert self._targ_q_func is not None
         with torch.no_grad():
-            action = self._imitator.decode(x, 2.0 * self._targ_policy(x))
-            residual_action = self._targ_perturbation(x, action)
+            latent_actions = 2.0 * self._targ_policy(batch.next_observations)
+            actions = self._imitator.decode(
+                batch.next_observations, latent_actions
+            )
+            residual_actions = self._targ_perturbation(
+                batch.next_observations, actions
+            )
             return self._targ_q_func.compute_target(
-                x,
-                residual_action,
+                batch.next_observations,
+                residual_actions,
                 reduction=self._target_reduction_type,
                 lam=self._lam,
             )

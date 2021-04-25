@@ -1,8 +1,5 @@
-# pylint: disable=arguments-differ
-
 from typing import Optional, Sequence
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -13,7 +10,7 @@ from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import SquashedNormalPolicy, squash_action
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import hard_sync, torch_api, train_api
+from ...torch_utility import TorchMiniBatch, hard_sync
 from .ddpg_impl import DDPGBaseImpl
 
 
@@ -81,45 +78,19 @@ class CRRImpl(DDPGBaseImpl):
             self._actor_encoder_factory,
         )
 
-    @train_api
-    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
-    def update_actor(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> np.ndarray:
-        assert self._q_func is not None
-        assert self._actor_optim is not None
-
-        # Q function should be inference mode for stability
-        self._q_func.eval()
-
-        self._actor_optim.zero_grad()
-
-        loss = self.compute_actor_loss(obs_t, act_t)
-
-        loss.backward()
-        self._actor_optim.step()
-
-        return loss.cpu().detach().numpy()
-
-    def compute_actor_loss(  # type: ignore
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> torch.Tensor:
-        return self._compute_actor_loss(obs_t, act_t)
-
-    def _compute_actor_loss(  # type: ignore
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> torch.Tensor:
+    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy is not None
 
-        dist = self._policy.dist(obs_t)
+        dist = self._policy.dist(batch.observations)
 
         # unnormalize action via inverse tanh function
-        unnormalized_act_t = torch.atanh(act_t.clamp(-0.999999, 0.999999))
+        clipped_actions = batch.actions.clamp(-0.999999, 0.999999)
+        unnormalized_act_t = torch.atanh(clipped_actions)
 
         # compute log probability
         _, log_probs = squash_action(dist, unnormalized_act_t)
 
-        weight = self._compute_weight(obs_t, act_t)
+        weight = self._compute_weight(batch.observations, batch.actions)
 
         return -(log_probs * weight).mean()
 
@@ -171,13 +142,13 @@ class CRRImpl(DDPGBaseImpl):
 
             return self._q_func(obs_t, act_t) - values
 
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._targ_q_func is not None
         assert self._targ_policy is not None
         with torch.no_grad():
-            action = self._targ_policy.sample(x)
+            action = self._targ_policy.sample(batch.next_observations)
             return self._targ_q_func.compute_target(
-                x,
+                batch.next_observations,
                 action.clamp(-1.0, 1.0),
                 reduction=self._target_reduction_type,
             )

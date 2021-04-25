@@ -129,15 +129,7 @@ class DQN(AlgoBase):
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update(
-            batch.observations,
-            batch.actions,
-            batch.next_rewards,
-            batch.next_observations,
-            batch.terminals,
-            batch.n_steps,
-            batch.masks,
-        )
+        loss = self._impl.update(batch)
         if total_step % self._target_update_interval == 0:
             self._impl.update_target()
         return {"loss": loss}

@@ -12,7 +12,7 @@ from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import EnsembleDiscreteQFunction
 from ...preprocessing import Scaler
-from ...torch_utility import hard_sync, torch_api, train_api
+from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
 from .base import TorchImplBase
 from .utility import DiscreteQFunctionMixin
 
@@ -97,25 +97,14 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
 
     @train_api
     @torch_api(scaler_targets=["obs_t", "obs_tpn"])
-    def update(
-        self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
-        obs_tpn: torch.Tensor,
-        ter_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: Optional[torch.Tensor],
-    ) -> np.ndarray:
+    def update(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._optim is not None
 
         self._optim.zero_grad()
 
-        q_tpn = self.compute_target(obs_tpn)
+        q_tpn = self.compute_target(batch)
 
-        loss = self.compute_loss(
-            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps, masks
-        )
+        loss = self.compute_loss(batch, q_tpn)
 
         loss.backward()
         self._optim.step()
@@ -124,46 +113,30 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
 
     def compute_loss(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
+        batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
-        ter_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: Optional[torch.Tensor],
-    ) -> torch.Tensor:
-        return self._compute_loss(
-            obs_t, act_t.long(), rew_tpn, q_tpn, ter_tpn, n_steps, masks
-        )
-
-    def _compute_loss(
-        self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
-        q_tpn: torch.Tensor,
-        ter_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: Optional[torch.Tensor],
     ) -> torch.Tensor:
         assert self._q_func is not None
         return self._q_func.compute_error(
-            obs_t,
-            act_t,
-            rew_tpn,
-            q_tpn,
-            ter_tpn,
-            self._gamma ** n_steps,
+            obs_t=batch.observations,
+            act_t=batch.actions.long(),
+            rew_tp1=batch.next_rewards,
+            q_tp1=q_tpn,
+            ter_tp1=batch.terminals,
+            gamma=self._gamma ** batch.n_steps,
             use_independent_target=self._target_reduction_type == "none",
-            masks=masks,
+            masks=batch.masks,
         )
 
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._targ_q_func is not None
         with torch.no_grad():
-            max_action = self._targ_q_func(x).argmax(dim=1)
+            next_actions = self._targ_q_func(batch.next_observations)
+            max_action = next_actions.argmax(dim=1)
             return self._targ_q_func.compute_target(
-                x, max_action, reduction=self._target_reduction_type
+                batch.next_observations,
+                max_action,
+                reduction=self._target_reduction_type,
             )
 
     def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
@@ -180,10 +153,12 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
 
 
 class DoubleDQNImpl(DQNImpl):
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._targ_q_func is not None
         with torch.no_grad():
-            action = self._predict_best_action(x)
+            action = self._predict_best_action(batch.next_observations)
             return self._targ_q_func.compute_target(
-                x, action, reduction=self._target_reduction_type
+                batch.next_observations,
+                action,
+                reduction=self._target_reduction_type,
             )

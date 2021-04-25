@@ -22,7 +22,7 @@ from ...models.torch import (
     compute_max_with_n_actions,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import torch_api, train_api
+from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 from .dqn_impl import DoubleDQNImpl
 
@@ -129,40 +129,34 @@ class BCQImpl(DDPGBaseImpl):
             self._imitator.parameters(), lr=self._imitator_learning_rate
         )
 
-    def _compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._imitator is not None
         assert self._policy is not None
         assert self._q_func is not None
         latent = torch.randn(
-            obs_t.shape[0], self._latent_size, device=self._device
+            batch.observations.shape[0], self._latent_size, device=self._device
         )
         clipped_latent = latent.clamp(-0.5, 0.5)
-        sampled_action = self._imitator.decode(obs_t, clipped_latent)
-        action = self._policy(obs_t, sampled_action)
-        return -self._q_func(obs_t, action, "none")[0].mean()
+        sampled_action = self._imitator.decode(
+            batch.observations, clipped_latent
+        )
+        action = self._policy(batch.observations, sampled_action)
+        return -self._q_func(batch.observations, action, "none")[0].mean()
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
-    def update_imitator(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> np.ndarray:
+    @torch_api()
+    def update_imitator(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._imitator_optim is not None
         assert self._imitator is not None
 
         self._imitator_optim.zero_grad()
 
-        loss = self.compute_imitator_loss(obs_t, act_t)
+        loss = self._imitator.compute_error(batch.observations, batch.actions)
 
         loss.backward()
         self._imitator_optim.step()
 
         return loss.cpu().detach().numpy()
-
-    def compute_imitator_loss(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> torch.Tensor:
-        assert self._imitator is not None
-        return self._imitator.compute_error(obs_t, act_t)
 
     def _repeat_observation(self, x: torch.Tensor) -> torch.Tensor:
         # (batch_size, *obs_shape) -> (batch_size, n, *obs_shape)
@@ -216,15 +210,15 @@ class BCQImpl(DDPGBaseImpl):
     def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError("BCQ does not support sampling action")
 
-    def compute_target(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._targ_q_func is not None
         # TODO: this seems to be slow with image observation
         with torch.no_grad():
-            repeated_x = self._repeat_observation(x)
+            repeated_x = self._repeat_observation(batch.next_observations)
             actions = self._sample_repeated_action(repeated_x, True)
 
             values = compute_max_with_n_actions(
-                x, actions, self._targ_q_func, self._lam
+                batch.next_observations, actions, self._targ_q_func, self._lam
             )
 
             return values
@@ -298,21 +292,14 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             unique_params, lr=self._learning_rate
         )
 
-    def _compute_loss(
-        self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tpn: torch.Tensor,
-        q_tpn: torch.Tensor,
-        ter_tpn: torch.Tensor,
-        n_steps: torch.Tensor,
-        masks: torch.Tensor,
+    def compute_loss(
+        self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> torch.Tensor:
         assert self._imitator is not None
-        loss = super()._compute_loss(
-            obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps, masks
+        loss = super().compute_loss(batch, q_tpn)
+        imitator_loss = self._imitator.compute_error(
+            batch.observations, batch.actions.long()
         )
-        imitator_loss = self._imitator.compute_error(obs_t, act_t)
         return loss + imitator_loss
 
     def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:

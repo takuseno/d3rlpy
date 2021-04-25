@@ -25,6 +25,7 @@ def test_plas(
         scaler=scaler,
         action_scaler=action_scaler,
         target_reduction_type=target_reduction_type,
+        rl_start_epoch=0,
     )
     algo_tester(plas, observation_shape)
     algo_update_tester(plas, observation_shape, action_size)
@@ -56,6 +57,7 @@ def test_plas_with_perturbation(
         scaler=scaler,
         action_scaler=action_scaler,
         target_reduction_type=target_reduction_type,
+        rl_start_epoch=0,
     )
     algo_tester(plas, observation_shape)
     algo_update_tester(plas, observation_shape, action_size)

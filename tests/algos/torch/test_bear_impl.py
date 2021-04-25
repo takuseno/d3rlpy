@@ -99,14 +99,6 @@ def test_bear_impl(
     )
     impl.build()
 
-    x = torch.rand(32, *observation_shape)
-    target = impl.compute_target(x)
-    if q_func_factory == "mean":
-        assert target.shape == (32, 1)
-    else:
-        n_quantiles = impl._q_func.q_funcs[0]._n_quantiles
-        assert target.shape == (32, n_quantiles)
-
     torch_impl_tester(
         impl, discrete=False, deterministic_best_action=q_func_factory != "iqn"
     )

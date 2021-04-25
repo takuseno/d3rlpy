@@ -95,15 +95,7 @@ class _FQEBase(AlgoBase):
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         next_actions = self._algo.predict(batch.observations)
-        loss = self._impl.update(
-            batch.observations,
-            batch.actions,
-            batch.next_rewards,
-            next_actions,
-            batch.next_observations,
-            batch.terminals,
-            batch.n_steps,
-        )
+        loss = self._impl.update(batch, next_actions)
         if total_step % self._target_update_interval == 0:
             self._impl.update_target()
         return {"loss": loss}
