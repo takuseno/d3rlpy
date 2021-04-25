@@ -25,6 +25,7 @@ class CQLImpl(SACImpl):
     _alpha_optim_factory: OptimizerFactory
     _initial_alpha: float
     _alpha_threshold: float
+    _conservative_weight: float
     _n_action_samples: int
     _soft_q_backup: bool
     _log_alpha: Optional[Parameter]
@@ -52,6 +53,7 @@ class CQLImpl(SACImpl):
         initial_temperature: float,
         initial_alpha: float,
         alpha_threshold: float,
+        conservative_weight: float,
         n_action_samples: int,
         soft_q_backup: bool,
         use_gpu: Optional[Device],
@@ -85,6 +87,7 @@ class CQLImpl(SACImpl):
         self._alpha_optim_factory = alpha_optim_factory
         self._initial_alpha = initial_alpha
         self._alpha_threshold = alpha_threshold
+        self._conservative_weight = conservative_weight
         self._n_action_samples = n_action_samples
         self._soft_q_backup = soft_q_backup
 
@@ -121,7 +124,7 @@ class CQLImpl(SACImpl):
             obs_t, act_t, rew_tpn, q_tpn, ter_tpn, n_steps, masks
         )
         conservative_loss = self._compute_conservative_loss(obs_t, act_t)
-        return loss + conservative_loss
+        return loss + self._conservative_weight * conservative_loss
 
     @train_api
     @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
@@ -137,7 +140,9 @@ class CQLImpl(SACImpl):
 
         self._alpha_optim.zero_grad()
 
-        loss = -self._compute_conservative_loss(obs_t, act_t)
+        # the original implementation does scale the loss value
+        conservative_loss = -self._compute_conservative_loss(obs_t, act_t)
+        loss = self._conservative_weight * conservative_loss
 
         loss.backward()
         self._alpha_optim.step()
@@ -192,12 +197,12 @@ class CQLImpl(SACImpl):
         # estimate action-values for data actions
         data_values = self._q_func(obs_t, act_t, "none")
 
-        element_wise_loss = logsumexp - data_values - self._alpha_threshold
+        loss = logsumexp.sum(dim=0).mean() - data_values.sum(dim=0).mean()
 
         # clip for stability
         clipped_alpha = self._log_alpha().exp().clamp(0, 1e6)
 
-        return (clipped_alpha[0][0] * element_wise_loss).sum(dim=0).mean()
+        return clipped_alpha[0][0] * loss - self._alpha_threshold
 
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         if self._soft_q_backup:

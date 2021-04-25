@@ -100,6 +100,7 @@ class CQL(AlgoBase):
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\alpha` value.
         alpha_threshold (float): threshold value described as :math:`\tau`.
+        conservative_weight (float): constant weight to scale conservative loss.
         n_action_samples (int): the number of sampled actions to compute
             :math:`\log{\sum_a \exp{Q(s, a)}}`.
         soft_q_backup (bool): flag to use SAC-style backup.
@@ -133,6 +134,7 @@ class CQL(AlgoBase):
     _initial_temperature: float
     _initial_alpha: float
     _alpha_threshold: float
+    _conservative_weight: float
     _n_action_samples: int
     _soft_q_backup: bool
     _augmentation: AugmentationPipeline
@@ -162,8 +164,9 @@ class CQL(AlgoBase):
         target_reduction_type: str = "min",
         update_actor_interval: int = 1,
         initial_temperature: float = 1.0,
-        initial_alpha: float = 5.0,
+        initial_alpha: float = 1.0,
         alpha_threshold: float = 10.0,
+        conservative_weight: float = 5.0,
         n_action_samples: int = 10,
         soft_q_backup: bool = False,
         use_gpu: UseGPUArg = False,
@@ -200,6 +203,7 @@ class CQL(AlgoBase):
         self._initial_temperature = initial_temperature
         self._initial_alpha = initial_alpha
         self._alpha_threshold = alpha_threshold
+        self._conservative_weight = conservative_weight
         self._n_action_samples = n_action_samples
         self._soft_q_backup = soft_q_backup
         self._augmentation = check_augmentation(augmentation)
@@ -230,6 +234,7 @@ class CQL(AlgoBase):
             initial_temperature=self._initial_temperature,
             initial_alpha=self._initial_alpha,
             alpha_threshold=self._alpha_threshold,
+            conservative_weight=self._conservative_weight,
             n_action_samples=self._n_action_samples,
             soft_q_backup=self._soft_q_backup,
             use_gpu=self._use_gpu,

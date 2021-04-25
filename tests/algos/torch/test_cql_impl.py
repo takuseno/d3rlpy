@@ -31,6 +31,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("initial_temperature", [1.0])
 @pytest.mark.parametrize("initial_alpha", [5.0])
 @pytest.mark.parametrize("alpha_threshold", [10.0])
+@pytest.mark.parametrize("conservative_weight", [5.0])
 @pytest.mark.parametrize("n_action_samples", [10])
 @pytest.mark.parametrize("soft_q_backup", [True])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
@@ -56,6 +57,7 @@ def test_cql_impl(
     initial_temperature,
     initial_alpha,
     alpha_threshold,
+    conservative_weight,
     n_action_samples,
     soft_q_backup,
     scaler,
@@ -83,6 +85,7 @@ def test_cql_impl(
         initial_temperature=initial_temperature,
         initial_alpha=initial_alpha,
         alpha_threshold=alpha_threshold,
+        conservative_weight=conservative_weight,
         n_action_samples=n_action_samples,
         soft_q_backup=soft_q_backup,
         use_gpu=None,
