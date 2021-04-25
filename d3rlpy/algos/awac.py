@@ -2,17 +2,14 @@ from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     ActionScalerArg,
-    AugmentationArg,
     EncoderArg,
     QFuncArg,
     ScalerArg,
     UseGPUArg,
-    check_augmentation,
     check_encoder,
     check_q_func,
     check_use_gpu,
 )
-from ..augmentation import AugmentationPipeline
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
@@ -81,8 +78,6 @@ class AWAC(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.awac_impl.AWACImpl): algorithm implementation.
 
     """
@@ -102,7 +97,6 @@ class AWAC(AlgoBase):
     _target_reduction_type: str
     _update_actor_interval: int
     _use_gpu: Optional[Device]
-    _augmentation: AugmentationPipeline
     _impl: Optional[AWACImpl]
 
     def __init__(
@@ -129,7 +123,6 @@ class AWAC(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
-        augmentation: AugmentationArg = None,
         impl: Optional[AWACImpl] = None,
         **kwargs: Any
     ):
@@ -156,7 +149,6 @@ class AWAC(AlgoBase):
         self._n_critics = n_critics
         self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
-        self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
@@ -183,7 +175,6 @@ class AWAC(AlgoBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
-            augmentation=self._augmentation,
         )
         self._impl.build()
 

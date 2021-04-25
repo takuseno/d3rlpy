@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...models.builders import (
     create_conditional_vae,
@@ -23,7 +22,7 @@ from ...models.torch import (
     compute_max_with_n_actions,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import augmentation_api, torch_api, train_api
+from ...torch_utility import torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 from .dqn_impl import DoubleDQNImpl
 
@@ -68,7 +67,6 @@ class BCQImpl(DDPGBaseImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -87,7 +85,6 @@ class BCQImpl(DDPGBaseImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
         )
         self._imitator_learning_rate = imitator_learning_rate
         self._imitator_optim_factory = imitator_optim_factory
@@ -161,7 +158,6 @@ class BCQImpl(DDPGBaseImpl):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["obs_t"])
     def compute_imitator_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
@@ -220,7 +216,6 @@ class BCQImpl(DDPGBaseImpl):
     def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError("BCQ does not support sampling action")
 
-    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._targ_q_func is not None
         # TODO: this seems to be slow with image observation
@@ -256,7 +251,6 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         beta: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -270,7 +264,6 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             target_reduction_type=target_reduction_type,
             use_gpu=use_gpu,
             scaler=scaler,
-            augmentation=augmentation,
         )
         self._action_flexibility = action_flexibility
         self._beta = beta

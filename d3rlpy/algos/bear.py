@@ -2,17 +2,14 @@ from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     ActionScalerArg,
-    AugmentationArg,
     EncoderArg,
     QFuncArg,
     ScalerArg,
     UseGPUArg,
-    check_augmentation,
     check_encoder,
     check_q_func,
     check_use_gpu,
 )
-from ..augmentation import AugmentationPipeline
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
@@ -115,8 +112,6 @@ class BEAR(AlgoBase):
             The avaiable options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The avaiable options are ``['min_max']``.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.bear_impl.BEARImpl): algorithm implementation.
 
     """
@@ -145,7 +140,6 @@ class BEAR(AlgoBase):
     _mmd_kernel: str
     _mmd_sigma: float
     _warmup_epochs: int
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _impl: Optional[BEARImpl]
 
@@ -183,7 +177,6 @@ class BEAR(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
-        augmentation: AugmentationArg = None,
         impl: Optional[BEARImpl] = None,
         **kwargs: Any
     ):
@@ -220,7 +213,6 @@ class BEAR(AlgoBase):
         self._mmd_kernel = mmd_kernel
         self._mmd_sigma = mmd_sigma
         self._warmup_epochs = warmup_epochs
-        self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
@@ -257,7 +249,6 @@ class BEAR(AlgoBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
-            augmentation=self._augmentation,
         )
         self._impl.build()
 

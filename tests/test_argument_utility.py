@@ -2,14 +2,11 @@ import pytest
 
 from d3rlpy.argument_utility import (
     check_action_scaler,
-    check_augmentation,
     check_encoder,
     check_q_func,
     check_scaler,
     check_use_gpu,
 )
-from d3rlpy.augmentation import AugmentationPipeline, RandomShift
-from d3rlpy.augmentation.base import Augmentation
 from d3rlpy.gpu import Device
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory
@@ -43,16 +40,6 @@ def test_check_action_scaler(value):
         assert scaler is None
     else:
         assert isinstance(scaler, MinMaxActionScaler)
-
-
-@pytest.mark.parametrize("value", [["random_shift"], [RandomShift()], None])
-def test_check_augmentation(value):
-    pipeline = check_augmentation(value)
-    assert isinstance(pipeline, AugmentationPipeline)
-    if value is None:
-        assert len(pipeline.augmentations) == 0
-    else:
-        assert isinstance(pipeline.augmentations[0], RandomShift)
 
 
 @pytest.mark.parametrize("value", [False, True, 0, Device(0)])

@@ -26,7 +26,6 @@ from .argument_utility import (
     check_action_scaler,
     check_scaler,
 )
-from .augmentation import AugmentationPipeline, DrQPipeline, create_augmentation
 from .constants import (
     CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR,
     DISCRETE_ACTION_SPACE_MISMATCH_ERROR,
@@ -85,14 +84,6 @@ def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
             }
         elif isinstance(value, OptimizerFactory):
             params[key] = value.get_params()
-        elif isinstance(value, AugmentationPipeline):
-            aug_types = value.get_augmentation_types()
-            aug_params = value.get_augmentation_params()
-            params[key] = {"params": value.get_params(), "augmentations": []}
-            for aug_type, aug_param in zip(aug_types, aug_params):
-                params[key]["augmentations"].append(
-                    {"type": aug_type, "params": aug_param}
-                )
     return params
 
 
@@ -108,14 +99,6 @@ def _deseriealize_params(params: Dict[str, Any]) -> Dict[str, Any]:
             scaler_params = params["action_scaler"]["params"]
             action_scaler = create_action_scaler(scaler_type, **scaler_params)
             params[key] = action_scaler
-        elif key == "augmentation" and params["augmentation"]:
-            augmentations = []
-            for param in params[key]["augmentations"]:
-                aug_type = param["type"]
-                aug_params = param["params"]
-                augmentation = create_augmentation(aug_type, **aug_params)
-                augmentations.append(augmentation)
-            params[key] = DrQPipeline(augmentations, **params[key]["params"])
         elif "optim_factory" in key:
             params[key] = OptimizerFactory(**value)
         elif "encoder_factory" in key:

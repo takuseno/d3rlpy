@@ -2,17 +2,14 @@ from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     ActionScalerArg,
-    AugmentationArg,
     EncoderArg,
     QFuncArg,
     ScalerArg,
     UseGPUArg,
-    check_augmentation,
     check_encoder,
     check_q_func,
     check_use_gpu,
 )
-from ..augmentation import AugmentationPipeline
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
@@ -86,8 +83,6 @@ class TD3(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.td3_impl.TD3Impl): algorithm implementation.
 
     """
@@ -105,7 +100,6 @@ class TD3(AlgoBase):
     _target_smoothing_sigma: float
     _target_smoothing_clip: float
     _update_actor_interval: int
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _impl: Optional[TD3Impl]
 
@@ -132,7 +126,6 @@ class TD3(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
-        augmentation: AugmentationArg = None,
         impl: Optional[TD3Impl] = None,
         **kwargs: Any
     ):
@@ -158,7 +151,6 @@ class TD3(AlgoBase):
         self._target_smoothing_sigma = target_smoothing_sigma
         self._target_smoothing_clip = target_smoothing_clip
         self._update_actor_interval = update_actor_interval
-        self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
@@ -184,7 +176,6 @@ class TD3(AlgoBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
-            augmentation=self._augmentation,
         )
         self._impl.build()
 

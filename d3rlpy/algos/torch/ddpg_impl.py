@@ -6,7 +6,6 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...models.builders import (
     create_continuous_q_function,
@@ -21,7 +20,7 @@ from ...models.torch import (
     Policy,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import augmentation_api, soft_sync, torch_api, train_api
+from ...torch_utility import soft_sync, torch_api, train_api
 from .base import TorchImplBase
 from .utility import ContinuousQFunctionMixin
 
@@ -65,14 +64,12 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -167,7 +164,6 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["obs_t"])
     def compute_critic_loss(
         self,
         obs_t: torch.Tensor,
@@ -222,7 +218,6 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["obs_t"])
     def compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
         return self._compute_actor_loss(obs_t)
 
@@ -272,7 +267,6 @@ class DDPGImpl(DDPGBaseImpl):
         q_t = self._q_func(obs_t, action, "min")
         return -q_t.mean()
 
-    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._targ_q_func is not None
         assert self._targ_policy is not None

@@ -4,15 +4,12 @@ import numpy as np
 
 from ..argument_utility import (
     ActionScalerArg,
-    AugmentationArg,
     EncoderArg,
     ScalerArg,
     UseGPUArg,
-    check_augmentation,
     check_encoder,
     check_use_gpu,
 )
-from ..augmentation import AugmentationPipeline
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch, compute_lambda_return
 from ..gpu import Device
@@ -36,7 +33,6 @@ class _AWRBase(AlgoBase):
     _lam: float
     _beta: float
     _max_weight: float
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _impl: Optional[AWRBaseImpl]
 
@@ -61,7 +57,6 @@ class _AWRBase(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
-        augmentation: AugmentationArg = None,
         impl: Optional[AWRImpl] = None,
         **kwargs: Any
     ):
@@ -87,7 +82,6 @@ class _AWRBase(AlgoBase):
         self._lam = lam
         self._beta = beta
         self._max_weight = max_weight
-        self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
@@ -240,8 +234,6 @@ class AWR(_AWRBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.awr_impl.AWRImpl): algorithm implementation.
 
     """
@@ -263,7 +255,6 @@ class AWR(_AWRBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
-            augmentation=self._augmentation,
         )
         self._impl.build()
 
@@ -325,8 +316,6 @@ class DiscreteAWR(_AWRBase):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.awr_impl.DiscreteAWRImpl):
             algorithm implementation.
 
@@ -349,7 +338,6 @@ class DiscreteAWR(_AWRBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=None,
-            augmentation=self._augmentation,
         )
         self._impl.build()
 

@@ -5,7 +5,6 @@ tqdm==4.47.0
 GPUtil==1.4.0
 h5py==2.10.0
 gym==0.17.2
-kornia==0.4.0
 Cython==0.29.21
 stable-baselines3>=0.10.0
 click==7.1.2

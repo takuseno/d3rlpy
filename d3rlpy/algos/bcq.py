@@ -4,17 +4,14 @@ import numpy as np
 
 from ..argument_utility import (
     ActionScalerArg,
-    AugmentationArg,
     EncoderArg,
     QFuncArg,
     ScalerArg,
     UseGPUArg,
-    check_augmentation,
     check_encoder,
     check_q_func,
     check_use_gpu,
 )
-from ..augmentation import AugmentationPipeline
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
@@ -140,8 +137,6 @@ class BCQ(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
 
     """
@@ -165,7 +160,6 @@ class BCQ(AlgoBase):
     _rl_start_epoch: int
     _latent_size: int
     _beta: float
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _impl: Optional[BCQImpl]
 
@@ -198,7 +192,6 @@ class BCQ(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
-        augmentation: AugmentationArg = None,
         impl: Optional[BCQImpl] = None,
         **kwargs: Any
     ):
@@ -230,7 +223,6 @@ class BCQ(AlgoBase):
         self._rl_start_epoch = rl_start_epoch
         self._latent_size = latent_size
         self._beta = beta
-        self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
@@ -261,7 +253,6 @@ class BCQ(AlgoBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
-            augmentation=self._augmentation,
         )
         self._impl.build()
 
@@ -368,8 +359,6 @@ class DiscreteBCQ(AlgoBase):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.bcq_impl.DiscreteBCQImpl):
             algorithm implementation.
 
@@ -384,7 +373,6 @@ class DiscreteBCQ(AlgoBase):
     _action_flexibility: float
     _beta: float
     _target_update_interval: int
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _impl: Optional[DiscreteBCQImpl]
 
@@ -406,7 +394,6 @@ class DiscreteBCQ(AlgoBase):
         target_update_interval: int = 8000,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
-        augmentation: AugmentationArg = None,
         impl: Optional[DiscreteBCQImpl] = None,
         **kwargs: Any
     ):
@@ -428,7 +415,6 @@ class DiscreteBCQ(AlgoBase):
         self._action_flexibility = action_flexibility
         self._beta = beta
         self._target_update_interval = target_update_interval
-        self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
@@ -449,7 +435,6 @@ class DiscreteBCQ(AlgoBase):
             beta=self._beta,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
-            augmentation=self._augmentation,
         )
         self._impl.build()
 

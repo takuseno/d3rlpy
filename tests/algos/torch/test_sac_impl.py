@@ -1,7 +1,6 @@
 import pytest
 
 from d3rlpy.algos.torch.sac_impl import DiscreteSACImpl, SACImpl
-from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import create_q_func_factory
@@ -29,7 +28,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("initial_temperature", [1.0])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
-@pytest.mark.parametrize("augmentation", [DrQPipeline()])
 def test_sac_impl(
     observation_shape,
     action_size,
@@ -48,7 +46,6 @@ def test_sac_impl(
     initial_temperature,
     scaler,
     action_scaler,
-    augmentation,
 ):
     impl = SACImpl(
         observation_shape=observation_shape,
@@ -70,7 +67,6 @@ def test_sac_impl(
         use_gpu=None,
         scaler=scaler,
         action_scaler=action_scaler,
-        augmentation=augmentation,
     )
     torch_impl_tester(
         impl, discrete=False, deterministic_best_action=q_func_factory != "iqn"
@@ -91,7 +87,6 @@ def test_sac_impl(
 @pytest.mark.parametrize("n_critics", [2])
 @pytest.mark.parametrize("initial_temperature", [1.0])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
-@pytest.mark.parametrize("augmentation", [DrQPipeline()])
 def test_discrete_sac_impl(
     observation_shape,
     action_size,
@@ -107,7 +102,6 @@ def test_discrete_sac_impl(
     n_critics,
     initial_temperature,
     scaler,
-    augmentation,
 ):
     impl = DiscreteSACImpl(
         observation_shape=observation_shape,
@@ -126,7 +120,6 @@ def test_discrete_sac_impl(
         initial_temperature=initial_temperature,
         use_gpu=None,
         scaler=scaler,
-        augmentation=augmentation,
     )
     torch_impl_tester(
         impl, discrete=True, deterministic_best_action=q_func_factory != "iqn"

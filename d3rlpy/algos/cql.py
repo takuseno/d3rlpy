@@ -2,17 +2,14 @@ from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     ActionScalerArg,
-    AugmentationArg,
     EncoderArg,
     QFuncArg,
     ScalerArg,
     UseGPUArg,
-    check_augmentation,
     check_encoder,
     check_q_func,
     check_use_gpu,
 )
-from ..augmentation import AugmentationPipeline
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
@@ -110,8 +107,6 @@ class CQL(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.cql_impl.CQLImpl): algorithm implementation.
 
     """
@@ -137,7 +132,6 @@ class CQL(AlgoBase):
     _conservative_weight: float
     _n_action_samples: int
     _soft_q_backup: bool
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _impl: Optional[CQLImpl]
 
@@ -172,7 +166,6 @@ class CQL(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
-        augmentation: AugmentationArg = None,
         impl: Optional[CQLImpl] = None,
         **kwargs: Any
     ):
@@ -206,7 +199,6 @@ class CQL(AlgoBase):
         self._conservative_weight = conservative_weight
         self._n_action_samples = n_action_samples
         self._soft_q_backup = soft_q_backup
-        self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
@@ -240,7 +232,6 @@ class CQL(AlgoBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
-            augmentation=self._augmentation,
         )
         self._impl.build()
 
@@ -331,8 +322,6 @@ class DiscreteCQL(DoubleDQN):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.cql_impl.DiscreteCQLImpl):
             algorithm implementation.
 
@@ -355,6 +344,5 @@ class DiscreteCQL(DoubleDQN):
             target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
-            augmentation=self._augmentation,
         )
         self._impl.build()

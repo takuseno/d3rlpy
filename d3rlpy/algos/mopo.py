@@ -4,17 +4,14 @@ import numpy as np
 
 from ..argument_utility import (
     ActionScalerArg,
-    AugmentationArg,
     EncoderArg,
     QFuncArg,
     ScalerArg,
     UseGPUArg,
-    check_augmentation,
     check_encoder,
     check_q_func,
     check_use_gpu,
 )
-from ..augmentation import AugmentationPipeline
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Transition, TransitionMiniBatch
 from ..dynamics import DynamicsBase
@@ -107,8 +104,6 @@ class MOPO(ModelBaseMixin, AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
 
     """
@@ -133,7 +128,6 @@ class MOPO(ModelBaseMixin, AlgoBase):
     _horizon: int
     _n_initial_transitions: int
     _lam: float
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _impl: Optional[SACImpl]
 
@@ -169,7 +163,6 @@ class MOPO(ModelBaseMixin, AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
-        augmentation: AugmentationArg = None,
         impl: Optional[SACImpl] = None,
         **kwargs: Any
     ):
@@ -204,7 +197,6 @@ class MOPO(ModelBaseMixin, AlgoBase):
         self._horizon = horizon
         self._n_initial_transitions = n_initial_transitions
         self._lam = lam
-        self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
@@ -231,7 +223,6 @@ class MOPO(ModelBaseMixin, AlgoBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
-            augmentation=self._augmentation,
         )
         self._impl.build()
 

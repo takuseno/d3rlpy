@@ -11,7 +11,6 @@ from ...algos.torch.utility import (
     ContinuousQFunctionMixin,
     DiscreteQFunctionMixin,
 )
-from ...augmentation import DrQPipeline
 from ...gpu import Device
 from ...models.builders import (
     create_continuous_q_function,
@@ -61,7 +60,6 @@ class FQEBaseImpl(TorchImplBase):
             action_size=action_size,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=DrQPipeline(),
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory

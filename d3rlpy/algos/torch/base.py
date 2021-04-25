@@ -3,7 +3,6 @@ from typing import Optional, Sequence
 import numpy as np
 import torch
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...preprocessing import ActionScaler, Scaler
 from ...torch_utility import (
@@ -27,7 +26,6 @@ class TorchImplBase(AlgoImplBase):
     _scaler: Optional[Scaler]
     _action_scaler: Optional[ActionScaler]
     _device: str
-    _augmentation: AugmentationPipeline
 
     def __init__(
         self,
@@ -35,14 +33,12 @@ class TorchImplBase(AlgoImplBase):
         action_size: int,
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         self._observation_shape = observation_shape
         self._action_size = action_size
         self._scaler = scaler
         self._action_scaler = action_scaler
         self._device = "cpu:0"
-        self._augmentation = augmentation
 
     @eval_api
     @torch_api(scaler_targets=["x"])
@@ -147,7 +143,3 @@ class TorchImplBase(AlgoImplBase):
     @property
     def action_scaler(self) -> Optional[ActionScaler]:
         return self._action_scaler
-
-    @property
-    def augmentation(self) -> AugmentationPipeline:
-        return self._augmentation

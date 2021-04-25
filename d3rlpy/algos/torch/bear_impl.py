@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...models.builders import create_parameter, create_probablistic_regressor
 from ...models.encoders import EncoderFactory
@@ -17,7 +16,7 @@ from ...models.torch import (
     compute_max_with_n_actions_and_indices,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import augmentation_api, torch_api, train_api
+from ...torch_utility import torch_api, train_api
 from .sac_impl import SACImpl
 
 
@@ -84,7 +83,6 @@ class BEARImpl(SACImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -106,7 +104,6 @@ class BEARImpl(SACImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
         )
         self._imitator_learning_rate = imitator_learning_rate
         self._alpha_learning_rate = alpha_learning_rate
@@ -175,7 +172,6 @@ class BEARImpl(SACImpl):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["obs_t"])
     def compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
         return self._compute_mmd_loss(obs_t)
 
@@ -202,7 +198,6 @@ class BEARImpl(SACImpl):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["obs_t"])
     def compute_imitator_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
@@ -275,7 +270,6 @@ class BEARImpl(SACImpl):
 
         return (mmd + 1e-6).sqrt().view(-1, 1)
 
-    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         assert self._targ_q_func is not None

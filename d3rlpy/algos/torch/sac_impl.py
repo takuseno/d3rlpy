@@ -6,7 +6,6 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...models.builders import (
     create_categorical_policy,
@@ -24,7 +23,7 @@ from ...models.torch import (
     SquashedNormalPolicy,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import augmentation_api, hard_sync, torch_api, train_api
+from ...torch_utility import hard_sync, torch_api, train_api
 from .base import TorchImplBase
 from .ddpg_impl import DDPGBaseImpl
 from .utility import DiscreteQFunctionMixin
@@ -61,7 +60,6 @@ class SACImpl(DDPGBaseImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -80,7 +78,6 @@ class SACImpl(DDPGBaseImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
         )
         self._temp_learning_rate = temp_learning_rate
         self._temp_optim_factory = temp_optim_factory
@@ -144,7 +141,6 @@ class SACImpl(DDPGBaseImpl):
 
         return loss.cpu().detach().numpy(), cur_temp
 
-    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         assert self._log_temp is not None
@@ -202,10 +198,12 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         initial_temperature: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
-            observation_shape, action_size, scaler, None, augmentation
+            observation_shape=observation_shape,
+            action_size=action_size,
+            scaler=scaler,
+            action_scaler=None,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -314,7 +312,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         assert self._log_temp is not None
@@ -331,7 +328,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
                 keepdims = False
             return (probs * (target - entropy)).sum(dim=1, keepdim=keepdims)
 
-    @augmentation_api(targets=["obs_t"])
     def compute_critic_loss(
         self,
         obs_t: torch.Tensor,
@@ -377,7 +373,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["obs_t"])
     def compute_actor_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
         return self._compute_actor_loss(obs_t)
 

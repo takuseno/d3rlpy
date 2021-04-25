@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...models.builders import (
     create_conditional_vae,
@@ -61,7 +60,6 @@ class PLASImpl(DDPGBaseImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -80,7 +78,6 @@ class PLASImpl(DDPGBaseImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
         )
         self._imitator_learning_rate = imitator_learning_rate
         self._imitator_optim_factory = imitator_optim_factory
@@ -131,11 +128,7 @@ class PLASImpl(DDPGBaseImpl):
 
         self._imitator_optim.zero_grad()
 
-        loss = self._augmentation.process(
-            func=self._imitator.compute_error,
-            inputs={"x": obs_t, "action": act_t},
-            targets=["x"],
-        )
+        loss = self._imitator.compute_error(obs_t, act_t)
 
         loss.backward()
         self._imitator_optim.step()
@@ -198,7 +191,6 @@ class PLASWithPerturbationImpl(PLASImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -222,7 +214,6 @@ class PLASWithPerturbationImpl(PLASImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
         )
         self._action_flexibility = action_flexibility
 

@@ -2,17 +2,14 @@ from typing import Any, Dict, Optional, Sequence
 
 from ..argument_utility import (
     ActionScalerArg,
-    AugmentationArg,
     EncoderArg,
     QFuncArg,
     ScalerArg,
     UseGPUArg,
-    check_augmentation,
     check_encoder,
     check_q_func,
     check_use_gpu,
 )
-from ..augmentation import AugmentationPipeline
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import TransitionMiniBatch
 from ..gpu import Device
@@ -79,8 +76,6 @@ class PLAS(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
 
     """
@@ -102,7 +97,6 @@ class PLAS(AlgoBase):
     _lam: float
     _rl_start_epoch: int
     _beta: float
-    _augmentation: AugmentationPipeline
     _use_gpu: Optional[Device]
     _impl: Optional[PLASImpl]
 
@@ -133,7 +127,6 @@ class PLAS(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
-        augmentation: AugmentationArg = None,
         impl: Optional[PLASImpl] = None,
         **kwargs: Any
     ):
@@ -163,7 +156,6 @@ class PLAS(AlgoBase):
         self._lam = lam
         self._rl_start_epoch = rl_start_epoch
         self._beta = beta
-        self._augmentation = check_augmentation(augmentation)
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
@@ -192,7 +184,6 @@ class PLAS(AlgoBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
-            augmentation=self._augmentation,
         )
         self._impl.build()
 
@@ -280,8 +271,6 @@ class PLASWithPerturbation(PLAS):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
 
     """
@@ -317,7 +306,6 @@ class PLASWithPerturbation(PLAS):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
-        augmentation: AugmentationArg = None,
         impl: Optional[PLASWithPerturbationImpl] = None,
         **kwargs: Any
     ):
@@ -346,7 +334,6 @@ class PLASWithPerturbation(PLAS):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
             impl=impl,
             **kwargs,
         )
@@ -378,6 +365,5 @@ class PLASWithPerturbation(PLAS):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
-            augmentation=self._augmentation,
         )
         self._impl.build()

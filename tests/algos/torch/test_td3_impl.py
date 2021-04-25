@@ -1,7 +1,6 @@
 import pytest
 
 from d3rlpy.algos.torch.td3_impl import TD3Impl
-from d3rlpy.augmentation import DrQPipeline
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import create_q_func_factory
@@ -28,7 +27,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("target_smoothing_clip", [0.5])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
-@pytest.mark.parametrize("augmentation", [DrQPipeline()])
 def test_td3_impl(
     observation_shape,
     action_size,
@@ -46,7 +44,6 @@ def test_td3_impl(
     target_smoothing_clip,
     scaler,
     action_scaler,
-    augmentation,
 ):
     impl = TD3Impl(
         observation_shape=observation_shape,
@@ -67,7 +64,6 @@ def test_td3_impl(
         use_gpu=None,
         scaler=scaler,
         action_scaler=action_scaler,
-        augmentation=augmentation,
     )
     torch_impl_tester(
         impl, discrete=False, deterministic_best_action=q_func_factory != "iqn"

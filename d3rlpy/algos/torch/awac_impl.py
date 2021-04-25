@@ -6,7 +6,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...models.builders import create_squashed_normal_policy
 from ...models.encoders import EncoderFactory
@@ -14,7 +13,7 @@ from ...models.optimizers import AdamFactory, OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import squash_action
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import augmentation_api, torch_api, train_api
+from ...torch_utility import torch_api, train_api
 from .sac_impl import SACImpl
 
 
@@ -45,7 +44,6 @@ class AWACImpl(SACImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -67,7 +65,6 @@ class AWACImpl(SACImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
         )
         self._lam = lam
         self._n_action_samples = n_action_samples
@@ -107,8 +104,7 @@ class AWACImpl(SACImpl):
 
         return loss.cpu().detach().numpy(), mean_std.cpu().detach().numpy()
 
-    @augmentation_api(targets=["obs_t"])
-    def compute_actor_loss(
+    def compute_actor_loss(  # type: ignore
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
         return self._compute_actor_loss(obs_t, act_t)

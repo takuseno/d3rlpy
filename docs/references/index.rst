@@ -14,7 +14,6 @@ API Reference
    preprocessing
    optimizers
    network_architectures
-   data_augmentation
    metrics
    off_policy_evaluation
    save_and_load

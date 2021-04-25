@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...models.builders import (
     create_deterministic_regressor,
@@ -15,7 +14,7 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.torch import DeterministicRegressor, DiscreteImitator, Imitator
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import augmentation_api, torch_api, train_api
+from ...torch_utility import torch_api, train_api
 from .base import TorchImplBase
 
 
@@ -38,14 +37,12 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
@@ -92,7 +89,6 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["obs_t"])
     def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
@@ -134,7 +130,6 @@ class DiscreteBCImpl(BCBaseImpl):
         beta: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -145,7 +140,6 @@ class DiscreteBCImpl(BCBaseImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=None,
-            augmentation=augmentation,
         )
         self._beta = beta
 
@@ -161,7 +155,6 @@ class DiscreteBCImpl(BCBaseImpl):
         assert self._imitator is not None
         return self._imitator(x).argmax(dim=1)
 
-    @augmentation_api(targets=["obs_t"])
     def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:

@@ -10,7 +10,6 @@ from d3rlpy.torch_utility import (
     Swish,
     TorchMiniBatch,
     View,
-    augmentation_api,
     eval_api,
     freeze,
     get_state_dict,
@@ -77,7 +76,6 @@ class DummyImpl:
         self._device = "cpu:0"
         self._scaler = None
         self._action_scaler = None
-        self._augmentation = None
 
     @torch_api()
     def torch_api_func(self, x):
@@ -110,10 +108,6 @@ class DummyImpl:
         assert not self._fc1.training
         assert not self._fc2.training
 
-    @augmentation_api(targets=["x"])
-    def augmentation_api_func(self, x, y):
-        return x + y
-
     @property
     def device(self):
         return self._device
@@ -125,10 +119,6 @@ class DummyImpl:
     @property
     def action_scaler(self):
         return self._action_scaler
-
-    @property
-    def augmentation(self):
-        return self._augmentation
 
 
 def check_if_same_dict(a, b):
@@ -437,23 +427,6 @@ def test_eval_api():
     impl._fc2.train()
 
     impl.eval_api_func()
-
-
-def test_augmentation_api():
-    impl = DummyImpl()
-
-    class DummyAugmentationPipeline:
-        def process(self, f, inputs, targets):
-            for k, v in inputs.items():
-                if k in targets:
-                    inputs[k] = v + 1.0
-            return f(**inputs)
-
-    impl._augmentation = DummyAugmentationPipeline()
-
-    x = torch.tensor(1.0)
-    y = torch.tensor(2.0)
-    assert impl.augmentation_api_func(x, y).numpy() == 4.0
 
 
 @pytest.mark.parametrize("in_shape", [(1, 2, 3)])

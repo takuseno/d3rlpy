@@ -66,8 +66,7 @@ always dependent on the tasks.
   dqn = DQN(encoder_factory=encoder,
             n_critics=5,  # Q function ensemble size
             n_steps=5, # N-step TD backup
-            q_func_factory='qr', # use distributional Q function
-            augmentation=['color_jitter', 'random_shift'])  # data augmentation
+            q_func_factory='qr') # use distributional Q function
 
   # use dropout
   # this will dramatically improve performance

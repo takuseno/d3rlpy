@@ -215,8 +215,6 @@ class DiscreteFQE(_FQEBase):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
-        augmentation (d3rlpy.augmentation.AugmentationPipeline or list(str)):
-            augmentation pipeline.
         impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     """

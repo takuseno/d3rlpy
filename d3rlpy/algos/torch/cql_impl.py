@@ -6,7 +6,6 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...models.builders import create_parameter
 from ...models.encoders import EncoderFactory
@@ -14,7 +13,7 @@ from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import Parameter
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import augmentation_api, torch_api, train_api
+from ...torch_utility import torch_api, train_api
 from .dqn_impl import DoubleDQNImpl
 from .sac_impl import SACImpl
 
@@ -59,7 +58,6 @@ class CQLImpl(SACImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -81,7 +79,6 @@ class CQLImpl(SACImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
         )
         self._alpha_learning_rate = alpha_learning_rate
         self._alpha_optim_factory = alpha_optim_factory
@@ -209,7 +206,6 @@ class CQLImpl(SACImpl):
             return super().compute_target(x)
         return self._compute_deterministic_target(x)
 
-    @augmentation_api(targets=["x"])
     def _compute_deterministic_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy
         assert self._targ_q_func

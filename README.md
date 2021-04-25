@@ -41,7 +41,7 @@ Documentation: https://d3rlpy.readthedocs.io
 
 ### :rocket: Beyond State-Of-The-Art
 - **distributional Q function**: d3rlpy is the first library that supports distributional Q functions in the all algorithms. The distributional Q function is known as the very powerful method to achieve the state-of-the-performance.
-- **many tweek options**: d3rlpy is also the first to support N-step TD backup, ensemble value functions and data augmentation in the all algorithms, which lead you to the place no one ever reached yet.
+- **many tweek options**: d3rlpy is also the first to support N-step TD backup and ensemble value functions in the all algorithms, which lead you to the place no one ever reached yet.
 
 
 ## installation

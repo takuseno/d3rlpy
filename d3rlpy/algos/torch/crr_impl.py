@@ -6,7 +6,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...models.builders import create_squashed_normal_policy
 from ...models.encoders import EncoderFactory
@@ -14,7 +13,7 @@ from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import SquashedNormalPolicy, squash_action
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import augmentation_api, hard_sync, torch_api, train_api
+from ...torch_utility import hard_sync, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 
 
@@ -50,7 +49,6 @@ class CRRImpl(DDPGBaseImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -69,7 +67,6 @@ class CRRImpl(DDPGBaseImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
         )
         self._beta = beta
         self._n_action_samples = n_action_samples
@@ -104,8 +101,7 @@ class CRRImpl(DDPGBaseImpl):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["obs_t"])
-    def compute_actor_loss(
+    def compute_actor_loss(  # type: ignore
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
         return self._compute_actor_loss(obs_t, act_t)
@@ -175,7 +171,6 @@ class CRRImpl(DDPGBaseImpl):
 
             return self._q_func(obs_t, act_t) - values
 
-    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._targ_q_func is not None
         assert self._targ_policy is not None

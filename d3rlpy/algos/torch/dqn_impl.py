@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...models.builders import create_discrete_q_function
 from ...models.encoders import EncoderFactory
@@ -13,7 +12,7 @@ from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import EnsembleDiscreteQFunction
 from ...preprocessing import Scaler
-from ...torch_utility import augmentation_api, hard_sync, torch_api, train_api
+from ...torch_utility import hard_sync, torch_api, train_api
 from .base import TorchImplBase
 from .utility import DiscreteQFunctionMixin
 
@@ -45,14 +44,12 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         target_reduction_type: str,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             scaler=scaler,
             action_scaler=None,
-            augmentation=augmentation,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
@@ -125,7 +122,6 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["obs_t"])
     def compute_loss(
         self,
         obs_t: torch.Tensor,
@@ -162,7 +158,6 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
             masks=masks,
         )
 
-    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._targ_q_func is not None
         with torch.no_grad():
@@ -185,7 +180,6 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
 
 
 class DoubleDQNImpl(DQNImpl):
-    @augmentation_api(targets=["x"])
     def compute_target(self, x: torch.Tensor) -> torch.Tensor:
         assert self._targ_q_func is not None
         with torch.no_grad():

@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...augmentation import AugmentationPipeline
 from ...gpu import Device
 from ...models.builders import (
     create_categorical_policy,
@@ -22,7 +21,7 @@ from ...models.torch import (
     squash_action,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import augmentation_api, eval_api, torch_api, train_api
+from ...torch_utility import eval_api, torch_api, train_api
 from .base import TorchImplBase
 
 
@@ -53,14 +52,12 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
-        augmentation: AugmentationPipeline,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             scaler=scaler,
             action_scaler=action_scaler,
-            augmentation=augmentation,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -127,7 +124,6 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["observation"])
     def compute_critic_loss(
         self, observation: torch.Tensor, value: torch.Tensor
     ) -> torch.Tensor:
@@ -153,7 +149,6 @@ class AWRBaseImpl(TorchImplBase, metaclass=ABCMeta):
 
         return loss.cpu().detach().numpy()
 
-    @augmentation_api(targets=["observation"])
     def compute_actor_loss(
         self,
         observation: torch.Tensor,
