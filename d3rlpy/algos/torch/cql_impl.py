@@ -112,7 +112,7 @@ class CQLImpl(SACImpl):
     ) -> torch.Tensor:
         loss = super().compute_critic_loss(batch, q_tpn)
         conservative_loss = self._compute_conservative_loss(
-            batch.observations, batch.actions
+            batch.observations, batch.actions, batch.next_observations
         )
         return loss + self._conservative_weight * conservative_loss
 
@@ -130,7 +130,7 @@ class CQLImpl(SACImpl):
 
         # the original implementation does scale the loss value
         conservative_loss = -self._compute_conservative_loss(
-            batch.observations, batch.actions
+            batch.observations, batch.actions, batch.next_observations
         )
         loss = self._conservative_weight * conservative_loss
 
@@ -141,46 +141,70 @@ class CQLImpl(SACImpl):
 
         return loss.cpu().detach().numpy(), cur_alpha
 
-    def _compute_conservative_loss(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> torch.Tensor:
+    def _compute_policy_is_values(self, obs: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         assert self._q_func is not None
-        assert self._log_alpha is not None
         with torch.no_grad():
             policy_actions, n_log_probs = self._policy.sample_n_with_log_prob(
-                obs_t, self._n_action_samples
+                obs, self._n_action_samples
             )
 
-        # policy action for t
-        repeated_obs = obs_t.expand(self._n_action_samples, *obs_t.shape)
+        repeated_obs = obs.expand(self._n_action_samples, *obs.shape)
         # (n, batch, observation) -> (batch, n, observation)
         transposed_obs = repeated_obs.transpose(0, 1)
         # (batch, n, observation) -> (batch * n, observation)
-        flat_obs = transposed_obs.reshape(-1, *obs_t.shape[1:])
+        flat_obs = transposed_obs.reshape(-1, *obs.shape[1:])
         # (batch, n, action) -> (batch * n, action)
         flat_policy_acts = policy_actions.reshape(-1, self.action_size)
 
         # estimate action-values for policy actions
         policy_values = self._q_func(flat_obs, flat_policy_acts, "none")
         policy_values = policy_values.view(
-            self._n_critics, obs_t.shape[0], self._n_action_samples
+            self._n_critics, obs.shape[0], self._n_action_samples
         )
         log_probs = n_log_probs.view(1, -1, self._n_action_samples)
 
+        # importance sampling
+        return policy_values - log_probs
+
+    def _compute_random_is_values(self, obs: torch.Tensor) -> torch.Tensor:
+        assert self._q_func is not None
+
+        repeated_obs = obs.expand(self._n_action_samples, *obs.shape)
+        # (n, batch, observation) -> (batch, n, observation)
+        transposed_obs = repeated_obs.transpose(0, 1)
+        # (batch, n, observation) -> (batch * n, observation)
+        flat_obs = transposed_obs.reshape(-1, *obs.shape[1:])
+
         # estimate action-values for actions from uniform distribution
         # uniform distribution between [-1.0, 1.0]
-        random_actions = torch.zeros_like(flat_policy_acts).uniform_(-1.0, 1.0)
+        flat_shape = (obs.shape[0] * self._n_action_samples, self._action_size)
+        zero_tensor = torch.zeros(flat_shape, device=self._device)
+        random_actions = zero_tensor.uniform_(-1.0, 1.0)
         random_values = self._q_func(flat_obs, random_actions, "none")
         random_values = random_values.view(
-            self._n_critics, obs_t.shape[0], self._n_action_samples
+            self._n_critics, obs.shape[0], self._n_action_samples
         )
         random_log_probs = math.log(0.5 ** self._action_size)
 
+        # importance sampling
+        return random_values - random_log_probs
+
+    def _compute_conservative_loss(
+        self, obs_t: torch.Tensor, act_t: torch.Tensor, obs_tp1: torch.Tensor
+    ) -> torch.Tensor:
+        assert self._policy is not None
+        assert self._q_func is not None
+        assert self._log_alpha is not None
+
+        policy_values_t = self._compute_policy_is_values(obs_t)
+        policy_values_tp1 = self._compute_policy_is_values(obs_tp1)
+        random_values = self._compute_random_is_values(obs_t)
+
         # compute logsumexp
-        # (n critics, batch, 2 * n samples) -> (n critics, batch, 1)
+        # (n critics, batch, 3 * n samples) -> (n critics, batch, 1)
         target_values = torch.cat(
-            [policy_values - log_probs, random_values - random_log_probs], dim=2
+            [policy_values_t, policy_values_tp1, random_values], dim=2
         )
         logsumexp = torch.logsumexp(target_values, dim=2, keepdim=True)
 
