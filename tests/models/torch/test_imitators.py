@@ -18,8 +18,9 @@ from .model_test import DummyEncoder, check_parameter_updates
 @pytest.mark.parametrize("latent_size", [32])
 @pytest.mark.parametrize("beta", [0.5])
 @pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("n", [100])
 def test_conditional_vae(
-    feature_size, action_size, latent_size, beta, batch_size
+    feature_size, action_size, latent_size, beta, batch_size, n
 ):
     encoder_encoder = DummyEncoder(feature_size, action_size, True)
     decoder_encoder = DummyEncoder(feature_size, latent_size, True)
@@ -40,6 +41,14 @@ def test_conditional_vae(
     latent = torch.rand(batch_size, latent_size)
     y = vae.decode(x, latent)
     assert y.shape == (batch_size, action_size)
+
+    # check sample
+    y = vae.sample(x)
+    assert y.shape == (batch_size, action_size)
+
+    # check sample_n
+    y = vae.sample_n(x, n)
+    assert y.shape == (batch_size, n, action_size)
 
     # TODO: test vae.compute_likelihood_loss(x, action)
 

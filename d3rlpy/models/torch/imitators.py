@@ -72,6 +72,28 @@ class ConditionalVAE(nn.Module):  # type: ignore
         y = self.decode(x, dist.rsample())
         return F.mse_loss(y, action) + cast(torch.Tensor, self._beta * kl_loss)
 
+    def sample(self, x: torch.Tensor) -> torch.Tensor:
+        latent = torch.randn((x.shape[0], self._latent_size), device=x.device)
+        # to prevent extreme numbers
+        return self.decode(x, latent.clamp(-0.5, 0.5))
+
+    def sample_n(self, x: torch.Tensor, n: int) -> torch.Tensor:
+        flat_latent_shape = (n * x.shape[0], self._latent_size)
+        flat_latent = torch.randn(flat_latent_shape, device=x.device)
+        # to prevent extreme numbers
+        clipped_latent = flat_latent.clamp(-0.5, 0.5)
+
+        # (batch, obs) -> (n, batch, obs)
+        repeated_x = x.expand((n, *x.shape))
+        # (n, batch, obs) -> (n *  batch, obs)
+        flat_x = repeated_x.reshape(-1, *x.shape[1:])
+
+        # (n * batch, action) -> (n, batch, action)
+        actions = self.decode(flat_x, clipped_latent).view(n, x.shape[0], -1)
+
+        # (n, batch, action) -> (batch, n, action)
+        return actions.transpose(0, 1)
+
 
 class Imitator(nn.Module, metaclass=ABCMeta):  # type: ignore
     @abstractmethod

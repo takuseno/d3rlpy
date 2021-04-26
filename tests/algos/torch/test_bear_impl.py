@@ -36,6 +36,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("n_action_samples", [4])
 @pytest.mark.parametrize("mmd_kernel", ["laplacian"])
 @pytest.mark.parametrize("mmd_sigma", [20.0])
+@pytest.mark.parametrize("vae_kl_weight", [0.5])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 def test_bear_impl(
@@ -63,6 +64,7 @@ def test_bear_impl(
     n_action_samples,
     mmd_kernel,
     mmd_sigma,
+    vae_kl_weight,
     scaler,
     action_scaler,
 ):
@@ -93,6 +95,7 @@ def test_bear_impl(
         n_action_samples=n_action_samples,
         mmd_kernel=mmd_kernel,
         mmd_sigma=mmd_sigma,
+        vae_kl_weight=vae_kl_weight,
         use_gpu=None,
         scaler=scaler,
         action_scaler=action_scaler,

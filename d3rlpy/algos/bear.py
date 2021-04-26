@@ -104,7 +104,9 @@ class BEAR(AlgoBase):
             ``['gaussian', 'laplacian']``.
         mmd_sigma (float): :math:`\sigma` for gaussian kernel in MMD
             calculation.
-        warmup_epochs (int): the number of epochs to warmup the policy
+        vae_kl_weight (float): constant weight to scale KL term for behavior
+            policy training.
+        warmup_steps (int): the number of steps to warmup the policy
             function.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device iD or device.
@@ -139,7 +141,8 @@ class BEAR(AlgoBase):
     _n_action_samples: int
     _mmd_kernel: str
     _mmd_sigma: float
-    _warmup_epochs: int
+    _vae_kl_weight: float
+    _warmup_steps: int
     _use_gpu: Optional[Device]
     _impl: Optional[BEARImpl]
 
@@ -170,10 +173,11 @@ class BEAR(AlgoBase):
         initial_alpha: float = 1.0,
         alpha_threshold: float = 0.05,
         lam: float = 0.75,
-        n_action_samples: int = 10,
+        n_action_samples: int = 100,
         mmd_kernel: str = "laplacian",
         mmd_sigma: float = 20.0,
-        warmup_epochs: int = 0,
+        vae_kl_weight: float = 0.5,
+        warmup_steps: int = 0,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
@@ -212,7 +216,8 @@ class BEAR(AlgoBase):
         self._n_action_samples = n_action_samples
         self._mmd_kernel = mmd_kernel
         self._mmd_sigma = mmd_sigma
-        self._warmup_epochs = warmup_epochs
+        self._vae_kl_weight = vae_kl_weight
+        self._warmup_steps = warmup_steps
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
@@ -246,6 +251,7 @@ class BEAR(AlgoBase):
             n_action_samples=self._n_action_samples,
             mmd_kernel=self._mmd_kernel,
             mmd_sigma=self._mmd_sigma,
+            vae_kl_weight=self._vae_kl_weight,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
@@ -265,7 +271,7 @@ class BEAR(AlgoBase):
         critic_loss = self._impl.update_critic(batch)
         metrics.update({"critic_loss": critic_loss})
 
-        if epoch < self._warmup_epochs:
+        if total_step < self._warmup_steps:
             actor_loss = self._impl.warmup_actor(batch)
         else:
             actor_loss = self._impl.update_actor(batch)

@@ -6,13 +6,13 @@ import torch
 from torch.optim import Optimizer
 
 from ...gpu import Device
-from ...models.builders import create_parameter, create_probablistic_regressor
+from ...models.builders import create_conditional_vae, create_parameter
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import (
+    ConditionalVAE,
     Parameter,
-    ProbablisticRegressor,
     compute_max_with_n_actions_and_indices,
 )
 from ...preprocessing import ActionScaler, Scaler
@@ -47,7 +47,8 @@ class BEARImpl(SACImpl):
     _n_action_samples: int
     _mmd_kernel: str
     _mmd_sigma: float
-    _imitator: Optional[ProbablisticRegressor]
+    _vae_kl_weight: float
+    _imitator: Optional[ConditionalVAE]
     _imitator_optim: Optional[Optimizer]
     _log_alpha: Optional[Parameter]
     _alpha_optim: Optional[Optimizer]
@@ -80,6 +81,7 @@ class BEARImpl(SACImpl):
         n_action_samples: int,
         mmd_kernel: str,
         mmd_sigma: float,
+        vae_kl_weight: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
@@ -116,6 +118,7 @@ class BEARImpl(SACImpl):
         self._n_action_samples = n_action_samples
         self._mmd_kernel = mmd_kernel
         self._mmd_sigma = mmd_sigma
+        self._vae_kl_weight = vae_kl_weight
 
         # initialized in build
         self._imitator = None
@@ -131,10 +134,12 @@ class BEARImpl(SACImpl):
         self._build_alpha_optim()
 
     def _build_imitator(self) -> None:
-        self._imitator = create_probablistic_regressor(
-            self._observation_shape,
-            self._action_size,
-            self._imitator_encoder_factory,
+        self._imitator = create_conditional_vae(
+            observation_shape=self._observation_shape,
+            action_size=self._action_size,
+            latent_size=2 * self._action_size,
+            beta=self._vae_kl_weight,
+            encoder_factory=self._imitator_encoder_factory,
         )
 
     def _build_imitator_optim(self) -> None:
