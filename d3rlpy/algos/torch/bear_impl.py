@@ -45,6 +45,7 @@ class BEARImpl(SACImpl):
     _alpha_threshold: float
     _lam: float
     _n_action_samples: int
+    _n_target_samples: int
     _mmd_kernel: str
     _mmd_sigma: float
     _vae_kl_weight: float
@@ -79,6 +80,7 @@ class BEARImpl(SACImpl):
         alpha_threshold: float,
         lam: float,
         n_action_samples: int,
+        n_target_samples: int,
         mmd_kernel: str,
         mmd_sigma: float,
         vae_kl_weight: float,
@@ -116,6 +118,7 @@ class BEARImpl(SACImpl):
         self._alpha_threshold = alpha_threshold
         self._lam = lam
         self._n_action_samples = n_action_samples
+        self._n_target_samples = n_target_samples
         self._mmd_kernel = mmd_kernel
         self._mmd_sigma = mmd_sigma
         self._vae_kl_weight = vae_kl_weight
@@ -275,7 +278,8 @@ class BEARImpl(SACImpl):
         with torch.no_grad():
             # BCQ-like target computation
             actions, log_probs = self._policy.sample_n_with_log_prob(
-                batch.next_observations, 100
+                batch.next_observations,
+                self._n_target_samples,
             )
             values, indices = compute_max_with_n_actions_and_indices(
                 batch.next_observations, actions, self._targ_q_func, self._lam

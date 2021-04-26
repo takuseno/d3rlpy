@@ -98,8 +98,9 @@ class BEAR(AlgoBase):
         alpha_threshold (float): threshold value described as
             :math:`\epsilon`.
         lam (float): weight for critic ensemble.
-        n_action_samples (int): the number of action samples to estimate
-            action-values.
+        n_action_samples (int): the number of action samples to compute MMD.
+        n_target_samples (int): the number of action samples to compute
+            BCQ-like target value.
         mmd_kernel (str): MMD kernel function. The available options are
             ``['gaussian', 'laplacian']``.
         mmd_sigma (float): :math:`\sigma` for gaussian kernel in MMD
@@ -139,6 +140,7 @@ class BEAR(AlgoBase):
     _alpha_threshold: float
     _lam: float
     _n_action_samples: int
+    _n_target_samples: int
     _mmd_kernel: str
     _mmd_sigma: float
     _vae_kl_weight: float
@@ -174,6 +176,7 @@ class BEAR(AlgoBase):
         alpha_threshold: float = 0.05,
         lam: float = 0.75,
         n_action_samples: int = 100,
+        n_target_samples: int = 10,
         mmd_kernel: str = "laplacian",
         mmd_sigma: float = 20.0,
         vae_kl_weight: float = 0.5,
@@ -214,6 +217,7 @@ class BEAR(AlgoBase):
         self._alpha_threshold = alpha_threshold
         self._lam = lam
         self._n_action_samples = n_action_samples
+        self._n_target_samples = n_target_samples
         self._mmd_kernel = mmd_kernel
         self._mmd_sigma = mmd_sigma
         self._vae_kl_weight = vae_kl_weight
@@ -249,6 +253,7 @@ class BEAR(AlgoBase):
             alpha_threshold=self._alpha_threshold,
             lam=self._lam,
             n_action_samples=self._n_action_samples,
+            n_target_samples=self._n_target_samples,
             mmd_kernel=self._mmd_kernel,
             mmd_sigma=self._mmd_sigma,
             vae_kl_weight=self._vae_kl_weight,
