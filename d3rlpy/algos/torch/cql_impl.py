@@ -141,26 +141,30 @@ class CQLImpl(SACImpl):
 
         return loss.cpu().detach().numpy(), cur_alpha
 
-    def _compute_policy_is_values(self, obs: torch.Tensor) -> torch.Tensor:
+    def _compute_policy_is_values(
+        self, policy_obs: torch.Tensor, value_obs: torch.Tensor
+    ) -> torch.Tensor:
         assert self._policy is not None
         assert self._q_func is not None
         with torch.no_grad():
             policy_actions, n_log_probs = self._policy.sample_n_with_log_prob(
-                obs, self._n_action_samples
+                policy_obs, self._n_action_samples
             )
 
-        repeated_obs = obs.expand(self._n_action_samples, *obs.shape)
+        obs_shape = value_obs.ahape
+
+        repeated_obs = value_obs.expand(self._n_action_samples, *obs_shape)
         # (n, batch, observation) -> (batch, n, observation)
         transposed_obs = repeated_obs.transpose(0, 1)
         # (batch, n, observation) -> (batch * n, observation)
-        flat_obs = transposed_obs.reshape(-1, *obs.shape[1:])
+        flat_obs = transposed_obs.reshape(-1, *obs_shape[1:])
         # (batch, n, action) -> (batch * n, action)
         flat_policy_acts = policy_actions.reshape(-1, self.action_size)
 
         # estimate action-values for policy actions
         policy_values = self._q_func(flat_obs, flat_policy_acts, "none")
         policy_values = policy_values.view(
-            self._n_critics, obs.shape[0], self._n_action_samples
+            self._n_critics, obs_shape[0], self._n_action_samples
         )
         log_probs = n_log_probs.view(1, -1, self._n_action_samples)
 
@@ -197,8 +201,8 @@ class CQLImpl(SACImpl):
         assert self._q_func is not None
         assert self._log_alpha is not None
 
-        policy_values_t = self._compute_policy_is_values(obs_t)
-        policy_values_tp1 = self._compute_policy_is_values(obs_tp1)
+        policy_values_t = self._compute_policy_is_values(obs_t, obs_t)
+        policy_values_tp1 = self._compute_policy_is_values(obs_tp1, obs_t)
         random_values = self._compute_random_is_values(obs_t)
 
         # compute logsumexp
