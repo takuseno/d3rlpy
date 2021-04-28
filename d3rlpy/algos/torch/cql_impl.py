@@ -151,7 +151,7 @@ class CQLImpl(SACImpl):
                 policy_obs, self._n_action_samples
             )
 
-        obs_shape = value_obs.ahape
+        obs_shape = value_obs.shape
 
         repeated_obs = value_obs.expand(self._n_action_samples, *obs_shape)
         # (n, batch, observation) -> (batch, n, observation)
