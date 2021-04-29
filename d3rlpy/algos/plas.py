@@ -67,8 +67,7 @@ class PLAS(AlgoBase):
             ``['min', 'max', 'mean', 'mix', 'none']``.
         update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
-        rl_start_epoch (int): epoch to start to update policy function and Q
-            functions. If this is large, RL training would be more stabilized.
+        warmup_steps (int): the number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -95,7 +94,7 @@ class PLAS(AlgoBase):
     _target_reduction_type: str
     _update_actor_interval: int
     _lam: float
-    _rl_start_epoch: int
+    _warmup_steps: int
     _beta: float
     _use_gpu: Optional[Device]
     _impl: Optional[PLASImpl]
@@ -103,9 +102,9 @@ class PLAS(AlgoBase):
     def __init__(
         self,
         *,
-        actor_learning_rate: float = 3e-4,
-        critic_learning_rate: float = 3e-4,
-        imitator_learning_rate: float = 3e-4,
+        actor_learning_rate: float = 1e-4,
+        critic_learning_rate: float = 1e-3,
+        imitator_learning_rate: float = 1e-4,
         actor_optim_factory: OptimizerFactory = AdamFactory(),
         critic_optim_factory: OptimizerFactory = AdamFactory(),
         imitator_optim_factory: OptimizerFactory = AdamFactory(),
@@ -113,7 +112,7 @@ class PLAS(AlgoBase):
         critic_encoder_factory: EncoderArg = "default",
         imitator_encoder_factory: EncoderArg = "default",
         q_func_factory: QFuncArg = "mean",
-        batch_size: int = 256,
+        batch_size: int = 100,
         n_frames: int = 1,
         n_steps: int = 1,
         gamma: float = 0.99,
@@ -122,7 +121,7 @@ class PLAS(AlgoBase):
         target_reduction_type: str = "mix",
         update_actor_interval: int = 1,
         lam: float = 0.75,
-        rl_start_epoch: int = 10,
+        warmup_steps: int = 500000,
         beta: float = 0.5,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
@@ -154,7 +153,7 @@ class PLAS(AlgoBase):
         self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
         self._lam = lam
-        self._rl_start_epoch = rl_start_epoch
+        self._warmup_steps = warmup_steps
         self._beta = beta
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
@@ -194,7 +193,7 @@ class PLAS(AlgoBase):
 
         metrics = {}
 
-        if epoch < self._rl_start_epoch:
+        if total_step < self._warmup_steps:
             imitator_loss = self._impl.update_imitator(batch)
             metrics.update({"imitator_loss": imitator_loss})
         else:
@@ -252,8 +251,7 @@ class PLASWithPerturbation(PLAS):
         update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
         action_flexibility (float): output scale of perturbation layer.
-        rl_start_epoch (int): epoch to start to update policy function and Q
-            functions. If this is large, RL training would be more stabilized.
+        warmup_steps (int): the number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -271,9 +269,9 @@ class PLASWithPerturbation(PLAS):
     def __init__(
         self,
         *,
-        actor_learning_rate: float = 3e-4,
-        critic_learning_rate: float = 3e-4,
-        imitator_learning_rate: float = 3e-4,
+        actor_learning_rate: float = 1e-4,
+        critic_learning_rate: float = 1e-3,
+        imitator_learning_rate: float = 1e-4,
         actor_optim_factory: OptimizerFactory = AdamFactory(),
         critic_optim_factory: OptimizerFactory = AdamFactory(),
         imitator_optim_factory: OptimizerFactory = AdamFactory(),
@@ -281,7 +279,7 @@ class PLASWithPerturbation(PLAS):
         critic_encoder_factory: EncoderArg = "default",
         imitator_encoder_factory: EncoderArg = "default",
         q_func_factory: QFuncArg = "mean",
-        batch_size: int = 256,
+        batch_size: int = 100,
         n_frames: int = 1,
         n_steps: int = 1,
         gamma: float = 0.99,
@@ -291,7 +289,7 @@ class PLASWithPerturbation(PLAS):
         update_actor_interval: int = 1,
         lam: float = 0.75,
         action_flexibility: float = 0.05,
-        rl_start_epoch: int = 10,
+        warmup_steps: int = 500000,
         beta: float = 0.5,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
@@ -319,7 +317,7 @@ class PLASWithPerturbation(PLAS):
             target_reduction_type=target_reduction_type,
             update_actor_interval=update_actor_interval,
             lam=lam,
-            rl_start_epoch=rl_start_epoch,
+            warmup_steps=warmup_steps,
             beta=beta,
             use_gpu=use_gpu,
             scaler=scaler,

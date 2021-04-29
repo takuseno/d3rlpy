@@ -127,7 +127,7 @@ class BCQ(AlgoBase):
             action-values.
         action_flexibility (float): output scale of perturbation function
             represented as :math:`\Phi`.
-        rl_start_epoch (int): epoch to start to update policy function and Q
+        rl_start_step (int): step to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
         latent_size (int): size of latent vector for Conditional VAE.
         beta (float): KL reguralization term for Conditional VAE.
@@ -157,7 +157,7 @@ class BCQ(AlgoBase):
     _lam: float
     _n_action_samples: int
     _action_flexibility: float
-    _rl_start_epoch: int
+    _rl_start_step: int
     _latent_size: int
     _beta: float
     _use_gpu: Optional[Device]
@@ -186,7 +186,7 @@ class BCQ(AlgoBase):
         lam: float = 0.75,
         n_action_samples: int = 100,
         action_flexibility: float = 0.05,
-        rl_start_epoch: int = 0,
+        rl_start_step: int = 0,
         latent_size: int = 32,
         beta: float = 0.5,
         use_gpu: UseGPUArg = False,
@@ -220,7 +220,7 @@ class BCQ(AlgoBase):
         self._lam = lam
         self._n_action_samples = n_action_samples
         self._action_flexibility = action_flexibility
-        self._rl_start_epoch = rl_start_epoch
+        self._rl_start_step = rl_start_step
         self._latent_size = latent_size
         self._beta = beta
         self._use_gpu = check_use_gpu(use_gpu)
@@ -266,7 +266,7 @@ class BCQ(AlgoBase):
         imitator_loss = self._impl.update_imitator(batch)
         metrics.update({"imitator_loss": imitator_loss})
 
-        if epoch >= self._rl_start_epoch:
+        if total_step >= self._rl_start_step:
             critic_loss = self._impl.update_critic(batch)
             metrics.update({"critic_loss": critic_loss})
 
