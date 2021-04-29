@@ -180,7 +180,7 @@ class BEAR(AlgoBase):
         mmd_kernel: str = "laplacian",
         mmd_sigma: float = 20.0,
         vae_kl_weight: float = 0.5,
-        warmup_steps: int = 0,
+        warmup_steps: int = 40000,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
