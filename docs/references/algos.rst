@@ -26,6 +26,7 @@ Continuous control algorithms
    d3rlpy.algos.PLAS
    d3rlpy.algos.PLASWithPerturbation
    d3rlpy.algos.MOPO
+   d3rlpy.algos.COMBO
 
 Discrete control algorithms
 ---------------------------

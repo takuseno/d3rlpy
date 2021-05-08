@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence
 
 import numpy as np
 
@@ -20,47 +20,30 @@ from ..models.encoders import EncoderFactory
 from ..models.optimizers import AdamFactory, OptimizerFactory
 from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
-from .torch.sac_impl import SACImpl
+from .torch.combo_impl import COMBOImpl
 from .utility import ModelBaseMixin
 
 
-class MOPO(ModelBaseMixin, AlgoBase):
-    r"""Model-based Offline Policy Optimization.
+class COMBO(ModelBaseMixin, AlgoBase):
+    r"""Conservative Offline Model-Based Optimization.
 
-    MOPO is a model-based RL approach for offline policy optimization.
-    MOPO leverages the probablistic ensemble dynamics model to generate
-    new dynamics data with uncertainty penalties.
-    The ensemble dynamics model consists of :math:`N` probablistic models
-    :math:`\{T_{\theta_i}\}_{i=1}^N`.
-    At each epoch, new transitions are generated via randomly picked dynamics
-    model :math:`T_\theta`.
+    COMBO is a model-based RL approach for offline policy optimization.
+    COMBO is similar to MOPO, but it also leverages conservative loss proposed
+    in CQL.
 
     .. math::
-        s_{t+1}, r_{t+1} \sim T_\theta(s_t, a_t)
 
-    where :math:`s_t \sim D` for the first step, otherwise :math:`s_t` is the
-    previous generated observation, and :math:`a_t \sim \pi(\cdot|s_t)`.
-    The generated :math:`r_{t+1}` would be far from the ground truth if the
-    actions sampled from the policy function is out-of-distribution.
-    Thus, the uncertainty penalty reguralizes this bias.
-
-    .. math::
-        \tilde{r_{t+1}} = r_{t+1} - \lambda \max_{i=1}^N
-            || \Sigma_i (s_t, a_t) ||
-
-    where :math:`\Sigma(s_t, a_t)` is the estimated variance.
-    Finally, the generated transitions
-    :math:`(s_t, a_t, \tilde{r_{t+1}}, s_{t+1})` are appended to dataset
-    :math:`D`.
-    This generation process starts with randomly sampled
-    ``n_initial_transitions`` transitions till ``horizon`` steps.
+        L(\theta_i) = \mathbb{E}_{s \sim d_M}
+            \big[\log{\sum_a \exp{Q_{\theta_i}(s_t, a)}}\big]
+             - \mathbb{E}_{s, a \sim D} \big[Q_{\theta_i}(s, a)\big]
+            + L_\mathrm{SAC}(\theta_i)
 
     Note:
-        Currently, MOPO only supports vector observations.
+        Currently, COMBO only supports vector observations.
 
     References:
-        * `Yu et al., MOPO: Model-based Offline Policy Optimization.
-          <https://arxiv.org/abs/2005.13239>`_
+        * `Yu et al., COMBO: Conservative Offline Model-Based Policy
+          Optimization. <https://arxiv.org/abs/2102.08363>`_
 
     Args:
         actor_learning_rate (float): learning rate for policy function.
@@ -89,12 +72,15 @@ class MOPO(ModelBaseMixin, AlgoBase):
             ``['min', 'max', 'mean', 'mix', 'none']``.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
+        conservative_weight (float): constant weight to scale conservative loss.
+        n_action_samples (int): the number of sampled actions to compute
+            :math:`\log{\sum_a \exp{Q(s, a)}}`.
+        soft_q_backup (bool): flag to use SAC-style backup.
         dynamics (d3rlpy.dynamics.DynamicsBase): dynamics object.
         rollout_interval (int): the number of steps before rollout.
         horizon (int): the rollout step length.
         n_initial_transitions (int): the number of initial transitions for
             rollout.
-        lam (float): :math:`\lambda` for uncertainty penalties.
         real_ratio (float): the real of dataset samples in a mini-batch.
         generated_maxlen (int): the maximum number of generated samples.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -121,13 +107,15 @@ class MOPO(ModelBaseMixin, AlgoBase):
     _target_reduction_type: str
     _update_actor_interval: int
     _initial_temperature: float
+    _conservative_weight: float
+    _n_action_samples: int
+    _soft_q_backup: bool
     _dynamics: Optional[DynamicsBase]
     _rollout_interval: int
     _horizon: int
     _n_initial_transitions: int
-    _lam: float
     _use_gpu: Optional[Device]
-    _impl: Optional[SACImpl]
+    _impl: Optional[COMBOImpl]
 
     def __init__(
         self,
@@ -150,17 +138,19 @@ class MOPO(ModelBaseMixin, AlgoBase):
         target_reduction_type: str = "min",
         update_actor_interval: int = 1,
         initial_temperature: float = 1.0,
+        conservative_weight: float = 10.0,
+        n_action_samples: int = 10,
+        soft_q_backup: bool = False,
         dynamics: Optional[DynamicsBase] = None,
         rollout_interval: int = 1000,
         horizon: int = 5,
         n_initial_transitions: int = 50000,
-        lam: float = 1.0,
-        real_ratio: float = 0.05,
+        real_ratio: float = 0.5,
         generated_maxlen: int = 50000 * 5 * 5,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
-        impl: Optional[SACImpl] = None,
+        impl: Optional[COMBOImpl] = None,
         **kwargs: Any
     ):
         super().__init__(
@@ -188,18 +178,20 @@ class MOPO(ModelBaseMixin, AlgoBase):
         self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
         self._initial_temperature = initial_temperature
+        self._conservative_weight = conservative_weight
+        self._n_action_samples = n_action_samples
+        self._soft_q_backup = soft_q_backup
         self._dynamics = dynamics
         self._rollout_interval = rollout_interval
         self._horizon = horizon
         self._n_initial_transitions = n_initial_transitions
-        self._lam = lam
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
     def _create_impl(
         self, observation_shape: Sequence[int], action_size: int
     ) -> None:
-        self._impl = SACImpl(
+        self._impl = COMBOImpl(
             observation_shape=observation_shape,
             action_size=action_size,
             actor_learning_rate=self._actor_learning_rate,
@@ -216,6 +208,10 @@ class MOPO(ModelBaseMixin, AlgoBase):
             n_critics=self._n_critics,
             target_reduction_type=self._target_reduction_type,
             initial_temperature=self._initial_temperature,
+            conservative_weight=self._conservative_weight,
+            n_action_samples=self._n_action_samples,
+            real_ratio=self._real_ratio,
+            soft_q_backup=self._soft_q_backup,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
@@ -262,13 +258,3 @@ class MOPO(ModelBaseMixin, AlgoBase):
 
     def _rollout_length(self) -> int:
         return self._horizon
-
-    def _mutate_transition(
-        self,
-        observations: np.ndarray,
-        rewards: np.ndarray,
-        variances: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        # regularize by uncertainty
-        rewards -= self._lam * variances
-        return observations, rewards

@@ -83,7 +83,8 @@ class ModelBaseMixin:
         raise NotImplementedError
 
     def _rollout_policy(self, observations: np.ndarray) -> np.ndarray:
-        raise NotImplementedError
+        assert self._impl, IMPL_NOT_INITIALIZED_ERROR
+        return self._impl.sample_action(observations)
 
     def _rollout_length(self) -> int:
         raise NotImplementedError
