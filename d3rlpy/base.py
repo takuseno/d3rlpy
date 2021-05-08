@@ -574,7 +574,9 @@ class LearnableBase:
                 if new_transitions:
                     iterator.add_generated_transitions(new_transitions)
                     LOG.debug(
-                        f"{len(new_transitions)} transitions are generated."
+                        f"{len(new_transitions)} transitions are generated.",
+                        real_transitions=len(iterator.transitions),
+                        fake_transitions=len(iterator.generated_transitions),
                     )
 
                 with logger.measure_time("step"):
