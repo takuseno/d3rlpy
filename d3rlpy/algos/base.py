@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import gym
 import numpy as np
@@ -19,7 +19,7 @@ from ..online.buffers import (
     ReplayBuffer,
 )
 from ..online.explorers import Explorer
-from ..online.iterators import train_batch_env, train_single_env
+from ..online.iterators import AlgoProtocol, train_batch_env, train_single_env
 
 
 def _assert_action_space(algo: LearnableBase, env: gym.Env) -> None:
@@ -194,6 +194,7 @@ class AlgoBase(LearnableBase):
         show_progress: bool = True,
         tensorboard_dir: Optional[str] = None,
         timelimit_aware: bool = True,
+        callback: Optional[Callable[[AlgoProtocol, int, int], None]] = None,
     ) -> None:
         """Start training loop of online deep reinforcement learning.
 
@@ -223,6 +224,8 @@ class AlgoBase(LearnableBase):
             timelimit_aware: flag to turn ``terminal`` flag ``False`` when
                 ``TimeLimit.truncated`` flag is ``True``, which is designed to
                 incorporate with ``gym.wrappers.TimeLimit``.
+            callback: callable function that takes ``(algo, epoch, total_step)``
+                , which is called at the end of epochs.
 
         """
 
@@ -253,6 +256,7 @@ class AlgoBase(LearnableBase):
             show_progress=show_progress,
             tensorboard_dir=tensorboard_dir,
             timelimit_aware=timelimit_aware,
+            callback=callback,
         )
 
     def fit_batch_online(
@@ -275,6 +279,7 @@ class AlgoBase(LearnableBase):
         show_progress: bool = True,
         tensorboard_dir: Optional[str] = None,
         timelimit_aware: bool = True,
+        callback: Optional[Callable[[AlgoProtocol, int, int], None]] = None,
     ) -> None:
         """Start training loop of batch online deep reinforcement learning.
 
@@ -305,6 +310,8 @@ class AlgoBase(LearnableBase):
             timelimit_aware: flag to turn ``terminal`` flag ``False`` when
                 ``TimeLimit.truncated`` flag is ``True``, which is designed to
                 incorporate with ``gym.wrappers.TimeLimit``.
+            callback: callable function that takes ``(algo, epoch, total_step)``
+                , which is called at the end of epochs.
 
         """
 
@@ -335,4 +342,5 @@ class AlgoBase(LearnableBase):
             show_progress=show_progress,
             tensorboard_dir=tensorboard_dir,
             timelimit_aware=timelimit_aware,
+            callback=callback,
         )

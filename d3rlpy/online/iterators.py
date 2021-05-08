@@ -15,7 +15,7 @@ from .buffers import BatchBuffer, Buffer
 from .explorers import Explorer
 
 
-class _AlgoProtocol(Protocol):
+class AlgoProtocol(Protocol):
     def update(
         self, epoch: int, total_step: int, batch: TransitionMiniBatch
     ) -> Dict[str, float]:
@@ -69,7 +69,7 @@ class _AlgoProtocol(Protocol):
         ...
 
 
-def _setup_algo(algo: _AlgoProtocol, env: gym.Env) -> None:
+def _setup_algo(algo: AlgoProtocol, env: gym.Env) -> None:
     # initialize scaler
     if algo.scaler:
         LOG.debug("Fitting scaler...", scler=algo.scaler.get_type())
@@ -91,7 +91,7 @@ def _setup_algo(algo: _AlgoProtocol, env: gym.Env) -> None:
 
 
 def train_single_env(
-    algo: _AlgoProtocol,
+    algo: AlgoProtocol,
     env: gym.Env,
     buffer: Buffer,
     explorer: Optional[Explorer] = None,
@@ -110,6 +110,7 @@ def train_single_env(
     show_progress: bool = True,
     tensorboard_dir: Optional[str] = None,
     timelimit_aware: bool = True,
+    callback: Optional[Callable[[AlgoProtocol, int, int], None]] = None,
 ) -> None:
     """Start training loop of online deep reinforcement learning.
 
@@ -140,6 +141,8 @@ def train_single_env(
         timelimit_aware: flag to turn ``terminal`` flag ``False`` when
             ``TimeLimit.truncated`` flag is ``True``, which is designed to
             incorporate with ``gym.wrappers.TimeLimit``.
+        callback: callable function that takes ``(algo, epoch, total_step)``
+                , which is called at the end of epochs.
 
     """
     # setup logger
@@ -260,12 +263,16 @@ def train_single_env(
             if epoch % save_interval == 0:
                 logger.save_model(total_step, algo)
 
+            # call callback if given
+            if callback:
+                callback(algo, epoch, total_step)
+
             # save metrics
             logger.commit(epoch, total_step)
 
 
 def train_batch_env(
-    algo: _AlgoProtocol,
+    algo: AlgoProtocol,
     env: BatchEnv,
     buffer: BatchBuffer,
     explorer: Optional[Explorer] = None,
@@ -284,6 +291,7 @@ def train_batch_env(
     show_progress: bool = True,
     tensorboard_dir: Optional[str] = None,
     timelimit_aware: bool = True,
+    callback: Optional[Callable[[AlgoProtocol, int, int], None]] = None,
 ) -> None:
     """Start training loop of online deep reinforcement learning.
 
@@ -314,6 +322,8 @@ def train_batch_env(
         timelimit_aware: flag to turn ``terminal`` flag ``False`` when
             ``TimeLimit.truncated`` flag is ``True``, which is designed to
             incorporate with ``gym.wrappers.TimeLimit``.
+        callback: callable function that takes ``(algo, epoch, total_step)``
+                , which is called at the end of epochs.
 
     """
     # setup logger
@@ -428,6 +438,10 @@ def train_batch_env(
             # evaluation
             if eval_scorer:
                 logger.add_metric("evaluation", eval_scorer(algo))
+
+        # call callback if given
+        if callback:
+            callback(algo, epoch, total_step)
 
         # save metrics
         logger.commit(epoch, total_step)

@@ -341,6 +341,7 @@ class LearnableBase:
             Dict[str, Callable[[Any, List[Episode]], float]]
         ] = None,
         shuffle: bool = True,
+        callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
     ) -> List[Tuple[int, Dict[str, float]]]:
         """Trains with the given dataset.
 
@@ -371,6 +372,8 @@ class LearnableBase:
             save_interval: interval to save parameters.
             scorers: list of scorer functions used with `eval_episodes`.
             shuffle: flag to shuffle transitions on each epoch.
+            callback: callable function that takes ``(algo, epoch, total_step)``
+                , which is called at the end of epochs.
 
         Returns:
             list of result tuples (epoch, metrics) per epoch.
@@ -393,6 +396,7 @@ class LearnableBase:
                 save_interval,
                 scorers,
                 shuffle,
+                callback,
             )
         )
         return results
@@ -416,6 +420,7 @@ class LearnableBase:
             Dict[str, Callable[[Any, List[Episode]], float]]
         ] = None,
         shuffle: bool = True,
+        callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
     ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
         """Iterate over epochs steps to train with the given dataset. At each
              iteration algo methods and properties can be changed or queried.
@@ -449,6 +454,8 @@ class LearnableBase:
             save_interval: interval to save parameters.
             scorers: list of scorer functions used with `eval_episodes`.
             shuffle: flag to shuffle transitions on each epoch.
+            callback: callable function that takes ``(algo, epoch, total_step)``
+                , which is called at the end of epochs.
 
         Returns:
             iterator yielding current epoch and metrics dict.
@@ -611,6 +618,10 @@ class LearnableBase:
 
             if scorers and eval_episodes:
                 self._evaluate(eval_episodes, scorers, logger)
+
+            # call callback if given
+            if callback:
+                callback(self, epoch, total_step)
 
             # save metrics
             metrics = logger.commit(epoch, total_step)
