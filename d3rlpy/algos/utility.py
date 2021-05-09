@@ -28,10 +28,10 @@ class ModelBaseMixin:
         # rollout
         batch = TransitionMiniBatch(init_transitions)
         observations = batch.observations
-        actions = self._rollout_policy(observations)
+        actions = self._sample_rollout_action(observations)
         rewards = batch.rewards
         prev_transitions: List[Transition] = []
-        for _ in range(self._rollout_length()):
+        for _ in range(self._get_rollout_horizon()):
             # predict next state
             pred = self._dynamics.predict(observations, actions, True)
             pred = cast(Tuple[np.ndarray, np.ndarray, np.ndarray], pred)
@@ -43,7 +43,7 @@ class ModelBaseMixin:
             )
 
             # sample policy action
-            next_actions = self._rollout_policy(next_observations)
+            next_actions = self._sample_rollout_action(next_observations)
 
             # append new transitions
             new_transitions = []
@@ -82,11 +82,11 @@ class ModelBaseMixin:
     ) -> List[Transition]:
         raise NotImplementedError
 
-    def _rollout_policy(self, observations: np.ndarray) -> np.ndarray:
+    def _sample_rollout_action(self, observations: np.ndarray) -> np.ndarray:
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         return self._impl.sample_action(observations)
 
-    def _rollout_length(self) -> int:
+    def _get_rollout_horizon(self) -> int:
         raise NotImplementedError
 
     def _mutate_transition(

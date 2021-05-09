@@ -91,8 +91,8 @@ class MOPO(ModelBaseMixin, AlgoBase):
         initial_temperature (float): initial temperature value.
         dynamics (d3rlpy.dynamics.DynamicsBase): dynamics object.
         rollout_interval (int): the number of steps before rollout.
-        horizon (int): the rollout step length.
-        n_initial_transitions (int): the number of initial transitions for
+        rollout_horizon (int): the rollout step length.
+        rollout_batch_size (int): the number of initial transitions for
             rollout.
         lam (float): :math:`\lambda` for uncertainty penalties.
         real_ratio (float): the real of dataset samples in a mini-batch.
@@ -123,8 +123,8 @@ class MOPO(ModelBaseMixin, AlgoBase):
     _initial_temperature: float
     _dynamics: Optional[DynamicsBase]
     _rollout_interval: int
-    _horizon: int
-    _n_initial_transitions: int
+    _rollout_horizon: int
+    _rollout_batch_size: int
     _lam: float
     _use_gpu: Optional[Device]
     _impl: Optional[SACImpl]
@@ -152,8 +152,8 @@ class MOPO(ModelBaseMixin, AlgoBase):
         initial_temperature: float = 1.0,
         dynamics: Optional[DynamicsBase] = None,
         rollout_interval: int = 1000,
-        horizon: int = 5,
-        n_initial_transitions: int = 50000,
+        rollout_horizon: int = 5,
+        rollout_batch_size: int = 50000,
         lam: float = 1.0,
         real_ratio: float = 0.05,
         generated_maxlen: int = 50000 * 5 * 5,
@@ -190,8 +190,8 @@ class MOPO(ModelBaseMixin, AlgoBase):
         self._initial_temperature = initial_temperature
         self._dynamics = dynamics
         self._rollout_interval = rollout_interval
-        self._horizon = horizon
-        self._n_initial_transitions = n_initial_transitions
+        self._rollout_horizon = rollout_horizon
+        self._rollout_batch_size = rollout_batch_size
         self._lam = lam
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
@@ -256,12 +256,12 @@ class MOPO(ModelBaseMixin, AlgoBase):
         self, transitions: List[Transition]
     ) -> List[Transition]:
         # uniformly sample transitions
-        n_transitions = self._n_initial_transitions
+        n_transitions = self._rollout_batch_size
         indices = np.random.randint(len(transitions), size=n_transitions)
         return [transitions[i] for i in indices]
 
-    def _rollout_length(self) -> int:
-        return self._horizon
+    def _get_rollout_horizon(self) -> int:
+        return self._rollout_horizon
 
     def _mutate_transition(
         self,
