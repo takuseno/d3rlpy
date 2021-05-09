@@ -1,15 +1,9 @@
 import pytest
 
-from d3rlpy.algos.mopo import MOPO
+from d3rlpy.algos.combo import COMBO
 from d3rlpy.dynamics import ProbabilisticEnsembleDynamics
-from tests import performance_test
 
-from .algo_test import (
-    algo_cartpole_tester,
-    algo_pendulum_tester,
-    algo_tester,
-    algo_update_tester,
-)
+from .algo_test import algo_pendulum_tester, algo_tester, algo_update_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -21,7 +15,7 @@ from .algo_test import (
 @pytest.mark.parametrize("rollout_interval", [1])
 @pytest.mark.parametrize("rollout_horizon", [2])
 @pytest.mark.parametrize("rollout_batch_size", [4])
-def test_mopo(
+def test_combo(
     observation_shape,
     action_size,
     q_func_factory,
@@ -35,15 +29,21 @@ def test_mopo(
     dynamics = ProbabilisticEnsembleDynamics()
     dynamics.create_impl(observation_shape, action_size)
 
-    mopo = MOPO(
-        rollout_interval=rollout_interval,
-        rollout_horizon=rollout_horizon,
-        rollout_batch_size=rollout_batch_size,
+    combo = COMBO(
         dynamics=dynamics,
         q_func_factory=q_func_factory,
         scaler=scaler,
         action_scaler=action_scaler,
         target_reduction_type=target_reduction_type,
+        rollout_interval=rollout_interval,
+        rollout_horizon=rollout_horizon,
+        rollout_batch_size=rollout_batch_size,
     )
-    algo_tester(mopo, observation_shape)
-    algo_update_tester(mopo, observation_shape, action_size)
+    algo_tester(combo, observation_shape)
+    algo_update_tester(combo, observation_shape, action_size)
+
+
+@pytest.mark.skip(reason="COMBO is computationally expensive.")
+def test_combo_performance():
+    combo = COMBO()
+    algo_pendulum_tester(combo, n_trials=3)
