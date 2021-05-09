@@ -89,7 +89,8 @@ class COMBO(ModelBaseMixin, AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
-        impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
+        impl (d3rlpy.algos.torch.combo_impl.COMBOImpl):
+            algorithm implementation.
 
     """
 
