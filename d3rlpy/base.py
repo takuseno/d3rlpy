@@ -481,7 +481,7 @@ class LearnableBase:
 
         iterator: TransitionIterator
         if n_epochs is None and n_steps is not None:
-            assert n_steps > n_steps_per_epoch
+            assert n_steps >= n_steps_per_epoch
             n_epochs = n_steps // n_steps_per_epoch
             iterator = RandomIterator(
                 episodes,
