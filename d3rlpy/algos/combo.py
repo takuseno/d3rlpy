@@ -139,7 +139,7 @@ class COMBO(ModelBaseMixin, AlgoBase):
         target_reduction_type: str = "min",
         update_actor_interval: int = 1,
         initial_temperature: float = 1.0,
-        conservative_weight: float = 10.0,
+        conservative_weight: float = 1.0,
         n_action_samples: int = 10,
         soft_q_backup: bool = False,
         dynamics: Optional[DynamicsBase] = None,
