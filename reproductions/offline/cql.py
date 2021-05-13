@@ -23,17 +23,15 @@ def main():
                            alpha_learning_rate=0.0,
                            use_gpu=args.gpu)
 
-    scorers = {
-        'environment': d3rlpy.metrics.scorer.evaluate_on_environment(env),
-        'value_scale': d3rlpy.metrics.scorer.average_value_estimation_scorer
-    }
-
     cql.fit(dataset.episodes,
             eval_episodes=test_episodes,
             n_steps=500000,
             n_steps_per_epoch=1000,
             save_interval=10,
-            scorers=scorers,
+            scorers={
+                'environment': d3rlpy.metrics.evaluate_on_environment(env),
+                'value_scale': d3rlpy.metrics.average_value_estimation_scorer,
+            },
             experiment_name=f"CQL_{args.dataset}_{args.seed}")
 
 
