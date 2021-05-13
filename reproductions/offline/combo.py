@@ -12,14 +12,14 @@ def main():
     parser.add_argument('--gpu', type=int)
     args = parser.parse_args()
 
+    # create dataset without masks
+    dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
+
+    # fix seed
     d3rlpy.seed(args.seed)
+    env.seed(args.seed)
 
-    # bootstrapped dataset for ensemble training
-    dynamics_dataset, _ = d3rlpy.datasets.get_dataset(args.dataset,
-                                                      create_mask=True,
-                                                      mask_size=5)
-
-    _, test_episodes = train_test_split(dynamics_dataset, test_size=0.2)
+    _, test_episodes = train_test_split(dataset, test_size=0.2)
 
     # prepare dynamics model
     dynamics_encoder = d3rlpy.models.encoders.VectorEncoderFactory(
@@ -36,16 +36,13 @@ def main():
     )
 
     # train dynamics model
-    dynamics.fit(dynamics_dataset,
+    dynamics.fit(dataset.episodes,
                  eval_episodes=test_episodes,
                  n_steps=100000,
                  scorers={
                      "obs_error": dynamics_observation_prediction_error_scorer,
                      "rew_error": dynamics_reward_prediction_error_scorer,
                  })
-
-    # create dataset without masks
-    dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
 
     if 'halfcheetah' in args.dataset:
         conservative_weight = 0.5

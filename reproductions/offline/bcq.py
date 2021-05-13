@@ -10,14 +10,15 @@ def main():
     parser.add_argument('--gpu', type=int)
     args = parser.parse_args()
 
-    d3rlpy.seed(args.seed)
-
     dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
+
+    # fix seed
+    d3rlpy.seed(args.seed)
+    env.seed(args.seed)
 
     _, test_episodes = train_test_split(dataset, test_size=0.2)
 
     vae_encoder = d3rlpy.models.encoders.VectorEncoderFactory([750, 750])
-
     rl_encoder = d3rlpy.models.encoders.VectorEncoderFactory([400, 300])
 
     bcq = d3rlpy.algos.BCQ(actor_encoder_factory=rl_encoder,

@@ -10,11 +10,14 @@ def main():
     parser.add_argument('--gpu', action='store_true')
     args = parser.parse_args()
 
-    d3rlpy.seed(args.seed)
-
     # get wrapped atari environment
     env = d3rlpy.envs.Atari(gym.make(args.env))
     eval_env = d3rlpy.envs.Atari(gym.make(args.env), is_eval=True)
+
+    # fix seed
+    d3rlpy.seed(args.seed)
+    env.seed(args.seed)
+    eval_env.seed(args.seed)
 
     # setup algorithm
     dqn = d3rlpy.algos.DQN(

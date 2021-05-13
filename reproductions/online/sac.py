@@ -10,10 +10,13 @@ def main():
     parser.add_argument('--gpu', action='store_true')
     args = parser.parse_args()
 
-    d3rlpy.seed(args.seed)
-
     env = gym.make(args.env)
     eval_env = gym.make(args.env)
+
+    # fix seed
+    d3rlpy.seed(args.seed)
+    env.seed(args.seed)
+    eval_env.seed(args.seed)
 
     # setup algorithm
     sac = d3rlpy.algos.SAC(batch_size=256,

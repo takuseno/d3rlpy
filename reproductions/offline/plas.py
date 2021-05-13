@@ -10,9 +10,11 @@ def main():
     parser.add_argument('--gpu', type=int)
     args = parser.parse_args()
 
-    d3rlpy.seed(args.seed)
-
     dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
+
+    # fix seed
+    d3rlpy.seed(args.seed)
+    env.seed(args.seed)
 
     _, test_episodes = train_test_split(dataset, test_size=0.2)
 
@@ -20,7 +22,6 @@ def main():
         vae_encoder = d3rlpy.models.encoders.VectorEncoderFactory([128, 128])
     else:
         vae_encoder = d3rlpy.models.encoders.VectorEncoderFactory([750, 750])
-
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([400, 300])
 
     plas = d3rlpy.algos.PLAS(actor_encoder_factory=encoder,
