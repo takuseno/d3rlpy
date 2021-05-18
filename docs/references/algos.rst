@@ -27,6 +27,7 @@ Continuous control algorithms
    d3rlpy.algos.PLASWithPerturbation
    d3rlpy.algos.MOPO
    d3rlpy.algos.COMBO
+   d3rlpy.algos.RandomPolicy
 
 Discrete control algorithms
 ---------------------------
@@ -42,3 +43,4 @@ Discrete control algorithms
    d3rlpy.algos.DiscreteBCQ
    d3rlpy.algos.DiscreteCQL
    d3rlpy.algos.DiscreteAWR
+   d3rlpy.algos.DiscreteRandomPolicy
