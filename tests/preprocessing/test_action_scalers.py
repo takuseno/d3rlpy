@@ -40,6 +40,11 @@ def test_min_max_action_scaler(action_size, batch_size):
     assert np.all(params["maximum"] == max)
     assert torch.allclose(scaler.reverse_transform(y), x, atol=1e-6)
 
+    # check numpy
+    x = np.random.random((batch_size, action_size))
+    ref_y = ((max - min) * ((x + 1.0) / 2.0)) + min
+    assert np.allclose(scaler.reverse_transform_numpy(x), ref_y)
+
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [10])

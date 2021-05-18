@@ -13,6 +13,7 @@ from .ddpg import DDPG
 from .dqn import DQN, DoubleDQN
 from .mopo import MOPO
 from .plas import PLAS, PLASWithPerturbation
+from .random_policy import DiscreteRandomPolicy, RandomPolicy
 from .sac import SAC, DiscreteSAC
 from .td3 import TD3
 
@@ -39,6 +40,8 @@ __all__ = [
     "SAC",
     "DiscreteSAC",
     "TD3",
+    "RandomPolicy",
+    "DiscreteRandomPolicy",
     "get_algo",
     "create_algo",
 ]
@@ -52,6 +55,7 @@ DISCRETE_ALGORITHMS: Dict[str, Type[AlgoBase]] = {
     "dqn": DQN,
     "double_dqn": DoubleDQN,
     "sac": DiscreteSAC,
+    "random": DiscreteRandomPolicy,
 }
 
 CONTINUOUS_ALGORITHMS: Dict[str, Type[AlgoBase]] = {
@@ -68,6 +72,7 @@ CONTINUOUS_ALGORITHMS: Dict[str, Type[AlgoBase]] = {
     "plas": PLASWithPerturbation,
     "sac": SAC,
     "td3": TD3,
+    "random": RandomPolicy,
 }
 
 

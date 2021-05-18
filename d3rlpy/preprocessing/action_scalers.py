@@ -54,6 +54,18 @@ class ActionScaler:
         """
         raise NotImplementedError
 
+    def reverse_transform_numpy(self, action: np.ndarray) -> np.ndarray:
+        """Returns reversely transformed action in numpy array.
+
+        Args:
+            action: action vector.
+
+        Returns:
+            reversely transformed action.
+
+        """
+        raise NotImplementedError
+
     def get_type(self) -> str:
         """Returns action scaler type.
 
@@ -186,6 +198,12 @@ class MinMaxActionScaler(ActionScaler):
         maximum = torch.tensor(
             self._maximum, dtype=torch.float32, device=action.device
         )
+        # transform action from [-1.0, 1.0]
+        return ((maximum - minimum) * ((action + 1.0) / 2.0)) + minimum
+
+    def reverse_transform_numpy(self, action: np.ndarray) -> np.ndarray:
+        assert self._minimum is not None and self._maximum is not None
+        minimum, maximum = self._minimum, self._maximum
         # transform action from [-1.0, 1.0]
         return ((maximum - minimum) * ((action + 1.0) / 2.0)) + minimum
 
