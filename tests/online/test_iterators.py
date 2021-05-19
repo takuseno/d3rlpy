@@ -68,6 +68,31 @@ def test_fit_online_pendulum_with_sac():
     )
 
 
+def test_collect_pendulum_with_sac():
+    env = gym.make("Pendulum-v0")
+
+    algo = SAC()
+
+    buffer = algo.collect(env, n_steps=500)
+
+    assert buffer.size() > 490 and buffer.size() < 500
+
+
+def test_collect_atari_with_dqn():
+    import d4rl_atari
+
+    env = ChannelFirst(gym.make("breakout-mixed-v0"))
+
+    algo = DQN(n_frames=4)
+
+    explorer = LinearDecayEpsilonGreedy()
+
+    buffer = algo.collect(env, explorer=explorer, n_steps=100)
+
+    assert algo.impl.observation_shape == (4, 84, 84)
+    assert buffer.size() > 90 and buffer.size() < 100
+
+
 @pytest.mark.parametrize("timelimit_aware", [False, True])
 def test_timelimit_aware(timelimit_aware):
     env = gym.make("Pendulum-v0")

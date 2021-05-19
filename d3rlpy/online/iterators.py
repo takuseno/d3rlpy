@@ -451,3 +451,84 @@ def train_batch_env(
 
     # finish all process
     env.close()
+
+
+def collect(
+    algo: AlgoProtocol,
+    env: gym.Env,
+    buffer: Buffer,
+    explorer: Optional[Explorer] = None,
+    n_steps: int = 1000000,
+    show_progress: bool = True,
+    timelimit_aware: bool = True,
+) -> None:
+    """Collects data via interaction with environment.
+
+    Args:
+        algo: algorithm object.
+        env: gym-like environment.
+        buffer : replay buffer.
+        explorer: action explorer.
+        n_steps: the number of total steps to train.
+        show_progress: flag to show progress bar for iterations.
+        timelimit_aware: flag to turn ``terminal`` flag ``False`` when
+            ``TimeLimit.truncated`` flag is ``True``, which is designed to
+            incorporate with ``gym.wrappers.TimeLimit``.
+
+    """
+    # initialize algorithm parameters
+    _setup_algo(algo, env)
+
+    observation_shape = env.observation_space.shape
+    is_image = len(observation_shape) == 3
+
+    # prepare stacked observation
+    if is_image:
+        stacked_frame = StackedObservation(observation_shape, algo.n_frames)
+
+    # switch based on show_progress flag
+    xrange = trange if show_progress else range
+
+    # start training loop
+    observation, reward, terminal = env.reset(), 0.0, False
+    clip_episode = False
+    for total_step in xrange(1, n_steps + 1):
+        # stack observation if necessary
+        if is_image:
+            stacked_frame.append(observation)
+            fed_observation = stacked_frame.eval()
+        else:
+            observation = observation.astype("f4")
+            fed_observation = observation
+
+        # sample exploration action
+        if explorer:
+            x = fed_observation.reshape((1,) + fed_observation.shape)
+            action = explorer.sample(algo, x, total_step)[0]
+        else:
+            action = algo.sample_action([fed_observation])[0]
+
+        # store observation
+        buffer.append(
+            observation=observation,
+            action=action,
+            reward=reward,
+            terminal=terminal,
+            clip_episode=clip_episode,
+        )
+
+        # get next observation
+        if clip_episode:
+            observation, reward, terminal = env.reset(), 0.0, False
+            clip_episode = False
+            # for image observation
+            if is_image:
+                stacked_frame.clear()
+        else:
+            observation, reward, terminal, info = env.step(action)
+            # special case for TimeLimit wrapper
+            if timelimit_aware and "TimeLimit.truncated" in info:
+                clip_episode = True
+                terminal = False
+            else:
+                clip_episode = terminal
