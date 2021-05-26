@@ -13,12 +13,15 @@ from .dataset import MDPDataset
 from .envs import ChannelFirst
 
 DATA_DIRECTORY = "d3rlpy_data"
-CARTPOLE_URL = "https://www.dropbox.com/s/l1sdnq3zvoot2um/cartpole.h5?dl=1"
-PENDULUM_URL = "https://www.dropbox.com/s/vsiz9pwvshj7sly/pendulum.h5?dl=1"
+DROPBOX_URL = "https://www.dropbox.com/s"
+CARTPOLE_URL = f"{DROPBOX_URL}/l1sdnq3zvoot2um/cartpole.h5?dl=1"
+CARTPOLE_RANDOM_URL = f"{DROPBOX_URL}/rwf4pns5x0ku848/cartpole_random.h5?dl=1"
+PENDULUM_URL = f"{DROPBOX_URL}/vsiz9pwvshj7sly/pendulum.h5?dl=1"
+PENDULUM_RANDOM_URL = f"{DROPBOX_URL}/qldf2vjvvc5thsb/pendulum_random.h5?dl=1"
 
 
 def get_cartpole(
-    create_mask: bool = False, mask_size: int = 1
+    create_mask: bool = False, mask_size: int = 1, dataset_type: str = "replay"
 ) -> Tuple[MDPDataset, gym.Env]:
     """Returns cartpole dataset and environment.
 
@@ -28,18 +31,29 @@ def get_cartpole(
     Args:
         create_mask: flag to create binary mask for bootstrapping.
         mask_size: ensemble size for binary mask.
+        dataset_type: dataset type. Available options are
+            ``['replay', 'random']``.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
-    data_path = os.path.join(DATA_DIRECTORY, "cartpole.h5")
+    if dataset_type == "replay":
+        url = CARTPOLE_URL
+        file_name = "cartpole_replay.h5"
+    elif dataset_type == "random":
+        url = CARTPOLE_RANDOM_URL
+        file_name = "cartpole_random.h5"
+    else:
+        raise ValueError(f"Invalid dataset_type: {dataset_type}.")
+
+    data_path = os.path.join(DATA_DIRECTORY, file_name)
 
     # download dataset
     if not os.path.exists(data_path):
         os.makedirs(DATA_DIRECTORY, exist_ok=True)
         print("Donwloading cartpole.pkl into %s..." % data_path)
-        request.urlretrieve(CARTPOLE_URL, data_path)
+        request.urlretrieve(url, data_path)
 
     # load dataset
     dataset = MDPDataset.load(
@@ -53,7 +67,9 @@ def get_cartpole(
 
 
 def get_pendulum(
-    create_mask: bool = False, mask_size: int = 1
+    create_mask: bool = False,
+    mask_size: int = 1,
+    dataset_type: str = "replay",
 ) -> Tuple[MDPDataset, gym.Env]:
     """Returns pendulum dataset and environment.
 
@@ -63,17 +79,28 @@ def get_pendulum(
     Args:
         create_mask: flag to create binary mask for bootstrapping.
         mask_size: ensemble size for binary mask.
+        dataset_type: dataset type. Available options are
+            ``['replay', 'random']``.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
-    data_path = os.path.join(DATA_DIRECTORY, "pendulum.h5")
+    if dataset_type == "replay":
+        url = PENDULUM_URL
+        file_name = "pendulum_replay.h5"
+    elif dataset_type == "random":
+        url = PENDULUM_RANDOM_URL
+        file_name = "pendulum_random.h5"
+    else:
+        raise ValueError(f"Invalid dataset_type: {dataset_type}.")
+
+    data_path = os.path.join(DATA_DIRECTORY, file_name)
 
     if not os.path.exists(data_path):
         os.makedirs(DATA_DIRECTORY, exist_ok=True)
         print("Donwloading pendulum.pkl into %s..." % data_path)
-        request.urlretrieve(PENDULUM_URL, data_path)
+        request.urlretrieve(url, data_path)
 
     # load dataset
     dataset = MDPDataset.load(
