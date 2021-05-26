@@ -1,7 +1,17 @@
 import pytest
 from d4rl_pybullet.envs import OfflineHopperBulletEnv
 
-from d3rlpy.datasets import get_dataset
+from d3rlpy.datasets import get_cartpole, get_dataset, get_pendulum
+
+
+@pytest.mark.parametrize("dataset_type", ["replay", "random"])
+def test_get_cartpole(dataset_type):
+    get_cartpole(dataset_type=dataset_type)
+
+
+@pytest.mark.parametrize("dataset_type", ["replay", "random"])
+def test_get_pendulum(dataset_type):
+    get_pendulum(dataset_type=dataset_type)
 
 
 @pytest.mark.parametrize(
