@@ -64,7 +64,9 @@ class ConditionalVAE(nn.Module):  # type: ignore
         h = self._decoder_encoder(x, latent)
         return torch.tanh(self._fc(h))
 
-    def decode_without_squash(self, x: torch.Tensor, latent: torch.Tensor) -> torch.Tensor:
+    def decode_without_squash(
+        self, x: torch.Tensor, latent: torch.Tensor
+    ) -> torch.Tensor:
         h = self._decoder_encoder(x, latent)
         return self._fc(h)
 
@@ -81,7 +83,9 @@ class ConditionalVAE(nn.Module):  # type: ignore
         # to prevent extreme numbers
         return self.decode(x, latent.clamp(-0.5, 0.5))
 
-    def sample_n(self, x: torch.Tensor, n: int, with_squash: bool = True) -> torch.Tensor:
+    def sample_n(
+        self, x: torch.Tensor, n: int, with_squash: bool = True
+    ) -> torch.Tensor:
         flat_latent_shape = (n * x.shape[0], self._latent_size)
         flat_latent = torch.randn(flat_latent_shape, device=x.device)
         # to prevent extreme numbers

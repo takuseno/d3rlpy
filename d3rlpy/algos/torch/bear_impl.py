@@ -315,7 +315,7 @@ class BEARImpl(SACImpl):
             flat_x = repeated_x.reshape(-1, *x.shape[1:])
 
             # (batch * n, 1)
-            flat_values = self._q_func(flat_x, flat_actions, 'none')[0]
+            flat_values = self._q_func(flat_x, flat_actions, "none")[0]
 
             # (batch, n)
             values = flat_values.view(x.shape[0], self._n_action_samples)
