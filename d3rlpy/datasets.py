@@ -204,15 +204,16 @@ def get_d4rl(
         env = gym.make(env_name)
         dataset = env.get_dataset()
 
-        observations = dataset["observations"]
-        actions = dataset["actions"]
-        rewards = dataset["rewards"]
+        observations = dataset["observations"][1:]
+        actions = dataset["actions"][1:]
+        rewards = dataset["rewards"][:-1]
         terminals = np.logical_and(
-            dataset["terminals"], np.logical_not(dataset["timeouts"])
+            dataset["terminals"][:-1], np.logical_not(dataset["timeouts"][:-1])
         )
         episode_terminals = np.logical_or(
-            dataset["terminals"], dataset["timeouts"]
+            dataset["terminals"][:-1], dataset["timeouts"][:-1]
         )
+        episode_terminals[-1] = 1.0
 
         mdp_dataset = MDPDataset(
             observations=observations,
