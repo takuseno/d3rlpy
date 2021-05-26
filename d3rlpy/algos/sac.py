@@ -88,7 +88,6 @@ class SAC(AlgoBase):
         target_reduction_type (str): ensemble reduction method at target value
             estimation. The available options are
             ``['min', 'max', 'mean', 'mix', 'none']``.
-        update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -112,7 +111,6 @@ class SAC(AlgoBase):
     _tau: float
     _n_critics: int
     _target_reduction_type: str
-    _update_actor_interval: int
     _initial_temperature: float
     _use_gpu: Optional[Device]
     _impl: Optional[SACImpl]
@@ -136,7 +134,6 @@ class SAC(AlgoBase):
         tau: float = 0.005,
         n_critics: int = 2,
         target_reduction_type: str = "min",
-        update_actor_interval: int = 1,
         initial_temperature: float = 1.0,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
@@ -165,7 +162,6 @@ class SAC(AlgoBase):
         self._tau = tau
         self._n_critics = n_critics
         self._target_reduction_type = target_reduction_type
-        self._update_actor_interval = update_actor_interval
         self._initial_temperature = initial_temperature
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
@@ -203,21 +199,19 @@ class SAC(AlgoBase):
 
         metrics = {}
 
+        # lagrangian parameter update for SAC temperature
+        if self._temp_learning_rate > 0:
+            temp_loss, temp = self._impl.update_temp(batch)
+            metrics.update({"temp_loss": temp_loss, "temp": temp})
+
         critic_loss = self._impl.update_critic(batch)
         metrics.update({"critic_loss": critic_loss})
 
-        # delayed policy update
-        if total_step % self._update_actor_interval == 0:
-            actor_loss = self._impl.update_actor(batch)
-            metrics.update({"actor_loss": actor_loss})
+        actor_loss = self._impl.update_actor(batch)
+        metrics.update({"actor_loss": actor_loss})
 
-            # lagrangian parameter update for SAC temperature
-            if self._temp_learning_rate > 0:
-                temp_loss, temp = self._impl.update_temp(batch)
-                metrics.update({"temp_loss": temp_loss, "temp": temp})
-
-            self._impl.update_critic_target()
-            self._impl.update_actor_target()
+        self._impl.update_critic_target()
+        self._impl.update_actor_target()
 
         return metrics
 
@@ -379,16 +373,16 @@ class DiscreteSAC(AlgoBase):
 
         metrics = {}
 
+        # lagrangian parameter update for SAC temeprature
+        if self._temp_learning_rate > 0:
+            temp_loss, temp = self._impl.update_temp(batch)
+            metrics.update({"temp_loss": temp_loss, "temp": temp})
+
         critic_loss = self._impl.update_critic(batch)
         metrics.update({"critic_loss": critic_loss})
 
         actor_loss = self._impl.update_actor(batch)
         metrics.update({"actor_loss": actor_loss})
-
-        # lagrangian parameter update for SAC temeprature
-        if self._temp_learning_rate > 0:
-            temp_loss, temp = self._impl.update_temp(batch)
-            metrics.update({"temp_loss": temp_loss, "temp": temp})
 
         if total_step % self._target_update_interval == 0:
             self._impl.update_target()
