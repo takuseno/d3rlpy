@@ -114,7 +114,7 @@ class CQLImpl(SACImpl):
         conservative_loss = self._compute_conservative_loss(
             batch.observations, batch.actions, batch.next_observations
         )
-        return loss + self._conservative_weight * conservative_loss
+        return loss + conservative_loss
 
     @train_api
     @torch_api()
@@ -129,10 +129,9 @@ class CQLImpl(SACImpl):
         self._alpha_optim.zero_grad()
 
         # the original implementation does scale the loss value
-        conservative_loss = -self._compute_conservative_loss(
+        loss = -self._compute_conservative_loss(
             batch.observations, batch.actions, batch.next_observations
         )
-        loss = self._conservative_weight * conservative_loss
 
         loss.backward()
         self._alpha_optim.step()
@@ -215,12 +214,13 @@ class CQLImpl(SACImpl):
         # estimate action-values for data actions
         data_values = self._q_func(obs_t, act_t, "none")
 
-        loss = logsumexp.sum(dim=0).mean() - data_values.sum(dim=0).mean()
+        loss = logsumexp.mean(dim=0).mean() - data_values.mean(dim=0).mean()
+        scaled_loss = self._conservative_weight * loss
 
         # clip for stability
-        clipped_alpha = self._log_alpha().exp().clamp(0, 1e6)
+        clipped_alpha = self._log_alpha().exp().clamp(0, 1e6)[0][0]
 
-        return clipped_alpha[0][0] * loss - self._alpha_threshold
+        return clipped_alpha * (scaled_loss - self._alpha_threshold)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         if self._soft_q_backup:

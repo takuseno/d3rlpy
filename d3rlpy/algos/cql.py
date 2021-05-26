@@ -93,7 +93,6 @@ class CQL(AlgoBase):
         target_reduction_type (str): ensemble reduction method at target value
             estimation. The available options are
             ``['min', 'max', 'mean', 'mix', 'none']``.
-        update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\alpha` value.
         alpha_threshold (float): threshold value described as :math:`\tau`.
@@ -125,7 +124,6 @@ class CQL(AlgoBase):
     _tau: float
     _n_critics: int
     _target_reduction_type: str
-    _update_actor_interval: int
     _initial_temperature: float
     _initial_alpha: float
     _alpha_threshold: float
@@ -156,7 +154,6 @@ class CQL(AlgoBase):
         tau: float = 0.005,
         n_critics: int = 2,
         target_reduction_type: str = "min",
-        update_actor_interval: int = 1,
         initial_temperature: float = 1.0,
         initial_alpha: float = 1.0,
         alpha_threshold: float = 10.0,
@@ -192,7 +189,6 @@ class CQL(AlgoBase):
         self._tau = tau
         self._n_critics = n_critics
         self._target_reduction_type = target_reduction_type
-        self._update_actor_interval = update_actor_interval
         self._initial_temperature = initial_temperature
         self._initial_alpha = initial_alpha
         self._alpha_threshold = alpha_threshold
@@ -242,25 +238,24 @@ class CQL(AlgoBase):
 
         metrics = {}
 
+        # lagrangian parameter update for SAC temperature
+        if self._temp_learning_rate > 0:
+            temp_loss, temp = self._impl.update_temp(batch)
+            metrics.update({"temp_loss": temp_loss, "temp": temp})
+
+        # lagrangian parameter update for conservative loss weight
+        if self._alpha_learning_rate > 0:
+            alpha_loss, alpha = self._impl.update_alpha(batch)
+            metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
+
         critic_loss = self._impl.update_critic(batch)
         metrics.update({"critic_loss": critic_loss})
 
-        if total_step % self._update_actor_interval == 0:
-            actor_loss = self._impl.update_actor(batch)
-            metrics.update({"actor_loss": actor_loss})
+        actor_loss = self._impl.update_actor(batch)
+        metrics.update({"actor_loss": actor_loss})
 
-            # lagrangian parameter update for SAC temperature
-            if self._temp_learning_rate > 0:
-                temp_loss, temp = self._impl.update_temp(batch)
-                metrics.update({"temp_loss": temp_loss, "temp": temp})
-
-            # lagrangian parameter update for conservative loss weight
-            if self._alpha_learning_rate > 0:
-                alpha_loss, alpha = self._impl.update_alpha(batch)
-                metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
-
-            self._impl.update_critic_target()
-            self._impl.update_actor_target()
+        self._impl.update_critic_target()
+        self._impl.update_actor_target()
 
         return metrics
 
