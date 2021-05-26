@@ -98,9 +98,11 @@ class BEAR(AlgoBase):
         alpha_threshold (float): threshold value described as
             :math:`\epsilon`.
         lam (float): weight for critic ensemble.
-        n_action_samples (int): the number of action samples to compute MMD.
+        n_action_samples (int): the number of action samples to compute the
+            best action.
         n_target_samples (int): the number of action samples to compute
             BCQ-like target value.
+        n_mmd_action_samples (int): the number of action samples to compute MMD.
         mmd_kernel (str): MMD kernel function. The available options are
             ``['gaussian', 'laplacian']``.
         mmd_sigma (float): :math:`\sigma` for gaussian kernel in MMD
@@ -141,6 +143,7 @@ class BEAR(AlgoBase):
     _lam: float
     _n_action_samples: int
     _n_target_samples: int
+    _n_mmd_action_samples: int
     _mmd_kernel: str
     _mmd_sigma: float
     _vae_kl_weight: float
@@ -177,6 +180,7 @@ class BEAR(AlgoBase):
         lam: float = 0.75,
         n_action_samples: int = 100,
         n_target_samples: int = 10,
+        n_mmd_action_samples: int = 4,
         mmd_kernel: str = "laplacian",
         mmd_sigma: float = 20.0,
         vae_kl_weight: float = 0.5,
@@ -218,6 +222,7 @@ class BEAR(AlgoBase):
         self._lam = lam
         self._n_action_samples = n_action_samples
         self._n_target_samples = n_target_samples
+        self._n_mmd_action_samples = n_mmd_action_samples
         self._mmd_kernel = mmd_kernel
         self._mmd_sigma = mmd_sigma
         self._vae_kl_weight = vae_kl_weight
@@ -254,6 +259,7 @@ class BEAR(AlgoBase):
             lam=self._lam,
             n_action_samples=self._n_action_samples,
             n_target_samples=self._n_target_samples,
+            n_mmd_action_samples=self._n_mmd_action_samples,
             mmd_kernel=self._mmd_kernel,
             mmd_sigma=self._mmd_sigma,
             vae_kl_weight=self._vae_kl_weight,
@@ -273,15 +279,6 @@ class BEAR(AlgoBase):
         imitator_loss = self._impl.update_imitator(batch)
         metrics.update({"imitator_loss": imitator_loss})
 
-        critic_loss = self._impl.update_critic(batch)
-        metrics.update({"critic_loss": critic_loss})
-
-        if total_step < self._warmup_steps:
-            actor_loss = self._impl.warmup_actor(batch)
-        else:
-            actor_loss = self._impl.update_actor(batch)
-        metrics.update({"actor_loss": actor_loss})
-
         # lagrangian parameter update for SAC temperature
         if self._temp_learning_rate > 0:
             temp_loss, temp = self._impl.update_temp(batch)
@@ -291,6 +288,15 @@ class BEAR(AlgoBase):
         if self._alpha_learning_rate > 0:
             alpha_loss, alpha = self._impl.update_alpha(batch)
             metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
+
+        critic_loss = self._impl.update_critic(batch)
+        metrics.update({"critic_loss": critic_loss})
+
+        if total_step < self._warmup_steps:
+            actor_loss = self._impl.warmup_actor(batch)
+        else:
+            actor_loss = self._impl.update_actor(batch)
+        metrics.update({"actor_loss": actor_loss})
 
         self._impl.update_actor_target()
         self._impl.update_critic_target()

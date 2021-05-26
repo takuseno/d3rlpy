@@ -99,6 +99,10 @@ def test_squashed_normal_policy(
     assert y_n.shape == (batch_size, n, action_size)
     assert log_prob_n.shape == (batch_size, n, 1)
 
+    # check sample_n_without_squash
+    y_n = policy.sample_n_without_squash(x, n)
+    assert y_n.shape == (batch_size, n, action_size)
+
     # check onnx_safe_sample_n
     y_n = policy.onnx_safe_sample_n(x, n)
     assert y_n.shape == (batch_size, n, action_size)

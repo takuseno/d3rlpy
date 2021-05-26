@@ -46,6 +46,7 @@ class BEARImpl(SACImpl):
     _lam: float
     _n_action_samples: int
     _n_target_samples: int
+    _n_mmd_action_samples: int
     _mmd_kernel: str
     _mmd_sigma: float
     _vae_kl_weight: float
@@ -81,6 +82,7 @@ class BEARImpl(SACImpl):
         lam: float,
         n_action_samples: int,
         n_target_samples: int,
+        n_mmd_action_samples: int,
         mmd_kernel: str,
         mmd_sigma: float,
         vae_kl_weight: float,
@@ -119,6 +121,7 @@ class BEARImpl(SACImpl):
         self._lam = lam
         self._n_action_samples = n_action_samples
         self._n_target_samples = n_target_samples
+        self._n_mmd_action_samples = n_mmd_action_samples
         self._mmd_kernel = mmd_kernel
         self._mmd_sigma = mmd_sigma
         self._vae_kl_weight = vae_kl_weight
@@ -184,7 +187,7 @@ class BEARImpl(SACImpl):
         assert self._log_alpha
         mmd = self._compute_mmd(obs_t)
         alpha = self._log_alpha().exp()
-        return (alpha * (mmd - self._alpha_threshold)).sum(dim=1).mean()
+        return (alpha * (mmd - self._alpha_threshold)).mean()
 
     @train_api
     @torch_api()
@@ -228,10 +231,12 @@ class BEARImpl(SACImpl):
         assert self._imitator is not None
         assert self._policy is not None
         with torch.no_grad():
-            behavior_actions = self._imitator.sample_n(
-                x, self._n_action_samples
+            behavior_actions = self._imitator.sample_n_without_squash(
+                x, self._n_mmd_action_samples
             )
-        policy_actions = self._policy.sample_n(x, self._n_action_samples)
+        policy_actions = self._policy.sample_n_without_squash(
+            x, self._n_mmd_action_samples
+        )
 
         if self._mmd_kernel == "gaussian":
             kernel = _gaussian_kernel
@@ -257,17 +262,17 @@ class BEARImpl(SACImpl):
 
         # 1 / N^2 \sum k(a_\pi, a_\pi)
         inter_policy = kernel(policy_actions, policy_actions_T, self._mmd_sigma)
-        mmd = inter_policy.sum(dim=1).sum(dim=1) / self._n_action_samples ** 2
+        mmd = inter_policy.mean(dim=[1, 2])
 
         # 1 / N^2 \sum k(a_\beta, a_\beta)
         inter_data = kernel(
             behavior_actions, behavior_actions_T, self._mmd_sigma
         )
-        mmd += inter_data.sum(dim=1).sum(dim=1) / self._n_action_samples ** 2
+        mmd += inter_data.mean(dim=[1, 2])
 
         # 2 / N^2 \sum k(a_\pi, a_\beta)
         distance = kernel(policy_actions, behavior_actions_T, self._mmd_sigma)
-        mmd -= 2 * distance.sum(dim=1).sum(dim=1) / self._n_action_samples ** 2
+        mmd -= 2 * distance.mean(dim=[1, 2])
 
         return (mmd + 1e-6).sqrt().view(-1, 1)
 
@@ -290,3 +295,32 @@ class BEARImpl(SACImpl):
             max_log_prob = log_probs[torch.arange(batch_size), indices]
 
             return values - self._log_temp().exp() * max_log_prob
+
+    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+        assert self._policy is not None
+        assert self._q_func is not None
+        with torch.no_grad():
+            # (batch, n, action)
+            actions = self._policy.sample_n(x, self._n_action_samples)
+            # (batch, n, action) -> (batch * n, action)
+            flat_actions = actions.reshape(-1, self._action_size)
+
+            # (batch, observation) -> (batch, 1, observation)
+            expanded_x = x.view(x.shape[0], 1, *x.shape[1:])
+            # (batch, 1, observation) -> (batch, n, observation)
+            repeated_x = expanded_x.expand(
+                x.shape[0], self._n_action_samples, *x.shape[1:]
+            )
+            # (batch, n, observation) -> (batch * n, observation)
+            flat_x = repeated_x.reshape(-1, *x.shape[1:])
+
+            # (batch * n, 1)
+            flat_values = self._q_func(flat_x, flat_actions, 'none')[0]
+
+            # (batch, n)
+            values = flat_values.view(x.shape[0], self._n_action_samples)
+
+            # (batch, n) -> (batch,)
+            max_indices = torch.argmax(values, dim=1)
+
+            return actions[torch.arange(x.shape[0]), max_indices]

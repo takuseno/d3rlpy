@@ -211,6 +211,11 @@ class SquashedNormalPolicy(Policy):
 
         return squashed_action, log_prob
 
+    def sample_n_without_squash(self, x: torch.Tensor, n: int) -> torch.Tensor:
+        dist = self.dist(x)
+        action = dist.rsample((n,))
+        return action.transpose(0, 1)
+
     def onnx_safe_sample_n(self, x: torch.Tensor, n: int) -> torch.Tensor:
         h = self._encoder(x)
         mean = self._mu(h)

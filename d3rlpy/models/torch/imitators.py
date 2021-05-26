@@ -64,6 +64,10 @@ class ConditionalVAE(nn.Module):  # type: ignore
         h = self._decoder_encoder(x, latent)
         return torch.tanh(self._fc(h))
 
+    def decode_without_squash(self, x: torch.Tensor, latent: torch.Tensor) -> torch.Tensor:
+        h = self._decoder_encoder(x, latent)
+        return self._fc(h)
+
     def compute_error(
         self, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
@@ -77,7 +81,7 @@ class ConditionalVAE(nn.Module):  # type: ignore
         # to prevent extreme numbers
         return self.decode(x, latent.clamp(-0.5, 0.5))
 
-    def sample_n(self, x: torch.Tensor, n: int) -> torch.Tensor:
+    def sample_n(self, x: torch.Tensor, n: int, with_squash: bool = True) -> torch.Tensor:
         flat_latent_shape = (n * x.shape[0], self._latent_size)
         flat_latent = torch.randn(flat_latent_shape, device=x.device)
         # to prevent extreme numbers
@@ -88,11 +92,19 @@ class ConditionalVAE(nn.Module):  # type: ignore
         # (n, batch, obs) -> (n *  batch, obs)
         flat_x = repeated_x.reshape(-1, *x.shape[1:])
 
+        if with_squash:
+            flat_actions = self.decode(flat_x, clipped_latent)
+        else:
+            flat_actions = self.decode_without_squash(flat_x, clipped_latent)
+
         # (n * batch, action) -> (n, batch, action)
-        actions = self.decode(flat_x, clipped_latent).view(n, x.shape[0], -1)
+        actions = flat_actions.view(n, x.shape[0], -1)
 
         # (n, batch, action) -> (batch, n, action)
         return actions.transpose(0, 1)
+
+    def sample_n_without_squash(self, x: torch.Tensor, n: int) -> torch.Tensor:
+        return self.sample_n(x, n, with_squash=False)
 
 
 class Imitator(nn.Module, metaclass=ABCMeta):  # type: ignore

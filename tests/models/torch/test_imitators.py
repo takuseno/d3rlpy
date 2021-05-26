@@ -50,6 +50,10 @@ def test_conditional_vae(
     y = vae.sample_n(x, n)
     assert y.shape == (batch_size, n, action_size)
 
+    # check sample_n_without_squash
+    y = vae.sample_n_without_squash(x, n)
+    assert y.shape == (batch_size, n, action_size)
+
     # TODO: test vae.compute_likelihood_loss(x, action)
 
     # check layer connections
