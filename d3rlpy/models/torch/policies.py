@@ -222,7 +222,7 @@ class SquashedNormalPolicy(Policy):
         expanded_std = std.view(-1, 1, self._action_size).repeat((1, n, 1))
 
         # sample noise from Gaussian distribution
-        noise = torch.randn(x.shape[0], n, self._action_size)
+        noise = torch.randn(x.shape[0], n, self._action_size, device=x.device)
 
         return torch.tanh(expanded_mean + noise * expanded_std)
 
