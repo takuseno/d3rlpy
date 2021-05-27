@@ -301,7 +301,7 @@ class BEARImpl(SACImpl):
         assert self._q_func is not None
         with torch.no_grad():
             # (batch, n, action)
-            actions = self._policy.sample_n(x, self._n_action_samples)
+            actions = self._policy.onnx_safe_sample_n(x, self._n_action_samples)
             # (batch, n, action) -> (batch * n, action)
             flat_actions = actions.reshape(-1, self._action_size)
 

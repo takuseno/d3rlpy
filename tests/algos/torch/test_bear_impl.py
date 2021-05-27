@@ -108,6 +108,4 @@ def test_bear_impl(
     )
     impl.build()
 
-    torch_impl_tester(
-        impl, discrete=False, deterministic_best_action=q_func_factory != "iqn"
-    )
+    torch_impl_tester(impl, discrete=False, deterministic_best_action=False)
