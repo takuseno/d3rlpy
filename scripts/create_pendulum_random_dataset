@@ -9,7 +9,10 @@ d3rlpy.seed(100)
 env = gym.make('Pendulum-v0')
 
 # prepare algorithms
-policy = d3rlpy.algos.RandomPolicy(distribution='normal')
+policy = d3rlpy.algos.RandomPolicy(
+    distribution='normal',
+    action_scaler='min_max',
+)
 
 # prepare utilities
 buffer = d3rlpy.online.buffers.ReplayBuffer(maxlen=1000000, env=env)

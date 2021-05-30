@@ -10,7 +10,7 @@ env = gym.make('Pendulum-v0')
 eval_env = gym.make('Pendulum-v0')
 
 # prepare algorithms
-sac = d3rlpy.algos.SAC()
+sac = d3rlpy.algos.SAC(action_scaler='min_max')
 
 # prepare utilities
 buffer = d3rlpy.online.buffers.ReplayBuffer(maxlen=1000000, env=env)

@@ -68,6 +68,8 @@ class RandomPolicy(AlgoBase):
         else:
             raise ValueError(f"invalid distribution type: {self._distribution}")
 
+        action = np.clip(action, -1.0, 1.0)
+
         if self._action_scaler:
             action = self._action_scaler.reverse_transform_numpy(action)
 
