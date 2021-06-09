@@ -1,6 +1,6 @@
 # pylint: disable=unidiomatic-typecheck
 
-from typing import Optional, Union, cast
+from typing import Optional, Union
 
 from .gpu import Device
 from .models.encoders import EncoderFactory, create_encoder_factory
@@ -88,7 +88,7 @@ def check_use_gpu(value: UseGPUArg) -> Optional[Device]:
             return Device(0)
         return None
     if type(value) == int:
-        return Device(cast(int, value))
+        return Device(value)
     if isinstance(value, Device):
         return value
     if value is None:
