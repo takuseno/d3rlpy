@@ -11,6 +11,8 @@ from d3rlpy.preprocessing import (
     create_scaler,
 )
 
+from ..dummy_env import DummyAtari
+
 
 @pytest.mark.parametrize("scaler_type", ["pixel", "min_max", "standard"])
 def test_create_scaler(scaler_type):
@@ -97,7 +99,7 @@ def test_min_max_scaler_with_episode(observation_shape, batch_size):
 
 
 def test_min_max_scaler_with_env():
-    env = gym.make("BreakoutNoFrameskip-v4")
+    env = DummyAtari()
 
     scaler = MinMaxScaler()
     scaler.fit_with_env(env)
