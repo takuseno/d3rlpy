@@ -1,5 +1,6 @@
 import copy
 
+import numpy as np
 import torch
 from torch.optim import SGD
 
@@ -25,6 +26,27 @@ def check_parameter_updates(model, inputs=None, output=None):
         assert not torch.allclose(
             before, after
         ), "tensor with shape of {} is not updated.".format(after.shape)
+
+
+def ref_huber_loss(a, b):
+    abs_diff = np.abs(a - b).reshape((-1,))
+    l2_diff = ((a - b) ** 2).reshape((-1,))
+    huber_diff = np.zeros_like(abs_diff)
+    huber_diff[abs_diff < 1.0] = 0.5 * l2_diff[abs_diff < 1.0]
+    huber_diff[abs_diff >= 1.0] = abs_diff[abs_diff >= 1.0] - 0.5
+    return np.mean(huber_diff)
+
+
+def ref_quantile_huber_loss(a, b, taus, n_quantiles):
+    abs_diff = np.abs(a - b).reshape((-1,))
+    l2_diff = ((a - b) ** 2).reshape((-1,))
+    huber_diff = np.zeros_like(abs_diff)
+    huber_diff[abs_diff < 1.0] = 0.5 * l2_diff[abs_diff < 1.0]
+    huber_diff[abs_diff >= 1.0] = abs_diff[abs_diff >= 1.0] - 0.5
+    huber_diff = huber_diff.reshape(-1, n_quantiles, n_quantiles)
+    delta = np.array((b - a) < 0.0, dtype=np.float32)
+    element_wise_loss = np.abs(taus - delta) * huber_diff
+    return element_wise_loss.sum(axis=2).mean(axis=1)
 
 
 class DummyEncoder(torch.nn.Module):
