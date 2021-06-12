@@ -5,45 +5,44 @@ import torch.nn as nn
 
 from ..encoders import Encoder, EncoderWithAction
 from .base import ContinuousQFunction, DiscreteQFunction
-from .iqn_q_function import IQNQFunction
-from .utility import compute_reduce, pick_quantile_value_by_action
+from .iqn_q_function import compute_iqn_feature
+from .utility import (
+    compute_quantile_loss,
+    compute_reduce,
+    pick_quantile_value_by_action,
+)
 
 
-class FQFQFunction(IQNQFunction):
-    _proposal: nn.Linear
+def _make_taus(
+    h: torch.Tensor,
+    proposal: nn.Linear,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    proposals = proposal(h.detach())
 
-    def __init__(self, n_quantiles: int, embed_size: int, feature_size: int):
-        super().__init__(n_quantiles, n_quantiles, embed_size, feature_size)
-        self._proposal = nn.Linear(feature_size, n_quantiles)
+    # tau_i+1
+    log_probs = torch.log_softmax(proposals, dim=1)
+    probs = log_probs.exp()
+    taus = torch.cumsum(probs, dim=1)
+    # tau_i
+    pads = torch.zeros(h.shape[0], 1, device=h.device)
+    taus_minus = torch.cat([pads, taus[:, :-1]], dim=1)
+    # tau^
+    taus_prime = (taus + taus_minus) / 2
+    # entropy for penalty
+    entropies = -(log_probs * probs).sum(dim=1)
 
-    def _make_fqf_taus(
-        self, h: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        proposals = self._proposal(h.detach())
-
-        # tau_i+1
-        log_probs = torch.log_softmax(proposals, dim=1)
-        probs = log_probs.exp()
-        taus = torch.cumsum(probs, dim=1)
-
-        # tau_i
-        pads = torch.zeros(h.shape[0], 1, device=h.device)
-        taus_minus = torch.cat([pads, taus[:, :-1]], dim=1)
-
-        # tau^
-        taus_prime = (taus + taus_minus) / 2
-
-        # entropy for penalty
-        entropies = -(log_probs * probs).sum(dim=1)
-
-        return taus, taus_minus, taus_prime, entropies
+    return taus, taus_minus, taus_prime, entropies
 
 
-class DiscreteFQFQFunction(FQFQFunction, DiscreteQFunction):
+class DiscreteFQFQFunction(DiscreteQFunction, nn.Module):  # type: ignore
     _action_size: int
     _entropy_coeff: float
     _encoder: Encoder
     _fc: nn.Linear
+    _n_quantiles: int
+    _embed_size: int
+    _embed: nn.Linear
+    _proposal: nn.Linear
 
     def __init__(
         self,
@@ -53,23 +52,27 @@ class DiscreteFQFQFunction(FQFQFunction, DiscreteQFunction):
         embed_size: int,
         entropy_coeff: float = 0.0,
     ):
-        super().__init__(n_quantiles, embed_size, encoder.get_feature_size())
+        super().__init__()
         self._encoder = encoder
         self._action_size = action_size
         self._fc = nn.Linear(encoder.get_feature_size(), self._action_size)
         self._entropy_coeff = entropy_coeff
+        self._n_quantiles = n_quantiles
+        self._embed_size = embed_size
+        self._embed = nn.Linear(embed_size, encoder.get_feature_size())
+        self._proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
 
     def _compute_quantiles(
         self, h: torch.Tensor, taus: torch.Tensor
     ) -> torch.Tensor:
         # element-wise product on feature and phi (batch, quantile, feature)
-        prod = self._compute_last_feature(h, taus)
+        prod = compute_iqn_feature(h, taus, self._embed, self._embed_size)
         # (batch, quantile, feature) -> (batch, action, quantile)
         return cast(torch.Tensor, self._fc(prod)).transpose(1, 2)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self._encoder(x)
-        taus, taus_minus, taus_prime, _ = self._make_fqf_taus(h)
+        taus, taus_minus, taus_prime, _ = _make_taus(h, self._proposal)
         quantiles = self._compute_quantiles(h, taus_prime.detach())
         weight = (taus - taus_minus).view(-1, 1, self._n_quantiles).detach()
         return (weight * quantiles).sum(dim=2)
@@ -88,15 +91,15 @@ class DiscreteFQFQFunction(FQFQFunction, DiscreteQFunction):
 
         # compute quantiles
         h = self._encoder(obs_t)
-        taus, _, taus_prime, entropies = self._make_fqf_taus(h)
+        taus, _, taus_prime, entropies = _make_taus(h, self._proposal)
         quantiles = self._compute_quantiles(h, taus_prime.detach())
         quantiles_t = pick_quantile_value_by_action(quantiles, act_t)
 
-        quantile_loss = self._compute_quantile_loss(
+        quantile_loss = compute_quantile_loss(
             quantiles_t=quantiles_t,
-            rew_tp1=rew_tp1,
-            q_tp1=q_tp1,
-            ter_tp1=ter_tp1,
+            rewards_tp1=rew_tp1,
+            quantiles_tp1=q_tp1,
+            terminals_tp1=ter_tp1,
             taus=taus_prime.detach(),
             gamma=gamma,
         )
@@ -143,7 +146,7 @@ class DiscreteFQFQFunction(FQFQFunction, DiscreteQFunction):
         self, x: torch.Tensor, action: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         h = self._encoder(x)
-        _, _, taus_prime, _ = self._make_fqf_taus(h)
+        _, _, taus_prime, _ = _make_taus(h, self._proposal)
         quantiles = self._compute_quantiles(h, taus_prime.detach())
         if action is None:
             return quantiles
@@ -158,11 +161,15 @@ class DiscreteFQFQFunction(FQFQFunction, DiscreteQFunction):
         return self._encoder
 
 
-class ContinuousFQFQFunction(FQFQFunction, ContinuousQFunction):
+class ContinuousFQFQFunction(ContinuousQFunction, nn.Module):  # type: ignore
     _action_size: int
     _entropy_coeff: float
     _encoder: EncoderWithAction
     _fc: nn.Linear
+    _n_quantiles: int
+    _embed_size: int
+    _embed: nn.Linear
+    _proposal: nn.Linear
 
     def __init__(
         self,
@@ -171,23 +178,27 @@ class ContinuousFQFQFunction(FQFQFunction, ContinuousQFunction):
         embed_size: int,
         entropy_coeff: float = 0.0,
     ):
-        super().__init__(n_quantiles, embed_size, encoder.get_feature_size())
+        super().__init__()
         self._encoder = encoder
         self._action_size = encoder.action_size
         self._fc = nn.Linear(encoder.get_feature_size(), 1)
         self._entropy_coeff = entropy_coeff
+        self._n_quantiles = n_quantiles
+        self._embed_size = embed_size
+        self._embed = nn.Linear(embed_size, encoder.get_feature_size())
+        self._proposal = nn.Linear(encoder.get_feature_size(), n_quantiles)
 
     def _compute_quantiles(
         self, h: torch.Tensor, taus: torch.Tensor
     ) -> torch.Tensor:
         # element-wise product on feature and phi (batch, quantile, feature)
-        prod = self._compute_last_feature(h, taus)
+        prod = compute_iqn_feature(h, taus, self._embed, self._embed_size)
         # (batch, quantile, feature) -> (batch, quantile)
         return cast(torch.Tensor, self._fc(prod)).view(h.shape[0], -1)
 
     def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         h = self._encoder(x, action)
-        taus, taus_minus, taus_prime, _ = self._make_fqf_taus(h)
+        taus, taus_minus, taus_prime, _ = _make_taus(h, self._proposal)
         quantiles = self._compute_quantiles(h, taus_prime.detach())
         weight = (taus - taus_minus).detach()
         return (weight * quantiles).sum(dim=1, keepdim=True)
@@ -205,14 +216,14 @@ class ContinuousFQFQFunction(FQFQFunction, ContinuousQFunction):
         assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
 
         h = self._encoder(obs_t, act_t)
-        taus, _, taus_prime, entropies = self._make_fqf_taus(h)
+        taus, _, taus_prime, entropies = _make_taus(h, self._proposal)
         quantiles_t = self._compute_quantiles(h, taus_prime.detach())
 
-        quantile_loss = self._compute_quantile_loss(
+        quantile_loss = compute_quantile_loss(
             quantiles_t=quantiles_t,
-            rew_tp1=rew_tp1,
-            q_tp1=q_tp1,
-            ter_tp1=ter_tp1,
+            rewards_tp1=rew_tp1,
+            quantiles_tp1=q_tp1,
+            terminals_tp1=ter_tp1,
             taus=taus_prime.detach(),
             gamma=gamma,
         )
@@ -251,7 +262,7 @@ class ContinuousFQFQFunction(FQFQFunction, ContinuousQFunction):
         self, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
         h = self._encoder(x, action)
-        _, _, taus_prime, _ = self._make_fqf_taus(h)
+        _, _, taus_prime, _ = _make_taus(h, self._proposal)
         return self._compute_quantiles(h, taus_prime.detach())
 
     @property

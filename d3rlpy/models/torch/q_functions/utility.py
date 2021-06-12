@@ -43,6 +43,24 @@ def compute_quantile_huber_loss(
     return element_wise_loss.sum(dim=2).mean(dim=1)
 
 
+def compute_quantile_loss(
+    quantiles_t: torch.Tensor,
+    rewards_tp1: torch.Tensor,
+    quantiles_tp1: torch.Tensor,
+    terminals_tp1: torch.Tensor,
+    taus: torch.Tensor,
+    gamma: float,
+) -> torch.Tensor:
+    batch_size, n_quantiles = quantiles_t.shape
+    expanded_quantiles_t = quantiles_t.view(batch_size, 1, -1)
+    y = rewards_tp1 + gamma * quantiles_tp1 * (1 - terminals_tp1)
+    expanded_y = y.view(batch_size, -1, 1)
+    expanded_taus = taus.view(-1, 1, n_quantiles)
+    return compute_quantile_huber_loss(
+        expanded_quantiles_t, expanded_y, expanded_taus
+    )
+
+
 def compute_reduce(value: torch.Tensor, reduction_type: str) -> torch.Tensor:
     if reduction_type == "mean":
         return value.mean()

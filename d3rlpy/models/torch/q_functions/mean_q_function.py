@@ -9,7 +9,7 @@ from .base import ContinuousQFunction, DiscreteQFunction
 from .utility import compute_huber_loss, compute_reduce, pick_value_by_action
 
 
-class DiscreteMeanQFunction(nn.Module, DiscreteQFunction):  # type: ignore
+class DiscreteMeanQFunction(DiscreteQFunction, nn.Module):  # type: ignore
     _action_size: int
     _encoder: Encoder
     _fc: nn.Linear
@@ -55,7 +55,7 @@ class DiscreteMeanQFunction(nn.Module, DiscreteQFunction):  # type: ignore
         return self._encoder
 
 
-class ContinuousMeanQFunction(nn.Module, ContinuousQFunction):  # type: ignore
+class ContinuousMeanQFunction(ContinuousQFunction, nn.Module):  # type: ignore
     _encoder: EncoderWithAction
     _action_size: int
     _fc: nn.Linear

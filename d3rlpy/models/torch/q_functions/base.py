@@ -36,9 +36,8 @@ class DiscreteQFunction(QFunction):
     ) -> torch.Tensor:
         pass
 
-    @abstractmethod
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
-        pass
+        return self.forward(x)
 
     @property
     def encoder(self) -> Encoder:
@@ -56,9 +55,8 @@ class ContinuousQFunction(QFunction):
     ) -> torch.Tensor:
         pass
 
-    @abstractmethod
     def __call__(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
-        pass
+        return self.forward(x, action)
 
     @property
     def encoder(self) -> EncoderWithAction:

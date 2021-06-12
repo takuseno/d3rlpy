@@ -6,52 +6,30 @@ import torch.nn as nn
 from ..encoders import Encoder, EncoderWithAction
 from .base import ContinuousQFunction, DiscreteQFunction
 from .utility import (
-    compute_quantile_huber_loss,
+    compute_quantile_loss,
     compute_reduce,
     pick_quantile_value_by_action,
 )
 
 
-class QRQFunction(nn.Module):  # type: ignore
-    _n_quantiles: int
-
-    def __init__(self, n_quantiles: int):
-        super().__init__()
-        self._n_quantiles = n_quantiles
-
-    def _make_taus(self, h: torch.Tensor) -> torch.Tensor:
-        steps = torch.arange(
-            self._n_quantiles, dtype=torch.float32, device=h.device
-        )
-        taus = ((steps + 1).float() / self._n_quantiles).view(1, -1)
-        taus_dot = (steps.float() / self._n_quantiles).view(1, -1)
-        return (taus + taus_dot) / 2.0
-
-    def _compute_quantile_loss(
-        self,
-        quantiles_t: torch.Tensor,
-        rew_tp1: torch.Tensor,
-        q_tp1: torch.Tensor,
-        ter_tp1: torch.Tensor,
-        taus: torch.Tensor,
-        gamma: float,
-    ) -> torch.Tensor:
-        batch_size = rew_tp1.shape[0]
-        y = (rew_tp1 + gamma * q_tp1 * (1 - ter_tp1)).view(batch_size, -1, 1)
-        quantiles_t = quantiles_t.view(batch_size, 1, -1)
-        expanded_taus = taus.view(-1, 1, self._n_quantiles)
-        return compute_quantile_huber_loss(quantiles_t, y, expanded_taus)
+def _make_taus(h: torch.Tensor, n_quantiles: int) -> torch.Tensor:
+    steps = torch.arange(n_quantiles, dtype=torch.float32, device=h.device)
+    taus = ((steps + 1).float() / n_quantiles).view(1, -1)
+    taus_dot = (steps.float() / n_quantiles).view(1, -1)
+    return (taus + taus_dot) / 2.0
 
 
-class DiscreteQRQFunction(QRQFunction, DiscreteQFunction):
+class DiscreteQRQFunction(DiscreteQFunction, nn.Module):  # type: ignore
     _action_size: int
     _encoder: Encoder
+    _n_quantiles: int
     _fc: nn.Linear
 
     def __init__(self, encoder: Encoder, action_size: int, n_quantiles: int):
-        super().__init__(n_quantiles)
+        super().__init__()
         self._encoder = encoder
         self._action_size = action_size
+        self._n_quantiles = n_quantiles
         self._fc = nn.Linear(
             encoder.get_feature_size(), action_size * n_quantiles
         )
@@ -64,7 +42,7 @@ class DiscreteQRQFunction(QRQFunction, DiscreteQFunction):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self._encoder(x)
-        taus = self._make_taus(h)
+        taus = _make_taus(h, self._n_quantiles)
         quantiles = self._compute_quantiles(h, taus)
         return quantiles.mean(dim=2)
 
@@ -82,15 +60,15 @@ class DiscreteQRQFunction(QRQFunction, DiscreteQFunction):
 
         # extraect quantiles corresponding to act_t
         h = self._encoder(obs_t)
-        taus = self._make_taus(h)
+        taus = _make_taus(h, self._n_quantiles)
         quantiles = self._compute_quantiles(h, taus)
         quantiles_t = pick_quantile_value_by_action(quantiles, act_t)
 
-        loss = self._compute_quantile_loss(
+        loss = compute_quantile_loss(
             quantiles_t=quantiles_t,
-            rew_tp1=rew_tp1,
-            q_tp1=q_tp1,
-            ter_tp1=ter_tp1,
+            rewards_tp1=rew_tp1,
+            quantiles_tp1=q_tp1,
+            terminals_tp1=ter_tp1,
             taus=taus,
             gamma=gamma,
         )
@@ -101,7 +79,7 @@ class DiscreteQRQFunction(QRQFunction, DiscreteQFunction):
         self, x: torch.Tensor, action: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         h = self._encoder(x)
-        taus = self._make_taus(h)
+        taus = _make_taus(h, self._n_quantiles)
         quantiles = self._compute_quantiles(h, taus)
         if action is None:
             return quantiles
@@ -116,15 +94,17 @@ class DiscreteQRQFunction(QRQFunction, DiscreteQFunction):
         return self._encoder
 
 
-class ContinuousQRQFunction(QRQFunction, ContinuousQFunction):
+class ContinuousQRQFunction(ContinuousQFunction, nn.Module):  # type: ignore
     _action_size: int
     _encoder: EncoderWithAction
+    _n_quantiles: int
     _fc: nn.Linear
 
     def __init__(self, encoder: EncoderWithAction, n_quantiles: int):
-        super().__init__(n_quantiles)
+        super().__init__()
         self._encoder = encoder
         self._action_size = encoder.action_size
+        self._n_quantiles = n_quantiles
         self._fc = nn.Linear(encoder.get_feature_size(), n_quantiles)
 
     def _compute_quantiles(
@@ -134,7 +114,7 @@ class ContinuousQRQFunction(QRQFunction, ContinuousQFunction):
 
     def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         h = self._encoder(x, action)
-        taus = self._make_taus(h)
+        taus = _make_taus(h, self._n_quantiles)
         quantiles = self._compute_quantiles(h, taus)
         return quantiles.mean(dim=1, keepdim=True)
 
@@ -151,14 +131,14 @@ class ContinuousQRQFunction(QRQFunction, ContinuousQFunction):
         assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
 
         h = self._encoder(obs_t, act_t)
-        taus = self._make_taus(h)
+        taus = _make_taus(h, self._n_quantiles)
         quantiles_t = self._compute_quantiles(h, taus)
 
-        loss = self._compute_quantile_loss(
+        loss = compute_quantile_loss(
             quantiles_t=quantiles_t,
-            rew_tp1=rew_tp1,
-            q_tp1=q_tp1,
-            ter_tp1=ter_tp1,
+            rewards_tp1=rew_tp1,
+            quantiles_tp1=q_tp1,
+            terminals_tp1=ter_tp1,
             taus=taus,
             gamma=gamma,
         )
@@ -169,7 +149,7 @@ class ContinuousQRQFunction(QRQFunction, ContinuousQFunction):
         self, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
         h = self._encoder(x, action)
-        taus = self._make_taus(h)
+        taus = _make_taus(h, self._n_quantiles)
         return self._compute_quantiles(h, taus)
 
     @property

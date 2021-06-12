@@ -6,6 +6,7 @@ from d3rlpy.models.torch.q_functions import (
     ContinuousQRQFunction,
     DiscreteQRQFunction,
 )
+from d3rlpy.models.torch.q_functions.qr_q_function import _make_taus
 from d3rlpy.models.torch.q_functions.utility import (
     pick_quantile_value_by_action,
 )
@@ -34,7 +35,7 @@ def test_discrete_qr_q_function(
     assert y.shape == (batch_size, action_size)
 
     # check taus
-    taus = q_func._make_taus(encoder(x))
+    taus = _make_taus(encoder(x), n_quantiles)
     step = 1 / n_quantiles
     for i in range(n_quantiles):
         assert np.allclose(taus[0][i].numpy(), i * step + step / 2.0)
@@ -98,7 +99,7 @@ def test_continuous_qr_q_function(
     assert y.shape == (batch_size, 1)
 
     # check taus
-    taus = q_func._make_taus(encoder(x, action))
+    taus = _make_taus(encoder(x, action), n_quantiles)
     step = 1 / n_quantiles
     for i in range(n_quantiles):
         assert np.allclose(taus[0][i].numpy(), i * step + step / 2.0)
