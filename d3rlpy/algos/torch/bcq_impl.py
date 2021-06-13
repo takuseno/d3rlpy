@@ -286,8 +286,14 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         assert self._imitator is not None
         q_func_params = list(self._q_func.parameters())
         imitator_params = list(self._imitator.parameters())
+
+        # TODO: replace this with a cleaner way
         # retrieve unique elements
-        unique_params = list(set(q_func_params + imitator_params))
+        unique_dict = {}
+        for param in q_func_params + imitator_params:
+            unique_dict[param] = param
+        unique_params = list(unique_dict.values())
+
         self._optim = self._optim_factory.create(
             unique_params, lr=self._learning_rate
         )
