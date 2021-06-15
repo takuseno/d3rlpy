@@ -114,7 +114,7 @@ class TD3PlusBC(AlgoBase):
         target_reduction_type: str = "min",
         target_smoothing_sigma: float = 0.2,
         target_smoothing_clip: float = 0.5,
-        alpha: float = 0.25,
+        alpha: float = 2.5,
         update_actor_interval: int = 2,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = "standard",
