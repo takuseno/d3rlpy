@@ -16,6 +16,7 @@ from .plas import PLAS, PLASWithPerturbation
 from .random_policy import DiscreteRandomPolicy, RandomPolicy
 from .sac import SAC, DiscreteSAC
 from .td3 import TD3
+from .td3_plus_bc import TD3PlusBC
 
 __all__ = [
     "AlgoBase",
@@ -40,6 +41,7 @@ __all__ = [
     "SAC",
     "DiscreteSAC",
     "TD3",
+    "TD3PlusBC",
     "RandomPolicy",
     "DiscreteRandomPolicy",
     "get_algo",
@@ -72,6 +74,7 @@ CONTINUOUS_ALGORITHMS: Dict[str, Type[AlgoBase]] = {
     "plas": PLASWithPerturbation,
     "sac": SAC,
     "td3": TD3,
+    "td3_plus_bc": TD3PlusBC,
     "random": RandomPolicy,
 }
 

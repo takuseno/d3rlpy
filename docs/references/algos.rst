@@ -25,6 +25,7 @@ Continuous control algorithms
    d3rlpy.algos.AWAC
    d3rlpy.algos.PLAS
    d3rlpy.algos.PLASWithPerturbation
+   d3rlpy.algos.TD3PlusBC
    d3rlpy.algos.MOPO
    d3rlpy.algos.COMBO
    d3rlpy.algos.RandomPolicy

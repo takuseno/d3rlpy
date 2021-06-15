@@ -112,20 +112,21 @@ def test_min_max_scaler_with_env():
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("batch_size", [32])
-def test_standard_scaler(observation_shape, batch_size):
+@pytest.mark.parametrize("eps", [0.3])
+def test_standard_scaler(observation_shape, batch_size, eps):
     shape = (batch_size,) + observation_shape
     observations = np.random.random(shape).astype("f4")
 
     mean = observations.mean(axis=0)
     std = observations.std(axis=0)
 
-    scaler = StandardScaler(mean=mean, std=std)
+    scaler = StandardScaler(mean=mean, std=std, eps=eps)
 
     x = torch.rand((batch_size,) + observation_shape)
 
     y = scaler.transform(x)
 
-    ref_y = (x.numpy() - mean.reshape((1, -1))) / std.reshape((1, -1))
+    ref_y = (x.numpy() - mean.reshape((1, -1))) / (std.reshape((1, -1)) + eps)
 
     assert np.allclose(y.numpy(), ref_y)
 
@@ -138,7 +139,8 @@ def test_standard_scaler(observation_shape, batch_size):
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("batch_size", [32])
-def test_standard_scaler_with_episode(observation_shape, batch_size):
+@pytest.mark.parametrize("eps", [32])
+def test_standard_scaler_with_episode(observation_shape, batch_size, eps):
     shape = (batch_size,) + observation_shape
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1)).astype("f4")
@@ -156,13 +158,13 @@ def test_standard_scaler_with_episode(observation_shape, batch_size):
     mean = observations.mean(axis=0)
     std = observations.std(axis=0)
 
-    scaler = StandardScaler()
+    scaler = StandardScaler(eps=eps)
     scaler.fit(dataset.episodes)
 
     x = torch.rand((batch_size,) + observation_shape)
 
     y = scaler.transform(x)
 
-    ref_y = (x.numpy() - mean.reshape((1, -1))) / std.reshape((1, -1))
+    ref_y = (x.numpy() - mean.reshape((1, -1))) / (std.reshape((1, -1)) + eps)
 
     assert np.allclose(y.numpy(), ref_y, atol=1e-6)

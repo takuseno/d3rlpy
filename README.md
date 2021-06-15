@@ -83,6 +83,7 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 | [Advantage Weighted Actor-Critic (AWAC)](https://arxiv.org/abs/2006.09359) | :no_entry: | :white_check_mark: | :white_check_mark: |
 | [Critic Reguralized Regression (CRR)](https://arxiv.org/abs/2006.15134) | :no_entry: | :white_check_mark: | :white_check_mark: |
 | [Policy in Latent Action Space (PLAS)](https://arxiv.org/abs/2011.07213) | :no_entry: | :white_check_mark: | :white_check_mark: |
+| [TD3+BC](https://arxiv.org/abs/2106.06860) | :no_entry: | :white_check_mark: | :white_check_mark: |
 | [Model-based Offline Policy Optimization (MOPO)](https://arxiv.org/abs/2005.13239) | :no_entry: | :white_check_mark: | :white_check_mark: |
 | [Conservative Offline Model-Based Policy Optimization (COMBO)](https://arxiv.org/abs/2102.08363) | :no_entry: | :white_check_mark: | :white_check_mark: |
 

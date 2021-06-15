@@ -280,21 +280,25 @@ class StandardScaler(Scaler):
         dataset (d3rlpy.dataset.MDPDataset): dataset object.
         mean (numpy.ndarray): mean values at each entry.
         std (numpy.ndarray): standard deviation at each entry.
+        eps (float): small constant value to avoid zero-division.
 
     """
 
     TYPE = "standard"
     _mean: Optional[np.ndarray]
     _std: Optional[np.ndarray]
+    _eps: float
 
     def __init__(
         self,
         dataset: Optional[MDPDataset] = None,
         mean: Optional[np.ndarray] = None,
         std: Optional[np.ndarray] = None,
+        eps: float = 1e-3,
     ):
         self._mean = None
         self._std = None
+        self._eps = eps
         if dataset:
             self.fit(dataset.episodes)
         elif mean is not None and std is not None:
@@ -336,13 +340,13 @@ class StandardScaler(Scaler):
         assert self._mean is not None and self._std is not None
         mean = torch.tensor(self._mean, dtype=torch.float32, device=x.device)
         std = torch.tensor(self._std, dtype=torch.float32, device=x.device)
-        return (x - mean) / std
+        return (x - mean) / (std + self._eps)
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self._mean is not None and self._std is not None
         mean = torch.tensor(self._mean, dtype=torch.float32, device=x.device)
         std = torch.tensor(self._std, dtype=torch.float32, device=x.device)
-        return (std * x) + mean
+        return ((std + self._eps) * x) + mean
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         if self._mean is not None:
@@ -355,7 +359,7 @@ class StandardScaler(Scaler):
         else:
             std = None
 
-        return {"mean": mean, "std": std}
+        return {"mean": mean, "std": std, "eps": self._eps}
 
 
 SCALER_LIST: Dict[str, Type[Scaler]] = {}
