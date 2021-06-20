@@ -15,6 +15,9 @@ import sys
 import pkg_resources
 import inspect
 
+
+sys.path.insert(0, os.path.abspath('../'))
+
 # -- readthedocs -------------------------------------------------------------
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
