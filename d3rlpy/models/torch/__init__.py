@@ -27,21 +27,30 @@ from .policies import (
     squash_action,
 )
 from .q_functions import (
-    ContinuousFQFQFunction,
-    ContinuousIQNQFunction,
-    ContinuousMeanQFunction,
-    ContinuousQFunction,
-    ContinuousQRQFunction,
-    DiscreteFQFQFunction,
-    DiscreteIQNQFunction,
-    DiscreteMeanQFunction,
-    DiscreteQFunction,
-    DiscreteQRQFunction,
+    compute_max_with_n_actions,
+    compute_max_with_n_actions_and_indices,
+)
+from .q_functions.base import ContinuousQFunction, DiscreteQFunction
+from .q_functions.ensemble_q_function import (
     EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
     EnsembleQFunction,
-    compute_max_with_n_actions,
-    compute_max_with_n_actions_and_indices,
+)
+from .q_functions.fqf_q_function import (
+    ContinuousFQFQFunction,
+    DiscreteFQFQFunction,
+)
+from .q_functions.iqn_q_function import (
+    ContinuousIQNQFunction,
+    DiscreteIQNQFunction,
+)
+from .q_functions.mean_q_function import (
+    ContinuousMeanQFunction,
+    DiscreteMeanQFunction,
+)
+from .q_functions.qr_q_function import (
+    ContinuousQRQFunction,
+    DiscreteQRQFunction,
 )
 from .v_functions import ValueFunction
 
@@ -60,6 +69,7 @@ __all__ = [
     "CategoricalPolicy",
     "DiscreteQFunction",
     "ContinuousQFunction",
+    "EnsembleQFunction",
     "DiscreteMeanQFunction",
     "ContinuousMeanQFunction",
     "DiscreteQRQFunction",
@@ -68,7 +78,6 @@ __all__ = [
     "ContinuousIQNQFunction",
     "DiscreteFQFQFunction",
     "ContinuousFQFQFunction",
-    "EnsembleQFunction",
     "EnsembleDiscreteQFunction",
     "EnsembleContinuousQFunction",
     "compute_max_with_n_actions",

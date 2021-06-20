@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from d3rlpy.models.torch.q_functions import (
+from d3rlpy.models.torch import (
     ContinuousFQFQFunction,
     ContinuousIQNQFunction,
     ContinuousMeanQFunction,

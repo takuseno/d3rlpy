@@ -8,7 +8,7 @@ from d3rlpy.models.q_functions import (
     QRQFunctionFactory,
     create_q_func_factory,
 )
-from d3rlpy.models.torch.q_functions import (
+from d3rlpy.models.torch import (
     ContinuousFQFQFunction,
     ContinuousIQNQFunction,
     ContinuousMeanQFunction,

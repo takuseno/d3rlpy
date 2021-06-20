@@ -2,10 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from d3rlpy.models.torch.q_functions import (
-    ContinuousMeanQFunction,
-    DiscreteMeanQFunction,
-)
+from d3rlpy.models.torch import ContinuousMeanQFunction, DiscreteMeanQFunction
 
 from ..model_test import DummyEncoder, check_parameter_updates, ref_huber_loss
 

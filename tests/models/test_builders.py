@@ -19,6 +19,10 @@ from d3rlpy.models.builders import (
 )
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory
+from d3rlpy.models.torch import (
+    EnsembleContinuousQFunction,
+    EnsembleDiscreteQFunction,
+)
 from d3rlpy.models.torch.dynamics import ProbabilisticEnsembleDynamicsModel
 from d3rlpy.models.torch.imitators import (
     ConditionalVAE,
@@ -32,10 +36,6 @@ from d3rlpy.models.torch.policies import (
     DeterministicPolicy,
     DeterministicResidualPolicy,
     SquashedNormalPolicy,
-)
-from d3rlpy.models.torch.q_functions import (
-    EnsembleContinuousQFunction,
-    EnsembleDiscreteQFunction,
 )
 from d3rlpy.models.torch.v_functions import ValueFunction
 

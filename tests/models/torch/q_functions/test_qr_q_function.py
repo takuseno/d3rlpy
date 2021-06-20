@@ -2,10 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from d3rlpy.models.torch.q_functions import (
-    ContinuousQRQFunction,
-    DiscreteQRQFunction,
-)
+from d3rlpy.models.torch import ContinuousQRQFunction, DiscreteQRQFunction
 from d3rlpy.models.torch.q_functions.qr_q_function import _make_taus
 from d3rlpy.models.torch.q_functions.utility import (
     pick_quantile_value_by_action,

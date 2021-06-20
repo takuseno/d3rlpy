@@ -1,10 +1,7 @@
 import pytest
 import torch
 
-from d3rlpy.models.torch.q_functions import (
-    ContinuousIQNQFunction,
-    DiscreteIQNQFunction,
-)
+from d3rlpy.models.torch import ContinuousIQNQFunction, DiscreteIQNQFunction
 
 from ..model_test import DummyEncoder, check_parameter_updates
 
