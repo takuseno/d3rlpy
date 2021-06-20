@@ -1,5 +1,5 @@
 Cython==0.29.21
-torch==1.6.0
+numpy
 stable-baselines3>=0.10.0
 Sphinx==3.4.1
 sphinx-rtd-theme==0.5.0
