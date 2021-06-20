@@ -1,5 +1,5 @@
 Cython==0.29.21
 numpy
 stable-baselines3>=0.10.0
-Sphinx==3.4.1
+Sphinx==4.0.2
 sphinx-rtd-theme==0.5.0
