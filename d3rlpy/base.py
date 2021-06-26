@@ -537,14 +537,16 @@ class LearnableBase:
 
         # instantiate implementation
         if self._impl is None:
-            LOG.debug("Building model...")
+            LOG.debug("Building models...")
             transition = iterator.transitions[0]
             action_size = transition.get_action_size()
             observation_shape = tuple(transition.get_observation_shape())
             self.create_impl(
                 self._process_observation_shape(observation_shape), action_size
             )
-            LOG.debug("Model has been built.")
+            LOG.debug("Models have been built.")
+        else:
+            LOG.warning("Skip building models since they're already built.")
 
         # save hyperparameters
         self.save_params(logger)
