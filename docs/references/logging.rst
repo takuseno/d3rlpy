@@ -32,9 +32,8 @@ If you want to disable all loggings, you can pass `save_metrics=False`.
 TensorBoard
 -----------
 
-The same information is also automatically saved for tensorboard under `runs`
-directory.
-You can interactively visualize training metrics easily.
+The same information can be also automatically saved for tensorboard under the
+specified directory so that you can interactively visualize training metrics easily.
 
 
 .. code-block:: shell
@@ -46,4 +45,5 @@ This tensorboard logs can be enabled by passing `tensorboard_dir=/path/to/log_di
 
 .. code-block:: python
 
+    # saving tensorboard data is disabled by default
     dqn.fit(dataset.episodes, tensorboard_dir='runs')
