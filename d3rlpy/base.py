@@ -373,7 +373,7 @@ class LearnableBase:
             scorers: list of scorer functions used with `eval_episodes`.
             shuffle: flag to shuffle transitions on each epoch.
             callback: callable function that takes ``(algo, epoch, total_step)``
-                , which is called at the end of epochs.
+                , which is called every step.
 
         Returns:
             list of result tuples (epoch, metrics) per epoch.
@@ -455,7 +455,7 @@ class LearnableBase:
             scorers: list of scorer functions used with `eval_episodes`.
             shuffle: flag to shuffle transitions on each epoch.
             callback: callable function that takes ``(algo, epoch, total_step)``
-                , which is called at the end of epochs.
+                , which is called every step.
 
         Returns:
             iterator yielding current epoch and metrics dict.
@@ -609,7 +609,11 @@ class LearnableBase:
                         }
                         range_gen.set_postfix(mean_loss)
 
-                    total_step += 1
+                # call callback if given
+                if callback:
+                    callback(self, epoch, total_step)
+
+                total_step += 1
 
             # save loss to loss history dict
             self._loss_history["epoch"].append(epoch)
@@ -620,10 +624,6 @@ class LearnableBase:
 
             if scorers and eval_episodes:
                 self._evaluate(eval_episodes, scorers, logger)
-
-            # call callback if given
-            if callback:
-                callback(self, epoch, total_step)
 
             # save metrics
             metrics = logger.commit(epoch, total_step)

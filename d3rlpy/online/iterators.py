@@ -255,6 +255,10 @@ def train_single_env(
                     for name, val in loss.items():
                         logger.add_metric(name, val)
 
+            # call callback if given
+            if callback:
+                callback(algo, epoch, total_step)
+
         if epoch > 0 and total_step % n_steps_per_epoch == 0:
             # evaluation
             if eval_scorer:
@@ -262,10 +266,6 @@ def train_single_env(
 
             if epoch % save_interval == 0:
                 logger.save_model(total_step, algo)
-
-            # call callback if given
-            if callback:
-                callback(algo, epoch, total_step)
 
             # save metrics
             logger.commit(epoch, total_step)
