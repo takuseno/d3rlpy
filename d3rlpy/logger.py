@@ -24,7 +24,7 @@ def default_json_encoder(obj: Any) -> Any:
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
-    raise TypeError
+    raise ValueError(f"invalid object type: {type(obj)}")
 
 
 LOG: structlog.BoundLogger = structlog.get_logger(__name__)

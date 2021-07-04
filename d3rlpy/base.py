@@ -273,6 +273,7 @@ class LearnableBase:
                 "_eval_results",
                 "_loss_history",
                 "_active_logger",
+                "active_logger",
                 "observation_shape",
                 "action_size",
             ]:
