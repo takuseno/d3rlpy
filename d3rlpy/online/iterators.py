@@ -36,6 +36,9 @@ class AlgoProtocol(Protocol):
     def save_model(self, fname: str) -> None:
         ...
 
+    def set_active_logger(self, logger: D3RLPyLogger) -> None:
+        ...
+
     @property
     def action_size(self) -> Optional[int]:
         ...
@@ -157,6 +160,7 @@ def train_single_env(
         tensorboard_dir=tensorboard_dir,
         with_timestamp=with_timestamp,
     )
+    algo.set_active_logger(logger)
 
     # initialize algorithm parameters
     _setup_algo(algo, env)
@@ -338,6 +342,7 @@ def train_batch_env(
         tensorboard_dir=tensorboard_dir,
         with_timestamp=with_timestamp,
     )
+    algo.set_active_logger(logger)
 
     # initialize algorithm parameters
     _setup_algo(algo, env)
@@ -412,6 +417,10 @@ def train_batch_env(
                 if clip_episode[i] and is_image:
                     stacked_frame.clear_by_index(i)
 
+            # call callback if given
+            if callback:
+                callback(algo, epoch, total_step)
+
         for step in range(n_updates_per_epoch):
             # sample mini-batch
             with logger.measure_time("sample_batch"):
@@ -438,10 +447,6 @@ def train_batch_env(
             # evaluation
             if eval_scorer:
                 logger.add_metric("evaluation", eval_scorer(algo))
-
-        # call callback if given
-        if callback:
-            callback(algo, epoch, total_step)
 
         # save metrics
         logger.commit(epoch, total_step)

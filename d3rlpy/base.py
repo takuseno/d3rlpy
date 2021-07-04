@@ -935,3 +935,24 @@ class LearnableBase:
         if self._impl:
             return self._impl.action_size
         return None
+
+    @property
+    def active_logger(self) -> Optional[D3RLPyLogger]:
+        """Active D3RLPyLogger object.
+
+        This will be only available during training.
+
+        Returns:
+            logger object.
+
+        """
+        return self._active_logger
+
+    def set_active_logger(self, logger: D3RLPyLogger) -> None:
+        """Set active D3RLPyLogger object
+
+        Args:
+            logger: logger object.
+
+        """
+        self._active_logger = logger
