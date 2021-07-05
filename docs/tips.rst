@@ -20,6 +20,38 @@ Here is a simple example in d3rlpy.
   env = gym.make('Hopper-v2')
   env.seed(313)
 
+Create your own dataset
+-----------------------
+
+It's easy to create your own dataset with d3rlpy.
+
+.. code-block:: python
+
+  import d3rlpy
+
+  # vector observation
+  # 1000 steps of observations with shape of (100,)
+  observations = np.random.random((1000, 100))
+
+  # image observation
+  # 1000 steps of observations with shape of (3, 84, 84)
+  observations = np.random.randint(256, size=(1000, 3, 84, 84), dtype=np.uint8)
+
+  # 1000 steps of actions with shape of (4,)
+  actions = np.random.random((1000, 4))
+  # 1000 steps of rewards
+  rewards = np.random.random(1000)
+  # 1000 steps of terminal flags
+  terminals = np.random.randint(2, size=1000)
+
+  dataset = d3rlpy.dataset.MDPDataset(observations, actions, rewards, terminals)
+
+  # train with your dataset
+  cql = d3rlpy.algos.CQL()
+  cql.fit(dataset)
+
+Please check :ref:`mdp_dataset` for more details.
+
 Learning from image observation
 -------------------------------
 

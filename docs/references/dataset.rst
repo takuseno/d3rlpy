@@ -1,3 +1,5 @@
+.. _mdp_dataset:
+
 MDPDataset
 ==========
 
