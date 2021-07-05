@@ -15,15 +15,19 @@ d3rlpy is an offline deep reinforcement learning library for practitioners and r
 ```py
 import d3rlpy
 
-# MDPDataset takes arrays of state transitions
-dataset = d3rlpy.dataset.MDPDataset(observations, actions, rewards, terminals)
+dataset, env = d3rlpy.datasets.get_dataset("hopper-medium-v0")
 
-# train offline deep RL
-cql = d3rlpy.algos.CQL()
-cql.fit(dataset.episodes)
+# prepare algorithm
+sac = d3rlpy.algos.SAC()
+
+# train offline
+sac.fit(dataset, n_steps=1000000)
+
+# train online
+sac.fit_online(env, n_steps=1000000)
 
 # ready to control
-actions = cql.predict(x)
+actions = sac.predict(x)
 ```
 
 Documentation: https://d3rlpy.readthedocs.io
@@ -118,8 +122,8 @@ cql.fit(dataset,
         eval_episodes=dataset,
         n_epochs=100,
         scorers={
-            'environment': d3rlpy.metrics.scorer.evaluate_on_environment(env),
-            'td_error': d3rlpy.metrics.scorer.td_error_scorer
+            'environment': d3rlpy.metrics.evaluate_on_environment(env),
+            'td_error': d3rlpy.metrics.td_error_scorer
         })
 ```
 
@@ -146,8 +150,8 @@ cql.fit(train_episodes,
         eval_episodes=test_episodes,
         n_epochs=100,
         scorers={
-            'environment': d3rlpy.metrics.scorer.evaluate_on_environment(env),
-            'td_error': d3rlpy.metrics.scorer.td_error_scorer
+            'environment': d3rlpy.metrics.evaluate_on_environment(env),
+            'td_error': d3rlpy.metrics.td_error_scorer
         })
 ```
 
@@ -170,8 +174,8 @@ cql.fit(dataset,
         eval_episodes=dataset,
         n_epochs=100,
         scorers={
-            'environment': d3rlpy.metrics.scorer.evaluate_on_environment(env),
-            'td_error': d3rlpy.metrics.scorer.td_error_scorer
+            'environment': d3rlpy.metrics.evaluate_on_environment(env),
+            'td_error': d3rlpy.metrics.td_error_scorer
         })
 ```
 
