@@ -1,10 +1,9 @@
 # pylint: disable=unused-import
 
 import os
-import pickle
 import re
-import urllib.request as request
 from typing import Tuple
+from urllib import request
 
 import gym
 import numpy as np

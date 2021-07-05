@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.utils.data._utils.collate import default_collate
 from typing_extensions import Protocol
 

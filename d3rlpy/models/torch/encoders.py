@@ -2,8 +2,8 @@ from abc import ABCMeta, abstractmethod
 from typing import List, Optional, Sequence
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from ...itertools import last_flag
 from ...torch_utility import View
@@ -138,8 +138,8 @@ class _PixelEncoder(nn.Module):  # type: ignore
 
     def _conv_encode(self, x: torch.Tensor) -> torch.Tensor:
         h = x
-        for i in range(len(self._convs)):
-            h = self._activation(self._convs[i](h))
+        for i, conv in enumerate(self._convs):
+            h = self._activation(conv(h))
             if self._use_batch_norm:
                 h = self._conv_bns[i](h)
             if self._dropout_rate is not None:
@@ -324,10 +324,10 @@ class _VectorEncoder(nn.Module):  # type: ignore
 
     def _fc_encode(self, x: torch.Tensor) -> torch.Tensor:
         h = x
-        for i in range(len(self._fcs)):
+        for i, fc in enumerate(self._fcs):
             if self._use_dense and i > 0:
                 h = torch.cat([h, x], dim=1)
-            h = self._activation(self._fcs[i](h))
+            h = self._activation(fc(h))
             if self._use_batch_norm:
                 h = self._bns[i](h)
             if self._dropout_rate is not None:

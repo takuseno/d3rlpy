@@ -1,7 +1,7 @@
 from typing import Sequence, cast
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from .encoders import EncoderFactory
 from .q_functions import QFunctionFactory

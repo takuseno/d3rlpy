@@ -1,7 +1,7 @@
 import copy
 from typing import Any, ClassVar, Dict, List, Optional, Sequence, Type, Union
 
-import torch.nn as nn
+from torch import nn
 
 from ..decorators import pretty_repr
 from ..torch_utility import Swish

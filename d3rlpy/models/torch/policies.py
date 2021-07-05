@@ -3,8 +3,8 @@ from abc import ABCMeta, abstractmethod
 from typing import Tuple, Union, cast
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 from torch.distributions import Categorical, Normal
 
 from .encoders import Encoder, EncoderWithAction

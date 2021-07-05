@@ -1,8 +1,7 @@
 import copy
 from typing import Any, Dict, Iterable, Tuple, Type, Union, cast
 
-import torch.nn as nn
-import torch.optim as optim
+from torch import nn, optim
 from torch.optim import SGD, Adam, Optimizer, RMSprop
 
 from ..decorators import pretty_repr

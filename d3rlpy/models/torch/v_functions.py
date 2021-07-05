@@ -1,8 +1,8 @@
 from typing import cast
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from .encoders import Encoder
 

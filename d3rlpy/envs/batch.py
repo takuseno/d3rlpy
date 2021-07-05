@@ -83,12 +83,12 @@ class SubprocEnv:
 
 class BatchEnv(gym.Env):  # type: ignore
     def step(
-        self, actions: np.ndarray
+        self, action: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict[str, Any]]]:
         """Returns batch of next observations, actions, rewards and infos.
 
         Args:
-            actions: batch action.
+            action: batch action.
 
         Returns:
             batch of next data.
@@ -146,7 +146,7 @@ class SyncBatchEnv(BatchEnv):
         self._prev_terminals = np.ones(len(self._envs))
 
     def step(
-        self, actions: np.ndarray
+        self, action: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict[str, Any]]]:
         n_envs = len(self._envs)
         is_image = len(self._observation_shape) == 3
@@ -158,12 +158,12 @@ class SyncBatchEnv(BatchEnv):
         terminals = np.empty(n_envs, dtype=np.float32)
         infos = []
         info: Dict[str, Any]
-        for i, (env, action) in enumerate(zip(self._envs, actions)):
+        for i, (env, act) in enumerate(zip(self._envs, action)):
             if self._prev_terminals[i]:
                 observation = env.reset()
                 reward, terminal, info = 0.0, 0.0, {}
             else:
-                observation, reward, terminal, info = env.step(action)
+                observation, reward, terminal, info = env.step(act)
             observations[i] = observation
             rewards[i] = reward
             terminals[i] = terminal
@@ -228,7 +228,7 @@ class AsyncBatchEnv(BatchEnv):
         self._prev_terminals = np.ones(len(self._envs))
 
     def step(
-        self, actions: np.ndarray
+        self, action: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict[str, Any]]]:
         n_envs = len(self._envs)
         is_image = len(self._observation_shape) == 3
@@ -241,15 +241,15 @@ class AsyncBatchEnv(BatchEnv):
         infos = []
 
         # asynchronous environment step
-        for i, (env, action) in enumerate(zip(self._envs, actions)):
+        for i, (env, act) in enumerate(zip(self._envs, action)):
             if self._prev_terminals[i]:
                 env.reset_send()
             else:
-                env.step_send(action)
+                env.step_send(act)
 
         # get the result through pipes
         info: Dict[str, Any]
-        for i, (env, action) in enumerate(zip(self._envs, actions)):
+        for i, env in enumerate(self._envs):
             if self._prev_terminals[i]:
                 observation = env.reset_get()
                 reward, terminal, info = 0.0, 0.0, {}

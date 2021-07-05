@@ -2,7 +2,7 @@ import math
 from typing import Optional, cast
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from ..encoders import Encoder, EncoderWithAction
 from .base import ContinuousQFunction, DiscreteQFunction

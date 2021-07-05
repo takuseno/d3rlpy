@@ -3,8 +3,8 @@
 from typing import List, Optional, Tuple, cast
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 from torch.distributions import Normal
 from torch.nn.utils import spectral_norm
 
