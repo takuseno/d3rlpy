@@ -91,6 +91,8 @@ def _setup_algo(algo: AlgoProtocol, env: gym.Env) -> None:
         LOG.debug("Building model...")
         algo.build_with_env(env)
         LOG.debug("Model has been built.")
+    else:
+        LOG.warning("Skip building models since they're already built.")
 
 
 def train_single_env(
