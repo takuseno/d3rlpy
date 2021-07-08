@@ -9,16 +9,17 @@ from .base import AlgoImplBase
 
 
 class ModelBaseMixin:
+    _grad_step: int
     _impl: Optional[AlgoImplBase]
     _dynamics: Optional[DynamicsBase]
 
     def generate_new_data(
-        self, epoch: int, total_step: int, transitions: List[Transition]
+        self, transitions: List[Transition]
     ) -> Optional[List[Transition]]:
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert self._dynamics, DYNAMICS_NOT_GIVEN_ERROR
 
-        if not self._is_generating_new_data(epoch, total_step):
+        if not self._is_generating_new_data():
             return None
 
         init_transitions = self._sample_initial_transitions(transitions)
@@ -74,7 +75,7 @@ class ModelBaseMixin:
 
         return rets
 
-    def _is_generating_new_data(self, epoch: int, total_step: int) -> bool:
+    def _is_generating_new_data(self) -> bool:
         raise NotImplementedError
 
     def _sample_initial_transitions(

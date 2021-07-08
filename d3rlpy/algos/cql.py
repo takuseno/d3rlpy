@@ -231,9 +231,7 @@ class CQL(AlgoBase):
         )
         self._impl.build()
 
-    def update(
-        self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> Dict[str, float]:
+    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         metrics = {}

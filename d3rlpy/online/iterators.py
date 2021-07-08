@@ -16,9 +16,7 @@ from .explorers import Explorer
 
 
 class AlgoProtocol(Protocol):
-    def update(
-        self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> Dict[str, float]:
+    def update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         ...
 
     def build_with_env(self, env: gym.Env) -> None:
@@ -69,6 +67,10 @@ class AlgoProtocol(Protocol):
 
     @property
     def impl(self) -> Optional[Any]:
+        ...
+
+    @property
+    def grad_step(self) -> int:
         ...
 
 
@@ -251,11 +253,7 @@ def train_single_env(
 
                     # update parameters
                     with logger.measure_time("algorithm_update"):
-                        loss = algo.update(
-                            epoch=epoch,
-                            total_step=total_step // update_interval,
-                            batch=batch,
-                        )
+                        loss = algo.update(batch)
 
                     # record metrics
                     for name, val in loss.items():
@@ -435,11 +433,7 @@ def train_batch_env(
 
             # update parameters
             with logger.measure_time("algorithm_update"):
-                loss = algo.update(
-                    epoch=epoch,
-                    total_step=epoch * n_updates_per_epoch + step,
-                    batch=batch,
-                )
+                loss = algo.update(batch)
 
             # record metrics
             for name, val in loss.items():

@@ -186,20 +186,18 @@ class PLAS(AlgoBase):
         )
         self._impl.build()
 
-    def update(
-        self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> Dict[str, float]:
+    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         metrics = {}
 
-        if total_step < self._warmup_steps:
+        if self._grad_step < self._warmup_steps:
             imitator_loss = self._impl.update_imitator(batch)
             metrics.update({"imitator_loss": imitator_loss})
         else:
             critic_loss = self._impl.update_critic(batch)
             metrics.update({"critic_loss": critic_loss})
-            if total_step % self._update_actor_interval == 0:
+            if self._grad_step % self._update_actor_interval == 0:
                 actor_loss = self._impl.update_actor(batch)
                 metrics.update({"actor_loss": actor_loss})
                 self._impl.update_actor_target()

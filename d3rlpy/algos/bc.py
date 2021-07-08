@@ -55,9 +55,7 @@ class _BCBase(AlgoBase):
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
-    def update(
-        self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> Dict[str, float]:
+    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         loss = self._impl.update_imitator(batch.observations, batch.actions)
         return {"loss": loss}

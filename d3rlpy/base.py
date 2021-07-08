@@ -127,6 +127,7 @@ class LearnableBase:
     _eval_results: DefaultDict[str, List[float]]
     _loss_history: DefaultDict[str, List[float]]
     _active_logger: Optional[D3RLPyLogger]
+    _grad_step: int
 
     def __init__(
         self,
@@ -153,6 +154,7 @@ class LearnableBase:
         self._eval_results = defaultdict(list)
         self._loss_history = defaultdict(list)
         self._active_logger = None
+        self._grad_step = 0
 
         if kwargs and len(kwargs.keys()) > 0:
             LOG.warning("Unused arguments are passed.", **kwargs)
@@ -273,7 +275,9 @@ class LearnableBase:
                 "_eval_results",
                 "_loss_history",
                 "_active_logger",
+                "_grad_step",
                 "active_logger",
+                "grad_step",
                 "observation_shape",
                 "action_size",
             ]:
@@ -577,8 +581,6 @@ class LearnableBase:
 
                 # generate new transitions with dynamics models
                 new_transitions = self.generate_new_data(
-                    epoch=epoch,
-                    total_step=total_step,
                     transitions=iterator.transitions,
                 )
                 if new_transitions:
@@ -596,7 +598,7 @@ class LearnableBase:
 
                     # update parameters
                     with logger.measure_time("algorithm_update"):
-                        loss = self.update(epoch, total_step, batch)
+                        loss = self.update(batch)
 
                     # record metrics
                     for name, val in loss.items():
@@ -610,11 +612,11 @@ class LearnableBase:
                         }
                         range_gen.set_postfix(mean_loss)
 
+                total_step += 1
+
                 # call callback if given
                 if callback:
                     callback(self, epoch, total_step)
-
-                total_step += 1
 
             # save loss to loss history dict
             self._loss_history["epoch"].append(epoch)
@@ -631,7 +633,7 @@ class LearnableBase:
 
             # save model parameters
             if epoch % save_interval == 0:
-                logger.save_model(epoch, self)
+                logger.save_model(total_step, self)
 
             yield epoch, metrics
 
@@ -696,32 +698,31 @@ class LearnableBase:
             observation_shape = (self._n_frames * n_channels, *image_size)
         return observation_shape
 
-    def update(
-        self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> Dict[str, float]:
+    def update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         """Update parameters with mini-batch of data.
 
         Args:
-            epoch: the current number of epochs.
-            total_step: the current number of total iterations.
             batch: mini-batch data.
 
         Returns:
             dictionary of metrics.
 
         """
+        loss = self._update(batch)
+        self._grad_step += 1
+        return loss
+
+    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         raise NotImplementedError
 
     def generate_new_data(
-        self, epoch: int, total_step: int, transitions: List[Transition]
+        self, transitions: List[Transition]
     ) -> Optional[List[Transition]]:
         """Returns generated transitions for data augmentation.
 
         This method is for model-based RL algorithms.
 
         Args:
-            epoch: the current epoch.
-            total_step: the total update steps.
             transitions: list of transitions.
 
         Returns:
@@ -957,3 +958,29 @@ class LearnableBase:
 
         """
         self._active_logger = logger
+
+    @property
+    def grad_step(self) -> int:
+        """Total gradient step counter.
+
+        This value will keep counting after ``fit`` and ``fit_online``
+        methods finish.
+
+        Returns:
+            total gradient step counter.
+
+        """
+        return self._grad_step
+
+    def set_grad_step(self, grad_step: int) -> None:
+        """Set total gradient step counter.
+
+        This method can be used to restart the middle of training with an
+        arbitrary gradient step counter, which has effects on periodic
+        functions such as the target update.
+
+        Args:
+            grad_step: total gradient step counter.
+
+        """
+        self._grad_step = grad_step

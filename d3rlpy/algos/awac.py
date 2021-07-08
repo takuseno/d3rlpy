@@ -178,9 +178,7 @@ class AWAC(AlgoBase):
         )
         self._impl.build()
 
-    def update(
-        self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> Dict[str, float]:
+    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         metrics = {}
@@ -189,7 +187,7 @@ class AWAC(AlgoBase):
         metrics.update({"critic_loss": critic_loss})
 
         # delayed policy update
-        if total_step % self._update_actor_interval == 0:
+        if self._grad_step % self._update_actor_interval == 0:
             actor_loss, mean_std = self._impl.update_actor(batch)
             metrics.update({"actor_loss": actor_loss, "mean_std": mean_std})
             self._impl.update_critic_target()

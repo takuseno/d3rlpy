@@ -87,11 +87,8 @@ def base_tester(model, impl, observation_shape, action_size=2):
     # check arguments at each iteration
     for i, call in enumerate(model.update.call_args_list):
         epoch = i // n_steps_per_epoch
-        total_step = i
-        assert call[0][0] == epoch + 1
-        assert call[0][1] == total_step
-        assert isinstance(call[0][2], TransitionMiniBatch)
-        assert len(call[0][2]) == n_batch
+        assert isinstance(call[0][0], TransitionMiniBatch)
+        assert len(call[0][0]) == n_batch
 
     # check fitter
     fitter = model.fitter(
@@ -187,9 +184,16 @@ def base_update_tester(model, observation_shape, action_size, discrete=False):
 
     batch = TransitionMiniBatch(transitions)
 
-    # check if update runs without errors
+    # build models
     model.create_impl(observation_shape, action_size)
-    loss = model.update(0, 0, batch)
+
+    # check if update runs without errors
+    grad_step = model.grad_step
+    loss = model.update(batch)
+    assert model.grad_step == grad_step + 1
+
+    model.set_grad_step(0)
+    assert model.grad_step == 0
 
     assert len(loss.items()) > 0
 

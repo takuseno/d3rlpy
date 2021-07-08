@@ -89,14 +89,12 @@ class _FQEBase(AlgoBase):
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         return self._algo.sample_action(x)
 
-    def update(
-        self, epoch: int, total_step: int, batch: TransitionMiniBatch
-    ) -> Dict[str, float]:
+    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         next_actions = self._algo.predict(batch.observations)
         loss = self._impl.update(batch, next_actions)
-        if total_step % self._target_update_interval == 0:
+        if self._grad_step % self._target_update_interval == 0:
             self._impl.update_target()
         return {"loss": loss}
 
