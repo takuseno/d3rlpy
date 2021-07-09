@@ -1,4 +1,4 @@
-# pylint: disable=unused-import
+# pylint: disable=unused-import,too-many-return-statements
 
 import os
 import re
@@ -332,8 +332,10 @@ def get_dataset(
 
     This function returns dataset by matching name with the following datasets.
 
-    - cartpole
-    - pendulum
+    - cartpole-replay
+    - cartpole-random
+    - pendulum-replay
+    - pendulum-random
     - d4rl-pybullet
     - d4rl-atari
     - d4rl
@@ -366,10 +368,14 @@ def get_dataset(
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
-    if env_name == "cartpole":
-        return get_cartpole(create_mask, mask_size)
-    elif env_name == "pendulum":
-        return get_pendulum(create_mask, mask_size)
+    if env_name == "cartpole-replay":
+        return get_cartpole(create_mask, mask_size, dataset_type="replay")
+    elif env_name == "cartpole-random":
+        return get_cartpole(create_mask, mask_size, dataset_type="random")
+    elif env_name == "pendulum-replay":
+        return get_pendulum(create_mask, mask_size, dataset_type="replay")
+    elif env_name == "pendulum-random":
+        return get_pendulum(create_mask, mask_size, dataset_type="random")
     elif re.match(r"^bullet-.+$", env_name):
         return get_d4rl(env_name, create_mask, mask_size)
     elif re.match(r"^.+-bullet-.+$", env_name):
