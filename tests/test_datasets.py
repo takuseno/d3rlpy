@@ -16,13 +16,13 @@ def test_get_pendulum(dataset_type):
 
 @pytest.mark.parametrize(
     "env_name",
-    ["cartpole", "pendulum", "hopper-bullet-mixed-v0"],
+    ["cartpole-random", "pendulum-random", "hopper-bullet-mixed-v0"],
 )
 def test_get_dataset(env_name):
     _, env = get_dataset(env_name)
-    if env_name == "cartpole":
+    if env_name == "cartpole-random":
         assert env.unwrapped.spec.id == "CartPole-v0"
-    elif env_name == "pendulum":
+    elif env_name == "pendulum-random":
         assert env.unwrapped.spec.id == "Pendulum-v0"
     elif env_name == "hopper-bullet-mixed-v0":
         assert isinstance(env.env, OfflineHopperBulletEnv)
