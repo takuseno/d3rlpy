@@ -103,6 +103,7 @@ def test_cql_impl(
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("target_reduction_type", ["min"])
+@pytest.mark.parametrize("alpha", [1.0])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 def test_discrete_cql_impl(
     observation_shape,
@@ -114,6 +115,7 @@ def test_discrete_cql_impl(
     gamma,
     n_critics,
     target_reduction_type,
+    alpha,
     scaler,
 ):
     impl = DiscreteCQLImpl(
@@ -126,6 +128,7 @@ def test_discrete_cql_impl(
         gamma=gamma,
         n_critics=n_critics,
         target_reduction_type=target_reduction_type,
+        alpha=alpha,
         use_gpu=None,
         scaler=scaler,
     )

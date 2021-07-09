@@ -164,7 +164,7 @@ class CQL(AlgoBase):
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
         impl: Optional[CQLImpl] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         super().__init__(
             batch_size=batch_size,
@@ -274,7 +274,7 @@ class DiscreteCQL(DoubleDQN):
 
     .. math::
 
-        L(\theta) = \mathbb{E}_{s_t \sim D}
+        L(\theta) = \alpha \mathbb{E}_{s_t \sim D}
             [\log{\sum_a \exp{Q_{\theta}(s_t, a)}}
              - \mathbb{E}_{a \sim D} [Q_{\theta}(s, a)]]
             + L_{DoubleDQN}(\theta)
@@ -301,6 +301,7 @@ class DiscreteCQL(DoubleDQN):
             ``['min', 'max', 'mean', 'mix', 'none']``.
         target_update_interval (int): interval to synchronize the target
             network.
+        alpha (float): the :math:`\alpha` value above.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -310,7 +311,47 @@ class DiscreteCQL(DoubleDQN):
 
     """
 
+    _alpha: float
     _impl: Optional[DiscreteCQLImpl]
+
+    def __init__(
+        self,
+        *,
+        learning_rate: float = 6.25e-5,
+        optim_factory: OptimizerFactory = AdamFactory(),
+        encoder_factory: EncoderArg = "default",
+        q_func_factory: QFuncArg = "mean",
+        batch_size: int = 32,
+        n_frames: int = 1,
+        n_steps: int = 1,
+        gamma: float = 0.99,
+        n_critics: int = 1,
+        target_reduction_type: str = "min",
+        target_update_interval: int = 8000,
+        alpha: float = 1.0,
+        use_gpu: UseGPUArg = False,
+        scaler: ScalerArg = None,
+        impl: Optional[DiscreteCQLImpl] = None,
+        **kwargs: Any,
+    ):
+        super().__init__(
+            learning_rate=learning_rate,
+            optim_factory=optim_factory,
+            encoder_factory=encoder_factory,
+            q_func_factory=q_func_factory,
+            batch_size=batch_size,
+            n_frames=n_frames,
+            n_steps=n_steps,
+            gamma=gamma,
+            n_critics=n_critics,
+            target_reduction_type=target_reduction_type,
+            target_update_interval=target_update_interval,
+            use_gpu=use_gpu,
+            scaler=scaler,
+            impl=impl,
+            **kwargs,
+        )
+        self._alpha = alpha
 
     def _create_impl(
         self, observation_shape: Sequence[int], action_size: int
@@ -325,6 +366,7 @@ class DiscreteCQL(DoubleDQN):
             gamma=self._gamma,
             n_critics=self._n_critics,
             target_reduction_type=self._target_reduction_type,
+            alpha=self._alpha,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
         )

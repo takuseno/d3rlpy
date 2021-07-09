@@ -244,6 +244,38 @@ class CQLImpl(SACImpl):
 
 
 class DiscreteCQLImpl(DoubleDQNImpl):
+    _alpha: float
+
+    def __init__(
+        self,
+        observation_shape: Sequence[int],
+        action_size: int,
+        learning_rate: float,
+        optim_factory: OptimizerFactory,
+        encoder_factory: EncoderFactory,
+        q_func_factory: QFunctionFactory,
+        gamma: float,
+        n_critics: int,
+        target_reduction_type: str,
+        alpha: float,
+        use_gpu: Optional[Device],
+        scaler: Optional[Scaler],
+    ):
+        super().__init__(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            learning_rate=learning_rate,
+            optim_factory=optim_factory,
+            encoder_factory=encoder_factory,
+            q_func_factory=q_func_factory,
+            gamma=gamma,
+            n_critics=n_critics,
+            target_reduction_type=target_reduction_type,
+            use_gpu=use_gpu,
+            scaler=scaler,
+        )
+        self._alpha = alpha
+
     def compute_loss(
         self,
         batch: TorchMiniBatch,
@@ -253,7 +285,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         conservative_loss = self._compute_conservative_loss(
             batch.observations, batch.actions.long()
         )
-        return loss + conservative_loss
+        return loss + self._alpha * conservative_loss
 
     def _compute_conservative_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
