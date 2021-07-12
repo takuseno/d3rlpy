@@ -1,4 +1,5 @@
 import copy
+import warnings
 
 import numpy as np
 
@@ -449,8 +450,8 @@ class MDPDataset:
             assert observation.shape == self.get_observation_shape(),\
                 f'Observation shape must be {self.get_observation_shape()}.'
             if self.discrete_action:
-                assert int(action) < self.get_action_size(),\
-                    f'Action size must be {self.get_action_size()}.'
+                message = f'New action higher than {self.get_action_size()}.'
+                warnings.warn(message)
             else:
                 assert action.shape == (self.get_action_size(), ),\
                     f'Action size must be {self.get_action_size()}.'
