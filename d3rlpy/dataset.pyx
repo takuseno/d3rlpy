@@ -503,8 +503,7 @@ class MDPDataset:
             'Dataset must have discrete action-space.'
         assert self.get_observation_shape() == dataset.get_observation_shape(),\
             f'Observation shape must be {self.get_observation_shape()}'
-        assert self.get_action_size() == dataset.get_action_size(),\
-            f'Action size must be {self.get_action_size()}'
+
         self.append(
             dataset.observations,
             dataset.actions,
