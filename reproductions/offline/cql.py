@@ -20,9 +20,15 @@ def main():
 
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([256, 256, 256])
 
+    if "medium-v0" in args.dataset:
+        conservative_weight = 10.0
+    else:
+        conservative_weight = 5.0
+
     cql = d3rlpy.algos.CQL(actor_encoder_factory=encoder,
                            critic_encoder_factory=encoder,
                            alpha_learning_rate=0.0,
+                           conservative_weight=conservative_weight,
                            use_gpu=args.gpu)
 
     cql.fit(dataset.episodes,
