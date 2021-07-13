@@ -1,4 +1,5 @@
 import os
+import warnings
 from collections import deque
 
 import numpy as np
@@ -146,17 +147,38 @@ def test_mdp_dataset(
         assert episode is dataset.episodes[i]
 
     # check append
+    new_size = 2
     dataset.append(observations, actions, rewards, terminals)
-    assert len(dataset) == 2 * n_episodes
-    assert dataset.observations.shape == (2 * data_size, observation_size)
-    assert dataset.rewards.shape == (2 * data_size,)
-    assert dataset.terminals.shape == (2 * data_size,)
+    assert len(dataset) == new_size * n_episodes
+    assert dataset.observations.shape == (
+        new_size * data_size,
+        observation_size,
+    )
+    assert dataset.rewards.shape == (new_size * data_size,)
+    assert dataset.terminals.shape == (new_size * data_size,)
     if discrete_action:
-        assert dataset.actions.shape == (2 * data_size,)
+        assert dataset.actions.shape == (new_size * data_size,)
     else:
-        assert dataset.actions.shape == (2 * data_size, action_size)
+        assert dataset.actions.shape == (new_size * data_size, action_size)
+
+    # check append if discrete action and number of actions grow
+    if discrete_action:
+        new_size += 1
+        with pytest.warns(UserWarning):
+            dataset.append(observations, actions + 1, rewards, terminals)
+            message = f"New action size is higher than" f" {ref_action_size}."
+            warnings.warn(message, UserWarning)
+        assert len(dataset) == new_size * n_episodes
+        assert dataset.observations.shape == (
+            new_size * data_size,
+            observation_size,
+        )
+        assert dataset.rewards.shape == (new_size * data_size,)
+        assert dataset.terminals.shape == (new_size * data_size,)
+        assert dataset.actions.shape == (new_size * data_size,)
 
     # check extend
+    new_size += 1
     another_dataset = MDPDataset(
         observations,
         actions,
@@ -165,14 +187,17 @@ def test_mdp_dataset(
         discrete_action=discrete_action,
     )
     dataset.extend(another_dataset)
-    assert len(dataset) == 3 * n_episodes
-    assert dataset.observations.shape == (3 * data_size, observation_size)
-    assert dataset.rewards.shape == (3 * data_size,)
-    assert dataset.terminals.shape == (3 * data_size,)
+    assert len(dataset) == new_size * n_episodes
+    assert dataset.observations.shape == (
+        new_size * data_size,
+        observation_size,
+    )
+    assert dataset.rewards.shape == (new_size * data_size,)
+    assert dataset.terminals.shape == (new_size * data_size,)
     if discrete_action:
-        assert dataset.actions.shape == (3 * data_size,)
+        assert dataset.actions.shape == (new_size * data_size,)
     else:
-        assert dataset.actions.shape == (3 * data_size, action_size)
+        assert dataset.actions.shape == (new_size * data_size, action_size)
 
     # check clip_reward
     dataset.clip_reward(-1.0, 1.0)
