@@ -10,6 +10,12 @@ from typing_extensions import Protocol
 from .dataset import TransitionMiniBatch
 from .preprocessing import ActionScaler, Scaler
 
+BLACK_LIST = ["policy", "q_function"]  # special properties
+
+
+def _get_attributes(obj: Any) -> List[str]:
+    return [key for key in dir(obj) if key not in BLACK_LIST]
+
 
 def soft_sync(targ_model: nn.Module, model: nn.Module, tau: float) -> None:
     with torch.no_grad():
@@ -29,35 +35,35 @@ def hard_sync(targ_model: nn.Module, model: nn.Module) -> None:
 
 
 def set_eval_mode(impl: Any) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, torch.nn.Module):
             module.eval()
 
 
 def set_train_mode(impl: Any) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, torch.nn.Module):
             module.train()
 
 
 def to_cuda(impl: Any, device: str) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
             module.cuda(device)
 
 
 def to_cpu(impl: Any) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
             module.cpu()
 
 
 def freeze(impl: Any) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, torch.nn.Module):
             for p in module.parameters():
@@ -65,7 +71,7 @@ def freeze(impl: Any) -> None:
 
 
 def unfreeze(impl: Any) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, torch.nn.Module):
             for p in module.parameters():
@@ -74,7 +80,7 @@ def unfreeze(impl: Any) -> None:
 
 def get_state_dict(impl: Any) -> Dict[str, Any]:
     rets = {}
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         obj = getattr(impl, key)
         if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
             rets[key] = obj.state_dict()
@@ -82,7 +88,7 @@ def get_state_dict(impl: Any) -> Dict[str, Any]:
 
 
 def set_state_dict(impl: Any, chkpt: Dict[str, Any]) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         obj = getattr(impl, key)
         if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
             obj.load_state_dict(chkpt[key])

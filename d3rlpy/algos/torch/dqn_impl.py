@@ -10,7 +10,7 @@ from ...models.builders import create_discrete_q_function
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
-from ...models.torch import EnsembleDiscreteQFunction
+from ...models.torch import EnsembleDiscreteQFunction, EnsembleQFunction
 from ...preprocessing import Scaler
 from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
 from .base import TorchImplBase
@@ -150,6 +150,11 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         assert self._q_func is not None
         assert self._targ_q_func is not None
         hard_sync(self._targ_q_func, self._q_func)
+
+    @property
+    def q_function(self) -> EnsembleQFunction:
+        assert self._q_func
+        return self._q_func
 
 
 class DoubleDQNImpl(DQNImpl):

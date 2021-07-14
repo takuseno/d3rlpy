@@ -17,6 +17,7 @@ from ...models.q_functions import QFunctionFactory
 from ...models.torch import (
     DeterministicPolicy,
     EnsembleContinuousQFunction,
+    EnsembleQFunction,
     Policy,
 )
 from ...preprocessing import ActionScaler, Scaler
@@ -209,6 +210,16 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         assert self._policy is not None
         assert self._targ_policy is not None
         soft_sync(self._targ_policy, self._policy, self._tau)
+
+    @property
+    def policy(self) -> Policy:
+        assert self._policy
+        return self._policy
+
+    @property
+    def q_function(self) -> EnsembleQFunction:
+        assert self._q_func
+        return self._q_func
 
 
 class DDPGImpl(DDPGBaseImpl):

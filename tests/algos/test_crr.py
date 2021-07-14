@@ -32,7 +32,9 @@ def test_crr(
         advantage_type=advantage_type,
         weight_type=weight_type,
     )
-    algo_tester(crr, observation_shape)
+    algo_tester(
+        crr, observation_shape, test_q_function_copy=True
+    )
     algo_update_tester(crr, observation_shape, action_size)
 
 

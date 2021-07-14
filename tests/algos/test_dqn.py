@@ -26,7 +26,7 @@ def test_dqn(
         scaler=scaler,
         target_reduction_type=target_reduction_type,
     )
-    algo_tester(dqn, observation_shape)
+    algo_tester(dqn, observation_shape, test_q_function_copy=True)
     algo_update_tester(dqn, observation_shape, action_size, discrete=True)
 
 
@@ -57,7 +57,7 @@ def test_double_dqn(
         scaler=scaler,
         target_reduction_type=target_reduction_type,
     )
-    algo_tester(double_dqn, observation_shape)
+    algo_tester(double_dqn, observation_shape, test_q_function_copy=True)
     algo_update_tester(double_dqn, observation_shape, action_size, True)
 
 

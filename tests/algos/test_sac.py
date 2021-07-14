@@ -31,7 +31,9 @@ def test_sac(
         action_scaler=action_scaler,
         target_reduction_type=target_reduction_type,
     )
-    algo_tester(sac, observation_shape)
+    algo_tester(
+        sac, observation_shape, test_policy_copy=True, test_q_function_copy=True
+    )
     algo_update_tester(sac, observation_shape, action_size)
 
 
@@ -51,7 +53,9 @@ def test_sac_performance(q_func_factory):
 @pytest.mark.parametrize("scaler", [None, "min_max"])
 def test_discrete_sac(observation_shape, action_size, q_func_factory, scaler):
     sac = DiscreteSAC(q_func_factory=q_func_factory, scaler=scaler)
-    algo_tester(sac, observation_shape)
+    algo_tester(
+        sac, observation_shape, test_policy_copy=True, test_q_function_copy=True
+    )
     algo_update_tester(sac, observation_shape, action_size, discrete=True)
 
 

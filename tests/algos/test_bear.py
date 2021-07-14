@@ -19,7 +19,11 @@ def test_bear(
         scaler=scaler,
         action_scaler=action_scaler,
     )
-    algo_tester(bear, observation_shape)
+    algo_tester(
+        bear,
+        observation_shape,
+        test_q_function_copy=True,
+    )
     algo_update_tester(bear, observation_shape, action_size)
 
 

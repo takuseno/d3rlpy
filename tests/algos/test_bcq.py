@@ -25,7 +25,7 @@ def test_bcq(
         action_scaler=action_scaler,
         rl_start_epoch=0,
     )
-    algo_tester(bcq, observation_shape)
+    algo_tester(bcq, observation_shape, test_q_function_copy=True)
     algo_update_tester(bcq, observation_shape, action_size)
 
 
@@ -55,7 +55,7 @@ def test_discrete_bcq(
         scaler=scaler,
         target_reduction_type=target_reduction_type,
     )
-    algo_tester(bcq, observation_shape)
+    algo_tester(bcq, observation_shape, test_q_function_copy=True)
     algo_update_tester(bcq, observation_shape, action_size, discrete=True)
 
 

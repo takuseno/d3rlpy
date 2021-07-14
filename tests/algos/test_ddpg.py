@@ -26,7 +26,12 @@ def test_ddpg(
         action_scaler=action_scaler,
         target_reduction_type=target_reduction_type,
     )
-    algo_tester(ddpg, observation_shape)
+    algo_tester(
+        ddpg,
+        observation_shape,
+        test_policy_copy=True,
+        test_q_function_copy=True,
+    )
     algo_update_tester(ddpg, observation_shape, action_size)
 
 

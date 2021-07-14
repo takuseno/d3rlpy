@@ -19,7 +19,9 @@ from ...models.q_functions import QFunctionFactory
 from ...models.torch import (
     CategoricalPolicy,
     EnsembleDiscreteQFunction,
+    EnsembleQFunction,
     Parameter,
+    Policy,
     SquashedNormalPolicy,
 )
 from ...preprocessing import ActionScaler, Scaler
@@ -404,3 +406,13 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         assert self._q_func is not None
         assert self._targ_q_func is not None
         hard_sync(self._targ_q_func, self._q_func)
+
+    @property
+    def policy(self) -> Policy:
+        assert self._policy
+        return self._policy
+
+    @property
+    def q_function(self) -> EnsembleQFunction:
+        assert self._q_func
+        return self._q_func

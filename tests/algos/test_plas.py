@@ -27,7 +27,12 @@ def test_plas(
         target_reduction_type=target_reduction_type,
         rl_start_epoch=0,
     )
-    algo_tester(plas, observation_shape)
+    algo_tester(
+        plas,
+        observation_shape,
+        test_policy_copy=True,
+        test_q_function_copy=True,
+    )
     algo_update_tester(plas, observation_shape, action_size)
 
 
@@ -59,7 +64,12 @@ def test_plas_with_perturbation(
         target_reduction_type=target_reduction_type,
         rl_start_epoch=0,
     )
-    algo_tester(plas, observation_shape)
+    algo_tester(
+        plas,
+        observation_shape,
+        test_policy_copy=True,
+        test_q_function_copy=True,
+    )
     algo_update_tester(plas, observation_shape, action_size)
 
 

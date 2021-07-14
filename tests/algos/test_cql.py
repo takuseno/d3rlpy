@@ -31,7 +31,9 @@ def test_cql(
         action_scaler=action_scaler,
         target_reduction_type=target_reduction_type,
     )
-    algo_tester(cql, observation_shape)
+    algo_tester(
+        cql, observation_shape, test_policy_copy=True, test_q_function_copy=True
+    )
     algo_update_tester(cql, observation_shape, action_size)
 
 
@@ -61,7 +63,9 @@ def test_discrete_cql(
         scaler=scaler,
         target_reduction_type=target_reduction_type,
     )
-    algo_tester(cql, observation_shape)
+    algo_tester(
+        cql, observation_shape, test_q_function_copy=True
+    )
     algo_update_tester(cql, observation_shape, action_size, True)
 
 

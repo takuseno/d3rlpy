@@ -39,7 +39,12 @@ def test_combo(
         rollout_horizon=rollout_horizon,
         rollout_batch_size=rollout_batch_size,
     )
-    algo_tester(combo, observation_shape)
+    algo_tester(
+        combo,
+        observation_shape,
+        test_policy_copy=True,
+        test_q_function_copy=True,
+    )
     algo_update_tester(combo, observation_shape, action_size)
 
 

@@ -26,7 +26,9 @@ def test_td3(
         action_scaler=action_scaler,
         target_reduction_type=target_reduction_type,
     )
-    algo_tester(td3, observation_shape)
+    algo_tester(
+        td3, observation_shape, test_policy_copy=True, test_q_function_copy=True
+    )
     algo_update_tester(td3, observation_shape, action_size)
 
 
