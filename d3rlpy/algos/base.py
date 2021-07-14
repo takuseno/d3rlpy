@@ -427,6 +427,17 @@ class AlgoBase(LearnableBase):
     def copy_policy_from(self, algo: "AlgoBase") -> None:
         """Copies policy parameters from the given algorithm.
 
+        .. code-block:: python
+
+            # pretrain with static dataset
+            cql = d3rlpy.algos.CQL()
+            cql.fit(dataset, n_steps=100000)
+
+            # transfer to online algorithmn
+            sac = d3rlpy.algos.SAC()
+            sac.create_impl(cql.observation_shape, cql.action_size)
+            sac.copy_policy_from(cql)
+
         Args:
             algo: algorithm object.
 
@@ -437,6 +448,17 @@ class AlgoBase(LearnableBase):
 
     def copy_q_function_from(self, algo: "AlgoBase") -> None:
         """Copies Q-function parameters from the given algorithm.
+
+        .. code-block:: python
+
+            # pretrain with static dataset
+            cql = d3rlpy.algos.CQL()
+            cql.fit(dataset, n_steps=100000)
+
+            # transfer to online algorithmn
+            sac = d3rlpy.algos.SAC()
+            sac.create_impl(cql.observation_shape, cql.action_size)
+            sac.copy_q_function_from(cql)
 
         Args:
             algo: algorithm object.
