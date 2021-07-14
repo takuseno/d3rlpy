@@ -56,8 +56,14 @@ def test_check_discrete_action_with_mdp_dataset(
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_episodes", [4])
 @pytest.mark.parametrize("discrete_action", [True, False])
+@pytest.mark.parametrize("add_actions", [1, 3])
 def test_mdp_dataset(
-    data_size, observation_size, action_size, n_episodes, discrete_action
+    data_size,
+    observation_size,
+    action_size,
+    n_episodes,
+    discrete_action,
+    add_actions,
 ):
     observations = np.random.random((data_size, observation_size)).astype("f4")
     rewards = np.random.uniform(-10.0, 10.0, size=data_size).astype("f4")
@@ -163,11 +169,16 @@ def test_mdp_dataset(
 
     # check append if discrete action and number of actions grow
     if discrete_action:
+        old_action_size = dataset.get_action_size()
         new_size += 1
         with pytest.warns(UserWarning):
-            dataset.append(observations, actions + 1, rewards, terminals)
+            dataset.append(
+                observations, actions + add_actions, rewards, terminals
+            )
             message = f"New action size is higher than" f" {ref_action_size}."
             warnings.warn(message, UserWarning)
+
+        assert dataset.get_action_size() == old_action_size + add_actions
         assert len(dataset) == new_size * n_episodes
         assert dataset.observations.shape == (
             new_size * data_size,
