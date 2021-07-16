@@ -171,22 +171,8 @@ def test_mdp_dataset(
     if discrete_action:
         old_action_size = dataset.get_action_size()
         new_size += 1
-        with pytest.warns(UserWarning):
-            dataset.append(
-                observations, actions + add_actions, rewards, terminals
-            )
-            message = f"New action size is higher than" f" {ref_action_size}."
-            warnings.warn(message, UserWarning)
-
+        dataset.append(observations, actions + add_actions, rewards, terminals)
         assert dataset.get_action_size() == old_action_size + add_actions
-        assert len(dataset) == new_size * n_episodes
-        assert dataset.observations.shape == (
-            new_size * data_size,
-            observation_size,
-        )
-        assert dataset.rewards.shape == (new_size * data_size,)
-        assert dataset.terminals.shape == (new_size * data_size,)
-        assert dataset.actions.shape == (new_size * data_size,)
 
     # check extend
     new_size += 1
