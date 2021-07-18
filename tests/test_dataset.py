@@ -196,13 +196,6 @@ def test_mdp_dataset(
     else:
         assert dataset.actions.shape == (new_size * data_size, action_size)
 
-    # check clip_reward
-    dataset.clip_reward(-1.0, 1.0)
-    assert rewards[rewards > 1.0].sum() != 0
-    assert rewards[rewards < -1.0].sum() != 0
-    assert dataset.rewards[dataset.rewards > 1.0].sum() == 0
-    assert dataset.rewards[dataset.rewards < -1.0].sum() == 0
-
     # check dump and load
     dataset.dump(os.path.join("test_data", "dataset.h5"))
     new_dataset = MDPDataset.load(os.path.join("test_data", "dataset.h5"))

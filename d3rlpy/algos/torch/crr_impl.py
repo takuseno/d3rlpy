@@ -9,7 +9,7 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import SquashedNormalPolicy, squash_action
-from ...preprocessing import ActionScaler, Scaler
+from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import TorchMiniBatch, hard_sync
 from .ddpg_impl import DDPGBaseImpl
 
@@ -46,6 +46,7 @@ class CRRImpl(DDPGBaseImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
+        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -64,6 +65,7 @@ class CRRImpl(DDPGBaseImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
         )
         self._beta = beta
         self._n_action_samples = n_action_samples

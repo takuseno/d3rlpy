@@ -24,7 +24,7 @@ from ...models.torch import (
     EnsembleDiscreteQFunction,
     EnsembleQFunction,
 )
-from ...preprocessing import ActionScaler, Scaler
+from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
 
 
@@ -54,12 +54,14 @@ class FQEBaseImpl(TorchImplBase):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
+        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory

@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from ...gpu import Device
-from ...preprocessing import ActionScaler, Scaler
+from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import (
     eval_api,
     freeze,
@@ -25,6 +25,7 @@ class TorchImplBase(AlgoImplBase):
     _action_size: int
     _scaler: Optional[Scaler]
     _action_scaler: Optional[ActionScaler]
+    _reward_scaler: Optional[RewardScaler]
     _device: str
 
     def __init__(
@@ -33,11 +34,13 @@ class TorchImplBase(AlgoImplBase):
         action_size: int,
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
+        reward_scaler: Optional[RewardScaler],
     ):
         self._observation_shape = observation_shape
         self._action_size = action_size
         self._scaler = scaler
         self._action_scaler = action_scaler
+        self._reward_scaler = reward_scaler
         self._device = "cpu:0"
 
     @eval_api
@@ -143,3 +146,7 @@ class TorchImplBase(AlgoImplBase):
     @property
     def action_scaler(self) -> Optional[ActionScaler]:
         return self._action_scaler
+
+    @property
+    def reward_scaler(self) -> Optional[RewardScaler]:
+        return self._reward_scaler

@@ -12,7 +12,7 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import Parameter
-from ...preprocessing import ActionScaler, Scaler
+from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .dqn_impl import DoubleDQNImpl
 from .sac_impl import SACImpl
@@ -58,6 +58,7 @@ class CQLImpl(SACImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
+        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -79,6 +80,7 @@ class CQLImpl(SACImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
         )
         self._alpha_learning_rate = alpha_learning_rate
         self._alpha_optim_factory = alpha_optim_factory
@@ -260,6 +262,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         alpha: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -273,6 +276,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
             target_reduction_type=target_reduction_type,
             use_gpu=use_gpu,
             scaler=scaler,
+            reward_scaler=reward_scaler,
         )
         self._alpha = alpha
 

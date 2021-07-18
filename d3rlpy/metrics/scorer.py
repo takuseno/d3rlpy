@@ -1,10 +1,11 @@
-from typing import Any, Callable, Iterator, List, Tuple, Union, cast
+from typing import Any, Callable, Iterator, List, Optional, Tuple, Union, cast
 
 import gym
 import numpy as np
 from typing_extensions import Protocol
 
 from ..dataset import Episode, TransitionMiniBatch
+from ..preprocessing.reward_scalers import RewardScaler
 from ..preprocessing.stack import StackedObservation
 
 WINDOW_SIZE = 1024
@@ -30,6 +31,10 @@ class AlgoProtocol(Protocol):
     def gamma(self) -> float:
         ...
 
+    @property
+    def reward_scaler(self) -> Optional[RewardScaler]:
+        ...
+
 
 class DynamicsProtocol(Protocol):
     def predict(
@@ -44,6 +49,10 @@ class DynamicsProtocol(Protocol):
 
     @property
     def n_frames(self) -> int:
+        ...
+
+    @property
+    def reward_scaler(self) -> Optional[RewardScaler]:
         ...
 
 
@@ -96,6 +105,8 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
             # calculate td errors
             mask = (1.0 - np.asarray(batch.terminals)).reshape(-1)
             rewards = np.asarray(batch.next_rewards).reshape(-1)
+            if algo.reward_scaler:
+                rewards = algo.reward_scaler.transform_numpy(rewards)
             y = rewards + algo.gamma * cast(np.ndarray, next_values) * mask
             total_errors += ((values - y) ** 2).tolist()
 
@@ -539,7 +550,10 @@ def dynamics_reward_prediction_error_scorer(
     for episode in episodes:
         for batch in _make_batches(episode, WINDOW_SIZE, dynamics.n_frames):
             pred = dynamics.predict(batch.observations, batch.actions)
-            errors = ((batch.next_rewards - pred[1]) ** 2).reshape(-1)
+            rewards = batch.next_rewards
+            if dynamics.reward_scaler:
+                rewards = dynamics.reward_scaler.transform_numpy(rewards)
+            errors = ((rewards - pred[1]) ** 2).reshape(-1)
             total_errors += errors.tolist()
     # smaller is better
     return -float(np.mean(total_errors))
