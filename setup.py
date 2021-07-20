@@ -62,7 +62,7 @@ if __name__ == "__main__":
                             "scipy",
                             "structlog",
                             "colorama"],
-          packages=find_packages(),
+          packages=find_packages(exclude=["tests*"]),
           python_requires=">=3.6.0",
           zip_safe=False,
           package_data={'d3rlpy': ['*.pyx',
