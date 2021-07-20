@@ -17,6 +17,7 @@ from .algo_test import (
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("scaler", [None, "min_max"])
 @pytest.mark.parametrize("action_scaler", [None, "min_max"])
+@pytest.mark.parametrize("reward_scaler", [None, "min_max"])
 @pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 @pytest.mark.parametrize("rollout_interval", [1])
 @pytest.mark.parametrize("rollout_horizon", [2])
@@ -27,6 +28,7 @@ def test_mopo(
     q_func_factory,
     scaler,
     action_scaler,
+    reward_scaler,
     target_reduction_type,
     rollout_interval,
     rollout_horizon,
@@ -43,6 +45,7 @@ def test_mopo(
         q_func_factory=q_func_factory,
         scaler=scaler,
         action_scaler=action_scaler,
+        reward_scaler=reward_scaler,
         target_reduction_type=target_reduction_type,
     )
     algo_tester(

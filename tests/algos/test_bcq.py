@@ -16,13 +16,20 @@ from .algo_test import (
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("scaler", [None, "min_max"])
 @pytest.mark.parametrize("action_scaler", [None, "min_max"])
+@pytest.mark.parametrize("reward_scaler", [None, "min_max"])
 def test_bcq(
-    observation_shape, action_size, q_func_factory, scaler, action_scaler
+    observation_shape,
+    action_size,
+    q_func_factory,
+    scaler,
+    action_scaler,
+    reward_scaler,
 ):
     bcq = BCQ(
         q_func_factory=q_func_factory,
         scaler=scaler,
         action_scaler=action_scaler,
+        reward_scaler=reward_scaler,
         rl_start_epoch=0,
     )
     algo_tester(bcq, observation_shape, test_q_function_copy=True)
@@ -40,6 +47,7 @@ def test_bcq_performance():
 @pytest.mark.parametrize("n_critics", [1, 2])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("scaler", [None, "min_max"])
+@pytest.mark.parametrize("reward_scaler", [None, "min_max"])
 @pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 def test_discrete_bcq(
     observation_shape,
@@ -47,12 +55,14 @@ def test_discrete_bcq(
     n_critics,
     q_func_factory,
     scaler,
+    reward_scaler,
     target_reduction_type,
 ):
     bcq = DiscreteBCQ(
         n_critics=n_critics,
         q_func_factory=q_func_factory,
         scaler=scaler,
+        reward_scaler=reward_scaler,
         target_reduction_type=target_reduction_type,
     )
     algo_tester(bcq, observation_shape, test_q_function_copy=True)

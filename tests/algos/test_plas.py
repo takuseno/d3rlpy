@@ -11,6 +11,7 @@ from .algo_test import algo_pendulum_tester, algo_tester, algo_update_tester
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("scaler", [None, "min_max"])
 @pytest.mark.parametrize("action_scaler", [None, "min_max"])
+@pytest.mark.parametrize("reward_scaler", [None, "min_max"])
 @pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 def test_plas(
     observation_shape,
@@ -18,12 +19,14 @@ def test_plas(
     q_func_factory,
     scaler,
     action_scaler,
+    reward_scaler,
     target_reduction_type,
 ):
     plas = PLAS(
         q_func_factory=q_func_factory,
         scaler=scaler,
         action_scaler=action_scaler,
+        reward_scaler=reward_scaler,
         target_reduction_type=target_reduction_type,
         rl_start_epoch=0,
     )
@@ -48,6 +51,7 @@ def test_plas_performance(q_func_factory):
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("scaler", [None, "min_max"])
 @pytest.mark.parametrize("action_scaler", [None, "min_max"])
+@pytest.mark.parametrize("reward_scaler", [None, "min_max"])
 @pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 def test_plas_with_perturbation(
     observation_shape,
@@ -55,12 +59,14 @@ def test_plas_with_perturbation(
     q_func_factory,
     scaler,
     action_scaler,
+    reward_scaler,
     target_reduction_type,
 ):
     plas = PLASWithPerturbation(
         q_func_factory=q_func_factory,
         scaler=scaler,
         action_scaler=action_scaler,
+        reward_scaler=reward_scaler,
         target_reduction_type=target_reduction_type,
         rl_start_epoch=0,
     )

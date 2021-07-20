@@ -76,6 +76,7 @@ class DummyImpl:
         self._device = "cpu:0"
         self._scaler = None
         self._action_scaler = None
+        self._reward_scaler = None
 
     @torch_api()
     def torch_api_func(self, x):
@@ -119,6 +120,10 @@ class DummyImpl:
     @property
     def action_scaler(self):
         return self._action_scaler
+
+    @property
+    def reward_scaler(self):
+        return self._reward_scaler
 
 
 def check_if_same_dict(a, b):
@@ -220,8 +225,14 @@ def test_unfreeze():
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("use_scaler", [False, True])
 @pytest.mark.parametrize("use_action_scaler", [False, True])
+@pytest.mark.parametrize("use_reward_scaler", [False, True])
 def test_torch_mini_batch(
-    batch_size, observation_shape, action_size, use_scaler, use_action_scaler
+    batch_size,
+    observation_shape,
+    action_size,
+    use_scaler,
+    use_action_scaler,
+    use_reward_scaler,
 ):
     obs_shape = (batch_size,) + observation_shape
     transitions = []
@@ -259,10 +270,24 @@ def test_torch_mini_batch(
     else:
         action_scaler = None
 
+    if use_reward_scaler:
+
+        class DummyRewardScaler:
+            def transform(self, x):
+                return x + 0.2
+
+        reward_scaler = DummyRewardScaler()
+    else:
+        reward_scaler = None
+
     batch = TransitionMiniBatch(transitions)
 
     torch_batch = TorchMiniBatch(
-        batch=batch, device="cpu:0", scaler=scaler, action_scaler=action_scaler
+        batch=batch,
+        device="cpu:0",
+        scaler=scaler,
+        action_scaler=action_scaler,
+        reward_scaler=reward_scaler,
     )
 
     if use_scaler:
@@ -288,8 +313,15 @@ def test_torch_mini_batch(
         assert np.all(torch_batch.actions.numpy() == batch.actions)
         assert np.all(torch_batch.next_actions.numpy() == batch.next_actions)
 
-    assert np.all(torch_batch.rewards.numpy() == batch.rewards)
-    assert np.all(torch_batch.next_rewards.numpy() == batch.next_rewards)
+    if use_reward_scaler:
+        assert np.all(torch_batch.rewards.numpy() == batch.rewards + 0.2)
+        assert np.all(
+            torch_batch.next_rewards.numpy() == batch.next_rewards + 0.2
+        )
+    else:
+        assert np.all(torch_batch.rewards.numpy() == batch.rewards)
+        assert np.all(torch_batch.next_rewards.numpy() == batch.next_rewards)
+
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
     assert np.all(torch_batch.n_steps.numpy() == batch.n_steps)
 
@@ -337,8 +369,14 @@ def test_torch_api_with_action_scaler():
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("use_scaler", [False, True])
 @pytest.mark.parametrize("use_action_scaler", [False, True])
+@pytest.mark.parametrize("use_reward_scaler", [False, True])
 def test_torch_api_with_batch(
-    batch_size, observation_shape, action_size, use_scaler, use_action_scaler
+    batch_size,
+    observation_shape,
+    action_size,
+    use_scaler,
+    use_action_scaler,
+    use_reward_scaler,
 ):
     obs_shape = (batch_size,) + observation_shape
     transitions = []
@@ -376,11 +414,22 @@ def test_torch_api_with_batch(
     else:
         action_scaler = None
 
+    if use_reward_scaler:
+
+        class DummyRewardScaler:
+            def transform(self, x):
+                return x + 0.2
+
+        reward_scaler = DummyRewardScaler()
+    else:
+        reward_scaler = None
+
     batch = TransitionMiniBatch(transitions)
 
     impl = DummyImpl()
     impl._scaler = scaler
     impl._action_scaler = action_scaler
+    impl._reward_scaler = reward_scaler
 
     torch_batch = impl.torch_api_func_with_batch(batch)
 
@@ -407,8 +456,15 @@ def test_torch_api_with_batch(
         assert np.all(torch_batch.actions.numpy() == batch.actions)
         assert np.all(torch_batch.next_actions.numpy() == batch.next_actions)
 
-    assert np.all(torch_batch.rewards.numpy() == batch.rewards)
-    assert np.all(torch_batch.next_rewards.numpy() == batch.next_rewards)
+    if use_reward_scaler:
+        assert np.all(torch_batch.rewards.numpy() == batch.rewards + 0.2)
+        assert np.all(
+            torch_batch.next_rewards.numpy() == batch.next_rewards + 0.2
+        )
+    else:
+        assert np.all(torch_batch.rewards.numpy() == batch.rewards)
+        assert np.all(torch_batch.next_rewards.numpy() == batch.next_rewards)
+
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
     assert np.all(torch_batch.n_steps.numpy() == batch.n_steps)
 

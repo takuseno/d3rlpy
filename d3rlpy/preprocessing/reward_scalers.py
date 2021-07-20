@@ -173,9 +173,9 @@ class MinMaxRewardScaler(RewardScaler):
 
     def __init__(
         self,
-        dataset: Optional[MDPDataset],
-        minimum: Optional[float],
-        maximum: Optional[float],
+        dataset: Optional[MDPDataset] = None,
+        minimum: Optional[float] = None,
+        maximum: Optional[float] = None,
     ):
         self._minimum = None
         self._maximum = None

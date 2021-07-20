@@ -16,7 +16,10 @@ from .algo_test import (
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("scaler", [None, "min_max"])
 @pytest.mark.parametrize("action_scaler", [None, "min_max"])
-def test_awr(observation_shape, action_size, scaler, action_scaler):
+@pytest.mark.parametrize("reward_scaler", [None, "min_max"])
+def test_awr(
+    observation_shape, action_size, scaler, action_scaler, reward_scaler
+):
     awr = AWR(
         batch_size=100,
         batch_size_per_update=30,
@@ -24,6 +27,7 @@ def test_awr(observation_shape, action_size, scaler, action_scaler):
         n_critic_updates=1,
         scaler=scaler,
         action_scaler=action_scaler,
+        reward_scaler=reward_scaler,
     )
     algo_tester(awr, observation_shape, state_value=True)
     algo_update_tester(awr, observation_shape, action_size)
@@ -38,13 +42,15 @@ def test_awr_performance():
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("scaler", [None, "min_max"])
-def test_discrete_awr(observation_shape, action_size, scaler):
+@pytest.mark.parametrize("reward_scaler", [None, "min_max"])
+def test_discrete_awr(observation_shape, action_size, scaler, reward_scaler):
     awr = DiscreteAWR(
         batch_size=100,
         batch_size_per_update=30,
         n_actor_updates=1,
         n_critic_updates=1,
         scaler=scaler,
+        reward_scaler=reward_scaler,
     )
     algo_tester(awr, observation_shape, state_value=True)
     algo_update_tester(awr, observation_shape, action_size, True)
