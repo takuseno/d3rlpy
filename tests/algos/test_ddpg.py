@@ -9,19 +9,18 @@ from .algo_test import algo_pendulum_tester, algo_tester, algo_update_tester
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-@pytest.mark.parametrize("scaler", [None, "min_max"])
-@pytest.mark.parametrize("action_scaler", [None, "min_max"])
-@pytest.mark.parametrize("reward_scaler", [None, "min_max"])
+@pytest.mark.parametrize(
+    "scalers", [(None, None, None), ("min_max", "min_max", "min_max")]
+)
 @pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 def test_ddpg(
     observation_shape,
     action_size,
     q_func_factory,
-    scaler,
-    action_scaler,
-    reward_scaler,
+    scalers,
     target_reduction_type,
 ):
+    scaler, action_scaler, reward_scaler = scalers
     ddpg = DDPG(
         q_func_factory=q_func_factory,
         scaler=scaler,

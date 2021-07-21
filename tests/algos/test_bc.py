@@ -13,9 +13,9 @@ from .algo_test import (
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("scaler", [None, "min_max"])
-@pytest.mark.parametrize("action_scaler", [None, "min_max"])
-def test_bc(observation_shape, action_size, scaler, action_scaler):
+@pytest.mark.parametrize("scalers", [(None, None), ("min_max", "min_max")])
+def test_bc(observation_shape, action_size, scalers):
+    scaler, action_scaler = scalers
     bc = BC(scaler=scaler, action_scaler=action_scaler)
     algo_tester(bc, observation_shape, imitator=True)
     algo_update_tester(bc, observation_shape, action_size)
