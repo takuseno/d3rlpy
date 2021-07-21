@@ -5,6 +5,7 @@ import numpy as np
 from ..argument_utility import (
     ActionScalerArg,
     EncoderArg,
+    RewardScalerArg,
     ScalerArg,
     UseGPUArg,
     check_encoder,
@@ -57,6 +58,7 @@ class _AWRBase(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
+        reward_scaler: RewardScalerArg = None,
         impl: Optional[AWRImpl] = None,
         **kwargs: Any
     ):
@@ -68,6 +70,7 @@ class _AWRBase(AlgoBase):
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
             kwargs=kwargs,
         )
         self._actor_learning_rate = actor_learning_rate
@@ -232,6 +235,9 @@ class AWR(_AWRBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
+            reward preprocessor. The available options are
+            ``['clip', 'min_max', 'standard']``.
         impl (d3rlpy.algos.torch.awr_impl.AWRImpl): algorithm implementation.
 
     """
@@ -253,6 +259,7 @@ class AWR(_AWRBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
+            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
 
@@ -314,6 +321,9 @@ class DiscreteAWR(_AWRBase):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
+            reward preprocessor. The available options are
+            ``['clip', 'min_max', 'standard']``.
         impl (d3rlpy.algos.torch.awr_impl.DiscreteAWRImpl):
             algorithm implementation.
 
@@ -336,6 +346,7 @@ class DiscreteAWR(_AWRBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=None,
+            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
 

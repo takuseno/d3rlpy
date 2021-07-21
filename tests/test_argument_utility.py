@@ -4,6 +4,7 @@ from d3rlpy.argument_utility import (
     check_action_scaler,
     check_encoder,
     check_q_func,
+    check_reward_scaler,
     check_scaler,
     check_use_gpu,
 )
@@ -11,6 +12,7 @@ from d3rlpy.gpu import Device
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory
 from d3rlpy.preprocessing.action_scalers import MinMaxActionScaler
+from d3rlpy.preprocessing.reward_scalers import MinMaxRewardScaler
 from d3rlpy.preprocessing.scalers import MinMaxScaler
 
 
@@ -40,6 +42,15 @@ def test_check_action_scaler(value):
         assert scaler is None
     else:
         assert isinstance(scaler, MinMaxActionScaler)
+
+
+@pytest.mark.parametrize("value", ["min_max", MinMaxRewardScaler(), None])
+def test_check_reward_scaler(value):
+    scaler = check_reward_scaler(value)
+    if value is None:
+        assert scaler is None
+    else:
+        assert isinstance(scaler, MinMaxRewardScaler)
 
 
 @pytest.mark.parametrize("value", [False, True, 0, Device(0)])

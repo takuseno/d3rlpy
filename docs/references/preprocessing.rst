@@ -91,3 +91,50 @@ You can also initialize scalers by yourself.
    :nosignatures:
 
    d3rlpy.preprocessing.MinMaxActionScaler
+
+
+Reward
+~~~~~~
+
+d3rlpy also provides the feature that preprocesses rewards.
+With this preprocessing, you don't need to normalize rewards in advance.
+Note that this preprocessor should be fitted with the dataset.
+Afterwards you can use it with online training.
+
+.. code-block:: python
+
+    from d3rlpy.algos import CQL
+    from d3rlpy.dataset import MDPDataset
+
+    dataset = MDPDataset(...)
+
+    # 'min_max', 'standard' or None
+    cql = CQL(reward_scaler='standard')
+
+    # reward scaler is fitted from the given episodes
+    cql.fit(dataset.episodes)
+
+    # reward scaler is also available at finetuning.
+    cql.fit_online(env)
+
+You can also initialize scalers by yourself.
+
+.. code-block:: python
+
+    from d3rlpy.preprocessing import MinMaxRewardScaler
+
+    reward_scaler = MinMaxRewardScaler(minimum=..., maximum=...)
+
+    cql = CQL(reward_scaler=reward_scaler)
+
+    # ClipRewardScaler is the only option you need to initialize manually
+    reward_scaler = ClipRewardScaler(-1.0, 1.0)
+    cql = CQL(reward_scaler=reward_scaler)
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   d3rlpy.preprocessing.MinMaxRewardScaler
+   d3rlpy.preprocessing.StandardRewardScaler
+   d3rlpy.preprocessing.ClipRewardScaler

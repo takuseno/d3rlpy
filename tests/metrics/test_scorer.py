@@ -20,15 +20,17 @@ from d3rlpy.metrics.scorer import (
     td_error_scorer,
     value_estimation_std_scorer,
 )
+from d3rlpy.preprocessing import ClipRewardScaler, RewardScaler
 
 
 # dummy algorithm with deterministic outputs
 class DummyAlgo:
-    def __init__(self, A, gamma, discrete=False):
+    def __init__(self, A, gamma, discrete=False, reward_scaler=None):
         self.A = A
         self.gamma = gamma
         self.discrete = discrete
         self.n_frames = 1
+        self.reward_scaler = reward_scaler
 
     def predict(self, x):
         x = np.array(x)
@@ -53,7 +55,10 @@ def ref_td_error_score(
     next_actions,
     terminals,
     gamma,
+    reward_scaler,
 ):
+    if reward_scaler:
+        rewards = reward_scaler.transform_numpy(rewards)
     values = predict_value(observations, actions)
     next_values = predict_value(next_observations, next_actions)
     y = rewards + gamma * next_values * (1.0 - terminals)
@@ -65,8 +70,16 @@ def ref_td_error_score(
 @pytest.mark.parametrize("n_episodes", [100])
 @pytest.mark.parametrize("episode_length", [10])
 @pytest.mark.parametrize("gamma", [0.99])
+@pytest.mark.parametrize(
+    "reward_scaler", [None, ClipRewardScaler(low=0.2, high=0.5)]
+)
 def test_td_error_scorer(
-    observation_shape, action_size, n_episodes, episode_length, gamma
+    observation_shape,
+    action_size,
+    n_episodes,
+    episode_length,
+    gamma,
+    reward_scaler,
 ):
     # projection matrix for deterministic action
     A = np.random.random(observation_shape + (action_size,))
@@ -84,7 +97,7 @@ def test_td_error_scorer(
         )
         episodes.append(episode)
 
-    algo = DummyAlgo(A, gamma)
+    algo = DummyAlgo(A, gamma, reward_scaler=reward_scaler)
 
     ref_errors = []
     for episode in episodes:
@@ -98,6 +111,7 @@ def test_td_error_scorer(
             batch.next_actions,
             np.asarray(batch.terminals).reshape(-1),
             gamma,
+            reward_scaler,
         )
         ref_errors += ref_error
 
@@ -432,9 +446,10 @@ def test_evaluate_on_environment(
 
 
 class DummyDynamics:
-    def __init__(self, noise):
+    def __init__(self, noise, reward_scaler=None):
         self.noise = np.reshape(noise, (1, -1))
         self.n_frames = 1
+        self.reward_scaler = reward_scaler
 
     def predict(self, x, action, with_variance=False):
         y = x + self.noise + np.sum(action)
@@ -481,8 +496,15 @@ def test_dynamics_observation_prediction_error_scorer(
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_episodes", [100])
 @pytest.mark.parametrize("episode_length", [10])
+@pytest.mark.parametrize(
+    "reward_scaler", [None, ClipRewardScaler(low=0.2, high=0.5)]
+)
 def test_dynamics_reward_prediction_error_scorer(
-    observation_shape, action_size, n_episodes, episode_length
+    observation_shape,
+    action_size,
+    n_episodes,
+    episode_length,
+    reward_scaler,
 ):
     episodes = []
     for _ in range(n_episodes):
@@ -498,13 +520,17 @@ def test_dynamics_reward_prediction_error_scorer(
         )
         episodes.append(episode)
 
-    dynamics = DummyDynamics(np.random.random(observation_shape))
+    dynamics = DummyDynamics(np.random.random(observation_shape), reward_scaler)
 
     total_errors = []
     for episode in episodes:
         batch = TransitionMiniBatch(episode.transitions)
         _, pred_reward = dynamics.predict(batch.observations, batch.actions)
-        errors = ((batch.next_rewards - pred_reward) ** 2).reshape(-1)
+        if reward_scaler:
+            next_rewards = reward_scaler.transform_numpy(batch.next_rewards)
+        else:
+            next_rewards = batch.next_rewards
+        errors = ((next_rewards - pred_reward) ** 2).reshape(-1)
         total_errors += errors.tolist()
     score = dynamics_reward_prediction_error_scorer(dynamics, episodes)
     assert np.allclose(score, -np.mean(total_errors))

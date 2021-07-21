@@ -412,21 +412,6 @@ class MDPDataset:
 
         return stats
 
-    def clip_reward(self, low=None, high=None):
-        """ Clips rewards in the given range.
-
-        Args:
-            low (float): minimum value. If None, clipping is not performed on
-                lower edge.
-            high (float): maximum value. If None, clipping is not performed on
-                upper edge.
-
-        """
-        self._rewards = np.clip(self._rewards, low, high)
-        # rebuild Episode objects
-        if self._episodes:
-            self.build_episodes()
-
     def append(
         self,
         observations,

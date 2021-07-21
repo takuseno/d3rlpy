@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional, Sequence
 from ..argument_utility import (
     ActionScalerArg,
     EncoderArg,
+    RewardScalerArg,
     ScalerArg,
     UseGPUArg,
     check_encoder,
@@ -58,6 +59,9 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
             The available options are ``['pixel', 'min_max', 'standard']``.
         action_scaler (d3rlpy.preprocessing.Actionscalers or str):
             action preprocessor. The available options are ``['min_max']``.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
+            reward preprocessor. The available options are
+            ``['clip', 'min_max', 'standard']``.
         use_gpu (bool or d3rlpy.gpu.Device): flag to use GPU or device.
         impl (d3rlpy.dynamics.torch.ProbabilisticEnsembleDynamicsImpl):
             dynamics implementation.
@@ -86,6 +90,7 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
         discrete_action: bool = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
+        reward_scaler: RewardScalerArg = None,
         use_gpu: UseGPUArg = False,
         impl: Optional[ProbabilisticEnsembleDynamicsImpl] = None,
         **kwargs: Any
@@ -95,6 +100,7 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
             n_frames=n_frames,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
             kwargs=kwargs,
         )
         self._learning_rate = learning_rate
@@ -120,6 +126,7 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
             discrete_action=self._discrete_action,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
+            reward_scaler=self._reward_scaler,
             use_gpu=self._use_gpu,
         )
         self._impl.build()

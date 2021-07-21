@@ -8,7 +8,7 @@ from torch.utils.data._utils.collate import default_collate
 from typing_extensions import Protocol
 
 from .dataset import TransitionMiniBatch
-from .preprocessing import ActionScaler, Scaler
+from .preprocessing import ActionScaler, RewardScaler, Scaler
 
 BLACK_LIST = ["policy", "q_function"]  # special properties
 
@@ -115,6 +115,10 @@ class _WithDeviceAndScalerProtocol(Protocol):
     def action_scaler(self) -> Optional[ActionScaler]:
         ...
 
+    @property
+    def reward_scaler(self) -> Optional[RewardScaler]:
+        ...
+
 
 def _convert_to_torch(array: np.ndarray, device: str) -> torch.Tensor:
     dtype = torch.uint8 if array.dtype == np.uint8 else torch.float32
@@ -141,6 +145,7 @@ class TorchMiniBatch:
         device: str,
         scaler: Optional[Scaler] = None,
         action_scaler: Optional[ActionScaler] = None,
+        reward_scaler: Optional[RewardScaler] = None,
     ):
         # convert numpy array to torch tensor
         observations = _convert_to_torch(batch.observations, device)
@@ -164,6 +169,9 @@ class TorchMiniBatch:
         if action_scaler:
             actions = action_scaler.transform(actions)
             next_actions = action_scaler.transform(next_actions)
+        if reward_scaler:
+            rewards = reward_scaler.transform(rewards)
+            next_rewards = reward_scaler.transform(next_rewards)
 
         self._observations = observations
         self._actions = actions
@@ -220,6 +228,7 @@ class TorchMiniBatch:
 def torch_api(
     scaler_targets: Optional[List[str]] = None,
     action_scaler_targets: Optional[List[str]] = None,
+    reward_scaler_targets: Optional[List[str]] = None,
 ) -> Callable[..., np.ndarray]:
     def _torch_api(f: Callable[..., np.ndarray]) -> Callable[..., np.ndarray]:
         # get argument names
@@ -257,6 +266,7 @@ def torch_api(
                         self.device,
                         scaler=self.scaler,
                         action_scaler=self.action_scaler,
+                        reward_scaler=self.reward_scaler,
                     )
                 else:
                     tensor = torch.tensor(
@@ -275,6 +285,11 @@ def torch_api(
                     if self.action_scaler and action_scaler_targets:
                         if arg_keys[i] in action_scaler_targets:
                             tensor = self.action_scaler.transform(tensor)
+
+                    # preprocessing reward
+                    if self.reward_scaler and reward_scaler_targets:
+                        if arg_keys[i] in reward_scaler_targets:
+                            tensor = self.reward_scaler.transform(tensor)
 
                     # make sure if the tensor is float32 type
                     if tensor is not None and tensor.dtype != torch.float32:

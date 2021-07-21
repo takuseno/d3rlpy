@@ -6,6 +6,7 @@ from ..argument_utility import (
     ActionScalerArg,
     EncoderArg,
     QFuncArg,
+    RewardScalerArg,
     ScalerArg,
     UseGPUArg,
     check_encoder,
@@ -103,6 +104,9 @@ class MOPO(ModelBaseMixin, AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
+            reward preprocessor. The available options are
+            ``['clip', 'min_max', 'standard']``.
         impl (d3rlpy.algos.torch.sac_impl.SACImpl): algorithm implementation.
 
     """
@@ -160,6 +164,7 @@ class MOPO(ModelBaseMixin, AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
+        reward_scaler: RewardScalerArg = None,
         impl: Optional[SACImpl] = None,
         **kwargs: Any
     ):
@@ -170,6 +175,7 @@ class MOPO(ModelBaseMixin, AlgoBase):
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
             real_ratio=real_ratio,
             generated_maxlen=generated_maxlen,
             kwargs=kwargs,
@@ -219,6 +225,7 @@ class MOPO(ModelBaseMixin, AlgoBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
+            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
 

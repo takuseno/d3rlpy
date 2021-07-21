@@ -9,7 +9,7 @@ import torch
 from d3rlpy.algos.torch.base import TorchImplBase
 from d3rlpy.constants import ActionSpace
 from d3rlpy.datasets import get_cartpole, get_pendulum
-from d3rlpy.preprocessing import ActionScaler, Scaler
+from d3rlpy.preprocessing import ActionScaler, RewardScaler, Scaler
 from tests.base_test import base_tester, base_update_tester
 
 
@@ -81,6 +81,26 @@ class DummyActionScaler(ActionScaler):
 
     def reverse_transform(self, action):
         return 10.0 * action
+
+    def get_type(self):
+        return "dummy"
+
+    def get_params(self):
+        return {}
+
+
+class DummyRewardScaler(RewardScaler):
+    def fit(self, episodes):
+        pass
+
+    def fit_with_env(self, env):
+        pass
+
+    def transform(self, reward):
+        return 0.1 * reward
+
+    def reverse_transform(self, reward):
+        return 10.0 * reward
 
     def get_type(self):
         return "dummy"

@@ -3,6 +3,13 @@ from .action_scalers import (
     MinMaxActionScaler,
     create_action_scaler,
 )
+from .reward_scalers import (
+    ClipRewardScaler,
+    MinMaxRewardScaler,
+    RewardScaler,
+    StandardRewardScaler,
+    create_reward_scaler,
+)
 from .scalers import (
     MinMaxScaler,
     PixelScaler,
@@ -20,4 +27,9 @@ __all__ = [
     "create_action_scaler",
     "ActionScaler",
     "MinMaxActionScaler",
+    "create_reward_scaler",
+    "RewardScaler",
+    "ClipRewardScaler",
+    "MinMaxRewardScaler",
+    "StandardRewardScaler",
 ]

@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-from ..argument_utility import ActionScalerArg, ScalerArg
+from ..argument_utility import ActionScalerArg, RewardScalerArg, ScalerArg
 from ..base import ImplBase, LearnableBase
 from ..constants import IMPL_NOT_INITIALIZED_ERROR
 
@@ -29,6 +29,7 @@ class DynamicsBase(LearnableBase):
         n_frames: int,
         scaler: ScalerArg,
         action_scaler: ActionScalerArg,
+        reward_scaler: RewardScalerArg,
         kwargs: Dict[str, Any],
     ):
         super().__init__(
@@ -38,6 +39,7 @@ class DynamicsBase(LearnableBase):
             gamma=1.0,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
             kwargs=kwargs,
         )
         self._impl = None

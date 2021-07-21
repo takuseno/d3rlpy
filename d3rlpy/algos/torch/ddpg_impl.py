@@ -20,7 +20,7 @@ from ...models.torch import (
     EnsembleQFunction,
     Policy,
 )
-from ...preprocessing import ActionScaler, Scaler
+from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import TorchMiniBatch, soft_sync, torch_api, train_api
 from .base import TorchImplBase
 from .utility import ContinuousQFunctionMixin
@@ -65,12 +65,14 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
+        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate

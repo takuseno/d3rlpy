@@ -9,8 +9,9 @@ from .algo_test import algo_pendulum_tester, algo_tester, algo_update_tester
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-@pytest.mark.parametrize("scaler", [None, "min_max"])
-@pytest.mark.parametrize("action_scaler", [None, "min_max"])
+@pytest.mark.parametrize(
+    "scalers", [(None, None, None), ("min_max", "min_max", "min_max")]
+)
 @pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 @pytest.mark.parametrize("rollout_interval", [1])
 @pytest.mark.parametrize("rollout_horizon", [2])
@@ -19,13 +20,14 @@ def test_combo(
     observation_shape,
     action_size,
     q_func_factory,
-    scaler,
-    action_scaler,
+    scalers,
     target_reduction_type,
     rollout_interval,
     rollout_horizon,
     rollout_batch_size,
 ):
+    scaler, action_scaler, reward_scaler = scalers
+
     dynamics = ProbabilisticEnsembleDynamics()
     dynamics.create_impl(observation_shape, action_size)
 
@@ -34,6 +36,7 @@ def test_combo(
         q_func_factory=q_func_factory,
         scaler=scaler,
         action_scaler=action_scaler,
+        reward_scaler=reward_scaler,
         target_reduction_type=target_reduction_type,
         rollout_interval=rollout_interval,
         rollout_horizon=rollout_horizon,

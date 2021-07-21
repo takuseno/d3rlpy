@@ -4,6 +4,7 @@ from ..argument_utility import (
     ActionScalerArg,
     EncoderArg,
     QFuncArg,
+    RewardScalerArg,
     ScalerArg,
     UseGPUArg,
     check_encoder,
@@ -106,6 +107,9 @@ class CQL(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
+            reward preprocessor. The available options are
+            ``['clip', 'min_max', 'standard']``.
         impl (d3rlpy.algos.torch.cql_impl.CQLImpl): algorithm implementation.
 
     """
@@ -163,6 +167,7 @@ class CQL(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
+        reward_scaler: RewardScalerArg = None,
         impl: Optional[CQLImpl] = None,
         **kwargs: Any,
     ):
@@ -173,6 +178,7 @@ class CQL(AlgoBase):
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
             kwargs=kwargs,
         )
         self._actor_learning_rate = actor_learning_rate
@@ -228,6 +234,7 @@ class CQL(AlgoBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
+            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
 
@@ -306,6 +313,9 @@ class DiscreteCQL(DoubleDQN):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
+        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
+            reward preprocessor. The available options are
+            ``['clip', 'min_max', 'standard']``.
         impl (d3rlpy.algos.torch.cql_impl.DiscreteCQLImpl):
             algorithm implementation.
 
@@ -331,6 +341,7 @@ class DiscreteCQL(DoubleDQN):
         alpha: float = 1.0,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
+        reward_scaler: RewardScalerArg = None,
         impl: Optional[DiscreteCQLImpl] = None,
         **kwargs: Any,
     ):
@@ -348,6 +359,7 @@ class DiscreteCQL(DoubleDQN):
             target_update_interval=target_update_interval,
             use_gpu=use_gpu,
             scaler=scaler,
+            reward_scaler=reward_scaler,
             impl=impl,
             **kwargs,
         )
@@ -369,5 +381,6 @@ class DiscreteCQL(DoubleDQN):
             alpha=self._alpha,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
+            reward_scaler=self._reward_scaler,
         )
         self._impl.build()

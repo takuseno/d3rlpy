@@ -6,6 +6,7 @@ from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import create_q_func_factory
 from tests.algos.algo_test import (
     DummyActionScaler,
+    DummyRewardScaler,
     DummyScaler,
     torch_impl_tester,
 )
@@ -29,6 +30,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
+@pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_crr_impl(
     observation_shape,
     action_size,
@@ -48,6 +50,7 @@ def test_crr_impl(
     target_reduction_type,
     scaler,
     action_scaler,
+    reward_scaler,
 ):
     impl = CRRImpl(
         observation_shape=observation_shape,
@@ -70,5 +73,6 @@ def test_crr_impl(
         use_gpu=None,
         scaler=scaler,
         action_scaler=action_scaler,
+        reward_scaler=reward_scaler,
     )
     torch_impl_tester(impl, discrete=False, deterministic_best_action=False)
