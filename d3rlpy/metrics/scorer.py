@@ -141,7 +141,7 @@ def discounted_sum_of_advantage_scorer(
         episodes: list of episodes.
 
     Returns:
-        negative average of discounted sum of advantage, larger is better
+        negative average of discounted sum of advantage, larger is better.
 
     """
     total_sums = []
