@@ -169,7 +169,7 @@ def discounted_sum_of_advantage_scorer(
 
             total_sums += sum_advantages
 
-    # smaller is better
+    # bigger is better
     return -float(np.mean(total_sums))
 
 
