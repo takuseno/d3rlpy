@@ -189,16 +189,12 @@ class MinMaxRewardScaler(RewardScaler):
         if self._minimum is not None and self._maximum is not None:
             return
 
-        for i, e in enumerate(episodes):
-            if i == 0:
-                minimum = e.rewards.min()
-                maximum = e.rewards.max()
-                continue
-            minimum = min(minimum, e.rewards.min())
-            maximum = max(maximum, e.rewards.max())
+        rewards = []
+        for episode in episodes:
+            rewards += episode.rewards[1:].tolist()
 
-        self._minimum = float(minimum)
-        self._maximum = float(maximum)
+        self._minimum = float(np.min(rewards))
+        self._maximum = float(np.max(rewards))
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
         assert self._minimum is not None and self._maximum is not None
@@ -272,7 +268,7 @@ class StandardRewardScaler(RewardScaler):
 
         rewards = []
         for episode in episodes:
-            rewards += episode.rewards.tolist()
+            rewards += episode.rewards[1:].tolist()
 
         self._mean = float(np.mean(rewards))
         self._std = float(np.std(rewards))

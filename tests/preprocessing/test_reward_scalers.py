@@ -101,8 +101,13 @@ def test_min_max_reward_scaler_with_episode(
         terminals=terminals,
     )
 
-    maximum = rewards.max()
-    minimum = rewards.min()
+    rewards_without_first = []
+    for episode in dataset:
+        rewards_without_first += episode.rewards[1:].tolist()
+    rewards_without_first = np.array(rewards_without_first)
+
+    maximum = rewards_without_first.max()
+    minimum = rewards_without_first.min()
 
     scaler = MinMaxRewardScaler()
     scaler.fit(dataset.episodes)
@@ -168,8 +173,13 @@ def test_standard_reward_scaler_with_episode(
         terminals=terminals,
     )
 
-    mean = np.mean(rewards)
-    std = np.std(rewards)
+    rewards_without_first = []
+    for episode in dataset:
+        rewards_without_first += episode.rewards[1:].tolist()
+    rewards_without_first = np.array(rewards_without_first)
+
+    mean = np.mean(rewards_without_first)
+    std = np.std(rewards_without_first)
 
     scaler = StandardRewardScaler(eps=eps)
     scaler.fit(dataset.episodes)
