@@ -1,5 +1,5 @@
-Model-based Algorithms
-=============================
+(experimental) Model-based Algorithms
+=====================================
 
 .. module:: d3rlpy.dynamics
 
