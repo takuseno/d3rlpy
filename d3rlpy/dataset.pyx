@@ -1,4 +1,5 @@
 import copy
+import warnings
 
 import numpy as np
 
@@ -411,21 +412,6 @@ class MDPDataset:
 
         return stats
 
-    def clip_reward(self, low=None, high=None):
-        """ Clips rewards in the given range.
-
-        Args:
-            low (float): minimum value. If None, clipping is not performed on
-                lower edge.
-            high (float): maximum value. If None, clipping is not performed on
-                upper edge.
-
-        """
-        self._rewards = np.clip(self._rewards, low, high)
-        # rebuild Episode objects
-        if self._episodes:
-            self.build_episodes()
-
     def append(
         self,
         observations,
@@ -449,8 +435,10 @@ class MDPDataset:
             assert observation.shape == self.get_observation_shape(),\
                 f'Observation shape must be {self.get_observation_shape()}.'
             if self.discrete_action:
-                assert int(action) < self.get_action_size(),\
-                    f'Action size must be {self.get_action_size()}.'
+                if int(action) >= self.get_action_size():
+                    message = f'New action size is higher than' \
+                              f' {self.get_action_size()}.'
+                    warnings.warn(message)
             else:
                 assert action.shape == (self.get_action_size(), ),\
                     f'Action size must be {self.get_action_size()}.'
@@ -500,8 +488,7 @@ class MDPDataset:
             'Dataset must have discrete action-space.'
         assert self.get_observation_shape() == dataset.get_observation_shape(),\
             f'Observation shape must be {self.get_observation_shape()}'
-        assert self.get_action_size() == dataset.get_action_size(),\
-            f'Action size must be {self.get_action_size()}'
+
         self.append(
             dataset.observations,
             dataset.actions,

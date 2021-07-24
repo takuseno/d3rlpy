@@ -6,6 +6,7 @@ from ..argument_utility import (
     ActionScalerArg,
     EncoderArg,
     QFuncArg,
+    RewardScalerArg,
     ScalerArg,
     UseGPUArg,
     check_encoder,
@@ -137,6 +138,9 @@ class BCQ(AlgoBase):
             The available options are `['pixel', 'min_max', 'standard']`.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
+            reward preprocessor. The available options are
+            ``['clip', 'min_max', 'standard']``.
         impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
 
     """
@@ -192,6 +196,7 @@ class BCQ(AlgoBase):
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
+        reward_scaler: RewardScalerArg = None,
         impl: Optional[BCQImpl] = None,
         **kwargs: Any
     ):
@@ -202,6 +207,7 @@ class BCQ(AlgoBase):
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
             kwargs=kwargs,
         )
         self._actor_learning_rate = actor_learning_rate
@@ -253,6 +259,7 @@ class BCQ(AlgoBase):
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
+            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
 
@@ -347,6 +354,9 @@ class DiscreteBCQ(AlgoBase):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
+        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
+            reward preprocessor. The available options are
+            ``['clip', 'min_max', 'standard']``.
         impl (d3rlpy.algos.torch.bcq_impl.DiscreteBCQImpl):
             algorithm implementation.
 
@@ -382,6 +392,7 @@ class DiscreteBCQ(AlgoBase):
         target_update_interval: int = 8000,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
+        reward_scaler: RewardScalerArg = None,
         impl: Optional[DiscreteBCQImpl] = None,
         **kwargs: Any
     ):
@@ -392,6 +403,7 @@ class DiscreteBCQ(AlgoBase):
             gamma=gamma,
             scaler=scaler,
             action_scaler=None,
+            reward_scaler=reward_scaler,
             kwargs=kwargs,
         )
         self._learning_rate = learning_rate
@@ -423,6 +435,7 @@ class DiscreteBCQ(AlgoBase):
             beta=self._beta,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
+            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
 

@@ -8,7 +8,13 @@ from torch.utils.data._utils.collate import default_collate
 from typing_extensions import Protocol
 
 from .dataset import TransitionMiniBatch
-from .preprocessing import ActionScaler, Scaler
+from .preprocessing import ActionScaler, RewardScaler, Scaler
+
+BLACK_LIST = ["policy", "q_function"]  # special properties
+
+
+def _get_attributes(obj: Any) -> List[str]:
+    return [key for key in dir(obj) if key not in BLACK_LIST]
 
 
 def soft_sync(targ_model: nn.Module, model: nn.Module, tau: float) -> None:
@@ -29,35 +35,35 @@ def hard_sync(targ_model: nn.Module, model: nn.Module) -> None:
 
 
 def set_eval_mode(impl: Any) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, torch.nn.Module):
             module.eval()
 
 
 def set_train_mode(impl: Any) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, torch.nn.Module):
             module.train()
 
 
 def to_cuda(impl: Any, device: str) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
             module.cuda(device)
 
 
 def to_cpu(impl: Any) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
             module.cpu()
 
 
 def freeze(impl: Any) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, torch.nn.Module):
             for p in module.parameters():
@@ -65,7 +71,7 @@ def freeze(impl: Any) -> None:
 
 
 def unfreeze(impl: Any) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         module = getattr(impl, key)
         if isinstance(module, torch.nn.Module):
             for p in module.parameters():
@@ -74,7 +80,7 @@ def unfreeze(impl: Any) -> None:
 
 def get_state_dict(impl: Any) -> Dict[str, Any]:
     rets = {}
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         obj = getattr(impl, key)
         if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
             rets[key] = obj.state_dict()
@@ -82,7 +88,7 @@ def get_state_dict(impl: Any) -> Dict[str, Any]:
 
 
 def set_state_dict(impl: Any, chkpt: Dict[str, Any]) -> None:
-    for key in dir(impl):
+    for key in _get_attributes(impl):
         obj = getattr(impl, key)
         if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
             obj.load_state_dict(chkpt[key])
@@ -107,6 +113,10 @@ class _WithDeviceAndScalerProtocol(Protocol):
 
     @property
     def action_scaler(self) -> Optional[ActionScaler]:
+        ...
+
+    @property
+    def reward_scaler(self) -> Optional[RewardScaler]:
         ...
 
 
@@ -135,6 +145,7 @@ class TorchMiniBatch:
         device: str,
         scaler: Optional[Scaler] = None,
         action_scaler: Optional[ActionScaler] = None,
+        reward_scaler: Optional[RewardScaler] = None,
     ):
         # convert numpy array to torch tensor
         observations = _convert_to_torch(batch.observations, device)
@@ -158,6 +169,9 @@ class TorchMiniBatch:
         if action_scaler:
             actions = action_scaler.transform(actions)
             next_actions = action_scaler.transform(next_actions)
+        if reward_scaler:
+            rewards = reward_scaler.transform(rewards)
+            next_rewards = reward_scaler.transform(next_rewards)
 
         self._observations = observations
         self._actions = actions
@@ -214,6 +228,7 @@ class TorchMiniBatch:
 def torch_api(
     scaler_targets: Optional[List[str]] = None,
     action_scaler_targets: Optional[List[str]] = None,
+    reward_scaler_targets: Optional[List[str]] = None,
 ) -> Callable[..., np.ndarray]:
     def _torch_api(f: Callable[..., np.ndarray]) -> Callable[..., np.ndarray]:
         # get argument names
@@ -251,6 +266,7 @@ def torch_api(
                         self.device,
                         scaler=self.scaler,
                         action_scaler=self.action_scaler,
+                        reward_scaler=self.reward_scaler,
                     )
                 else:
                     tensor = torch.tensor(
@@ -269,6 +285,11 @@ def torch_api(
                     if self.action_scaler and action_scaler_targets:
                         if arg_keys[i] in action_scaler_targets:
                             tensor = self.action_scaler.transform(tensor)
+
+                    # preprocessing reward
+                    if self.reward_scaler and reward_scaler_targets:
+                        if arg_keys[i] in reward_scaler_targets:
+                            tensor = self.reward_scaler.transform(tensor)
 
                     # make sure if the tensor is float32 type
                     if tensor is not None and tensor.dtype != torch.float32:

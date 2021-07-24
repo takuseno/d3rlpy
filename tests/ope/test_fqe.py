@@ -55,16 +55,22 @@ def ope_tester(ope, observation_shape, action_size=2):
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-@pytest.mark.parametrize("scaler", [None, "min_max"])
-@pytest.mark.parametrize("action_scaler", [None, "min_max"])
+@pytest.mark.parametrize(
+    "scalers", [(None, None, None), ("min_max", "min_max", "min_max")]
+)
 def test_fqe(
-    observation_shape, action_size, q_func_factory, scaler, action_scaler
+    observation_shape,
+    action_size,
+    q_func_factory,
+    scalers,
 ):
+    scaler, action_scaler, reward_scaler = scalers
     algo = DDPG()
     fqe = FQE(
         algo=algo,
         scaler=scaler,
         action_scaler=action_scaler,
+        reward_scaler=reward_scaler,
         q_func_factory=q_func_factory,
     )
     ope_tester(fqe, observation_shape)
@@ -75,10 +81,16 @@ def test_fqe(
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-@pytest.mark.parametrize("scaler", [None, "standard"])
-def test_discrete_fqe(observation_shape, action_size, q_func_factory, scaler):
+@pytest.mark.parametrize("scalers", [(None, None), ("min_max", "min_max")])
+def test_discrete_fqe(observation_shape, action_size, q_func_factory, scalers):
+    scaler, reward_scaler = scalers
     algo = DQN()
-    fqe = DiscreteFQE(algo=algo, scaler=scaler, q_func_factory=q_func_factory)
+    fqe = DiscreteFQE(
+        algo=algo,
+        scaler=scaler,
+        reward_scaler=reward_scaler,
+        q_func_factory=q_func_factory,
+    )
     ope_tester(fqe, observation_shape)
     algo.create_impl(observation_shape, action_size)
     algo_update_tester(fqe, observation_shape, action_size, discrete=True)

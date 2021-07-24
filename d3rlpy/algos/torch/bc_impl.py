@@ -43,6 +43,7 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
             action_size=action_size,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=None,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory

@@ -10,8 +10,8 @@ from ...models.builders import create_discrete_q_function
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
-from ...models.torch import EnsembleDiscreteQFunction
-from ...preprocessing import Scaler
+from ...models.torch import EnsembleDiscreteQFunction, EnsembleQFunction
+from ...preprocessing import RewardScaler, Scaler
 from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
 from .base import TorchImplBase
 from .utility import DiscreteQFunctionMixin
@@ -44,12 +44,14 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         target_reduction_type: str,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             scaler=scaler,
             action_scaler=None,
+            reward_scaler=reward_scaler,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
@@ -150,6 +152,11 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         assert self._q_func is not None
         assert self._targ_q_func is not None
         hard_sync(self._targ_q_func, self._q_func)
+
+    @property
+    def q_function(self) -> EnsembleQFunction:
+        assert self._q_func
+        return self._q_func
 
 
 class DoubleDQNImpl(DQNImpl):

@@ -8,7 +8,7 @@ from ...gpu import Device
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
-from ...preprocessing import ActionScaler, Scaler
+from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from .cql_impl import CQLImpl
 
 
@@ -41,6 +41,7 @@ class COMBOImpl(CQLImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
+        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -69,6 +70,7 @@ class COMBOImpl(CQLImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
         )
         self._real_ratio = real_ratio
 

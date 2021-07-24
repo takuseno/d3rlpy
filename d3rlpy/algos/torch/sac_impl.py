@@ -19,10 +19,12 @@ from ...models.q_functions import QFunctionFactory
 from ...models.torch import (
     CategoricalPolicy,
     EnsembleDiscreteQFunction,
+    EnsembleQFunction,
     Parameter,
+    Policy,
     SquashedNormalPolicy,
 )
-from ...preprocessing import ActionScaler, Scaler
+from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
 from .base import TorchImplBase
 from .ddpg_impl import DDPGBaseImpl
@@ -60,6 +62,7 @@ class SACImpl(DDPGBaseImpl):
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
+        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -78,6 +81,7 @@ class SACImpl(DDPGBaseImpl):
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
+            reward_scaler=reward_scaler,
         )
         self._temp_learning_rate = temp_learning_rate
         self._temp_optim_factory = temp_optim_factory
@@ -204,12 +208,14 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         initial_temperature: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
+        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             scaler=scaler,
             action_scaler=None,
+            reward_scaler=reward_scaler,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -404,3 +410,13 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         assert self._q_func is not None
         assert self._targ_q_func is not None
         hard_sync(self._targ_q_func, self._q_func)
+
+    @property
+    def policy(self) -> Policy:
+        assert self._policy
+        return self._policy
+
+    @property
+    def q_function(self) -> EnsembleQFunction:
+        assert self._q_func
+        return self._q_func

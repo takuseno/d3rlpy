@@ -12,6 +12,8 @@ from ..constants import (
     ActionSpace,
 )
 from ..envs import BatchEnv
+from ..models.torch.policies import Policy
+from ..models.torch.q_functions.ensemble_q_function import EnsembleQFunction
 from ..online.buffers import (
     BatchBuffer,
     BatchReplayBuffer,
@@ -25,6 +27,7 @@ from ..online.iterators import (
     train_batch_env,
     train_single_env,
 )
+from ..torch_utility import hard_sync
 
 
 def _assert_action_space(algo: LearnableBase, env: gym.Env) -> None:
@@ -64,6 +67,31 @@ class AlgoImplBase(ImplBase):
     @abstractmethod
     def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
         pass
+
+    @property
+    def policy(self) -> Policy:
+        raise NotImplementedError
+
+    def copy_policy_from(self, impl: "AlgoImplBase") -> None:
+        if not isinstance(impl.policy, type(self.policy)):
+            raise ValueError(
+                f"Invalid policy type: expected={type(self.policy)},"
+                f"actual={type(impl.policy)}"
+            )
+        hard_sync(self.policy, impl.policy)
+
+    @property
+    def q_function(self) -> EnsembleQFunction:
+        raise NotImplementedError
+
+    def copy_q_function_from(self, impl: "AlgoImplBase") -> None:
+        q_func = self.q_function.q_funcs[0]
+        if not isinstance(impl.q_function.q_funcs[0], type(q_func)):
+            raise ValueError(
+                f"Invalid Q-function type: expected={type(q_func)},"
+                f"actual={type(impl.q_function.q_funcs[0])}"
+            )
+        hard_sync(self.q_function, impl.q_function)
 
 
 class AlgoBase(LearnableBase):
@@ -395,3 +423,47 @@ class AlgoBase(LearnableBase):
         )
 
         return buffer
+
+    def copy_policy_from(self, algo: "AlgoBase") -> None:
+        """Copies policy parameters from the given algorithm.
+
+        .. code-block:: python
+
+            # pretrain with static dataset
+            cql = d3rlpy.algos.CQL()
+            cql.fit(dataset, n_steps=100000)
+
+            # transfer to online algorithmn
+            sac = d3rlpy.algos.SAC()
+            sac.create_impl(cql.observation_shape, cql.action_size)
+            sac.copy_policy_from(cql)
+
+        Args:
+            algo: algorithm object.
+
+        """
+        assert self._impl, IMPL_NOT_INITIALIZED_ERROR
+        assert isinstance(algo.impl, AlgoImplBase)
+        self._impl.copy_policy_from(algo.impl)
+
+    def copy_q_function_from(self, algo: "AlgoBase") -> None:
+        """Copies Q-function parameters from the given algorithm.
+
+        .. code-block:: python
+
+            # pretrain with static dataset
+            cql = d3rlpy.algos.CQL()
+            cql.fit(dataset, n_steps=100000)
+
+            # transfer to online algorithmn
+            sac = d3rlpy.algos.SAC()
+            sac.create_impl(cql.observation_shape, cql.action_size)
+            sac.copy_q_function_from(cql)
+
+        Args:
+            algo: algorithm object.
+
+        """
+        assert self._impl, IMPL_NOT_INITIALIZED_ERROR
+        assert isinstance(algo.impl, AlgoImplBase)
+        self._impl.copy_q_function_from(algo.impl)

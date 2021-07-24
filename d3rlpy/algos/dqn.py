@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional, Sequence
 from ..argument_utility import (
     EncoderArg,
     QFuncArg,
+    RewardScalerArg,
     ScalerArg,
     UseGPUArg,
     check_encoder,
@@ -55,6 +56,9 @@ class DQN(AlgoBase):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
             The available options are `['pixel', 'min_max', 'standard']`
+        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
+            reward preprocessor. The available options are
+            ``['clip', 'min_max', 'standard']``.
         impl (d3rlpy.algos.torch.dqn_impl.DQNImpl): algorithm implementation.
 
     """
@@ -85,6 +89,7 @@ class DQN(AlgoBase):
         target_update_interval: int = 8000,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
+        reward_scaler: RewardScalerArg = None,
         impl: Optional[DQNImpl] = None,
         **kwargs: Any,
     ):
@@ -94,7 +99,7 @@ class DQN(AlgoBase):
             n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
-            action_scaler=None,
+            reward_scaler=reward_scaler,
             kwargs=kwargs,
         )
         self._learning_rate = learning_rate
@@ -122,6 +127,7 @@ class DQN(AlgoBase):
             target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
+            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
 
@@ -201,5 +207,6 @@ class DoubleDQN(DQN):
             target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
+            reward_scaler=self._reward_scaler,
         )
         self._impl.build()

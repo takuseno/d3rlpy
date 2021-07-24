@@ -7,8 +7,9 @@ import onnxruntime as ort
 import torch
 
 from d3rlpy.algos.torch.base import TorchImplBase
+from d3rlpy.constants import ActionSpace
 from d3rlpy.datasets import get_cartpole, get_pendulum
-from d3rlpy.preprocessing import ActionScaler, Scaler
+from d3rlpy.preprocessing import ActionScaler, RewardScaler, Scaler
 from tests.base_test import base_tester, base_update_tester
 
 
@@ -88,8 +89,34 @@ class DummyActionScaler(ActionScaler):
         return {}
 
 
+class DummyRewardScaler(RewardScaler):
+    def fit(self, episodes):
+        pass
+
+    def fit_with_env(self, env):
+        pass
+
+    def transform(self, reward):
+        return 0.1 * reward
+
+    def reverse_transform(self, reward):
+        return 10.0 * reward
+
+    def get_type(self):
+        return "dummy"
+
+    def get_params(self):
+        return {}
+
+
 def algo_tester(
-    algo, observation_shape, imitator=False, action_size=2, state_value=False
+    algo,
+    observation_shape,
+    imitator=False,
+    action_size=2,
+    state_value=False,
+    test_policy_copy=False,
+    test_q_function_copy=False,
 ):
     # dummy impl object
     impl = DummyImpl(observation_shape, action_size)
@@ -128,6 +155,30 @@ def algo_tester(
         impl.sample_action.assert_called_with(x)
     except NotImplementedError:
         pass
+
+    algo.create_impl(observation_shape, action_size)
+
+    if test_policy_copy:
+        algo2 = algo.__class__(**algo.get_params())
+        algo2.create_impl(observation_shape, action_size)
+        algo.copy_policy_from(algo2)
+        observations = np.random.random((100, *observation_shape))
+        action1 = algo.predict(observations)
+        action2 = algo.predict(observations)
+        assert np.all(action1 == action2)
+
+    if test_q_function_copy:
+        algo2 = algo.__class__(**algo.get_params())
+        algo2.create_impl(observation_shape, action_size)
+        algo.copy_q_function_from(algo2)
+        observations = np.random.random((100, *observation_shape))
+        if algo.get_action_type() == ActionSpace.CONTINUOUS:
+            actions = np.random.random((100, action_size))
+        else:
+            actions = np.random.randint(action_size, size=100)
+        value1 = algo.predict_value(observations, actions)
+        value2 = algo2.predict_value(observations, actions)
+        assert np.all(value1 == value2)
 
     algo._impl = None
 

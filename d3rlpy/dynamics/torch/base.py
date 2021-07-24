@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from ...gpu import Device
-from ...preprocessing import ActionScaler, Scaler
+from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import (
     eval_api,
     get_state_dict,
@@ -24,6 +24,7 @@ class TorchImplBase(DynamicsImplBase):
     _action_size: int
     _scaler: Optional[Scaler]
     _action_scaler: Optional[ActionScaler]
+    _reward_scaler: Optional[RewardScaler]
     _device: str
 
     def __init__(
@@ -32,11 +33,13 @@ class TorchImplBase(DynamicsImplBase):
         action_size: int,
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
+        reward_scaler: Optional[RewardScaler],
     ):
         self._observation_shape = observation_shape
         self._action_size = action_size
         self._scaler = scaler
         self._action_scaler = action_scaler
+        self._reward_scaler = reward_scaler
         self._device = "cpu:0"
 
     @eval_api
@@ -52,6 +55,9 @@ class TorchImplBase(DynamicsImplBase):
 
             if self._scaler:
                 observation = self._scaler.reverse_transform(observation)
+
+            if self._reward_scaler:
+                reward = self._reward_scaler.reverse_transform(reward)
 
         observation = observation.cpu().detach().numpy()
         reward = reward.cpu().detach().numpy()
@@ -102,3 +108,7 @@ class TorchImplBase(DynamicsImplBase):
     @property
     def action_scaler(self) -> Optional[ActionScaler]:
         return self._action_scaler
+
+    @property
+    def reward_scaler(self) -> Optional[RewardScaler]:
+        return self._reward_scaler

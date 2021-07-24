@@ -21,9 +21,11 @@ from tqdm.auto import tqdm
 
 from .argument_utility import (
     ActionScalerArg,
+    RewardScalerArg,
     ScalerArg,
     UseGPUArg,
     check_action_scaler,
+    check_reward_scaler,
     check_scaler,
 )
 from .constants import (
@@ -45,8 +47,10 @@ from .models.q_functions import QFunctionFactory, create_q_func_factory
 from .online.utility import get_action_size_from_env
 from .preprocessing import (
     ActionScaler,
+    RewardScaler,
     Scaler,
     create_action_scaler,
+    create_reward_scaler,
     create_scaler,
 )
 
@@ -76,7 +80,14 @@ def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(value, Device):
             params[key] = value.get_id()
         elif isinstance(
-            value, (Scaler, ActionScaler, EncoderFactory, QFunctionFactory)
+            value,
+            (
+                Scaler,
+                ActionScaler,
+                RewardScaler,
+                EncoderFactory,
+                QFunctionFactory,
+            ),
         ):
             params[key] = {
                 "type": value.get_type(),
@@ -94,11 +105,16 @@ def _deseriealize_params(params: Dict[str, Any]) -> Dict[str, Any]:
             scaler_params = params["scaler"]["params"]
             scaler = create_scaler(scaler_type, **scaler_params)
             params[key] = scaler
-        if key == "action_scaler" and params["action_scaler"]:
+        elif key == "action_scaler" and params["action_scaler"]:
             scaler_type = params["action_scaler"]["type"]
             scaler_params = params["action_scaler"]["params"]
             action_scaler = create_action_scaler(scaler_type, **scaler_params)
             params[key] = action_scaler
+        elif key == "reward_scaler" and params["reward_scaler"]:
+            scaler_type = params["reward_scaler"]["type"]
+            scaler_params = params["reward_scaler"]["params"]
+            reward_scaler = create_reward_scaler(scaler_type, **scaler_params)
+            params[key] = reward_scaler
         elif "optim_factory" in key:
             params[key] = OptimizerFactory(**value)
         elif "encoder_factory" in key:
@@ -121,6 +137,7 @@ class LearnableBase:
     _gamma: float
     _scaler: Optional[Scaler]
     _action_scaler: Optional[ActionScaler]
+    _reward_scaler: Optional[RewardScaler]
     _real_ratio: float
     _generated_maxlen: int
     _impl: Optional[ImplBase]
@@ -135,8 +152,9 @@ class LearnableBase:
         n_frames: int,
         n_steps: int,
         gamma: float,
-        scaler: ScalerArg,
-        action_scaler: ActionScalerArg,
+        scaler: ScalerArg = None,
+        action_scaler: ActionScalerArg = None,
+        reward_scaler: RewardScalerArg = None,
         real_ratio: float = 1.0,
         generated_maxlen: int = 100000,
         kwargs: Optional[Dict[str, Any]] = None,
@@ -147,6 +165,7 @@ class LearnableBase:
         self._gamma = gamma
         self._scaler = check_scaler(scaler)
         self._action_scaler = check_action_scaler(action_scaler)
+        self._reward_scaler = check_reward_scaler(reward_scaler)
         self._real_ratio = real_ratio
         self._generated_maxlen = generated_maxlen
 
@@ -540,6 +559,14 @@ class LearnableBase:
             )
             self._action_scaler.fit(episodes)
 
+        # initialize reward scaler
+        if self._reward_scaler:
+            LOG.debug(
+                "Fitting reward scaler...",
+                reward_scaler=self._reward_scaler.get_type(),
+            )
+            self._reward_scaler.fit(episodes)
+
         # instantiate implementation
         if self._impl is None:
             LOG.debug("Building models...")
@@ -899,6 +926,20 @@ class LearnableBase:
     @action_scaler.setter
     def action_scaler(self, action_scaler: ActionScaler) -> None:
         self._action_scaler = action_scaler
+
+    @property
+    def reward_scaler(self) -> Optional[RewardScaler]:
+        """Preprocessing reward scaler.
+
+        Returns:
+            Optional[RewardScaler]: preprocessing reward scaler.
+
+        """
+        return self._reward_scaler
+
+    @reward_scaler.setter
+    def reward_scaler(self, reward_scaler: RewardScaler) -> None:
+        self._reward_scaler = reward_scaler
 
     @property
     def impl(self) -> Optional[ImplBase]:

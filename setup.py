@@ -1,6 +1,6 @@
 import os
 
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 
 os.environ['CFLAGS'] = '-std=c++11'
 
@@ -62,21 +62,7 @@ if __name__ == "__main__":
                             "scipy",
                             "structlog",
                             "colorama"],
-          packages=["d3rlpy",
-                    "d3rlpy.algos",
-                    "d3rlpy.algos.torch",
-                    "d3rlpy.dynamics",
-                    "d3rlpy.dynamics.torch",
-                    "d3rlpy.envs",
-                    "d3rlpy.iterators",
-                    "d3rlpy.metrics",
-                    "d3rlpy.models",
-                    "d3rlpy.models.torch",
-                    "d3rlpy.online",
-                    "d3rlpy.ope",
-                    "d3rlpy.ope.torch",
-                    "d3rlpy.preprocessing",
-                    "d3rlpy.wrappers"],
+          packages=find_packages(exclude=["tests*"]),
           python_requires=">=3.6.0",
           zip_safe=False,
           package_data={'d3rlpy': ['*.pyx',
