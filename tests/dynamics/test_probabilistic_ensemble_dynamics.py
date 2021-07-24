@@ -20,6 +20,8 @@ def test_probabilistic_ensemble_dynamics(
     discrete_action,
 ):
     scaler, action_scaler, reward_scaler = scalers
+    if discrete_action:
+        action_scaler = None
     dynamics = ProbabilisticEnsembleDynamics(
         scaler=scaler,
         action_scaler=action_scaler,
