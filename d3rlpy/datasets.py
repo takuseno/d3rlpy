@@ -252,16 +252,15 @@ def get_d4rl(
             rewards.append(reward)
             terminals.append(0.0)
 
-            episode_step += 1
-
+            # skip adding the last step when timeout
             if dataset["timeouts"][cursor]:
-                # skip adding the last step
                 episode_terminals.append(1.0)
                 episode_step = 0
                 cursor += 1
                 continue
-            else:
-                episode_terminals.append(0.0)
+
+            episode_terminals.append(0.0)
+            episode_step += 1
 
             if dataset["terminals"][cursor]:
                 # collect data for step=t+1
