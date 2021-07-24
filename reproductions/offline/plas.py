@@ -27,18 +27,21 @@ def main():
     plas = d3rlpy.algos.PLAS(actor_encoder_factory=encoder,
                              critic_encoder_factory=encoder,
                              imitator_encoder_factory=vae_encoder,
+                             lam=1.0,
+                             warmup_steps=500000,
                              use_gpu=args.gpu)
 
-    plas.fit(dataset.episodes,
-             eval_episodes=test_episodes,
-             n_steps=500000,
-             n_steps_per_epoch=1000,
-             save_interval=10,
-             scorers={
-                 'environment': d3rlpy.metrics.evaluate_on_environment(env),
-                 'value_scale': d3rlpy.metrics.average_value_estimation_scorer,
-             },
-             experiment_name=f"PLAS_{args.dataset}_{args.seed}")
+    plas.fit(
+        dataset.episodes,
+        eval_episodes=test_episodes,
+        n_steps=1000000,  # RL starts at 500000 step
+        n_steps_per_epoch=1000,
+        save_interval=10,
+        scorers={
+            'environment': d3rlpy.metrics.evaluate_on_environment(env),
+            'value_scale': d3rlpy.metrics.average_value_estimation_scorer,
+        },
+        experiment_name=f"PLAS_{args.dataset}_{args.seed}")
 
 
 if __name__ == '__main__':
