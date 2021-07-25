@@ -383,6 +383,7 @@ class AlgoBase(LearnableBase):
         env: gym.Env,
         buffer: Optional[Buffer] = None,
         explorer: Optional[Explorer] = None,
+        deterministic: bool = False,
         n_steps: int = 1000000,
         show_progress: bool = True,
         timelimit_aware: bool = True,
@@ -395,6 +396,7 @@ class AlgoBase(LearnableBase):
             env: gym-like environment.
             buffer : replay buffer.
             explorer: action explorer.
+            deterministic: flag to collect data with the greedy policy.
             n_steps: the number of total steps to train.
             show_progress: flag to show progress bar for iterations.
             timelimit_aware: flag to turn ``terminal`` flag ``False`` when
@@ -417,6 +419,7 @@ class AlgoBase(LearnableBase):
             env=env,
             buffer=buffer,
             explorer=explorer,
+            deterministic=deterministic,
             n_steps=n_steps,
             show_progress=show_progress,
             timelimit_aware=timelimit_aware,

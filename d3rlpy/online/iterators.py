@@ -459,6 +459,7 @@ def collect(
     env: gym.Env,
     buffer: Buffer,
     explorer: Optional[Explorer] = None,
+    deterministic: bool = False,
     n_steps: int = 1000000,
     show_progress: bool = True,
     timelimit_aware: bool = True,
@@ -470,6 +471,7 @@ def collect(
         env: gym-like environment.
         buffer : replay buffer.
         explorer: action explorer.
+        deterministic: flag to collect data with the greedy policy.
         n_steps: the number of total steps to train.
         show_progress: flag to show progress bar for iterations.
         timelimit_aware: flag to turn ``terminal`` flag ``False`` when
@@ -503,11 +505,14 @@ def collect(
             fed_observation = observation
 
         # sample exploration action
-        if explorer:
-            x = fed_observation.reshape((1,) + fed_observation.shape)
-            action = explorer.sample(algo, x, total_step)[0]
+        if deterministic:
+            action = algo.predict([fed_observation])[0]
         else:
-            action = algo.sample_action([fed_observation])[0]
+            if explorer:
+                x = fed_observation.reshape((1,) + fed_observation.shape)
+                action = explorer.sample(algo, x, total_step)[0]
+            else:
+                action = algo.sample_action([fed_observation])[0]
 
         # store observation
         buffer.append(
