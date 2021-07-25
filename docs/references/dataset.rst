@@ -14,7 +14,7 @@ However, in reinforcement learning, mini-batches consist with sets of
 Converting a set of observations, actions, rewards and terminal flags into this
 tuples is boring and requires some codings.
 
-Therefore, d3rlpy provides `MDPDataset` class which enables you to handle
+Therefore, d3rlpy provides ``MDPDataset`` class which enables you to handle
 reinforcement learning datasets without any efforts.
 
 .. code-block:: python
@@ -67,7 +67,7 @@ must be aligned with the same timestep.
 
 This alignment might be different from other libraries where the tuple of :math:`(s_t, a_t, r_{t+1})`.
 The advantage of d3rlpy's formulation is that we can explicitly store the last observation which might
-be useful for the futrue goal-oriented methods and less confusing.
+be useful for the future goal-oriented methods and less confusing. See discussion in `issue #98 <https://github.com/takuseno/d3rlpy/issues/98>`_.
 
 .. autosummary::
    :toctree: generated/
