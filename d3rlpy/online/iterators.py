@@ -274,6 +274,9 @@ def train_single_env(
             # save metrics
             logger.commit(epoch, total_step)
 
+    # clip the last episode
+    buffer.clip_episode()
+
 
 def train_batch_env(
     algo: AlgoProtocol,
@@ -453,6 +456,9 @@ def train_batch_env(
     # finish all process
     env.close()
 
+    # clip the last episodes
+    buffer.clip_episode()
+
 
 def collect(
     algo: AlgoProtocol,
@@ -538,3 +544,6 @@ def collect(
                 terminal = False
             else:
                 clip_episode = terminal
+
+    # clip the last episode
+    buffer.clip_episode()
