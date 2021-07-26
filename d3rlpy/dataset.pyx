@@ -161,6 +161,7 @@ class MDPDataset:
             action-space is discrete, the shape should be `(N,)`.
         rewards (numpy.ndarray): array of scalar rewards.
         terminals (numpy.ndarray): array of binary terminal flags.
+        observation_names (list): list of strings.
         episode_terminals (numpy.ndarray): array of binary episode terminal
             flags. The given data will be splitted based on this flag.
             This is useful if you want to specify the non-environment
@@ -180,6 +181,7 @@ class MDPDataset:
         actions,
         rewards,
         terminals,
+        observation_names=None,
         episode_terminals=None,
         discrete_action=None,
         create_mask=False,
@@ -198,6 +200,7 @@ class MDPDataset:
         self._observations = observations
         self._rewards = np.asarray(rewards, dtype=np.float32).reshape(-1)
         self._terminals = np.asarray(terminals, dtype=np.float32).reshape(-1)
+        self._observation_names = observation_names
 
         if episode_terminals is None:
             # if None, episode terminals match the environment terminals
@@ -229,6 +232,22 @@ class MDPDataset:
 
         """
         return self._observations
+
+    @property
+    def observation_names(self):
+        """ Returns the observation names.
+
+        Returns:
+            List[str]: list of observation names.
+
+        """
+        return self._observation_names
+
+    @observation_names.setter
+    def observation_names(self,observation_names):
+        """ Set the observation names.
+        """
+        self.observation_names = observation_names
 
     @property
     def actions(self):
@@ -510,6 +529,7 @@ class MDPDataset:
             f.create_dataset('rewards', data=self._rewards)
             f.create_dataset('terminals', data=self._terminals)
             f.create_dataset('episode_terminals', data=self._episode_terminals)
+            f.create_dataset('observation_names', data=self._observation_names)
             f.create_dataset('discrete_action', data=self.discrete_action)
             f.create_dataset('create_mask', data=self._create_mask)
             f.create_dataset('mask_size', data=self._mask_size)
@@ -547,6 +567,7 @@ class MDPDataset:
             rewards = f['rewards'][()]
             terminals = f['terminals'][()]
             discrete_action = f['discrete_action'][()]
+            observation_names = list(f['observation_names'][()])
 
             # for backward compatibility
             if 'episode_terminals' in f:
@@ -560,6 +581,7 @@ class MDPDataset:
             rewards=rewards,
             terminals=terminals,
             episode_terminals=episode_terminals,
+            observation_names=observation_names,
             discrete_action=discrete_action,
             create_mask=create_mask,
             mask_size=mask_size

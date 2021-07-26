@@ -97,7 +97,17 @@ class Episode:
         terminal: bool = ...,
         create_mask: bool = ...,
         mask_size: int = ...,
-    ): ...
+    ): 
+        self._mask_size = None
+        self._create_mask = None
+        self.action_size = None
+        self.observation_shape = None
+        self._transitions = None
+        self._terminal = None
+        self._rewards = None
+        self._actions = None
+        self._observations = None
+        ...
     @property
     def observations(self) -> np.ndarray: ...
     @property
@@ -128,9 +138,24 @@ class MDPDataset:
         discrete_action: Optional[bool] = ...,
         create_mask: bool = ...,
         mask_size: int = ...,
-    ): ...
+    ): 
+        self._mask_size = None
+        self._create_mask = None
+        self._observations = None
+        self.discrete_action = None
+        self._episodes = None
+        self._episode_terminals = None
+        self._terminals = None
+        self._rewards = None
+        self._actions = None
+        self._observation_names = None
+        ...
     @property
     def observations(self) -> np.ndarray: ...
+    @property
+    def observation_names(self) -> List[str]: ...
+    @observation_names.setter
+    def observation_names(self, observation_names: List[str]) -> None: ...
     @property
     def actions(self) -> np.ndarray: ...
     @property
