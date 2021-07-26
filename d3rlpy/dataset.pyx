@@ -238,7 +238,7 @@ class MDPDataset:
         """ Returns the observation names.
 
         Returns:
-            List[str]: list of observation names.
+            list(str): list of observation names.
 
         """
         return self._observation_names

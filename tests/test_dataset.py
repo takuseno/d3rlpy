@@ -69,6 +69,7 @@ def test_mdp_dataset(
     rewards = np.random.uniform(-10.0, 10.0, size=data_size).astype("f4")
     n_steps = data_size // n_episodes
     terminals = np.array(([0] * (n_steps - 1) + [1]) * n_episodes)
+    observation_names = [f"col_{str(i)}" for i in range(observation_size)]
 
     if discrete_action:
         actions = np.random.randint(action_size, size=data_size)
@@ -83,6 +84,7 @@ def test_mdp_dataset(
         rewards=rewards,
         terminals=terminals,
         discrete_action=discrete_action,
+        observation_names=observation_names
     )
 
     # check MDPDataset methods
@@ -94,6 +96,7 @@ def test_mdp_dataset(
     assert dataset.get_action_size() == action_size
     assert dataset.get_observation_shape() == (observation_size,)
     assert dataset.is_action_discrete() == discrete_action
+    assert dataset.observation_names == observation_names
 
     # check stats
     ref_returns = []
@@ -204,6 +207,7 @@ def test_mdp_dataset(
     assert np.all(dataset.rewards == new_dataset.rewards)
     assert np.all(dataset.terminals == new_dataset.terminals)
     assert dataset.discrete_action == new_dataset.discrete_action
+    assert dataset.observation_names == new_dataset.observation_names
     assert len(dataset) == len(new_dataset)
 
 
