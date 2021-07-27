@@ -84,7 +84,7 @@ def test_mdp_dataset(
         rewards=rewards,
         terminals=terminals,
         discrete_action=discrete_action,
-        observation_names=observation_names
+        observation_names=observation_names,
     )
 
     # check MDPDataset methods

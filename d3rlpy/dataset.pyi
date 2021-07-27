@@ -97,7 +97,7 @@ class Episode:
         terminal: bool = ...,
         create_mask: bool = ...,
         mask_size: int = ...,
-    ): 
+    ):
         self._mask_size = None
         self._create_mask = None
         self.action_size = None
@@ -139,7 +139,7 @@ class MDPDataset:
         discrete_action: Optional[bool] = ...,
         create_mask: bool = ...,
         mask_size: int = ...,
-    ): 
+    ):
         self._mask_size = None
         self._create_mask = None
         self._observations = None
