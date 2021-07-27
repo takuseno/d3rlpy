@@ -134,7 +134,7 @@ class MDPDataset:
         actions: np.ndarray,
         rewards: np.ndarray,
         terminals: np.ndarray,
-        observation_names=None,
+        observation_names: Optional[List[str]] = ...,
         episode_terminals: Optional[np.ndarray] = ...,
         discrete_action: Optional[bool] = ...,
         create_mask: bool = ...,
