@@ -567,7 +567,7 @@ class MDPDataset:
             rewards = f['rewards'][()]
             terminals = f['terminals'][()]
             discrete_action = f['discrete_action'][()]
-            observation_names = list(f['observation_names'][()])
+            observation_names = [c.decode() for c in f['observation_names'][()]]
 
             # for backward compatibility
             if 'episode_terminals' in f:
