@@ -529,7 +529,9 @@ class MDPDataset:
             f.create_dataset('rewards', data=self._rewards)
             f.create_dataset('terminals', data=self._terminals)
             f.create_dataset('episode_terminals', data=self._episode_terminals)
-            f.create_dataset('observation_names', data=self._observation_names)
+            if self.observation_names is not None:
+                f.create_dataset('observation_names',
+                                 data=self._observation_names)
             f.create_dataset('discrete_action', data=self.discrete_action)
             f.create_dataset('create_mask', data=self._create_mask)
             f.create_dataset('mask_size', data=self._mask_size)
