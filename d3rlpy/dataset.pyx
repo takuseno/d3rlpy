@@ -181,11 +181,11 @@ class MDPDataset:
         actions,
         rewards,
         terminals,
-        observation_names=None,
         episode_terminals=None,
         discrete_action=None,
         create_mask=False,
-        mask_size=1
+        mask_size=1,
+        observation_names=None
     ):
         # validation
         assert isinstance(observations, np.ndarray),\

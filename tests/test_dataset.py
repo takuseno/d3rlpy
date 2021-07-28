@@ -57,6 +57,7 @@ def test_check_discrete_action_with_mdp_dataset(
 @pytest.mark.parametrize("n_episodes", [4])
 @pytest.mark.parametrize("discrete_action", [True, False])
 @pytest.mark.parametrize("add_actions", [1, 3])
+@pytest.mark.parametrize("test_observation_names", [True, False])
 def test_mdp_dataset(
     data_size,
     observation_size,
@@ -64,12 +65,15 @@ def test_mdp_dataset(
     n_episodes,
     discrete_action,
     add_actions,
+    test_observation_names,
 ):
     observations = np.random.random((data_size, observation_size)).astype("f4")
     rewards = np.random.uniform(-10.0, 10.0, size=data_size).astype("f4")
     n_steps = data_size // n_episodes
     terminals = np.array(([0] * (n_steps - 1) + [1]) * n_episodes)
-    observation_names = [f"col_{str(i)}" for i in range(observation_size)]
+    observation_names = None
+    if test_observation_names:
+        observation_names = [f"col_{str(i)}" for i in range(observation_size)]
 
     if discrete_action:
         actions = np.random.randint(action_size, size=data_size)
@@ -79,10 +83,10 @@ def test_mdp_dataset(
         ref_action_size = action_size
 
     dataset = MDPDataset(
-        observations=observations,
-        actions=actions,
-        rewards=rewards,
-        terminals=terminals,
+        observations,
+        actions,
+        rewards,
+        terminals,
         discrete_action=discrete_action,
         observation_names=observation_names,
     )
@@ -227,10 +231,10 @@ def test_mdp_dataset_with_mask(
     terminals = np.array(([0] * (n_steps - 1) + [1]) * n_episodes)
 
     dataset = MDPDataset(
-        observations=observations,
-        actions=actions,
-        rewards=rewards,
-        terminals=terminals,
+        observations,
+        actions,
+        rewards,
+        terminals,
         create_mask=create_mask,
         mask_size=mask_size,
     )
@@ -341,7 +345,11 @@ def test_episode_terminals(data_size, observation_size, action_size):
     episode_terminals[49] = 1.0
     episode_terminals[-1] = 1.0
     dataset2 = MDPDataset(
-        observations, actions, rewards, terminals, episode_terminals
+        observations,
+        actions,
+        rewards,
+        terminals,
+        episode_terminals=episode_terminals,
     )
     assert len(dataset2.episodes) == 2
     assert not np.all(dataset2.terminals == dataset2.episode_terminals)
