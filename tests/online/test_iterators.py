@@ -70,12 +70,13 @@ def test_fit_online_pendulum_with_sac():
     )
 
 
-def test_collect_pendulum_with_sac():
+@pytest.mark.parametrize("deterministic", [False, True])
+def test_collect_pendulum_with_sac(deterministic):
     env = gym.make("Pendulum-v0")
 
     algo = SAC()
 
-    buffer = algo.collect(env, n_steps=500)
+    buffer = algo.collect(env, n_steps=500, deterministic=deterministic)
 
     assert buffer.size() > 490 and buffer.size() < 500
 

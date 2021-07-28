@@ -50,6 +50,47 @@ It's easy to create your own dataset with d3rlpy.
   cql = d3rlpy.algos.CQL()
   cql.fit(dataset)
 
+Please note that the ``observations``, ``actions``, ``rewards`` and ``terminals``
+must be aligned with the same timestep.
+
+.. code-block:: python
+
+  observations = [s1, s2, s3, ...]
+  actions      = [a1, a2, a3, ...]
+  rewards      = [r1, r2, r3, ...]
+  terminals    = [t1, t2, t3, ...]
+
+This alignment might be different from other libraries where the tuple of :math:`(s_t, a_t, r_{t+1})` is saved.
+The advantage of d3rlpy's formulation is that we can explicitly store the last observation which might
+be useful for the future goal-oriented methods and less confusing. See discussion in `issue #98 <https://github.com/takuseno/d3rlpy/issues/98>`_.
+
+If you have an access to the environment, you can automate the process.
+
+.. code-block:: python
+
+  import gym
+  
+  import d3rlpy
+
+  env = gym.make("Hopper-v2")
+
+  # collect with random policy
+  random_policy = d3rlpy.algos.RandomPolicy()
+  random_buffer = d3rlpy.online.buffers.ReplayBuffer(100000, env=env)
+  random_policy.collect(env, buffer=random_buffer, n_steps=100000)
+  random_dataset = random_buffer.to_mdp_dataset()
+
+  # collect during training
+  sac = d3rlpy.algos.SAC()
+  replay_buffer = d3rlpy.online.buffers.ReplayBuffer(100000, env=env)
+  sac.fit_online(env, buffer=replay_buffer, n_steps=100000)
+  replay_dataset = replay_buffer.to_mdp_dataset()
+
+  # collect with the trained policy
+  medium_buffer = d3rlpy.online.buffers.ReplayBuffer(100000, env=env)
+  sac.collect(env, buffer=medium_buffer, n_steps=100000)
+  medium_dataset = medium_buffer.to_mdp_dataset()
+
 Please check :ref:`mdp_dataset` for more details.
 
 Learning from image observation

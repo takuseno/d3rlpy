@@ -118,11 +118,13 @@ class BCQImpl(DDPGBaseImpl):
 
     def _build_imitator(self) -> None:
         self._imitator = create_conditional_vae(
-            self._observation_shape,
-            self._action_size,
-            self._latent_size,
-            self._beta,
-            self._imitator_encoder_factory,
+            observation_shape=self._observation_shape,
+            action_size=self._action_size,
+            latent_size=self._latent_size,
+            beta=self._beta,
+            min_logstd=-4.0,
+            max_logstd=15.0,
+            encoder_factory=self._imitator_encoder_factory,
         )
 
     def _build_imitator_optim(self) -> None:

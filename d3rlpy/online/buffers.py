@@ -107,6 +107,10 @@ class _Buffer(metaclass=ABCMeta):
 
         """
 
+    @abstractmethod
+    def clip_episode(self) -> None:
+        """Clips the current episode."""
+
     def size(self) -> int:
         """Returns the number of appended elements in buffer.
 
@@ -350,10 +354,13 @@ class ReplayBuffer(BasicSampleMixin, Buffer):
         self._prev_reward = reward
 
         if clip_episode:
-            self._prev_observation = None
-            self._prev_action = None
-            self._prev_reward = 0.0
-            self._prev_transition = None
+            self.clip_episode()
+
+    def clip_episode(self) -> None:
+        self._prev_observation = None
+        self._prev_action = None
+        self._prev_reward = 0.0
+        self._prev_transition = None
 
 
 class BatchReplayBuffer(BasicSampleMixin, BatchBuffer):
@@ -458,3 +465,10 @@ class BatchReplayBuffer(BasicSampleMixin, BatchBuffer):
                 self._prev_actions[i] = None
                 self._prev_rewards[i] = None
                 self._prev_transitions[i] = None
+
+    def clip_episode(self) -> None:
+        for i in range(self._n_envs):
+            self._prev_observations[i] = None
+            self._prev_actions[i] = None
+            self._prev_rewards[i] = None
+            self._prev_transitions[i] = None

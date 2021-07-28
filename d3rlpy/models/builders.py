@@ -125,6 +125,8 @@ def create_conditional_vae(
     latent_size: int,
     beta: float,
     encoder_factory: EncoderFactory,
+    min_logstd: float = -20.0,
+    max_logstd: float = 2.0,
 ) -> ConditionalVAE:
     encoder_encoder = encoder_factory.create_with_action(
         observation_shape, action_size
@@ -132,7 +134,13 @@ def create_conditional_vae(
     decoder_encoder = encoder_factory.create_with_action(
         observation_shape, latent_size
     )
-    return ConditionalVAE(encoder_encoder, decoder_encoder, beta)
+    return ConditionalVAE(
+        encoder_encoder,
+        decoder_encoder,
+        beta,
+        min_logstd=min_logstd,
+        max_logstd=max_logstd,
+    )
 
 
 def create_discrete_imitator(

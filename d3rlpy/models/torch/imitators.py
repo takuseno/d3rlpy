@@ -14,6 +14,9 @@ class ConditionalVAE(nn.Module):  # type: ignore
     _encoder_encoder: EncoderWithAction
     _decoder_encoder: EncoderWithAction
     _beta: float
+    _min_logstd: float
+    _max_logstd: float
+
     _action_size: int
     _latent_size: int
     _mu: nn.Linear
@@ -25,11 +28,15 @@ class ConditionalVAE(nn.Module):  # type: ignore
         encoder_encoder: EncoderWithAction,
         decoder_encoder: EncoderWithAction,
         beta: float,
+        min_logstd: float = -20.0,
+        max_logstd: float = 2.0,
     ):
         super().__init__()
         self._encoder_encoder = encoder_encoder
         self._decoder_encoder = decoder_encoder
         self._beta = beta
+        self._min_logstd = min_logstd
+        self._max_logstd = max_logstd
 
         self._action_size = encoder_encoder.action_size
         self._latent_size = decoder_encoder.action_size
@@ -57,7 +64,7 @@ class ConditionalVAE(nn.Module):  # type: ignore
         h = self._encoder_encoder(x, action)
         mu = self._mu(h)
         logstd = self._logstd(h)
-        clipped_logstd = logstd.clamp(-20.0, 2.0)
+        clipped_logstd = logstd.clamp(self._min_logstd, self._max_logstd)
         return Normal(mu, clipped_logstd.exp())
 
     def decode(self, x: torch.Tensor, latent: torch.Tensor) -> torch.Tensor:

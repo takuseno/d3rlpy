@@ -147,6 +147,8 @@ class BEARImpl(SACImpl):
             action_size=self._action_size,
             latent_size=2 * self._action_size,
             beta=self._vae_kl_weight,
+            min_logstd=-4.0,
+            max_logstd=15.0,
             encoder_factory=self._imitator_encoder_factory,
         )
 
