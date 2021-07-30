@@ -247,7 +247,7 @@ class MDPDataset:
     def observation_names(self,observation_names):
         """ Set the observation names.
         """
-        self.observation_names = observation_names
+        self._observation_names = observation_names
 
     @property
     def actions(self):
