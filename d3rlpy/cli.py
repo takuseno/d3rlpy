@@ -53,19 +53,6 @@ def stats(path: str) -> None:
     print_stats(path)
 
 
-def _plot_show_or_save(plt: "matplotlib.pyplot",
-                 png: str,
-                 pdf: str,
-) -> None:
-    if png or pdf:
-        if png:
-            plt.savefig(png+'.png', format='png')
-        if pdf:
-            plt.savefig(pdf+'.pdf', format='pdf')
-    else:
-        plt.show()
-
-
 @cli.command(short_help="Plot saved metrics (requires matplotlib).")
 @click.argument("path", nargs=-1)
 @click.option(
@@ -78,8 +65,9 @@ def _plot_show_or_save(plt: "matplotlib.pyplot",
 @click.option("--ylim", nargs=2, type=float, help="limit on y-axis (tuple).")
 @click.option("--title", help="title of the plot.")
 @click.option("--ylabel", default="value", help="label on y-axis.")
-@click.option("--png", default=None, nargs=1, help="save to named png file.")
-@click.option("--pdf", default=None, nargs=1, help="save to named pdf file.")
+@click.option(
+    "--save", default=None, nargs=1, help="save to named png or pdf file."
+)
 def plot(
     path: List[str],
     window: int,
@@ -90,8 +78,7 @@ def plot(
     ylim: Optional[Tuple[float, float]],
     title: Optional[str],
     ylabel: str,
-    png: str,
-    pdf: str,
+    save: str,
 ) -> None:
     plt = get_plt()
 
@@ -153,14 +140,20 @@ def plot(
         plt.title(title)
 
     plt.legend()
-    _plot_show_or_save(plt, png, pdf)
+    if save:
+        plt.savefig(save)
+    else:
+        plt.show()
+
 
 @cli.command(short_help="Plot saved metrics in a grid (requires matplotlib).")
 @click.argument("path")
 @click.option("--title", help="title of the plot.")
-@click.option("--png", default=None, nargs=1, help="save to named png file.")
-@click.option("--pdf", default=None, nargs=1, help="save to named pdf file.")
-def plot_all(path: str,
+@click.option(
+    "--save", default=None, nargs=1, help="save to named png or pdf file."
+)
+def plot_all(
+    path: str,
     title: Optional[str],
     png: str,
     pdf: str,
@@ -200,7 +193,11 @@ def plot_all(path: str,
         plt.suptitle(title)
 
     plt.tight_layout()
-    _plot_show_or_save(plt, png, pdf)
+    if save:
+        plt.savefig(save)
+    else:
+        plt.show()
+
 
 def _get_params_json_path(path: str) -> str:
     dirname = os.path.dirname(path)
