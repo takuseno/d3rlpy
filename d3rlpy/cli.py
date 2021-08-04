@@ -155,8 +155,7 @@ def plot(
 def plot_all(
     path: str,
     title: Optional[str],
-    png: str,
-    pdf: str,
+    save: str,
 ) -> None:
     plt = get_plt()
 
