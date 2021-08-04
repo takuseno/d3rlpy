@@ -22,6 +22,7 @@ Before making your nice PR, please run the follwing commands to inspect code qua
 ### testing
 ```
 $ pip install pytest-cov onnxruntime stable-baselines3 # dependencies used in unit tests
+$ pip install git+https://github.com/takuseno/d4rl-pybullet
 $ ./scripts/test
 ```
 
