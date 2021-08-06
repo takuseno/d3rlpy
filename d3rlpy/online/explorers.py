@@ -132,6 +132,6 @@ class NormalNoise(Explorer):
             action with noise injection.
 
         """
-        action = algo.sample_action(x)
+        action = algo.predict(x)
         noise = np.random.normal(self._mean, self._std, size=action.shape)
         return np.clip(action + noise, -1.0, 1.0)
