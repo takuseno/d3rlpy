@@ -67,7 +67,6 @@ class TD3PlusBCImpl(TD3Impl):
         assert self._policy is not None
         assert self._q_func is not None
         action = self._policy(batch.observations)
-        policy_loss = -self._q_func(batch.observations, action, "min").mean()
-        q_t = self._q_func(batch.observations, batch.actions, "min")
+        q_t = self._q_func(batch.observations, action, "none")[0]
         lam = self._alpha / (q_t.abs().mean()).detach()
-        return lam * policy_loss + ((batch.actions - action) ** 2).mean()
+        return lam * -q_t.mean() + ((batch.actions - action) ** 2).mean()

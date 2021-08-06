@@ -240,7 +240,7 @@ class DDPGImpl(DDPGBaseImpl):
         assert self._policy is not None
         assert self._q_func is not None
         action = self._policy(batch.observations)
-        q_t = self._q_func(batch.observations, action, "min")
+        q_t = self._q_func(batch.observations, action, "none")[0]
         return -q_t.mean()
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
