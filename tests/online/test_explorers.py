@@ -97,7 +97,7 @@ def test_normal_noise(action_size, observation_shape, mean, std):
     ref_y = np.random.random((1, action_size))
 
     class DummyAlgo:
-        def sample_action(self, x):
+        def predict(self, x):
             assert np.all(x == ref_x)
             return ref_y
 
