@@ -191,6 +191,7 @@ def train_single_env(
 
     # start training loop
     observation, reward, terminal = env.reset(), 0.0, False
+    rollout_return = 0.0
     clip_episode = False
     for total_step in xrange(1, n_steps + 1):
         with logger.measure_time("step"):
@@ -223,12 +224,15 @@ def train_single_env(
             if clip_episode:
                 observation, reward, terminal = env.reset(), 0.0, False
                 clip_episode = False
+                logger.add_metric("rollout_return", rollout_return)
+                rollout_return = 0.0
                 # for image observation
                 if is_image:
                     stacked_frame.clear()
             else:
                 with logger.measure_time("environment_step"):
                     observation, reward, terminal, info = env.step(action)
+                    rollout_return += reward
 
                 # special case for TimeLimit wrapper
                 if timelimit_aware and "TimeLimit.truncated" in info:
