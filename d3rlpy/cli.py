@@ -65,9 +65,7 @@ def stats(path: str) -> None:
 @click.option("--ylim", nargs=2, type=float, help="limit on y-axis (tuple).")
 @click.option("--title", help="title of the plot.")
 @click.option("--ylabel", default="value", help="label on y-axis.")
-@click.option(
-    "--save", default=None, nargs=1, help="save to named png or pdf file."
-)
+@click.option("--save", help="flag to save the plot as an image.")
 def plot(
     path: List[str],
     window: int,
@@ -149,9 +147,7 @@ def plot(
 @cli.command(short_help="Plot saved metrics in a grid (requires matplotlib).")
 @click.argument("path")
 @click.option("--title", help="title of the plot.")
-@click.option(
-    "--save", default=None, nargs=1, help="save to named png or pdf file."
-)
+@click.option("--save", help="flag to save the plot as an image.")
 def plot_all(
     path: str,
     title: Optional[str],

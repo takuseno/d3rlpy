@@ -29,6 +29,8 @@ Plot the saved metrics by specifying paths::
      - limit on y-axis (tuple).
    * - ``--title``
      - title of the plot.
+   * - ``--save``
+     - flag to save the plot as an image.
 
 example::
 
