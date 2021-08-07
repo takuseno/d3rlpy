@@ -216,6 +216,7 @@ class AlgoBase(LearnableBase):
         n_steps_per_epoch: int = 10000,
         update_interval: int = 1,
         update_start_step: int = 0,
+        random_steps: int = 0,
         eval_env: Optional[gym.Env] = None,
         eval_epsilon: float = 0.0,
         save_metrics: bool = True,
@@ -239,6 +240,7 @@ class AlgoBase(LearnableBase):
             n_steps_per_epoch: the number of steps per epoch.
             update_interval: the number of steps per update.
             update_start_step: the steps before starting updates.
+            random_steps: the steps for the initial random explortion.
             eval_env: gym-like environment. If None, evaluation is skipped.
             eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
             save_metrics: flag to record metrics. If False, the log
@@ -278,6 +280,7 @@ class AlgoBase(LearnableBase):
             n_steps_per_epoch=n_steps_per_epoch,
             update_interval=update_interval,
             update_start_step=update_start_step,
+            random_steps=random_steps,
             eval_env=eval_env,
             eval_epsilon=eval_epsilon,
             save_metrics=save_metrics,

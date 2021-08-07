@@ -106,6 +106,7 @@ def train_single_env(
     n_steps_per_epoch: int = 10000,
     update_interval: int = 1,
     update_start_step: int = 0,
+    random_steps: int = 0,
     eval_env: Optional[gym.Env] = None,
     eval_epsilon: float = 0.0,
     save_metrics: bool = True,
@@ -130,6 +131,7 @@ def train_single_env(
         n_steps_per_epoch: the number of steps per epoch.
         update_interval: the number of steps per update.
         update_start_step: the steps before starting updates.
+        random_steps: the steps for the initial random explortion.
         eval_env: gym-like environment. If None, evaluation is skipped.
         eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
         save_metrics: flag to record metrics. If False, the log
@@ -205,7 +207,9 @@ def train_single_env(
 
             # sample exploration action
             with logger.measure_time("inference"):
-                if explorer:
+                if total_step < random_steps:
+                    action = env.action_space.sample()
+                elif explorer:
                     x = fed_observation.reshape((1,) + fed_observation.shape)
                     action = explorer.sample(algo, x, total_step)[0]
                 else:
