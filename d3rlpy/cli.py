@@ -33,7 +33,7 @@ def get_plt() -> "matplotlib.pyplot":
     import matplotlib.pyplot as plt
 
     try:
-        # enable seaborn style if avaiable
+        # enable seaborn style if available
         import seaborn as sns
 
         sns.set()
