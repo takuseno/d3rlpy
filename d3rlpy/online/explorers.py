@@ -4,6 +4,8 @@ from typing import Any, List, Optional, Union
 import numpy as np
 from typing_extensions import Protocol
 
+from ..preprocessing.action_scalers import ActionScaler, MinMaxActionScaler
+
 
 class _ActionProtocol(Protocol):
     def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
@@ -14,6 +16,10 @@ class _ActionProtocol(Protocol):
 
     @property
     def action_size(self) -> Optional[int]:
+        ...
+
+    @property
+    def action_scaler(self) -> Optional[ActionScaler]:
         ...
 
 
@@ -134,4 +140,15 @@ class NormalNoise(Explorer):
         """
         action = algo.predict(x)
         noise = np.random.normal(self._mean, self._std, size=action.shape)
-        return np.clip(action + noise, -1.0, 1.0)
+
+        if isinstance(algo.action_scaler, MinMaxActionScaler):
+            # scale noise
+            noise = algo.action_scaler.reverse_transform_numpy(noise)
+            params = algo.action_scaler.get_params()
+            minimum = params["minimum"]
+            maximum = params["maximum"]
+        else:
+            minimum = -1.0
+            maximum = 1.0
+
+        return np.clip(action + noise, minimum, maximum)
