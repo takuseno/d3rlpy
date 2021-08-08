@@ -33,7 +33,7 @@ def get_plt() -> "matplotlib.pyplot":
     import matplotlib.pyplot as plt
 
     try:
-        # enable seaborn style if avaiable
+        # enable seaborn style if available
         import seaborn as sns
 
         sns.set()
@@ -65,6 +65,7 @@ def stats(path: str) -> None:
 @click.option("--ylim", nargs=2, type=float, help="limit on y-axis (tuple).")
 @click.option("--title", help="title of the plot.")
 @click.option("--ylabel", default="value", help="label on y-axis.")
+@click.option("--save", help="flag to save the plot as an image.")
 def plot(
     path: List[str],
     window: int,
@@ -75,6 +76,7 @@ def plot(
     ylim: Optional[Tuple[float, float]],
     title: Optional[str],
     ylabel: str,
+    save: str,
 ) -> None:
     plt = get_plt()
 
@@ -136,12 +138,21 @@ def plot(
         plt.title(title)
 
     plt.legend()
-    plt.show()
+    if save:
+        plt.savefig(save)
+    else:
+        plt.show()
 
 
 @cli.command(short_help="Plot saved metrics in a grid (requires matplotlib).")
 @click.argument("path")
-def plot_all(path: str) -> None:
+@click.option("--title", help="title of the plot.")
+@click.option("--save", help="flag to save the plot as an image.")
+def plot_all(
+    path: str,
+    title: Optional[str],
+    save: str,
+) -> None:
     plt = get_plt()
 
     # print params.json
@@ -173,8 +184,14 @@ def plot_all(path: str) -> None:
             plt.xlabel("epoch")
             plt.ylabel("value")
 
+    if title:
+        plt.suptitle(title)
+
     plt.tight_layout()
-    plt.show()
+    if save:
+        plt.savefig(save)
+    else:
+        plt.show()
 
 
 def _get_params_json_path(path: str) -> str:
