@@ -27,7 +27,7 @@ def test_plas(
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
         target_reduction_type=target_reduction_type,
-        rl_start_epoch=0,
+        warmup_steps=0,
     )
     algo_tester(
         plas,
@@ -66,7 +66,7 @@ def test_plas_with_perturbation(
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
         target_reduction_type=target_reduction_type,
-        rl_start_epoch=0,
+        warmup_steps=0,
     )
     algo_tester(
         plas,
