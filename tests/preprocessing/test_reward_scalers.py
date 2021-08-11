@@ -7,20 +7,49 @@ from d3rlpy.dataset import Episode, MDPDataset
 from d3rlpy.preprocessing import (
     ClipRewardScaler,
     MinMaxRewardScaler,
+    MultiplyRewardScaler,
     StandardRewardScaler,
     create_reward_scaler,
 )
 
 
-@pytest.mark.parametrize("scaler_type", ["clip", "min_max", "standard"])
+@pytest.mark.parametrize(
+    "scaler_type", ["clip", "multiply", "min_max", "standard"]
+)
 def test_create_reward_scaler(scaler_type):
     scaler = create_reward_scaler(scaler_type)
     if scaler_type == "clip":
         assert isinstance(scaler, ClipRewardScaler)
+    elif scaler_type == "multiply":
+        assert isinstance(scaler, MultiplyRewardScaler)
     elif scaler_type == "min_max":
         assert isinstance(scaler, MinMaxRewardScaler)
     elif scaler_type == "standard":
         assert isinstance(scaler, StandardRewardScaler)
+
+
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("multiplier", [10.0])
+def test_multiply_reward_scaler(batch_size, multiplier):
+    rewards = np.random.random(batch_size).astype("f4") * 2 - 1
+
+    scaler = MultiplyRewardScaler(multiplier)
+
+    # check trnsform
+    y = scaler.transform(torch.tensor(rewards))
+    assert np.allclose(y.numpy(), rewards * multiplier)
+
+    # check reverse_transform
+    x = scaler.reverse_transform(y)
+    assert np.allclose(x.numpy(), rewards)
+
+    # check reverse_transform_numpy
+    y = scaler.transform_numpy(rewards)
+    assert np.allclose(y, rewards * multiplier)
+
+    assert scaler.get_type() == "multiply"
+    params = scaler.get_params()
+    assert params["multiplier"] == multiplier
 
 
 @pytest.mark.parametrize("batch_size", [32])

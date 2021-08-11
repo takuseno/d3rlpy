@@ -127,7 +127,7 @@ You can also initialize scalers by yourself.
 
     cql = CQL(reward_scaler=reward_scaler)
 
-    # ClipRewardScaler is the only option you need to initialize manually
+    # ClipRewardScaler and MultiplyRewardScaler must be initialized manually
     reward_scaler = ClipRewardScaler(-1.0, 1.0)
     cql = CQL(reward_scaler=reward_scaler)
 
@@ -138,3 +138,4 @@ You can also initialize scalers by yourself.
    d3rlpy.preprocessing.MinMaxRewardScaler
    d3rlpy.preprocessing.StandardRewardScaler
    d3rlpy.preprocessing.ClipRewardScaler
+   d3rlpy.preprocessing.MultiplyRewardScaler

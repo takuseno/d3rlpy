@@ -93,6 +93,45 @@ class RewardScaler:
         raise NotImplementedError
 
 
+class MultiplyRewardScaler(RewardScaler):
+    r"""Multiplication reward preprocessing.
+
+    This preprocessor multiplies rewards by a constant number.
+
+    .. code-block:: python
+
+        from d3rlpy.preprocessing import MultiplyRewardScaler
+
+        # multiply rewards by 10
+        reward_scaler = MultiplyRewardScaler(10.0)
+
+        cql = CQL(reward_scaler=reward_scaler)
+
+    """
+
+    TYPE: ClassVar[str] = "multiply"
+    _multiplier: Optional[float]
+
+    def __init__(self, multiplier: Optional[float] = None):
+        self._multiplier = multiplier
+
+    def fit(self, episodes: List[Episode]) -> None:
+        if self._multiplier is None:
+            LOG.warning("Please initialize MultiplyRewardScaler manually.")
+
+    def transform(self, reward: torch.Tensor) -> torch.Tensor:
+        return self._multiplier * reward
+
+    def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
+        return reward / self._multiplier
+
+    def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+        return self._multiplier * reward
+
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
+        return {"multiplier": self._multiplier}
+
+
 class ClipRewardScaler(RewardScaler):
     r"""Reward clipping preprocessing.
 
@@ -311,6 +350,7 @@ def create_reward_scaler(name: str, **kwargs: Any) -> RewardScaler:
     return reward_scaler
 
 
+register_reward_scaler(MultiplyRewardScaler)
 register_reward_scaler(ClipRewardScaler)
 register_reward_scaler(MinMaxRewardScaler)
 register_reward_scaler(StandardRewardScaler)
