@@ -107,6 +107,9 @@ class MultiplyRewardScaler(RewardScaler):
 
         cql = CQL(reward_scaler=reward_scaler)
 
+    Args:
+        multiplier (float): constant multiplication value.
+
     """
 
     TYPE: ClassVar[str] = "multiply"
@@ -147,34 +150,44 @@ class ClipRewardScaler(RewardScaler):
     Args:
         low (float): minimum value to clip.
         high (float): maximum value to clip.
+        multiplier (float): constant multiplication value.
 
     """
 
     TYPE: ClassVar[str] = "clip"
     _low: Optional[float]
     _high: Optional[float]
+    _multiplier: float
 
     def __init__(
-        self, low: Optional[float] = None, high: Optional[float] = None
+        self,
+        low: Optional[float] = None,
+        high: Optional[float] = None,
+        multiplier: float = 1.0,
     ):
         self._low = low
         self._high = high
+        self._multiplier = multiplier
 
     def fit(self, episodes: List[Episode]) -> None:
         if self._low is None and self._high is None:
             LOG.warning("Please initialize ClipRewardScaler manually.")
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return reward.clamp(self._low, self._high)
+        return self._multiplier * reward.clamp(self._low, self._high)
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return reward
+        return reward / self._multiplier
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        return np.clip(reward, self._low, self._high)
+        return self._multiplier * np.clip(reward, self._low, self._high)
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {"low": self._low, "high": self._high}
+        return {
+            "low": self._low,
+            "high": self._high,
+            "multiplier": self._multiplier,
+        }
 
 
 class MinMaxRewardScaler(RewardScaler):
@@ -205,19 +218,28 @@ class MinMaxRewardScaler(RewardScaler):
 
         cql = CQL(scaler=scaler)
 
+    Args:
+        dataset (d3rlpy.dataset.MDPDataset): dataset object.
+        minimum (float): minimum value.
+        maximum (float): maximum value.
+        multiplier (float): constant multiplication value.
+
     """
     TYPE: ClassVar[str] = "min_max"
     _minimum: Optional[float]
     _maximum: Optional[float]
+    _multiplier: float
 
     def __init__(
         self,
         dataset: Optional[MDPDataset] = None,
         minimum: Optional[float] = None,
         maximum: Optional[float] = None,
+        multiplier: float = 1.0,
     ):
         self._minimum = None
         self._maximum = None
+        self._multiplier = multiplier
         if dataset:
             self.fit(dataset.episodes)
         elif minimum is not None and maximum is not None:
@@ -237,18 +259,25 @@ class MinMaxRewardScaler(RewardScaler):
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
         assert self._minimum is not None and self._maximum is not None
-        return (reward - self._minimum) / (self._maximum - self._minimum)
+        base = self._maximum - self._minimum
+        return self._multiplier * (reward - self._minimum) / base
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
         assert self._minimum is not None and self._maximum is not None
-        return reward * (self._maximum - self._minimum) + self._minimum
+        base = self._maximum - self._minimum
+        return reward * base / self._multiplier + self._minimum
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
         assert self._minimum is not None and self._maximum is not None
-        return (reward - self._minimum) / (self._maximum - self._minimum)
+        base = self._maximum - self._minimum
+        return self._multiplier * (reward - self._minimum) / base
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {"minimum": self._minimum, "maximum": self._maximum}
+        return {
+            "minimum": self._minimum,
+            "maximum": self._maximum,
+            "multiplier": self._multiplier,
+        }
 
 
 class StandardRewardScaler(RewardScaler):
@@ -279,11 +308,19 @@ class StandardRewardScaler(RewardScaler):
 
         cql = CQL(scaler=scaler)
 
+    Args:
+        dataset (d3rlpy.dataset.MDPDataset): dataset object.
+        mean (float): mean value.
+        std (float): standard deviation value.
+        eps (float): constant value to avoid zero-division.
+        multiplier (float): constant multiplication value
+
     """
     TYPE: ClassVar[str] = "standard"
     _mean: Optional[float]
     _std: Optional[float]
     _eps: float
+    _multiplier: float
 
     def __init__(
         self,
@@ -291,10 +328,12 @@ class StandardRewardScaler(RewardScaler):
         mean: Optional[float] = None,
         std: Optional[float] = None,
         eps: float = 1e-3,
+        multiplier: float = 1.0,
     ):
         self._mean = None
         self._std = None
         self._eps = eps
+        self._multiplier = multiplier
         if dataset:
             self.fit(dataset.episodes)
         elif mean is not None and std is not None:
@@ -314,18 +353,25 @@ class StandardRewardScaler(RewardScaler):
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
         assert self._mean is not None and self._std is not None
-        return (reward - self._mean) / (self._std + self._eps)
+        nonzero_std = self._std + self._eps
+        return self._multiplier * (reward - self._mean) / nonzero_std
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
         assert self._mean is not None and self._std is not None
-        return reward * (self._std + self._eps) + self._mean
+        return reward * (self._std + self._eps) / self._multiplier + self._mean
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
         assert self._mean is not None and self._std is not None
-        return (reward - self._mean) / (self._std + self._eps)
+        nonzero_std = self._std + self._eps
+        return self._multiplier * (reward - self._mean) / nonzero_std
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {"mean": self._mean, "std": self._std, "eps": self._eps}
+        return {
+            "mean": self._mean,
+            "std": self._std,
+            "eps": self._eps,
+            "multiplier": self._multiplier,
+        }
 
 
 REWARD_SCALER_LIST: Dict[str, Type[RewardScaler]] = {}

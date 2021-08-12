@@ -55,50 +55,55 @@ def test_multiply_reward_scaler(batch_size, multiplier):
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("low", [-0.1])
 @pytest.mark.parametrize("high", [0.1])
-def test_clip_reward_scaler(batch_size, low, high):
+@pytest.mark.parametrize("multiplier", [10.0])
+def test_clip_reward_scaler(batch_size, low, high, multiplier):
     rewards = np.random.random(batch_size).astype("f4") * 2 - 1
 
-    scaler = ClipRewardScaler(low, high)
+    scaler = ClipRewardScaler(low, high, multiplier)
 
     # check range
     y = scaler.transform(torch.tensor(rewards))
-    assert np.all(y.numpy() <= 0.1)
-    assert np.all(y.numpy() >= -0.1)
+    assert np.all(y.numpy() <= multiplier * 0.1)
+    assert np.all(y.numpy() >= multiplier * -0.1)
 
     # check reverse_transform
-    y = scaler.reverse_transform(torch.tensor(rewards))
-    assert np.allclose(y.numpy(), rewards)
+    x = scaler.reverse_transform(y)
+    assert np.allclose(x.numpy(), np.clip(rewards, low, high))
 
     # check reverse_transform_numpy
     y = scaler.transform_numpy(rewards)
-    assert np.all(y == np.clip(rewards, low, high))
+    assert np.all(y == multiplier * np.clip(rewards, low, high))
 
     assert scaler.get_type() == "clip"
     params = scaler.get_params()
     assert params["low"] == low
     assert params["high"] == high
+    assert params["multiplier"] == multiplier
 
 
 @pytest.mark.parametrize("batch_size", [32])
-def test_min_max_reward_scaler(batch_size):
+@pytest.mark.parametrize("multiplier", [10.0])
+def test_min_max_reward_scaler(batch_size, multiplier):
     rewards = 10.0 * np.random.random(batch_size).astype("f4")
 
     maximum = rewards.max()
     minimum = rewards.min()
 
-    scaler = MinMaxRewardScaler(minimum=minimum, maximum=maximum)
+    scaler = MinMaxRewardScaler(
+        minimum=minimum, maximum=maximum, multiplier=multiplier
+    )
 
     # check range
     y = scaler.transform(torch.tensor(rewards))
     assert np.all(y.numpy() >= 0.0)
-    assert np.all(y.numpy() <= 1.0)
+    assert np.all(y.numpy() <= multiplier)
 
     # check reference value
-    ref_y = (rewards - minimum) / (maximum - minimum)
+    ref_y = multiplier * (rewards - minimum) / (maximum - minimum)
     assert np.allclose(y.numpy(), ref_y)
 
     # check reverse_transform
-    ref_x = ref_y * (maximum - minimum) + minimum
+    ref_x = ref_y * (maximum - minimum) / multiplier + minimum
     assert np.allclose(scaler.reverse_transform(y).numpy(), ref_x)
 
     # check reverse_transform_numpy
@@ -108,6 +113,7 @@ def test_min_max_reward_scaler(batch_size):
     params = scaler.get_params()
     assert np.allclose(params["minimum"], minimum)
     assert np.allclose(params["maximum"], maximum)
+    assert np.allclose(params["multiplier"], multiplier)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -153,18 +159,21 @@ def test_min_max_reward_scaler_with_episode(
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("eps", [0.3])
-def test_standard_reward_scaler(batch_size, eps):
+@pytest.mark.parametrize("multiplier", [10.0])
+def test_standard_reward_scaler(batch_size, eps, multiplier):
     rewards = 10.0 * np.random.random(batch_size).astype("f4")
 
     mean = np.mean(rewards)
     std = np.std(rewards)
 
-    scaler = StandardRewardScaler(mean=mean, std=std, eps=eps)
+    scaler = StandardRewardScaler(
+        mean=mean, std=std, eps=eps, multiplier=multiplier
+    )
 
     # check values
     y = scaler.transform(torch.tensor(rewards))
-    ref_y = (rewards - mean) / (std + eps)
-    assert np.allclose(y.numpy(), ref_y)
+    ref_y = multiplier * (rewards - mean) / (std + eps)
+    assert np.allclose(y.numpy(), ref_y, atol=1e-3)
 
     # check reverse_transform
     x = scaler.reverse_transform(y)
@@ -179,6 +188,7 @@ def test_standard_reward_scaler(batch_size, eps):
     assert np.allclose(params["mean"], mean)
     assert np.allclose(params["std"], std)
     assert params["eps"] == eps
+    assert params["multiplier"] == multiplier
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
