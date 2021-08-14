@@ -79,8 +79,8 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
     .. math::
 
         \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D}
-            [Q_\theta (s_t, a_t)
-             - (r_{t+1} + \gamma \max_a Q_\theta (s_{t+1}, a))^2]
+            [(Q_\theta (s_t, a_t)
+             - r_{t+1} - \gamma \max_a Q_\theta (s_{t+1}, a))^2]
 
     Args:
         algo: algorithm.
