@@ -40,7 +40,6 @@ from .decorators import pretty_repr
 from .gpu import Device
 from .iterators import RandomIterator, RoundIterator, TransitionIterator
 from .logger import LOG, D3RLPyLogger
-from .metrics.scorer import NEGATIVE_SCORERS
 from .models.encoders import EncoderFactory, create_encoder_factory
 from .models.optimizers import OptimizerFactory
 from .models.q_functions import QFunctionFactory, create_q_func_factory
@@ -790,11 +789,6 @@ class LearnableBase:
         for name, scorer in scorers.items():
             # evaluation with test data
             test_score = scorer(self, episodes)
-
-            # higher scorer's scores are better in scikit-learn.
-            # make it back to its original sign here.
-            if scorer in NEGATIVE_SCORERS:
-                test_score *= -1
 
             # logging metrics
             logger.add_metric(name, test_score)

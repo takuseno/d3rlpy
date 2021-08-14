@@ -116,7 +116,7 @@ def test_td_error_scorer(
         ref_errors += ref_error
 
     score = td_error_scorer(algo, episodes)
-    assert np.allclose(score, -np.mean(ref_errors))
+    assert np.allclose(score, np.mean(ref_errors))
 
 
 def ref_discounted_sum_of_advantage_score(
@@ -176,7 +176,7 @@ def test_discounted_sum_of_advantage_scorer(
         ref_sums += ref_sum
 
     score = discounted_sum_of_advantage_scorer(algo, episodes)
-    assert np.allclose(score, -np.mean(ref_sums))
+    assert np.allclose(score, np.mean(ref_sums))
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -212,7 +212,7 @@ def test_average_value_estimation_scorer(
         total_values += values.tolist()
 
     score = average_value_estimation_scorer(algo, episodes)
-    assert np.allclose(score, -np.mean(total_values))
+    assert np.allclose(score, np.mean(total_values))
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -248,7 +248,7 @@ def test_value_estimation_std_scorer(
         total_stds += stds.tolist()
 
     score = value_estimation_std_scorer(algo, episodes)
-    assert np.allclose(score, -np.mean(total_stds))
+    assert np.allclose(score, np.mean(total_stds))
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -359,7 +359,7 @@ def test_continuous_action_diff_scorer(
         diff = ((batch.actions - policy_actions) ** 2).sum(axis=1).tolist()
         total_diffs += diff
     score = continuous_action_diff_scorer(algo, episodes)
-    assert np.allclose(score, -np.mean(total_diffs))
+    assert np.allclose(score, np.mean(total_diffs))
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -489,7 +489,7 @@ def test_dynamics_observation_prediction_error_scorer(
         errors = ((batch.next_observations - pred_x) ** 2).sum(axis=1)
         total_errors += errors.tolist()
     score = dynamics_observation_prediction_error_scorer(dynamics, episodes)
-    assert np.allclose(score, -np.mean(total_errors))
+    assert np.allclose(score, np.mean(total_errors))
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -533,7 +533,7 @@ def test_dynamics_reward_prediction_error_scorer(
         errors = ((next_rewards - pred_reward) ** 2).reshape(-1)
         total_errors += errors.tolist()
     score = dynamics_reward_prediction_error_scorer(dynamics, episodes)
-    assert np.allclose(score, -np.mean(total_errors))
+    assert np.allclose(score, np.mean(total_errors))
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -565,4 +565,4 @@ def test_dynamics_prediction_variance_scorer(
         _, _, var = dynamics.predict(batch.observations, batch.actions, True)
         total_variances += var.tolist()
     score = dynamics_prediction_variance_scorer(dynamics, episodes)
-    assert np.allclose(score, -np.mean(total_variances))
+    assert np.allclose(score, np.mean(total_variances))

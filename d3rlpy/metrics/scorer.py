@@ -71,7 +71,7 @@ def _make_batches(
 
 
 def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
-    r"""Returns average TD error (in negative scale).
+    r"""Returns average TD error.
 
     This metics suggests how Q functions overfit to training sets.
     If the TD error is large, the Q functions are overfitting.
@@ -87,7 +87,7 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
         episodes: list of episodes.
 
     Returns:
-        negative average TD error.
+        average TD error.
 
     """
     total_errors = []
@@ -110,14 +110,13 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
             y = rewards + algo.gamma * cast(np.ndarray, next_values) * mask
             total_errors += ((values - y) ** 2).tolist()
 
-    # smaller is better
-    return -float(np.mean(total_errors))
+    return float(np.mean(total_errors))
 
 
 def discounted_sum_of_advantage_scorer(
     algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns average of discounted sum of advantage (in negative scale).
+    r"""Returns average of discounted sum of advantage.
 
     This metrics suggests how the greedy-policy selects different actions in
     action-value space.
@@ -141,7 +140,7 @@ def discounted_sum_of_advantage_scorer(
         episodes: list of episodes.
 
     Returns:
-        negative average of discounted sum of advantage.
+        average of discounted sum of advantage.
 
     """
     total_sums = []
@@ -170,13 +169,13 @@ def discounted_sum_of_advantage_scorer(
             total_sums += sum_advantages
 
     # smaller is better
-    return -float(np.mean(total_sums))
+    return float(np.mean(total_sums))
 
 
 def average_value_estimation_scorer(
     algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns average value estimation (in negative scale).
+    r"""Returns average value estimation.
 
     This metrics suggests the scale for estimation of Q functions.
     If average value estimation is too large, the Q functions overestimate
@@ -191,7 +190,7 @@ def average_value_estimation_scorer(
         episodes: list of episodes.
 
     Returns:
-        negative average value estimation.
+        average value estimation.
 
     """
     total_values = []
@@ -200,14 +199,13 @@ def average_value_estimation_scorer(
             actions = algo.predict(batch.observations)
             values = algo.predict_value(batch.observations, actions)
             total_values += cast(np.ndarray, values).tolist()
-    # smaller is better, maybe?
-    return -float(np.mean(total_values))
+    return float(np.mean(total_values))
 
 
 def value_estimation_std_scorer(
     algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns standard deviation of value estimation (in negative scale).
+    r"""Returns standard deviation of value estimation.
 
     This metrics suggests how confident Q functions are for the given
     episodes.
@@ -229,7 +227,7 @@ def value_estimation_std_scorer(
         episodes: list of episodes.
 
     Returns:
-        negative standard deviation.
+        standard deviation.
 
     """
     total_stds = []
@@ -238,8 +236,7 @@ def value_estimation_std_scorer(
             actions = algo.predict(batch.observations)
             _, stds = algo.predict_value(batch.observations, actions, True)
             total_stds += stds.tolist()
-    # smaller is better
-    return -float(np.mean(total_stds))
+    return float(np.mean(total_stds))
 
 
 def initial_state_value_estimation_scorer(
@@ -361,7 +358,7 @@ def continuous_action_diff_scorer(
         episodes: list of episodes.
 
     Returns:
-        negative squared action difference.
+        squared action difference.
 
     """
     total_diffs = []
@@ -370,8 +367,7 @@ def continuous_action_diff_scorer(
             actions = algo.predict(batch.observations)
             diff = ((batch.actions - actions) ** 2).sum(axis=1).tolist()
             total_diffs += diff
-    # smaller is better, sometimes?
-    return -float(np.mean(total_diffs))
+    return float(np.mean(total_diffs))
 
 
 def discrete_action_match_scorer(
@@ -495,7 +491,7 @@ def evaluate_on_environment(
 def dynamics_observation_prediction_error_scorer(
     dynamics: DynamicsProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns MSE of observation prediction (in negative scale).
+    r"""Returns MSE of observation prediction.
 
     This metrics suggests how dynamics model is generalized to test sets.
     If the MSE is large, the dynamics model are overfitting.
@@ -511,7 +507,7 @@ def dynamics_observation_prediction_error_scorer(
         episodes: list of episodes.
 
     Returns:
-        negative mean squared error.
+        mean squared error.
 
     """
     total_errors = []
@@ -520,14 +516,13 @@ def dynamics_observation_prediction_error_scorer(
             pred = dynamics.predict(batch.observations, batch.actions)
             errors = ((batch.next_observations - pred[0]) ** 2).sum(axis=1)
             total_errors += errors.tolist()
-    # smaller is better
-    return -float(np.mean(total_errors))
+    return float(np.mean(total_errors))
 
 
 def dynamics_reward_prediction_error_scorer(
     dynamics: DynamicsProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns MSE of reward prediction (in negative scale).
+    r"""Returns MSE of reward prediction.
 
     This metrics suggests how dynamics model is generalized to test sets.
     If the MSE is large, the dynamics model are overfitting.
@@ -543,7 +538,7 @@ def dynamics_reward_prediction_error_scorer(
         episodes: list of episodes.
 
     Returns:
-        negative mean squared error.
+        mean squared error.
 
     """
     total_errors = []
@@ -555,14 +550,13 @@ def dynamics_reward_prediction_error_scorer(
                 rewards = dynamics.reward_scaler.transform_numpy(rewards)
             errors = ((rewards - pred[1]) ** 2).reshape(-1)
             total_errors += errors.tolist()
-    # smaller is better
-    return -float(np.mean(total_errors))
+    return float(np.mean(total_errors))
 
 
 def dynamics_prediction_variance_scorer(
     dynamics: DynamicsProtocol, episodes: List[Episode]
 ) -> float:
-    """Returns prediction variance of ensemble dynamics (in negative scale).
+    """Returns prediction variance of ensemble dynamics.
 
     This metrics suggests how dynamics model is confident of test sets.
     If the variance is large, the dynamics model has large uncertainty.
@@ -572,7 +566,7 @@ def dynamics_prediction_variance_scorer(
         episodes: list of episodes.
 
     Returns:
-        negative variance.
+        variance.
 
     """
     total_variances = []
@@ -581,17 +575,4 @@ def dynamics_prediction_variance_scorer(
             pred = dynamics.predict(batch.observations, batch.actions, True)
             pred = cast(Tuple[np.ndarray, np.ndarray, np.ndarray], pred)
             total_variances += pred[2].tolist()
-    # smaller is better
-    return -float(np.mean(total_variances))
-
-
-NEGATIVE_SCORERS: List[Callable[[Any, List[Episode]], float]] = [
-    td_error_scorer,
-    value_estimation_std_scorer,
-    average_value_estimation_scorer,
-    discounted_sum_of_advantage_scorer,
-    continuous_action_diff_scorer,
-    dynamics_observation_prediction_error_scorer,
-    dynamics_reward_prediction_error_scorer,
-    dynamics_prediction_variance_scorer,
-]
+    return float(np.mean(total_variances))
