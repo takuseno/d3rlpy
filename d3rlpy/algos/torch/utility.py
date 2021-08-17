@@ -28,6 +28,7 @@ class DiscreteQFunctionMixin:
         action: torch.Tensor,
         with_std: bool,
     ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        assert x.ndim > 1, "Input must have batch dimension."
         assert x.shape[0] == action.shape[0]
         assert self._q_func is not None
 
@@ -60,6 +61,7 @@ class ContinuousQFunctionMixin:
         action: torch.Tensor,
         with_std: bool,
     ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        assert x.ndim > 1, "Input must have batch dimension."
         assert x.shape[0] == action.shape[0]
         assert self._q_func is not None
 
