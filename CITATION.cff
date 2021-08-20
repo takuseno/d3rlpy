@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Seno"
+  given-names: "Takuma"
+title: "d3rlpy: An offline deep reinforcement learning library"
+version: 0.91
+date-released: 2020-08-01
+url: "https://github.com/takuseno/d3rlpy"
