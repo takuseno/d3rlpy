@@ -177,7 +177,7 @@ def test_standard_reward_scaler(batch_size, eps, multiplier):
 
     # check reverse_transform
     x = scaler.reverse_transform(y)
-    assert np.allclose(x.numpy(), rewards)
+    assert np.allclose(x.numpy(), rewards, atol=1e-3)
 
     # check reverse_transform_numpy
     y = scaler.transform_numpy(rewards)
