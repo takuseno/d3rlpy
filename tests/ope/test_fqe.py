@@ -20,8 +20,8 @@ def ope_tester(ope, observation_shape, action_size=2):
 
     # check save policy
     impl.save_policy = Mock()
-    ope.save_policy("policy.pt", False)
-    impl.save_policy.assert_called_with("policy.pt", False)
+    ope.save_policy("policy.pt")
+    impl.save_policy.assert_called_with("policy.pt")
 
     # check predict
     x = np.random.random((2, 3)).tolist()
