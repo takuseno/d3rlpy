@@ -78,7 +78,7 @@ class TorchImplBase(AlgoImplBase):
         raise NotImplementedError
 
     @eval_api
-    def save_policy(self, fname: str, as_onnx: bool) -> None:
+    def save_policy(self, fname: str) -> None:
         dummy_x = torch.rand(1, *self.observation_shape, device=self._device)
 
         # workaround until version 1.6
@@ -98,7 +98,7 @@ class TorchImplBase(AlgoImplBase):
 
         traced_script = torch.jit.trace(_func, dummy_x, check_trace=False)
 
-        if as_onnx:
+        if fname.endswith(".onnx"):
             # currently, PyTorch cannot directly export function as ONNX.
             torch.onnx.export(
                 traced_script,
@@ -110,8 +110,13 @@ class TorchImplBase(AlgoImplBase):
                 output_names=["output_0"],
                 example_outputs=traced_script(dummy_x),
             )
-        else:
+        elif fname.endswith(".pt"):
             traced_script.save(fname)
+        else:
+            raise ValueError(
+                f"invalid format type: {fname}."
+                " .pt and .onnx extensions are currently supported."
+            )
 
         # workaround until version 1.6
         unfreeze(self)

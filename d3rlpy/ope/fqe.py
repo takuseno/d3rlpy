@@ -80,9 +80,9 @@ class _FQEBase(AlgoBase):
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
-    def save_policy(self, fname: str, as_onnx: bool = False) -> None:
+    def save_policy(self, fname: str) -> None:
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
-        self._algo.save_policy(fname, as_onnx)
+        self._algo.save_policy(fname)
 
     def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR

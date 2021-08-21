@@ -78,7 +78,7 @@ and traced via ``torch.jit.trace`` function.
     dqn.save_policy('policy.pt')
 
     # save greedy-policy as ONNX
-    dqn.save_policy('policy.onnx', as_onnx=True)
+    dqn.save_policy('policy.onnx')
 
 TorchScript
 ~~~~~~~~~~~

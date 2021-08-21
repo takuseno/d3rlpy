@@ -46,7 +46,7 @@ def _assert_action_space(algo: LearnableBase, env: gym.Env) -> None:
 
 class AlgoImplBase(ImplBase):
     @abstractmethod
-    def save_policy(self, fname: str, as_onnx: bool) -> None:
+    def save_policy(self, fname: str) -> None:
         pass
 
     @abstractmethod
@@ -98,8 +98,10 @@ class AlgoBase(LearnableBase):
 
     _impl: Optional[AlgoImplBase]
 
-    def save_policy(self, fname: str, as_onnx: bool = False) -> None:
+    def save_policy(self, fname: str) -> None:
         """Save the greedy-policy computational graph as TorchScript or ONNX.
+
+        The format will be automatically detected by the file name.
 
         .. code-block:: python
 
@@ -107,7 +109,7 @@ class AlgoBase(LearnableBase):
             algo.save_policy('policy.pt')
 
             # save as ONNX
-            algo.save_policy('policy.onnx', as_onnx=True)
+            algo.save_policy('policy.onnx')
 
         The artifacts saved with this method will work without d3rlpy.
         This method is especially useful to deploy the learned policy to
@@ -121,11 +123,10 @@ class AlgoBase(LearnableBase):
 
         Args:
             fname: destination file path.
-            as_onnx: flag to save as ONNX format.
 
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        self._impl.save_policy(fname, as_onnx)
+        self._impl.save_policy(fname)
 
     def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
         """Returns greedy actions.

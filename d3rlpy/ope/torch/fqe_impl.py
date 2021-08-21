@@ -143,7 +143,7 @@ class FQEBaseImpl(TorchImplBase):
         assert self._targ_q_func is not None
         hard_sync(self._targ_q_func, self._q_func)
 
-    def save_policy(self, fname: str, as_onnx: bool) -> None:
+    def save_policy(self, fname: str) -> None:
         raise NotImplementedError
 
 
