@@ -129,7 +129,7 @@ def discounted_sum_of_advantage_scorer(
             [\sum_{t' = t} \gamma^{t' - t} A(s_{t'}, a_{t'})]
 
     where :math:`A(s_t, a_t) = Q_\theta (s_t, a_t)
-    - \max_a Q_\theta (s_t, a)`.
+    - \mathbb{E}_{a \sim \pi} [Q_\theta (s_t, a)]`.
 
     References:
         * `Murphy., A generalization error for Q-Learning.
