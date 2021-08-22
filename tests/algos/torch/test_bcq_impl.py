@@ -29,7 +29,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("lam", [0.75])
 @pytest.mark.parametrize("n_action_samples", [10])  # small for test
 @pytest.mark.parametrize("action_flexibility", [0.05])
-@pytest.mark.parametrize("latent_size", [32])
 @pytest.mark.parametrize("beta", [0.5])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
@@ -51,7 +50,6 @@ def test_bcq_impl(
     lam,
     n_action_samples,
     action_flexibility,
-    latent_size,
     beta,
     scaler,
     action_scaler,
@@ -76,7 +74,6 @@ def test_bcq_impl(
         lam=lam,
         n_action_samples=n_action_samples,
         action_flexibility=action_flexibility,
-        latent_size=latent_size,
         beta=beta,
         use_gpu=None,
         scaler=scaler,

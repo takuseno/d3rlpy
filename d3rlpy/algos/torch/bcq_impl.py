@@ -35,7 +35,6 @@ class BCQImpl(DDPGBaseImpl):
     _lam: float
     _n_action_samples: int
     _action_flexibility: float
-    _latent_size: int
     _beta: float
     _policy: Optional[DeterministicResidualPolicy]
     _targ_policy: Optional[DeterministicResidualPolicy]
@@ -62,7 +61,6 @@ class BCQImpl(DDPGBaseImpl):
         lam: float,
         n_action_samples: int,
         action_flexibility: float,
-        latent_size: int,
         beta: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
@@ -95,7 +93,6 @@ class BCQImpl(DDPGBaseImpl):
         self._lam = lam
         self._n_action_samples = n_action_samples
         self._action_flexibility = action_flexibility
-        self._latent_size = latent_size
         self._beta = beta
 
         # initialized in build
@@ -120,7 +117,7 @@ class BCQImpl(DDPGBaseImpl):
         self._imitator = create_conditional_vae(
             observation_shape=self._observation_shape,
             action_size=self._action_size,
-            latent_size=self._latent_size,
+            latent_size=2 * self._action_size,
             beta=self._beta,
             min_logstd=-4.0,
             max_logstd=15.0,
@@ -138,7 +135,9 @@ class BCQImpl(DDPGBaseImpl):
         assert self._policy is not None
         assert self._q_func is not None
         latent = torch.randn(
-            batch.observations.shape[0], self._latent_size, device=self._device
+            batch.observations.shape[0],
+            2 * self._action_size,
+            device=self._device,
         )
         clipped_latent = latent.clamp(-0.5, 0.5)
         sampled_action = self._imitator.decode(
@@ -178,7 +177,7 @@ class BCQImpl(DDPGBaseImpl):
         flattened_x = repeated_x.reshape(-1, *self.observation_shape)
         # sample latent variable
         latent = torch.randn(
-            flattened_x.shape[0], self._latent_size, device=self._device
+            flattened_x.shape[0], 2 * self._action_size, device=self._device
         )
         clipped_latent = latent.clamp(-0.5, 0.5)
         # sample action

@@ -130,7 +130,6 @@ class BCQ(AlgoBase):
             represented as :math:`\Phi`.
         rl_start_step (int): step to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
-        latent_size (int): size of latent vector for Conditional VAE.
         beta (float): KL reguralization term for Conditional VAE.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -162,7 +161,6 @@ class BCQ(AlgoBase):
     _n_action_samples: int
     _action_flexibility: float
     _rl_start_step: int
-    _latent_size: int
     _beta: float
     _use_gpu: Optional[Device]
     _impl: Optional[BCQImpl]
@@ -191,7 +189,6 @@ class BCQ(AlgoBase):
         n_action_samples: int = 100,
         action_flexibility: float = 0.05,
         rl_start_step: int = 0,
-        latent_size: int = 32,
         beta: float = 0.5,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
@@ -227,7 +224,6 @@ class BCQ(AlgoBase):
         self._n_action_samples = n_action_samples
         self._action_flexibility = action_flexibility
         self._rl_start_step = rl_start_step
-        self._latent_size = latent_size
         self._beta = beta
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
@@ -254,7 +250,6 @@ class BCQ(AlgoBase):
             lam=self._lam,
             n_action_samples=self._n_action_samples,
             action_flexibility=self._action_flexibility,
-            latent_size=self._latent_size,
             beta=self._beta,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
