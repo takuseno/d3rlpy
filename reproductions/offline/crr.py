@@ -21,7 +21,7 @@ def main():
     crr = d3rlpy.algos.CRR(actor_learning_rate=3e-4,
                            critic_learning_rate=3e-4,
                            batch_size=256,
-                           weight_type="bin",
+                           weight_type="binary",
                            advantage_type="mean",
                            target_update_type="soft",
                            use_gpu=args.gpu)
