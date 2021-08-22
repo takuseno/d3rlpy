@@ -15,6 +15,7 @@ from .algo_test import algo_pendulum_tester, algo_tester, algo_update_tester
 @pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 @pytest.mark.parametrize("advantage_type", ["mean", "max"])
 @pytest.mark.parametrize("weight_type", ["exp", "binary"])
+@pytest.mark.parametrize("target_update_type", ["hard", "soft"])
 def test_crr(
     observation_shape,
     action_size,
@@ -23,6 +24,7 @@ def test_crr(
     target_reduction_type,
     advantage_type,
     weight_type,
+    target_update_type,
 ):
     scaler, action_scaler, reward_scaler = scalers
     crr = CRR(
@@ -33,6 +35,7 @@ def test_crr(
         target_reduction_type=target_reduction_type,
         advantage_type=advantage_type,
         weight_type=weight_type,
+        target_update_type=target_update_type,
     )
     algo_tester(crr, observation_shape, test_q_function_copy=True)
     algo_update_tester(crr, observation_shape, action_size)

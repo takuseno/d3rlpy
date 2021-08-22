@@ -27,6 +27,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("weight_type", ["exp"])
 @pytest.mark.parametrize("max_weight", [20.0])
 @pytest.mark.parametrize("n_critics", [1])
+@pytest.mark.parametrize("tau", [5e-3])
 @pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
@@ -47,6 +48,7 @@ def test_crr_impl(
     weight_type,
     max_weight,
     n_critics,
+    tau,
     target_reduction_type,
     scaler,
     action_scaler,
@@ -69,6 +71,7 @@ def test_crr_impl(
         weight_type=weight_type,
         max_weight=max_weight,
         n_critics=n_critics,
+        tau=tau,
         target_reduction_type=target_reduction_type,
         use_gpu=None,
         scaler=scaler,

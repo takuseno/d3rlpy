@@ -18,10 +18,12 @@ def main():
 
     _, test_episodes = train_test_split(dataset, test_size=0.2)
 
-    crr = d3rlpy.algos.CRR(actor_learning_rate=1e-4,
-                           critic_learning_rate=1e-4,
-                           batch_size=128,
-                           weight_type="exp",
+    crr = d3rlpy.algos.CRR(actor_learning_rate=3e-4,
+                           critic_learning_rate=3e-4,
+                           batch_size=256,
+                           weight_type="bin",
+                           advantage_type="mean",
+                           target_update_type="soft",
                            use_gpu=args.gpu)
 
     crr.fit(dataset.episodes,

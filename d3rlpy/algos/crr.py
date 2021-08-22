@@ -98,7 +98,12 @@ class CRR(AlgoBase):
         target_reduction_type (str): ensemble reduction method at target value
             estimation. The available options are
             ``['min', 'max', 'mean', 'mix', 'none']``.
-        update_actor_interval (int): interval to update policy function.
+        target_update_type (str): target update type. The available options are
+            ``['hard', 'soft']``.
+        tau (float): target network synchronization coefficiency used with
+            ``soft`` target update.
+        update_actor_interval (int): interval to update policy function used
+            with ``hard`` target update.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -125,6 +130,8 @@ class CRR(AlgoBase):
     _weight_type: str
     _max_weight: float
     _n_critics: int
+    _target_update_type: str
+    _tau: float
     _target_update_interval: int
     _target_reduction_type: str
     _update_actor_interval: int
@@ -151,6 +158,8 @@ class CRR(AlgoBase):
         weight_type: str = "exp",
         max_weight: float = 20.0,
         n_critics: int = 1,
+        target_update_type: str = "hard",
+        tau: float = 5e-3,
         target_update_interval: int = 100,
         target_reduction_type: str = "min",
         update_actor_interval: int = 1,
@@ -159,7 +168,7 @@ class CRR(AlgoBase):
         action_scaler: ActionScalerArg = None,
         reward_scaler: RewardScalerArg = None,
         impl: Optional[CRRImpl] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         super().__init__(
             batch_size=batch_size,
@@ -184,6 +193,8 @@ class CRR(AlgoBase):
         self._weight_type = weight_type
         self._max_weight = max_weight
         self._n_critics = n_critics
+        self._target_update_type = target_update_type
+        self._tau = tau
         self._target_update_interval = target_update_interval
         self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
@@ -210,6 +221,7 @@ class CRR(AlgoBase):
             weight_type=self._weight_type,
             max_weight=self._max_weight,
             n_critics=self._n_critics,
+            tau=self._tau,
             target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
@@ -224,9 +236,17 @@ class CRR(AlgoBase):
         critic_loss = self._impl.update_critic(batch)
         actor_loss = self._impl.update_actor(batch)
 
-        if self._grad_step % self._target_update_interval == 0:
+        if self._target_update_type == "hard":
+            if self._grad_step % self._target_update_interval == 0:
+                self._impl.sync_critic_target()
+                self._impl.sync_actor_target()
+        elif self._target_update_type == "soft":
             self._impl.update_critic_target()
             self._impl.update_actor_target()
+        else:
+            raise ValueError(
+                f"invalid target_update_type: {self._target_update_type}"
+            )
 
         return {"critic_loss": critic_loss, "actor_loss": actor_loss}
 

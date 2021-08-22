@@ -42,6 +42,7 @@ class CRRImpl(DDPGBaseImpl):
         weight_type: str,
         max_weight: float,
         n_critics: int,
+        tau: float,
         target_reduction_type: str,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
@@ -59,7 +60,7 @@ class CRRImpl(DDPGBaseImpl):
             critic_encoder_factory=critic_encoder_factory,
             q_func_factory=q_func_factory,
             gamma=gamma,
-            tau=0.0,
+            tau=tau,
             n_critics=n_critics,
             target_reduction_type=target_reduction_type,
             use_gpu=use_gpu,
@@ -186,12 +187,12 @@ class CRRImpl(DDPGBaseImpl):
 
         return actions[torch.arange(x.shape[0]), indices.view(-1)]
 
-    def update_critic_target(self) -> None:
+    def sync_critic_target(self) -> None:
         assert self._targ_q_func is not None
         assert self._q_func is not None
         hard_sync(self._targ_q_func, self._q_func)
 
-    def update_actor_target(self) -> None:
+    def sync_actor_target(self) -> None:
         assert self._targ_policy is not None
         assert self._policy is not None
         hard_sync(self._targ_policy, self._policy)
