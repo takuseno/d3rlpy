@@ -108,6 +108,11 @@ Basically, all features are available with every algorithm.
 - Q-functions
   - [Fully parametrized Quantile Function](https://arxiv.org/abs/1911.02140) (experimental)
 
+## benchmark results
+d3rlpy is benchmarked to ensure the implementation quality.
+The benchmark scripts are available [reproductions](https://github.com/takuseno/d3rlpy/tree/master/reproductions) directory.
+The benchmark results are available [d3rlpy-benchmarks](https://github.com/takuseno/d3rlpy-benchmarks) repository.
+
 ## examples
 ### MuJoCo
 <p align="center"><img align="center" width="160px" src="assets/mujoco_hopper.gif"></p>
