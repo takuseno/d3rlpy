@@ -43,7 +43,7 @@ enough to be trained in an online manner with a few more utilities.
                    eval_env=eval_env,
                    n_steps=30000, # the number of total steps to train.
                    n_steps_per_epoch=1000,
-                   update_interval=10) # the number of total steps to train.
+                   update_interval=10) # update parameters every 10 steps.
 
 
 Replay Buffer
