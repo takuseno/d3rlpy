@@ -131,7 +131,7 @@ class SAC(AlgoBase):
         actor_encoder_factory: EncoderArg = "default",
         critic_encoder_factory: EncoderArg = "default",
         q_func_factory: QFuncArg = "mean",
-        batch_size: int = 100,
+        batch_size: int = 256,
         n_frames: int = 1,
         n_steps: int = 1,
         gamma: float = 0.99,
