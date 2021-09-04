@@ -41,9 +41,9 @@ enough to be trained in an online manner with a few more utilities.
                    buffer,
                    explorer=explorer, # you don't need this with probablistic policy algorithms
                    eval_env=eval_env,
-                   n_epochs=30,
+                   n_steps=30000, # the number of total steps to train.
                    n_steps_per_epoch=1000,
-                   n_updates_per_epoch=100)
+                   update_interval=10) # update parameters every 10 steps.
 
 
 Replay Buffer
