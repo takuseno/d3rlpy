@@ -29,6 +29,8 @@ def main():
         eval_env=eval_env,
         n_steps=1000000,
         n_steps_per_epoch=10000,
+        update_start_step=1000,
+        random_steps=10000,
         save_interval=10,
         experiment_name=f"SAC_online_n_{args.n_steps}_{args.env}_{args.seed}")
 
