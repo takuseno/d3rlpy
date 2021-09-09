@@ -21,7 +21,8 @@ def main():
 
     sac = d3rlpy.algos.SAC(n_steps=args.n_steps, use_gpu=args.gpu)
 
-    buffer = d3rlpy.online.buffers.ReplayBuffer(1000000, env=env)
+    buffer_size = 100000 if args.n_steps > 1 else 1000000
+    buffer = d3rlpy.online.buffers.ReplayBuffer(buffer_size, env=env)
 
     sac.fit_online(
         env,
