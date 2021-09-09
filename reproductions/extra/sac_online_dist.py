@@ -19,7 +19,11 @@ def main():
     env.seed(args.seed)
     eval_env.seed(args.seed)
 
-    sac = d3rlpy.algos.SAC(q_func_factory=args.q_func, use_gpu=args.gpu)
+    optim = d3rlpy.models.optimizers.AdamFactory(eps=1e-2 / 256)
+
+    sac = d3rlpy.algos.SAC(critic_optim_factory=optim,
+                           q_func_factory=args.q_func,
+                           use_gpu=args.gpu)
 
     buffer = d3rlpy.online.buffers.ReplayBuffer(1000000, env=env)
 
