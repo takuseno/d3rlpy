@@ -21,9 +21,12 @@ def main():
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([256, 256, 256, 256])
     optim = d3rlpy.models.optimizers.AdamFactory(weight_decay=1e-4)
 
-    awac = d3rlpy.algos.AWAC(actor_encoder_factory=encoder,
+    awac = d3rlpy.algos.AWAC(actor_learning_rate=3e-4,
+                             actor_encoder_factory=encoder,
                              actor_optim_factory=optim,
+                             critic_learning_rate=3e-4,
                              batch_size=1024,
+                             lam=1.0,
                              use_gpu=args.gpu)
 
     awac.fit(dataset.episodes,

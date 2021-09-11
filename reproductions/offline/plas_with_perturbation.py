@@ -25,9 +25,13 @@ def main():
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([400, 300])
 
     plas = d3rlpy.algos.PLASWithPerturbation(
+        actor_learning_rate=1e-4,
         actor_encoder_factory=encoder,
+        critic_learning_rate=1e-3,
         critic_encoder_factory=encoder,
+        imitator_learning_rate=1e-4,
         imitator_encoder_factory=vae_encoder,
+        batch_size=100,
         lam=1.0,
         warmup_steps=500000,
         action_flexibility=0.05,

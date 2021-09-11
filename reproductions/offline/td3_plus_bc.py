@@ -18,7 +18,15 @@ def main():
 
     _, test_episodes = train_test_split(dataset, test_size=0.2)
 
-    td3 = d3rlpy.algos.TD3PlusBC(use_gpu=args.gpu)
+    td3 = d3rlpy.algos.TD3PlusBC(actor_learning_rate=3e-4,
+                                 critic_learning_rate=3e-4,
+                                 batch_size=256,
+                                 target_smoothing_sigma=0.2,
+                                 target_smoothing_clip=0.5,
+                                 alpha=2.5,
+                                 update_actor_interval=2,
+                                 scaler="standard",
+                                 use_gpu=args.gpu)
 
     td3.fit(dataset.episodes,
             eval_episodes=test_episodes,

@@ -25,10 +25,21 @@ def main():
     else:
         kernel = 'laplacian'
 
-    bear = d3rlpy.algos.BEAR(imitator_encoder_factory=vae_encoder,
+    bear = d3rlpy.algos.BEAR(actor_learning_rate=1e-4,
+                             critic_learning_rate=3e-4,
+                             imitator_learning_rate=3e-4,
+                             alpha_learning_rate=1e-3,
+                             imitator_encoder_factory=vae_encoder,
                              temp_learning_rate=0.0,
                              initial_temperature=1e-20,
+                             batch_size=256,
+                             mmd_sigma=20.0,
                              mmd_kernel=kernel,
+                             n_mmd_action_samples=4,
+                             alpha_threshold=0.05,
+                             n_target_samples=10,
+                             n_action_samples=100,
+                             warmup_steps=40000,
                              use_gpu=args.gpu)
 
     bear.fit(dataset.episodes,

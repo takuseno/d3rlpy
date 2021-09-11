@@ -22,8 +22,15 @@ def main():
     rl_encoder = d3rlpy.models.encoders.VectorEncoderFactory([400, 300])
 
     bcq = d3rlpy.algos.BCQ(actor_encoder_factory=rl_encoder,
+                           actor_learning_rate=1e-3,
                            critic_encoder_factory=rl_encoder,
+                           critic_learning_rate=1e-3,
                            imitator_encoder_factory=vae_encoder,
+                           imitator_learning_rate=1e-3,
+                           batch_size=100,
+                           lam=0.75,
+                           action_flexibility=0.05,
+                           n_action_samples=100,
                            use_gpu=args.gpu)
 
     bcq.fit(dataset.episodes,

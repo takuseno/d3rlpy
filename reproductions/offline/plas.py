@@ -24,9 +24,13 @@ def main():
         vae_encoder = d3rlpy.models.encoders.VectorEncoderFactory([750, 750])
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([400, 300])
 
-    plas = d3rlpy.algos.PLAS(actor_encoder_factory=encoder,
+    plas = d3rlpy.algos.PLAS(actor_learning_rate=1e-4,
+                             actor_encoder_factory=encoder,
+                             critic_learning_rate=1e-3,
                              critic_encoder_factory=encoder,
+                             imitator_learning_rate=1e-4,
                              imitator_encoder_factory=vae_encoder,
+                             batch_size=100,
                              lam=1.0,
                              warmup_steps=500000,
                              use_gpu=args.gpu)

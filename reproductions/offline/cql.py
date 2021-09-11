@@ -25,8 +25,13 @@ def main():
     else:
         conservative_weight = 5.0
 
-    cql = d3rlpy.algos.CQL(actor_encoder_factory=encoder,
+    cql = d3rlpy.algos.CQL(actor_learning_rate=1e-4,
+                           critic_learning_rate=3e-4,
+                           temp_learning_rate=1e-4,
+                           actor_encoder_factory=encoder,
                            critic_encoder_factory=encoder,
+                           batch_size=256,
+                           n_action_samples=10,
                            alpha_learning_rate=0.0,
                            conservative_weight=conservative_weight,
                            use_gpu=args.gpu)

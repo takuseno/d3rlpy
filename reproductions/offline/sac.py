@@ -18,7 +18,11 @@ def main():
 
     _, test_episodes = train_test_split(dataset, test_size=0.2)
 
-    sac = d3rlpy.algos.SAC(use_gpu=args.gpu)
+    sac = d3rlpy.algos.SAC(actor_learning_rate=3e-4,
+                           critic_learning_rate=3e-4,
+                           temp_learning_rate=3e-4,
+                           batch_size=256,
+                           use_gpu=args.gpu)
 
     sac.fit(dataset.episodes,
             eval_episodes=test_episodes,
