@@ -7,6 +7,10 @@ assignees: ''
 
 ---
 
+:warning:
+- Please don't post bug reports without a minimal example codes. Otherwise, it will take really long to solve the issue.
+- Please be polite in discussion. This is an open-sourced project by voluntary contributors.
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
