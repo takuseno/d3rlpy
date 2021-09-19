@@ -184,12 +184,22 @@ class DeterministicRegressor(Imitator):
 
 
 class ProbablisticRegressor(Imitator):
+    _min_logstd: float
+    _max_logstd: float
     _encoder: Encoder
     _mu: nn.Linear
     _logstd: nn.Linear
 
-    def __init__(self, encoder: Encoder, action_size: int):
+    def __init__(
+        self,
+        encoder: Encoder,
+        action_size: int,
+        min_logstd: float,
+        max_logstd: float,
+    ):
         super().__init__()
+        self._min_logstd = min_logstd
+        self._max_logstd = max_logstd
         self._encoder = encoder
         self._mu = nn.Linear(encoder.get_feature_size(), action_size)
         self._logstd = nn.Linear(encoder.get_feature_size(), action_size)
@@ -198,12 +208,13 @@ class ProbablisticRegressor(Imitator):
         h = self._encoder(x)
         mu = self._mu(h)
         logstd = self._logstd(h)
-        clipped_logstd = logstd.clamp(-20.0, 2.0)
+        clipped_logstd = logstd.clamp(self._min_logstd, self._max_logstd)
         return Normal(mu, clipped_logstd.exp())
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        dist = self.dist(x)
-        return cast(torch.Tensor, dist.rsample())
+        h = self._encoder(x)
+        mu = self._mu(h)
+        return torch.tanh(mu)
 
     def sample_n(self, x: torch.Tensor, n: int) -> torch.Tensor:
         dist = self.dist(x)
@@ -214,4 +225,5 @@ class ProbablisticRegressor(Imitator):
     def compute_error(
         self, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
-        return F.mse_loss(self.forward(x), action)
+        dist = self.dist(x)
+        return F.mse_loss(torch.tanh(dist.rsample()), action)

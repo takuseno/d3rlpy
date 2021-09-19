@@ -15,6 +15,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("learning_rate", [1e-3])
 @pytest.mark.parametrize("optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
+@pytest.mark.parametrize("policy_type", ["deterministic", "stochastic"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 def test_bc_impl(
@@ -23,6 +24,7 @@ def test_bc_impl(
     learning_rate,
     optim_factory,
     encoder_factory,
+    policy_type,
     scaler,
     action_scaler,
 ):
@@ -32,6 +34,7 @@ def test_bc_impl(
         learning_rate=learning_rate,
         optim_factory=optim_factory,
         encoder_factory=encoder_factory,
+        policy_type=policy_type,
         use_gpu=None,
         scaler=scaler,
         action_scaler=action_scaler,

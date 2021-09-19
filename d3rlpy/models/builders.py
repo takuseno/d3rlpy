@@ -166,9 +166,13 @@ def create_probablistic_regressor(
     observation_shape: Sequence[int],
     action_size: int,
     encoder_factory: EncoderFactory,
+    min_logstd: float = -20.0,
+    max_logstd: float = 2.0,
 ) -> ProbablisticRegressor:
     encoder = encoder_factory.create(observation_shape)
-    return ProbablisticRegressor(encoder, action_size)
+    return ProbablisticRegressor(
+        encoder, action_size, min_logstd=min_logstd, max_logstd=max_logstd
+    )
 
 
 def create_value_function(
