@@ -69,7 +69,7 @@ class D3RLPyLogger:
                 if with_timestamp:
                     time.sleep(1.0)
                 else:
-                    raise ValueError("%s already exists." % self._logdir)
+                    raise ValueError(f"{self._logdir} already exists.")
             else:
                 break
 
@@ -121,7 +121,7 @@ class D3RLPyLogger:
             if self._save_metrics:
                 path = os.path.join(self._logdir, f"{name}.csv")
                 with open(path, "a") as f:
-                    print("%d,%d,%f" % (epoch, step, metric), file=f)
+                    print(f"{epoch},{step},{metric}", file=f)
 
                 if self._writer:
                     self._writer.add_scalar(f"metrics/{name}", metric, epoch)
@@ -151,7 +151,7 @@ class D3RLPyLogger:
     def save_model(self, epoch: int, algo: _SaveProtocol) -> None:
         if self._save_metrics:
             # save entire model
-            model_path = os.path.join(self._logdir, "model_%d.pt" % epoch)
+            model_path = os.path.join(self._logdir, f"model_{epoch}.pt")
             algo.save_model(model_path)
             LOG.info(f"Model parameters are saved to {model_path}")
 

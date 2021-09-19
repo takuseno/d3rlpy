@@ -232,7 +232,7 @@ def register_action_scaler(cls: Type[ActionScaler]) -> None:
 
     """
     is_registered = cls.TYPE in ACTION_SCALER_LIST
-    assert not is_registered, "%s seems to be already registered" % cls.TYPE
+    assert not is_registered, f"{cls.TYPE} seems to be already registered"
     ACTION_SCALER_LIST[cls.TYPE] = cls
 
 
@@ -247,7 +247,7 @@ def create_action_scaler(name: str, **kwargs: Any) -> ActionScaler:
         scaler object.
 
     """
-    assert name in ACTION_SCALER_LIST, "%s seems not to be registered." % name
+    assert name in ACTION_SCALER_LIST, f"{name} seems not to be registered."
     scaler = ACTION_SCALER_LIST[name](**kwargs)  # type: ignore
     assert isinstance(scaler, ActionScaler)
     return scaler

@@ -51,7 +51,7 @@ def get_cartpole(
     # download dataset
     if not os.path.exists(data_path):
         os.makedirs(DATA_DIRECTORY, exist_ok=True)
-        print("Donwloading cartpole.pkl into %s..." % data_path)
+        print(f"Donwloading cartpole.pkl into {data_path}...")
         request.urlretrieve(url, data_path)
 
     # load dataset
@@ -98,7 +98,7 @@ def get_pendulum(
 
     if not os.path.exists(data_path):
         os.makedirs(DATA_DIRECTORY, exist_ok=True)
-        print("Donwloading pendulum.pkl into %s..." % data_path)
+        print(f"Donwloading pendulum.pkl into {data_path}...")
         request.urlretrieve(url, data_path)
 
     # load dataset

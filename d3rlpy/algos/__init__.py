@@ -93,10 +93,10 @@ def get_algo(name: str, discrete: bool) -> Type[AlgoBase]:
     if discrete:
         if name in DISCRETE_ALGORITHMS:
             return DISCRETE_ALGORITHMS[name]
-        raise ValueError("%s does not support discrete action-space." % name)
+        raise ValueError(f"{name} does not support discrete action-space.")
     if name in CONTINUOUS_ALGORITHMS:
         return CONTINUOUS_ALGORITHMS[name]
-    raise ValueError("%s does not support continuous action-space." % name)
+    raise ValueError(f"{name} does not support continuous action-space.")
 
 
 def create_algo(name: str, discrete: bool, **params: Any) -> AlgoBase:

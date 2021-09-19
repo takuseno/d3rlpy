@@ -415,7 +415,7 @@ def register_encoder_factory(cls: Type[EncoderFactory]) -> None:
 
     """
     is_registered = cls.TYPE in ENCODER_LIST
-    assert not is_registered, "%s seems to be already registered" % cls.TYPE
+    assert not is_registered, f"{cls.TYPE} seems to be already registered"
     ENCODER_LIST[cls.TYPE] = cls
 
 
@@ -430,7 +430,7 @@ def create_encoder_factory(name: str, **kwargs: Any) -> EncoderFactory:
         encoder factory object.
 
     """
-    assert name in ENCODER_LIST, "%s seems not to be registered." % name
+    assert name in ENCODER_LIST, f"{name} seems not to be registered."
     factory = ENCODER_LIST[name](**kwargs)  # type: ignore
     assert isinstance(factory, EncoderFactory)
     return factory

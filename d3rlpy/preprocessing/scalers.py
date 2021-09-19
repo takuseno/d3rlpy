@@ -373,7 +373,7 @@ def register_scaler(cls: Type[Scaler]) -> None:
 
     """
     is_registered = cls.TYPE in SCALER_LIST
-    assert not is_registered, "%s seems to be already registered" % cls.TYPE
+    assert not is_registered, f"{cls.TYPE} seems to be already registered"
     SCALER_LIST[cls.TYPE] = cls
 
 
@@ -388,7 +388,7 @@ def create_scaler(name: str, **kwargs: Any) -> Scaler:
         scaler object.
 
     """
-    assert name in SCALER_LIST, "%s seems not to be registered." % name
+    assert name in SCALER_LIST, f"{name} seems not to be registered."
     scaler = SCALER_LIST[name](**kwargs)  # type: ignore
     assert isinstance(scaler, Scaler)
     return scaler

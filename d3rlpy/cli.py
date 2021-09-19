@@ -44,7 +44,7 @@ def get_plt() -> "matplotlib.pyplot":
 
 @click.group()
 def cli() -> None:
-    print("d3rlpy command line interface (Version %s)" % __version__)
+    print(f"d3rlpy command line interface (Version {__version__})")
 
 
 @cli.command(short_help="Show statistics of save metrics.")
@@ -161,7 +161,7 @@ def plot_all(
             params = json.loads(f.read())
         print("")
         for k, v in params.items():
-            print("%s=%s" % (k, v))
+            print(f"{k}={v}")
 
     metrics_names = sorted(list(glob.glob(os.path.join(path, "*.csv"))))
     n_cols = int(np.ceil(len(metrics_names) ** 0.5))
@@ -232,7 +232,7 @@ def export(
         params = json.loads(f.read())
 
     # load saved model
-    print("Loading %s..." % path)
+    print(f"Loading {path}...")
     algo = getattr(algos, params["algorithm"]).from_json(params_json)
     algo.load_model(path)
 
@@ -242,7 +242,7 @@ def export(
         out = os.path.join(os.path.dirname(path), export_name + "." + ext)
 
     # export inference model
-    print("Exporting to %s..." % out)
+    print(f"Exporting to {out}...")
     algo.save_policy(out, as_onnx=format == "onnx")
 
 
@@ -290,7 +290,7 @@ def record(
         params = json.loads(f.read())
 
     # load saved model
-    print("Loading %s..." % model_path)
+    print(f"Loading {model_path}...")
     algo = getattr(algos, params["algorithm"]).from_json(params_json)
     algo.load_model(model_path)
 
@@ -340,7 +340,7 @@ def play(
         params = json.loads(f.read())
 
     # load saved model
-    print("Loading %s..." % model_path)
+    print(f"Loading {model_path}...")
     algo = getattr(algos, params["algorithm"]).from_json(params_json)
     algo.load_model(model_path)
 

@@ -385,7 +385,7 @@ def register_reward_scaler(cls: Type[RewardScaler]) -> None:
 
     """
     is_registered = cls.TYPE in REWARD_SCALER_LIST
-    assert not is_registered, "%s seems to be already registered" % cls.TYPE
+    assert not is_registered, f"{cls.TYPE} seems to be already registered"
     REWARD_SCALER_LIST[cls.TYPE] = cls
 
 

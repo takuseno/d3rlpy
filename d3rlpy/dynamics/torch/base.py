@@ -75,7 +75,7 @@ class TorchImplBase(DynamicsImplBase):
         pass
 
     def to_gpu(self, device: Device = Device()) -> None:
-        self._device = "cuda:%d" % device.get_id()
+        self._device = f"cuda:{device.get_id()}"
         to_cuda(self, self._device)
 
     def to_cpu(self) -> None:

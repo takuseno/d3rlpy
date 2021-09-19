@@ -99,7 +99,7 @@ def map_location(device: str) -> Any:
         return lambda storage, loc: storage.cuda(device)
     if "cpu" in device:
         return "cpu"
-    raise ValueError("invalid device={}".format(device))
+    raise ValueError(f"invalid device={device}")
 
 
 class _WithDeviceAndScalerProtocol(Protocol):

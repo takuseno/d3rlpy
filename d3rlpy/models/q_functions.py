@@ -349,7 +349,7 @@ def register_q_func_factory(cls: Type[QFunctionFactory]) -> None:
 
     """
     is_registered = cls.TYPE in Q_FUNC_LIST
-    assert not is_registered, "%s seems to be already registered" % cls.TYPE
+    assert not is_registered, f"{cls.TYPE} seems to be already registered"
     Q_FUNC_LIST[cls.TYPE] = cls
 
 
@@ -364,7 +364,7 @@ def create_q_func_factory(name: str, **kwargs: Any) -> QFunctionFactory:
         Q function factory object.
 
     """
-    assert name in Q_FUNC_LIST, "%s seems not to be registered." % name
+    assert name in Q_FUNC_LIST, f"{name} seems not to be registered."
     factory = Q_FUNC_LIST[name](**kwargs)
     assert isinstance(factory, QFunctionFactory)
     return factory
