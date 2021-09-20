@@ -7,9 +7,11 @@ from torch.optim import Optimizer
 
 from ...gpu import Device
 from ...models.builders import (
+    create_deterministic_policy,
     create_deterministic_regressor,
     create_discrete_imitator,
     create_probablistic_regressor,
+    create_squashed_normal_policy,
 )
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
@@ -21,7 +23,7 @@ from ...models.torch import (
     ProbablisticRegressor,
 )
 from ...preprocessing import ActionScaler, Scaler
-from ...torch_utility import torch_api, train_api
+from ...torch_utility import hard_sync, torch_api, train_api
 from .base import TorchImplBase
 
 
@@ -163,7 +165,29 @@ class BCImpl(BCBaseImpl):
     @property
     def policy(self) -> Policy:
         assert self._imitator
-        return self._imitator
+
+        policy: Policy
+        if self._policy_type == "deterministic":
+            policy = create_deterministic_policy(
+                self._observation_shape,
+                self._action_size,
+                self._encoder_factory,
+            )
+        elif self._policy_type == "stochastic":
+            policy = create_squashed_normal_policy(
+                self._observation_shape,
+                self._action_size,
+                self._encoder_factory,
+                min_logstd=-20.0,
+                max_logstd=2.0,
+            )
+        else:
+            raise ValueError(f"invalid policy_type: {self._policy_type}")
+
+        # copy parameters
+        hard_sync(policy, self._imitator)
+
+        return policy
 
 
 class DiscreteBCImpl(BCBaseImpl):
