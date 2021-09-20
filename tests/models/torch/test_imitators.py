@@ -109,7 +109,9 @@ def test_deterministic_regressor(feature_size, action_size, batch_size):
 @pytest.mark.parametrize("n", [10])
 def test_probablistic_regressor(feature_size, action_size, batch_size, n):
     encoder = DummyEncoder(feature_size)
-    imitator = ProbablisticRegressor(encoder, action_size)
+    imitator = ProbablisticRegressor(
+        encoder, action_size, min_logstd=-20, max_logstd=2
+    )
 
     x = torch.rand(batch_size, feature_size)
     y = imitator(x)
