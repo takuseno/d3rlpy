@@ -1,6 +1,7 @@
 import argparse
 import d3rlpy
 import gym
+import pybullet_envs
 
 
 def main():
