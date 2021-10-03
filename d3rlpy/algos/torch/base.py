@@ -1,9 +1,11 @@
-from typing import Optional, Sequence
+from typing import Optional, Sequence, cast
 
 import numpy as np
 import torch
 
 from ...gpu import Device
+from ...models.torch.policies import Policy
+from ...models.torch.q_functions.ensemble_q_function import EnsembleQFunction
 from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import (
     eval_api,
@@ -138,7 +140,12 @@ class TorchImplBase(AlgoImplBase):
         chkpt = torch.load(fname, map_location=map_location(self._device))
         set_state_dict(self, chkpt)
 
+    @property
+    def policy(self) -> Policy:
+        raise NotImplementedError
+
     def copy_policy_from(self, impl: AlgoImplBase) -> None:
+        impl = cast("TorchImplBase", impl)
         if not isinstance(impl.policy, type(self.policy)):
             raise ValueError(
                 f"Invalid policy type: expected={type(self.policy)},"
@@ -146,7 +153,12 @@ class TorchImplBase(AlgoImplBase):
             )
         hard_sync(self.policy, impl.policy)
 
+    @property
+    def q_function(self) -> EnsembleQFunction:
+        raise NotImplementedError
+
     def copy_q_function_from(self, impl: AlgoImplBase) -> None:
+        impl = cast("TorchImplBase", impl)
         q_func = self.q_function.q_funcs[0]
         if not isinstance(impl.q_function.q_funcs[0], type(q_func)):
             raise ValueError(

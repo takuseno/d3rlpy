@@ -12,8 +12,6 @@ from ..constants import (
     ActionSpace,
 )
 from ..envs import BatchEnv
-from ..models.torch.policies import Policy
-from ..models.torch.q_functions.ensemble_q_function import EnsembleQFunction
 from ..online.buffers import (
     BatchBuffer,
     BatchReplayBuffer,
@@ -67,15 +65,7 @@ class AlgoImplBase(ImplBase):
     def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
         pass
 
-    @property
-    def policy(self) -> Policy:
-        raise NotImplementedError
-
     def copy_policy_from(self, impl: "AlgoImplBase") -> None:
-        raise NotImplementedError
-
-    @property
-    def q_function(self) -> EnsembleQFunction:
         raise NotImplementedError
 
     def copy_q_function_from(self, impl: "AlgoImplBase") -> None:
