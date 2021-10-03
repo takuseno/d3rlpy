@@ -1,3 +1,4 @@
+import collections
 from inspect import signature
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
@@ -92,6 +93,13 @@ def set_state_dict(impl: Any, chkpt: Dict[str, Any]) -> None:
         obj = getattr(impl, key)
         if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
             obj.load_state_dict(chkpt[key])
+
+
+def reset_optimizer_states(impl: Any) -> None:
+    for key in _get_attributes(impl):
+        obj = getattr(impl, key)
+        if isinstance(obj, torch.optim.Optimizer):
+            obj.state = collections.defaultdict(dict)
 
 
 def map_location(device: str) -> Any:

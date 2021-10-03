@@ -9,7 +9,9 @@ from ...torch_utility import (
     eval_api,
     freeze,
     get_state_dict,
+    hard_sync,
     map_location,
+    reset_optimizer_states,
     set_state_dict,
     to_cpu,
     to_cuda,
@@ -135,6 +137,26 @@ class TorchImplBase(AlgoImplBase):
     def load_model(self, fname: str) -> None:
         chkpt = torch.load(fname, map_location=map_location(self._device))
         set_state_dict(self, chkpt)
+
+    def copy_policy_from(self, impl: AlgoImplBase) -> None:
+        if not isinstance(impl.policy, type(self.policy)):
+            raise ValueError(
+                f"Invalid policy type: expected={type(self.policy)},"
+                f"actual={type(impl.policy)}"
+            )
+        hard_sync(self.policy, impl.policy)
+
+    def copy_q_function_from(self, impl: AlgoImplBase) -> None:
+        q_func = self.q_function.q_funcs[0]
+        if not isinstance(impl.q_function.q_funcs[0], type(q_func)):
+            raise ValueError(
+                f"Invalid Q-function type: expected={type(q_func)},"
+                f"actual={type(impl.q_function.q_funcs[0])}"
+            )
+        hard_sync(self.q_function, impl.q_function)
+
+    def reset_optimizer_states(self) -> None:
+        reset_optimizer_states(self)
 
     @property
     def observation_shape(self) -> Sequence[int]:

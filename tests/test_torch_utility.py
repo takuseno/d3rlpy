@@ -15,6 +15,7 @@ from d3rlpy.torch_utility import (
     get_state_dict,
     hard_sync,
     map_location,
+    reset_optimizer_states,
     set_eval_mode,
     set_state_dict,
     set_train_mode,
@@ -163,6 +164,25 @@ def test_set_state_dict():
     assert (impl1._fc1.bias == impl2._fc1.bias).all()
     assert (impl1._fc2.weight == impl2._fc2.weight).all()
     assert (impl1._fc2.bias == impl2._fc2.bias).all()
+
+
+def test_reset_optimizer_states():
+    impl = DummyImpl()
+
+    # instantiate optimizer state
+    y = impl._fc1(torch.rand(100)).sum()
+    y.backward()
+    impl._optim.step()
+
+    # check if state is not empty
+    state = copy.deepcopy(impl._optim.state)
+    assert state
+
+    reset_optimizer_states(impl)
+
+    # check if state is empty
+    reset_state = impl._optim.state
+    assert not reset_state
 
 
 def test_eval_mode():

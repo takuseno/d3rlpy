@@ -27,7 +27,6 @@ from ..online.iterators import (
     train_batch_env,
     train_single_env,
 )
-from ..torch_utility import hard_sync
 
 
 def _assert_action_space(algo: LearnableBase, env: gym.Env) -> None:
@@ -73,25 +72,17 @@ class AlgoImplBase(ImplBase):
         raise NotImplementedError
 
     def copy_policy_from(self, impl: "AlgoImplBase") -> None:
-        if not isinstance(impl.policy, type(self.policy)):
-            raise ValueError(
-                f"Invalid policy type: expected={type(self.policy)},"
-                f"actual={type(impl.policy)}"
-            )
-        hard_sync(self.policy, impl.policy)
+        raise NotImplementedError
 
     @property
     def q_function(self) -> EnsembleQFunction:
         raise NotImplementedError
 
     def copy_q_function_from(self, impl: "AlgoImplBase") -> None:
-        q_func = self.q_function.q_funcs[0]
-        if not isinstance(impl.q_function.q_funcs[0], type(q_func)):
-            raise ValueError(
-                f"Invalid Q-function type: expected={type(q_func)},"
-                f"actual={type(impl.q_function.q_funcs[0])}"
-            )
-        hard_sync(self.q_function, impl.q_function)
+        raise NotImplementedError
+
+    def reset_optimizer_states(self) -> None:
+        raise NotImplementedError
 
 
 class AlgoBase(LearnableBase):
@@ -474,3 +465,13 @@ class AlgoBase(LearnableBase):
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo.impl, AlgoImplBase)
         self._impl.copy_q_function_from(algo.impl)
+
+    def reset_optimizer_states(self) -> None:
+        """Resets optimizer states.
+
+        This is especially useful when fine-tuning policies with setting inital
+        optimizer states.
+
+        """
+        assert self._impl, IMPL_NOT_INITIALIZED_ERROR
+        self._impl.reset_optimizer_states()
