@@ -417,6 +417,16 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         return self._policy
 
     @property
+    def policy_optim(self) -> Optimizer:
+        assert self._actor_optim
+        return self._actor_optim
+
+    @property
     def q_function(self) -> EnsembleQFunction:
         assert self._q_func
         return self._q_func
+
+    @property
+    def q_function_optim(self) -> Optimizer:
+        assert self._critic_optim
+        return self._critic_optim
