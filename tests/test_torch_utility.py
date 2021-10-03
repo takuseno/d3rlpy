@@ -20,6 +20,7 @@ from d3rlpy.torch_utility import (
     set_state_dict,
     set_train_mode,
     soft_sync,
+    sync_optimizer_state,
     torch_api,
     train_api,
     unfreeze,
@@ -53,6 +54,38 @@ def test_hard_sync(input_size, output_size):
 
     for p, targ_p in zip(module.parameters(), targ_module.parameters()):
         assert torch.allclose(targ_p, p)
+
+
+@pytest.mark.parametrize("input_size", [32])
+@pytest.mark.parametrize("output_size", [1])
+def test_sync_optimizer_state(input_size, output_size):
+    module = torch.nn.Linear(input_size, output_size)
+
+    # lr=1e-3
+    optim = torch.optim.Adam(module.parameters(), lr=1e-3)
+
+    # instantiate state values
+    y = module(torch.rand(input_size))
+    y.backward()
+    optim.step()
+
+    # lr=1e-4
+    targ_optim = torch.optim.Adam(module.parameters(), lr=1e-4)
+
+    sync_optimizer_state(targ_optim, optim)
+
+    # check if lr is not synced
+    assert targ_optim.param_groups[0]["lr"] != optim.param_groups[0]["lr"]
+
+    # check if state is synced
+    targ_state = targ_optim.state_dict()["state"]
+    state = optim.state_dict()["state"]
+    for i, l in targ_state.items():
+        for k, v in l.items():
+            if isinstance(v, int):
+                assert v == state[i][k]
+            else:
+                assert torch.allclose(v, state[i][k])
 
 
 def test_map_location_with_cpu():

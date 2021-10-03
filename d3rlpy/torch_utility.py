@@ -5,13 +5,19 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 import numpy as np
 import torch
 from torch import nn
+from torch.optim import Optimizer
 from torch.utils.data._utils.collate import default_collate
 from typing_extensions import Protocol
 
 from .dataset import TransitionMiniBatch
 from .preprocessing import ActionScaler, RewardScaler, Scaler
 
-BLACK_LIST = ["policy", "q_function"]  # special properties
+BLACK_LIST = [
+    "policy",
+    "q_function",
+    "policy_optim",
+    "q_function_optim",
+]  # special properties
 
 
 def _get_attributes(obj: Any) -> List[str]:
@@ -33,6 +39,15 @@ def hard_sync(targ_model: nn.Module, model: nn.Module) -> None:
         targ_params = targ_model.parameters()
         for p, p_targ in zip(params, targ_params):
             p_targ.data.copy_(p.data)
+
+
+def sync_optimizer_state(targ_optim: Optimizer, optim: Optimizer) -> None:
+    # source optimizer state
+    state = optim.state_dict()["state"]
+    # destination optimizer param_groups
+    param_groups = targ_optim.state_dict()["param_groups"]
+    # update only state
+    targ_optim.load_state_dict({"state": state, "param_groups": param_groups})
 
 
 def set_eval_mode(impl: Any) -> None:

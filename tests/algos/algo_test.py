@@ -183,8 +183,29 @@ def algo_tester(
     algo._impl = None
 
 
-def algo_update_tester(algo, observation_shape, action_size, discrete=False):
+def algo_update_tester(
+    algo,
+    observation_shape,
+    action_size,
+    discrete=False,
+    test_q_function_optim_copy=False,
+    test_policy_optim_copy=False,
+):
     base_update_tester(algo, observation_shape, action_size, discrete)
+
+    if test_q_function_optim_copy:
+        algo2 = algo.__class__(**algo.get_params())
+        algo2.create_impl(observation_shape, action_size)
+        assert not algo2.impl.q_function_optim.state
+        algo2.copy_q_function_optim_from(algo)
+        assert algo2.impl.q_function_optim.state
+
+    if test_policy_optim_copy:
+        algo2 = algo.__class__(**algo.get_params())
+        algo2.create_impl(observation_shape, action_size)
+        assert not algo2.impl.policy_optim.state
+        algo2.copy_policy_optim_from(algo)
+        assert algo2.impl.policy_optim.state
 
 
 def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):

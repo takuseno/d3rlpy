@@ -48,7 +48,13 @@ def test_combo(
         test_policy_copy=True,
         test_q_function_copy=True,
     )
-    algo_update_tester(combo, observation_shape, action_size)
+    algo_update_tester(
+        combo,
+        observation_shape,
+        action_size,
+        test_q_function_optim_copy=True,
+        test_policy_optim_copy=True,
+    )
 
 
 @pytest.mark.skip(reason="COMBO is computationally expensive.")

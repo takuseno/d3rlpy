@@ -158,6 +158,11 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         assert self._q_func
         return self._q_func
 
+    @property
+    def q_function_optim(self) -> Optimizer:
+        assert self._optim
+        return self._optim
+
 
 class DoubleDQNImpl(DQNImpl):
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:

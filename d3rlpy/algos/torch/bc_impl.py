@@ -189,6 +189,11 @@ class BCImpl(BCBaseImpl):
 
         return policy
 
+    @property
+    def policy_optim(self) -> Optimizer:
+        assert self._optim
+        return self._optim
+
 
 class DiscreteBCImpl(BCBaseImpl):
 

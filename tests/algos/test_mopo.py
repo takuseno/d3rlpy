@@ -54,4 +54,10 @@ def test_mopo(
         test_policy_copy=True,
         test_q_function_copy=True,
     )
-    algo_update_tester(mopo, observation_shape, action_size)
+    algo_update_tester(
+        mopo,
+        observation_shape,
+        action_size,
+        test_policy_optim_copy=True,
+        test_q_function_optim_copy=True,
+    )

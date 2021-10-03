@@ -31,7 +31,13 @@ def test_td3(
     algo_tester(
         td3, observation_shape, test_policy_copy=True, test_q_function_copy=True
     )
-    algo_update_tester(td3, observation_shape, action_size)
+    algo_update_tester(
+        td3,
+        observation_shape,
+        action_size,
+        test_policy_optim_copy=True,
+        test_q_function_optim_copy=True,
+    )
 
 
 @performance_test

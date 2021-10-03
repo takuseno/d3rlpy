@@ -38,7 +38,13 @@ def test_crr(
         target_update_type=target_update_type,
     )
     algo_tester(crr, observation_shape, test_q_function_copy=True)
-    algo_update_tester(crr, observation_shape, action_size)
+    algo_update_tester(
+        crr,
+        observation_shape,
+        action_size,
+        test_q_function_optim_copy=True,
+        test_policy_optim_copy=True,
+    )
 
 
 @performance_test

@@ -2,6 +2,7 @@ from typing import Optional, Sequence, cast
 
 import numpy as np
 import torch
+from torch.optim import Optimizer
 
 from ...gpu import Device
 from ...models.torch.policies import Policy
@@ -15,6 +16,7 @@ from ...torch_utility import (
     map_location,
     reset_optimizer_states,
     set_state_dict,
+    sync_optimizer_state,
     to_cpu,
     to_cuda,
     torch_api,
@@ -154,6 +156,20 @@ class TorchImplBase(AlgoImplBase):
         hard_sync(self.policy, impl.policy)
 
     @property
+    def policy_optim(self) -> Optimizer:
+        raise NotImplementedError
+
+    def copy_policy_optim_from(self, impl: AlgoImplBase) -> None:
+        impl = cast("TorchImplBase", impl)
+        if not isinstance(impl.policy_optim, type(self.policy_optim)):
+            raise ValueError(
+                "Invalid policy optimizer type: "
+                f"expected={type(self.policy_optim)},"
+                f"actual={type(impl.policy_optim)}"
+            )
+        sync_optimizer_state(self.policy_optim, impl.policy_optim)
+
+    @property
     def q_function(self) -> EnsembleQFunction:
         raise NotImplementedError
 
@@ -166,6 +182,20 @@ class TorchImplBase(AlgoImplBase):
                 f"actual={type(impl.q_function.q_funcs[0])}"
             )
         hard_sync(self.q_function, impl.q_function)
+
+    @property
+    def q_function_optim(self) -> Optimizer:
+        raise NotImplementedError
+
+    def copy_q_function_optim_from(self, impl: AlgoImplBase) -> None:
+        impl = cast("TorchImplBase", impl)
+        if not isinstance(impl.q_function_optim, type(self.q_function_optim)):
+            raise ValueError(
+                "Invalid Q-function optimizer type: "
+                f"expected={type(self.q_function_optim)}",
+                f"actual={type(impl.q_function_optim)}",
+            )
+        sync_optimizer_state(self.q_function_optim, impl.q_function_optim)
 
     def reset_optimizer_states(self) -> None:
         reset_optimizer_states(self)

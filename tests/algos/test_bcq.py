@@ -32,7 +32,13 @@ def test_bcq(
         rl_start_epoch=0,
     )
     algo_tester(bcq, observation_shape, test_q_function_copy=True)
-    algo_update_tester(bcq, observation_shape, action_size)
+    algo_update_tester(
+        bcq,
+        observation_shape,
+        action_size,
+        test_q_function_optim_copy=True,
+        test_policy_optim_copy=True,
+    )
 
 
 @pytest.mark.skip(reason="BCQ is computationally expensive.")
@@ -64,7 +70,13 @@ def test_discrete_bcq(
         target_reduction_type=target_reduction_type,
     )
     algo_tester(bcq, observation_shape, test_q_function_copy=True)
-    algo_update_tester(bcq, observation_shape, action_size, discrete=True)
+    algo_update_tester(
+        bcq,
+        observation_shape,
+        action_size,
+        discrete=True,
+        test_q_function_optim_copy=True,
+    )
 
 
 @performance_test

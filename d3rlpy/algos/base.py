@@ -68,7 +68,13 @@ class AlgoImplBase(ImplBase):
     def copy_policy_from(self, impl: "AlgoImplBase") -> None:
         raise NotImplementedError
 
+    def copy_policy_optim_from(self, impl: "AlgoImplBase") -> None:
+        raise NotImplementedError
+
     def copy_q_function_from(self, impl: "AlgoImplBase") -> None:
+        raise NotImplementedError
+
+    def copy_q_function_optim_from(self, impl: "AlgoImplBase") -> None:
         raise NotImplementedError
 
     def reset_optimizer_states(self) -> None:
@@ -421,7 +427,7 @@ class AlgoBase(LearnableBase):
             cql = d3rlpy.algos.CQL()
             cql.fit(dataset, n_steps=100000)
 
-            # transfer to online algorithmn
+            # transfer to online algorithm
             sac = d3rlpy.algos.SAC()
             sac.create_impl(cql.observation_shape, cql.action_size)
             sac.copy_policy_from(cql)
@@ -433,6 +439,28 @@ class AlgoBase(LearnableBase):
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo.impl, AlgoImplBase)
         self._impl.copy_policy_from(algo.impl)
+
+    def copy_policy_optim_from(self, algo: "AlgoBase") -> None:
+        """Copies policy optimizer states from the given algorithm.
+
+        .. code-block:: python
+
+            # pretrain with static dataset
+            cql = d3rlpy.algos.CQL()
+            cql.fit(dataset, n_steps=100000)
+
+            # transfer to online algorithm
+            sac = d3rlpy.algos.SAC()
+            sac.create_impl(cql.observation_shape, cql.action_size)
+            sac.copy_policy_optim_from(cql)
+
+        Args:
+            algo: algorithm object.
+
+        """
+        assert self._impl, IMPL_NOT_INITIALIZED_ERROR
+        assert isinstance(algo.impl, AlgoImplBase)
+        self._impl.copy_policy_optim_from(algo.impl)
 
     def copy_q_function_from(self, algo: "AlgoBase") -> None:
         """Copies Q-function parameters from the given algorithm.
@@ -455,6 +483,28 @@ class AlgoBase(LearnableBase):
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo.impl, AlgoImplBase)
         self._impl.copy_q_function_from(algo.impl)
+
+    def copy_q_function_optim_from(self, algo: "AlgoBase") -> None:
+        """Copies Q-function optimizer states from the given algorithm.
+
+        .. code-block:: python
+
+            # pretrain with static dataset
+            cql = d3rlpy.algos.CQL()
+            cql.fit(dataset, n_steps=100000)
+
+            # transfer to online algorithm
+            sac = d3rlpy.algos.SAC()
+            sac.create_impl(cql.observation_shape, cql.action_size)
+            sac.copy_policy_optim_from(cql)
+
+        Args:
+            algo: algorithm object.
+
+        """
+        assert self._impl, IMPL_NOT_INITIALIZED_ERROR
+        assert isinstance(algo.impl, AlgoImplBase)
+        self._impl.copy_q_function_optim_from(algo.impl)
 
     def reset_optimizer_states(self) -> None:
         """Resets optimizer states.
