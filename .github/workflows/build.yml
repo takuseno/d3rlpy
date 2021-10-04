@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-16.04, macos-latest, windows-latest]
+        os: [ubuntu-20.04, macos-latest, windows-latest]
         python-version: [3.6.x, 3.7.x, 3.8.x]
     steps:
       - uses: actions/checkout@v2
@@ -23,11 +23,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install Cython numpy==1.19.5 wheel setuptools
       - name: Build wheel package for Linux
-        if: ${{ matrix.os == 'ubuntu-16.04' }}
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
         run: |
           python setup.py sdist bdist_wheel -p manylinux1_x86_64
       - name: Build wheel package for Windows and MacOS
-        if: ${{ matrix.os != 'ubuntu-16.04' }}
+        if: ${{ matrix.os != 'ubuntu-20.04' }}
         run: |
           python setup.py sdist bdist_wheel
       - name: Upload wheel package

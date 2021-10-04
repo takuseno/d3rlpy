@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-16.04, macos-latest, windows-latest]
+        os: [ubuntu-20.04, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v2
       - name: Setup Python.3.7.x
@@ -45,7 +45,7 @@ jobs:
           mkdir -p test_data
           pytest --cov-report=xml --cov=d3rlpy --cov-config=.coveragerc tests -p no:warnings -v
       - name: Upload coverage
-        if: ${{ matrix.os == 'ubuntu-16.04' }}
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
