@@ -234,6 +234,9 @@ The release planning can be checked at [milestones](https://github.com/takuseno/
 | [d4rl-atari](https://github.com/takuseno/d4rl-atari) | A d4rl-style library of Google's Atari 2600 datasets |
 | [MINERVA](https://github.com/takuseno/minerva) | An out-of-the-box GUI tool for offline RL |
 
+## roadmap
+The roadmap to the future release is available in [ROADMAP.md](ROADMAP.md).
+
 ## citation
 ```
 @misc{seno2020d3rlpy,
