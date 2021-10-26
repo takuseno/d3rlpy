@@ -239,7 +239,7 @@ The roadmap to the future release is available in [ROADMAP.md](ROADMAP.md).
 
 ## citation
 ```
-@misc{seno2021d3rlpy,
+@InProceedings{seno2021d3rlpy,
   author = {Takuma Seno, Michita Imai},
   title = {d3rlpy: An Offline Deep Reinforcement Library},
   booktitle = {NeurIPS 2021 Offline Reinforcement Learning Workshop},
