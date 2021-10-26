@@ -7,3 +7,14 @@ title: "d3rlpy: An offline deep reinforcement learning library"
 version: 0.91
 date-released: 2020-08-01
 url: "https://github.com/takuseno/d3rlpy"
+preferred-citation:
+  type: conference-paper
+  authors:
+  - family-names: "Seno"
+    given-names: "Takuma"
+  - family-names: "Imai"
+    given-names: "Michita"
+  booktitle: "NeurIPS 2021 Offline Reinforcement Learning Workshop"
+  month: 12
+  title: "d3rlpy: An Offline Deep Reinforcement Learning Library"
+  year: 2021
