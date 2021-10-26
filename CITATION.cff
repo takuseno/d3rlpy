@@ -14,7 +14,7 @@ preferred-citation:
     given-names: "Takuma"
   - family-names: "Imai"
     given-names: "Michita"
-  booktitle: "NeurIPS 2021 Offline Reinforcement Learning Workshop"
+  journal: "NeurIPS 2021 Offline Reinforcement Learning Workshop"
   month: 12
   title: "d3rlpy: An Offline Deep Reinforcement Learning Library"
   year: 2021
