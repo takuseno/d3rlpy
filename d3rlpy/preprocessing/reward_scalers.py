@@ -4,7 +4,7 @@ import gym
 import numpy as np
 import torch
 
-from ..dataset import Episode, MDPDataset
+from ..dataset import MDPDataset, Transition
 from ..decorators import pretty_repr
 from ..logger import LOG
 
@@ -14,11 +14,11 @@ class RewardScaler:
 
     TYPE: ClassVar[str] = "none"
 
-    def fit(self, episodes: List[Episode]) -> None:
+    def fit(self, transitions: List[Transition]) -> None:
         """Estimates scaling parameters from dataset.
 
         Args:
-            episodes: list of episodes.
+            transitions: list of transitions.
 
         """
         raise NotImplementedError
@@ -118,7 +118,7 @@ class MultiplyRewardScaler(RewardScaler):
     def __init__(self, multiplier: Optional[float] = None):
         self._multiplier = multiplier
 
-    def fit(self, episodes: List[Episode]) -> None:
+    def fit(self, transitions: List[Transition]) -> None:
         if self._multiplier is None:
             LOG.warning("Please initialize MultiplyRewardScaler manually.")
 
@@ -169,7 +169,7 @@ class ClipRewardScaler(RewardScaler):
         self._high = high
         self._multiplier = multiplier
 
-    def fit(self, episodes: List[Episode]) -> None:
+    def fit(self, transitions: List[Transition]) -> None:
         if self._low is None and self._high is None:
             LOG.warning("Please initialize ClipRewardScaler manually.")
 
@@ -241,18 +241,19 @@ class MinMaxRewardScaler(RewardScaler):
         self._maximum = None
         self._multiplier = multiplier
         if dataset:
-            self.fit(dataset.episodes)
+            transitions = []
+            for episode in dataset.episodes:
+                transitions += episode.transitions
+            self.fit(transitions)
         elif minimum is not None and maximum is not None:
             self._minimum = minimum
             self._maximum = maximum
 
-    def fit(self, episodes: List[Episode]) -> None:
+    def fit(self, transitions: List[Transition]) -> None:
         if self._minimum is not None and self._maximum is not None:
             return
 
-        rewards = []
-        for episode in episodes:
-            rewards += episode.rewards[1:].tolist()
+        rewards = [transition.next_reward for transition in transitions]
 
         self._minimum = float(np.min(rewards))
         self._maximum = float(np.max(rewards))
@@ -335,18 +336,19 @@ class StandardRewardScaler(RewardScaler):
         self._eps = eps
         self._multiplier = multiplier
         if dataset:
-            self.fit(dataset.episodes)
+            transitions = []
+            for episode in dataset.episodes:
+                transitions += episode.transitions
+            self.fit(transitions)
         elif mean is not None and std is not None:
             self._mean = mean
             self._std = std
 
-    def fit(self, episodes: List[Episode]) -> None:
+    def fit(self, transitions: List[Transition]) -> None:
         if self._mean is not None and self._std is not None:
             return
 
-        rewards = []
-        for episode in episodes:
-            rewards += episode.rewards[1:].tolist()
+        rewards = [transition.next_reward for transition in transitions]
 
         self._mean = float(np.mean(rewards))
         self._std = float(np.std(rewards))

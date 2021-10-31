@@ -2,7 +2,7 @@ from typing import List, cast
 
 import numpy as np
 
-from ..dataset import Episode, Transition
+from ..dataset import Transition
 from .base import TransitionIterator
 
 
@@ -12,7 +12,7 @@ class RandomIterator(TransitionIterator):
 
     def __init__(
         self,
-        episodes: List[Episode],
+        transitions: List[Transition],
         n_steps_per_epoch: int,
         batch_size: int,
         n_steps: int = 1,
@@ -22,7 +22,7 @@ class RandomIterator(TransitionIterator):
         generated_maxlen: int = 100000,
     ):
         super().__init__(
-            episodes=episodes,
+            transitions=transitions,
             batch_size=batch_size,
             n_steps=n_steps,
             gamma=gamma,

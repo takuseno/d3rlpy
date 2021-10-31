@@ -4,12 +4,11 @@ from typing import Iterator, List, cast
 import numpy as np
 
 from ..containers import FIFOQueue
-from ..dataset import Episode, Transition, TransitionMiniBatch
+from ..dataset import Transition, TransitionMiniBatch
 
 
 class TransitionIterator(metaclass=ABCMeta):
 
-    _episodes: List[Episode]
     _transitions: List[Transition]
     _generated_transitions: FIFOQueue[Transition]
     _batch_size: int
@@ -22,7 +21,7 @@ class TransitionIterator(metaclass=ABCMeta):
 
     def __init__(
         self,
-        episodes: List[Episode],
+        transitions: List[Transition],
         batch_size: int,
         n_steps: int = 1,
         gamma: float = 0.99,
@@ -30,11 +29,8 @@ class TransitionIterator(metaclass=ABCMeta):
         real_ratio: float = 1.0,
         generated_maxlen: int = 100000,
     ):
-        self._episodes = episodes
-        self._transitions = []
+        self._transitions = transitions
         self._generated_transitions = FIFOQueue(generated_maxlen)
-        for episode in episodes:
-            self._transitions += episode.transitions
         self._batch_size = batch_size
         self._n_steps = n_steps
         self._gamma = gamma
@@ -109,10 +105,6 @@ class TransitionIterator(metaclass=ABCMeta):
 
     def size(self) -> int:
         return len(self._transitions) + len(self._generated_transitions)
-
-    @property
-    def episodes(self) -> List[Episode]:
-        return self._episodes
 
     @property
     def transitions(self) -> List[Transition]:

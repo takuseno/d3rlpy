@@ -13,6 +13,7 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    cast,
 )
 
 import gym
@@ -347,7 +348,7 @@ class LearnableBase:
 
     def fit(
         self,
-        dataset: Union[List[Episode], MDPDataset],
+        dataset: Union[List[Episode], List[Transition], MDPDataset],
         n_epochs: Optional[int] = None,
         n_steps: Optional[int] = None,
         n_steps_per_epoch: int = 10000,
@@ -426,7 +427,7 @@ class LearnableBase:
 
     def fitter(
         self,
-        dataset: Union[List[Episode], MDPDataset],
+        dataset: Union[List[Episode], List[Transition], MDPDataset],
         n_epochs: Optional[int] = None,
         n_steps: Optional[int] = None,
         n_steps_per_epoch: int = 10000,
@@ -455,7 +456,7 @@ class LearnableBase:
                 algo.save_model(my_path)
 
         Args:
-            dataset: list of episodes to train.
+            dataset: offline dataset to train.
             n_epochs: the number of epochs to train.
             n_steps: the number of steps to train.
             n_steps_per_epoch: the number of steps per epoch. This value will
@@ -485,29 +486,38 @@ class LearnableBase:
 
         """
 
+        transitions = []
         if isinstance(dataset, MDPDataset):
-            episodes = dataset.episodes
+            for episode in dataset.episodes:
+                transitions += episode.transitions
+        elif not dataset:
+            raise ValueError("empty dataset is not supported.")
+        elif isinstance(dataset[0], Episode):
+            for episode in cast(List[Episode], dataset):
+                transitions += episode.transitions
+        elif isinstance(dataset[0], Transition):
+            transitions = list(cast(List[Transition], dataset))
         else:
-            episodes = dataset
+            raise ValueError(f"invalid dataset type: {type(dataset)}")
 
         # check action space
         if self.get_action_type() == ActionSpace.BOTH:
             pass
-        elif len(episodes[0].actions.shape) > 1:
-            assert (
-                self.get_action_type() == ActionSpace.CONTINUOUS
-            ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
-        else:
+        elif transitions[0].is_discrete:
             assert (
                 self.get_action_type() == ActionSpace.DISCRETE
             ), DISCRETE_ACTION_SPACE_MISMATCH_ERROR
+        else:
+            assert (
+                self.get_action_type() == ActionSpace.CONTINUOUS
+            ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
 
         iterator: TransitionIterator
         if n_epochs is None and n_steps is not None:
             assert n_steps >= n_steps_per_epoch
             n_epochs = n_steps // n_steps_per_epoch
             iterator = RandomIterator(
-                episodes,
+                transitions,
                 n_steps_per_epoch,
                 batch_size=self._batch_size,
                 n_steps=self._n_steps,
@@ -519,7 +529,7 @@ class LearnableBase:
             LOG.debug("RandomIterator is selected.")
         elif n_epochs is not None and n_steps is None:
             iterator = RoundIterator(
-                episodes,
+                transitions,
                 batch_size=self._batch_size,
                 n_steps=self._n_steps,
                 gamma=self._gamma,
@@ -548,7 +558,7 @@ class LearnableBase:
         # initialize scaler
         if self._scaler:
             LOG.debug("Fitting scaler...", scaler=self._scaler.get_type())
-            self._scaler.fit(episodes)
+            self._scaler.fit(transitions)
 
         # initialize action scaler
         if self._action_scaler:
@@ -556,7 +566,7 @@ class LearnableBase:
                 "Fitting action scaler...",
                 action_scaler=self._action_scaler.get_type(),
             )
-            self._action_scaler.fit(episodes)
+            self._action_scaler.fit(transitions)
 
         # initialize reward scaler
         if self._reward_scaler:
@@ -564,7 +574,7 @@ class LearnableBase:
                 "Fitting reward scaler...",
                 reward_scaler=self._reward_scaler.get_type(),
             )
-            self._reward_scaler.fit(episodes)
+            self._reward_scaler.fit(transitions)
 
         # instantiate implementation
         if self._impl is None:

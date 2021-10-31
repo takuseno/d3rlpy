@@ -934,6 +934,16 @@ cdef class Transition:
         return self._thisptr.get().action_size
 
     @property
+    def is_discrete(self):
+        """Returns flag of discrete action-space.
+
+        Returns:
+            bool: ``True`` if action-space is discrete.
+
+        """
+        return self._is_discrete
+
+    @property
     def observation(self):
         """ Returns observation at `t`.
 

@@ -2,7 +2,7 @@ from typing import List, cast
 
 import numpy as np
 
-from ..dataset import Episode, Transition
+from ..dataset import Transition
 from .base import TransitionIterator
 
 
@@ -14,7 +14,7 @@ class RoundIterator(TransitionIterator):
 
     def __init__(
         self,
-        episodes: List[Episode],
+        transitions: List[Transition],
         batch_size: int,
         n_steps: int = 1,
         gamma: float = 0.99,
@@ -24,7 +24,7 @@ class RoundIterator(TransitionIterator):
         shuffle: bool = True,
     ):
         super().__init__(
-            episodes=episodes,
+            transitions=transitions,
             batch_size=batch_size,
             n_steps=n_steps,
             gamma=gamma,

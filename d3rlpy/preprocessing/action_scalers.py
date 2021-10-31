@@ -4,7 +4,7 @@ import gym
 import numpy as np
 import torch
 
-from ..dataset import Episode, MDPDataset
+from ..dataset import MDPDataset, Transition
 from ..decorators import pretty_repr
 
 
@@ -12,11 +12,11 @@ from ..decorators import pretty_repr
 class ActionScaler:
     TYPE: ClassVar[str] = "none"
 
-    def fit(self, episodes: List[Episode]) -> None:
+    def fit(self, transitions: List[Transition]) -> None:
         """Estimates scaling parameters from dataset.
 
         Args:
-            episodes: a list of episode objects.
+            transitions: a list of transition objects.
 
         """
         raise NotImplementedError
@@ -107,8 +107,11 @@ class MinMaxActionScaler(ActionScaler):
         # initialize algorithm with MinMaxActionScaler
         cql = CQL(action_scaler='min_max')
 
-        # scaler is initialized from the given episodes
-        cql.fit(dataset.episodes)
+        # scaler is initialized from the given transitions
+        transitions = []
+        for episode in dataset.episodes:
+            transitions += episode.transitions
+        cql.fit(transitions)
 
     You can also initialize with :class:`d3rlpy.dataset.MDPDataset` object or
     manually.
@@ -147,23 +150,29 @@ class MinMaxActionScaler(ActionScaler):
         self._minimum = None
         self._maximum = None
         if dataset:
-            self.fit(dataset.episodes)
+            transitions = []
+            for episode in dataset.episodes:
+                transitions += episode.transitions
+            self.fit(transitions)
         elif maximum is not None and minimum is not None:
             self._minimum = np.asarray(minimum)
             self._maximum = np.asarray(maximum)
 
-    def fit(self, episodes: List[Episode]) -> None:
+    def fit(self, transitions: List[Transition]) -> None:
         if self._minimum is not None and self._maximum is not None:
             return
 
-        for i, e in enumerate(episodes):
-            actions = np.asarray(e.actions)
+        for i, transition in enumerate(transitions):
+            action = np.asarray(transition.action)
             if i == 0:
-                minimum = actions.min(axis=0)
-                maximum = actions.max(axis=0)
+                minimum = action
+                maximum = action
             else:
-                minimum = np.minimum(minimum, actions.min(axis=0))
-                maximum = np.maximum(maximum, actions.max(axis=0))
+                minimum = np.minimum(minimum, action)
+                maximum = np.maximum(maximum, action)
+            if transition.terminal:
+                minimum = np.minimum(minimum, transition.next_action)
+                maximum = np.maximum(maximum, transition.next_action)
 
         self._minimum = minimum.reshape((1,) + minimum.shape)
         self._maximum = maximum.reshape((1,) + maximum.shape)

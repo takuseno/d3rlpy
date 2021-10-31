@@ -56,7 +56,7 @@ def test_min_max_action_scaler_with_episode(
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size)).astype("f4")
     rewards = np.random.random(batch_size)
-    terminals = np.random.randint(2, size=batch_size)
+    terminals = np.zeros(batch_size)
     terminals[-1] = 1.0
 
     dataset = MDPDataset(
@@ -70,7 +70,10 @@ def test_min_max_action_scaler_with_episode(
     min = actions.min(axis=0)
 
     scaler = MinMaxActionScaler()
-    scaler.fit(dataset.episodes)
+    transitions = []
+    for episode in dataset.episodes:
+        transitions += episode.transitions
+    scaler.fit(transitions)
 
     x = torch.rand((batch_size, action_size))
 

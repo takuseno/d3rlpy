@@ -38,8 +38,12 @@ def test_random_iterator(
         )
         episodes.append(episode)
 
+    orig_transitions = []
+    for episode in episodes:
+        orig_transitions += episode.transitions
+
     iterator = RandomIterator(
-        episodes,
+        orig_transitions,
         n_steps_per_epoch,
         batch_size,
         real_ratio=real_ratio,

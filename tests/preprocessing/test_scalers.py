@@ -74,7 +74,7 @@ def test_min_max_scaler_with_episode(observation_shape, batch_size):
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1))
     rewards = np.random.random(batch_size)
-    terminals = np.random.randint(2, size=batch_size)
+    terminals = np.zeros(batch_size)
     terminals[-1] = 1.0
 
     dataset = MDPDataset(
@@ -88,7 +88,10 @@ def test_min_max_scaler_with_episode(observation_shape, batch_size):
     min = observations.min(axis=0)
 
     scaler = MinMaxScaler()
-    scaler.fit(dataset.episodes)
+    transitions = []
+    for episode in dataset.episodes:
+        transitions += episode.transitions
+    scaler.fit(transitions)
 
     x = torch.rand((batch_size,) + observation_shape)
 
@@ -145,7 +148,7 @@ def test_standard_scaler_with_episode(observation_shape, batch_size, eps):
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1)).astype("f4")
     rewards = np.random.random(batch_size).astype("f4")
-    terminals = np.random.randint(2, size=batch_size)
+    terminals = np.zeros(batch_size)
     terminals[-1] = 1.0
 
     dataset = MDPDataset(
@@ -159,7 +162,10 @@ def test_standard_scaler_with_episode(observation_shape, batch_size, eps):
     std = observations.std(axis=0)
 
     scaler = StandardScaler(eps=eps)
-    scaler.fit(dataset.episodes)
+    transitions = []
+    for episode in dataset.episodes:
+        transitions += episode.transitions
+    scaler.fit(transitions)
 
     x = torch.rand((batch_size,) + observation_shape)
 

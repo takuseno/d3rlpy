@@ -38,8 +38,12 @@ def test_round_iterator(
         )
         episodes.append(episode)
 
+    orig_transitions = []
+    for episode in episodes:
+        orig_transitions += episode.transitions
+
     iterator = RoundIterator(
-        episodes,
+        orig_transitions,
         batch_size,
         shuffle=shuffle,
         real_ratio=real_ratio,
