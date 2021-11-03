@@ -231,8 +231,8 @@ def get_atari_transitions(
     try:
         import d4rl_atari
 
+        # each epoch consists of 1M steps
         num_transitions_per_epoch = int(1000000 * fraction)
-        total_transitions = 50 * num_transitions_per_epoch
 
         transitions = []
         for i in range(50):
@@ -261,10 +261,12 @@ def get_atari_transitions(
                 if num_data > num_transitions_per_epoch:
                     break
 
+            transitions_per_epoch = []
             for episode in copied_episodes:
-                transitions += episode.transitions
+                transitions_per_epoch += episode.transitions
+            transitions += transitions_per_epoch[:num_transitions_per_epoch]
 
-        return transitions[:total_transitions], ChannelFirst(env)
+        return transitions, ChannelFirst(env)
     except ImportError as e:
         raise ImportError(
             "d4rl-atari is not installed.\n"
