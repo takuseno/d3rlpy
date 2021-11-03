@@ -1,14 +1,15 @@
 # pylint: disable=unused-import,too-many-return-statements
 
 import os
+import random
 import re
-from typing import Tuple
+from typing import List, Tuple
 from urllib import request
 
 import gym
 import numpy as np
 
-from .dataset import MDPDataset
+from .dataset import Episode, MDPDataset, Transition
 from .envs import ChannelFirst
 
 DATA_DIRECTORY = "d3rlpy_data"
@@ -190,6 +191,80 @@ def get_atari(
             **env.get_dataset(),
         )
         return dataset, env
+    except ImportError as e:
+        raise ImportError(
+            "d4rl-atari is not installed.\n"
+            "pip install git+https://github.com/takuseno/d4rl-atari"
+        ) from e
+
+
+def get_atari_transitions(
+    game_name: str, fraction: float = 0.01, index: int = 0
+) -> Tuple[List[Transition], gym.Env]:
+    """Returns atari dataset as a list of Transition objects and envrironment.
+
+    The dataset is provided through d4rl-atari.
+    The difference from ``get_atari`` function is that this function will
+    sample transitions from all epochs.
+    This function is necessary for reproducing Atari experiments.
+
+    .. code-block:: python
+
+        from d3rlpy.datasets import get_atari_transitions
+
+        # get 1% of transitions from all epochs (1M x 50 epoch x 1% = 0.5M)
+        dataset, env = get_atari_transitions('breakout', fraction=0.01)
+
+    References:
+        * https://github.com/takuseno/d4rl-atari
+
+    Args:
+        game_name: Atari 2600 game name in lower_snake_case.
+        fraction: fraction of sampled transitions.
+        index: index to specify which trial to load.
+
+    Returns:
+        tuple of a list of :class:`d3rlpy.dataset.Transition` and gym
+        environment.
+
+    """
+    try:
+        import d4rl_atari
+
+        num_transitions_per_epoch = int(1000000 * fraction)
+        total_transitions = 50 * num_transitions_per_epoch
+
+        transitions = []
+        for i in range(50):
+            env = gym.make(
+                f"{game_name}-epoch-{i + 1}-v{index}", sticky_action=True
+            )
+            dataset = MDPDataset(discrete_action=True, **env.get_dataset())
+            episodes = list(dataset.episodes)
+
+            # copy episode data to release memory of unused data
+            random.shuffle(episodes)
+            num_data = 0
+            copied_episodes = []
+            for episode in episodes:
+                copied_episode = Episode(
+                    observation_shape=tuple(episode.get_observation_shape()),
+                    action_size=episode.get_action_size(),
+                    observations=episode.observations.copy(),
+                    actions=episode.actions.copy(),
+                    rewards=episode.rewards.copy(),
+                    terminal=episode.terminal,
+                )
+                copied_episodes.append(copied_episode)
+
+                num_data += len(copied_episode)
+                if num_data > num_transitions_per_epoch:
+                    break
+
+            for episode in copied_episodes:
+                transitions += episode.transitions
+
+        return transitions[:total_transitions], ChannelFirst(env)
     except ImportError as e:
         raise ImportError(
             "d4rl-atari is not installed.\n"
