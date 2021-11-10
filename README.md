@@ -30,7 +30,8 @@ sac.fit_online(env, n_steps=1000000)
 actions = sac.predict(x)
 ```
 
-Documentation: https://d3rlpy.readthedocs.io
+- Documentation: https://d3rlpy.readthedocs.io
+- Paper: https://arxiv.org/abs/2111.03788
 
 ## key features
 
@@ -238,6 +239,7 @@ The release planning can be checked at [milestones](https://github.com/takuseno/
 The roadmap to the future release is available in [ROADMAP.md](ROADMAP.md).
 
 ## citation
+The paper is available [here](https://arxiv.org/abs/2111.03788).
 ```
 @InProceedings{seno2021d3rlpy,
   author = {Takuma Seno, Michita Imai},
