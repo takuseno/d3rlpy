@@ -19,6 +19,80 @@ from .torch.iql_impl import IQLImpl
 
 
 class IQL(AlgoBase):
+    r"""Implicit Q-Learning algorithm.
+
+    IQL is the offline RL algorithm that avoids ever querying values of unseen
+    actions while still being able to perform multi-step dynamic programming
+    updates.
+
+    There are three functions to train in IQL. First the state-value function
+    is trained via expectile regression.
+
+    .. math::
+
+        L_V(\psi) = \mathbb{E}_{(s, a) \sim D}
+            [L_2^\tau (Q_\theta (s, a) - V_\psi (s))]
+
+    where :math:`L_2^\tau (u) = |\tau - \mathbb{1}(u < 0)|u^2`.
+
+    The Q-function is trained with the state-value function to avoid query the
+    actions.
+
+    .. math::
+
+        L_Q(\theta) = \mathbb{E}_{(s, a, r, a') \sim D}
+            [(r + \gamma V_\psi(s') - Q_\theta(s, a))^2]
+
+    Finally, the policy function is trained by using advantage weighted
+    regression.
+
+    .. math::
+
+        L_\pi (\phi) = \mathbb{E}_{(s, a) \sim D}
+            [\exp(\beta (Q_\theta - V_\psi(s))) \log \pi_\phi(a|s)]
+
+    References:
+        * `Kostrikov et al., Offline Reinforcement Learning with Implicit
+          Q-Learning. <https://arxiv.org/abs/2110.06169>`_
+
+    Args:
+        actor_learning_rate (float): learning rate for policy function.
+        critic_learning_rate (float): learning rate for Q functions.
+        value_learning_rate (float): learning rate for state-value function.
+        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory for the critic.
+        value_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory for the value function.
+        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+            encoder factory for the actor.
+        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+            encoder factory for the critic.
+        value_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+            encoder factory for the value function.
+        batch_size (int): mini-batch size.
+        n_frames (int): the number of frames to stack for image observation.
+        n_steps (int): N-step TD calculation.
+        gamma (float): discount factor.
+        tau (float): target network synchronization coefficiency.
+        n_critics (int): the number of Q functions for ensemble.
+        expectile (float): the expectile value for value function training.
+        weight_temp (float): inverse temperature value represented as
+            :math:`\beta`.
+        max_weight (float): the maximum advantage weight value to clip.
+        use_gpu (bool, int or d3rlpy.gpu.Device):
+            flag to use GPU, device ID or device.
+        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
+            The available options are `['pixel', 'min_max', 'standard']`.
+        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
+            action preprocessor. The available options are ``['min_max']``.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
+            reward preprocessor. The available options are
+            ``['clip', 'min_max', 'standard']``.
+        impl (d3rlpy.algos.torch.iql_impl.IQLImpl): algorithm implementation.
+
+    """
 
     _actor_learning_rate: float
     _critic_learning_rate: float
