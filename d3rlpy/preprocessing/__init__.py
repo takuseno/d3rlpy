@@ -7,6 +7,7 @@ from .reward_scalers import (
     ClipRewardScaler,
     MinMaxRewardScaler,
     MultiplyRewardScaler,
+    ReturnBasedRewardScaler,
     RewardScaler,
     StandardRewardScaler,
     create_reward_scaler,
@@ -34,4 +35,5 @@ __all__ = [
     "MinMaxRewardScaler",
     "StandardRewardScaler",
     "MultiplyRewardScaler",
+    "ReturnBasedRewardScaler",
 ]
