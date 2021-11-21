@@ -1,5 +1,6 @@
 import argparse
 import d3rlpy
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from sklearn.model_selection import train_test_split
 
 
@@ -31,11 +32,19 @@ def main():
                            reward_scaler=reward_scaler,
                            use_gpu=args.gpu)
 
+    # workaround for learning scheduler
+    iql.create_impl(dataset.get_observation_shape(), dataset.get_action_size())
+    scheduler = CosineAnnealingLR(iql.impl._actor_optim, 1000000)
+
+    def callback(algo, epoch, total_step):
+        scheduler.step()
+
     iql.fit(dataset.episodes,
             eval_episodes=test_episodes,
             n_steps=500000,
             n_steps_per_epoch=1000,
             save_interval=10,
+            callback=callback,
             scorers={
                 'environment': d3rlpy.metrics.evaluate_on_environment(env),
                 'value_scale': d3rlpy.metrics.average_value_estimation_scorer,
