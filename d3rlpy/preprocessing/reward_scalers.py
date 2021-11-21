@@ -457,8 +457,10 @@ class ReturnBasedRewardScaler(RewardScaler):
         for start_transition in start_transitions:
             ret = 0.0
             curr_transition = start_transition
-            while curr_transition:
+            while True:
                 ret += curr_transition.next_reward
+                if curr_transition.next_transition is None:
+                    break
                 curr_transition = curr_transition.next_transition
             returns.append(ret)
 
