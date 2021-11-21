@@ -41,7 +41,7 @@ def main():
 
     iql.fit(dataset.episodes,
             eval_episodes=test_episodes,
-            n_steps=500000,
+            n_steps=1000000,
             n_steps_per_epoch=1000,
             save_interval=10,
             callback=callback,
