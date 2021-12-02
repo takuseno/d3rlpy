@@ -11,8 +11,11 @@ def main():
 
     d3rlpy.seed(args.seed)
 
-    dataset, env = d3rlpy.datasets.get_atari_transitions(args.game,
-                                                         fraction=0.01)
+    dataset, env = d3rlpy.datasets.get_atari_transitions(
+        args.game,
+        fraction=0.01,
+        index=1 if args.game == "asterix" else 0,
+    )
 
     env.seed(args.seed)
 

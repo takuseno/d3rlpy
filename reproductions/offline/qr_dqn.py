@@ -12,8 +12,12 @@ def main():
     # fix seed
     d3rlpy.seed(args.seed)
 
-    dataset, env = d3rlpy.datasets.get_atari_transitions(args.game,
-                                                         fraction=0.01)
+    dataset, env = d3rlpy.datasets.get_atari_transitions(
+        args.game,
+        fraction=0.01,
+        index=1 if args.game == "asterix" else 0,
+    )
+
     env.seed(args.seed)
 
     dqn = d3rlpy.algos.DQN(
@@ -28,6 +32,8 @@ def main():
         reward_scaler=d3rlpy.preprocessing.ClipRewardScaler(-1.0, 1.0),
         use_gpu=args.gpu)
 
+    env_scorer = d3rlpy.metrics.evaluate_on_environment(env, epsilon=0.001)
+
     dqn.fit(
         dataset,
         eval_episodes=[None],  # dummy
@@ -35,10 +41,9 @@ def main():
         n_steps_per_epoch=125000,
         save_interval=10,
         scorers={
-            'environment':
-            d3rlpy.metrics.evaluate_on_environment(env, epsilon=0.001),
+            'environment': env_scorer,
         },
-        experiment_name=f"QR_DQN_{args.game}_{args.seed}")
+        experiment_name=f"QRDQN_{args.game}_{args.seed}")
 
 
 if __name__ == '__main__':
