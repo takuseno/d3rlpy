@@ -96,13 +96,6 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 - [x] [Quantile Regression](https://arxiv.org/abs/1710.10044)
 - [x] [Implicit Quantile Network](https://arxiv.org/abs/1806.06923)
 
-## other features
-Basically, all features are available with every algorithm.
-
-- [x] evaluation metrics in a scikit-learn scorer function style
-- [x] export greedy-policy as TorchScript or ONNX
-- [x] parallel cross validation with multiple GPU
-
 ## experimental features
 - Model-based Algorithms
   - [Model-based Offline Policy Optimization (MOPO)](https://arxiv.org/abs/2005.13239)
