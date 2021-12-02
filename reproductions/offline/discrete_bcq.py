@@ -21,12 +21,14 @@ def main():
     env.seed(args.seed)
 
     bcq = d3rlpy.algos.BCQ(
-        learning_rate=6.25e-5,
-        optim_factory=d3rlpy.models.optimizers.AdamFactory(eps=1.5e-4),
+        learning_rate=5e-5,
+        optim_factory=d3rlpy.models.optimizers.AdamFactory(eps=1e-2 / 32),
         batch_size=32,
+        q_func_factory=d3rlpy.models.q_functions.QRQFunctionFactory(
+            n_quantiles=200),
         scaler="pixel",
         n_frames=4,
-        target_update_interval=8000,
+        target_update_interval=2000,
         reward_scaler=d3rlpy.preprocessing.ClipRewardScaler(-1.0, 1.0),
         action_flexibility=0.3,
         beta=0.01,
