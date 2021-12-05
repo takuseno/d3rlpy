@@ -4,8 +4,9 @@ from d3rlpy.ope import DiscreteFQE
 from d3rlpy.metrics.scorer import evaluate_on_environment
 from d3rlpy.metrics.scorer import initial_state_value_estimation_scorer
 from d3rlpy.metrics.scorer import soft_opc_scorer
+from d3rlpy.metrics.scorer import true_q_scorer
 from sklearn.model_selection import train_test_split
-
+from d3rlpy.ope import FQE
 import d3rlpy
 
 # prepare dataset
