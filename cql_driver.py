@@ -1,4 +1,4 @@
-from d3rlpy.datasets import get_cartpole
+from d3rlpy.datasets import get_pybullet
 from d3rlpy.algos import DiscreteCQL
 from d3rlpy.ope import DiscreteFQE
 from d3rlpy.metrics.scorer import evaluate_on_environment
