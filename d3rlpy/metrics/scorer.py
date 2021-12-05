@@ -112,10 +112,33 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
 
     return float(np.mean(total_errors))
 
+#Modify the True Q scorer
+def true_q_scorer(
+    algo: AlgoProtocol, episodes: List[Episode]) -> float:
+        for episode in episodes:
+            for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
+                # estimate values for current observations
+                values = algo.predict_value([batch.observations[0]], batch.actions)
+
+                # estimate values for next observations
+                next_actions = algo.predict(batch.next_observations)
+                next_values = algo.predict_value(
+                    [batch.next_observations[0]], next_actions
+                )
+
+                # calculate td errors
+                mask = (1.0 - np.asarray(batch.terminals)).reshape(-1)
+                rewards = np.asarray(batch.next_rewards).reshape(-1)
+                if algo.reward_scaler:
+                    rewards = algo.reward_scaler.transform_numpy(rewards)
+                y = rewards + algo.gamma * cast(np.ndarray, next_values) * mask
+                total_errors += ((values - y) ** 2).tolist()
+
+        return float(np.mean(total_errors))
+    return
 
 def discounted_sum_of_advantage_scorer(
-    algo: AlgoProtocol, episodes: List[Episode]
-) -> float:
+    algo: AlgoProtocol, episodes: List[Episode]) -> float:
     r"""Returns average of discounted sum of advantage.
 
     This metrics suggests how the greedy-policy selects different actions in
