@@ -39,11 +39,12 @@ def main(inputs):
                 'soft_opc': soft_opc_scorer(500),
                 'trueQ': true_q_scorer},
             with_timestamp=False,
-            experiment_name = 'DiscreteFQE_v0')
+            experiment_name = f'FQE_run{inputs.log_name}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs_cql', type=int, default=10)
     parser.add_argument('--epochs_fqe', type=int, default=10)
+    parser.add_argument('--log_name', type=str, default='placeholder')
     inputs = parser.parse_args()
     main(inputs)
