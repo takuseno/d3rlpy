@@ -25,7 +25,7 @@ cql.fit(train_episodes,
             'td_error': d3rlpy.metrics.td_error_scorer,
             'trueQ': true_q_scorer})
 
-fqe = DiscreteFQE(algo = cql,
+fqe = FQE(algo = cql,
         use_gpu = True)
 
 fqe.fit(train_episodes,
