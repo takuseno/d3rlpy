@@ -8,33 +8,42 @@ from d3rlpy.metrics.scorer import true_q_scorer
 from sklearn.model_selection import train_test_split
 from d3rlpy.ope import FQE
 import d3rlpy
+import argparse
 
-# prepare dataset
-dataset, env = d3rlpy.datasets.get_pybullet('hopper-bullet-mixed-v0')
+def main(inputs):
+    # prepare dataset
+    dataset, env = d3rlpy.datasets.get_pybullet('hopper-bullet-mixed-v0')
 
-# prepare algorithm
-cql = d3rlpy.algos.CQL(use_gpu=True)
+    # prepare algorithm
+    cql = d3rlpy.algos.CQL(use_gpu=True)
 
-train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
+    train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
-# start training
-cql.fit(train_episodes,
-        eval_episodes=test_episodes,
-        n_epochs=100,
-        scorers={
-            'environment': d3rlpy.metrics.evaluate_on_environment(env),
-            'td_error': d3rlpy.metrics.td_error_scorer,
-            'trueQ': true_q_scorer})
+    # start training
+    cql.fit(train_episodes,
+            eval_episodes=test_episodes,
+            n_epochs=inputs.epochs_cql,
+            scorers={
+                'environment': d3rlpy.metrics.evaluate_on_environment(env),
+                'td_error': d3rlpy.metrics.td_error_scorer,
+                'trueQ': true_q_scorer})
 
-fqe = FQE(algo = cql,
-        use_gpu = True)
+    fqe = FQE(algo = cql,
+            use_gpu = True)
 
-fqe.fit(train_episodes,
-        eval_episodes=test_episodes,
-        n_epochs = 5,
-        scorers={
-            'estimated_q_values': initial_state_value_estimation_scorer,
-            'soft_opc': soft_opc_scorer(500),
-            'trueQ': true_q_scorer},
-        with_timestamp=False,
-        experiment_name = 'DiscreteFQE_v0')
+    fqe.fit(train_episodes,
+            eval_episodes=test_episodes,
+            n_epochs = inputs.epochs_fqe,
+            scorers={
+                'estimated_q_values': initial_state_value_estimation_scorer,
+                'soft_opc': soft_opc_scorer(500),
+                'trueQ': true_q_scorer},
+            with_timestamp=False,
+            experiment_name = 'DiscreteFQE_v0')
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--epochs_cql', type=int, default=10)
+    parser.add_argument('--epochs_fqe', type=int, default=10)
+    inputs = parser.parse_args()
+    main(inputs)
