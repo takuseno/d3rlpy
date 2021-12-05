@@ -71,23 +71,19 @@ def _make_batches(
 
 
 def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
-    r"""Returns average TD error.
+    r"""Avg TD error:
 
-    This metics suggests how Q functions overfit to training sets.
-    If the TD error is large, the Q functions are overfitting.
-
+    Indicates overfitting of Q function to training set
     .. math::
 
         \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D}
             [(Q_\theta (s_t, a_t)
              - r_{t+1} - \gamma \max_a Q_\theta (s_{t+1}, a))^2]
-
+    Returns:
+        Avg TD error
     Args:
         algo: algorithm.
-        episodes: list of episodes.
-
-    Returns:
-        average TD error.
+        episodes: list of episodes
 
     """
     total_errors = []
@@ -116,12 +112,7 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
 def discounted_sum_of_advantage_scorer(
     algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns average of discounted sum of advantage.
-
-    This metrics suggests how the greedy-policy selects different actions in
-    action-value space.
-    If the sum of advantage is small, the policy selects actions with larger
-    estimated action-values.
+    r"""Returns average of discounted sum of advantage: decides selection of estimated action values
 
     .. math::
 
@@ -131,16 +122,11 @@ def discounted_sum_of_advantage_scorer(
     where :math:`A(s_t, a_t) = Q_\theta (s_t, a_t)
     - \mathbb{E}_{a \sim \pi} [Q_\theta (s_t, a)]`.
 
-    References:
-        * `Murphy., A generalization error for Q-Learning.
-          <http://www.jmlr.org/papers/volume6/murphy05a/murphy05a.pdf>`_
-
-    Args:
-        algo: algorithm.
-        episodes: list of episodes.
-
     Returns:
         average of discounted sum of advantage.
+    Args:
+        algo: algorithm
+        episodes: list of episodes
 
     """
     total_sums = []
@@ -175,22 +161,16 @@ def discounted_sum_of_advantage_scorer(
 def average_value_estimation_scorer(
     algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns average value estimation.
-
-    This metrics suggests the scale for estimation of Q functions.
-    If average value estimation is too large, the Q functions overestimate
-    action-values, which possibly makes training failed.
+    r"""average value estimation for action values by Q function
 
     .. math::
 
         \mathbb{E}_{s_t \sim D} [ \max_a Q_\theta (s_t, a)]
-
+    Returns:
+        average value estimation.
     Args:
         algo: algorithm.
         episodes: list of episodes.
-
-    Returns:
-        average value estimation.
 
     """
     total_values = []
@@ -205,29 +185,17 @@ def average_value_estimation_scorer(
 def value_estimation_std_scorer(
     algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns standard deviation of value estimation.
-
-    This metrics suggests how confident Q functions are for the given
-    episodes.
-    This metrics will be more accurate with `boostrap` enabled and the larger
-    `n_critics` at algorithm.
-    If standard deviation of value estimation is large, the Q functions are
-    overfitting to the training set.
+    r"""gives std deviation for estimated values for each episode
 
     .. math::
 
         \mathbb{E}_{s_t \sim D, a \sim \text{argmax}_a Q_\theta(s_t, a)}
             [Q_{\text{std}}(s_t, a)]
-
-    where :math:`Q_{\text{std}}(s, a)` is a standard deviation of action-value
-    estimation over ensemble functions.
-
+    Returns:
+        standard deviation
     Args:
         algo: algorithm.
-        episodes: list of episodes.
-
-    Returns:
-        standard deviation.
+        episodes: list of episodes
 
     """
     total_stds = []
@@ -242,28 +210,15 @@ def value_estimation_std_scorer(
 def initial_state_value_estimation_scorer(
     algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns mean estimated action-values at the initial states.
-
-    This metrics suggests how much return the trained policy would get from
-    the initial states by deploying the policy to the states.
-    If the estimated value is large, the trained policy is expected to get
-    higher returns.
-
+    r"""Average estimated initial action values
     .. math::
 
         \mathbb{E}_{s_0 \sim D} [Q(s_0, \pi(s_0))]
-
-    References:
-        * `Paine et al., Hyperparameter Selection for Offline Reinforcement
-          Learning <https://arxiv.org/abs/2007.09055>`_
-
+     Returns:
+        mean action-value estimation at the initial states
     Args:
         algo: algorithm.
         episodes: list of episodes.
-
-    Returns:
-        mean action-value estimation at the initial states.
-
     """
     total_values = []
     for episode in episodes:
@@ -278,49 +233,17 @@ def initial_state_value_estimation_scorer(
 def soft_opc_scorer(
     return_threshold: float,
 ) -> Callable[[AlgoProtocol, List[Episode]], float]:
-    r"""Returns Soft Off-Policy Classification metrics.
-
-    This function returns scorer function, which is suitable to the standard
-    scikit-learn scorer function style.
-    The metrics of the scorer funciton is evaluating gaps of action-value
-    estimation between the success episodes and the all episodes.
-    If the learned Q-function is optimal, action-values in success episodes
-    are expected to be higher than the others.
-    The success episode is defined as an episode with a return above the given
-    threshold.
-
+    r"""Soft Off-Policy Classification metrics.
     .. math::
 
         \mathbb{E}_{s, a \sim D_{success}} [Q(s, a)]
             - \mathbb{E}_{s, a \sim D} [Q(s, a)]
 
-    .. code-block:: python
-
-        from d3rlpy.datasets import get_cartpole
-        from d3rlpy.algos import DQN
-        from d3rlpy.metrics.scorer import soft_opc_scorer
-        from sklearn.model_selection import train_test_split
-
-        dataset, _ = get_cartpole()
-        train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
-
-        scorer = soft_opc_scorer(return_threshold=180)
-
-        dqn = DQN()
-        dqn.fit(train_episodes,
-                eval_episodes=test_episodes,
-                scorers={'soft_opc': scorer})
-
-    References:
-        * `Irpan et al., Off-Policy Evaluation via Off-Policy Classification.
-          <https://arxiv.org/abs/1906.01624>`_
+    Returns:
+        scorer function
 
     Args:
         return_threshold: threshold of success episodes.
-
-    Returns:
-        scorer function.
-
     """
 
     def scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
@@ -342,23 +265,17 @@ def soft_opc_scorer(
 def continuous_action_diff_scorer(
     algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns squared difference of actions between algorithm and dataset.
-
-    This metrics suggests how different the greedy-policy is from the given
-    episodes in continuous action-space.
-    If the given episodes are near-optimal, the small action difference would
-    be better.
+    r"""Squared difference of actions between greedy policy and continous actions
 
     .. math::
 
         \mathbb{E}_{s_t, a_t \sim D} [(a_t - \pi_\phi (s_t))^2]
 
+    Returns:
+        squared action difference.
     Args:
         algo: algorithm.
         episodes: list of episodes.
-
-    Returns:
-        squared action difference.
 
     """
     total_diffs = []
@@ -373,24 +290,16 @@ def continuous_action_diff_scorer(
 def discrete_action_match_scorer(
     algo: AlgoProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns percentage of identical actions between algorithm and dataset.
-
-    This metrics suggests how different the greedy-policy is from the given
-    episodes in discrete action-space.
-    If the given episdoes are near-optimal, the large percentage would be
-    better.
-
+    r"""% of similar actions between greedy policy and continous actions
     .. math::
 
         \frac{1}{N} \sum^N \parallel
             \{a_t = \text{argmax}_a Q_\theta (s_t, a)\}
-
-    Args:
-        algo: algorithm.
-        episodes: list of episodes.
-
     Returns:
-        percentage of identical actions.
+        percentage of identical actions
+    Args:
+        algo: algorithm
+        episodes: list of episodes
 
     """
     total_matches = []
@@ -405,39 +314,14 @@ def discrete_action_match_scorer(
 def evaluate_on_environment(
     env: gym.Env, n_trials: int = 10, epsilon: float = 0.0, render: bool = False
 ) -> Callable[..., float]:
-    """Returns scorer function of evaluation on environment.
-
-    This function returns scorer function, which is suitable to the standard
-    scikit-learn scorer function style.
-    The metrics of the scorer function is ideal metrics to evaluate the
-    resulted policies.
-
-    .. code-block:: python
-
-        import gym
-
-        from d3rlpy.algos import DQN
-        from d3rlpy.metrics.scorer import evaluate_on_environment
-
-
-        env = gym.make('CartPole-v0')
-
-        scorer = evaluate_on_environment(env)
-
-        cql = CQL()
-
-        mean_episode_return = scorer(cql)
-
-
+    """Scorer function of evaluation on environment
+    Returns:
+        scoerer function
     Args:
         env: gym-styled environment.
         n_trials: the number of trials.
         epsilon: noise factor for epsilon-greedy policy.
         render: flag to render environment.
-
-    Returns:
-        scoerer function.
-
 
     """
 
@@ -491,23 +375,18 @@ def evaluate_on_environment(
 def dynamics_observation_prediction_error_scorer(
     dynamics: DynamicsProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns MSE of observation prediction.
-
-    This metrics suggests how dynamics model is generalized to test sets.
-    If the MSE is large, the dynamics model are overfitting.
+    r"""MSE of observation prediction.
 
     .. math::
 
         \mathbb{E}_{s_t, a_t, s_{t+1} \sim D} [(s_{t+1} - s')^2]
 
     where :math:`s' \sim T(s_t, a_t)`.
-
+   Returns:
+        mean squared error.
     Args:
         dynamics: dynamics model.
         episodes: list of episodes.
-
-    Returns:
-        mean squared error.
 
     """
     total_errors = []
@@ -522,23 +401,17 @@ def dynamics_observation_prediction_error_scorer(
 def dynamics_reward_prediction_error_scorer(
     dynamics: DynamicsProtocol, episodes: List[Episode]
 ) -> float:
-    r"""Returns MSE of reward prediction.
-
-    This metrics suggests how dynamics model is generalized to test sets.
-    If the MSE is large, the dynamics model are overfitting.
-
+    r"""MSE of reward prediction.
     .. math::
 
         \mathbb{E}_{s_t, a_t, r_{t+1} \sim D} [(r_{t+1} - r')^2]
 
     where :math:`r' \sim T(s_t, a_t)`.
-
+    Returns:
+        mean squared error.
     Args:
         dynamics: dynamics model.
         episodes: list of episodes.
-
-    Returns:
-        mean squared error.
 
     """
     total_errors = []
@@ -556,18 +429,12 @@ def dynamics_reward_prediction_error_scorer(
 def dynamics_prediction_variance_scorer(
     dynamics: DynamicsProtocol, episodes: List[Episode]
 ) -> float:
-    """Returns prediction variance of ensemble dynamics.
-
-    This metrics suggests how dynamics model is confident of test sets.
-    If the variance is large, the dynamics model has large uncertainty.
-
-    Args:
+    """Overall Prediction Variance
+Returns:
+        variance.
+Args:
         dynamics: dynamics model.
         episodes: list of episodes.
-
-    Returns:
-        variance.
-
     """
     total_variances = []
     for episode in episodes:
