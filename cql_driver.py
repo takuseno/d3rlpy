@@ -25,6 +25,7 @@ def main(inputs):
             n_epochs=inputs.epochs_cql,
             scorers={
                 'environment': d3rlpy.metrics.evaluate_on_environment(env),
+                'estimated_q_values': initial_state_value_estimation_scorer,
                 'td_error': d3rlpy.metrics.td_error_scorer,
                 'trueQ': true_q_scorer},
             experiment_name=f'CQL_{inputs.log_name}')
