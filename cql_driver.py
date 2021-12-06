@@ -27,11 +27,7 @@ def main(inputs):
                 'environment': d3rlpy.metrics.evaluate_on_environment(env),
                 'td_error': d3rlpy.metrics.td_error_scorer,
                 'trueQ': true_q_scorer},
-<<<<<<< HEAD
-            experiment_name=f'CQL_{args.log_name}')
-=======
-            experiment_name=f'CQL_{args.inputs.log_name}')
->>>>>>> dab484e4cba28caeec37a89b381e1b722a86556c
+            experiment_name=f'CQL_{inputs.log_name}')
 
     fqe = FQE(algo = cql,
             use_gpu = True)
