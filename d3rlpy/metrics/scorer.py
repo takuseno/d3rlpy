@@ -42,9 +42,10 @@ class DynamicsProtocol(Protocol):
         x: Union[np.ndarray, List[Any]],
         action: Union[np.ndarray, List[Any]],
         with_variance: bool = False,
-    ) -> Union[
-        Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]
-    ]:
+    ) -> Union[Tuple[np.ndarray, np.ndarray],
+               Tuple[np.ndarray, np.ndarray,
+               np.ndarray]
+               ]:
         ...
 
     @property
@@ -112,7 +113,7 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
 
     return float(np.mean(total_errors))
 
-#True Q scorer
+
 def true_q_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
     for episode in episodes:
         for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
@@ -128,35 +129,9 @@ def true_q_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
             y = rewards + algo.gamma * cast(np.ndarray, initial_values) * mask
     return float(np.mean(y))
 
-def discounted_sum_of_advantage_scorer(
-    algo: AlgoProtocol, episodes: List[Episode]) -> float:
-    r"""Returns average of discounted sum of advantage.
 
-    This metrics suggests how the greedy-policy selects different actions in
-    action-value space.
-    If the sum of advantage is small, the policy selects actions with larger
-    estimated action-values.
-
-    .. math::
-
-        \mathbb{E}_{s_t, a_t \sim D}
-            [\sum_{t' = t} \gamma^{t' - t} A(s_{t'}, a_{t'})]
-
-    where :math:`A(s_t, a_t) = Q_\theta (s_t, a_t)
-    - \mathbb{E}_{a \sim \pi} [Q_\theta (s_t, a)]`.
-
-    References:
-        * `Murphy., A generalization error for Q-Learning.
-          <http://www.jmlr.org/papers/volume6/murphy05a/murphy05a.pdf>`_
-
-    Args:
-        algo: algorithm.
-        episodes: list of episodes.
-
-    Returns:
-        average of discounted sum of advantage.
-
-    """
+def discounted_sum_of_advantage_scorer(algo: AlgoProtocol,
+                                       episodes: List[Episode]) -> float:
     total_sums = []
     for episode in episodes:
         for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
@@ -316,7 +291,8 @@ def soft_opc_scorer(
         from sklearn.model_selection import train_test_split
 
         dataset, _ = get_cartpole()
-        train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
+        train_episodes, test_episodes = train_test_split(dataset,
+        test_size=0.2)
 
         scorer = soft_opc_scorer(return_threshold=180)
 
@@ -417,7 +393,10 @@ def discrete_action_match_scorer(
 
 
 def evaluate_on_environment(
-    env: gym.Env, n_trials: int = 10, epsilon: float = 0.0, render: bool = False
+    env: gym.Env,
+    n_trials: int = 10,
+    epsilon: float = 0.0,
+    render: bool = False
 ) -> Callable[..., float]:
     """Returns scorer function of evaluation on environment.
 
