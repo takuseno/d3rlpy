@@ -20,7 +20,7 @@ def main():
 
     env.seed(args.seed)
 
-    bcq = d3rlpy.algos.BCQ(
+    bcq = d3rlpy.algos.DiscreteBCQ(
         learning_rate=5e-5,
         optim_factory=d3rlpy.models.optimizers.AdamFactory(eps=1e-2 / 32),
         batch_size=32,
