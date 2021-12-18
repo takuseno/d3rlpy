@@ -504,7 +504,7 @@ def register_reward_scaler(cls: Type[RewardScaler]) -> None:
 
 def create_reward_scaler(name: str, **kwargs: Any) -> RewardScaler:
     assert name in REWARD_SCALER_LIST, f"{name} seems not to be registered."
-    reward_scaler = REWARD_SCALER_LIST[name](**kwargs)  # type: ignore
+    reward_scaler = REWARD_SCALER_LIST[name](**kwargs)
     assert isinstance(reward_scaler, RewardScaler)
     return reward_scaler
 

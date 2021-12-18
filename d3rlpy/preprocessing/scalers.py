@@ -409,7 +409,7 @@ def create_scaler(name: str, **kwargs: Any) -> Scaler:
 
     """
     assert name in SCALER_LIST, f"{name} seems not to be registered."
-    scaler = SCALER_LIST[name](**kwargs)  # type: ignore
+    scaler = SCALER_LIST[name](**kwargs)
     assert isinstance(scaler, Scaler)
     return scaler
 

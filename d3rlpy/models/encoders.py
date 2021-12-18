@@ -431,7 +431,7 @@ def create_encoder_factory(name: str, **kwargs: Any) -> EncoderFactory:
 
     """
     assert name in ENCODER_LIST, f"{name} seems not to be registered."
-    factory = ENCODER_LIST[name](**kwargs)  # type: ignore
+    factory = ENCODER_LIST[name](**kwargs)
     assert isinstance(factory, EncoderFactory)
     return factory
 

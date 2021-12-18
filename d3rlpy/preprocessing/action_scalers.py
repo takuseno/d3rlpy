@@ -257,7 +257,7 @@ def create_action_scaler(name: str, **kwargs: Any) -> ActionScaler:
 
     """
     assert name in ACTION_SCALER_LIST, f"{name} seems not to be registered."
-    scaler = ACTION_SCALER_LIST[name](**kwargs)  # type: ignore
+    scaler = ACTION_SCALER_LIST[name](**kwargs)
     assert isinstance(scaler, ActionScaler)
     return scaler
 
