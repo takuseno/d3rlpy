@@ -36,7 +36,7 @@ if __name__ == "__main__":
           author="Takuma Seno",
           author_email="takuma.seno@gmail.com",
           license="MIT License",
-          classifiers=["Development Status :: 4 - Beta",
+          classifiers=["Development Status :: 5 - Stable",
                        "Intended Audience :: Developers",
                        "Intended Audience :: Education",
                        "Intended Audience :: Science/Research",
