@@ -338,9 +338,6 @@ class DiscreteBCQ(AlgoBase):
         n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         action_flexibility (float): probability threshold represented as
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
@@ -362,7 +359,6 @@ class DiscreteBCQ(AlgoBase):
     _encoder_factory: EncoderFactory
     _q_func_factory: QFunctionFactory
     _n_critics: int
-    _target_reduction_type: str
     _action_flexibility: float
     _beta: float
     _target_update_interval: int
@@ -381,7 +377,6 @@ class DiscreteBCQ(AlgoBase):
         n_steps: int = 1,
         gamma: float = 0.99,
         n_critics: int = 1,
-        target_reduction_type: str = "min",
         action_flexibility: float = 0.3,
         beta: float = 0.5,
         target_update_interval: int = 8000,
@@ -406,7 +401,6 @@ class DiscreteBCQ(AlgoBase):
         self._encoder_factory = check_encoder(encoder_factory)
         self._q_func_factory = check_q_func(q_func_factory)
         self._n_critics = n_critics
-        self._target_reduction_type = target_reduction_type
         self._action_flexibility = action_flexibility
         self._beta = beta
         self._target_update_interval = target_update_interval
@@ -425,7 +419,6 @@ class DiscreteBCQ(AlgoBase):
             q_func_factory=self._q_func_factory,
             gamma=self._gamma,
             n_critics=self._n_critics,
-            target_reduction_type=self._target_reduction_type,
             action_flexibility=self._action_flexibility,
             beta=self._beta,
             use_gpu=self._use_gpu,

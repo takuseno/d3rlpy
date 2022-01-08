@@ -106,7 +106,6 @@ class BEARImpl(SACImpl):
             gamma=gamma,
             tau=tau,
             n_critics=n_critics,
-            target_reduction_type="mix",
             initial_temperature=initial_temperature,
             use_gpu=use_gpu,
             scaler=scaler,

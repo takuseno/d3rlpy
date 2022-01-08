@@ -48,7 +48,6 @@ class CQLImpl(SACImpl):
         gamma: float,
         tau: float,
         n_critics: int,
-        target_reduction_type: str,
         initial_temperature: float,
         initial_alpha: float,
         alpha_threshold: float,
@@ -75,7 +74,6 @@ class CQLImpl(SACImpl):
             gamma=gamma,
             tau=tau,
             n_critics=n_critics,
-            target_reduction_type=target_reduction_type,
             initial_temperature=initial_temperature,
             use_gpu=use_gpu,
             scaler=scaler,
@@ -241,7 +239,7 @@ class CQLImpl(SACImpl):
             return self._targ_q_func.compute_target(
                 batch.next_observations,
                 action,
-                reduction=self._target_reduction_type,
+                reduction="min",
             )
 
 
@@ -258,7 +256,6 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         q_func_factory: QFunctionFactory,
         gamma: float,
         n_critics: int,
-        target_reduction_type: str,
         alpha: float,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
@@ -273,7 +270,6 @@ class DiscreteCQLImpl(DoubleDQNImpl):
             q_func_factory=q_func_factory,
             gamma=gamma,
             n_critics=n_critics,
-            target_reduction_type=target_reduction_type,
             use_gpu=use_gpu,
             scaler=scaler,
             reward_scaler=reward_scaler,

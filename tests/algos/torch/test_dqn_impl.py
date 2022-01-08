@@ -19,7 +19,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_dqn_impl(
@@ -31,7 +30,6 @@ def test_dqn_impl(
     q_func_factory,
     gamma,
     n_critics,
-    target_reduction_type,
     scaler,
     reward_scaler,
 ):
@@ -44,7 +42,6 @@ def test_dqn_impl(
         q_func_factory=create_q_func_factory(q_func_factory),
         gamma=gamma,
         n_critics=n_critics,
-        target_reduction_type=target_reduction_type,
         use_gpu=None,
         scaler=scaler,
         reward_scaler=reward_scaler,
@@ -62,7 +59,6 @@ def test_dqn_impl(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_double_dqn_impl(
@@ -74,7 +70,6 @@ def test_double_dqn_impl(
     q_func_factory,
     gamma,
     n_critics,
-    target_reduction_type,
     scaler,
     reward_scaler,
 ):
@@ -87,7 +82,6 @@ def test_double_dqn_impl(
         q_func_factory=create_q_func_factory(q_func_factory),
         gamma=gamma,
         n_critics=n_critics,
-        target_reduction_type=target_reduction_type,
         use_gpu=None,
         scaler=scaler,
         reward_scaler=reward_scaler,

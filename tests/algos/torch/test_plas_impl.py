@@ -25,7 +25,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
-@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("lam", [0.75])
 @pytest.mark.parametrize("beta", [0.5])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
@@ -45,7 +44,6 @@ def test_plas_impl(
     gamma,
     tau,
     n_critics,
-    target_reduction_type,
     lam,
     beta,
     scaler,
@@ -68,7 +66,6 @@ def test_plas_impl(
         gamma=gamma,
         tau=tau,
         n_critics=n_critics,
-        target_reduction_type=target_reduction_type,
         lam=lam,
         beta=beta,
         use_gpu=None,
@@ -94,7 +91,6 @@ def test_plas_impl(
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
-@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("lam", [0.75])
 @pytest.mark.parametrize("beta", [0.5])
 @pytest.mark.parametrize("action_flexibility", [0.05])
@@ -115,7 +111,6 @@ def test_plas_with_perturbation_impl(
     gamma,
     tau,
     n_critics,
-    target_reduction_type,
     lam,
     beta,
     action_flexibility,
@@ -139,7 +134,6 @@ def test_plas_with_perturbation_impl(
         gamma=gamma,
         tau=tau,
         n_critics=n_critics,
-        target_reduction_type=target_reduction_type,
         lam=lam,
         beta=beta,
         action_flexibility=action_flexibility,

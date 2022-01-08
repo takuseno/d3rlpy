@@ -71,9 +71,6 @@ class DDPG(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
         scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
@@ -96,7 +93,6 @@ class DDPG(AlgoBase):
     _q_func_factory: QFunctionFactory
     _tau: float
     _n_critics: int
-    _target_reduction_type: str
     _use_gpu: Optional[Device]
     _impl: Optional[DDPGImpl]
 
@@ -116,7 +112,6 @@ class DDPG(AlgoBase):
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 1,
-        target_reduction_type: str = "min",
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
@@ -143,7 +138,6 @@ class DDPG(AlgoBase):
         self._q_func_factory = check_q_func(q_func_factory)
         self._tau = tau
         self._n_critics = n_critics
-        self._target_reduction_type = target_reduction_type
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
@@ -163,7 +157,6 @@ class DDPG(AlgoBase):
             gamma=self._gamma,
             tau=self._tau,
             n_critics=self._n_critics,
-            target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,

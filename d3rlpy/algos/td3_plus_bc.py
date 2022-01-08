@@ -61,9 +61,6 @@ class TD3PlusBC(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         target_smoothing_sigma (float): standard deviation for target noise.
         target_smoothing_clip (float): clipping range for target noise.
         alpha (float): :math:`\alpha` value.
@@ -91,7 +88,6 @@ class TD3PlusBC(AlgoBase):
     _q_func_factory: QFunctionFactory
     _tau: float
     _n_critics: int
-    _target_reduction_type: str
     _target_smoothing_sigma: float
     _target_smoothing_clip: float
     _alpha: float
@@ -115,7 +111,6 @@ class TD3PlusBC(AlgoBase):
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 2,
-        target_reduction_type: str = "min",
         target_smoothing_sigma: float = 0.2,
         target_smoothing_clip: float = 0.5,
         alpha: float = 2.5,
@@ -146,7 +141,6 @@ class TD3PlusBC(AlgoBase):
         self._q_func_factory = check_q_func(q_func_factory)
         self._tau = tau
         self._n_critics = n_critics
-        self._target_reduction_type = target_reduction_type
         self._target_smoothing_sigma = target_smoothing_sigma
         self._target_smoothing_clip = target_smoothing_clip
         self._alpha = alpha
@@ -170,7 +164,6 @@ class TD3PlusBC(AlgoBase):
             gamma=self._gamma,
             tau=self._tau,
             n_critics=self._n_critics,
-            target_reduction_type=self._target_reduction_type,
             target_smoothing_sigma=self._target_smoothing_sigma,
             target_smoothing_clip=self._target_smoothing_clip,
             alpha=self._alpha,

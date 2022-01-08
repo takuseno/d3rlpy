@@ -108,7 +108,6 @@ def test_bcq_impl(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("action_flexibility", [0.3])
 @pytest.mark.parametrize("beta", [1e-2])
 @pytest.mark.parametrize("scaler", [None])
@@ -122,7 +121,6 @@ def test_discrete_bcq_impl(
     q_func_factory,
     gamma,
     n_critics,
-    target_reduction_type,
     action_flexibility,
     beta,
     scaler,
@@ -137,7 +135,6 @@ def test_discrete_bcq_impl(
         q_func_factory=create_q_func_factory(q_func_factory),
         gamma=gamma,
         n_critics=n_critics,
-        target_reduction_type=target_reduction_type,
         action_flexibility=action_flexibility,
         beta=beta,
         use_gpu=None,

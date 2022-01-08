@@ -66,7 +66,6 @@ class IQLImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             n_critics=n_critics,
-            target_reduction_type="min",
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,

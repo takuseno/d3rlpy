@@ -25,7 +25,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
-@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("initial_temperature", [1.0])
 @pytest.mark.parametrize("conservative_weight", [5.0])
 @pytest.mark.parametrize("n_action_samples", [10])
@@ -48,7 +47,6 @@ def test_combo_impl(
     gamma,
     tau,
     n_critics,
-    target_reduction_type,
     initial_temperature,
     conservative_weight,
     n_action_samples,
@@ -73,7 +71,6 @@ def test_combo_impl(
         gamma=gamma,
         tau=tau,
         n_critics=n_critics,
-        target_reduction_type=target_reduction_type,
         initial_temperature=initial_temperature,
         conservative_weight=conservative_weight,
         n_action_samples=n_action_samples,

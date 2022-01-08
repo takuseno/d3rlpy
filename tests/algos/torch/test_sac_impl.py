@@ -25,7 +25,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
-@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("initial_temperature", [1.0])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
@@ -44,7 +43,6 @@ def test_sac_impl(
     gamma,
     tau,
     n_critics,
-    target_reduction_type,
     initial_temperature,
     scaler,
     action_scaler,
@@ -65,7 +63,6 @@ def test_sac_impl(
         gamma=gamma,
         tau=tau,
         n_critics=n_critics,
-        target_reduction_type=target_reduction_type,
         initial_temperature=initial_temperature,
         use_gpu=None,
         scaler=scaler,

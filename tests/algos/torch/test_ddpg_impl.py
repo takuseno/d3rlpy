@@ -23,7 +23,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("target_reduction_type", ["min"])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
@@ -39,7 +38,6 @@ def test_ddpg_impl(
     gamma,
     tau,
     n_critics,
-    target_reduction_type,
     scaler,
     action_scaler,
     reward_scaler,
@@ -57,7 +55,6 @@ def test_ddpg_impl(
         gamma=gamma,
         tau=tau,
         n_critics=n_critics,
-        target_reduction_type=target_reduction_type,
         use_gpu=None,
         scaler=scaler,
         action_scaler=action_scaler,

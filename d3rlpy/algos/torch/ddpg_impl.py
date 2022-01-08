@@ -38,7 +38,6 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
     _gamma: float
     _tau: float
     _n_critics: int
-    _target_reduction_type: str
     _use_gpu: Optional[Device]
     _q_func: Optional[EnsembleContinuousQFunction]
     _policy: Optional[Policy]
@@ -61,7 +60,6 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         gamma: float,
         tau: float,
         n_critics: int,
-        target_reduction_type: str,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
@@ -84,7 +82,6 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         self._gamma = gamma
         self._tau = tau
         self._n_critics = n_critics
-        self._target_reduction_type = target_reduction_type
         self._use_gpu = use_gpu
 
         # initialized in build
@@ -165,7 +162,6 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
             q_tp1=q_tpn,
             ter_tp1=batch.terminals,
             gamma=self._gamma ** batch.n_steps,
-            use_independent_target=self._target_reduction_type == "none",
             masks=batch.masks,
         )
 
@@ -261,7 +257,7 @@ class DDPGImpl(DDPGBaseImpl):
             return self._targ_q_func.compute_target(
                 batch.next_observations,
                 action.clamp(-1.0, 1.0),
-                reduction=self._target_reduction_type,
+                reduction="min",
             )
 
     def _sample_action(self, x: torch.Tensor) -> torch.Tensor:

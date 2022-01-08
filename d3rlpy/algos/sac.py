@@ -86,9 +86,6 @@ class SAC(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         initial_temperature (float): initial temperature value.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -114,7 +111,6 @@ class SAC(AlgoBase):
     _q_func_factory: QFunctionFactory
     _tau: float
     _n_critics: int
-    _target_reduction_type: str
     _initial_temperature: float
     _use_gpu: Optional[Device]
     _impl: Optional[SACImpl]
@@ -137,7 +133,6 @@ class SAC(AlgoBase):
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 2,
-        target_reduction_type: str = "min",
         initial_temperature: float = 1.0,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
@@ -167,7 +162,6 @@ class SAC(AlgoBase):
         self._q_func_factory = check_q_func(q_func_factory)
         self._tau = tau
         self._n_critics = n_critics
-        self._target_reduction_type = target_reduction_type
         self._initial_temperature = initial_temperature
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
@@ -190,7 +184,6 @@ class SAC(AlgoBase):
             gamma=self._gamma,
             tau=self._tau,
             n_critics=self._n_critics,
-            target_reduction_type=self._target_reduction_type,
             initial_temperature=self._initial_temperature,
             use_gpu=self._use_gpu,
             scaler=self._scaler,

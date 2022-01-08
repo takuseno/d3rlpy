@@ -68,9 +68,6 @@ class COMBO(ModelBaseMixin, AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         update_actor_interval (int): interval to update policy function.
         initial_temperature (float): initial temperature value.
         conservative_weight (float): constant weight to scale conservative loss.
@@ -109,7 +106,6 @@ class COMBO(ModelBaseMixin, AlgoBase):
     _q_func_factory: QFunctionFactory
     _tau: float
     _n_critics: int
-    _target_reduction_type: str
     _update_actor_interval: int
     _initial_temperature: float
     _conservative_weight: float
@@ -140,7 +136,6 @@ class COMBO(ModelBaseMixin, AlgoBase):
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 2,
-        target_reduction_type: str = "min",
         update_actor_interval: int = 1,
         initial_temperature: float = 1.0,
         conservative_weight: float = 1.0,
@@ -182,7 +177,6 @@ class COMBO(ModelBaseMixin, AlgoBase):
         self._q_func_factory = check_q_func(q_func_factory)
         self._tau = tau
         self._n_critics = n_critics
-        self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
         self._initial_temperature = initial_temperature
         self._conservative_weight = conservative_weight
@@ -213,7 +207,6 @@ class COMBO(ModelBaseMixin, AlgoBase):
             gamma=self._gamma,
             tau=self._tau,
             n_critics=self._n_critics,
-            target_reduction_type=self._target_reduction_type,
             initial_temperature=self._initial_temperature,
             conservative_weight=self._conservative_weight,
             n_action_samples=self._n_action_samples,

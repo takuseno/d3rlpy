@@ -91,9 +91,6 @@ class CQL(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         initial_temperature (float): initial temperature value.
         initial_alpha (float): initial :math:`\alpha` value.
         alpha_threshold (float): threshold value described as :math:`\tau`.
@@ -127,7 +124,6 @@ class CQL(AlgoBase):
     _q_func_factory: QFunctionFactory
     _tau: float
     _n_critics: int
-    _target_reduction_type: str
     _initial_temperature: float
     _initial_alpha: float
     _alpha_threshold: float
@@ -157,7 +153,6 @@ class CQL(AlgoBase):
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 2,
-        target_reduction_type: str = "min",
         initial_temperature: float = 1.0,
         initial_alpha: float = 1.0,
         alpha_threshold: float = 10.0,
@@ -194,7 +189,6 @@ class CQL(AlgoBase):
         self._q_func_factory = check_q_func(q_func_factory)
         self._tau = tau
         self._n_critics = n_critics
-        self._target_reduction_type = target_reduction_type
         self._initial_temperature = initial_temperature
         self._initial_alpha = initial_alpha
         self._alpha_threshold = alpha_threshold
@@ -224,7 +218,6 @@ class CQL(AlgoBase):
             gamma=self._gamma,
             tau=self._tau,
             n_critics=self._n_critics,
-            target_reduction_type=self._target_reduction_type,
             initial_temperature=self._initial_temperature,
             initial_alpha=self._initial_alpha,
             alpha_threshold=self._alpha_threshold,
@@ -303,9 +296,6 @@ class DiscreteCQL(DoubleDQN):
         n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         target_update_interval (int): interval to synchronize the target
             network.
         alpha (float): the :math:`\alpha` value above.
@@ -336,7 +326,6 @@ class DiscreteCQL(DoubleDQN):
         n_steps: int = 1,
         gamma: float = 0.99,
         n_critics: int = 1,
-        target_reduction_type: str = "min",
         target_update_interval: int = 8000,
         alpha: float = 1.0,
         use_gpu: UseGPUArg = False,
@@ -355,7 +344,6 @@ class DiscreteCQL(DoubleDQN):
             n_steps=n_steps,
             gamma=gamma,
             n_critics=n_critics,
-            target_reduction_type=target_reduction_type,
             target_update_interval=target_update_interval,
             use_gpu=use_gpu,
             scaler=scaler,
@@ -377,7 +365,6 @@ class DiscreteCQL(DoubleDQN):
             q_func_factory=self._q_func_factory,
             gamma=self._gamma,
             n_critics=self._n_critics,
-            target_reduction_type=self._target_reduction_type,
             alpha=self._alpha,
             use_gpu=self._use_gpu,
             scaler=self._scaler,

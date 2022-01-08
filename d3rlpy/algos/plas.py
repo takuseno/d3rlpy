@@ -63,9 +63,6 @@ class PLAS(AlgoBase):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
         warmup_steps (int): the number of steps to warmup the VAE.
@@ -95,7 +92,6 @@ class PLAS(AlgoBase):
     _q_func_factory: QFunctionFactory
     _tau: float
     _n_critics: int
-    _target_reduction_type: str
     _update_actor_interval: int
     _lam: float
     _warmup_steps: int
@@ -122,7 +118,6 @@ class PLAS(AlgoBase):
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 2,
-        target_reduction_type: str = "mix",
         update_actor_interval: int = 1,
         lam: float = 0.75,
         warmup_steps: int = 500000,
@@ -156,7 +151,6 @@ class PLAS(AlgoBase):
         self._q_func_factory = check_q_func(q_func_factory)
         self._tau = tau
         self._n_critics = n_critics
-        self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
         self._lam = lam
         self._warmup_steps = warmup_steps
@@ -183,7 +177,6 @@ class PLAS(AlgoBase):
             gamma=self._gamma,
             tau=self._tau,
             n_critics=self._n_critics,
-            target_reduction_type=self._target_reduction_type,
             lam=self._lam,
             beta=self._beta,
             use_gpu=self._use_gpu,
@@ -250,9 +243,6 @@ class PLASWithPerturbation(PLAS):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         update_actor_interval (int): interval to update policy function.
         lam (float): weight factor for critic ensemble.
         action_flexibility (float): output scale of perturbation layer.
@@ -293,7 +283,6 @@ class PLASWithPerturbation(PLAS):
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 2,
-        target_reduction_type: str = "mix",
         update_actor_interval: int = 1,
         lam: float = 0.75,
         action_flexibility: float = 0.05,
@@ -323,7 +312,6 @@ class PLASWithPerturbation(PLAS):
             gamma=gamma,
             tau=tau,
             n_critics=n_critics,
-            target_reduction_type=target_reduction_type,
             update_actor_interval=update_actor_interval,
             lam=lam,
             warmup_steps=warmup_steps,
@@ -356,7 +344,6 @@ class PLASWithPerturbation(PLAS):
             gamma=self._gamma,
             tau=self._tau,
             n_critics=self._n_critics,
-            target_reduction_type=self._target_reduction_type,
             lam=self._lam,
             beta=self._beta,
             action_flexibility=self._action_flexibility,

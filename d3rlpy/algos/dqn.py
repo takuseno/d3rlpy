@@ -48,9 +48,6 @@ class DQN(AlgoBase):
         n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         target_update_interval (int): interval to update the target network.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -68,7 +65,6 @@ class DQN(AlgoBase):
     _encoder_factory: EncoderFactory
     _q_func_factory: QFunctionFactory
     _n_critics: int
-    _target_reduction_type: str
     _target_update_interval: int
     _use_gpu: Optional[Device]
     _impl: Optional[DQNImpl]
@@ -85,7 +81,6 @@ class DQN(AlgoBase):
         n_steps: int = 1,
         gamma: float = 0.99,
         n_critics: int = 1,
-        target_reduction_type: str = "min",
         target_update_interval: int = 8000,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
@@ -107,7 +102,6 @@ class DQN(AlgoBase):
         self._encoder_factory = check_encoder(encoder_factory)
         self._q_func_factory = check_q_func(q_func_factory)
         self._n_critics = n_critics
-        self._target_reduction_type = target_reduction_type
         self._target_update_interval = target_update_interval
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
@@ -124,7 +118,6 @@ class DQN(AlgoBase):
             q_func_factory=self._q_func_factory,
             gamma=self._gamma,
             n_critics=self._n_critics,
-            target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             reward_scaler=self._reward_scaler,
@@ -176,9 +169,6 @@ class DoubleDQN(DQN):
         n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         target_update_interval (int): interval to synchronize the target
             network.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -204,7 +194,6 @@ class DoubleDQN(DQN):
             q_func_factory=self._q_func_factory,
             gamma=self._gamma,
             n_critics=self._n_critics,
-            target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             reward_scaler=self._reward_scaler,

@@ -95,9 +95,6 @@ class CRR(AlgoBase):
             are ``['binary', 'exp']``.
         max_weight (float): maximum weight for cross-entropy loss.
         n_critics (int): the number of Q functions for ensemble.
-        target_reduction_type (str): ensemble reduction method at target value
-            estimation. The available options are
-            ``['min', 'max', 'mean', 'mix', 'none']``.
         target_update_type (str): target update type. The available options are
             ``['hard', 'soft']``.
         tau (float): target network synchronization coefficiency used with
@@ -133,7 +130,6 @@ class CRR(AlgoBase):
     _target_update_type: str
     _tau: float
     _target_update_interval: int
-    _target_reduction_type: str
     _update_actor_interval: int
     _use_gpu: Optional[Device]
     _impl: Optional[CRRImpl]
@@ -161,7 +157,6 @@ class CRR(AlgoBase):
         target_update_type: str = "hard",
         tau: float = 5e-3,
         target_update_interval: int = 100,
-        target_reduction_type: str = "min",
         update_actor_interval: int = 1,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
@@ -196,7 +191,6 @@ class CRR(AlgoBase):
         self._target_update_type = target_update_type
         self._tau = tau
         self._target_update_interval = target_update_interval
-        self._target_reduction_type = target_reduction_type
         self._update_actor_interval = update_actor_interval
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
@@ -222,7 +216,6 @@ class CRR(AlgoBase):
             max_weight=self._max_weight,
             n_critics=self._n_critics,
             tau=self._tau,
-            target_reduction_type=self._target_reduction_type,
             use_gpu=self._use_gpu,
             scaler=self._scaler,
             action_scaler=self._action_scaler,
