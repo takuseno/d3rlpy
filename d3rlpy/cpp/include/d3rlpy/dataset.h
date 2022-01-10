@@ -19,7 +19,6 @@ namespace d3rlpy {
     float* next_action_f;
     float next_reward;
     float terminal;
-    vector<float> mask;
     shared_ptr<CTransition> prev_transition;
     shared_ptr<CTransition> next_transition;
   };
