@@ -123,7 +123,6 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
             q_tp1=q_tpn,
             ter_tp1=batch.terminals,
             gamma=self._gamma ** batch.n_steps,
-            masks=batch.masks,
         )
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:

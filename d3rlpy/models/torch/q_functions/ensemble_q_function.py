@@ -69,17 +69,14 @@ def _reduce_quantile_ensemble(
 class EnsembleQFunction(nn.Module):  # type: ignore
     _action_size: int
     _q_funcs: nn.ModuleList
-    _bootstrap: bool
 
     def __init__(
         self,
         q_funcs: Union[List[DiscreteQFunction], List[ContinuousQFunction]],
-        bootstrap: bool = False,
     ):
         super().__init__()
         self._action_size = q_funcs[0].action_size
         self._q_funcs = nn.ModuleList(q_funcs)
-        self._bootstrap = bootstrap and len(q_funcs) > 1
 
     def compute_error(
         self,
@@ -89,41 +86,16 @@ class EnsembleQFunction(nn.Module):  # type: ignore
         q_tp1: torch.Tensor,
         ter_tp1: torch.Tensor,
         gamma: float = 0.99,
-        use_independent_target: bool = False,
-        masks: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        if use_independent_target:
-            assert q_tp1.ndim == 3
-        else:
-            assert q_tp1.ndim == 2
-
-        if self._bootstrap and masks is not None:
-            assert masks.shape == (len(self._q_funcs), obs_t.shape[0], 1,), (
-                "Invalid mask shape is detected. "
-                f"mask_size must be {len(self._q_funcs)}."
-            )
+        assert q_tp1.ndim == 2
 
         td_sum = torch.tensor(0.0, dtype=torch.float32, device=obs_t.device)
-        for i, q_func in enumerate(self._q_funcs):
-            if use_independent_target:
-                target = q_tp1[i]
-            else:
-                target = q_tp1
-
+        for q_func in self._q_funcs:
+            target = q_tp1
             loss = q_func.compute_error(
                 obs_t, act_t, rew_tp1, target, ter_tp1, gamma, reduction="none"
             )
-
-            if self._bootstrap:
-                if masks is None:
-                    mask = torch.randint(0, 2, loss.shape, device=obs_t.device)
-                else:
-                    mask = masks[i]
-                loss *= mask.float()
-                td_sum += loss.sum() / (mask.sum().float() + 1e-10)
-            else:
-                td_sum += loss.mean()
-
+            td_sum += loss.mean()
         return td_sum
 
     def _compute_target(
@@ -157,10 +129,6 @@ class EnsembleQFunction(nn.Module):  # type: ignore
     @property
     def q_funcs(self) -> nn.ModuleList:
         return self._q_funcs
-
-    @property
-    def bootstrap(self) -> bool:
-        return self._bootstrap
 
 
 class EnsembleDiscreteQFunction(EnsembleQFunction):

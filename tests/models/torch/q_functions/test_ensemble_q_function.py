@@ -69,8 +69,6 @@ def test_reduce_quantile_ensemble(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("embed_size", [64])
-@pytest.mark.parametrize("bootstrap", [False, True])
-@pytest.mark.parametrize("use_independent_target", [False, True])
 def test_ensemble_discrete_q_function(
     feature_size,
     action_size,
@@ -80,8 +78,6 @@ def test_ensemble_discrete_q_function(
     q_func_factory,
     n_quantiles,
     embed_size,
-    bootstrap,
-    use_independent_target,
 ):
     q_funcs = []
     for _ in range(ensemble_size):
@@ -99,7 +95,7 @@ def test_ensemble_discrete_q_function(
                 encoder, action_size, n_quantiles, embed_size
             )
         q_funcs.append(q_func)
-    q_func = EnsembleDiscreteQFunction(q_funcs, bootstrap)
+    q_func = EnsembleDiscreteQFunction(q_funcs)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -139,50 +135,23 @@ def test_ensemble_discrete_q_function(
     rew_tp1 = torch.rand(batch_size, 1)
     ter_tp1 = torch.randint(2, size=(batch_size, 1))
     if q_func_factory == "mean":
-        if use_independent_target:
-            q_tp1 = torch.rand(ensemble_size, batch_size, 1)
-        else:
-            q_tp1 = torch.rand(batch_size, 1)
+        q_tp1 = torch.rand(batch_size, 1)
     else:
-        if use_independent_target:
-            q_tp1 = torch.rand(ensemble_size, batch_size, n_quantiles)
-        else:
-            q_tp1 = torch.rand(batch_size, n_quantiles)
+        q_tp1 = torch.rand(batch_size, n_quantiles)
     ref_td_sum = 0.0
     for i in range(ensemble_size):
         f = q_func.q_funcs[i]
-        if use_independent_target:
-            target = q_tp1[i]
-        else:
-            target = q_tp1
         ref_td_sum += f.compute_error(
-            obs_t, act_t, rew_tp1, target, ter_tp1, gamma
+            obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma
         )
-    loss = q_func.compute_error(
-        obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma, use_independent_target
-    )
-    if bootstrap:
-        assert not torch.allclose(ref_td_sum, loss)
-    elif q_func_factory != "iqn":
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma)
+    if q_func_factory != "iqn":
         assert torch.allclose(ref_td_sum, loss)
-
-    # with mask
-    mask = torch.rand(ensemble_size, batch_size, 1)
-    loss = q_func.compute_error(
-        obs_t,
-        act_t,
-        rew_tp1,
-        q_tp1,
-        ter_tp1,
-        gamma,
-        use_independent_target,
-        mask,
-    )
 
     # check layer connection
     check_parameter_updates(
         q_func,
-        (obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma, use_independent_target),
+        (obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma),
     )
 
 
@@ -194,8 +163,6 @@ def test_ensemble_discrete_q_function(
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("embed_size", [64])
-@pytest.mark.parametrize("bootstrap", [False, True])
-@pytest.mark.parametrize("use_independent_target", [False, True])
 def test_ensemble_continuous_q_function(
     feature_size,
     action_size,
@@ -205,8 +172,6 @@ def test_ensemble_continuous_q_function(
     q_func_factory,
     n_quantiles,
     embed_size,
-    bootstrap,
-    use_independent_target,
 ):
     q_funcs = []
     for _ in range(ensemble_size):
@@ -223,7 +188,7 @@ def test_ensemble_continuous_q_function(
             q_func = ContinuousFQFQFunction(encoder, n_quantiles, embed_size)
         q_funcs.append(q_func)
 
-    q_func = EnsembleContinuousQFunction(q_funcs, bootstrap)
+    q_func = EnsembleContinuousQFunction(q_funcs)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -252,48 +217,21 @@ def test_ensemble_continuous_q_function(
     rew_tp1 = torch.rand(batch_size, 1)
     ter_tp1 = torch.randint(2, size=(batch_size, 1))
     if q_func_factory == "mean":
-        if use_independent_target:
-            q_tp1 = torch.rand(ensemble_size, batch_size, 1)
-        else:
-            q_tp1 = torch.rand(batch_size, 1)
+        q_tp1 = torch.rand(batch_size, 1)
     else:
-        if use_independent_target:
-            q_tp1 = torch.rand(ensemble_size, batch_size, n_quantiles)
-        else:
-            q_tp1 = torch.rand(batch_size, n_quantiles)
+        q_tp1 = torch.rand(batch_size, n_quantiles)
     ref_td_sum = 0.0
     for i in range(ensemble_size):
-        if use_independent_target:
-            target = q_tp1[i]
-        else:
-            target = q_tp1
         f = q_func.q_funcs[i]
         ref_td_sum += f.compute_error(
-            obs_t, act_t, rew_tp1, target, ter_tp1, gamma
+            obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma
         )
-    loss = q_func.compute_error(
-        obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma, use_independent_target
-    )
-    if bootstrap:
-        assert not torch.allclose(ref_td_sum, loss)
-    elif q_func_factory != "iqn":
+    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma)
+    if q_func_factory != "iqn":
         assert torch.allclose(ref_td_sum, loss)
-
-    # with mask
-    mask = torch.rand(ensemble_size, batch_size, 1)
-    loss = q_func.compute_error(
-        obs_t,
-        act_t,
-        rew_tp1,
-        q_tp1,
-        ter_tp1,
-        gamma,
-        use_independent_target,
-        mask,
-    )
 
     # check layer connection
     check_parameter_updates(
         q_func,
-        (obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma, use_independent_target),
+        (obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma),
     )

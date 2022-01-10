@@ -210,43 +210,7 @@ def test_mdp_dataset(
 @pytest.mark.parametrize("data_size", [100])
 @pytest.mark.parametrize("observation_size", [4])
 @pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("n_episodes", [4])
-@pytest.mark.parametrize("create_mask", [False, True])
-@pytest.mark.parametrize("mask_size", [4])
-def test_mdp_dataset_with_mask(
-    data_size, observation_size, action_size, n_episodes, create_mask, mask_size
-):
-    observations = np.random.random((data_size, observation_size))
-    actions = np.random.random((data_size, action_size))
-    rewards = np.random.uniform(-10.0, 10.0, size=data_size)
-    n_steps = data_size // n_episodes
-    terminals = np.array(([0] * (n_steps - 1) + [1]) * n_episodes)
-
-    dataset = MDPDataset(
-        observations=observations,
-        actions=actions,
-        rewards=rewards,
-        terminals=terminals,
-        create_mask=create_mask,
-        mask_size=mask_size,
-    )
-
-    for episode in dataset.episodes:
-        for transition in episode.transitions:
-            if create_mask:
-                assert transition.mask.shape == (mask_size,)
-            else:
-                assert transition.mask is None
-
-
-@pytest.mark.parametrize("data_size", [100])
-@pytest.mark.parametrize("observation_size", [4])
-@pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("create_mask", [False, True])
-@pytest.mark.parametrize("mask_size", [4])
-def test_episode(
-    data_size, observation_size, action_size, create_mask, mask_size
-):
+def test_episode(data_size, observation_size, action_size):
     observations = np.random.random((data_size, observation_size)).astype("f4")
     actions = np.random.random((data_size, action_size)).astype("f4")
     rewards = np.random.random(data_size).astype("f4")
@@ -257,8 +221,6 @@ def test_episode(
         observations=observations,
         actions=actions,
         rewards=rewards,
-        create_mask=create_mask,
-        mask_size=mask_size,
     )
 
     # check Episode methods
@@ -306,10 +268,6 @@ def test_episode(
     for i, transition in enumerate(episode):
         assert isinstance(transition, Transition)
         assert transition is episode.transitions[i]
-        if create_mask:
-            assert transition.mask.shape == (mask_size,)
-        else:
-            assert transition.mask is None
 
 
 @pytest.mark.parametrize("data_size", [100])
@@ -358,8 +316,6 @@ def test_episode_terminals(data_size, observation_size, action_size):
 @pytest.mark.parametrize("n_steps", [1, 3])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("discrete_action", [False, True])
-@pytest.mark.parametrize("create_mask", [False, True])
-@pytest.mark.parametrize("mask_size", [4])
 def test_transition_minibatch(
     data_size,
     observation_shape,
@@ -368,8 +324,6 @@ def test_transition_minibatch(
     n_steps,
     gamma,
     discrete_action,
-    create_mask,
-    mask_size,
 ):
     if len(observation_shape) == 3:
         observations = np.random.randint(
@@ -391,8 +345,6 @@ def test_transition_minibatch(
         observations=observations,
         actions=actions,
         rewards=rewards,
-        create_mask=create_mask,
-        mask_size=mask_size,
     )
 
     if len(observation_shape) == 3:
@@ -451,17 +403,6 @@ def test_transition_minibatch(
         assert np.all(batch.next_actions[i] == next_action)
         assert np.allclose(batch.next_rewards[i][0], next_reward)
         assert np.all(batch.terminals[i][0] == terminal)
-
-    # check mask
-    if create_mask:
-        assert batch.masks.shape == (mask_size, data_size - 1, 1)
-    else:
-        assert batch.masks is None
-
-    # check additional data
-    value = np.random.random(100)
-    batch.add_additional_data("test", value)
-    assert np.all(batch.get_additional_data("test") == value)
 
     # check list-like behavior
     assert len(batch) == data_size - 1

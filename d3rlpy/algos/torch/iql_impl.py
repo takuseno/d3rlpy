@@ -115,7 +115,6 @@ class IQLImpl(DDPGBaseImpl):
             q_tp1=q_tpn,
             ter_tp1=batch.terminals,
             gamma=self._gamma ** batch.n_steps,
-            use_independent_target=False,
         )
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:

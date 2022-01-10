@@ -20,17 +20,13 @@ PENDULUM_URL = f"{DROPBOX_URL}/vsiz9pwvshj7sly/pendulum.h5?dl=1"
 PENDULUM_RANDOM_URL = f"{DROPBOX_URL}/qldf2vjvvc5thsb/pendulum_random.h5?dl=1"
 
 
-def get_cartpole(
-    create_mask: bool = False, mask_size: int = 1, dataset_type: str = "replay"
-) -> Tuple[MDPDataset, gym.Env]:
+def get_cartpole(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
     """Returns cartpole dataset and environment.
 
     The dataset is automatically downloaded to ``d3rlpy_data/cartpole.h5`` if
     it does not exist.
 
     Args:
-        create_mask: flag to create binary mask for bootstrapping.
-        mask_size: ensemble size for binary mask.
         dataset_type: dataset type. Available options are
             ``['replay', 'random']``.
 
@@ -56,9 +52,7 @@ def get_cartpole(
         request.urlretrieve(url, data_path)
 
     # load dataset
-    dataset = MDPDataset.load(
-        data_path, create_mask=create_mask, mask_size=mask_size
-    )
+    dataset = MDPDataset.load(data_path)
 
     # environment
     env = gym.make("CartPole-v0")
@@ -66,19 +60,13 @@ def get_cartpole(
     return dataset, env
 
 
-def get_pendulum(
-    create_mask: bool = False,
-    mask_size: int = 1,
-    dataset_type: str = "replay",
-) -> Tuple[MDPDataset, gym.Env]:
+def get_pendulum(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
     """Returns pendulum dataset and environment.
 
     The dataset is automatically downloaded to ``d3rlpy_data/pendulum.h5`` if
     it does not exist.
 
     Args:
-        create_mask: flag to create binary mask for bootstrapping.
-        mask_size: ensemble size for binary mask.
         dataset_type: dataset type. Available options are
             ``['replay', 'random']``.
 
@@ -103,9 +91,7 @@ def get_pendulum(
         request.urlretrieve(url, data_path)
 
     # load dataset
-    dataset = MDPDataset.load(
-        data_path, create_mask=create_mask, mask_size=mask_size
-    )
+    dataset = MDPDataset.load(data_path)
 
     # environment
     env = gym.make("Pendulum-v0")
@@ -113,9 +99,7 @@ def get_pendulum(
     return dataset, env
 
 
-def get_pybullet(
-    env_name: str, create_mask: bool = False, mask_size: int = 1
-) -> Tuple[MDPDataset, gym.Env]:
+def get_pybullet(env_name: str) -> Tuple[MDPDataset, gym.Env]:
     """Returns pybullet dataset and envrironment.
 
     The dataset is provided through d4rl-pybullet. See more details including
@@ -132,8 +116,6 @@ def get_pybullet(
 
     Args:
         env_name: environment id of d4rl-pybullet dataset.
-        create_mask: flag to create binary mask for bootstrapping.
-        mask_size: ensemble size for binary mask.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -143,9 +125,7 @@ def get_pybullet(
         import d4rl_pybullet  # type: ignore
 
         env = gym.make(env_name)
-        dataset = MDPDataset(
-            create_mask=create_mask, mask_size=mask_size, **env.get_dataset()
-        )
+        dataset = MDPDataset(**env.get_dataset())
         return dataset, env
     except ImportError as e:
         raise ImportError(
@@ -154,9 +134,7 @@ def get_pybullet(
         ) from e
 
 
-def get_atari(
-    env_name: str, create_mask: bool = False, mask_size: int = 1
-) -> Tuple[MDPDataset, gym.Env]:
+def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
     """Returns atari dataset and envrironment.
 
     The dataset is provided through d4rl-atari. See more details including
@@ -173,8 +151,6 @@ def get_atari(
 
     Args:
         env_name: environment id of d4rl-atari dataset.
-        create_mask: flag to create binary mask for bootstrapping.
-        mask_size: ensemble size for binary mask.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -184,12 +160,7 @@ def get_atari(
         import d4rl_atari  # type: ignore
 
         env = ChannelFirst(gym.make(env_name))
-        dataset = MDPDataset(
-            discrete_action=True,
-            create_mask=create_mask,
-            mask_size=mask_size,
-            **env.get_dataset(),
-        )
+        dataset = MDPDataset(discrete_action=True, **env.get_dataset())
         return dataset, env
     except ImportError as e:
         raise ImportError(
@@ -274,9 +245,7 @@ def get_atari_transitions(
         ) from e
 
 
-def get_d4rl(
-    env_name: str, create_mask: bool = False, mask_size: int = 1
-) -> Tuple[MDPDataset, gym.Env]:
+def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
     """Returns d4rl dataset and envrironment.
 
     The dataset is provided through d4rl.
@@ -294,8 +263,6 @@ def get_d4rl(
 
     Args:
         env_name: environment id of d4rl dataset.
-        create_mask: flag to create binary mask for bootstrapping.
-        mask_size: ensemble size for binary mask.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
@@ -361,8 +328,6 @@ def get_d4rl(
             rewards=np.array(rewards, dtype=np.float32),
             terminals=np.array(terminals, dtype=np.float32),
             episode_terminals=np.array(episode_terminals, dtype=np.float32),
-            create_mask=create_mask,
-            mask_size=mask_size,
         )
 
         return mdp_dataset, env
@@ -439,9 +404,7 @@ ATARI_GAMES = [
 ]
 
 
-def get_dataset(
-    env_name: str, create_mask: bool = False, mask_size: int = 1
-) -> Tuple[MDPDataset, gym.Env]:
+def get_dataset(env_name: str) -> Tuple[MDPDataset, gym.Env]:
     """Returns dataset and envrironment by guessing from name.
 
     This function returns dataset by matching name with the following datasets.
@@ -475,27 +438,25 @@ def get_dataset(
 
     Args:
         env_name: environment id of the dataset.
-        create_mask: flag to create binary mask for bootstrapping.
-        mask_size: ensemble size for binary mask.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
 
     """
     if env_name == "cartpole-replay":
-        return get_cartpole(create_mask, mask_size, dataset_type="replay")
+        return get_cartpole(dataset_type="replay")
     elif env_name == "cartpole-random":
-        return get_cartpole(create_mask, mask_size, dataset_type="random")
+        return get_cartpole(dataset_type="random")
     elif env_name == "pendulum-replay":
-        return get_pendulum(create_mask, mask_size, dataset_type="replay")
+        return get_pendulum(dataset_type="replay")
     elif env_name == "pendulum-random":
-        return get_pendulum(create_mask, mask_size, dataset_type="random")
+        return get_pendulum(dataset_type="random")
     elif re.match(r"^bullet-.+$", env_name):
-        return get_d4rl(env_name, create_mask, mask_size)
+        return get_d4rl(env_name)
     elif re.match(r"^.+-bullet-.+$", env_name):
-        return get_pybullet(env_name, create_mask, mask_size)
+        return get_pybullet(env_name)
     elif re.match(r"hopper|halfcheetah|walker|ant", env_name):
-        return get_d4rl(env_name, create_mask, mask_size)
+        return get_d4rl(env_name)
     elif re.match(re.compile("|".join(ATARI_GAMES)), env_name):
-        return get_atari(env_name, create_mask, mask_size)
+        return get_atari(env_name)
     raise ValueError(f"Unrecognized env_name: {env_name}.")

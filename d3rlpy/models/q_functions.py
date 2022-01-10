@@ -21,11 +21,9 @@ from .torch import (
 class QFunctionFactory:
     TYPE: ClassVar[str] = "none"
 
-    _bootstrap: bool
     _share_encoder: bool
 
-    def __init__(self, bootstrap: bool, share_encoder: bool):
-        self._bootstrap = bootstrap
+    def __init__(self, share_encoder: bool):
         self._share_encoder = share_encoder
 
     def create_discrete(
@@ -78,10 +76,6 @@ class QFunctionFactory:
         raise NotImplementedError
 
     @property
-    def bootstrap(self) -> bool:
-        return self._bootstrap
-
-    @property
     def share_encoder(self) -> bool:
         return self._share_encoder
 
@@ -98,15 +92,14 @@ class MeanQFunctionFactory(QFunctionFactory):
           learning. <https://arxiv.org/abs/1509.02971>`_
 
     Args:
-        bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder over multiple Q functions.
 
     """
 
     TYPE: ClassVar[str] = "mean"
 
-    def __init__(self, bootstrap: bool = False, share_encoder: bool = False):
-        super().__init__(bootstrap, share_encoder)
+    def __init__(self, share_encoder: bool = False, **kwargs: Any):
+        super().__init__(share_encoder)
 
     def create_discrete(
         self,
@@ -123,7 +116,6 @@ class MeanQFunctionFactory(QFunctionFactory):
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
-            "bootstrap": self._bootstrap,
             "share_encoder": self._share_encoder,
         }
 
@@ -136,7 +128,6 @@ class QRQFunctionFactory(QFunctionFactory):
           regression. <https://arxiv.org/abs/1710.10044>`_
 
     Args:
-        bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder over multiple Q functions.
         n_quantiles: the number of quantiles.
 
@@ -146,12 +137,9 @@ class QRQFunctionFactory(QFunctionFactory):
     _n_quantiles: int
 
     def __init__(
-        self,
-        bootstrap: bool = False,
-        share_encoder: bool = False,
-        n_quantiles: int = 32,
+        self, share_encoder: bool = False, n_quantiles: int = 32, **kwargs: Any
     ):
-        super().__init__(bootstrap, share_encoder)
+        super().__init__(share_encoder)
         self._n_quantiles = n_quantiles
 
     def create_discrete(
@@ -167,7 +155,6 @@ class QRQFunctionFactory(QFunctionFactory):
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
-            "bootstrap": self._bootstrap,
             "share_encoder": self._share_encoder,
             "n_quantiles": self._n_quantiles,
         }
@@ -185,7 +172,6 @@ class IQNQFunctionFactory(QFunctionFactory):
           reinforcement learning. <https://arxiv.org/abs/1806.06923>`_
 
     Args:
-        bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder over multiple Q functions.
         n_quantiles: the number of quantiles.
         n_greedy_quantiles: the number of quantiles for inference.
@@ -200,13 +186,13 @@ class IQNQFunctionFactory(QFunctionFactory):
 
     def __init__(
         self,
-        bootstrap: bool = False,
         share_encoder: bool = False,
         n_quantiles: int = 64,
         n_greedy_quantiles: int = 32,
         embed_size: int = 64,
+        **kwargs: Any,
     ):
-        super().__init__(bootstrap, share_encoder)
+        super().__init__(share_encoder)
         self._n_quantiles = n_quantiles
         self._n_greedy_quantiles = n_greedy_quantiles
         self._embed_size = embed_size
@@ -237,7 +223,6 @@ class IQNQFunctionFactory(QFunctionFactory):
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
-            "bootstrap": self._bootstrap,
             "share_encoder": self._share_encoder,
             "n_quantiles": self._n_quantiles,
             "n_greedy_quantiles": self._n_greedy_quantiles,
@@ -266,7 +251,6 @@ class FQFQFunctionFactory(QFunctionFactory):
           <https://arxiv.org/abs/1911.02140>`_
 
     Args:
-        bootstrap (bool): flag to bootstrap Q functions.
         share_encoder (bool): flag to share encoder over multiple Q functions.
         n_quantiles: the number of quantiles.
         embed_size: the embedding size.
@@ -281,13 +265,13 @@ class FQFQFunctionFactory(QFunctionFactory):
 
     def __init__(
         self,
-        bootstrap: bool = False,
         share_encoder: bool = False,
         n_quantiles: int = 32,
         embed_size: int = 64,
         entropy_coeff: float = 0.0,
+        **kwargs: Any,
     ):
-        super().__init__(bootstrap, share_encoder)
+        super().__init__(share_encoder)
         self._n_quantiles = n_quantiles
         self._embed_size = embed_size
         self._entropy_coeff = entropy_coeff
@@ -318,7 +302,6 @@ class FQFQFunctionFactory(QFunctionFactory):
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
-            "bootstrap": self._bootstrap,
             "share_encoder": self._share_encoder,
             "n_quantiles": self._n_quantiles,
             "embed_size": self._embed_size,

@@ -158,7 +158,6 @@ class TorchMiniBatch:
     _next_actions: torch.Tensor
     _next_rewards: torch.Tensor
     _terminals: torch.Tensor
-    _masks: Optional[torch.Tensor]
     _n_steps: torch.Tensor
     _device: str
 
@@ -178,11 +177,6 @@ class TorchMiniBatch:
         next_actions = _convert_to_torch(batch.next_actions, device)
         next_rewards = _convert_to_torch(batch.next_rewards, device)
         terminals = _convert_to_torch(batch.terminals, device)
-        masks: Optional[torch.Tensor]
-        if batch.masks is None:
-            masks = None
-        else:
-            masks = _convert_to_torch(batch.masks, device)
         n_steps = _convert_to_torch(batch.n_steps, device)
 
         # apply scaler
@@ -203,7 +197,6 @@ class TorchMiniBatch:
         self._next_actions = next_actions
         self._next_rewards = next_rewards
         self._terminals = terminals
-        self._masks = masks
         self._n_steps = n_steps
         self._device = device
 
@@ -234,10 +227,6 @@ class TorchMiniBatch:
     @property
     def terminals(self) -> torch.Tensor:
         return self._terminals
-
-    @property
-    def masks(self) -> Optional[torch.Tensor]:
-        return self._masks
 
     @property
     def n_steps(self) -> torch.Tensor:

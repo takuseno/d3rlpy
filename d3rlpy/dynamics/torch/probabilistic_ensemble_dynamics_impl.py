@@ -113,7 +113,6 @@ class ProbabilisticEnsembleDynamicsImpl(TorchImplBase):
             act_t=batch.actions,
             rew_tp1=batch.next_rewards,
             obs_tp1=batch.next_observations,
-            masks=batch.masks,
         )
 
         self._optim.zero_grad()

@@ -34,8 +34,6 @@ def _to_episodes(
     rewards,
     terminals,
     episode_terminals,
-    create_mask,
-    mask_size
 ):
     rets = []
     head_index = 0
@@ -48,8 +46,6 @@ def _to_episodes(
                 actions=actions[head_index:i + 1],
                 rewards=rewards[head_index:i + 1],
                 terminal=terminals[i],
-                create_mask=create_mask,
-                mask_size=mask_size
             )
             rets.append(episode)
             head_index = i + 1
@@ -63,8 +59,6 @@ def _to_transitions(
     actions,
     rewards,
     terminal,
-    create_mask,
-    mask_size
 ):
     rets = []
     num_data = _safe_size(observations)
@@ -78,11 +72,6 @@ def _to_transitions(
         next_reward = rewards[i + 1]
         env_terminal = terminal if i == num_data - 2 else 0.0
 
-        if create_mask:
-            mask = np.random.randint(2, size=mask_size)
-        else:
-            mask = None
-
         transition = Transition(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -93,7 +82,6 @@ def _to_transitions(
             next_action=next_action,
             next_reward=next_reward,
             terminal=env_terminal,
-            mask=mask,
             prev_transition=prev_transition
         )
 
@@ -169,9 +157,6 @@ class MDPDataset:
         discrete_action (bool): flag to use the given actions as discrete
             action-space actions. If ``None``, the action type is automatically
             determined.
-        create_mask (bool): flag to create binary masks for bootstrapping.
-        mask_size (int): ensemble size for mask. If ``create_mask`` is False,
-            this will be ignored.
 
     """
     def __init__(
@@ -182,8 +167,6 @@ class MDPDataset:
         terminals,
         episode_terminals=None,
         discrete_action=None,
-        create_mask=False,
-        mask_size=1
     ):
         # validation
         assert isinstance(observations, np.ndarray),\
@@ -217,8 +200,6 @@ class MDPDataset:
             self._actions = np.asarray(actions, dtype=np.float32)
 
         self._episodes = None
-        self._create_mask = create_mask
-        self._mask_size = mask_size
 
     @property
     def observations(self):
@@ -471,8 +452,6 @@ class MDPDataset:
             rewards=self._rewards,
             terminals=self._terminals,
             episode_terminals=self._episode_terminals,
-            create_mask=self._create_mask,
-            mask_size=self._mask_size
         )
 
         self._episodes = episodes
@@ -511,12 +490,10 @@ class MDPDataset:
             f.create_dataset('terminals', data=self._terminals)
             f.create_dataset('episode_terminals', data=self._episode_terminals)
             f.create_dataset('discrete_action', data=self.discrete_action)
-            f.create_dataset('create_mask', data=self._create_mask)
-            f.create_dataset('mask_size', data=self._mask_size)
             f.flush()
 
     @classmethod
-    def load(cls, fname, create_mask=False, mask_size=1):
+    def load(cls, fname):
         """ Loads dataset from HDF5.
 
         .. code-block:: python
@@ -537,8 +514,6 @@ class MDPDataset:
 
         Args:
             fname (str): file path.
-            create_mask (bool): flag to create bootstrapping masks.
-            mask_size (int): size of bootstrapping masks.
 
         """
         with h5py.File(fname, 'r') as f:
@@ -561,8 +536,6 @@ class MDPDataset:
             terminals=terminals,
             episode_terminals=episode_terminals,
             discrete_action=discrete_action,
-            create_mask=create_mask,
-            mask_size=mask_size
         )
 
         return dataset
@@ -582,8 +555,6 @@ class MDPDataset:
             rewards=self._rewards,
             terminals=self._terminals,
             episode_terminals=self._episode_terminals,
-            create_mask=self._create_mask,
-            mask_size=self._mask_size
         )
 
     def __len__(self):
@@ -626,9 +597,6 @@ class Episode:
         rewards (numpy.ndarray): scalar rewards.
         terminal (bool): binary terminal flag. If False, the episode is not
             terminated by the environment (e.g. timeout).
-        create_mask (bool): flag to create binary masks for bootstrapping.
-        mask_size (int): ensemble size for mask. If ``create_mask`` is False,
-            this will be ignored.
 
     """
     def __init__(
@@ -639,8 +607,6 @@ class Episode:
         actions,
         rewards,
         terminal=True,
-        create_mask=False,
-        mask_size=1
     ):
         # validation
         assert isinstance(observations, np.ndarray),\
@@ -664,8 +630,6 @@ class Episode:
         self._actions = actions
         self._rewards = np.asarray(rewards, dtype=np.float32)
         self._terminal = terminal
-        self._create_mask = create_mask
-        self._mask_size = mask_size
         self._transitions = None
 
     @property
@@ -735,8 +699,6 @@ class Episode:
             actions=self._actions,
             rewards=self._rewards,
             terminal=self._terminal,
-            create_mask=self._create_mask,
-            mask_size=self._mask_size
         )
 
     def size(self):
@@ -811,7 +773,6 @@ cdef class Transition:
         next_action (numpy.ndarray or int): action at `t+1`.
         next_reward (float): reward at `t+1`.
         terminal (int): terminal flag at `t+1`.
-        mask (numpy.ndarray): binary mask for bootstrapping.
         prev_transition (d3rlpy.dataset.Transition):
             pointer to the previous transition.
         next_transition (d3rlpy.dataset.Transition):
@@ -825,7 +786,6 @@ cdef class Transition:
     cdef _action
     cdef _next_observation
     cdef _next_action
-    cdef _mask
     cdef Transition _prev_transition
     cdef Transition _next_transition
 
@@ -840,7 +800,6 @@ cdef class Transition:
         next_action not None,
         float next_reward,
         float terminal,
-        np.ndarray mask=None,
         Transition prev_transition=None,
         Transition next_transition=None
     ):
@@ -874,8 +833,6 @@ cdef class Transition:
         self._thisptr.get().terminal = terminal
         self._thisptr.get().prev_transition = prev_ptr
         self._thisptr.get().next_transition = next_ptr
-        if mask is not None:
-            self._thisptr.get().mask = np.array(mask, dtype=np.float32).tolist()
 
         # assign observation
         if observation_shape.size() == 3:
@@ -1012,27 +969,6 @@ cdef class Transition:
 
         """
         return self._thisptr.get().terminal
-
-    @property
-    def mask(self):
-        """ Returns binary mask for bootstrapping.
-
-        Returns:
-            np.ndarray: array of binary mask.
-
-        """
-        mask = self._thisptr.get().mask
-        return np.asarray(mask, dtype=np.float32) if mask.size() > 0 else None
-
-    @mask.setter
-    def mask(self, mask):
-        """ Sets binary mask for bootstrapping.
-
-        Args:
-            mask (np.ndarray): array of binary mask.
-
-        """
-        self._mask = np.ndarray(mask, dtype=np.float32)
 
     @property
     def prev_transition(self):
@@ -1189,7 +1125,6 @@ cdef class TransitionMiniBatch:
 
     """
     cdef list _transitions
-    cdef dict _additional_data
     cdef np.ndarray _observations
     cdef np.ndarray _actions
     cdef np.ndarray _rewards
@@ -1197,7 +1132,6 @@ cdef class TransitionMiniBatch:
     cdef np.ndarray _next_actions
     cdef np.ndarray _next_rewards
     cdef np.ndarray _terminals
-    cdef np.ndarray _masks
     cdef np.ndarray _n_steps
 
     def __cinit__(
@@ -1266,7 +1200,6 @@ cdef class TransitionMiniBatch:
 
         # efficient memory copy
         cdef TransitionPtr ptr
-        cdef vector[vector[float]] masks
         for i in prange(size, nogil=True):
             ptr = transition_ptrs[i]
             self._assign_to_batch(
@@ -1286,19 +1219,6 @@ cdef class TransitionMiniBatch:
                 is_image=is_image,
                 is_discrete=is_discrete
             )
-            # append valid mask
-            if ptr.get().mask.size() > 0:
-                masks.push_back(ptr.get().mask)
-
-        # create binary mask only when every transition has masks
-        if masks.size() == size:
-            masks = np.array(masks, dtype=np.float32)
-            self._masks = np.transpose(np.expand_dims(masks, axis=2), [1, 0, 2])
-        else:
-            self._masks = None
-
-        # additional data
-        self._additional_data = {}
 
     cdef void _assign_observation(
         self,
@@ -1442,29 +1362,6 @@ cdef class TransitionMiniBatch:
         terminals_ptr[batch_index] = next_ptr.get().terminal
         n_steps_ptr[batch_index] = i + 1
 
-    def add_additional_data(self, key, value):
-        """Add arbitrary additional data.
-
-        Args:
-            key (str): key of data.
-            value (any): value.
-
-        """
-        self._additional_data[key] = value
-
-    def get_additional_data(self, key):
-        """Returns specified additional data.
-
-        Args:
-            key (str): key of data.
-
-        Returns:
-            any: value.
-
-        """
-        assert key in self._additional_data, '%s does not exist.' % key
-        return self._additional_data[key]
-
     @property
     def observations(self):
         """ Returns mini-batch of observations at `t`.
@@ -1534,18 +1431,6 @@ cdef class TransitionMiniBatch:
 
         """
         return self._terminals
-
-    @property
-    def masks(self):
-        """ Returns mini-batch of binary masks for bootstrapping.
-
-        If any of transitions have an invalid mask, this will return ``None``.
-
-        Returns:
-            numpy.ndarray: binary mask.
-
-        """
-        return self._masks
 
     @property
     def n_steps(self):
