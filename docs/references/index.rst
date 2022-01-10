@@ -18,7 +18,6 @@ API Reference
    off_policy_evaluation
    save_and_load
    logging
-   sklearn
    online
    model_based
    sb3

@@ -49,8 +49,6 @@ Here, we use the CartPole dataset to instantly check training results.
 
   dataset, env = get_cartpole()
 
-One interesting feature of d3rlpy is full compatibility with scikit-learn
-utilities.
 You can split ``dataset`` into a training dataset and a test dataset just
 like supervised learning as follows.
 
