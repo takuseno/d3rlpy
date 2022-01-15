@@ -83,7 +83,6 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 | [Soft Actor-Critic (SAC)](https://arxiv.org/abs/1812.05905) | :white_check_mark: | :white_check_mark: | |
 | [Batch Constrained Q-learning (BCQ)](https://arxiv.org/abs/1812.02900) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | [Bootstrapping Error Accumulation Reduction (BEAR)](https://arxiv.org/abs/1906.00949) | :no_entry: | :white_check_mark: | :white_check_mark: |
-| [Advantage-Weighted Regression (AWR)](https://arxiv.org/abs/1910.00177) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | [Conservative Q-Learning (CQL)](https://arxiv.org/abs/2006.04779) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | [Advantage Weighted Actor-Critic (AWAC)](https://arxiv.org/abs/2006.09359) | :no_entry: | :white_check_mark: | :white_check_mark: |
 | [Critic Reguralized Regression (CRR)](https://arxiv.org/abs/2006.15134) | :no_entry: | :white_check_mark: | :white_check_mark: |
@@ -161,29 +160,6 @@ cql.fit(train_episodes,
 
 See more Atari datasets at [d4rl-atari](https://github.com/takuseno/d4rl-atari).
 
-### PyBullet
-<p align="center"><img align="center" width="160px" src="assets/hopper.gif"></p>
-
-```py
-import d3rlpy
-
-# prepare dataset
-dataset, env = d3rlpy.datasets.get_pybullet('hopper-bullet-mixed-v0')
-
-# prepare algorithm
-cql = d3rlpy.algos.CQL(use_gpu=True)
-
-# start training
-cql.fit(dataset,
-        eval_episodes=dataset,
-        n_epochs=100,
-        scorers={
-            'environment': d3rlpy.metrics.evaluate_on_environment(env),
-            'td_error': d3rlpy.metrics.td_error_scorer
-        })
-```
-
-See more PyBullet datasets at [d4rl-pybullet](https://github.com/takuseno/d4rl-pybullet).
 
 ### Online Training
 ```py

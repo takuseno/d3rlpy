@@ -3,7 +3,6 @@
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
 
 import numpy as np
-from typing_extensions import Protocol
 
 class Transition:
     def __init__(
@@ -144,14 +143,3 @@ class MDPDataset:
     def __len__(self) -> int: ...
     def __getitem__(self, index: int) -> Episode: ...
     def __iter__(self) -> Iterator[Episode]: ...
-
-class _ValueProtocol(Protocol):
-    def predict_value(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray: ...
-
-def compute_lambda_return(
-    transition: Transition,
-    algo: _ValueProtocol,
-    gamma: float,
-    lam: float,
-    n_frames: int,
-) -> float: ...
