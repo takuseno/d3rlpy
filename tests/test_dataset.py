@@ -12,7 +12,6 @@ from d3rlpy.dataset import (
     Transition,
     TransitionMiniBatch,
     _check_discrete_action,
-    compute_lambda_return,
 )
 
 
