@@ -14,10 +14,10 @@ from .envs import ChannelFirst
 
 DATA_DIRECTORY = "d3rlpy_data"
 DROPBOX_URL = "https://www.dropbox.com/s"
-CARTPOLE_URL = f"{DROPBOX_URL}/l1sdnq3zvoot2um/cartpole.h5?dl=1"
-CARTPOLE_RANDOM_URL = f"{DROPBOX_URL}/rwf4pns5x0ku848/cartpole_random.h5?dl=1"
-PENDULUM_URL = f"{DROPBOX_URL}/vsiz9pwvshj7sly/pendulum.h5?dl=1"
-PENDULUM_RANDOM_URL = f"{DROPBOX_URL}/qldf2vjvvc5thsb/pendulum_random.h5?dl=1"
+CARTPOLE_URL = f"{DROPBOX_URL}/uep0lzlhxpi79pd/cartpole_v1.1.0.h5?dl=1"
+CARTPOLE_RANDOM_URL = f"{DROPBOX_URL}/4lgai7tgj84cbov/cartpole_random_v1.1.0.h5?dl=1"  # pylint: disable=line-too-long
+PENDULUM_URL = f"{DROPBOX_URL}/ukkucouzys0jkfs/pendulum_v1.1.0.h5?dl=1"
+PENDULUM_RANDOM_URL = f"{DROPBOX_URL}/hhbq9i6ako24kzz/pendulum_random_v1.1.0.h5?dl=1"  # pylint: disable=line-too-long
 
 
 def get_cartpole(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
@@ -36,10 +36,10 @@ def get_cartpole(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
     """
     if dataset_type == "replay":
         url = CARTPOLE_URL
-        file_name = "cartpole_replay.h5"
+        file_name = "cartpole_replay_v1.1.0.h5"
     elif dataset_type == "random":
         url = CARTPOLE_RANDOM_URL
-        file_name = "cartpole_random.h5"
+        file_name = "cartpole_random_v1.1.0.h5"
     else:
         raise ValueError(f"Invalid dataset_type: {dataset_type}.")
 
@@ -76,10 +76,10 @@ def get_pendulum(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
     """
     if dataset_type == "replay":
         url = PENDULUM_URL
-        file_name = "pendulum_replay.h5"
+        file_name = "pendulum_replay_v1.1.0.h5"
     elif dataset_type == "random":
         url = PENDULUM_RANDOM_URL
-        file_name = "pendulum_random.h5"
+        file_name = "pendulum_random_v1.1.0.h5"
     else:
         raise ValueError(f"Invalid dataset_type: {dataset_type}.")
 

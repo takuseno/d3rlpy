@@ -24,7 +24,5 @@ dqn.fit_online(
 # export replay buffer as MDPDataset
 dataset = buffer.to_mdp_dataset()
 
-assert dataset.observations.shape[0] == 100000
-
 # save MDPDataset
 dataset.dump('cartpole.h5')

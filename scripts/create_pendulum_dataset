@@ -21,7 +21,5 @@ sac.fit_online(env, buffer=buffer, eval_env=eval_env, n_steps=100000)
 # export replay buffer as MDPDataset
 dataset = buffer.to_mdp_dataset()
 
-assert dataset.observations.shape[0] == 100000
-
 # save MDPDataset
 dataset.dump('pendulum.h5')

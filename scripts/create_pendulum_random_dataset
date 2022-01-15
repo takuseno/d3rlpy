@@ -23,7 +23,5 @@ policy.collect(env, buffer=buffer, n_steps=100000)
 # export replay buffer as MDPDataset
 dataset = buffer.to_mdp_dataset()
 
-assert dataset.observations.shape[0] == 100000
-
 # save MDPDataset
 dataset.dump('pendulum_random.h5')
