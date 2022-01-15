@@ -14,9 +14,6 @@ cdef extern from "d3rlpy/dataset.h" namespace "d3rlpy" nogil:
         float reward
         np.uint8_t* next_observation_i
         np.float32_t* next_observation_f
-        int next_action_i
-        np.float32_t* next_action_f
-        float next_reward
         float terminal
         shared_ptr[CTransition] prev_transition
         shared_ptr[CTransition] next_transition

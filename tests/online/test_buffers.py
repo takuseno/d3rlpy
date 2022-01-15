@@ -42,8 +42,6 @@ def test_replay_buffer(n_episodes, batch_size, maxlen):
     assert batch.actions.shape == (batch_size,)
     assert batch.rewards.shape == (batch_size, 1)
     assert batch.next_observations.shape == (batch_size,) + observation_shape
-    assert batch.next_actions.shape == (batch_size,)
-    assert batch.next_rewards.shape == (batch_size, 1)
     assert batch.terminals.shape == (batch_size, 1)
     assert isinstance(batch.observations, np.ndarray)
     assert isinstance(batch.next_observations, np.ndarray)
@@ -113,11 +111,11 @@ def test_replay_buffer_with_episode(maxlen, data_size):
     buffer = ReplayBuffer(maxlen, env, episodes=[episode])
 
     # check episode initialization
-    assert len(buffer) == data_size - 1
+    assert len(buffer) == data_size
 
     # check append_episode
     buffer.append_episode(episode)
-    assert len(buffer) == 2 * (data_size - 1)
+    assert len(buffer) == 2 * data_size
 
 
 @pytest.mark.parametrize("n_envs", [10])
@@ -152,8 +150,6 @@ def test_batch_replay_buffer(n_envs, n_steps, batch_size, maxlen):
     assert batch.actions.shape == (batch_size,)
     assert batch.rewards.shape == (batch_size, 1)
     assert batch.next_observations.shape == (batch_size,) + observation_shape
-    assert batch.next_actions.shape == (batch_size,)
-    assert batch.next_rewards.shape == (batch_size, 1)
     assert batch.terminals.shape == (batch_size, 1)
     assert isinstance(batch.observations, np.ndarray)
     assert isinstance(batch.next_observations, np.ndarray)

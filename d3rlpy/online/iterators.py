@@ -192,9 +192,8 @@ def train_single_env(
         eval_scorer = None
 
     # start training loop
-    observation, reward, terminal = env.reset(), 0.0, False
+    observation = env.reset()
     rollout_return = 0.0
-    clip_episode = False
     for total_step in xrange(1, n_steps + 1):
         with logger.measure_time("step"):
             # stack observation if necessary
@@ -215,6 +214,18 @@ def train_single_env(
                 else:
                     action = algo.sample_action([fed_observation])[0]
 
+            # step environment
+            with logger.measure_time("environment_step"):
+                next_observation, reward, terminal, info = env.step(action)
+                rollout_return += reward
+
+            # special case for TimeLimit wrapper
+            if timelimit_aware and "TimeLimit.truncated" in info:
+                clip_episode = True
+                terminal = False
+            else:
+                clip_episode = terminal
+
             # store observation
             buffer.append(
                 observation=observation,
@@ -224,26 +235,16 @@ def train_single_env(
                 clip_episode=clip_episode,
             )
 
-            # get next observation
+            # reset if terminated
             if clip_episode:
-                observation, reward, terminal = env.reset(), 0.0, False
-                clip_episode = False
+                observation = env.reset()
                 logger.add_metric("rollout_return", rollout_return)
                 rollout_return = 0.0
                 # for image observation
                 if is_image:
                     stacked_frame.clear()
             else:
-                with logger.measure_time("environment_step"):
-                    observation, reward, terminal, info = env.step(action)
-                    rollout_return += reward
-
-                # special case for TimeLimit wrapper
-                if timelimit_aware and "TimeLimit.truncated" in info:
-                    clip_episode = True
-                    terminal = False
-                else:
-                    clip_episode = terminal
+                observation = next_observation
 
             # psuedo epoch count
             epoch = total_step // n_steps_per_epoch
@@ -507,8 +508,7 @@ def collect(
     xrange = trange if show_progress else range
 
     # start training loop
-    observation, reward, terminal = env.reset(), 0.0, False
-    clip_episode = False
+    observation = env.reset()
     for total_step in xrange(1, n_steps + 1):
         # stack observation if necessary
         if is_image:
@@ -528,6 +528,16 @@ def collect(
             else:
                 action = algo.sample_action([fed_observation])[0]
 
+        # step environment
+        next_observation, reward, terminal, info = env.step(action)
+
+        # special case for TimeLimit wrapper
+        if timelimit_aware and "TimeLimit.truncated" in info:
+            clip_episode = True
+            terminal = False
+        else:
+            clip_episode = terminal
+
         # store observation
         buffer.append(
             observation=observation,
@@ -537,21 +547,14 @@ def collect(
             clip_episode=clip_episode,
         )
 
-        # get next observation
+        # reset if terminated
         if clip_episode:
-            observation, reward, terminal = env.reset(), 0.0, False
-            clip_episode = False
+            observation = env.reset()
             # for image observation
             if is_image:
                 stacked_frame.clear()
         else:
-            observation, reward, terminal, info = env.step(action)
-            # special case for TimeLimit wrapper
-            if timelimit_aware and "TimeLimit.truncated" in info:
-                clip_episode = True
-                terminal = False
-            else:
-                clip_episode = terminal
+            observation = next_observation
 
     # clip the last episode
     buffer.clip_episode()

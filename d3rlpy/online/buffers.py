@@ -145,17 +145,12 @@ class _Buffer(metaclass=ABCMeta):
             episode_transitions.reverse()
 
             # stack data
-            for episode_transition in episode_transitions:
+            for i, episode_transition in enumerate(episode_transitions):
                 observations.append(episode_transition.observation)
                 actions.append(episode_transition.action)
                 rewards.append(episode_transition.reward)
-                terminals.append(0.0)
-                episode_terminals.append(0.0)
-            observations.append(episode_transitions[-1].next_observation)
-            actions.append(episode_transitions[-1].next_action)
-            rewards.append(episode_transitions[-1].next_reward)
-            terminals.append(episode_transitions[-1].terminal)
-            episode_terminals.append(1.0)
+                terminals.append(episode_transition.terminal)
+                episode_terminals.append(i == len(episode_transitions) - 1)
 
         if len(self._observation_shape) == 3:
             observations = np.asarray(observations, dtype=np.uint8)
@@ -267,6 +262,7 @@ class ReplayBuffer(BasicSampleMixin, Buffer):
     _prev_observation: Optional[np.ndarray]
     _prev_action: Optional[np.ndarray]
     _prev_reward: float
+    _prev_terminal: float
     _prev_transition: Optional[Transition]
 
     def __init__(
@@ -279,6 +275,7 @@ class ReplayBuffer(BasicSampleMixin, Buffer):
         self._prev_observation = None
         self._prev_action = None
         self._prev_reward = 0.0
+        self._prev_terminal = 0.0
         self._prev_transition = None
 
     def append(
@@ -315,8 +312,6 @@ class ReplayBuffer(BasicSampleMixin, Buffer):
                 action=self._prev_action,
                 reward=self._prev_reward,
                 next_observation=observation,
-                next_action=action,
-                next_reward=reward,
                 terminal=terminal,
                 prev_transition=self._prev_transition,
             )
@@ -330,16 +325,38 @@ class ReplayBuffer(BasicSampleMixin, Buffer):
         self._prev_observation = observation
         self._prev_action = action
         self._prev_reward = reward
+        self._prev_terminal = terminal
 
         if clip_episode:
+            # skip the timeout state
+            if terminal:
+                # add the terminal state
+                self._add_last_step()
             self.clip_episode()
 
     def clip_episode(self) -> None:
         self._prev_observation = None
         self._prev_action = None
         self._prev_reward = 0.0
+        self._prev_terminal = 0.0
         self._prev_transition = None
 
+    def _add_last_step(self) -> None:
+        assert self._prev_terminal
+        assert self._prev_observation is not None
+        transition = Transition(
+            observation_shape=self._observation_shape,
+            action_size=self._action_size,
+            observation=self._prev_observation,
+            action=self._prev_action,
+            reward=self._prev_reward,
+            next_observation=np.zeros_like(self._prev_observation),
+            terminal=1.0,
+            prev_transition=self._prev_transition,
+        )
+        if self._prev_transition:
+            self._prev_transition.next_transition = transition
+        self._transitions.append(transition)
 
 class BatchReplayBuffer(BasicSampleMixin, BatchBuffer):
     """Standard Replay Buffer for batch training.
@@ -357,6 +374,7 @@ class BatchReplayBuffer(BasicSampleMixin, BatchBuffer):
     _prev_observations: List[Optional[np.ndarray]]
     _prev_actions: List[Optional[np.ndarray]]
     _prev_rewards: List[Optional[np.ndarray]]
+    _prev_terminals: List[Optional[np.ndarray]]
     _prev_transitions: List[Optional[Transition]]
 
     def __init__(
@@ -370,6 +388,7 @@ class BatchReplayBuffer(BasicSampleMixin, BatchBuffer):
         self._prev_observations = [None for _ in range(len(env))]
         self._prev_actions = [None for _ in range(len(env))]
         self._prev_rewards = [None for _ in range(len(env))]
+        self._prev_terminals = [None for _ in range(len(env))]
         self._prev_transitions = [None for _ in range(len(env))]
 
     def append(
@@ -411,8 +430,6 @@ class BatchReplayBuffer(BasicSampleMixin, BatchBuffer):
                     action=prev_action,
                     reward=float(prev_reward),
                     next_observation=observations[i],
-                    next_action=actions[i],
-                    next_reward=float(rewards[i]),
                     terminal=float(terminals[i]),
                     prev_transition=prev_transition,
                 )
@@ -426,16 +443,40 @@ class BatchReplayBuffer(BasicSampleMixin, BatchBuffer):
             self._prev_observations[i] = observations[i]
             self._prev_actions[i] = actions[i]
             self._prev_rewards[i] = rewards[i]
+            self._prev_terminals[i] = terminals[i]
 
             if clip_episodes[i]:
+                if terminals[i]:
+                    self._add_last_step(i)
                 self._prev_observations[i] = None
                 self._prev_actions[i] = None
                 self._prev_rewards[i] = None
+                self._prev_terminals[i] = None
                 self._prev_transitions[i] = None
+
+    def _add_last_step(self, index: int) -> None:
+        assert self._prev_terminals[index]
+        assert self._prev_observations[index] is not None
+        assert self._prev_actions[index] is not None
+        assert self._prev_rewards[index] is not None
+        transition = Transition(
+            observation_shape=self._observation_shape,
+            action_size=self._action_size,
+            observation=self._prev_observations[index],
+            action=self._prev_actions[index],
+            reward=self._prev_rewards[index],
+            next_observation=np.zeros_like(self._prev_observations[index]),
+            terminal=1.0,
+            prev_transition=self._prev_transitions[index],
+        )
+        if self._prev_transitions[index] is not None:
+            self._prev_transitions[index].next_transition = transition
+        self._transitions.append(transition)
 
     def clip_episode(self) -> None:
         for i in range(self._n_envs):
             self._prev_observations[i] = None
             self._prev_actions[i] = None
             self._prev_rewards[i] = None
+            self._prev_terminals[i] = None
             self._prev_transitions[i] = None

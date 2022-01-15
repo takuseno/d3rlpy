@@ -99,41 +99,6 @@ def get_pendulum(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
     return dataset, env
 
 
-def get_pybullet(env_name: str) -> Tuple[MDPDataset, gym.Env]:
-    """Returns pybullet dataset and envrironment.
-
-    The dataset is provided through d4rl-pybullet. See more details including
-    available dataset from its GitHub page.
-
-    .. code-block:: python
-
-        from d3rlpy.datasets import get_pybullet
-
-        dataset, env = get_pybullet('hopper-bullet-mixed-v0')
-
-    References:
-        * https://github.com/takuseno/d4rl-pybullet
-
-    Args:
-        env_name: environment id of d4rl-pybullet dataset.
-
-    Returns:
-        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
-
-    """
-    try:
-        import d4rl_pybullet  # type: ignore
-
-        env = gym.make(env_name)
-        dataset = MDPDataset(**env.get_dataset())
-        return dataset, env
-    except ImportError as e:
-        raise ImportError(
-            "d4rl-pybullet is not installed.\n"
-            "pip install git+https://github.com/takuseno/d4rl-pybullet"
-        ) from e
-
-
 def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
     """Returns atari dataset and envrironment.
 
@@ -274,53 +239,12 @@ def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         env = gym.make(env_name)
         dataset = env.get_dataset()
 
-        observations = []
-        actions = []
-        rewards = []
-        terminals = []
-        episode_terminals = []
-        episode_step = 0
-        cursor = 0
-        dataset_size = dataset["observations"].shape[0]
-        while cursor < dataset_size:
-            # collect data for step=t
-            observation = dataset["observations"][cursor]
-            action = dataset["actions"][cursor]
-            if episode_step == 0:
-                reward = 0.0
-            else:
-                reward = dataset["rewards"][cursor - 1]
-
-            observations.append(observation)
-            actions.append(action)
-            rewards.append(reward)
-            terminals.append(0.0)
-
-            # skip adding the last step when timeout
-            if dataset["timeouts"][cursor]:
-                episode_terminals.append(1.0)
-                episode_step = 0
-                cursor += 1
-                continue
-
-            episode_terminals.append(0.0)
-            episode_step += 1
-
-            if dataset["terminals"][cursor]:
-                # collect data for step=t+1
-                dummy_observation = observation.copy()
-                dummy_action = action.copy()
-                next_reward = dataset["rewards"][cursor]
-
-                # the last observation is rarely used
-                observations.append(dummy_observation)
-                actions.append(dummy_action)
-                rewards.append(next_reward)
-                terminals.append(1.0)
-                episode_terminals.append(1.0)
-                episode_step = 0
-
-            cursor += 1
+        observations = dataset["observations"]
+        actions = dataset["actions"]
+        rewards = dataset["rewards"]
+        terminals = dataset["terminals"]
+        timeouts = dataset["timeouts"]
+        episode_terminals = np.logical_or(terminals, timeouts)
 
         mdp_dataset = MDPDataset(
             observations=np.array(observations, dtype=np.float32),
@@ -427,9 +351,6 @@ def get_dataset(env_name: str) -> Tuple[MDPDataset, gym.Env]:
        # pendulum dataset
        dataset, env = d3rlpy.datasets.get_dataset('pendulum')
 
-       # d4rl-pybullet dataset
-       dataset, env = d3rlpy.datasets.get_dataset('hopper-bullet-mixed-v0')
-
        # d4rl-atari dataset
        dataset, env = d3rlpy.datasets.get_dataset('breakout-mixed-v0')
 
@@ -453,8 +374,6 @@ def get_dataset(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         return get_pendulum(dataset_type="random")
     elif re.match(r"^bullet-.+$", env_name):
         return get_d4rl(env_name)
-    elif re.match(r"^.+-bullet-.+$", env_name):
-        return get_pybullet(env_name)
     elif re.match(r"hopper|halfcheetah|walker|ant", env_name):
         return get_d4rl(env_name)
     elif re.match(re.compile("|".join(ATARI_GAMES)), env_name):

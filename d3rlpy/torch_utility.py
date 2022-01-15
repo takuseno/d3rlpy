@@ -155,8 +155,6 @@ class TorchMiniBatch:
     _actions: torch.Tensor
     _rewards: torch.Tensor
     _next_observations: torch.Tensor
-    _next_actions: torch.Tensor
-    _next_rewards: torch.Tensor
     _terminals: torch.Tensor
     _n_steps: torch.Tensor
     _device: str
@@ -174,8 +172,6 @@ class TorchMiniBatch:
         actions = _convert_to_torch(batch.actions, device)
         rewards = _convert_to_torch(batch.rewards, device)
         next_observations = _convert_to_torch(batch.next_observations, device)
-        next_actions = _convert_to_torch(batch.next_actions, device)
-        next_rewards = _convert_to_torch(batch.next_rewards, device)
         terminals = _convert_to_torch(batch.terminals, device)
         n_steps = _convert_to_torch(batch.n_steps, device)
 
@@ -185,17 +181,13 @@ class TorchMiniBatch:
             next_observations = scaler.transform(next_observations)
         if action_scaler:
             actions = action_scaler.transform(actions)
-            next_actions = action_scaler.transform(next_actions)
         if reward_scaler:
             rewards = reward_scaler.transform(rewards)
-            next_rewards = reward_scaler.transform(next_rewards)
 
         self._observations = observations
         self._actions = actions
         self._rewards = rewards
         self._next_observations = next_observations
-        self._next_actions = next_actions
-        self._next_rewards = next_rewards
         self._terminals = terminals
         self._n_steps = n_steps
         self._device = device
@@ -215,14 +207,6 @@ class TorchMiniBatch:
     @property
     def next_observations(self) -> torch.Tensor:
         return self._next_observations
-
-    @property
-    def next_actions(self) -> torch.Tensor:
-        return self._next_actions
-
-    @property
-    def next_rewards(self) -> torch.Tensor:
-        return self._next_rewards
 
     @property
     def terminals(self) -> torch.Tensor:
