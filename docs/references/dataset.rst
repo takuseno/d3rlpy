@@ -10,7 +10,7 @@ learning.
 In supervised learning, the training script iterates input data :math:`X` and
 label data :math:`Y`.
 However, in reinforcement learning, mini-batches consist with sets of
-:math:`(s_t, a_t, r_{t+1}, s_{t+1})` and episode terminal flags.
+:math:`(s_t, a_t, r_t, s_{t+1})` and episode terminal flags.
 Converting a set of observations, actions, rewards and terminal flags into this
 tuples is boring and requires some codings.
 
@@ -39,7 +39,7 @@ reinforcement learning datasets without any efforts.
     episode = dataset.episodes[0]
     episode[0].observation
     episode[0].action
-    episode[0].next_reward
+    episode[0].reward
     episode[0].next_observation
     episode[0].terminal
 
@@ -62,12 +62,9 @@ must be aligned with the same timestep.
 
   observations = [s1, s2, s3, ...]
   actions      = [a1, a2, a3, ...]
-  rewards      = [r1, r2, r3, ...]
-  terminals    = [t1, t2, t3, ...]
+  rewards      = [r1, r2, r3, ...]  # r1 = r(s1, a1)
+  terminals    = [t1, t2, t3, ...]  # t1 = t(s1, a1)
 
-This alignment might be different from other libraries where the tuple of :math:`(s_t, a_t, r_{t+1})`.
-The advantage of d3rlpy's formulation is that we can explicitly store the last observation which might
-be useful for the future goal-oriented methods and less confusing. See discussion in `issue #98 <https://github.com/takuseno/d3rlpy/issues/98>`_.
 
 .. autosummary::
    :toctree: generated/

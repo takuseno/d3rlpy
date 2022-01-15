@@ -12,7 +12,7 @@ learning algorithms.
 
    d3rlpy.datasets.get_cartpole
    d3rlpy.datasets.get_pendulum
-   d3rlpy.datasets.get_pybullet
    d3rlpy.datasets.get_atari
+   d3rlpy.datasets.get_atari_transitions
    d3rlpy.datasets.get_d4rl
    d3rlpy.datasets.get_dataset

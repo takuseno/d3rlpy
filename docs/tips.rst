@@ -57,19 +57,15 @@ must be aligned with the same timestep.
 
   observations = [s1, s2, s3, ...]
   actions      = [a1, a2, a3, ...]
-  rewards      = [r1, r2, r3, ...]
-  terminals    = [t1, t2, t3, ...]
-
-This alignment might be different from other libraries where the tuple of :math:`(s_t, a_t, r_{t+1})` is saved.
-The advantage of d3rlpy's formulation is that we can explicitly store the last observation which might
-be useful for the future goal-oriented methods and less confusing. See discussion in `issue #98 <https://github.com/takuseno/d3rlpy/issues/98>`_.
+  rewards      = [r1, r2, r3, ...]  # r1 = r(s1, a1)
+  terminals    = [t1, t2, t3, ...]  # t1 = t(s1, a1)
 
 If you have an access to the environment, you can automate the process.
 
 .. code-block:: python
 
   import gym
-  
+
   import d3rlpy
 
   env = gym.make("Hopper-v2")
