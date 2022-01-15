@@ -170,9 +170,6 @@ class MinMaxActionScaler(ActionScaler):
             else:
                 minimum = np.minimum(minimum, action)
                 maximum = np.maximum(maximum, action)
-            if transition.terminal:
-                minimum = np.minimum(minimum, transition.next_action)
-                maximum = np.maximum(maximum, transition.next_action)
 
         self._minimum = minimum.reshape((1,) + minimum.shape)
         self._maximum = maximum.reshape((1,) + maximum.shape)

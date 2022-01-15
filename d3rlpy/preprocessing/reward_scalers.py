@@ -253,7 +253,7 @@ class MinMaxRewardScaler(RewardScaler):
         if self._minimum is not None and self._maximum is not None:
             return
 
-        rewards = [transition.next_reward for transition in transitions]
+        rewards = [transition.reward for transition in transitions]
 
         self._minimum = float(np.min(rewards))
         self._maximum = float(np.max(rewards))
@@ -348,7 +348,7 @@ class StandardRewardScaler(RewardScaler):
         if self._mean is not None and self._std is not None:
             return
 
-        rewards = [transition.next_reward for transition in transitions]
+        rewards = [transition.reward for transition in transitions]
 
         self._mean = float(np.mean(rewards))
         self._std = float(np.std(rewards))
@@ -458,10 +458,10 @@ class ReturnBasedRewardScaler(RewardScaler):
             ret = 0.0
             curr_transition = start_transition
             while True:
-                ret += curr_transition.next_reward
-                if curr_transition.next_transition is None:
+                ret += curr_transition.reward
+                if curr_transition.transition is None:
                     break
-                curr_transition = curr_transition.next_transition
+                curr_transition = curr_transition.transition
             returns.append(ret)
 
         self._return_max = float(np.max(returns))
