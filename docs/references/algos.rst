@@ -21,7 +21,6 @@ Continuous control algorithms
    d3rlpy.algos.BEAR
    d3rlpy.algos.CRR
    d3rlpy.algos.CQL
-   d3rlpy.algos.AWR
    d3rlpy.algos.AWAC
    d3rlpy.algos.PLAS
    d3rlpy.algos.PLASWithPerturbation
@@ -44,5 +43,4 @@ Discrete control algorithms
    d3rlpy.algos.DiscreteSAC
    d3rlpy.algos.DiscreteBCQ
    d3rlpy.algos.DiscreteCQL
-   d3rlpy.algos.DiscreteAWR
    d3rlpy.algos.DiscreteRandomPolicy
