@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional, Sequence, cast
+from typing import List, Optional, Sequence
 
 import gym
 import numpy as np
@@ -12,7 +12,6 @@ from ..dataset import (
     TransitionMiniBatch,
     trace_back_and_clear,
 )
-from ..envs import BatchEnv
 from .utility import get_action_size_from_env
 
 
@@ -205,32 +204,6 @@ class Buffer(_Buffer):
         """
 
 
-class BatchBuffer(_Buffer):
-    @abstractmethod
-    def append(
-        self,
-        observations: np.ndarray,
-        actions: np.ndarray,
-        rewards: np.ndarray,
-        terminals: np.ndarray,
-        clip_episodes: Optional[np.ndarray] = None,
-    ) -> None:
-        """Append observation, action, reward and terminal flag to buffer.
-
-        If the terminal flag is True, Monte-Carlo returns will be computed with
-        an entire episode and the whole transitions will be appended.
-
-        Args:
-            observations: observation.
-            actions: action.
-            rewards: reward.
-            terminals: terminal flag.
-            clip_episodes: flag to clip the current episode. If ``None``, the
-                episode is clipped based on ``terminal``.
-
-        """
-
-
 class BasicSampleMixin:
 
     _transitions: FIFOQueue[Transition]
@@ -357,126 +330,3 @@ class ReplayBuffer(BasicSampleMixin, Buffer):
         if self._prev_transition:
             self._prev_transition.next_transition = transition
         self._transitions.append(transition)
-
-class BatchReplayBuffer(BasicSampleMixin, BatchBuffer):
-    """Standard Replay Buffer for batch training.
-
-    Args:
-        maxlen (int): the maximum number of data length.
-        n_envs (int): the number of environments.
-        env (gym.Env): gym-like environment to extract shape information.
-        episodes (list(d3rlpy.dataset.Episode)): list of episodes to
-            initialize buffer
-
-    """
-
-    _n_envs: int
-    _prev_observations: List[Optional[np.ndarray]]
-    _prev_actions: List[Optional[np.ndarray]]
-    _prev_rewards: List[Optional[np.ndarray]]
-    _prev_terminals: List[Optional[np.ndarray]]
-    _prev_transitions: List[Optional[Transition]]
-
-    def __init__(
-        self,
-        maxlen: int,
-        env: BatchEnv,
-        episodes: Optional[List[Episode]] = None,
-    ):
-        super().__init__(maxlen, env, episodes)
-        self._n_envs = len(env)
-        self._prev_observations = [None for _ in range(len(env))]
-        self._prev_actions = [None for _ in range(len(env))]
-        self._prev_rewards = [None for _ in range(len(env))]
-        self._prev_terminals = [None for _ in range(len(env))]
-        self._prev_transitions = [None for _ in range(len(env))]
-
-    def append(
-        self,
-        observations: np.ndarray,
-        actions: np.ndarray,
-        rewards: np.ndarray,
-        terminals: np.ndarray,
-        clip_episodes: Optional[np.ndarray] = None,
-    ) -> None:
-        # if None, use terminal
-        if clip_episodes is None:
-            clip_episodes = terminals
-
-        # validation
-        assert observations.shape == (self._n_envs, *self._observation_shape)
-        if actions.ndim == 2:
-            assert actions.shape == (self._n_envs, self._action_size)
-        else:
-            assert actions.shape == (self._n_envs,)
-        assert rewards.shape == (self._n_envs,)
-        assert terminals.shape == (self._n_envs,)
-        # not allow terminal=True and clip_episode=False
-        assert np.all(terminals - clip_episodes < 1)
-
-        # create Transition objects
-        for i in range(self._n_envs):
-            if self._prev_observations[i] is not None:
-
-                prev_observation = self._prev_observations[i]
-                prev_action = self._prev_actions[i]
-                prev_reward = cast(np.ndarray, self._prev_rewards[i])
-                prev_transition = self._prev_transitions[i]
-
-                transition = Transition(
-                    observation_shape=self._observation_shape,
-                    action_size=self._action_size,
-                    observation=prev_observation,
-                    action=prev_action,
-                    reward=float(prev_reward),
-                    next_observation=observations[i],
-                    terminal=float(terminals[i]),
-                    prev_transition=prev_transition,
-                )
-
-                if prev_transition:
-                    prev_transition.next_transition = transition
-
-                self._transitions.append(transition)
-                self._prev_transitions[i] = transition
-
-            self._prev_observations[i] = observations[i]
-            self._prev_actions[i] = actions[i]
-            self._prev_rewards[i] = rewards[i]
-            self._prev_terminals[i] = terminals[i]
-
-            if clip_episodes[i]:
-                if terminals[i]:
-                    self._add_last_step(i)
-                self._prev_observations[i] = None
-                self._prev_actions[i] = None
-                self._prev_rewards[i] = None
-                self._prev_terminals[i] = None
-                self._prev_transitions[i] = None
-
-    def _add_last_step(self, index: int) -> None:
-        assert self._prev_terminals[index]
-        assert self._prev_observations[index] is not None
-        assert self._prev_actions[index] is not None
-        assert self._prev_rewards[index] is not None
-        transition = Transition(
-            observation_shape=self._observation_shape,
-            action_size=self._action_size,
-            observation=self._prev_observations[index],
-            action=self._prev_actions[index],
-            reward=self._prev_rewards[index],
-            next_observation=np.zeros_like(self._prev_observations[index]),
-            terminal=1.0,
-            prev_transition=self._prev_transitions[index],
-        )
-        if self._prev_transitions[index] is not None:
-            self._prev_transitions[index].next_transition = transition
-        self._transitions.append(transition)
-
-    def clip_episode(self) -> None:
-        for i in range(self._n_envs):
-            self._prev_observations[i] = None
-            self._prev_actions[i] = None
-            self._prev_rewards[i] = None
-            self._prev_terminals[i] = None
-            self._prev_transitions[i] = None
