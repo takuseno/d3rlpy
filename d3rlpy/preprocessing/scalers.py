@@ -196,9 +196,6 @@ class MinMaxScaler(Scaler):
             else:
                 minimum = np.minimum(minimum, observation)
                 maximum = np.maximum(maximum, observation)
-            if transition.terminal:
-                minimum = np.minimum(minimum, transition.next_observation)
-                maximum = np.maximum(maximum, transition.next_observation)
 
         self._minimum = minimum.reshape((1,) + minimum.shape)
         self._maximum = maximum.reshape((1,) + maximum.shape)
@@ -330,9 +327,6 @@ class StandardScaler(Scaler):
         for transition in transitions:
             total_sum += np.asarray(transition.observation)
             total_count += 1
-            if transition.terminal:
-                total_sum += np.asarray(transition.next_observation)
-                total_count += 1
         mean = total_sum / total_count
 
         # compute stdandard deviation
@@ -341,9 +335,6 @@ class StandardScaler(Scaler):
         for transition in transitions:
             observation = np.asarray(transition.observation)
             total_sqsum += (observation - expanded_mean) ** 2
-            if transition.terminal:
-                next_observation = transition.next_observation
-                total_sqsum += (next_observation - expanded_mean) ** 2
         std = np.sqrt(total_sqsum / total_count)
 
         self._mean = mean.reshape((1,) + mean.shape)

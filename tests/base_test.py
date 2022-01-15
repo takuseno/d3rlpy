@@ -168,8 +168,6 @@ def base_update_tester(model, observation_shape, action_size, discrete=False):
             action=action,
             reward=reward,
             next_observation=next_observation,
-            next_action=next_action,
-            next_reward=next_reward,
             terminal=terminal,
             prev_transition=prev_transition,
         )

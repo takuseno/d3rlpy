@@ -459,9 +459,9 @@ class ReturnBasedRewardScaler(RewardScaler):
             curr_transition = start_transition
             while True:
                 ret += curr_transition.reward
-                if curr_transition.transition is None:
+                if curr_transition.next_transition is None:
                     break
-                curr_transition = curr_transition.transition
+                curr_transition = curr_transition.next_transition
             returns.append(ret)
 
         self._return_max = float(np.max(returns))

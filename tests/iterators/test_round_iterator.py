@@ -70,8 +70,6 @@ def test_round_iterator(
             np.random.random(action_size),
             np.random.random(),
             np.random.random(observation_size),
-            np.random.random(action_size),
-            np.random.random(),
             terminal=True,
         )
         transitions.append(transition)

@@ -106,9 +106,9 @@ def test_td_error_scorer(
             algo.predict_value,
             batch.observations,
             batch.actions,
-            np.asarray(batch.next_rewards).reshape(-1),
+            np.asarray(batch.rewards).reshape(-1),
             batch.next_observations,
-            batch.next_actions,
+            algo.predict(batch.next_observations),
             np.asarray(batch.terminals).reshape(-1),
             gamma,
             reward_scaler,
@@ -527,10 +527,10 @@ def test_dynamics_reward_prediction_error_scorer(
         batch = TransitionMiniBatch(episode.transitions)
         _, pred_reward = dynamics.predict(batch.observations, batch.actions)
         if reward_scaler:
-            next_rewards = reward_scaler.transform_numpy(batch.next_rewards)
+            rewards = reward_scaler.transform_numpy(batch.rewards)
         else:
-            next_rewards = batch.next_rewards
-        errors = ((next_rewards - pred_reward) ** 2).reshape(-1)
+            rewards = batch.rewards
+        errors = ((rewards - pred_reward) ** 2).reshape(-1)
         total_errors += errors.tolist()
     score = dynamics_reward_prediction_error_scorer(dynamics, episodes)
     assert np.allclose(score, np.mean(total_errors))

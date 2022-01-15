@@ -19,7 +19,6 @@ from libcpp.memory cimport make_shared, shared_ptr
 
 from .logger import LOG
 
-
 # (o_t, a_t, r_t, t_t)
 # r_t = r(o_t, a_t)
 # observations = [o_t, o_t+1, o_t+2, o_t, o_t+1]

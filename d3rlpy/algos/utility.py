@@ -30,17 +30,16 @@ class ModelBaseMixin:
         batch = TransitionMiniBatch(init_transitions)
         observations = batch.observations
         actions = self._sample_rollout_action(observations)
-        rewards = batch.rewards
         prev_transitions: List[Transition] = []
         for _ in range(self._get_rollout_horizon()):
             # predict next state
             pred = self._dynamics.predict(observations, actions, True)
             pred = cast(Tuple[np.ndarray, np.ndarray, np.ndarray], pred)
-            next_observations, next_rewards, variances = pred
+            next_observations, rewards, variances = pred
 
             # regularize by uncertainty
-            next_observations, next_rewards = self._mutate_transition(
-                next_observations, next_rewards, variances
+            next_observations, rewards = self._mutate_transition(
+                next_observations, rewards, variances
             )
 
             # sample policy action
@@ -56,8 +55,6 @@ class ModelBaseMixin:
                     action=actions[i],
                     reward=float(rewards[i][0]),
                     next_observation=next_observations[i],
-                    next_action=next_actions[i],
-                    next_reward=float(next_rewards[i][0]),
                     terminal=0.0,
                 )
 
@@ -71,7 +68,6 @@ class ModelBaseMixin:
             rets += new_transitions
             observations = next_observations.copy()
             actions = next_actions.copy()
-            rewards = next_rewards.copy()
 
         return rets
 

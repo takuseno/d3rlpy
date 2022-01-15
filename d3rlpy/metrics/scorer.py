@@ -104,7 +104,7 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
 
             # calculate td errors
             mask = (1.0 - np.asarray(batch.terminals)).reshape(-1)
-            rewards = np.asarray(batch.next_rewards).reshape(-1)
+            rewards = np.asarray(batch.rewards).reshape(-1)
             if algo.reward_scaler:
                 rewards = algo.reward_scaler.transform_numpy(rewards)
             y = rewards + algo.gamma * cast(np.ndarray, next_values) * mask
@@ -545,7 +545,7 @@ def dynamics_reward_prediction_error_scorer(
     for episode in episodes:
         for batch in _make_batches(episode, WINDOW_SIZE, dynamics.n_frames):
             pred = dynamics.predict(batch.observations, batch.actions)
-            rewards = batch.next_rewards
+            rewards = batch.rewards
             if dynamics.reward_scaler:
                 rewards = dynamics.reward_scaler.transform_numpy(rewards)
             errors = ((rewards - pred[1]) ** 2).reshape(-1)

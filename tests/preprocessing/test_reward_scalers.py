@@ -218,7 +218,7 @@ def test_standard_reward_scaler_with_episode(
 
     rewards_without_first = []
     for episode in dataset:
-        rewards_without_first += episode.rewards[1:].tolist()
+        rewards_without_first += episode.rewards.tolist()
     rewards_without_first = np.array(rewards_without_first)
 
     mean = np.mean(rewards_without_first)
