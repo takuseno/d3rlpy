@@ -24,8 +24,8 @@ class ValueFunction(nn.Module):  # type: ignore
         return cast(torch.Tensor, super().__call__(x))
 
     def compute_error(
-        self, obs_t: torch.Tensor, ret_t: torch.Tensor
+        self, observations: torch.Tensor, target: torch.Tensor
     ) -> torch.Tensor:
-        v_t = self.forward(obs_t)
-        loss = F.mse_loss(v_t, ret_t)
+        v_t = self.forward(observations)
+        loss = F.mse_loss(v_t, target)
         return loss

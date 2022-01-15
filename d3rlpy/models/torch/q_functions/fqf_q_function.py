@@ -79,27 +79,27 @@ class DiscreteFQFQFunction(DiscreteQFunction, nn.Module):  # type: ignore
 
     def compute_error(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tp1: torch.Tensor,
-        q_tp1: torch.Tensor,
-        ter_tp1: torch.Tensor,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        target: torch.Tensor,
+        terminals: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
-        assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
+        assert target.shape == (observations.shape[0], self._n_quantiles)
 
         # compute quantiles
-        h = self._encoder(obs_t)
+        h = self._encoder(observations)
         taus, _, taus_prime, entropies = _make_taus(h, self._proposal)
-        quantiles = self._compute_quantiles(h, taus_prime.detach())
-        quantiles_t = pick_quantile_value_by_action(quantiles, act_t)
+        all_quantiles = self._compute_quantiles(h, taus_prime.detach())
+        quantiles = pick_quantile_value_by_action(all_quantiles, actions)
 
         quantile_loss = compute_quantile_loss(
-            quantiles_t=quantiles_t,
-            rewards_tp1=rew_tp1,
-            quantiles_tp1=q_tp1,
-            terminals_tp1=ter_tp1,
+            quantiles=quantiles,
+            rewards=rewards,
+            target=target,
+            terminals=terminals,
             taus=taus_prime.detach(),
             gamma=gamma,
         )
@@ -107,7 +107,9 @@ class DiscreteFQFQFunction(DiscreteQFunction, nn.Module):  # type: ignore
         # compute proposal network loss
         # original paper explicitly separates the optimization process
         # but, it's combined here
-        proposal_loss = self._compute_proposal_loss(h, act_t, taus, taus_prime)
+        proposal_loss = self._compute_proposal_loss(
+            h, actions, taus, taus_prime
+        )
         proposal_params = list(self._proposal.parameters())
         proposal_grads = torch.autograd.grad(
             outputs=proposal_loss.mean(),
@@ -125,7 +127,7 @@ class DiscreteFQFQFunction(DiscreteQFunction, nn.Module):  # type: ignore
     def _compute_proposal_loss(
         self,
         h: torch.Tensor,
-        action: torch.Tensor,
+        actions: torch.Tensor,
         taus: torch.Tensor,
         taus_prime: torch.Tensor,
     ) -> torch.Tensor:
@@ -133,9 +135,9 @@ class DiscreteFQFQFunction(DiscreteQFunction, nn.Module):  # type: ignore
         q_taus_prime = self._compute_quantiles(h.detach(), taus_prime)
         batch_steps = torch.arange(h.shape[0])
         # (batch, n_quantiles - 1)
-        q_taus = q_taus[batch_steps, action.view(-1)][:, :-1]
+        q_taus = q_taus[batch_steps, actions.view(-1)][:, :-1]
         # (batch, n_quantiles)
-        q_taus_prime = q_taus_prime[batch_steps, action.view(-1)]
+        q_taus_prime = q_taus_prime[batch_steps, actions.view(-1)]
 
         # compute gradients
         proposal_grad = 2 * q_taus - q_taus_prime[:, :-1] - q_taus_prime[:, 1:]
@@ -205,25 +207,25 @@ class ContinuousFQFQFunction(ContinuousQFunction, nn.Module):  # type: ignore
 
     def compute_error(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tp1: torch.Tensor,
-        q_tp1: torch.Tensor,
-        ter_tp1: torch.Tensor,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        target: torch.Tensor,
+        terminals: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
-        assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
+        assert target.shape == (observations.shape[0], self._n_quantiles)
 
-        h = self._encoder(obs_t, act_t)
+        h = self._encoder(observations, actions)
         taus, _, taus_prime, entropies = _make_taus(h, self._proposal)
-        quantiles_t = self._compute_quantiles(h, taus_prime.detach())
+        quantiles = self._compute_quantiles(h, taus_prime.detach())
 
         quantile_loss = compute_quantile_loss(
-            quantiles_t=quantiles_t,
-            rewards_tp1=rew_tp1,
-            quantiles_tp1=q_tp1,
-            terminals_tp1=ter_tp1,
+            quantiles=quantiles,
+            rewards=rewards,
+            target=target,
+            terminals=terminals,
             taus=taus_prime.detach(),
             gamma=gamma,
         )

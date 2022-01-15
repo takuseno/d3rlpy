@@ -80,20 +80,27 @@ class EnsembleQFunction(nn.Module):  # type: ignore
 
     def compute_error(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tp1: torch.Tensor,
-        q_tp1: torch.Tensor,
-        ter_tp1: torch.Tensor,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        target: torch.Tensor,
+        terminals: torch.Tensor,
         gamma: float = 0.99,
     ) -> torch.Tensor:
-        assert q_tp1.ndim == 2
+        assert target.ndim == 2
 
-        td_sum = torch.tensor(0.0, dtype=torch.float32, device=obs_t.device)
+        td_sum = torch.tensor(
+            0.0, dtype=torch.float32, device=observations.device
+        )
         for q_func in self._q_funcs:
-            target = q_tp1
             loss = q_func.compute_error(
-                obs_t, act_t, rew_tp1, target, ter_tp1, gamma, reduction="none"
+                observations=observations,
+                actions=actions,
+                rewards=rewards,
+                target=target,
+                terminals=terminals,
+                gamma=gamma,
+                reduction="none",
             )
             td_sum += loss.mean()
         return td_sum

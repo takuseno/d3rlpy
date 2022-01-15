@@ -329,11 +329,11 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
     ) -> torch.Tensor:
         assert self._q_func is not None
         return self._q_func.compute_error(
-            obs_t=batch.observations,
-            act_t=batch.actions.long(),
-            rew_tp1=batch.rewards,
-            q_tp1=q_tpn,
-            ter_tp1=batch.terminals,
+            observations=batch.observations,
+            actions=batch.actions.long(),
+            rewards=batch.rewards,
+            target=q_tpn,
+            terminals=batch.terminals,
             gamma=self._gamma ** batch.n_steps,
         )
 

@@ -25,18 +25,20 @@ class DiscreteMeanQFunction(DiscreteQFunction, nn.Module):  # type: ignore
 
     def compute_error(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tp1: torch.Tensor,
-        q_tp1: torch.Tensor,
-        ter_tp1: torch.Tensor,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        target: torch.Tensor,
+        terminals: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
-        one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
-        q_t = (self.forward(obs_t) * one_hot.float()).sum(dim=1, keepdim=True)
-        y = rew_tp1 + gamma * q_tp1 * (1 - ter_tp1)
-        loss = compute_huber_loss(q_t, y)
+        one_hot = F.one_hot(actions.view(-1), num_classes=self.action_size)
+        value = (self.forward(observations) * one_hot.float()).sum(
+            dim=1, keepdim=True
+        )
+        y = rewards + gamma * target * (1 - terminals)
+        loss = compute_huber_loss(value, y)
         return compute_reduce(loss, reduction)
 
     def compute_target(
@@ -71,17 +73,17 @@ class ContinuousMeanQFunction(ContinuousQFunction, nn.Module):  # type: ignore
 
     def compute_error(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tp1: torch.Tensor,
-        q_tp1: torch.Tensor,
-        ter_tp1: torch.Tensor,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        target: torch.Tensor,
+        terminals: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
-        q_t = self.forward(obs_t, act_t)
-        y = rew_tp1 + gamma * q_tp1 * (1 - ter_tp1)
-        loss = F.mse_loss(q_t, y, reduction="none")
+        value = self.forward(observations, actions)
+        y = rewards + gamma * target * (1 - terminals)
+        loss = F.mse_loss(value, y, reduction="none")
         return compute_reduce(loss, reduction)
 
     def compute_target(

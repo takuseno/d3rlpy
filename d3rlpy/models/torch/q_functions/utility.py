@@ -44,20 +44,20 @@ def compute_quantile_huber_loss(
 
 
 def compute_quantile_loss(
-    quantiles_t: torch.Tensor,
-    rewards_tp1: torch.Tensor,
-    quantiles_tp1: torch.Tensor,
-    terminals_tp1: torch.Tensor,
+    quantiles: torch.Tensor,
+    rewards: torch.Tensor,
+    target: torch.Tensor,
+    terminals: torch.Tensor,
     taus: torch.Tensor,
     gamma: float,
 ) -> torch.Tensor:
-    batch_size, n_quantiles = quantiles_t.shape
-    expanded_quantiles_t = quantiles_t.view(batch_size, 1, -1)
-    y = rewards_tp1 + gamma * quantiles_tp1 * (1 - terminals_tp1)
+    batch_size, n_quantiles = quantiles.shape
+    expanded_quantiles = quantiles.view(batch_size, 1, -1)
+    y = rewards + gamma * target * (1 - terminals)
     expanded_y = y.view(batch_size, -1, 1)
     expanded_taus = taus.view(-1, 1, n_quantiles)
     return compute_quantile_huber_loss(
-        expanded_quantiles_t, expanded_y, expanded_taus
+        expanded_quantiles, expanded_y, expanded_taus
     )
 
 

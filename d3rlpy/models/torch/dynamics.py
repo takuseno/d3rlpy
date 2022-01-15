@@ -112,23 +112,25 @@ class ProbabilisticDynamicsModel(nn.Module):  # type: ignore
 
     def compute_error(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tp1: torch.Tensor,
-        obs_tp1: torch.Tensor,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        next_observations: torch.Tensor,
     ) -> torch.Tensor:
-        mu, logstd = self.compute_stats(obs_t, act_t)
+        mu, logstd = self.compute_stats(observations, actions)
 
         # residual prediction
-        mu_x = obs_t + mu[:, :-1]
+        mu_x = observations + mu[:, :-1]
         mu_reward = mu[:, -1].view(-1, 1)
         logstd_x = logstd[:, :-1]
         logstd_reward = logstd[:, -1].view(-1, 1)
 
         # gaussian likelihood loss
-        likelihood_loss = _gaussian_likelihood(obs_tp1, mu_x, logstd_x)
+        likelihood_loss = _gaussian_likelihood(
+            next_observations, mu_x, logstd_x
+        )
         likelihood_loss += _gaussian_likelihood(
-            rew_tp1, mu_reward, logstd_reward
+            rewards, mu_reward, logstd_reward
         )
 
         # penalty to minimize standard deviation
@@ -208,20 +210,26 @@ class ProbabilisticEnsembleDynamicsModel(nn.Module):  # type: ignore
 
     def compute_error(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tp1: torch.Tensor,
-        obs_tp1: torch.Tensor,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        next_observations: torch.Tensor,
         masks: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        loss_sum = torch.tensor(0.0, dtype=torch.float32, device=obs_t.device)
+        loss_sum = torch.tensor(
+            0.0, dtype=torch.float32, device=observations.device
+        )
         for i, model in enumerate(self._models):
-            loss = model.compute_error(obs_t, act_t, rew_tp1, obs_tp1)
-            assert loss.shape == (obs_t.shape[0], 1)
+            loss = model.compute_error(
+                observations, actions, rewards, next_observations
+            )
+            assert loss.shape == (observations.shape[0], 1)
 
             # create mask if necessary
             if masks is None:
-                mask = torch.randint(0, 2, size=loss.shape, device=obs_t.device)
+                mask = torch.randint(
+                    0, 2, size=loss.shape, device=observations.device
+                )
             else:
                 mask = masks[i]
 

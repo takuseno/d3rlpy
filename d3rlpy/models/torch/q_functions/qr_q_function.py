@@ -48,27 +48,27 @@ class DiscreteQRQFunction(DiscreteQFunction, nn.Module):  # type: ignore
 
     def compute_error(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tp1: torch.Tensor,
-        q_tp1: torch.Tensor,
-        ter_tp1: torch.Tensor,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        target: torch.Tensor,
+        terminals: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
-        assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
+        assert target.shape == (observations.shape[0], self._n_quantiles)
 
         # extraect quantiles corresponding to act_t
-        h = self._encoder(obs_t)
+        h = self._encoder(observations)
         taus = _make_taus(h, self._n_quantiles)
-        quantiles = self._compute_quantiles(h, taus)
-        quantiles_t = pick_quantile_value_by_action(quantiles, act_t)
+        all_quantiles = self._compute_quantiles(h, taus)
+        quantiles = pick_quantile_value_by_action(all_quantiles, actions)
 
         loss = compute_quantile_loss(
-            quantiles_t=quantiles_t,
-            rewards_tp1=rew_tp1,
-            quantiles_tp1=q_tp1,
-            terminals_tp1=ter_tp1,
+            quantiles=quantiles,
+            rewards=rewards,
+            target=target,
+            terminals=terminals,
             taus=taus,
             gamma=gamma,
         )
@@ -120,25 +120,25 @@ class ContinuousQRQFunction(ContinuousQFunction, nn.Module):  # type: ignore
 
     def compute_error(
         self,
-        obs_t: torch.Tensor,
-        act_t: torch.Tensor,
-        rew_tp1: torch.Tensor,
-        q_tp1: torch.Tensor,
-        ter_tp1: torch.Tensor,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        target: torch.Tensor,
+        terminals: torch.Tensor,
         gamma: float = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
-        assert q_tp1.shape == (obs_t.shape[0], self._n_quantiles)
+        assert target.shape == (observations.shape[0], self._n_quantiles)
 
-        h = self._encoder(obs_t, act_t)
+        h = self._encoder(observations, actions)
         taus = _make_taus(h, self._n_quantiles)
-        quantiles_t = self._compute_quantiles(h, taus)
+        quantiles = self._compute_quantiles(h, taus)
 
         loss = compute_quantile_loss(
-            quantiles_t=quantiles_t,
-            rewards_tp1=rew_tp1,
-            quantiles_tp1=q_tp1,
-            terminals_tp1=ter_tp1,
+            quantiles=quantiles,
+            rewards=rewards,
+            target=target,
+            terminals=terminals,
             taus=taus,
             gamma=gamma,
         )
