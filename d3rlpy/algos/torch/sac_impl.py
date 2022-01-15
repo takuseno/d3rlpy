@@ -331,7 +331,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         return self._q_func.compute_error(
             obs_t=batch.observations,
             act_t=batch.actions.long(),
-            rew_tp1=batch.next_rewards,
+            rew_tp1=batch.rewards,
             q_tp1=q_tpn,
             ter_tp1=batch.terminals,
             gamma=self._gamma ** batch.n_steps,
