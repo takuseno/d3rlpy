@@ -21,7 +21,7 @@ using ``to_mdp_dataset()`` utility function.
 
     import stable_baselines3 as sb3
 
-    from d3rlpy.algos import AWR
+    from d3rlpy.algos import CQL
     from d3rlpy.wrappers.sb3 import to_mdp_dataset
 
     # Train an off-policy agent with SB3
@@ -31,7 +31,7 @@ using ``to_mdp_dataset()`` utility function.
     # Convert to d3rlpy MDPDataset
     dataset = to_mdp_dataset(model.replay_buffer)
     # The dataset can then be used to train a d3rlpy model
-    offline_model = AWR()
+    offline_model = CQL()
     offline_model.fit(dataset.episodes, n_epochs=100)
 
 
