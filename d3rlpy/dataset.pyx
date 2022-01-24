@@ -200,6 +200,12 @@ class MDPDataset:
             if observations.dtype != np.float32:
                 observations = np.asarray(observations, dtype=np.float32)
 
+        # check nan
+        assert np.all(np.logical_not(np.isnan(observations)))
+        assert np.all(np.logical_not(np.isnan(actions)))
+        assert np.all(np.logical_not(np.isnan(rewards)))
+        assert np.all(np.logical_not(np.isnan(terminals)))
+
         self._observations = observations
         self._rewards = np.asarray(rewards, dtype=np.float32).reshape(-1)
         self._terminals = np.asarray(terminals, dtype=np.float32).reshape(-1)
