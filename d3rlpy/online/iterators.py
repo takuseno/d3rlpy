@@ -2,7 +2,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import gym
 import numpy as np
-from tqdm import trange
+from tqdm.auto import trange
 from typing_extensions import Protocol
 
 from ..dataset import TransitionMiniBatch
