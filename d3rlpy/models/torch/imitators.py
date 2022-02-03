@@ -159,7 +159,7 @@ class DiscreteImitator(Imitator):
         self, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
         log_probs, logits = self.compute_log_probs_with_logits(x)
-        penalty = (logits ** 2).mean()
+        penalty = (logits**2).mean()
         return F.nll_loss(log_probs, action.view(-1)) + self._beta * penalty
 
 

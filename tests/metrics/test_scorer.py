@@ -129,7 +129,7 @@ def ref_discounted_sum_of_advantage_score(
     for i in range(len(advantages)):
         sum_advangage = 0.0
         for j, advantage in enumerate(advantages[i:]):
-            sum_advangage += (gamma ** j) * advantage
+            sum_advangage += (gamma**j) * advantage
         rets.append(sum_advangage)
     return rets
 

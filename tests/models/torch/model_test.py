@@ -17,9 +17,9 @@ def check_parameter_updates(model, inputs=None, output=None):
     if isinstance(output, (list, tuple)):
         loss = 0.0
         for y in output:
-            loss += (y ** 2).sum()
+            loss += (y**2).sum()
     else:
-        loss = (output ** 2).sum()
+        loss = (output**2).sum()
     loss.backward()
     optim.step()
     for before, after in zip(params_before, model.parameters()):

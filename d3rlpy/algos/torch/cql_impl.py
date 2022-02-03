@@ -188,7 +188,7 @@ class CQLImpl(SACImpl):
         random_values = random_values.view(
             self._n_critics, obs.shape[0], self._n_action_samples
         )
-        random_log_probs = math.log(0.5 ** self._action_size)
+        random_log_probs = math.log(0.5**self._action_size)
 
         # importance sampling
         return random_values - random_log_probs

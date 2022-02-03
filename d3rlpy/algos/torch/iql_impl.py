@@ -114,7 +114,7 @@ class IQLImpl(DDPGBaseImpl):
             rewards=batch.rewards,
             target=q_tpn,
             terminals=batch.terminals,
-            gamma=self._gamma ** batch.n_steps,
+            gamma=self._gamma**batch.n_steps,
         )
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
@@ -166,4 +166,4 @@ class IQLImpl(DDPGBaseImpl):
         v_t = self._value_func(batch.observations)
         diff = q_t - v_t
         weight = (self._expectile - (diff < 0.0).float()).abs().detach()
-        return (weight * (diff ** 2)).mean()
+        return (weight * (diff**2)).mean()
