@@ -67,7 +67,6 @@ class AWAC(AlgoBase):
         lam (float): :math:`\lambda` for weight calculation.
         n_action_samples (int): the number of sampled actions to calculate
             :math:`A^\pi(s_t, a_t)`.
-        max_weight (float): maximum weight for cross-entropy loss.
         n_critics (int): the number of Q functions for ensemble.
         update_actor_interval (int): interval to update policy function.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -93,7 +92,6 @@ class AWAC(AlgoBase):
     _tau: float
     _lam: float
     _n_action_samples: int
-    _max_weight: float
     _n_critics: int
     _update_actor_interval: int
     _use_gpu: Optional[Device]
@@ -116,7 +114,6 @@ class AWAC(AlgoBase):
         tau: float = 0.005,
         lam: float = 1.0,
         n_action_samples: int = 1,
-        max_weight: float = 20.0,
         n_critics: int = 2,
         update_actor_interval: int = 1,
         use_gpu: UseGPUArg = False,
@@ -146,7 +143,6 @@ class AWAC(AlgoBase):
         self._tau = tau
         self._lam = lam
         self._n_action_samples = n_action_samples
-        self._max_weight = max_weight
         self._n_critics = n_critics
         self._update_actor_interval = update_actor_interval
         self._use_gpu = check_use_gpu(use_gpu)
@@ -169,7 +165,6 @@ class AWAC(AlgoBase):
             tau=self._tau,
             lam=self._lam,
             n_action_samples=self._n_action_samples,
-            max_weight=self._max_weight,
             n_critics=self._n_critics,
             use_gpu=self._use_gpu,
             scaler=self._scaler,

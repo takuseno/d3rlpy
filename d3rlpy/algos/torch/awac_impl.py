@@ -19,7 +19,6 @@ class AWACImpl(SACImpl):
 
     _lam: float
     _n_action_samples: int
-    _max_weight: float
 
     def __init__(
         self,
@@ -36,7 +35,6 @@ class AWACImpl(SACImpl):
         tau: float,
         lam: float,
         n_action_samples: int,
-        max_weight: float,
         n_critics: int,
         use_gpu: Optional[Device],
         scaler: Optional[Scaler],
@@ -66,7 +64,6 @@ class AWACImpl(SACImpl):
         )
         self._lam = lam
         self._n_action_samples = n_action_samples
-        self._max_weight = max_weight
 
     def _build_actor(self) -> None:
         self._policy = create_squashed_normal_policy(
@@ -156,7 +153,4 @@ class AWACImpl(SACImpl):
             adv_values = (q_values - v_values).view(-1)
             weights = F.softmax(adv_values / self._lam, dim=0).view(-1, 1)
 
-            # clip like AWR
-            clipped_weights = weights.clamp(0.0, self._max_weight)
-
-        return clipped_weights
+        return weights * adv_values.numel()
