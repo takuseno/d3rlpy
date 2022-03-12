@@ -15,10 +15,8 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("actor_learning_rate", [1e-3])
 @pytest.mark.parametrize("critic_learning_rate", [1e-3])
-@pytest.mark.parametrize("value_learning_rate", [1e-3])
 @pytest.mark.parametrize("actor_optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("critic_optim_factory", [AdamFactory()])
-@pytest.mark.parametrize("value_optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
@@ -34,10 +32,8 @@ def test_iql_impl(
     action_size,
     actor_learning_rate,
     critic_learning_rate,
-    value_learning_rate,
     actor_optim_factory,
     critic_optim_factory,
-    value_optim_factory,
     encoder_factory,
     gamma,
     tau,
@@ -54,10 +50,8 @@ def test_iql_impl(
         action_size=action_size,
         actor_learning_rate=actor_learning_rate,
         critic_learning_rate=critic_learning_rate,
-        value_learning_rate=value_learning_rate,
         actor_optim_factory=actor_optim_factory,
         critic_optim_factory=critic_optim_factory,
-        value_optim_factory=value_optim_factory,
         actor_encoder_factory=encoder_factory,
         critic_encoder_factory=encoder_factory,
         value_encoder_factory=encoder_factory,
