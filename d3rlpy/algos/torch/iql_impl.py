@@ -76,7 +76,9 @@ class IQLImpl(DDPGBaseImpl):
             self._observation_shape,
             self._action_size,
             self._actor_encoder_factory,
-            min_logstd=-5.0,
+            min_logstd=-10.0,
+            max_logstd=-2.0,
+            use_std_parameter=True,
         )
 
     def _build_critic(self) -> None:
