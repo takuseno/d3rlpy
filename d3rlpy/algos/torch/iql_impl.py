@@ -76,8 +76,8 @@ class IQLImpl(DDPGBaseImpl):
             self._observation_shape,
             self._action_size,
             self._actor_encoder_factory,
-            min_logstd=-10.0,
-            max_logstd=-2.0,
+            min_logstd=-5.0,
+            max_logstd=2.0,
             use_std_parameter=True,
         )
 
@@ -125,14 +125,16 @@ class IQLImpl(DDPGBaseImpl):
         # compute log probability
         _, log_probs = squash_action(dist, unnormalized_act_t)
 
-        weight = self._compute_weight(batch)
+        # compute weight
+        with torch.no_grad():
+            weight = self._compute_weight(batch)
 
         return -(weight * log_probs).mean()
 
     def _compute_weight(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._targ_q_func
         assert self._value_func
-        q_t = self._targ_q_func(batch.observations, batch.actions)
+        q_t = self._targ_q_func(batch.observations, batch.actions, "min")
         v_t = self._value_func(batch.observations)
         adv = q_t - v_t
         return (self._weight_temp * adv).exp().clamp(max=self._max_weight)
