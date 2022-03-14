@@ -111,7 +111,8 @@ class IQLImpl(DDPGBaseImpl):
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._value_func
-        return self._value_func(batch.next_observations)
+        with torch.no_grad():
+            return self._value_func(batch.next_observations)
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy
