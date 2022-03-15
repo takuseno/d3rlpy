@@ -143,9 +143,9 @@ class IQLImpl(DDPGBaseImpl):
     def compute_value_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._targ_q_func
         assert self._value_func
-        q_t = self._targ_q_func(batch.observations, batch.actions).detach()
+        q_t = self._targ_q_func(batch.observations, batch.actions, "min")
         v_t = self._value_func(batch.observations)
-        diff = q_t - v_t
+        diff = q_t.detach() - v_t
         weight = (self._expectile - (diff < 0.0).float()).abs().detach()
         return (weight * (diff**2)).mean()
 
