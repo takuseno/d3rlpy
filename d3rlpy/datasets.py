@@ -48,7 +48,7 @@ def get_cartpole(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
     # download dataset
     if not os.path.exists(data_path):
         os.makedirs(DATA_DIRECTORY, exist_ok=True)
-        print(f"Donwloading cartpole.pkl into {data_path}...")
+        print(f"Downloading cartpole.pkl into {data_path}...")
         request.urlretrieve(url, data_path)
 
     # load dataset
