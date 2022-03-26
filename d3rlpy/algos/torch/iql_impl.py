@@ -11,11 +11,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import MeanQFunctionFactory
-from ...models.torch import (
-    NonSquashedNormalPolicy,
-    ValueFunction,
-    squash_action,
-)
+from ...models.torch import NonSquashedNormalPolicy, ValueFunction
 from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
