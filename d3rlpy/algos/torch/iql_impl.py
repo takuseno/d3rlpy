@@ -123,12 +123,8 @@ class IQLImpl(DDPGBaseImpl):
 
         dist = self._policy.dist(batch.observations)
 
-        # unnormalize action via inverse tanh function
-        clipped_actions = batch.actions.clamp(-0.999999, 0.999999)
-        unnormalized_act_t = torch.atanh(clipped_actions)
-
         # compute log probability
-        _, log_probs = squash_action(dist, unnormalized_act_t)
+        log_probs = dist.log_prob(batch.actions).sum(axis=1, keepdims=True)
 
         # compute weight
         with torch.no_grad():
