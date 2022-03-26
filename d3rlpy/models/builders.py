@@ -14,6 +14,7 @@ from .torch import (
     DiscreteImitator,
     EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
+    NonSquashedNormalPolicy,
     Parameter,
     ProbabilisticDynamicsModel,
     ProbabilisticEnsembleDynamicsModel,
@@ -98,6 +99,24 @@ def create_squashed_normal_policy(
 ) -> SquashedNormalPolicy:
     encoder = encoder_factory.create(observation_shape)
     return SquashedNormalPolicy(
+        encoder,
+        action_size,
+        min_logstd=min_logstd,
+        max_logstd=max_logstd,
+        use_std_parameter=use_std_parameter,
+    )
+
+
+def create_non_squashed_normal_policy(
+    observation_shape: Sequence[int],
+    action_size: int,
+    encoder_factory: EncoderFactory,
+    min_logstd: float = -20.0,
+    max_logstd: float = 2.0,
+    use_std_parameter: bool = False,
+) -> NonSquashedNormalPolicy:
+    encoder = encoder_factory.create(observation_shape)
+    return NonSquashedNormalPolicy(
         encoder,
         action_size,
         min_logstd=min_logstd,

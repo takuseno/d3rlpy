@@ -8,6 +8,7 @@ from d3rlpy.models.torch.policies import (
     CategoricalPolicy,
     DeterministicPolicy,
     DeterministicResidualPolicy,
+    NonSquashedNormalPolicy,
     SquashedNormalPolicy,
 )
 
@@ -80,6 +81,55 @@ def test_squashed_normal_policy(
 ):
     encoder = DummyEncoder(feature_size)
     policy = SquashedNormalPolicy(
+        encoder, action_size, min_logstd, max_logstd, use_std_parameter
+    )
+
+    # check output shape
+    x = torch.rand(batch_size, feature_size)
+    y = policy(x)
+    assert y.shape == (batch_size, action_size)
+
+    # check distribution type
+    assert isinstance(policy.dist(x), torch.distributions.Normal)
+
+    # check if sampled action is not identical to the best action
+    assert not torch.allclose(policy.sample(x), policy.best_action(x))
+
+    # check sample_n
+    y_n, log_prob_n = policy.sample_n_with_log_prob(x, n)
+    assert y_n.shape == (batch_size, n, action_size)
+    assert log_prob_n.shape == (batch_size, n, 1)
+
+    # check sample_n_without_squash
+    y_n = policy.sample_n_without_squash(x, n)
+    assert y_n.shape == (batch_size, n, action_size)
+
+    # check onnx_safe_sample_n
+    y_n = policy.onnx_safe_sample_n(x, n)
+    assert y_n.shape == (batch_size, n, action_size)
+
+    # check layer connection
+    check_parameter_updates(policy, (x,))
+
+
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("min_logstd", [-20.0])
+@pytest.mark.parametrize("max_logstd", [2.0])
+@pytest.mark.parametrize("use_std_parameter", [True, False])
+@pytest.mark.parametrize("n", [10])
+def test_non_squashed_normal_policy(
+    feature_size,
+    action_size,
+    batch_size,
+    min_logstd,
+    max_logstd,
+    use_std_parameter,
+    n,
+):
+    encoder = DummyEncoder(feature_size)
+    policy = NonSquashedNormalPolicy(
         encoder, action_size, min_logstd, max_logstd, use_std_parameter
     )
 

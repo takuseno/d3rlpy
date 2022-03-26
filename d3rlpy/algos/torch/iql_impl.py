@@ -5,20 +5,24 @@ import torch
 
 from ...gpu import Device
 from ...models.builders import (
-    create_squashed_normal_policy,
+    create_non_squashed_normal_policy,
     create_value_function,
 )
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import MeanQFunctionFactory
-from ...models.torch import SquashedNormalPolicy, ValueFunction, squash_action
+from ...models.torch import (
+    NonSquashedNormalPolicy,
+    ValueFunction,
+    squash_action,
+)
 from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 
 
 class IQLImpl(DDPGBaseImpl):
-    _policy: Optional[SquashedNormalPolicy]
+    _policy: Optional[NonSquashedNormalPolicy]
     _expectile: float
     _weight_temp: float
     _max_weight: float
@@ -72,7 +76,7 @@ class IQLImpl(DDPGBaseImpl):
         self._value_func = None
 
     def _build_actor(self) -> None:
-        self._policy = create_squashed_normal_policy(
+        self._policy = create_non_squashed_normal_policy(
             self._observation_shape,
             self._action_size,
             self._actor_encoder_factory,

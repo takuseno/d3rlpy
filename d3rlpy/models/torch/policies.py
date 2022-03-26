@@ -123,7 +123,7 @@ class DeterministicResidualPolicy(Policy):
         )
 
 
-class SquashedNormalPolicy(Policy):
+class NormalPolicy(Policy):
 
     _encoder: Encoder
     _action_size: int
@@ -132,6 +132,7 @@ class SquashedNormalPolicy(Policy):
     _use_std_parameter: bool
     _mu: nn.Linear
     _logstd: Union[nn.Linear, nn.Parameter]
+    _squash_distribution: bool
 
     def __init__(
         self,
@@ -140,6 +141,7 @@ class SquashedNormalPolicy(Policy):
         min_logstd: float,
         max_logstd: float,
         use_std_parameter: bool,
+        squash_distribution: bool,
     ):
         super().__init__()
         self._action_size = action_size
@@ -147,6 +149,7 @@ class SquashedNormalPolicy(Policy):
         self._min_logstd = min_logstd
         self._max_logstd = max_logstd
         self._use_std_parameter = use_std_parameter
+        self._squash_distribution = squash_distribution
         self._mu = nn.Linear(encoder.get_feature_size(), action_size)
         if use_std_parameter:
             initial_logstd = torch.zeros(1, action_size, dtype=torch.float32)
@@ -166,6 +169,11 @@ class SquashedNormalPolicy(Policy):
         h = self._encoder(x)
         mu = self._mu(h)
         clipped_logstd = self._compute_logstd(h)
+
+        # squash before sampling
+        if not self._squash_distribution:
+            mu = torch.tanh(mu)
+
         return Normal(mu, clipped_logstd.exp())
 
     def forward(
@@ -178,14 +186,22 @@ class SquashedNormalPolicy(Policy):
             # to avoid errors at ONNX export because broadcast_tensors in
             # Normal distribution is not supported by ONNX
             action = self._mu(self._encoder(x))
+            if not self._squash_distribution:
+                action = torch.tanh(action)
         else:
             dist = self.dist(x)
             action = dist.rsample()
 
-        if with_log_prob:
-            return squash_action(dist, action)
-
-        return torch.tanh(action)
+        if self._squash_distribution:
+            if with_log_prob:
+                return squash_action(dist, action)
+            else:
+                return torch.tanh(action)
+        else:
+            if with_log_prob:
+                return action, dist.log_prob(action).sum(dim=1, keepdims=True)
+            else:
+                return action
 
     def sample_with_log_prob(
         self, x: torch.Tensor
@@ -202,14 +218,18 @@ class SquashedNormalPolicy(Policy):
 
         action = dist.rsample((n,))
 
-        squashed_action_T, log_prob_T = squash_action(dist, action)
+        if self._squash_distribution:
+            action_T, log_prob_T = squash_action(dist, action)
+        else:
+            action_T, log_prob_multi_dim_T = action, dist.log_prob(action)
+            log_prob_T = log_prob_multi_dim_T.sum(axis=2, keepdims=True)
 
         # (n, batch, action) -> (batch, n, action)
-        squashed_action = squashed_action_T.transpose(0, 1)
+        transposed_action = action_T.transpose(0, 1)
         # (n, batch, 1) -> (batch, n, 1)
         log_prob = log_prob_T.transpose(0, 1)
 
-        return squashed_action, log_prob
+        return transposed_action, log_prob
 
     def sample_n_without_squash(self, x: torch.Tensor, n: int) -> torch.Tensor:
         dist = self.dist(x)
@@ -221,6 +241,9 @@ class SquashedNormalPolicy(Policy):
         mean = self._mu(h)
         std = self._compute_logstd(h).exp()
 
+        if not self._squash_distribution:
+            mean = torch.tanh(mean)
+
         # expand shape
         # (batch_size, action_size) -> (batch_size, N, action_size)
         expanded_mean = mean.view(-1, 1, self._action_size).repeat((1, n, 1))
@@ -229,7 +252,10 @@ class SquashedNormalPolicy(Policy):
         # sample noise from Gaussian distribution
         noise = torch.randn(x.shape[0], n, self._action_size, device=x.device)
 
-        return torch.tanh(expanded_mean + noise * expanded_std)
+        if self._squash_distribution:
+            return torch.tanh(expanded_mean + noise * expanded_std)
+        else:
+            return expanded_mean + noise * expanded_std
 
     def best_action(self, x: torch.Tensor) -> torch.Tensor:
         action = self.forward(x, deterministic=True, with_log_prob=False)
@@ -240,6 +266,44 @@ class SquashedNormalPolicy(Policy):
         logstd = torch.sigmoid(cast(nn.Parameter, self._logstd))
         base_logstd = self._max_logstd - self._min_logstd
         return self._min_logstd + logstd * base_logstd
+
+
+class SquashedNormalPolicy(NormalPolicy):
+    def __init__(
+        self,
+        encoder: Encoder,
+        action_size: int,
+        min_logstd: float,
+        max_logstd: float,
+        use_std_parameter: bool,
+    ):
+        super().__init__(
+            encoder=encoder,
+            action_size=action_size,
+            min_logstd=min_logstd,
+            max_logstd=max_logstd,
+            use_std_parameter=use_std_parameter,
+            squash_distribution=True,
+        )
+
+
+class NonSquashedNormalPolicy(NormalPolicy):
+    def __init__(
+        self,
+        encoder: Encoder,
+        action_size: int,
+        min_logstd: float,
+        max_logstd: float,
+        use_std_parameter: bool,
+    ):
+        super().__init__(
+            encoder=encoder,
+            action_size=action_size,
+            min_logstd=min_logstd,
+            max_logstd=max_logstd,
+            use_std_parameter=use_std_parameter,
+            squash_distribution=False,
+        )
 
 
 class CategoricalPolicy(Policy):
