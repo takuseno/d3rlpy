@@ -1,9 +1,10 @@
-import copy
-
 import pytest
 import torch
 
-from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.torch.distributions import (
+    GaussianDistribution,
+    SquashedGaussianDistribution,
+)
 from d3rlpy.models.torch.policies import (
     CategoricalPolicy,
     DeterministicPolicy,
@@ -90,7 +91,7 @@ def test_squashed_normal_policy(
     assert y.shape == (batch_size, action_size)
 
     # check distribution type
-    assert isinstance(policy.dist(x), torch.distributions.Normal)
+    assert isinstance(policy.dist(x), SquashedGaussianDistribution)
 
     # check if sampled action is not identical to the best action
     assert not torch.allclose(policy.sample(x), policy.best_action(x))
@@ -139,7 +140,7 @@ def test_non_squashed_normal_policy(
     assert y.shape == (batch_size, action_size)
 
     # check distribution type
-    assert isinstance(policy.dist(x), torch.distributions.Normal)
+    assert isinstance(policy.dist(x), GaussianDistribution)
 
     # check if sampled action is not identical to the best action
     assert not torch.allclose(policy.sample(x), policy.best_action(x))

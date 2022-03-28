@@ -8,7 +8,7 @@ from ...models.builders import create_squashed_normal_policy
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
-from ...models.torch import SquashedNormalPolicy, squash_action
+from ...models.torch import SquashedNormalPolicy
 from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import TorchMiniBatch, hard_sync
 from .ddpg_impl import DDPGBaseImpl
@@ -82,14 +82,9 @@ class CRRImpl(DDPGBaseImpl):
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy is not None
 
-        dist = self._policy.dist(batch.observations)
-
-        # unnormalize action via inverse tanh function
-        clipped_actions = batch.actions.clamp(-0.999999, 0.999999)
-        unnormalized_act_t = torch.atanh(clipped_actions)
-
         # compute log probability
-        _, log_probs = squash_action(dist, unnormalized_act_t)
+        dist = self._policy.dist(batch.observations)
+        log_probs = dist.log_prob(batch.actions)
 
         weight = self._compute_weight(batch.observations, batch.actions)
 

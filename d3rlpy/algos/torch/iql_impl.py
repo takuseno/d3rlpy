@@ -117,10 +117,9 @@ class IQLImpl(DDPGBaseImpl):
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy
 
-        dist = self._policy.dist(batch.observations)
-
         # compute log probability
-        log_probs = dist.log_prob(batch.actions).sum(axis=1, keepdims=True)
+        dist = self._policy.dist(batch.observations)
+        log_probs = dist.log_prob(batch.actions)
 
         # compute weight
         with torch.no_grad():

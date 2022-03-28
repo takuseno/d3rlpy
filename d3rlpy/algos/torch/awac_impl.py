@@ -9,7 +9,6 @@ from ...models.builders import create_squashed_normal_policy
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import AdamFactory, OptimizerFactory
 from ...models.q_functions import QFunctionFactory
-from ...models.torch import squash_action
 from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .sac_impl import SACImpl
@@ -102,14 +101,9 @@ class AWACImpl(SACImpl):
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy is not None
 
-        dist = self._policy.dist(batch.observations)
-
-        # unnormalize action via inverse tanh function
-        clipped_actions = batch.actions.clamp(-0.999999, 0.999999)
-        unnormalized_act_t = torch.atanh(clipped_actions)
-
         # compute log probability
-        _, log_probs = squash_action(dist, unnormalized_act_t)
+        dist = self._policy.dist(batch.observations)
+        log_probs = dist.log_prob(batch.actions)
 
         # compute exponential weight
         weights = self._compute_weights(batch.observations, batch.actions)
