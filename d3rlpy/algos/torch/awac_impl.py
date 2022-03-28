@@ -5,10 +5,11 @@ import torch
 import torch.nn.functional as F
 
 from ...gpu import Device
-from ...models.builders import create_squashed_normal_policy
+from ...models.builders import create_non_squashed_normal_policy
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import AdamFactory, OptimizerFactory
 from ...models.q_functions import QFunctionFactory
+from ...models.torch.policies import NonSquashedNormalPolicy
 from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .sac_impl import SACImpl
@@ -16,6 +17,7 @@ from .sac_impl import SACImpl
 
 class AWACImpl(SACImpl):
 
+    _policy: NonSquashedNormalPolicy
     _lam: float
     _n_action_samples: int
 
@@ -65,7 +67,7 @@ class AWACImpl(SACImpl):
         self._n_action_samples = n_action_samples
 
     def _build_actor(self) -> None:
-        self._policy = create_squashed_normal_policy(
+        self._policy = create_non_squashed_normal_policy(
             self._observation_shape,
             self._action_size,
             self._actor_encoder_factory,
