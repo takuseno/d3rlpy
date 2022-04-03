@@ -55,13 +55,6 @@ def test_pixel_encoder(
     # check layer connection
     check_parameter_updates(encoder, (x,))
 
-    # check reverse
-    reverse_modules = encoder.create_reverse()
-    h = eval_y
-    for module in reverse_modules:
-        h = module(h)
-    assert h.shape == (batch_size, *observation_shape)
-
 
 @pytest.mark.parametrize("shapes", [((4, 84, 84), 3136)])
 @pytest.mark.parametrize("action_size", [2])
@@ -117,13 +110,6 @@ def test_pixel_encoder_with_action(
     # check layer connection
     check_parameter_updates(encoder, (x, action))
 
-    # check reverse
-    reverse_modules = encoder.create_reverse()
-    h = eval_y
-    for module in reverse_modules:
-        h = module(h)
-    assert h.shape == (batch_size, *observation_shape)
-
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("hidden_units", [[256, 256]])
@@ -167,14 +153,6 @@ def test_vector_encoder(
 
     # check layer connection
     check_parameter_updates(encoder, (x,))
-
-    # check reverse
-    if not use_dense:
-        reverse_modules = encoder.create_reverse()
-        h = eval_y
-        for module in reverse_modules:
-            h = module(h)
-        assert h.shape == (batch_size, *observation_shape)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -229,11 +207,3 @@ def test_vector_encoder_with_action(
 
     # check layer connection
     check_parameter_updates(encoder, (x, action))
-
-    # check reverse
-    if not use_dense:
-        reverse_modules = encoder.create_reverse()
-        h = eval_y
-        for module in reverse_modules:
-            h = module(h)
-        assert h.shape == (batch_size, *observation_shape)
