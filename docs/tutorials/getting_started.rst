@@ -30,10 +30,10 @@ Prepare Dataset
 
 You can make your own dataset without any efforts.
 In this tutorial, let's use integrated datasets to start.
-If you want to make a new dataset, see :doc:`references/dataset`.
+If you want to make a new dataset, see :doc:`../references/dataset`.
 
 d3rlpy provides suites of datasets for testing algorithms and research.
-See more documents at :doc:`references/datasets`.
+See more documents at :doc:`../references/datasets`.
 
 .. code-block:: python
 
@@ -77,7 +77,7 @@ Q-learnig algorithm proposed as the first deep reinforcement learning algorithm.
   # this is not necessary when you directly call fit or fit_online method.
   dqn.build_with_dataset(dataset)
 
-See more algorithms and configurations at :doc:`references/algos`.
+See more algorithms and configurations at :doc:`../references/algos`.
 
 Setup Metrics
 -------------
@@ -107,7 +107,7 @@ if the environment is available to interact.
   # evaluate algorithm on the environment
   rewards = evaluate_scorer(dqn)
 
-See more metrics and configurations at :doc:`references/metrics`.
+See more metrics and configurations at :doc:`../references/metrics`.
 
 
 Start Training
@@ -157,7 +157,7 @@ Then, you will see training progress in the console like below::
   .
   .
 
-See more about logging at :doc:`references/logging`.
+See more about logging at :doc:`../references/logging`.
 
 Once the training is done, your algorithm is ready to make decisions.
 
@@ -192,4 +192,4 @@ d3rlpy provides several ways to save trained models.
   # save the greedy-policy as ONNX
   dqn.save_policy('policy.onnx', as_onnx=True)
 
-See more information at :doc:`/references/save_and_load`.
+See more information at :doc:`../references/save_and_load`.
