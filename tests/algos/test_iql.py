@@ -33,7 +33,7 @@ def test_iql(
     )
 
 
-@pytest.mark.skip(reason="CQL is computationally expensive.")
+@pytest.mark.skip(reason="IQL is computationally expensive.")
 def test_iql_performance():
     iql = IQL()
     algo_pendulum_tester(iql, n_trials=3)

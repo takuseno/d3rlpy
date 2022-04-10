@@ -11,14 +11,12 @@ from .algo_test import algo_cartpole_tester, algo_tester, algo_update_tester
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("scalers", [(None, None), ("min_max", "min_max")])
-@pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 def test_dqn(
     observation_shape,
     action_size,
     n_critics,
     q_func_factory,
     scalers,
-    target_reduction_type,
 ):
     scaler, reward_scaler = scalers
     dqn = DQN(
@@ -26,7 +24,6 @@ def test_dqn(
         q_func_factory=q_func_factory,
         scaler=scaler,
         reward_scaler=reward_scaler,
-        target_reduction_type=target_reduction_type,
     )
     algo_tester(dqn, observation_shape, test_q_function_copy=True)
     algo_update_tester(
@@ -50,14 +47,12 @@ def test_dqn_performance(q_func_factory):
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("scalers", [(None, None), ("min_max", "min_max")])
-@pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 def test_double_dqn(
     observation_shape,
     action_size,
     n_critics,
     q_func_factory,
     scalers,
-    target_reduction_type,
 ):
     scaler, reward_scaler = scalers
     double_dqn = DoubleDQN(
@@ -65,7 +60,6 @@ def test_double_dqn(
         q_func_factory=q_func_factory,
         scaler=scaler,
         reward_scaler=reward_scaler,
-        target_reduction_type=target_reduction_type,
     )
     algo_tester(double_dqn, observation_shape, test_q_function_copy=True)
     algo_update_tester(

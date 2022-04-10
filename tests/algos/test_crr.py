@@ -12,7 +12,6 @@ from .algo_test import algo_pendulum_tester, algo_tester, algo_update_tester
 @pytest.mark.parametrize(
     "scalers", [(None, None, None), ("min_max", "min_max", "min_max")]
 )
-@pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 @pytest.mark.parametrize("advantage_type", ["mean", "max"])
 @pytest.mark.parametrize("weight_type", ["exp", "binary"])
 @pytest.mark.parametrize("target_update_type", ["hard", "soft"])
@@ -21,7 +20,6 @@ def test_crr(
     action_size,
     q_func_factory,
     scalers,
-    target_reduction_type,
     advantage_type,
     weight_type,
     target_update_type,
@@ -32,7 +30,6 @@ def test_crr(
         scaler=scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
-        target_reduction_type=target_reduction_type,
         advantage_type=advantage_type,
         weight_type=weight_type,
         target_update_type=target_update_type,
