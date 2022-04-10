@@ -76,6 +76,7 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 | algorithm | discrete control | continuous control | offline RL? |
 |:-|:-:|:-:|:-:|
 | Behavior Cloning (supervised learning) | :white_check_mark: | :white_check_mark: | |
+| [Neural Fitted Q Iteration (NFQ)](https://link.springer.com/chapter/10.1007/11564096_32) | :white_check_mark: | :no_entry: | |
 | [Deep Q-Network (DQN)](https://www.nature.com/articles/nature14236) | :white_check_mark: | :no_entry: | |
 | [Double DQN](https://arxiv.org/abs/1509.06461) | :white_check_mark: | :no_entry: | |
 | [Deep Deterministic Policy Gradients (DDPG)](https://arxiv.org/abs/1509.02971) | :no_entry: | :white_check_mark: | |
