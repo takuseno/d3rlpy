@@ -155,6 +155,10 @@ class D3RLPyLogger:
             algo.save_model(model_path)
             LOG.info(f"Model parameters are saved to {model_path}")
 
+    def close(self) -> None:
+        assert self._writer
+        self._writer.close()
+
     @contextmanager
     def measure_time(self, name: str) -> Iterator[None]:
         name = "time_" + name
