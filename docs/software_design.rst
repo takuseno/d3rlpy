@@ -44,10 +44,10 @@ provides the high-level API (e.g. ``fit`` and ``fit_online``) for users and
 ``update_critic``) used in the high-level API.
 The advantage of this design is to maximize the reusability of algorithm
 logics.
-For example, `delayed policy update` proposed in TD3 is reduces the update
+For example, `delayed policy update` proposed in TD3 reduces the update
 frequency of the policy function.
 This mechanism can be implemented by changing the frequency of ``update_actor``
-method in ``Algorithm`` layer without changing the underlying logics.
+method calls in ``Algorithm`` layer without changing the underlying logics.
 
 ``Algorithm`` class takes multiple components that configure the training.
 These are the links to the API reference.
