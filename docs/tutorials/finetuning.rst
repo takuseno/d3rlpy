@@ -75,7 +75,7 @@ algorithms, you can do it in an out-of-the-box way.
   cql.fit(dataset, n_steps=100000)
 
   # transfer to DQN
-  dqn = d3rlpya.algos.DQN()
+  dqn = d3rlpy.algos.DQN()
   dqn.copy_q_function_from(cql)
 
   # start finetuning
