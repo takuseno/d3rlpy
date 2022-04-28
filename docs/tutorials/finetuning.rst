@@ -59,3 +59,40 @@ If you want to finetune the saved policy, that's also easy to do with d3rlpy.
 
   # start finetuning
   dqn.fit_online(env, buffer, explorer, n_steps=100000)
+
+Finetune with Different Algorithm
+---------------------------------
+
+If you want to finetune the saved policy trained offline with online RL
+algorithms, you can do it in an out-of-the-box way.
+
+.. code-block:: python
+
+  # setup offline RL algorithm
+  cql = d3rlpy.algos.DiscreteCQL()
+
+  # train offline
+  cql.fit(dataset, n_steps=100000)
+
+  # transfer to DQN
+  dqn = d3rlpya.algos.DQN()
+  dqn.copy_q_function_from(cql)
+
+  # start finetuning
+  dqn.fit_online(env, buffer, explorer, n_steps=100000)
+
+In actor-critic cases, you should also transfer the policy function.
+
+.. code-block:: python
+
+  # offline RL
+  cql = d3rlpy.algos.CQL()
+  cql.fit(dataset, n_steps=100000)
+
+  # transfer to SAC
+  sac = d3rlpy.algos.SAC()
+  sac.copy_q_function_from(cql)
+  sac.copy_policy_from(cql)
+
+  # online RL
+  sac.fit_online(env, buffer, n_steps=100000)
