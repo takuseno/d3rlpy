@@ -33,14 +33,14 @@ def main():
 
     # workaround for learning scheduler
     iql.create_impl(dataset.get_observation_shape(), dataset.get_action_size())
-    scheduler = CosineAnnealingLR(iql.impl._actor_optim, 1000000)
+    scheduler = CosineAnnealingLR(iql.impl._actor_optim, 500000)
 
     def callback(algo, epoch, total_step):
         scheduler.step()
 
     iql.fit(dataset.episodes,
             eval_episodes=test_episodes,
-            n_steps=1000000,
+            n_steps=500000,
             n_steps_per_epoch=1000,
             save_interval=10,
             callback=callback,
