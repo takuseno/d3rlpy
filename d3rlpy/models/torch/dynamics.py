@@ -39,7 +39,7 @@ def _gaussian_likelihood(
     x: torch.Tensor, mu: torch.Tensor, logstd: torch.Tensor
 ) -> torch.Tensor:
     inv_var = torch.exp(-2.0 * logstd)
-    return (((mu - x) ** 2) * inv_var).mean(dim=1, keepdim=True)
+    return 0.5 * (((mu - x) ** 2) * inv_var).sum(dim=1, keepdim=True)
 
 
 class ProbabilisticDynamicsModel(nn.Module):  # type: ignore
