@@ -13,4 +13,5 @@ Tutorials
    customize_neural_network
    online_rl
    finetuning
+   offline_policy_selection
    use_distributional_q_function
