@@ -1,4 +1,3 @@
-Cython==0.29.21
 numpy
 stable-baselines3>=0.10.0
 Sphinx==4.0.2
