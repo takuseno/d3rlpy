@@ -12,8 +12,11 @@ from .transition_pickers import TransitionPickerProtocol
 from .types import Observation
 from .writers import ExperienceWriter
 
-
-__all__ = ["ReplayBuffer", "create_fifo_replay_buffer", "create_infinite_replay_buffer"]
+__all__ = [
+    "ReplayBuffer",
+    "create_fifo_replay_buffer",
+    "create_infinite_replay_buffer",
+]
 
 
 class ReplayBuffer:

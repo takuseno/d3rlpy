@@ -1,7 +1,7 @@
 from typing import Optional, Sequence
-from typing_extensions import Protocol
 
 import numpy as np
+from typing_extensions import Protocol
 
 from .components import Episode, EpisodeBase, ObservationSequence
 from .utils import slice_observations
