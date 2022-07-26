@@ -1,13 +1,16 @@
 from typing import TYPE_CHECKING, Any, List, Tuple, Union
 
 import numpy as np
-from gym.spaces import Discrete
 
 from ..algos import AlgoBase
-from ..dataset import MDPDataset
+from ..dataset import (
+    EpisodeGenerator,
+    ReplayBuffer,
+    create_infinite_replay_buffer,
+)
 
 if TYPE_CHECKING:
-    from stable_baselines3.common.buffers import ReplayBuffer
+    from stable_baselines3.common.buffers import ReplayBuffer as SB3ReplayBuffer
 
 
 class SB3Wrapper:
@@ -60,7 +63,7 @@ class SB3Wrapper:
             self.__dict__["algo"] = value
 
 
-def to_mdp_dataset(replay_buffer: "ReplayBuffer") -> MDPDataset:
+def to_mdp_dataset(replay_buffer: "SB3ReplayBuffer") -> ReplayBuffer:
     """Returns d3rlpy's MDPDataset from SB3's ReplayBuffer
 
     Args:
@@ -71,12 +74,10 @@ def to_mdp_dataset(replay_buffer: "ReplayBuffer") -> MDPDataset:
 
     """
     pos = replay_buffer.size()
-    discrete_action = isinstance(replay_buffer.action_space, Discrete)
-    dataset = MDPDataset(
+    episode_generator = EpisodeGenerator(
         observations=replay_buffer.observations[:pos, 0],
         actions=replay_buffer.actions[:pos, 0],
         rewards=replay_buffer.rewards[:pos, 0],
         terminals=replay_buffer.dones[:pos, 0],
-        discrete_action=discrete_action,
     )
-    return dataset
+    return create_infinite_replay_buffer(episode_generator)

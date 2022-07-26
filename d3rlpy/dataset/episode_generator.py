@@ -62,5 +62,5 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
                     terminated=bool(self._terminals[i]),
                 )
                 episodes.append(episode)
-                start = i
+                start = end
         return episodes

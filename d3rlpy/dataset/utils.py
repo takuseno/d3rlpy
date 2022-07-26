@@ -2,6 +2,7 @@ from typing import Any, Sequence, TypeVar, Union, cast
 
 import numpy as np
 
+from ..constants import ActionSpace
 from .types import Observation, ObservationSequence, Shape
 
 __all__ = [
@@ -17,6 +18,7 @@ __all__ = [
     "check_dtype",
     "check_non_1d_array",
     "cast_recursively",
+    "detect_action_space",
 ]
 
 
@@ -164,3 +166,10 @@ def cast_recursively(array: _T, dtype: Any) -> _T:
         return array.astype(dtype)
     else:
         raise ValueError(f"invalid array type: {type(array)}")
+
+
+def detect_action_space(actions: np.ndarray) -> ActionSpace:
+    if np.all(np.array(actions, dtype=np.int32) == actions):
+        return ActionSpace.DISCRETE
+    else:
+        return ActionSpace.CONTINUOUS

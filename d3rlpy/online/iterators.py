@@ -5,12 +5,11 @@ import numpy as np
 from tqdm.auto import trange
 from typing_extensions import Protocol
 
-from ..dataset import TransitionMiniBatch
+from ..dataset import ReplayBuffer, TransitionMiniBatch
 from ..logger import LOG, D3RLPyLogger
 from ..metrics.scorer import evaluate_on_environment
 from ..preprocessing import ActionScaler, Scaler
 from ..preprocessing.stack import StackedObservation
-from .buffers import Buffer
 from .explorers import Explorer
 
 
@@ -99,7 +98,7 @@ def _setup_algo(algo: AlgoProtocol, env: gym.Env) -> None:
 def train_single_env(
     algo: AlgoProtocol,
     env: gym.Env,
-    buffer: Buffer,
+    buffer: ReplayBuffer,
     explorer: Optional[Explorer] = None,
     n_steps: int = 1000000,
     n_steps_per_epoch: int = 10000,
@@ -233,9 +232,11 @@ def train_single_env(
                 terminal=terminal,
                 clip_episode=clip_episode,
             )
+            buffer.append(observation, action, reward)
 
             # reset if terminated
             if clip_episode:
+                buffer.clip_episode(terminal)
                 observation = env.reset()
                 logger.add_metric("rollout_return", rollout_return)
                 rollout_return = 0.0
@@ -283,7 +284,7 @@ def train_single_env(
             logger.commit(epoch, total_step)
 
     # clip the last episode
-    buffer.clip_episode()
+    buffer.clip_episode(False)
 
     # close logger
     logger.close()
@@ -292,7 +293,7 @@ def train_single_env(
 def collect(
     algo: AlgoProtocol,
     env: gym.Env,
-    buffer: Buffer,
+    buffer: ReplayBuffer,
     explorer: Optional[Explorer] = None,
     deterministic: bool = False,
     n_steps: int = 1000000,
@@ -359,16 +360,11 @@ def collect(
             clip_episode = terminal
 
         # store observation
-        buffer.append(
-            observation=observation,
-            action=action,
-            reward=reward,
-            terminal=terminal,
-            clip_episode=clip_episode,
-        )
+        buffer.append(observation, action, reward)
 
         # reset if terminated
         if clip_episode:
+            buffer.clip_episode(terminal)
             observation = env.reset()
             # for image observation
             if is_image:
@@ -377,4 +373,4 @@ def collect(
             observation = next_observation
 
     # clip the last episode
-    buffer.clip_episode()
+    buffer.clip_episode(False)

@@ -11,7 +11,7 @@ from ..constants import (
     IMPL_NOT_INITIALIZED_ERROR,
     ActionSpace,
 )
-from ..online.buffers import Buffer, ReplayBuffer
+from ..dataset import ReplayBuffer, create_fifo_replay_buffer
 from ..online.explorers import Explorer
 from ..online.iterators import AlgoProtocol, collect, train_single_env
 
@@ -187,7 +187,7 @@ class AlgoBase(LearnableBase):
     def fit_online(
         self,
         env: gym.Env,
-        buffer: Optional[Buffer] = None,
+        buffer: Optional[ReplayBuffer] = None,
         explorer: Optional[Explorer] = None,
         n_steps: int = 1000000,
         n_steps_per_epoch: int = 10000,
@@ -243,7 +243,7 @@ class AlgoBase(LearnableBase):
 
         # create default replay buffer
         if buffer is None:
-            buffer = ReplayBuffer(1000000, env=env)
+            buffer = create_fifo_replay_buffer(1000000)
 
         # check action-space
         _assert_action_space(self, env)
@@ -275,13 +275,13 @@ class AlgoBase(LearnableBase):
     def collect(
         self,
         env: gym.Env,
-        buffer: Optional[Buffer] = None,
+        buffer: Optional[ReplayBuffer] = None,
         explorer: Optional[Explorer] = None,
         deterministic: bool = False,
         n_steps: int = 1000000,
         show_progress: bool = True,
         timelimit_aware: bool = True,
-    ) -> Buffer:
+    ) -> ReplayBuffer:
         """Collects data via interaction with environment.
 
         If ``buffer`` is not given, ``ReplayBuffer`` will be internally created.
@@ -303,7 +303,7 @@ class AlgoBase(LearnableBase):
         """
         # create default replay buffer
         if buffer is None:
-            buffer = ReplayBuffer(1000000, env=env)
+            buffer = create_fifo_replay_buffer(1000000)
 
         # check action-space
         _assert_action_space(self, env)

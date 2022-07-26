@@ -4,7 +4,7 @@ import gym
 import numpy as np
 from typing_extensions import Protocol
 
-from ..dataset import Episode, TransitionMiniBatch
+from ..dataset import Episode, TransitionMiniBatch, TransitionPickerProtocol
 from ..preprocessing.reward_scalers import RewardScaler
 from ..preprocessing.stack import StackedObservation
 
@@ -57,7 +57,9 @@ class DynamicsProtocol(Protocol):
 
 
 def _make_batches(
-    episode: Episode, window_size: int, n_frames: int
+    episode: Episode,
+    window_size: int,
+    transition_picker: TransitionPickerProtocol,
 ) -> Iterator[TransitionMiniBatch]:
     n_batches = len(episode) // window_size
     if len(episode) % window_size != 0:
@@ -65,12 +67,19 @@ def _make_batches(
     for i in range(n_batches):
         head_index = i * window_size
         last_index = min(head_index + window_size, len(episode))
-        transitions = episode.transitions[head_index:last_index]
-        batch = TransitionMiniBatch(transitions, n_frames)
+        transitions = [
+            transition_picker(episode, index)
+            for index in range(head_index, last_index)
+        ]
+        batch = TransitionMiniBatch.from_transitions(transitions)
         yield batch
 
 
-def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
+def td_error_scorer(
+    algo: AlgoProtocol,
+    episodes: List[Episode],
+    transition_picker: TransitionPickerProtocol,
+) -> float:
     r"""Returns average TD error.
 
     This metics suggests how Q functions overfit to training sets.
@@ -85,6 +94,7 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
     Args:
         algo: algorithm.
         episodes: list of episodes.
+        transition_picker: TransitionPickerProtocol object.
 
     Returns:
         average TD error.
@@ -92,7 +102,7 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
     """
     total_errors = []
     for episode in episodes:
-        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
             # estimate values for current observations
             values = algo.predict_value(batch.observations, batch.actions)
 
@@ -114,7 +124,9 @@ def td_error_scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
 
 
 def discounted_sum_of_advantage_scorer(
-    algo: AlgoProtocol, episodes: List[Episode]
+    algo: AlgoProtocol,
+    episodes: List[Episode],
+    transition_picker: TransitionPickerProtocol,
 ) -> float:
     r"""Returns average of discounted sum of advantage.
 
@@ -138,6 +150,7 @@ def discounted_sum_of_advantage_scorer(
     Args:
         algo: algorithm.
         episodes: list of episodes.
+        transition_picker: TransitionPickerProtocol: object.
 
     Returns:
         average of discounted sum of advantage.
@@ -145,7 +158,7 @@ def discounted_sum_of_advantage_scorer(
     """
     total_sums = []
     for episode in episodes:
-        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
             # estimate values for dataset actions
             dataset_values = algo.predict_value(
                 batch.observations, batch.actions
@@ -173,7 +186,9 @@ def discounted_sum_of_advantage_scorer(
 
 
 def average_value_estimation_scorer(
-    algo: AlgoProtocol, episodes: List[Episode]
+    algo: AlgoProtocol,
+    episodes: List[Episode],
+    transition_picker: TransitionPickerProtocol,
 ) -> float:
     r"""Returns average value estimation.
 
@@ -188,6 +203,7 @@ def average_value_estimation_scorer(
     Args:
         algo: algorithm.
         episodes: list of episodes.
+        transition_picker: TransitionPickerProtocol object.
 
     Returns:
         average value estimation.
@@ -195,7 +211,7 @@ def average_value_estimation_scorer(
     """
     total_values = []
     for episode in episodes:
-        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
             actions = algo.predict(batch.observations)
             values = algo.predict_value(batch.observations, actions)
             total_values += cast(np.ndarray, values).tolist()
@@ -203,7 +219,9 @@ def average_value_estimation_scorer(
 
 
 def value_estimation_std_scorer(
-    algo: AlgoProtocol, episodes: List[Episode]
+    algo: AlgoProtocol,
+    episodes: List[Episode],
+    transition_picker: TransitionPickerProtocol,
 ) -> float:
     r"""Returns standard deviation of value estimation.
 
@@ -225,6 +243,7 @@ def value_estimation_std_scorer(
     Args:
         algo: algorithm.
         episodes: list of episodes.
+        transition_picker: TransitionPickerProtocol object.
 
     Returns:
         standard deviation.
@@ -232,7 +251,7 @@ def value_estimation_std_scorer(
     """
     total_stds = []
     for episode in episodes:
-        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
             actions = algo.predict(batch.observations)
             _, stds = algo.predict_value(batch.observations, actions, True)
             total_stds += stds.tolist()
@@ -240,7 +259,9 @@ def value_estimation_std_scorer(
 
 
 def initial_state_value_estimation_scorer(
-    algo: AlgoProtocol, episodes: List[Episode]
+    algo: AlgoProtocol,
+    episodes: List[Episode],
+    transition_picker: TransitionPickerProtocol,
 ) -> float:
     r"""Returns mean estimated action-values at the initial states.
 
@@ -260,6 +281,7 @@ def initial_state_value_estimation_scorer(
     Args:
         algo: algorithm.
         episodes: list of episodes.
+        transition_picker: TransitionPickerProtocol object.
 
     Returns:
         mean action-value estimation at the initial states.
@@ -267,7 +289,7 @@ def initial_state_value_estimation_scorer(
     """
     total_values = []
     for episode in episodes:
-        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
             # estimate action-value in initial states
             actions = algo.predict([batch.observations[0]])
             values = algo.predict_value([batch.observations[0]], actions)
@@ -277,7 +299,7 @@ def initial_state_value_estimation_scorer(
 
 def soft_opc_scorer(
     return_threshold: float,
-) -> Callable[[AlgoProtocol, List[Episode]], float]:
+) -> Callable[[AlgoProtocol, List[Episode], TransitionPickerProtocol], float]:
     r"""Returns Soft Off-Policy Classification metrics.
 
     This function returns scorer function, which is suitable to the standard
@@ -323,12 +345,16 @@ def soft_opc_scorer(
 
     """
 
-    def scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
+    def scorer(
+        algo: AlgoProtocol,
+        episodes: List[Episode],
+        transition_picker: TransitionPickerProtocol,
+    ) -> float:
         success_values = []
         all_values = []
         for episode in episodes:
             is_success = episode.compute_return() >= return_threshold
-            for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
+            for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
                 values = algo.predict_value(batch.observations, batch.actions)
                 values = cast(np.ndarray, values)
                 all_values += values.reshape(-1).tolist()
@@ -340,7 +366,9 @@ def soft_opc_scorer(
 
 
 def continuous_action_diff_scorer(
-    algo: AlgoProtocol, episodes: List[Episode]
+    algo: AlgoProtocol,
+    episodes: List[Episode],
+    transition_picker: TransitionPickerProtocol,
 ) -> float:
     r"""Returns squared difference of actions between algorithm and dataset.
 
@@ -356,6 +384,7 @@ def continuous_action_diff_scorer(
     Args:
         algo: algorithm.
         episodes: list of episodes.
+        transition_picker: TransitionPickerProtocol object.
 
     Returns:
         squared action difference.
@@ -363,7 +392,7 @@ def continuous_action_diff_scorer(
     """
     total_diffs = []
     for episode in episodes:
-        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
             actions = algo.predict(batch.observations)
             diff = ((batch.actions - actions) ** 2).sum(axis=1).tolist()
             total_diffs += diff
@@ -371,7 +400,9 @@ def continuous_action_diff_scorer(
 
 
 def discrete_action_match_scorer(
-    algo: AlgoProtocol, episodes: List[Episode]
+    algo: AlgoProtocol,
+    episodes: List[Episode],
+    transition_picker: TransitionPickerProtocol,
 ) -> float:
     r"""Returns percentage of identical actions between algorithm and dataset.
 
@@ -388,6 +419,7 @@ def discrete_action_match_scorer(
     Args:
         algo: algorithm.
         episodes: list of episodes.
+        transition_picker: TransitionPickerProtocol object.
 
     Returns:
         percentage of identical actions.
@@ -395,7 +427,7 @@ def discrete_action_match_scorer(
     """
     total_matches = []
     for episode in episodes:
-        for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
             actions = algo.predict(batch.observations)
             match = (batch.actions.reshape(-1) == actions).tolist()
             total_matches += match
@@ -489,7 +521,9 @@ def evaluate_on_environment(
 
 
 def dynamics_observation_prediction_error_scorer(
-    dynamics: DynamicsProtocol, episodes: List[Episode]
+    dynamics: DynamicsProtocol,
+    episodes: List[Episode],
+    transition_picker: TransitionPickerProtocol,
 ) -> float:
     r"""Returns MSE of observation prediction.
 
@@ -505,6 +539,7 @@ def dynamics_observation_prediction_error_scorer(
     Args:
         dynamics: dynamics model.
         episodes: list of episodes.
+        transition_picker: TransitionPickerProtocol object.
 
     Returns:
         mean squared error.
@@ -512,7 +547,7 @@ def dynamics_observation_prediction_error_scorer(
     """
     total_errors = []
     for episode in episodes:
-        for batch in _make_batches(episode, WINDOW_SIZE, dynamics.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
             pred = dynamics.predict(batch.observations, batch.actions)
             errors = ((batch.next_observations - pred[0]) ** 2).sum(axis=1)
             total_errors += errors.tolist()
@@ -520,7 +555,9 @@ def dynamics_observation_prediction_error_scorer(
 
 
 def dynamics_reward_prediction_error_scorer(
-    dynamics: DynamicsProtocol, episodes: List[Episode]
+    dynamics: DynamicsProtocol,
+    episodes: List[Episode],
+    transition_picker: TransitionPickerProtocol,
 ) -> float:
     r"""Returns MSE of reward prediction.
 
@@ -536,6 +573,7 @@ def dynamics_reward_prediction_error_scorer(
     Args:
         dynamics: dynamics model.
         episodes: list of episodes.
+        transition_picker: TransitionPickerProtocol object.
 
     Returns:
         mean squared error.
@@ -543,7 +581,7 @@ def dynamics_reward_prediction_error_scorer(
     """
     total_errors = []
     for episode in episodes:
-        for batch in _make_batches(episode, WINDOW_SIZE, dynamics.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
             pred = dynamics.predict(batch.observations, batch.actions)
             rewards = batch.rewards
             if dynamics.reward_scaler:
@@ -554,7 +592,9 @@ def dynamics_reward_prediction_error_scorer(
 
 
 def dynamics_prediction_variance_scorer(
-    dynamics: DynamicsProtocol, episodes: List[Episode]
+    dynamics: DynamicsProtocol,
+    episodes: List[Episode],
+    transition_picker: TransitionPickerProtocol,
 ) -> float:
     """Returns prediction variance of ensemble dynamics.
 
@@ -564,6 +604,7 @@ def dynamics_prediction_variance_scorer(
     Args:
         dynamics: dynamics model.
         episodes: list of episodes.
+        transition_picker: TransitionPickerProtocol object.
 
     Returns:
         variance.
@@ -571,7 +612,7 @@ def dynamics_prediction_variance_scorer(
     """
     total_variances = []
     for episode in episodes:
-        for batch in _make_batches(episode, WINDOW_SIZE, dynamics.n_frames):
+        for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
             pred = dynamics.predict(batch.observations, batch.actions, True)
             pred = cast(Tuple[np.ndarray, np.ndarray, np.ndarray], pred)
             total_variances += pred[2].tolist()

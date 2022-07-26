@@ -12,7 +12,6 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Union,
     cast,
 )
 
@@ -36,10 +35,17 @@ from .constants import (
     ActionSpace,
 )
 from .context import disable_parallel
-from .dataset import Episode, MDPDataset, Transition, TransitionMiniBatch
+from .dataset import (
+    BasicTransitionPicker,
+    DatasetInfo,
+    Episode,
+    ReplayBuffer,
+    Transition,
+    TransitionMiniBatch,
+    TransitionPickerProtocol,
+)
 from .decorators import pretty_repr
 from .gpu import Device
-from .iterators import RandomIterator, RoundIterator, TransitionIterator
 from .logger import LOG, D3RLPyLogger
 from .models.encoders import EncoderFactory, create_encoder_factory
 from .models.optimizers import OptimizerFactory
@@ -348,10 +354,10 @@ class LearnableBase:
 
     def fit(
         self,
-        dataset: Union[List[Episode], List[Transition], MDPDataset],
-        n_epochs: Optional[int] = None,
-        n_steps: Optional[int] = None,
+        dataset: ReplayBuffer,
+        n_steps: int,
         n_steps_per_epoch: int = 10000,
+        transition_picker: Optional[TransitionPickerProtocol] = None,
         save_metrics: bool = True,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
@@ -362,9 +368,11 @@ class LearnableBase:
         eval_episodes: Optional[List[Episode]] = None,
         save_interval: int = 1,
         scorers: Optional[
-            Dict[str, Callable[[Any, List[Episode]], float]]
+            Dict[
+                str,
+                Callable[[Any, List[Episode], TransitionPickerProtocol], float],
+            ]
         ] = None,
-        shuffle: bool = True,
         callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
     ) -> List[Tuple[int, Dict[str, float]]]:
         """Trains with the given dataset.
@@ -374,11 +382,11 @@ class LearnableBase:
             algo.fit(episodes, n_steps=1000000)
 
         Args:
-            dataset: list of episodes to train.
-            n_epochs: the number of epochs to train.
+            dataset: ReplayBuffer object.
             n_steps: the number of steps to train.
             n_steps_per_epoch: the number of steps per epoch. This value will
                 be ignored when ``n_steps`` is ``None``.
+            transition_picker: TransitionPickerProtocol object.
             save_metrics: flag to record metrics in files. If False,
                 the log directory is not created and the model parameters are
                 not saved during training.
@@ -395,7 +403,6 @@ class LearnableBase:
             eval_episodes: list of episodes to test.
             save_interval: interval to save parameters.
             scorers: list of scorer functions used with `eval_episodes`.
-            shuffle: flag to shuffle transitions on each epoch.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
 
@@ -406,9 +413,9 @@ class LearnableBase:
         results = list(
             self.fitter(
                 dataset,
-                n_epochs,
                 n_steps,
                 n_steps_per_epoch,
+                transition_picker,
                 save_metrics,
                 experiment_name,
                 with_timestamp,
@@ -419,7 +426,6 @@ class LearnableBase:
                 eval_episodes,
                 save_interval,
                 scorers,
-                shuffle,
                 callback,
             )
         )
@@ -427,10 +433,10 @@ class LearnableBase:
 
     def fitter(
         self,
-        dataset: Union[List[Episode], List[Transition], MDPDataset],
-        n_epochs: Optional[int] = None,
-        n_steps: Optional[int] = None,
+        dataset: ReplayBuffer,
+        n_steps: int,
         n_steps_per_epoch: int = 10000,
+        transition_picker: Optional[TransitionPickerProtocol] = None,
         save_metrics: bool = True,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
@@ -441,9 +447,11 @@ class LearnableBase:
         eval_episodes: Optional[List[Episode]] = None,
         save_interval: int = 1,
         scorers: Optional[
-            Dict[str, Callable[[Any, List[Episode]], float]]
+            Dict[
+                str,
+                Callable[[Any, List[Episode], TransitionPickerProtocol], float],
+            ]
         ] = None,
-        shuffle: bool = True,
         callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
     ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
         """Iterate over epochs steps to train with the given dataset. At each
@@ -457,10 +465,10 @@ class LearnableBase:
 
         Args:
             dataset: offline dataset to train.
-            n_epochs: the number of epochs to train.
             n_steps: the number of steps to train.
             n_steps_per_epoch: the number of steps per epoch. This value will
                 be ignored when ``n_steps`` is ``None``.
+            transition_picker: TransitionPickerProtocol object.
             save_metrics: flag to record metrics in files. If False,
                 the log directory is not created and the model parameters are
                 not saved during training.
@@ -477,7 +485,6 @@ class LearnableBase:
             eval_episodes: list of episodes to test.
             save_interval: interval to save parameters.
             scorers: list of scorer functions used with `eval_episodes`.
-            shuffle: flag to shuffle transitions on each epoch.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
 
@@ -485,25 +492,13 @@ class LearnableBase:
             iterator yielding current epoch and metrics dict.
 
         """
-
-        transitions = []
-        if isinstance(dataset, MDPDataset):
-            for episode in dataset.episodes:
-                transitions += episode.transitions
-        elif not dataset:
-            raise ValueError("empty dataset is not supported.")
-        elif isinstance(dataset[0], Episode):
-            for episode in cast(List[Episode], dataset):
-                transitions += episode.transitions
-        elif isinstance(dataset[0], Transition):
-            transitions = list(cast(List[Transition], dataset))
-        else:
-            raise ValueError(f"invalid dataset type: {type(dataset)}")
+        dataset_info = DatasetInfo.from_episodes(dataset.episodes)
+        LOG.info("dataset info", dataset_info=dataset_info)
 
         # check action space
         if self.get_action_type() == ActionSpace.BOTH:
             pass
-        elif transitions[0].is_discrete:
+        elif dataset_info.action_space == ActionSpace.DISCRETE:
             assert (
                 self.get_action_type() == ActionSpace.DISCRETE
             ), DISCRETE_ACTION_SPACE_MISMATCH_ERROR
@@ -511,36 +506,6 @@ class LearnableBase:
             assert (
                 self.get_action_type() == ActionSpace.CONTINUOUS
             ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
-
-        iterator: TransitionIterator
-        if n_epochs is None and n_steps is not None:
-            assert n_steps >= n_steps_per_epoch
-            n_epochs = n_steps // n_steps_per_epoch
-            iterator = RandomIterator(
-                transitions,
-                n_steps_per_epoch,
-                batch_size=self._batch_size,
-                n_steps=self._n_steps,
-                gamma=self._gamma,
-                n_frames=self._n_frames,
-                real_ratio=self._real_ratio,
-                generated_maxlen=self._generated_maxlen,
-            )
-            LOG.debug("RandomIterator is selected.")
-        elif n_epochs is not None and n_steps is None:
-            iterator = RoundIterator(
-                transitions,
-                batch_size=self._batch_size,
-                n_steps=self._n_steps,
-                gamma=self._gamma,
-                n_frames=self._n_frames,
-                real_ratio=self._real_ratio,
-                generated_maxlen=self._generated_maxlen,
-                shuffle=shuffle,
-            )
-            LOG.debug("RoundIterator is selected.")
-        else:
-            raise ValueError("Either of n_epochs or n_steps must be given.")
 
         # setup logger
         logger = self._prepare_logger(
@@ -558,7 +523,7 @@ class LearnableBase:
         # initialize scaler
         if self._scaler:
             LOG.debug("Fitting scaler...", scaler=self._scaler.get_type())
-            self._scaler.fit(transitions)
+            self._scaler.fit(dataset.episodes)
 
         # initialize action scaler
         if self._action_scaler:
@@ -566,7 +531,7 @@ class LearnableBase:
                 "Fitting action scaler...",
                 action_scaler=self._action_scaler.get_type(),
             )
-            self._action_scaler.fit(transitions)
+            self._action_scaler.fit(dataset.episodes)
 
         # initialize reward scaler
         if self._reward_scaler:
@@ -574,14 +539,15 @@ class LearnableBase:
                 "Fitting reward scaler...",
                 reward_scaler=self._reward_scaler.get_type(),
             )
-            self._reward_scaler.fit(transitions)
+            self._reward_scaler.fit(dataset.episodes)
 
         # instantiate implementation
         if self._impl is None:
             LOG.debug("Building models...")
-            transition = iterator.transitions[0]
-            action_size = transition.get_action_size()
-            observation_shape = tuple(transition.get_observation_shape())
+            action_size = dataset_info.action_size
+            observation_shape = cast(
+                Sequence[int], tuple(dataset_info.observation_shape)
+            )
             self.create_impl(
                 self._process_observation_shape(observation_shape), action_size
             )
@@ -598,7 +564,12 @@ class LearnableBase:
         # refresh loss history
         self._loss_history = defaultdict(list)
 
+        # use BasicTransitionPicker by default
+        if transition_picker is None:
+            transition_picker = BasicTransitionPicker()
+
         # training loop
+        n_epochs = n_steps // n_steps_per_epoch
         total_step = 0
         for epoch in range(1, n_epochs + 1):
 
@@ -606,31 +577,32 @@ class LearnableBase:
             epoch_loss = defaultdict(list)
 
             range_gen = tqdm(
-                range(len(iterator)),
+                range(n_steps_per_epoch),
                 disable=not show_progress,
                 desc=f"Epoch {int(epoch)}/{n_epochs}",
             )
 
-            iterator.reset()
-
             for itr in range_gen:
 
-                # generate new transitions with dynamics models
-                new_transitions = self.generate_new_data(
-                    transitions=iterator.transitions,
-                )
-                if new_transitions:
-                    iterator.add_generated_transitions(new_transitions)
-                    LOG.debug(
-                        f"{len(new_transitions)} transitions are generated.",
-                        real_transitions=len(iterator.transitions),
-                        fake_transitions=len(iterator.generated_transitions),
-                    )
+                # TODO: support model-based rollout
+                # # generate new transitions with dynamics models
+                # new_transitions = self.generate_new_data(
+                #     transitions=iterator.transitions,
+                # )
+                # if new_transitions:
+                #     iterator.add_generated_transitions(new_transitions)
+                #     LOG.debug(
+                #         f"{len(new_transitions)} transitions are generated.",
+                #         real_transitions=len(iterator.transitions),
+                #         fake_transitions=len(iterator.generated_transitions),
+                #     )
 
                 with logger.measure_time("step"):
                     # pick transitions
                     with logger.measure_time("sample_batch"):
-                        batch = next(iterator)
+                        batch = dataset.sample_transition_batch(
+                            transition_picker, self._batch_size
+                        )
 
                     # update parameters
                     with logger.measure_time("algorithm_update"):
@@ -662,7 +634,9 @@ class LearnableBase:
                     self._loss_history[name].append(np.mean(vals))
 
             if scorers and eval_episodes:
-                self._evaluate(eval_episodes, scorers, logger)
+                self._evaluate(
+                    eval_episodes, scorers, logger, transition_picker
+                )
 
             # save metrics
             metrics = logger.commit(epoch, total_step)
@@ -699,17 +673,18 @@ class LearnableBase:
     ) -> None:
         raise NotImplementedError
 
-    def build_with_dataset(self, dataset: MDPDataset) -> None:
+    def build_with_dataset(self, dataset: ReplayBuffer) -> None:
         """Instantiate implementation object with MDPDataset object.
 
         Args:
             dataset: dataset.
 
         """
-        observation_shape = dataset.get_observation_shape()
+        dataset_info = DatasetInfo.from_episodes(dataset.episodes)
+        observation_shape = cast(Sequence[int], dataset_info.observation_shape)
         self.create_impl(
             self._process_observation_shape(observation_shape),
-            dataset.get_action_size(),
+            dataset_info.action_size,
         )
 
     def build_with_env(self, env: gym.Env) -> None:
@@ -794,12 +769,15 @@ class LearnableBase:
     def _evaluate(
         self,
         episodes: List[Episode],
-        scorers: Dict[str, Callable[[Any, List[Episode]], float]],
+        scorers: Dict[
+            str, Callable[[Any, List[Episode], TransitionPickerProtocol], float]
+        ],
         logger: D3RLPyLogger,
+        transition_picker: TransitionPickerProtocol,
     ) -> None:
         for name, scorer in scorers.items():
             # evaluation with test data
-            test_score = scorer(self, episodes)
+            test_score = scorer(self, episodes, transition_picker)
 
             # logging metrics
             logger.add_metric(name, test_score)

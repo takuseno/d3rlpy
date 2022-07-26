@@ -2,13 +2,13 @@ from typing import Callable, List
 
 import numpy as np
 
-from ..dataset import Episode
+from ..dataset import Episode, TransitionPickerProtocol
 from .scorer import WINDOW_SIZE, AlgoProtocol, _make_batches
 
 
 def compare_continuous_action_diff(
     base_algo: AlgoProtocol,
-) -> Callable[[AlgoProtocol, List[Episode]], float]:
+) -> Callable[[AlgoProtocol, List[Episode], TransitionPickerProtocol], float]:
     r"""Returns scorer function of action difference between algorithms.
 
     This metrics suggests how different the two algorithms are in continuous
@@ -41,11 +41,15 @@ def compare_continuous_action_diff(
 
     """
 
-    def scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
+    def scorer(
+        algo: AlgoProtocol,
+        episodes: List[Episode],
+        transition_picker: TransitionPickerProtocol,
+    ) -> float:
         total_diffs = []
         for episode in episodes:
             # TODO: handle different n_frames
-            for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
+            for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
                 base_actions = base_algo.predict(batch.observations)
                 actions = algo.predict(batch.observations)
                 diff = ((actions - base_actions) ** 2).sum(axis=1).tolist()
@@ -58,7 +62,7 @@ def compare_continuous_action_diff(
 
 def compare_discrete_action_match(
     base_algo: AlgoProtocol,
-) -> Callable[[AlgoProtocol, List[Episode]], float]:
+) -> Callable[[AlgoProtocol, List[Episode], TransitionPickerProtocol], float]:
     r"""Returns scorer function of action matches between algorithms.
 
     This metrics suggests how different the two algorithms are in discrete
@@ -92,11 +96,15 @@ def compare_discrete_action_match(
 
     """
 
-    def scorer(algo: AlgoProtocol, episodes: List[Episode]) -> float:
+    def scorer(
+        algo: AlgoProtocol,
+        episodes: List[Episode],
+        transition_picker: TransitionPickerProtocol,
+    ) -> float:
         total_matches = []
         for episode in episodes:
             # TODO: handle different n_frames
-            for batch in _make_batches(episode, WINDOW_SIZE, algo.n_frames):
+            for batch in _make_batches(episode, WINDOW_SIZE, transition_picker):
                 base_actions = base_algo.predict(batch.observations)
                 actions = algo.predict(batch.observations)
                 match = (base_actions == actions).tolist()

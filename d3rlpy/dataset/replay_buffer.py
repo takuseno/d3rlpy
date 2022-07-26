@@ -49,19 +49,17 @@ class ReplayBuffer:
     def clip_episode(self, terminated: bool) -> None:
         self._writer.clip_episode(terminated)
 
-    def sample_transition(
-        self, sampler: TransitionPickerProtocol
-    ) -> Transition:
+    def sample_transition(self, picker: TransitionPickerProtocol) -> Transition:
         episode_index = np.random.randint(len(self.episodes))
         episode = self.episodes[episode_index]
         transition_index = np.random.randint(episode.size())
-        return sampler(episode, transition_index)
+        return picker(episode, transition_index)
 
     def sample_transition_batch(
-        self, sampler: TransitionPickerProtocol, batch_size: int
+        self, picker: TransitionPickerProtocol, batch_size: int
     ) -> TransitionMiniBatch:
         return TransitionMiniBatch.from_transitions(
-            [self.sample_transition(sampler) for _ in range(batch_size)]
+            [self.sample_transition(picker) for _ in range(batch_size)]
         )
 
     def sample_trajectory(

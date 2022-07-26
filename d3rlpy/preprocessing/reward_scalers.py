@@ -1,10 +1,10 @@
-from typing import Any, ClassVar, Dict, List, Optional, Type
+from typing import Any, ClassVar, Dict, Optional, Sequence, Type
 
 import gym
 import numpy as np
 import torch
 
-from ..dataset import MDPDataset, Transition
+from ..dataset import EpisodeBase
 from ..decorators import pretty_repr
 from ..logger import LOG
 
@@ -14,11 +14,11 @@ class RewardScaler:
 
     TYPE: ClassVar[str] = "none"
 
-    def fit(self, transitions: List[Transition]) -> None:
+    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         """Estimates scaling parameters from dataset.
 
         Args:
-            transitions: list of transitions.
+            episodes: list of episodes.
 
         """
         raise NotImplementedError
@@ -118,7 +118,7 @@ class MultiplyRewardScaler(RewardScaler):
     def __init__(self, multiplier: Optional[float] = None):
         self._multiplier = multiplier
 
-    def fit(self, transitions: List[Transition]) -> None:
+    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         if self._multiplier is None:
             LOG.warning("Please initialize MultiplyRewardScaler manually.")
 
@@ -169,7 +169,7 @@ class ClipRewardScaler(RewardScaler):
         self._high = high
         self._multiplier = multiplier
 
-    def fit(self, transitions: List[Transition]) -> None:
+    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         if self._low is None and self._high is None:
             LOG.warning("Please initialize ClipRewardScaler manually.")
 
@@ -210,16 +210,12 @@ class MinMaxRewardScaler(RewardScaler):
 
         from d3rlpy.preprocessing import MinMaxRewardScaler
 
-        # initialize with dataset
-        scaler = MinMaxRewardScaler(dataset)
-
         # initialize manually
         scaler = MinMaxRewardScaler(minimum=0.0, maximum=10.0)
 
         cql = CQL(scaler=scaler)
 
     Args:
-        dataset (d3rlpy.dataset.MDPDataset): dataset object.
         minimum (float): minimum value.
         maximum (float): maximum value.
         multiplier (float): constant multiplication value.
@@ -232,7 +228,6 @@ class MinMaxRewardScaler(RewardScaler):
 
     def __init__(
         self,
-        dataset: Optional[MDPDataset] = None,
         minimum: Optional[float] = None,
         maximum: Optional[float] = None,
         multiplier: float = 1.0,
@@ -240,20 +235,15 @@ class MinMaxRewardScaler(RewardScaler):
         self._minimum = None
         self._maximum = None
         self._multiplier = multiplier
-        if dataset:
-            transitions = []
-            for episode in dataset.episodes:
-                transitions += episode.transitions
-            self.fit(transitions)
-        elif minimum is not None and maximum is not None:
+        if minimum is not None and maximum is not None:
             self._minimum = minimum
             self._maximum = maximum
 
-    def fit(self, transitions: List[Transition]) -> None:
+    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         if self._minimum is not None and self._maximum is not None:
             return
 
-        rewards = [transition.reward for transition in transitions]
+        rewards = [episode.rewards for episode in episodes]
 
         self._minimum = float(np.min(rewards))
         self._maximum = float(np.max(rewards))
@@ -301,16 +291,12 @@ class StandardRewardScaler(RewardScaler):
 
         from d3rlpy.preprocessing import StandardRewardScaler
 
-        # initialize with dataset
-        scaler = StandardRewardScaler(dataset)
-
         # initialize manually
         scaler = StandardRewardScaler(mean=0.0, std=1.0)
 
         cql = CQL(scaler=scaler)
 
     Args:
-        dataset (d3rlpy.dataset.MDPDataset): dataset object.
         mean (float): mean value.
         std (float): standard deviation value.
         eps (float): constant value to avoid zero-division.
@@ -325,7 +311,6 @@ class StandardRewardScaler(RewardScaler):
 
     def __init__(
         self,
-        dataset: Optional[MDPDataset] = None,
         mean: Optional[float] = None,
         std: Optional[float] = None,
         eps: float = 1e-3,
@@ -335,20 +320,15 @@ class StandardRewardScaler(RewardScaler):
         self._std = None
         self._eps = eps
         self._multiplier = multiplier
-        if dataset:
-            transitions = []
-            for episode in dataset.episodes:
-                transitions += episode.transitions
-            self.fit(transitions)
-        elif mean is not None and std is not None:
+        if mean is not None and std is not None:
             self._mean = mean
             self._std = std
 
-    def fit(self, transitions: List[Transition]) -> None:
+    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         if self._mean is not None and self._std is not None:
             return
 
-        rewards = [transition.reward for transition in transitions]
+        rewards = [episode.rewards for episode in episodes]
 
         self._mean = float(np.mean(rewards))
         self._std = float(np.std(rewards))
@@ -396,9 +376,6 @@ class ReturnBasedRewardScaler(RewardScaler):
 
         from d3rlpy.preprocessing import ReturnBasedRewardScaler
 
-        # initialize with dataset
-        scaler = ReturnBasedRewardScaler(dataset)
-
         # initialize manually
         scaler = ReturnBasedRewardScaler(return_max=100.0, return_min=1.0)
 
@@ -409,7 +386,6 @@ class ReturnBasedRewardScaler(RewardScaler):
           Q-Learning. <https://arxiv.org/abs/2110.06169>`_
 
     Args:
-        dataset (d3rlpy.dataset.MDPDataset): dataset object.
         return_max (float): the maximum return value.
         return_min (float): standard deviation value.
         multiplier (float): constant multiplication value
@@ -422,7 +398,6 @@ class ReturnBasedRewardScaler(RewardScaler):
 
     def __init__(
         self,
-        dataset: Optional[MDPDataset] = None,
         return_max: Optional[float] = None,
         return_min: Optional[float] = None,
         multiplier: float = 1.0,
@@ -430,39 +405,18 @@ class ReturnBasedRewardScaler(RewardScaler):
         self._return_max = None
         self._return_min = None
         self._multiplier = multiplier
-        if dataset:
-            transitions = []
-            for episode in dataset.episodes:
-                transitions += episode.transitions
-            self.fit(transitions)
-        elif return_max is not None and return_min is not None:
+        if return_max is not None and return_min is not None:
             self._return_max = return_max
             self._return_min = return_min
 
-    def fit(self, transitions: List[Transition]) -> None:
+    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         if self._return_max is not None and self._return_min is not None:
             return
 
-        # collect start states
-        start_transitions = set()
-        for transition in transitions:
-            # trace back to the start state
-            curr_transition = transition
-            while curr_transition.prev_transition:
-                curr_transition = curr_transition.prev_transition
-            start_transitions.add(curr_transition)
-
         # accumulate all rewards
         returns = []
-        for start_transition in start_transitions:
-            ret = 0.0
-            curr_transition = start_transition
-            while True:
-                ret += curr_transition.reward
-                if curr_transition.next_transition is None:
-                    break
-                curr_transition = curr_transition.next_transition
-            returns.append(ret)
+        for episode in episodes:
+            returns.append(episode.compute_return())
 
         self._return_max = float(np.max(returns))
         self._return_min = float(np.min(returns))

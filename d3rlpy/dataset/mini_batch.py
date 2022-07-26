@@ -70,6 +70,9 @@ class TransitionMiniBatch:
             intervals=cast_recursively(intervals, np.float32),
         )
 
+    def __len__(self) -> int:
+        return self.actions.shape[0]
+
 
 @dataclasses.dataclass(frozen=True)
 class TrajectoryMiniBatch:
@@ -116,3 +119,6 @@ class TrajectoryMiniBatch:
             masks=cast_recursively(masks, np.float32),
             length=trajectories[0].length,
         )
+
+    def __len__(self) -> int:
+        return self.actions.shape[0]

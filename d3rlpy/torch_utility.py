@@ -149,6 +149,17 @@ def _convert_to_torch(array: np.ndarray, device: str) -> torch.Tensor:
     return tensor.float()
 
 
+def _convert_to_torch_recursively(
+    array: Union[np.ndarray, Sequence[np.ndarray]], device: str
+) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
+    if isinstance(array, (list, tuple)):
+        return [_convert_to_torch(data, device) for data in array]
+    elif isinstance(array, np.ndarray):
+        return _convert_to_torch(array, device)
+    else:
+        raise ValueError(f"invalid array type: {type(array)}")
+
+
 class TorchMiniBatch:
 
     _observations: torch.Tensor
@@ -168,12 +179,18 @@ class TorchMiniBatch:
         reward_scaler: Optional[RewardScaler] = None,
     ):
         # convert numpy array to torch tensor
-        observations = _convert_to_torch(batch.observations, device)
+        observations = _convert_to_torch_recursively(batch.observations, device)
         actions = _convert_to_torch(batch.actions, device)
         rewards = _convert_to_torch(batch.rewards, device)
-        next_observations = _convert_to_torch(batch.next_observations, device)
+        next_observations = _convert_to_torch_recursively(
+            batch.next_observations, device
+        )
         terminals = _convert_to_torch(batch.terminals, device)
-        n_steps = _convert_to_torch(batch.n_steps, device)
+        n_steps = _convert_to_torch(batch.intervals, device)
+
+        # TODO: support tuple observation
+        assert isinstance(observations, torch.Tensor)
+        assert isinstance(next_observations, torch.Tensor)
 
         # apply scaler
         if scaler:

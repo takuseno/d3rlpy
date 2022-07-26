@@ -9,7 +9,15 @@ from urllib import request
 import gym
 import numpy as np
 
-from .dataset import Episode, MDPDataset, Transition
+from .dataset import (
+    Episode,
+    EpisodeGenerator,
+    InfiniteBuffer,
+    ReplayBuffer,
+    Transition,
+    create_infinite_replay_buffer,
+    load_v1,
+)
 from .envs import ChannelFirst
 
 DATA_DIRECTORY = "d3rlpy_data"
@@ -20,7 +28,7 @@ PENDULUM_URL = f"{DROPBOX_URL}/ukkucouzys0jkfs/pendulum_v1.1.0.h5?dl=1"
 PENDULUM_RANDOM_URL = f"{DROPBOX_URL}/hhbq9i6ako24kzz/pendulum_random_v1.1.0.h5?dl=1"  # pylint: disable=line-too-long
 
 
-def get_cartpole(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
+def get_cartpole(dataset_type: str = "replay") -> Tuple[ReplayBuffer, gym.Env]:
     """Returns cartpole dataset and environment.
 
     The dataset is automatically downloaded to ``d3rlpy_data/cartpole.h5`` if
@@ -31,7 +39,7 @@ def get_cartpole(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
             ``['replay', 'random']``.
 
     Returns:
-        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
+        tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
 
     """
     if dataset_type == "replay":
@@ -52,7 +60,9 @@ def get_cartpole(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
         request.urlretrieve(url, data_path)
 
     # load dataset
-    dataset = MDPDataset.load(data_path)
+    with open(data_path, "rb") as f:
+        episodes = load_v1(f)
+    dataset = ReplayBuffer(InfiniteBuffer(), episodes)
 
     # environment
     env = gym.make("CartPole-v0")
@@ -60,7 +70,7 @@ def get_cartpole(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
     return dataset, env
 
 
-def get_pendulum(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
+def get_pendulum(dataset_type: str = "replay") -> Tuple[ReplayBuffer, gym.Env]:
     """Returns pendulum dataset and environment.
 
     The dataset is automatically downloaded to ``d3rlpy_data/pendulum.h5`` if
@@ -71,7 +81,7 @@ def get_pendulum(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
             ``['replay', 'random']``.
 
     Returns:
-        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
+        tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
 
     """
     if dataset_type == "replay":
@@ -91,7 +101,9 @@ def get_pendulum(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
         request.urlretrieve(url, data_path)
 
     # load dataset
-    dataset = MDPDataset.load(data_path)
+    with open(data_path, "rb") as f:
+        episodes = load_v1(f)
+    dataset = ReplayBuffer(InfiniteBuffer(), episodes)
 
     # environment
     env = gym.make("Pendulum-v0")
@@ -99,7 +111,7 @@ def get_pendulum(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
     return dataset, env
 
 
-def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
+def get_atari(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
     """Returns atari dataset and envrironment.
 
     The dataset is provided through d4rl-atari. See more details including
@@ -118,14 +130,15 @@ def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         env_name: environment id of d4rl-atari dataset.
 
     Returns:
-        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
+        tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
 
     """
     try:
         import d4rl_atari  # type: ignore
 
         env = ChannelFirst(gym.make(env_name))
-        dataset = MDPDataset(discrete_action=True, **env.get_dataset())
+        episode_generator = EpisodeGenerator(**env.get_dataset())
+        dataset = create_infinite_replay_buffer(episode_generator)
         return dataset, env
     except ImportError as e:
         raise ImportError(
@@ -136,7 +149,7 @@ def get_atari(env_name: str) -> Tuple[MDPDataset, gym.Env]:
 
 def get_atari_transitions(
     game_name: str, fraction: float = 0.01, index: int = 0
-) -> Tuple[List[Transition], gym.Env]:
+) -> Tuple[ReplayBuffer, gym.Env]:
     """Returns atari dataset as a list of Transition objects and envrironment.
 
     The dataset is provided through d4rl-atari.
@@ -170,39 +183,44 @@ def get_atari_transitions(
         # each epoch consists of 1M steps
         num_transitions_per_epoch = int(1000000 * fraction)
 
-        transitions = []
+        copied_episodes = []
         for i in range(50):
             env = gym.make(
                 f"{game_name}-epoch-{i + 1}-v{index}", sticky_action=True
             )
-            dataset = MDPDataset(discrete_action=True, **env.get_dataset())
-            episodes = list(dataset.episodes)
+            episode_generator = EpisodeGenerator(**env.get_dataset())
+            episodes = list(episode_generator())
 
             # copy episode data to release memory of unused data
             random.shuffle(episodes)
             num_data = 0
-            copied_episodes = []
             for episode in episodes:
-                copied_episode = Episode(
-                    observation_shape=tuple(episode.get_observation_shape()),
-                    action_size=episode.get_action_size(),
-                    observations=episode.observations.copy(),
-                    actions=episode.actions.copy(),
-                    rewards=episode.rewards.copy(),
-                    terminal=episode.terminal,
-                )
-                copied_episodes.append(copied_episode)
-
-                num_data += len(copied_episode)
-                if num_data > num_transitions_per_epoch:
+                if num_data >= num_transitions_per_epoch:
                     break
 
-            transitions_per_epoch = []
-            for episode in copied_episodes:
-                transitions_per_epoch += episode.transitions
-            transitions += transitions_per_epoch[:num_transitions_per_epoch]
+                copied_episode = Episode(
+                    observations=episode.observations.copy(),  # type: ignore
+                    actions=episode.actions.copy(),
+                    rewards=episode.rewards.copy(),
+                    terminated=episode.terminated,
+                )
 
-        return transitions, ChannelFirst(env)
+                # trim episode
+                if num_data + copied_episode.size() > num_transitions_per_epoch:
+                    end = num_transitions_per_epoch - num_data
+                    copied_episode = Episode(
+                        observations=copied_episode.observations[:end],
+                        actions=copied_episode.actions[:end],
+                        rewards=copied_episode.rewards[:end],
+                        terminated=False,
+                    )
+
+                copied_episodes.append(copied_episode)
+                num_data += copied_episode.size()
+
+        return ReplayBuffer(InfiniteBuffer(), copied_episodes), ChannelFirst(
+            env
+        )
     except ImportError as e:
         raise ImportError(
             "d4rl-atari is not installed.\n"
@@ -210,7 +228,7 @@ def get_atari_transitions(
         ) from e
 
 
-def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
+def get_d4rl(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
     """Returns d4rl dataset and envrironment.
 
     The dataset is provided through d4rl.
@@ -230,7 +248,7 @@ def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         env_name: environment id of d4rl dataset.
 
     Returns:
-        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
+        tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
 
     """
     try:
@@ -246,15 +264,16 @@ def get_d4rl(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         timeouts = dataset["timeouts"]
         episode_terminals = np.logical_or(terminals, timeouts)
 
-        mdp_dataset = MDPDataset(
+        episode_generator = EpisodeGenerator(
             observations=np.array(observations, dtype=np.float32),
             actions=np.array(actions, dtype=np.float32),
             rewards=np.array(rewards, dtype=np.float32),
             terminals=np.array(terminals, dtype=np.float32),
             episode_terminals=np.array(episode_terminals, dtype=np.float32),
         )
+        dataset = create_infinite_replay_buffer(episode_generator)
 
-        return mdp_dataset, env
+        return dataset, env
     except ImportError as e:
         raise ImportError(
             "d4rl is not installed.\n"
@@ -328,7 +347,7 @@ ATARI_GAMES = [
 ]
 
 
-def get_dataset(env_name: str) -> Tuple[MDPDataset, gym.Env]:
+def get_dataset(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
     """Returns dataset and envrironment by guessing from name.
 
     This function returns dataset by matching name with the following datasets.
@@ -361,7 +380,7 @@ def get_dataset(env_name: str) -> Tuple[MDPDataset, gym.Env]:
         env_name: environment id of the dataset.
 
     Returns:
-        tuple of :class:`d3rlpy.dataset.MDPDataset` and gym environment.
+        tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
 
     """
     if env_name == "cartpole-replay":

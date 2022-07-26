@@ -13,38 +13,59 @@ class BufferProtocol(Protocol):
     def episodes(self) -> Sequence[EpisodeBase]:
         raise NotImplementedError
 
+    @property
+    def transition_count(self) -> int:
+        raise NotImplementedError
+
 
 class InfiniteBuffer(BufferProtocol):
     _episodes: List[EpisodeBase]
+    _transition_count: int
 
     def __init__(self):
         self._episodes = []
+        self._transition_count = 0
 
     def append(self, episode: EpisodeBase) -> None:
         self._episodes.append(episode)
+        self._transition_count += episode.size()
 
     @property
     def episodes(self) -> Sequence[EpisodeBase]:
         return self._episodes
+
+    def __len__(self) -> int:
+        return len(self._episodes)
+
+    @property
+    def transition_count(self) -> int:
+        return self._transition_count
 
 
 class FIFOBuffer(BufferProtocol):
     _episodes: List[EpisodeBase]
     _limit: int
-    _total_count: int
+    _transition_count: int
 
     def __init__(self, limit: int):
         self._limit = limit
         self._episodes = []
-        self._total_count = 0
+        self._transition_count = 0
 
     def append(self, episode: EpisodeBase) -> None:
-        self._total_count += episode.size()
+        self._transition_count += episode.size()
         self._episodes.append(episode)
-        if self._total_count > self._limit:
+        if self._transition_count > self._limit:
             dropped_episode = self._episodes.pop(0)
-            self._total_count -= dropped_episode.size()
+            self._transition_count -= dropped_episode.size()
 
     @property
     def episodes(self) -> Sequence[EpisodeBase]:
         return self._episodes
+
+    def __len__(self) -> int:
+        return len(self._episodes)
+
+    @property
+    def transition_count(self) -> int:
+        return self._transition_count

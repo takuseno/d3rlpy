@@ -1,10 +1,10 @@
-from typing import Any, ClassVar, Dict, List, Optional, Type
+from typing import Any, ClassVar, Dict, Optional, Sequence, Type
 
 import gym
 import numpy as np
 import torch
 
-from ..dataset import MDPDataset, Transition
+from ..dataset import EpisodeBase
 from ..decorators import pretty_repr
 
 
@@ -13,11 +13,11 @@ class Scaler:
 
     TYPE: ClassVar[str] = "none"
 
-    def fit(self, transitions: List[Transition]) -> None:
+    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         """Estimates scaling parameters from dataset.
 
         Args:
-            transitions: list of transitions.
+            episodes: list of episodes.
 
         """
         raise NotImplementedError
@@ -100,7 +100,7 @@ class PixelScaler(Scaler):
 
     TYPE: ClassVar[str] = "pixel"
 
-    def fit(self, transitions: List[Transition]) -> None:
+    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         pass
 
     def fit_with_env(self, env: gym.Env) -> None:
@@ -146,9 +146,6 @@ class MinMaxScaler(Scaler):
 
         from d3rlpy.preprocessing import MinMaxScaler
 
-        # initialize with dataset
-        scaler = MinMaxScaler(dataset)
-
         # initialize manually
         minimum = observations.min(axis=0)
         maximum = observations.max(axis=0)
@@ -157,7 +154,6 @@ class MinMaxScaler(Scaler):
         cql = CQL(scaler=scaler)
 
     Args:
-        dataset (d3rlpy.dataset.MDPDataset): dataset object.
         min (numpy.ndarray): minimum values at each entry.
         max (numpy.ndarray): maximum values at each entry.
 
@@ -169,33 +165,31 @@ class MinMaxScaler(Scaler):
 
     def __init__(
         self,
-        dataset: Optional[MDPDataset] = None,
         maximum: Optional[np.ndarray] = None,
         minimum: Optional[np.ndarray] = None,
     ):
         self._minimum = None
         self._maximum = None
-        if dataset:
-            transitions = []
-            for episode in dataset.episodes:
-                transitions += episode.transitions
-            self.fit(transitions)
-        elif maximum is not None and minimum is not None:
+        if maximum is not None and minimum is not None:
             self._minimum = np.asarray(minimum)
             self._maximum = np.asarray(maximum)
 
-    def fit(self, transitions: List[Transition]) -> None:
+    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         if self._minimum is not None and self._maximum is not None:
             return
 
-        for i, transition in enumerate(transitions):
-            observation = np.asarray(transition.observation)
+        maximum = np.zeros(episodes[0].observation_shape)
+        minimum = np.zeros(episodes[0].observation_shape)
+        for i, episode in enumerate(episodes):
+            observations = np.asarray(episode.observations)
+            max_observation = np.max(observations, axis=0)
+            min_observation = np.min(observations, axis=0)
             if i == 0:
-                minimum = observation
-                maximum = observation
+                minimum = max_observation
+                maximum = min_observation
             else:
-                minimum = np.minimum(minimum, observation)
-                maximum = np.maximum(maximum, observation)
+                minimum = np.minimum(minimum, min_observation)
+                maximum = np.maximum(maximum, max_observation)
 
         self._minimum = minimum.reshape((1,) + minimum.shape)
         self._maximum = maximum.reshape((1,) + maximum.shape)
@@ -275,9 +269,6 @@ class StandardScaler(Scaler):
 
         from d3rlpy.preprocessing import StandardScaler
 
-        # initialize with dataset
-        scaler = StandardScaler(dataset)
-
         # initialize manually
         mean = observations.mean(axis=0)
         std = observations.std(axis=0)
@@ -286,7 +277,6 @@ class StandardScaler(Scaler):
         cql = CQL(scaler=scaler)
 
     Args:
-        dataset (d3rlpy.dataset.MDPDataset): dataset object.
         mean (numpy.ndarray): mean values at each entry.
         std (numpy.ndarray): standard deviation at each entry.
         eps (float): small constant value to avoid zero-division.
@@ -300,7 +290,6 @@ class StandardScaler(Scaler):
 
     def __init__(
         self,
-        dataset: Optional[MDPDataset] = None,
         mean: Optional[np.ndarray] = None,
         std: Optional[np.ndarray] = None,
         eps: float = 1e-3,
@@ -308,33 +297,28 @@ class StandardScaler(Scaler):
         self._mean = None
         self._std = None
         self._eps = eps
-        if dataset:
-            transitions = []
-            for episode in dataset.episodes:
-                transitions += episode.transitions
-            self.fit(transitions)
-        elif mean is not None and std is not None:
+        if mean is not None and std is not None:
             self._mean = np.asarray(mean)
             self._std = np.asarray(std)
 
-    def fit(self, transitions: List[Transition]) -> None:
+    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         if self._mean is not None and self._std is not None:
             return
 
         # compute mean
-        total_sum = np.zeros(transitions[0].get_observation_shape())
+        total_sum = np.zeros(episodes[0].observation_shape)
         total_count = 0
-        for transition in transitions:
-            total_sum += np.asarray(transition.observation)
-            total_count += 1
+        for episode in episodes:
+            total_sum += np.sum(episode.observations, axis=0)
+            total_count += episode.size()
         mean = total_sum / total_count
 
         # compute stdandard deviation
-        total_sqsum = np.zeros(transitions[0].get_observation_shape())
-        expanded_mean = mean.reshape(mean.shape)
-        for transition in transitions:
-            observation = np.asarray(transition.observation)
-            total_sqsum += (observation - expanded_mean) ** 2
+        total_sqsum = np.zeros(episodes[0].observation_shape)
+        expanded_mean = mean.reshape((1,) + mean.shape)
+        for episode in episodes:
+            observations = np.asarray(episode.observations)
+            total_sqsum += np.sum((observations - expanded_mean) ** 2, axis=0)
         std = np.sqrt(total_sqsum / total_count)
 
         self._mean = mean.reshape((1,) + mean.shape)
