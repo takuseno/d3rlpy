@@ -52,7 +52,7 @@ class ReplayBuffer:
     def sample_transition(self, picker: TransitionPickerProtocol) -> Transition:
         episode_index = np.random.randint(len(self.episodes))
         episode = self.episodes[episode_index]
-        transition_index = np.random.randint(episode.size())
+        transition_index = np.random.randint(episode.transition_count)
         return picker(episode, transition_index)
 
     def sample_transition_batch(

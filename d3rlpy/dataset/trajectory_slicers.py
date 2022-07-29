@@ -9,33 +9,34 @@ __all__ = ["TrajectorySlicerProtocol", "BasicTrajectorySlicer"]
 
 class TrajectorySlicerProtocol(Protocol):
     def __call__(
-        self, episode: EpisodeBase, start: int, size: int
+        self, episode: EpisodeBase, end_index: int, size: int
     ) -> PartialTrajectory:
         ...
 
 
 class BasicTrajectorySlicer(TrajectorySlicerProtocol):
     def __call__(
-        self, episode: EpisodeBase, start: int, size: int
+        self, episode: EpisodeBase, end_index: int, size: int
     ) -> PartialTrajectory:
-        end = min(start + size, episode.size())
+        end = end_index + 1
+        start = max(end - size, 0)
 
         # prepare terminal flags
-        terminals = np.zeros(end - start, dtype=np.float32)
-        if episode.terminated and end == episode.size():
-            terminals[-1] = 1.0
+        terminals = np.zeros((end - start, 1), dtype=np.float32)
+        if episode.terminated and end_index == episode.size() - 1:
+            terminals[-1][0] = 1.0
 
         # slice data
         observations = slice_observations(episode.observations, start, end)
         actions = episode.actions[start:end]
         rewards = episode.rewards[start:end]
-        returns_to_go = np.cumsum(rewards)
+        returns_to_go = np.cumsum(rewards, axis=0).reshape((end - start, 1))
 
         # prepare metadata
         timesteps = np.arange(start, end)
         masks = np.ones(end - start, dtype=np.float32)
 
-        # compute padding size
+        # compute backward padding size
         pad_size = size - (end - start)
 
         if pad_size == 0:

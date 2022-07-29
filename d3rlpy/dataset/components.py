@@ -115,6 +115,10 @@ class EpisodeBase(Protocol):
     def __len__(self) -> int:
         raise NotImplementedError
 
+    @property
+    def transition_count(self) -> int:
+        raise NotImplementedError
+
 
 @dataclasses.dataclass(frozen=True)
 class Episode:
@@ -160,6 +164,10 @@ class Episode:
 
     def __len__(self) -> int:
         return self.actions.shape[0]
+
+    @property
+    def transition_count(self) -> int:
+        return self.size() if self.terminated else self.size() - 1
 
 
 @dataclasses.dataclass(frozen=True)

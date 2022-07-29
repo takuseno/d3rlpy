@@ -3,6 +3,14 @@ import numpy as np
 from d3rlpy.dataset import Episode, PartialTrajectory, Transition
 
 
+def create_observation(observation_shape):
+    if isinstance(observation_shape[0], (list, tuple)):
+        observation = [np.random.random(shape) for shape in observation_shape]
+    else:
+        observation = np.random.random(observation_shape)
+    return observation
+
+
 def create_observations(observation_shape, length):
     if isinstance(observation_shape[0], (list, tuple)):
         observations = [
@@ -78,7 +86,7 @@ def create_partial_trajectory(
         observations=observations,
         actions=actions,
         rewards=rewards,
-        returns_to_go=np.cumsum(rewards),
+        returns_to_go=np.reshape(np.cumsum(rewards), [-1, 1]),
         terminals=np.zeros((length, 1)),
         timesteps=np.arange(length),
         masks=np.ones(length),

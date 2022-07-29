@@ -57,7 +57,7 @@ def batch_pad_array(array: np.ndarray, pad_size: int) -> np.ndarray:
     batch_size = array.shape[0]
     shape = array.shape[1:]
     padded_array = np.zeros((pad_size + batch_size, *shape), dtype=array.dtype)
-    padded_array[pad_size:] = array
+    padded_array[-batch_size:] = array
     return padded_array
 
 

@@ -14,6 +14,10 @@ __all__ = [
 ]
 
 
+def _validate_index(episode: EpisodeBase, index: int) -> None:
+    assert index < episode.transition_count
+
+
 class TransitionPickerProtocol(Protocol):
     def __call__(self, episode: EpisodeBase, index: int) -> Transition:
         ...
@@ -21,6 +25,8 @@ class TransitionPickerProtocol(Protocol):
 
 class BasicTransitionPicker(TransitionPickerProtocol):
     def __call__(self, episode: EpisodeBase, index: int) -> Transition:
+        _validate_index(episode, index)
+
         observation = retrieve_observation(episode.observations, index)
         is_terminal = index == episode.size() - 1
         if is_terminal:
@@ -46,6 +52,8 @@ class FrameStackTransitionPicker(TransitionPickerProtocol):
         self._n_frames = n_frames
 
     def __call__(self, episode: EpisodeBase, index: int) -> Transition:
+        _validate_index(episode, index)
+
         observation = stack_recent_observations(
             episode.observations, index, self._n_frames
         )

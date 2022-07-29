@@ -44,12 +44,13 @@ def test_partial_trajectory(data_size, observation_size, action_size):
 @pytest.mark.parametrize("data_size", [100])
 @pytest.mark.parametrize("observation_size", [4])
 @pytest.mark.parametrize("action_size", [2])
-def test_episode(data_size, observation_size, action_size):
+@pytest.mark.parametrize("terminated", [False, True])
+def test_episode(data_size, observation_size, action_size, terminated):
     episode = Episode(
         observations=np.random.random((data_size, observation_size)),
         actions=np.random.random((data_size, action_size)),
         rewards=np.random.random((data_size, 1)),
-        terminated=False,
+        terminated=terminated,
     )
     assert episode.observation_shape == (observation_size,)
     assert episode.action_shape == (action_size,)
@@ -57,6 +58,10 @@ def test_episode(data_size, observation_size, action_size):
     assert episode.size() == data_size
     assert len(episode) == data_size
     assert episode.compute_return() == np.sum(episode.rewards)
+    if terminated:
+        assert episode.transition_count == episode.size()
+    else:
+        assert episode.transition_count == episode.size() - 1
 
     episode2 = Episode.deserialize(episode.serialize())
     assert np.all(episode2.observations == episode.observations)
