@@ -78,7 +78,7 @@ class ReplayBuffer:
         )
 
     def dump(self, f: BinaryIO) -> None:
-        dump(self._episodes, f)
+        dump(self._buffer.episodes, f)
 
     @classmethod
     def from_episode_generator(
@@ -101,6 +101,14 @@ class ReplayBuffer:
 
     def size(self) -> int:
         return len(self._buffer.episodes)
+
+    @property
+    def buffer(self) -> BufferProtocol:
+        return self._buffer
+
+    @property
+    def transition_count(self) -> int:
+        return self._buffer.transition_count
 
 
 def create_fifo_replay_buffer(

@@ -28,7 +28,7 @@ class InfiniteBuffer(BufferProtocol):
 
     def append(self, episode: EpisodeBase) -> None:
         self._episodes.append(episode)
-        self._transition_count += episode.size()
+        self._transition_count += episode.transition_count
 
     @property
     def episodes(self) -> Sequence[EpisodeBase]:
@@ -53,11 +53,11 @@ class FIFOBuffer(BufferProtocol):
         self._transition_count = 0
 
     def append(self, episode: EpisodeBase) -> None:
-        self._transition_count += episode.size()
+        self._transition_count += episode.transition_count
         self._episodes.append(episode)
         if self._transition_count > self._limit:
             dropped_episode = self._episodes.pop(0)
-            self._transition_count -= dropped_episode.size()
+            self._transition_count -= dropped_episode.transition_count
 
     @property
     def episodes(self) -> Sequence[EpisodeBase]:

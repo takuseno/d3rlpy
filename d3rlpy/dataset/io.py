@@ -18,8 +18,13 @@ def dump(episodes: Sequence[EpisodeBase], f: BinaryIO) -> None:
         h5.create_dataset("columns", data=keys)
         h5.create_dataset("total_size", data=len(episodes))
         for key in keys:
-            data = [d[key] for d in serializedData]
-            h5.create_dataset(key, data=data)
+            if isinstance(serializedData[0][key], (list, tuple)):
+                for i in range(len(serializedData[0][key])):
+                    data = [d[key][i] for d in serializedData]
+                    h5.create_dataset(f"{key}_{i}", data=data)
+            else:
+                data = [d[key] for d in serializedData]
+                h5.create_dataset(key, data=data)
         h5.create_dataset("version", data=DATASET_VERSION)
         h5.flush()
 
@@ -32,7 +37,21 @@ def load(episode_cls: Type[EpisodeBase], f: BinaryIO) -> Sequence[EpisodeBase]:
         )
         total_size = cast(int, h5["total_size"][()])
         for i in range(total_size):
-            data = {key: h5[key][()][i] for key in keys}
+            data = {}
+            for key in keys:
+                if key in h5:
+                    data[key] = h5[key][()][i]
+                else:
+                    j = 0
+                    tuple_data = []
+                    while True:
+                        tuple_key = f"{key}_{j}"
+                        if tuple_key in h5:
+                            tuple_data.append(h5[tuple_key][()][i])
+                        else:
+                            break
+                        j += 1
+                    data[key] = tuple_data
             episode = episode_cls.deserialize(data)
             episodes.append(episode)
     return episodes
