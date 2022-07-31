@@ -167,7 +167,7 @@ class TorchMiniBatch:
     _rewards: torch.Tensor
     _next_observations: torch.Tensor
     _terminals: torch.Tensor
-    _n_steps: torch.Tensor
+    _intervals: torch.Tensor
     _device: str
 
     def __init__(
@@ -186,7 +186,7 @@ class TorchMiniBatch:
             batch.next_observations, device
         )
         terminals = _convert_to_torch(batch.terminals, device)
-        n_steps = _convert_to_torch(batch.intervals, device)
+        intervals = _convert_to_torch(batch.intervals, device)
 
         # TODO: support tuple observation
         assert isinstance(observations, torch.Tensor)
@@ -206,7 +206,7 @@ class TorchMiniBatch:
         self._rewards = rewards
         self._next_observations = next_observations
         self._terminals = terminals
-        self._n_steps = n_steps
+        self._intervals = intervals
         self._device = device
 
     @property
@@ -230,8 +230,8 @@ class TorchMiniBatch:
         return self._terminals
 
     @property
-    def n_steps(self) -> torch.Tensor:
-        return self._n_steps
+    def intervals(self) -> torch.Tensor:
+        return self._intervals
 
     @property
     def device(self) -> str:

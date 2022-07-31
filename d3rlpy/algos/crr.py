@@ -84,7 +84,6 @@ class CRR(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         beta (float): temperature value defined as :math:`\beta` above.
         n_action_samples (int): the number of sampled actions to calculate
@@ -146,7 +145,6 @@ class CRR(AlgoBase):
         q_func_factory: QFuncArg = "mean",
         batch_size: int = 100,
         n_frames: int = 1,
-        n_steps: int = 1,
         gamma: float = 0.99,
         beta: float = 1.0,
         n_action_samples: int = 4,
@@ -168,7 +166,6 @@ class CRR(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             n_frames=n_frames,
-            n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,

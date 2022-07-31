@@ -139,7 +139,6 @@ class LearnableBase:
 
     _batch_size: int
     _n_frames: int
-    _n_steps: int
     _gamma: float
     _scaler: Optional[Scaler]
     _action_scaler: Optional[ActionScaler]
@@ -156,7 +155,6 @@ class LearnableBase:
         self,
         batch_size: int,
         n_frames: int,
-        n_steps: int,
         gamma: float,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
@@ -167,7 +165,6 @@ class LearnableBase:
     ):
         self._batch_size = batch_size
         self._n_frames = n_frames
-        self._n_steps = n_steps
         self._gamma = gamma
         self._scaler = check_scaler(scaler)
         self._action_scaler = check_action_scaler(action_scaler)
@@ -853,20 +850,6 @@ class LearnableBase:
     @n_frames.setter
     def n_frames(self, n_frames: int) -> None:
         self._n_frames = n_frames
-
-    @property
-    def n_steps(self) -> int:
-        """N-step TD backup.
-
-        Returns:
-            int: N-step TD backup.
-
-        """
-        return self._n_steps
-
-    @n_steps.setter
-    def n_steps(self, n_steps: int) -> None:
-        self._n_steps = n_steps
 
     @property
     def gamma(self) -> float:

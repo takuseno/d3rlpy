@@ -70,7 +70,6 @@ class IQL(AlgoBase):
             encoder factory for the value function.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -118,7 +117,6 @@ class IQL(AlgoBase):
         value_encoder_factory: EncoderArg = "default",
         batch_size: int = 256,
         n_frames: int = 1,
-        n_steps: int = 1,
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 2,
@@ -135,7 +133,6 @@ class IQL(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             n_frames=n_frames,
-            n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,

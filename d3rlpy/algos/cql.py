@@ -87,7 +87,6 @@ class CQL(AlgoBase):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
@@ -149,7 +148,6 @@ class CQL(AlgoBase):
         q_func_factory: QFuncArg = "mean",
         batch_size: int = 256,
         n_frames: int = 1,
-        n_steps: int = 1,
         gamma: float = 0.99,
         tau: float = 0.005,
         n_critics: int = 2,
@@ -169,7 +167,6 @@ class CQL(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             n_frames=n_frames,
-            n_steps=n_steps,
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,
@@ -293,7 +290,6 @@ class DiscreteCQL(DoubleDQN):
             Q function factory.
         batch_size (int): mini-batch size.
         n_frames (int): the number of frames to stack for image observation.
-        n_steps (int): N-step TD calculation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         target_update_interval (int): interval to synchronize the target
@@ -323,7 +319,6 @@ class DiscreteCQL(DoubleDQN):
         q_func_factory: QFuncArg = "mean",
         batch_size: int = 32,
         n_frames: int = 1,
-        n_steps: int = 1,
         gamma: float = 0.99,
         n_critics: int = 1,
         target_update_interval: int = 8000,
@@ -341,7 +336,6 @@ class DiscreteCQL(DoubleDQN):
             q_func_factory=q_func_factory,
             batch_size=batch_size,
             n_frames=n_frames,
-            n_steps=n_steps,
             gamma=gamma,
             n_critics=n_critics,
             target_update_interval=target_update_interval,

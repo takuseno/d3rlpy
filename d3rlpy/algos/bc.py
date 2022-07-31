@@ -43,7 +43,6 @@ class _BCBase(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             n_frames=n_frames,
-            n_steps=1,
             gamma=1.0,
             scaler=scaler,
             action_scaler=action_scaler,

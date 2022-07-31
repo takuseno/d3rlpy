@@ -38,7 +38,6 @@ class RandomPolicy(AlgoBase):
         super().__init__(
             batch_size=1,
             n_frames=1,
-            n_steps=1,
             gamma=0.0,
             scaler=None,
             action_scaler=action_scaler,
@@ -101,7 +100,6 @@ class DiscreteRandomPolicy(AlgoBase):
         super().__init__(
             batch_size=1,
             n_frames=1,
-            n_steps=1,
             gamma=0.0,
             scaler=None,
             action_scaler=None,

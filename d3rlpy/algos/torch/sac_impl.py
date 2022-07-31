@@ -334,7 +334,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
             rewards=batch.rewards,
             target=q_tpn,
             terminals=batch.terminals,
-            gamma=self._gamma**batch.n_steps,
+            gamma=self._gamma**batch.intervals,
         )
 
     @train_api
