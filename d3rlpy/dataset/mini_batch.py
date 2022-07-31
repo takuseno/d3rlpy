@@ -4,10 +4,12 @@ from typing import Sequence, Union
 import numpy as np
 
 from .components import PartialTrajectory, Transition
+from .types import Shape
 from .utils import (
     cast_recursively,
     check_dtype,
     check_non_1d_array,
+    get_shape_from_observation_sequence,
     stack_observations,
 )
 
@@ -70,6 +72,18 @@ class TransitionMiniBatch:
             intervals=cast_recursively(intervals, np.float32),
         )
 
+    @property
+    def observation_shape(self) -> Shape:
+        return get_shape_from_observation_sequence(self.observations)
+
+    @property
+    def action_shape(self) -> Sequence[int]:
+        return self.actions.shape[1:]
+
+    @property
+    def reward_shape(self) -> Sequence[int]:
+        return self.rewards.shape[1:]
+
     def __len__(self) -> int:
         return self.actions.shape[0]
 
@@ -119,6 +133,18 @@ class TrajectoryMiniBatch:
             masks=cast_recursively(masks, np.float32),
             length=trajectories[0].length,
         )
+
+    @property
+    def observation_shape(self) -> Shape:
+        return get_shape_from_observation_sequence(self.observations)
+
+    @property
+    def action_shape(self) -> Sequence[int]:
+        return self.actions.shape[1:]
+
+    @property
+    def reward_shape(self) -> Sequence[int]:
+        return self.rewards.shape[1:]
 
     def __len__(self) -> int:
         return self.actions.shape[0]

@@ -291,13 +291,12 @@ def test_torch_mini_batch(
     transitions = []
     for _ in range(batch_size):
         transition = Transition(
-            observation_shape=observation_shape,
-            action_size=action_size,
             observation=np.random.random(obs_shape),
             action=np.random.random(action_size),
-            reward=np.random.random(),
+            reward=np.random.random((1,)),
             next_observation=np.random.random(obs_shape),
             terminal=0.0,
+            interval=1,
         )
         transitions.append(transition)
 
@@ -331,9 +330,9 @@ def test_torch_mini_batch(
     else:
         reward_scaler = None
 
-    batch = TransitionMiniBatch(transitions)
+    batch = TransitionMiniBatch.from_transitions(transitions)
 
-    torch_batch = TorchMiniBatch(
+    torch_batch = TorchMiniBatch.from_batch(
         batch=batch,
         device="cpu:0",
         scaler=scaler,
@@ -366,7 +365,7 @@ def test_torch_mini_batch(
         assert np.all(torch_batch.rewards.numpy() == batch.rewards)
 
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
-    assert np.all(torch_batch.n_steps.numpy() == batch.n_steps)
+    assert np.all(torch_batch.intervals.numpy() == batch.intervals)
 
 
 def test_torch_api():
@@ -425,13 +424,12 @@ def test_torch_api_with_batch(
     transitions = []
     for _ in range(batch_size):
         transition = Transition(
-            observation_shape=observation_shape,
-            action_size=action_size,
             observation=np.random.random(obs_shape),
             action=np.random.random(action_size),
-            reward=np.random.random(),
+            reward=np.random.random((1,)),
             next_observation=np.random.random(obs_shape),
             terminal=0.0,
+            interval=1,
         )
         transitions.append(transition)
 
@@ -465,7 +463,7 @@ def test_torch_api_with_batch(
     else:
         reward_scaler = None
 
-    batch = TransitionMiniBatch(transitions)
+    batch = TransitionMiniBatch.from_transitions(transitions)
 
     impl = DummyImpl()
     impl._scaler = scaler
@@ -499,7 +497,7 @@ def test_torch_api_with_batch(
         assert np.all(torch_batch.rewards.numpy() == batch.rewards)
 
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
-    assert np.all(torch_batch.n_steps.numpy() == batch.n_steps)
+    assert np.all(torch_batch.intervals.numpy() == batch.intervals)
 
 
 def test_train_api():

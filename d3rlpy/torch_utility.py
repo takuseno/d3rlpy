@@ -1,4 +1,5 @@
 import collections
+import dataclasses
 from inspect import signature
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
@@ -160,24 +161,25 @@ def _convert_to_torch_recursively(
         raise ValueError(f"invalid array type: {type(array)}")
 
 
+@dataclasses.dataclass(frozen=True)
 class TorchMiniBatch:
+    observations: torch.Tensor
+    actions: torch.Tensor
+    rewards: torch.Tensor
+    next_observations: torch.Tensor
+    terminals: torch.Tensor
+    intervals: torch.Tensor
+    device: str
 
-    _observations: torch.Tensor
-    _actions: torch.Tensor
-    _rewards: torch.Tensor
-    _next_observations: torch.Tensor
-    _terminals: torch.Tensor
-    _intervals: torch.Tensor
-    _device: str
-
-    def __init__(
-        self,
+    @classmethod
+    def from_batch(
+        cls,
         batch: TransitionMiniBatch,
         device: str,
         scaler: Optional[Scaler] = None,
         action_scaler: Optional[ActionScaler] = None,
         reward_scaler: Optional[RewardScaler] = None,
-    ):
+    ) -> "TorchMiniBatch":
         # convert numpy array to torch tensor
         observations = _convert_to_torch_recursively(batch.observations, device)
         actions = _convert_to_torch(batch.actions, device)
@@ -201,41 +203,15 @@ class TorchMiniBatch:
         if reward_scaler:
             rewards = reward_scaler.transform(rewards)
 
-        self._observations = observations
-        self._actions = actions
-        self._rewards = rewards
-        self._next_observations = next_observations
-        self._terminals = terminals
-        self._intervals = intervals
-        self._device = device
-
-    @property
-    def observations(self) -> torch.Tensor:
-        return self._observations
-
-    @property
-    def actions(self) -> torch.Tensor:
-        return self._actions
-
-    @property
-    def rewards(self) -> torch.Tensor:
-        return self._rewards
-
-    @property
-    def next_observations(self) -> torch.Tensor:
-        return self._next_observations
-
-    @property
-    def terminals(self) -> torch.Tensor:
-        return self._terminals
-
-    @property
-    def intervals(self) -> torch.Tensor:
-        return self._intervals
-
-    @property
-    def device(self) -> str:
-        return self._device
+        return TorchMiniBatch(
+            observations=observations,
+            actions=actions,
+            rewards=rewards,
+            next_observations=next_observations,
+            terminals=terminals,
+            intervals=intervals,
+            device=device,
+        )
 
 
 def torch_api(
@@ -274,7 +250,7 @@ def torch_api(
                 elif val is None:
                     tensor = None
                 elif isinstance(val, TransitionMiniBatch):
-                    tensor = TorchMiniBatch(
+                    tensor = TorchMiniBatch.from_batch(
                         val,
                         self.device,
                         scaler=self.scaler,
