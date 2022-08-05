@@ -27,13 +27,13 @@ def main():
                            batch_size=256,
                            weight_temp=3.0,
                            max_weight=100.0,
-                           expectile=0.8,
+                           expectile=0.7,
                            reward_scaler=reward_scaler,
                            use_gpu=args.gpu)
 
     # workaround for learning scheduler
     iql.create_impl(dataset.get_observation_shape(), dataset.get_action_size())
-    scheduler = CosineAnnealingLR(iql.impl._actor_optim, 25000)
+    scheduler = CosineAnnealingLR(iql.impl._actor_optim, 1000000)
 
     def callback(algo, epoch, total_step):
         scheduler.step()
@@ -41,15 +41,15 @@ def main():
     # pretraining
     iql.fit(dataset.episodes,
             eval_episodes=test_episodes,
-            n_steps=25000,
-            n_steps_per_epoch=1000,
+            n_steps=1000000,
+            n_steps_per_epoch=100000,
             save_interval=10,
             callback=callback,
             scorers={
                 'environment': d3rlpy.metrics.evaluate_on_environment(env),
                 'value_scale': d3rlpy.metrics.average_value_estimation_scorer,
             },
-            experiment_name=f"IQL_finetuning_{args.dataset}_{args.seed}")
+            experiment_name=f"IQL_pretraining_{args.dataset}_{args.seed}")
 
     # reset learning rate
     for g in iql.impl._actor_optim.param_groups:
@@ -58,15 +58,15 @@ def main():
     # finetuning
     buffer = d3rlpy.online.buffers.ReplayBuffer(maxlen=1000000,
                                                 episodes=dataset.episodes)
-    explorer = d3rlpy.online.explorers.NormalNoise(0.0, 0.03)
     eval_env = gym.make(env.unwrapped.spec.id)
-    iql.fit_online(env,
-                   buffer=buffer,
-                   explorer=explorer,
-                   eval_env=eval_env,
-                   n_steps=1000000,
-                   n_steps_per_epoch=1000,
-                   save_interval=10)
+    iql.fit_online(
+        env,
+        buffer=buffer,
+        eval_env=eval_env,
+        experiment_name=f"IQL_finetuning_{args.dataset}_{args.seed}",
+        n_steps=1000000,
+        n_steps_per_epoch=1000,
+        save_interval=10)
 
 
 if __name__ == '__main__':
