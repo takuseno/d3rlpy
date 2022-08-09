@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='hopper-medium-v0')
+    parser.add_argument('--dataset', type=str, default='antmaze-umaze-v0')
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--gpu', type=int)
     args = parser.parse_args()
@@ -21,6 +21,8 @@ def main():
 
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([256, 256, 256, 256])
     optim = d3rlpy.models.optimizers.AdamFactory(weight_decay=1e-4)
+    # for antmaze datasets
+    reward_scaler = d3rlpy.preprocessing.ConstantShiftRewardScaler(shift=-1)
 
     awac = d3rlpy.algos.AWAC(actor_learning_rate=3e-4,
                              actor_encoder_factory=encoder,
@@ -28,6 +30,7 @@ def main():
                              critic_learning_rate=3e-4,
                              batch_size=1024,
                              lam=1.0,
+                             reward_scaler=reward_scaler,
                              use_gpu=args.gpu)
 
     awac.fit(dataset.episodes,

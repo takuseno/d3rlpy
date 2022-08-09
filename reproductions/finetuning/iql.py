@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='hopper-medium-v0')
+    parser.add_argument('--dataset', type=str, default='antmaze-umaze-v0')
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--gpu', type=int)
     args = parser.parse_args()
@@ -20,14 +20,15 @@ def main():
 
     _, test_episodes = train_test_split(dataset, test_size=0.2)
 
+    # for antmaze datasets
     reward_scaler = d3rlpy.preprocessing.ConstantShiftRewardScaler(shift=-1)
 
     iql = d3rlpy.algos.IQL(actor_learning_rate=3e-4,
                            critic_learning_rate=3e-4,
                            batch_size=256,
-                           weight_temp=10.0,
+                           weight_temp=10.0,  # hyperparameter for antmaze
                            max_weight=100.0,
-                           expectile=0.9,
+                           expectile=0.9,  # hyperparameter for antmaze
                            reward_scaler=reward_scaler,
                            use_gpu=args.gpu)
 
