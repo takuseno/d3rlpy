@@ -1,5 +1,6 @@
 import argparse
 import d3rlpy
+import gym
 from sklearn.model_selection import train_test_split
 
 
