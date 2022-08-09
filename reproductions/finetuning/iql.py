@@ -25,9 +25,9 @@ def main():
     iql = d3rlpy.algos.IQL(actor_learning_rate=3e-4,
                            critic_learning_rate=3e-4,
                            batch_size=256,
-                           weight_temp=3.0,
+                           weight_temp=10.0,
                            max_weight=100.0,
-                           expectile=0.7,
+                           expectile=0.9,
                            reward_scaler=reward_scaler,
                            use_gpu=args.gpu)
 
