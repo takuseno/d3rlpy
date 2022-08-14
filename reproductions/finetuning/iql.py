@@ -23,14 +23,15 @@ def main():
     # for antmaze datasets
     reward_scaler = d3rlpy.preprocessing.ConstantShiftRewardScaler(shift=-1)
 
-    iql = d3rlpy.algos.IQL(actor_learning_rate=3e-4,
-                           critic_learning_rate=3e-4,
-                           batch_size=256,
-                           weight_temp=10.0,  # hyperparameter for antmaze
-                           max_weight=100.0,
-                           expectile=0.9,  # hyperparameter for antmaze
-                           reward_scaler=reward_scaler,
-                           use_gpu=args.gpu)
+    iql = d3rlpy.algos.IQL(
+        actor_learning_rate=3e-4,
+        critic_learning_rate=3e-4,
+        batch_size=256,
+        weight_temp=10.0,  # hyperparameter for antmaze
+        max_weight=100.0,
+        expectile=0.9,  # hyperparameter for antmaze
+        reward_scaler=reward_scaler,
+        use_gpu=args.gpu)
 
     # workaround for learning scheduler
     iql.create_impl(dataset.get_observation_shape(), dataset.get_action_size())
