@@ -91,6 +91,7 @@ In actor-critic cases, you should also transfer the policy function.
 
   # transfer to SAC
   sac = d3rlpy.algos.SAC()
+  sac.build_with_env(env)
   sac.copy_q_function_from(cql)
   sac.copy_policy_from(cql)
 
