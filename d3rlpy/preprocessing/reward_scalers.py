@@ -441,6 +441,58 @@ class ReturnBasedRewardScaler(RewardScaler):
         }
 
 
+class ConstantShiftRewardScaler(RewardScaler):
+    r"""Reward shift preprocessing.
+
+    .. math::
+
+        r' = r + c
+
+    You need to initialize manually.
+
+    .. code-block:: python
+
+        from d3rlpy.preprocessing import ConstantShiftRewardScaler
+
+        # initialize manually
+        scaler = ConstantShiftRewardScaler(shift=-1.0)
+
+        cql = CQL(reward_scaler=scaler)
+
+    References:
+        * `Kostrikov et al., Offline Reinforcement Learning with Implicit
+          Q-Learning. <https://arxiv.org/abs/2110.06169>`_
+
+    Args:
+        shift (float): constant shift value
+
+    """
+    TYPE: ClassVar[str] = "shift"
+    _shift: float
+
+    def __init__(
+        self,
+        shift: float = 0.0,
+    ):
+        self._shift = shift
+
+    def fit(self, transitions: List[Transition]) -> None:
+        if self._shift is None:
+            LOG.warning("Please initialize ConstantShiftRewardScaler manually.")
+
+    def transform(self, reward: torch.Tensor) -> torch.Tensor:
+        return self._shift + reward
+
+    def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
+        return reward - self._shift
+
+    def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+        return self._shift + reward
+
+    def get_params(self, deep: bool = False) -> Dict[str, Any]:
+        return {"shift": self._shift}
+
+
 REWARD_SCALER_LIST: Dict[str, Type[RewardScaler]] = {}
 
 
@@ -468,3 +520,4 @@ register_reward_scaler(ClipRewardScaler)
 register_reward_scaler(MinMaxRewardScaler)
 register_reward_scaler(StandardRewardScaler)
 register_reward_scaler(ReturnBasedRewardScaler)
+register_reward_scaler(ConstantShiftRewardScaler)

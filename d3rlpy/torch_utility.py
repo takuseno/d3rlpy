@@ -218,7 +218,7 @@ def torch_api(
     scaler_targets: Optional[List[str]] = None,
     action_scaler_targets: Optional[List[str]] = None,
     reward_scaler_targets: Optional[List[str]] = None,
-) -> Callable[..., np.ndarray]:
+) -> Callable[..., Callable[..., np.ndarray]]:
     def _torch_api(f: Callable[..., np.ndarray]) -> Callable[..., np.ndarray]:
         # get argument names
         sig = signature(f)
