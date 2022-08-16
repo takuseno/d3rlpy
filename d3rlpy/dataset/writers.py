@@ -15,7 +15,7 @@ class _ActiveEpisode:
     _actions: List[np.ndarray]
     _rewards: List[np.ndarray]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._observations = []
         self._actions = []
         self._rewards = []

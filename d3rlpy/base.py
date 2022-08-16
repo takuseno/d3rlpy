@@ -354,7 +354,6 @@ class LearnableBase:
         dataset: ReplayBuffer,
         n_steps: int,
         n_steps_per_epoch: int = 10000,
-        transition_picker: Optional[TransitionPickerProtocol] = None,
         save_metrics: bool = True,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
@@ -383,7 +382,6 @@ class LearnableBase:
             n_steps: the number of steps to train.
             n_steps_per_epoch: the number of steps per epoch. This value will
                 be ignored when ``n_steps`` is ``None``.
-            transition_picker: TransitionPickerProtocol object.
             save_metrics: flag to record metrics in files. If False,
                 the log directory is not created and the model parameters are
                 not saved during training.
@@ -412,7 +410,6 @@ class LearnableBase:
                 dataset,
                 n_steps,
                 n_steps_per_epoch,
-                transition_picker,
                 save_metrics,
                 experiment_name,
                 with_timestamp,
@@ -433,7 +430,6 @@ class LearnableBase:
         dataset: ReplayBuffer,
         n_steps: int,
         n_steps_per_epoch: int = 10000,
-        transition_picker: Optional[TransitionPickerProtocol] = None,
         save_metrics: bool = True,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
@@ -465,7 +461,6 @@ class LearnableBase:
             n_steps: the number of steps to train.
             n_steps_per_epoch: the number of steps per epoch. This value will
                 be ignored when ``n_steps`` is ``None``.
-            transition_picker: TransitionPickerProtocol object.
             save_metrics: flag to record metrics in files. If False,
                 the log directory is not created and the model parameters are
                 not saved during training.
@@ -561,10 +556,6 @@ class LearnableBase:
         # refresh loss history
         self._loss_history = defaultdict(list)
 
-        # use BasicTransitionPicker by default
-        if transition_picker is None:
-            transition_picker = BasicTransitionPicker()
-
         # training loop
         n_epochs = n_steps // n_steps_per_epoch
         total_step = 0
@@ -598,7 +589,7 @@ class LearnableBase:
                     # pick transitions
                     with logger.measure_time("sample_batch"):
                         batch = dataset.sample_transition_batch(
-                            transition_picker, self._batch_size
+                            self._batch_size
                         )
 
                     # update parameters
@@ -632,7 +623,7 @@ class LearnableBase:
 
             if scorers and eval_episodes:
                 self._evaluate(
-                    eval_episodes, scorers, logger, transition_picker
+                    eval_episodes, scorers, logger, dataset.transition_picker
                 )
 
             # save metrics

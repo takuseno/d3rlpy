@@ -225,13 +225,6 @@ def train_single_env(
                 clip_episode = terminal
 
             # store observation
-            buffer.append(
-                observation=observation,
-                action=action,
-                reward=reward,
-                terminal=terminal,
-                clip_episode=clip_episode,
-            )
             buffer.append(observation, action, reward)
 
             # reset if terminated
@@ -249,16 +242,14 @@ def train_single_env(
             # psuedo epoch count
             epoch = total_step // n_steps_per_epoch
 
-            if total_step > update_start_step and len(buffer) > algo.batch_size:
+            if (
+                total_step > update_start_step
+                and buffer.size() > algo.batch_size
+            ):
                 if total_step % update_interval == 0:
                     # sample mini-batch
                     with logger.measure_time("sample_batch"):
-                        batch = buffer.sample(
-                            batch_size=algo.batch_size,
-                            n_frames=algo.n_frames,
-                            n_steps=algo.n_steps,
-                            gamma=algo.gamma,
-                        )
+                        batch = buffer.sample_transition_batch(algo.batch_size)
 
                     # update parameters
                     with logger.measure_time("algorithm_update"):

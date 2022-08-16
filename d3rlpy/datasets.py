@@ -3,7 +3,7 @@
 import os
 import random
 import re
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from urllib import request
 
 import gym
@@ -14,7 +14,8 @@ from .dataset import (
     EpisodeGenerator,
     InfiniteBuffer,
     ReplayBuffer,
-    Transition,
+    TrajectorySlicerProtocol,
+    TransitionPickerProtocol,
     create_infinite_replay_buffer,
     load_v1,
 )
@@ -28,7 +29,11 @@ PENDULUM_URL = f"{DROPBOX_URL}/ukkucouzys0jkfs/pendulum_v1.1.0.h5?dl=1"
 PENDULUM_RANDOM_URL = f"{DROPBOX_URL}/hhbq9i6ako24kzz/pendulum_random_v1.1.0.h5?dl=1"  # pylint: disable=line-too-long
 
 
-def get_cartpole(dataset_type: str = "replay") -> Tuple[ReplayBuffer, gym.Env]:
+def get_cartpole(
+    dataset_type: str = "replay",
+    transition_picker: Optional[TransitionPickerProtocol] = None,
+    trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+) -> Tuple[ReplayBuffer, gym.Env]:
     """Returns cartpole dataset and environment.
 
     The dataset is automatically downloaded to ``d3rlpy_data/cartpole.h5`` if
@@ -37,6 +42,8 @@ def get_cartpole(dataset_type: str = "replay") -> Tuple[ReplayBuffer, gym.Env]:
     Args:
         dataset_type: dataset type. Available options are
             ``['replay', 'random']``.
+        transition_picker: TransitionPickerProtocol object.
+        trajectory_slicer: TrajectorySlicerProtocol object.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
@@ -62,7 +69,12 @@ def get_cartpole(dataset_type: str = "replay") -> Tuple[ReplayBuffer, gym.Env]:
     # load dataset
     with open(data_path, "rb") as f:
         episodes = load_v1(f)
-    dataset = ReplayBuffer(InfiniteBuffer(), episodes)
+    dataset = ReplayBuffer(
+        InfiniteBuffer(),
+        episodes=episodes,
+        transition_picker=transition_picker,
+        trajectory_slicer=trajectory_slicer,
+    )
 
     # environment
     env = gym.make("CartPole-v0")
@@ -70,7 +82,11 @@ def get_cartpole(dataset_type: str = "replay") -> Tuple[ReplayBuffer, gym.Env]:
     return dataset, env
 
 
-def get_pendulum(dataset_type: str = "replay") -> Tuple[ReplayBuffer, gym.Env]:
+def get_pendulum(
+    dataset_type: str = "replay",
+    transition_picker: Optional[TransitionPickerProtocol] = None,
+    trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+) -> Tuple[ReplayBuffer, gym.Env]:
     """Returns pendulum dataset and environment.
 
     The dataset is automatically downloaded to ``d3rlpy_data/pendulum.h5`` if
@@ -79,6 +95,8 @@ def get_pendulum(dataset_type: str = "replay") -> Tuple[ReplayBuffer, gym.Env]:
     Args:
         dataset_type: dataset type. Available options are
             ``['replay', 'random']``.
+        transition_picker: TransitionPickerProtocol object.
+        trajectory_slicer: TrajectorySlicerProtocol object.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
@@ -103,7 +121,12 @@ def get_pendulum(dataset_type: str = "replay") -> Tuple[ReplayBuffer, gym.Env]:
     # load dataset
     with open(data_path, "rb") as f:
         episodes = load_v1(f)
-    dataset = ReplayBuffer(InfiniteBuffer(), episodes)
+    dataset = ReplayBuffer(
+        InfiniteBuffer(),
+        episodes=episodes,
+        transition_picker=transition_picker,
+        trajectory_slicer=trajectory_slicer,
+    )
 
     # environment
     env = gym.make("Pendulum-v0")
@@ -111,7 +134,11 @@ def get_pendulum(dataset_type: str = "replay") -> Tuple[ReplayBuffer, gym.Env]:
     return dataset, env
 
 
-def get_atari(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
+def get_atari(
+    env_name: str,
+    transition_picker: Optional[TransitionPickerProtocol] = None,
+    trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+) -> Tuple[ReplayBuffer, gym.Env]:
     """Returns atari dataset and envrironment.
 
     The dataset is provided through d4rl-atari. See more details including
@@ -128,6 +155,8 @@ def get_atari(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
 
     Args:
         env_name: environment id of d4rl-atari dataset.
+        transition_picker: TransitionPickerProtocol object.
+        trajectory_slicer: TrajectorySlicerProtocol object.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
@@ -138,7 +167,11 @@ def get_atari(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
 
         env = ChannelFirst(gym.make(env_name))
         episode_generator = EpisodeGenerator(**env.get_dataset())
-        dataset = create_infinite_replay_buffer(episode_generator)
+        dataset = create_infinite_replay_buffer(
+            episode_generator,
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
         return dataset, env
     except ImportError as e:
         raise ImportError(
@@ -148,7 +181,11 @@ def get_atari(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
 
 
 def get_atari_transitions(
-    game_name: str, fraction: float = 0.01, index: int = 0
+    game_name: str,
+    fraction: float = 0.01,
+    index: int = 0,
+    transition_picker: Optional[TransitionPickerProtocol] = None,
+    trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
 ) -> Tuple[ReplayBuffer, gym.Env]:
     """Returns atari dataset as a list of Transition objects and envrironment.
 
@@ -171,6 +208,8 @@ def get_atari_transitions(
         game_name: Atari 2600 game name in lower_snake_case.
         fraction: fraction of sampled transitions.
         index: index to specify which trial to load.
+        transition_picker: TransitionPickerProtocol object.
+        trajectory_slicer: TrajectorySlicerProtocol object.
 
     Returns:
         tuple of a list of :class:`d3rlpy.dataset.Transition` and gym
@@ -218,9 +257,14 @@ def get_atari_transitions(
                 copied_episodes.append(copied_episode)
                 num_data += copied_episode.size()
 
-        return ReplayBuffer(InfiniteBuffer(), copied_episodes), ChannelFirst(
-            env
+        dataset = ReplayBuffer(
+            InfiniteBuffer(),
+            episodes=copied_episodes,
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
         )
+
+        return dataset, ChannelFirst(env)
     except ImportError as e:
         raise ImportError(
             "d4rl-atari is not installed.\n"
@@ -228,7 +272,11 @@ def get_atari_transitions(
         ) from e
 
 
-def get_d4rl(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
+def get_d4rl(
+    env_name: str,
+    transition_picker: Optional[TransitionPickerProtocol] = None,
+    trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+) -> Tuple[ReplayBuffer, gym.Env]:
     """Returns d4rl dataset and envrironment.
 
     The dataset is provided through d4rl.
@@ -246,6 +294,8 @@ def get_d4rl(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
 
     Args:
         env_name: environment id of d4rl dataset.
+        transition_picker: TransitionPickerProtocol object.
+        trajectory_slicer: TrajectorySlicerProtocol object.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
@@ -271,7 +321,11 @@ def get_d4rl(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
             terminals=np.array(terminals, dtype=np.float32),
             episode_terminals=np.array(episode_terminals, dtype=np.float32),
         )
-        dataset = create_infinite_replay_buffer(episode_generator)
+        dataset = create_infinite_replay_buffer(
+            episode_generator,
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
 
         return dataset, env
     except ImportError as e:
@@ -347,7 +401,11 @@ ATARI_GAMES = [
 ]
 
 
-def get_dataset(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
+def get_dataset(
+    env_name: str,
+    transition_picker: Optional[TransitionPickerProtocol] = None,
+    trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+) -> Tuple[ReplayBuffer, gym.Env]:
     """Returns dataset and envrironment by guessing from name.
 
     This function returns dataset by matching name with the following datasets.
@@ -378,23 +436,53 @@ def get_dataset(env_name: str) -> Tuple[ReplayBuffer, gym.Env]:
 
     Args:
         env_name: environment id of the dataset.
+        transition_picker: TransitionPickerProtocol object.
+        trajectory_slicer: TrajectorySlicerProtocol object.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
 
     """
     if env_name == "cartpole-replay":
-        return get_cartpole(dataset_type="replay")
+        return get_cartpole(
+            dataset_type="replay",
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
     elif env_name == "cartpole-random":
-        return get_cartpole(dataset_type="random")
+        return get_cartpole(
+            dataset_type="random",
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
     elif env_name == "pendulum-replay":
-        return get_pendulum(dataset_type="replay")
+        return get_pendulum(
+            dataset_type="replay",
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
     elif env_name == "pendulum-random":
-        return get_pendulum(dataset_type="random")
+        return get_pendulum(
+            dataset_type="random",
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
     elif re.match(r"^bullet-.+$", env_name):
-        return get_d4rl(env_name)
+        return get_d4rl(
+            env_name,
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
     elif re.match(r"hopper|halfcheetah|walker|ant", env_name):
-        return get_d4rl(env_name)
+        return get_d4rl(
+            env_name,
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
     elif re.match(re.compile("|".join(ATARI_GAMES)), env_name):
-        return get_atari(env_name)
+        return get_atari(
+            env_name,
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
     raise ValueError(f"Unrecognized env_name: {env_name}.")

@@ -36,11 +36,11 @@ class Transition:
 
     @property
     def action_shape(self) -> Sequence[int]:
-        return self.action.shape
+        return self.action.shape  # type: ignore
 
     @property
     def reward_shape(self) -> Sequence[int]:
-        return self.reward.shape
+        return self.reward.shape  # type: ignore
 
 
 @dataclasses.dataclass(frozen=True)
@@ -60,11 +60,11 @@ class PartialTrajectory:
 
     @property
     def action_shape(self) -> Sequence[int]:
-        return self.actions.shape[1:]
+        return self.actions.shape[1:]  # type: ignore
 
     @property
     def reward_shape(self) -> Sequence[int]:
-        return self.rewards.shape[1:]
+        return self.rewards.shape[1:]  # type: ignore
 
     def __len__(self) -> int:
         return self.length
@@ -133,17 +133,17 @@ class Episode:
 
     @property
     def action_shape(self) -> Sequence[int]:
-        return self.actions.shape[1:]
+        return self.actions.shape[1:]  # type: ignore
 
     @property
     def reward_shape(self) -> Sequence[int]:
-        return self.rewards.shape[1:]
+        return self.rewards.shape[1:]  # type: ignore
 
     def size(self) -> int:
-        return self.actions.shape[0]
+        return int(self.actions.shape[0])
 
     def compute_return(self) -> float:
-        return np.sum(self.rewards)
+        return float(np.sum(self.rewards))
 
     def serialize(self) -> Dict[str, Any]:
         return {
@@ -163,7 +163,7 @@ class Episode:
         )
 
     def __len__(self) -> int:
-        return self.actions.shape[0]
+        return self.actions.shape[0]  # type: ignore
 
     @property
     def transition_count(self) -> int:

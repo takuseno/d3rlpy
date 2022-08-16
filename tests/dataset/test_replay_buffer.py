@@ -6,8 +6,6 @@ import pytest
 from d3rlpy.dataset import (
     BasicTrajectorySlicer,
     BasicTransitionPicker,
-    EpisodeGenerator,
-    ExperienceWriter,
     FIFOBuffer,
     InfiniteBuffer,
     ReplayBuffer,
@@ -44,7 +42,7 @@ def test_replay_buffer(observation_shape, action_size, length, terminated):
 @pytest.mark.parametrize("length", [100])
 def test_replay_buffer_dump_load(observation_shape, action_size, length):
     episode = create_episode(observation_shape, action_size, length)
-    replay_buffer = ReplayBuffer(InfiniteBuffer(), [episode])
+    replay_buffer = ReplayBuffer(InfiniteBuffer(), episodes=[episode])
 
     # save
     with open(os.path.join("test_data", "replay_buffer.h5"), "w+b") as f:
@@ -61,22 +59,31 @@ def test_replay_buffer_dump_load(observation_shape, action_size, length):
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("partial_length", [10])
 @pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("picker", [None, BasicTransitionPicker()])
+@pytest.mark.parametrize("slicer", [None, BasicTrajectorySlicer()])
 def test_replay_buffer_sample(
-    observation_shape, action_size, length, partial_length, batch_size
+    observation_shape,
+    action_size,
+    length,
+    partial_length,
+    batch_size,
+    picker,
+    slicer,
 ):
     episode = create_episode(observation_shape, action_size, length)
-    replay_buffer = ReplayBuffer(InfiniteBuffer(), [episode])
+    replay_buffer = ReplayBuffer(
+        InfiniteBuffer(),
+        episodes=[episode],
+        transition_picker=picker,
+        trajectory_slicer=slicer,
+    )
 
     # check transition sampling
-    picker = BasicTransitionPicker()
-    batch = replay_buffer.sample_transition_batch(picker, batch_size)
+    batch = replay_buffer.sample_transition_batch(batch_size)
     assert len(batch) == batch_size
 
     # check trajectory sampling
-    slicer = BasicTrajectorySlicer()
-    batch = replay_buffer.sample_trajectory_batch(
-        slicer, batch_size, partial_length
-    )
+    batch = replay_buffer.sample_trajectory_batch(batch_size, partial_length)
     assert len(batch) == batch_size
 
 

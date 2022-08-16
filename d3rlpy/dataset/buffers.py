@@ -22,7 +22,7 @@ class InfiniteBuffer(BufferProtocol):
     _episodes: List[EpisodeBase]
     _transition_count: int
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._episodes = []
         self._transition_count = 0
 

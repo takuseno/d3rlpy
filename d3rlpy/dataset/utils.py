@@ -118,7 +118,7 @@ def stack_observations(observations: Sequence[Observation]) -> Observation:
 
 def get_shape_from_observation(observation: Observation) -> Shape:
     if isinstance(observation, np.ndarray):
-        return observation.shape
+        return observation.shape  # type: ignore
     elif isinstance(observation, (list, tuple)):
         return [obs.shape for obs in observation]
     else:
@@ -129,7 +129,7 @@ def get_shape_from_observation_sequence(
     observations: ObservationSequence,
 ) -> Shape:
     if isinstance(observations, np.ndarray):
-        return observations.shape[1:]
+        return observations.shape[1:]  # type: ignore
     elif isinstance(observations, (list, tuple)):
         return [obs.shape[1:] for obs in observations]
     else:
@@ -142,7 +142,7 @@ def check_dtype(
     if isinstance(array, (list, tuple)):
         return all([array[i].dtype == dtype for i in range(len(array))])
     elif isinstance(array, np.ndarray):
-        return array.dtype == dtype
+        return array.dtype == dtype  # type: ignore
     else:
         raise ValueError(f"invalid array type: {type(array)}")
 
@@ -151,7 +151,7 @@ def check_non_1d_array(array: Union[np.ndarray, Sequence[np.ndarray]]) -> bool:
     if isinstance(array, (list, tuple)):
         return all([array[i].ndim > 1 for i in range(len(array))])
     elif isinstance(array, np.ndarray):
-        return array.ndim > 1
+        return array.ndim > 1  # type: ignore
     else:
         raise ValueError(f"invalid array type: {type(array)}")
 
@@ -163,7 +163,7 @@ def cast_recursively(array: _T, dtype: Any) -> _T:
     if isinstance(array, (list, tuple)):
         return [array[i].astype(dtype) for i in range(len(array))]  # type: ignore
     elif isinstance(array, np.ndarray):
-        return array.astype(dtype)
+        return array.astype(dtype)  # type: ignore
     else:
         raise ValueError(f"invalid array type: {type(array)}")
 

@@ -78,14 +78,14 @@ class TransitionMiniBatch:
 
     @property
     def action_shape(self) -> Sequence[int]:
-        return self.actions.shape[1:]
+        return self.actions.shape[1:]  # type: ignore
 
     @property
     def reward_shape(self) -> Sequence[int]:
-        return self.rewards.shape[1:]
+        return self.rewards.shape[1:]  # type: ignore
 
     def __len__(self) -> int:
-        return self.actions.shape[0]
+        return int(self.actions.shape[0])
 
 
 @dataclasses.dataclass(frozen=True)
@@ -140,11 +140,11 @@ class TrajectoryMiniBatch:
 
     @property
     def action_shape(self) -> Sequence[int]:
-        return self.actions.shape[1:]
+        return self.actions.shape[1:]  # type: ignore
 
     @property
     def reward_shape(self) -> Sequence[int]:
-        return self.rewards.shape[1:]
+        return self.rewards.shape[1:]  # type: ignore
 
     def __len__(self) -> int:
-        return self.actions.shape[0]
+        return int(self.actions.shape[0])

@@ -59,13 +59,13 @@ def load(episode_cls: Type[EpisodeBase], f: BinaryIO) -> Sequence[EpisodeBase]:
 
 def load_v1(f: BinaryIO) -> Sequence[Episode]:
     with h5py.File(f, "r") as h5:
-        observations = h5["observations"][()]  # type: ignore
-        actions = h5["actions"][()]  # type: ignore
-        rewards = h5["rewards"][()]  # type: ignore
-        terminals = h5["terminals"][()]  # type: ignore
+        observations = h5["observations"][()]
+        actions = h5["actions"][()]
+        rewards = h5["rewards"][()]
+        terminals = h5["terminals"][()]
 
         if "episode_terminals" in h5:
-            episode_terminals = h5["episode_terminals"][()]  # type: ignore
+            episode_terminals = h5["episode_terminals"][()]
         else:
             episode_terminals = None
 

@@ -476,7 +476,7 @@ class ConstantShiftRewardScaler(RewardScaler):
     ):
         self._shift = shift
 
-    def fit(self, transitions: List[Transition]) -> None:
+    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         if self._shift is None:
             LOG.warning("Please initialize ConstantShiftRewardScaler manually.")
 

@@ -7,8 +7,8 @@ from .components import Episode, EpisodeBase, PartialTrajectory, Transition
 from .episode_generator import EpisodeGeneratorProtocol
 from .io import dump, load
 from .mini_batch import TrajectoryMiniBatch, TransitionMiniBatch
-from .trajectory_slicers import TrajectorySlicerProtocol
-from .transition_pickers import TransitionPickerProtocol
+from .trajectory_slicers import BasicTrajectorySlicer, TrajectorySlicerProtocol
+from .transition_pickers import BasicTransitionPicker, TransitionPickerProtocol
 from .types import Observation
 from .writers import ExperienceWriter
 
@@ -21,16 +21,31 @@ __all__ = [
 
 class ReplayBuffer:
     _buffer: BufferProtocol
+    _transition_picker: TransitionPickerProtocol
+    _trajectory_slicer: TrajectorySlicerProtocol
     _writer: ExperienceWriter
     _episodes: List[EpisodeBase]
 
     def __init__(
         self,
         buffer: BufferProtocol,
+        transition_picker: Optional[TransitionPickerProtocol] = None,
+        trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         episodes: Optional[Sequence[EpisodeBase]] = None,
     ):
         self._buffer = buffer
         self._writer = ExperienceWriter(buffer)
+
+        if transition_picker:
+            self._transition_picker = transition_picker
+        else:
+            self._transition_picker = BasicTransitionPicker()
+
+        if trajectory_slicer:
+            self._trajectory_slicer = trajectory_slicer
+        else:
+            self._trajectory_slicer = BasicTrajectorySlicer()
+
         if episodes:
             for episode in episodes:
                 self.append_episode(episode)
@@ -49,32 +64,28 @@ class ReplayBuffer:
     def clip_episode(self, terminated: bool) -> None:
         self._writer.clip_episode(terminated)
 
-    def sample_transition(self, picker: TransitionPickerProtocol) -> Transition:
+    def sample_transition(self) -> Transition:
         episode_index = np.random.randint(len(self.episodes))
         episode = self.episodes[episode_index]
         transition_index = np.random.randint(episode.transition_count)
-        return picker(episode, transition_index)
+        return self._transition_picker(episode, transition_index)
 
-    def sample_transition_batch(
-        self, picker: TransitionPickerProtocol, batch_size: int
-    ) -> TransitionMiniBatch:
+    def sample_transition_batch(self, batch_size: int) -> TransitionMiniBatch:
         return TransitionMiniBatch.from_transitions(
-            [self.sample_transition(picker) for _ in range(batch_size)]
+            [self.sample_transition() for _ in range(batch_size)]
         )
 
-    def sample_trajectory(
-        self, slicer: TrajectorySlicerProtocol, length: int
-    ) -> PartialTrajectory:
+    def sample_trajectory(self, length: int) -> PartialTrajectory:
         episode_index = np.random.randint(len(self.episodes))
         episode = self.episodes[episode_index]
         transition_index = np.random.randint(episode.size())
-        return slicer(episode, transition_index, length)
+        return self._trajectory_slicer(episode, transition_index, length)
 
     def sample_trajectory_batch(
-        self, slicer: TrajectorySlicerProtocol, batch_size: int, length: int
+        self, batch_size: int, length: int
     ) -> TrajectoryMiniBatch:
         return TrajectoryMiniBatch.from_partial_trajectories(
-            [self.sample_trajectory(slicer, length) for _ in range(batch_size)]
+            [self.sample_trajectory(length) for _ in range(batch_size)]
         )
 
     def dump(self, f: BinaryIO) -> None:
@@ -82,9 +93,18 @@ class ReplayBuffer:
 
     @classmethod
     def from_episode_generator(
-        cls, episode_generator: EpisodeGeneratorProtocol, buffer: BufferProtocol
+        cls,
+        episode_generator: EpisodeGeneratorProtocol,
+        buffer: BufferProtocol,
+        transition_picker: Optional[TransitionPickerProtocol] = None,
+        trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     ) -> "ReplayBuffer":
-        return cls(buffer, episode_generator())
+        return cls(
+            buffer,
+            episodes=episode_generator(),
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
 
     @classmethod
     def load(
@@ -92,8 +112,15 @@ class ReplayBuffer:
         f: BinaryIO,
         buffer: BufferProtocol,
         episode_cls: Type[EpisodeBase] = Episode,
+        transition_picker: Optional[TransitionPickerProtocol] = None,
+        trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     ) -> "ReplayBuffer":
-        return cls(buffer, load(episode_cls, f))
+        return cls(
+            buffer,
+            episodes=load(episode_cls, f),
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
 
     @property
     def episodes(self) -> Sequence[EpisodeBase]:
@@ -110,18 +137,41 @@ class ReplayBuffer:
     def transition_count(self) -> int:
         return self._buffer.transition_count
 
+    @property
+    def transition_picker(self) -> TransitionPickerProtocol:
+        return self._transition_picker
+
+    @property
+    def trajectory_slcier(self) -> TrajectorySlicerProtocol:
+        return self._trajectory_slicer
+
 
 def create_fifo_replay_buffer(
-    limit: int, episode_generator: Optional[EpisodeGeneratorProtocol] = None
+    limit: int,
+    episode_generator: Optional[EpisodeGeneratorProtocol] = None,
+    transition_picker: Optional[TransitionPickerProtocol] = None,
+    trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
 ) -> ReplayBuffer:
     buffer = FIFOBuffer(limit)
     episodes = episode_generator() if episode_generator else []
-    return ReplayBuffer(buffer, episodes)
+    return ReplayBuffer(
+        buffer,
+        episodes=episodes,
+        transition_picker=transition_picker,
+        trajectory_slicer=trajectory_slicer,
+    )
 
 
 def create_infinite_replay_buffer(
     episode_generator: Optional[EpisodeGeneratorProtocol] = None,
+    transition_picker: Optional[TransitionPickerProtocol] = None,
+    trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
 ) -> ReplayBuffer:
     buffer = InfiniteBuffer()
     episodes = episode_generator() if episode_generator else []
-    return ReplayBuffer(buffer, episodes)
+    return ReplayBuffer(
+        buffer,
+        episodes=episodes,
+        transition_picker=transition_picker,
+        trajectory_slicer=trajectory_slicer,
+    )
