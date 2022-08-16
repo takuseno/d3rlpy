@@ -1,4 +1,4 @@
-from typing import Any, BinaryIO, Dict, Sequence, Type, cast
+from typing import BinaryIO, Sequence, Type, cast
 
 import h5py
 

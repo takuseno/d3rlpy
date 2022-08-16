@@ -1,7 +1,6 @@
 from typing import List, Union
 
 import numpy as np
-from typing_extensions import Protocol
 
 from .buffers import BufferProtocol
 from .components import Episode

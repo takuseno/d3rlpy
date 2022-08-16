@@ -36,7 +36,6 @@ from .constants import (
 )
 from .context import disable_parallel
 from .dataset import (
-    BasicTransitionPicker,
     DatasetInfo,
     Episode,
     ReplayBuffer,

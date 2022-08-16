@@ -133,14 +133,14 @@ def get_shape_from_observation_sequence(
     elif isinstance(observations, (list, tuple)):
         return [obs.shape[1:] for obs in observations]
     else:
-        raise ValueError(f"invalid observation type: type(observations)")
+        raise ValueError(f"invalid observation type: {type(observations)}")
 
 
 def check_dtype(
     array: Union[np.ndarray, Sequence[np.ndarray]], dtype: Any
 ) -> bool:
     if isinstance(array, (list, tuple)):
-        return all([array[i].dtype == dtype for i in range(len(array))])
+        return all(v.dtype == dtype for v in array)
     elif isinstance(array, np.ndarray):
         return array.dtype == dtype  # type: ignore
     else:
@@ -149,7 +149,7 @@ def check_dtype(
 
 def check_non_1d_array(array: Union[np.ndarray, Sequence[np.ndarray]]) -> bool:
     if isinstance(array, (list, tuple)):
-        return all([array[i].ndim > 1 for i in range(len(array))])
+        return all(v.ndim > 1 for v in array)
     elif isinstance(array, np.ndarray):
         return array.ndim > 1  # type: ignore
     else:

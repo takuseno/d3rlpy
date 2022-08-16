@@ -27,10 +27,9 @@ class ModelBaseMixin:
         rets: List[Transition] = []
 
         # rollout
-        batch = TransitionMiniBatch(init_transitions)
+        batch = TransitionMiniBatch.from_transitions(init_transitions)
         observations = batch.observations
         actions = self._sample_rollout_action(observations)
-        prev_transitions: List[Transition] = []
         for _ in range(self._get_rollout_horizon()):
             # predict next state
             pred = self._dynamics.predict(observations, actions, True)
@@ -49,22 +48,15 @@ class ModelBaseMixin:
             new_transitions = []
             for i in range(len(init_transitions)):
                 transition = Transition(
-                    observation_shape=self._impl.observation_shape,
-                    action_size=self._impl.action_size,
                     observation=observations[i],
                     action=actions[i],
-                    reward=float(rewards[i][0]),
+                    reward=rewards[i],
                     next_observation=next_observations[i],
                     terminal=0.0,
+                    interval=1,
                 )
-
-                if prev_transitions:
-                    prev_transitions[i].next_transition = transition
-                    transition.prev_transition = prev_transitions[i]
-
                 new_transitions.append(transition)
 
-            prev_transitions = new_transitions
             rets += new_transitions
             observations = next_observations.copy()
             actions = next_actions.copy()

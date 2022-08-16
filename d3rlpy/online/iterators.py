@@ -52,10 +52,6 @@ class AlgoProtocol(Protocol):
         ...
 
     @property
-    def n_steps(self) -> int:
-        ...
-
-    @property
     def gamma(self) -> float:
         ...
 
