@@ -185,8 +185,8 @@ class MinMaxScaler(Scaler):
             max_observation = np.max(observations, axis=0)
             min_observation = np.min(observations, axis=0)
             if i == 0:
-                minimum = max_observation
-                maximum = min_observation
+                minimum = min_observation
+                maximum = max_observation
             else:
                 minimum = np.minimum(minimum, min_observation)
                 maximum = np.maximum(maximum, max_observation)

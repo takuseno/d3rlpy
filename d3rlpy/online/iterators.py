@@ -178,8 +178,6 @@ def train_single_env(
     rollout_return = 0.0
     for total_step in xrange(1, n_steps + 1):
         with logger.measure_time("step"):
-            observation = observation.astype("f4")
-
             # sample exploration action
             with logger.measure_time("inference"):
                 if total_step < random_steps:
@@ -219,7 +217,7 @@ def train_single_env(
 
             if (
                 total_step > update_start_step
-                and buffer.size() > algo.batch_size
+                and buffer.transition_count > algo.batch_size
             ):
                 if total_step % update_interval == 0:
                     # sample mini-batch
@@ -290,8 +288,6 @@ def collect(
     # start training loop
     observation = env.reset()
     for total_step in xrange(1, n_steps + 1):
-        observation = observation.astype("f4")
-
         # sample exploration action
         if deterministic:
             action = algo.predict([observation])[0]

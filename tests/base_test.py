@@ -4,7 +4,13 @@ from unittest.mock import Mock
 import numpy as np
 
 from d3rlpy.constants import ActionSpace
-from d3rlpy.dataset import MDPDataset, Transition, TransitionMiniBatch
+from d3rlpy.dataset import (
+    DatasetInfo,
+    EpisodeGenerator,
+    Transition,
+    TransitionMiniBatch,
+    create_infinite_replay_buffer,
+)
 from d3rlpy.logger import D3RLPyLogger
 
 
@@ -61,16 +67,19 @@ def base_tester(model, impl, observation_shape, action_size=2):
     if model.get_action_type() == ActionSpace.CONTINUOUS:
         actions = np.random.random((data_size, action_size))
     else:
-        actions = np.random.randint(action_size, size=data_size)
+        actions = np.random.randint(action_size, size=(data_size, 1))
     rewards = np.random.random(data_size)
     terminals = np.zeros(data_size)
     for i in range(n_episodes):
         terminals[(i + 1) * episode_length - 1] = 1.0
-    dataset = MDPDataset(observations, actions, rewards, terminals)
+    dataset = create_infinite_replay_buffer(
+        EpisodeGenerator(observations, actions, rewards, terminals)
+    )
+    dataset_info = DatasetInfo.from_episodes(dataset.episodes)
 
     # check fit
     results = model.fit(
-        dataset.episodes,
+        dataset,
         n_steps=n_steps,
         n_steps_per_epoch=n_steps_per_epoch,
         logdir="test_data",
@@ -92,7 +101,7 @@ def base_tester(model, impl, observation_shape, action_size=2):
 
     # check fitter
     fitter = model.fitter(
-        dataset.episodes,
+        dataset,
         n_steps=n_steps,
         n_steps_per_epoch=n_steps_per_epoch,
         logdir="test_data",
@@ -126,8 +135,8 @@ def base_tester(model, impl, observation_shape, action_size=2):
     # check builds
     model._impl = None
     model.build_with_dataset(dataset)
-    assert model.impl.observation_shape == dataset.get_observation_shape()
-    assert model.impl.action_size == dataset.get_action_size()
+    assert model.impl.observation_shape == dataset_info.observation_shape
+    assert model.impl.action_size == dataset_info.action_size
 
     # set backed up methods
     model._impl = None
@@ -139,7 +148,6 @@ def base_tester(model, impl, observation_shape, action_size=2):
 def base_update_tester(model, observation_shape, action_size, discrete=False):
     # make mini-batch
     transitions = []
-    prev_transition = None
     for i in range(model.batch_size):
         if len(observation_shape) == 3:
             observation = np.random.randint(
@@ -151,33 +159,25 @@ def base_update_tester(model, observation_shape, action_size, discrete=False):
         else:
             observation = np.random.random(observation_shape).astype("f4")
             next_observation = np.random.random(observation_shape).astype("f4")
-        reward = np.random.random()
+        reward = np.random.random((1,))
         terminal = np.random.randint(2)
         if discrete:
-            action = np.random.randint(action_size)
+            action = np.random.randint(action_size, size=(1,))
         else:
             action = np.random.random(action_size).astype("f4")
 
         transition = Transition(
-            observation_shape=observation_shape,
-            action_size=action_size,
             observation=observation,
             action=action,
             reward=reward,
             next_observation=next_observation,
             terminal=terminal,
-            prev_transition=prev_transition,
+            interval=1,
         )
-
-        # set transition to the next pointer
-        if prev_transition:
-            prev_transition.next_transition = transition
-
-        prev_transition = transition
 
         transitions.append(transition)
 
-    batch = TransitionMiniBatch(transitions)
+    batch = TransitionMiniBatch.from_transitions(transitions)
 
     # build models
     model.create_impl(observation_shape, action_size)

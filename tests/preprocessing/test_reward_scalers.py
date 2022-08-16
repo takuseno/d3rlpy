@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 import torch
 
-from d3rlpy.dataset import MDPDataset
+from d3rlpy.dataset import EpisodeGenerator
 from d3rlpy.preprocessing import (
     ClipRewardScaler,
     ConstantShiftRewardScaler,
@@ -131,15 +131,15 @@ def test_min_max_reward_scaler_with_episode(
     terminals = np.zeros(batch_size)
     terminals[-1] = 1.0
 
-    dataset = MDPDataset(
+    episodes = EpisodeGenerator(
         observations=observations,
         actions=actions,
         rewards=rewards,
         terminals=terminals,
-    )
+    )()
 
     rewards_without_first = []
-    for episode in dataset:
+    for episode in episodes:
         rewards_without_first += episode.rewards[1:].tolist()
     rewards_without_first = np.array(rewards_without_first)
 
@@ -147,15 +147,12 @@ def test_min_max_reward_scaler_with_episode(
     minimum = rewards_without_first.min()
 
     scaler = MinMaxRewardScaler()
-    transitions = []
-    for episode in dataset.episodes:
-        transitions += episode.transitions
-    scaler.fit(transitions)
+    scaler.fit(episodes)
 
     x = torch.rand(batch_size)
     y = scaler.transform(x)
     ref_y = (x.numpy() - minimum) / (maximum - minimum)
-    assert np.allclose(y.numpy(), ref_y)
+    assert np.allclose(y.numpy(), ref_y, atol=1e-4)
 
     params = scaler.get_params()
     assert np.allclose(params["minimum"], minimum)
@@ -186,7 +183,7 @@ def test_standard_reward_scaler(batch_size, eps, multiplier):
 
     # check reverse_transform_numpy
     y = scaler.transform_numpy(rewards)
-    assert np.allclose(y, ref_y)
+    assert np.allclose(y, ref_y, atol=1e-4)
 
     assert scaler.get_type() == "standard"
     params = scaler.get_params()
@@ -210,15 +207,15 @@ def test_standard_reward_scaler_with_episode(
     terminals = np.zeros(batch_size)
     terminals[-1] = 1.0
 
-    dataset = MDPDataset(
+    episodes = EpisodeGenerator(
         observations=observations,
         actions=actions,
         rewards=rewards,
         terminals=terminals,
-    )
+    )()
 
     rewards_without_first = []
-    for episode in dataset:
+    for episode in episodes:
         rewards_without_first += episode.rewards.tolist()
     rewards_without_first = np.array(rewards_without_first)
 
@@ -226,15 +223,12 @@ def test_standard_reward_scaler_with_episode(
     std = np.std(rewards_without_first)
 
     scaler = StandardRewardScaler(eps=eps)
-    transitions = []
-    for episode in dataset.episodes:
-        transitions += episode.transitions
-    scaler.fit(transitions)
+    scaler.fit(episodes)
 
     x = torch.rand(batch_size)
     y = scaler.transform(x)
     ref_y = (x.numpy() - mean) / (std + eps)
-    assert np.allclose(y, ref_y, atol=1e-6)
+    assert np.allclose(y, ref_y, atol=1e-4)
 
     params = scaler.get_params()
     assert np.allclose(params["mean"], mean)
@@ -255,27 +249,24 @@ def test_return_based_reward_scaler_with_episode(
     terminals[batch_size // 2] = 1.0
     terminals[-1] = 1.0
 
-    dataset = MDPDataset(
+    episodes = EpisodeGenerator(
         observations=observations,
         actions=actions,
         rewards=rewards,
         terminals=terminals,
-    )
+    )()
 
     returns = []
-    for episode in dataset.episodes:
+    for episode in episodes:
         returns.append(episode.compute_return())
 
     scaler = ReturnBasedRewardScaler()
-    transitions = []
-    for episode in dataset.episodes:
-        transitions += episode.transitions
-    scaler.fit(transitions)
+    scaler.fit(episodes)
 
     x = torch.rand(batch_size)
     y = scaler.transform(x)
     ref_y = x.numpy() / (max(returns) - min(returns))
-    assert np.allclose(y, ref_y, atol=1e-6)
+    assert np.allclose(y, ref_y, atol=1e-4)
 
     params = scaler.get_params()
     assert np.allclose(params["return_max"], max(returns))
@@ -299,7 +290,7 @@ def test_constant_shift_reward_scaler(batch_size, shift):
 
     # check reverse_transform_numpy
     y = scaler.transform_numpy(rewards)
-    assert np.allclose(y, rewards + shift)
+    assert np.allclose(y, rewards + shift, atol=1e-4)
 
     assert scaler.get_type() == "shift"
     params = scaler.get_params()

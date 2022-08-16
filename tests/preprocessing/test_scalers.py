@@ -1,9 +1,8 @@
-import gym
 import numpy as np
 import pytest
 import torch
 
-from d3rlpy.dataset import Episode, MDPDataset
+from d3rlpy.dataset import EpisodeGenerator
 from d3rlpy.preprocessing import (
     MinMaxScaler,
     PixelScaler,
@@ -77,21 +76,18 @@ def test_min_max_scaler_with_episode(observation_shape, batch_size):
     terminals = np.zeros(batch_size)
     terminals[-1] = 1.0
 
-    dataset = MDPDataset(
+    episodes = EpisodeGenerator(
         observations=observations,
         actions=actions,
         rewards=rewards,
         terminals=terminals,
-    )
+    )()
 
     max = observations.max(axis=0)
     min = observations.min(axis=0)
 
     scaler = MinMaxScaler()
-    transitions = []
-    for episode in dataset.episodes:
-        transitions += episode.transitions
-    scaler.fit(transitions)
+    scaler.fit(episodes)
 
     x = torch.rand((batch_size,) + observation_shape)
 
@@ -151,21 +147,18 @@ def test_standard_scaler_with_episode(observation_shape, batch_size, eps):
     terminals = np.zeros(batch_size)
     terminals[-1] = 1.0
 
-    dataset = MDPDataset(
+    episodes = EpisodeGenerator(
         observations=observations,
         actions=actions,
         rewards=rewards,
         terminals=terminals,
-    )
+    )()
 
     mean = observations.mean(axis=0)
     std = observations.std(axis=0)
 
     scaler = StandardScaler(eps=eps)
-    transitions = []
-    for episode in dataset.episodes:
-        transitions += episode.transitions
-    scaler.fit(transitions)
+    scaler.fit(episodes)
 
     x = torch.rand((batch_size,) + observation_shape)
 

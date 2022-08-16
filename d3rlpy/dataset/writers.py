@@ -63,9 +63,9 @@ class _ActiveEpisode:
         action: Union[int, np.ndarray],
         reward: Union[float, np.ndarray],
     ) -> None:
-        if isinstance(action, int):
+        if not isinstance(action, np.ndarray) or action.ndim == 0:
             action = np.array([action])
-        if isinstance(reward, (float, int)):
+        if not isinstance(reward, np.ndarray) or reward.ndim == 0:
             reward = np.array([reward])
 
         # preprocess
@@ -97,11 +97,15 @@ class _ActiveEpisode:
             terminated=terminated,
         )
 
+    def size(self) -> int:
+        return len(self._observations)
+
 
 class ExperienceWriter:
     _preprocessor: WriterPreprocessProtocol
     _buffer: BufferProtocol
     _active_episode: _ActiveEpisode
+    _step: int
 
     def __init__(
         self, buffer: BufferProtocol, preprocessor: WriterPreprocessProtocol
@@ -119,6 +123,8 @@ class ExperienceWriter:
         self._active_episode.append(observation, action, reward)
 
     def clip_episode(self, terminated: bool) -> None:
+        if self._active_episode.size() == 0:
+            return
         episode = self._active_episode.to_episode(terminated)
         self._active_episode = _ActiveEpisode(self._preprocessor)
         self._buffer.append(episode)

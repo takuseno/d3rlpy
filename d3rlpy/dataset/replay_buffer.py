@@ -102,12 +102,14 @@ class ReplayBuffer:
         buffer: BufferProtocol,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+        writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
     ) -> "ReplayBuffer":
         return cls(
             buffer,
             episodes=episode_generator(),
             transition_picker=transition_picker,
             trajectory_slicer=trajectory_slicer,
+            writer_preprocessor=writer_preprocessor,
         )
 
     @classmethod
@@ -118,12 +120,14 @@ class ReplayBuffer:
         episode_cls: Type[EpisodeBase] = Episode,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+        writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
     ) -> "ReplayBuffer":
         return cls(
             buffer,
             episodes=load(episode_cls, f),
             transition_picker=transition_picker,
             trajectory_slicer=trajectory_slicer,
+            writer_preprocessor=writer_preprocessor,
         )
 
     @property
@@ -155,6 +159,7 @@ def create_fifo_replay_buffer(
     episode_generator: Optional[EpisodeGeneratorProtocol] = None,
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+    writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
 ) -> ReplayBuffer:
     buffer = FIFOBuffer(limit)
     episodes = episode_generator() if episode_generator else []
@@ -163,6 +168,7 @@ def create_fifo_replay_buffer(
         episodes=episodes,
         transition_picker=transition_picker,
         trajectory_slicer=trajectory_slicer,
+        writer_preprocessor=writer_preprocessor,
     )
 
 
@@ -170,6 +176,7 @@ def create_infinite_replay_buffer(
     episode_generator: Optional[EpisodeGeneratorProtocol] = None,
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+    writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
 ) -> ReplayBuffer:
     buffer = InfiniteBuffer()
     episodes = episode_generator() if episode_generator else []
@@ -178,4 +185,5 @@ def create_infinite_replay_buffer(
         episodes=episodes,
         transition_picker=transition_picker,
         trajectory_slicer=trajectory_slicer,
+        writer_preprocessor=writer_preprocessor,
     )

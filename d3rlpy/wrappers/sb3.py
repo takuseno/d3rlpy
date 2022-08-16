@@ -64,13 +64,13 @@ class SB3Wrapper:
 
 
 def to_mdp_dataset(replay_buffer: "SB3ReplayBuffer") -> ReplayBuffer:
-    """Returns d3rlpy's MDPDataset from SB3's ReplayBuffer
+    """Returns d3rlpy's ReplayBuffer from SB3's ReplayBuffer
 
     Args:
         replay_buffer: SB3's replay buffer.
 
     Returns:
-        d3rlpy's MDPDataset.
+        d3rlpy's ReplayBuffer.
 
     """
     pos = replay_buffer.size()

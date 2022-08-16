@@ -65,7 +65,7 @@ def _make_batches(
         n_batches += 1
     for i in range(n_batches):
         head_index = i * window_size
-        last_index = min(head_index + window_size, len(episode))
+        last_index = min(head_index + window_size, episode.transition_count)
         transitions = [
             transition_picker(episode, index)
             for index in range(head_index, last_index)

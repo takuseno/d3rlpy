@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 import torch
 
-from d3rlpy.dataset import Episode, MDPDataset
+from d3rlpy.dataset import EpisodeGenerator
 from d3rlpy.preprocessing import MinMaxActionScaler, create_action_scaler
 
 
@@ -59,21 +59,18 @@ def test_min_max_action_scaler_with_episode(
     terminals = np.zeros(batch_size)
     terminals[-1] = 1.0
 
-    dataset = MDPDataset(
+    episodes = EpisodeGenerator(
         observations=observations,
         actions=actions,
         rewards=rewards,
         terminals=terminals,
-    )
+    )()
 
     max = actions.max(axis=0)
     min = actions.min(axis=0)
 
     scaler = MinMaxActionScaler()
-    transitions = []
-    for episode in dataset.episodes:
-        transitions += episode.transitions
-    scaler.fit(transitions)
+    scaler.fit(episodes)
 
     x = torch.rand((batch_size, action_size))
 

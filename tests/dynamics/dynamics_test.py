@@ -1,15 +1,8 @@
 import os
-import pickle
-from unittest.mock import Mock
 
 import numpy as np
-import torch
 
-from d3rlpy.dataset import MDPDataset, Transition, TransitionMiniBatch
 from d3rlpy.dynamics.torch.base import TorchImplBase
-from d3rlpy.logger import D3RLPyLogger
-from d3rlpy.preprocessing import Scaler
-from tests.algos.algo_test import DummyScaler
 from tests.base_test import base_tester, base_update_tester
 
 

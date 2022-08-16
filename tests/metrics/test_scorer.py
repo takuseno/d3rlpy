@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from gym import spaces
 
-from d3rlpy.dataset import Episode, TransitionMiniBatch
+from d3rlpy.dataset import BasicTransitionPicker, Episode, TransitionMiniBatch
 from d3rlpy.metrics.scorer import (
     average_value_estimation_scorer,
     continuous_action_diff_scorer,
@@ -20,7 +20,16 @@ from d3rlpy.metrics.scorer import (
     td_error_scorer,
     value_estimation_std_scorer,
 )
-from d3rlpy.preprocessing import ClipRewardScaler, RewardScaler
+from d3rlpy.preprocessing import ClipRewardScaler
+
+
+def _convert_episode_to_batch(episode):
+    transition_picker = BasicTransitionPicker()
+    transitions = [
+        transition_picker(episode, index)
+        for index in range(episode.transition_count)
+    ]
+    return TransitionMiniBatch.from_transitions(transitions)
 
 
 # dummy algorithm with deterministic outputs
@@ -89,11 +98,10 @@ def test_td_error_scorer(
         actions = np.matmul(observations, A).astype("f4")
         rewards = np.random.random((episode_length, 1)).astype("f4")
         episode = Episode(
-            observation_shape,
-            action_size,
             observations.astype("f4"),
             actions,
             rewards,
+            False,
         )
         episodes.append(episode)
 
@@ -101,7 +109,7 @@ def test_td_error_scorer(
 
     ref_errors = []
     for episode in episodes:
-        batch = TransitionMiniBatch(episode.transitions)
+        batch = _convert_episode_to_batch(episode)
         ref_error = ref_td_error_score(
             algo.predict_value,
             batch.observations,
@@ -115,7 +123,7 @@ def test_td_error_scorer(
         )
         ref_errors += ref_error
 
-    score = td_error_scorer(algo, episodes)
+    score = td_error_scorer(algo, episodes, BasicTransitionPicker())
     assert np.allclose(score, np.mean(ref_errors))
 
 
@@ -152,11 +160,10 @@ def test_discounted_sum_of_advantage_scorer(
         actions = (np.matmul(observations, A) + noise).astype("f4")
         rewards = np.random.random((episode_length, 1)).astype("f4")
         episode = Episode(
-            observation_shape,
-            action_size,
             observations.astype("f4"),
             actions,
             rewards,
+            False,
         )
         episodes.append(episode)
 
@@ -164,7 +171,7 @@ def test_discounted_sum_of_advantage_scorer(
 
     ref_sums = []
     for episode in episodes:
-        batch = TransitionMiniBatch(episode.transitions)
+        batch = _convert_episode_to_batch(episode)
         policy_actions = algo.predict(batch.observations)
         ref_sum = ref_discounted_sum_of_advantage_score(
             algo.predict_value,
@@ -175,7 +182,9 @@ def test_discounted_sum_of_advantage_scorer(
         )
         ref_sums += ref_sum
 
-    score = discounted_sum_of_advantage_scorer(algo, episodes)
+    score = discounted_sum_of_advantage_scorer(
+        algo, episodes, BasicTransitionPicker()
+    )
     assert np.allclose(score, np.mean(ref_sums))
 
 
@@ -194,11 +203,10 @@ def test_average_value_estimation_scorer(
         actions = np.matmul(observations, A).astype("f4")
         rewards = np.random.random((episode_length, 1)).astype("f4")
         episode = Episode(
-            observation_shape,
-            action_size,
             observations.astype("f4"),
             actions,
             rewards,
+            False,
         )
         episodes.append(episode)
 
@@ -206,12 +214,14 @@ def test_average_value_estimation_scorer(
 
     total_values = []
     for episode in episodes:
-        batch = TransitionMiniBatch(episode.transitions)
+        batch = _convert_episode_to_batch(episode)
         policy_actions = algo.predict(batch.observations)
         values = algo.predict_value(batch.observations, policy_actions)
         total_values += values.tolist()
 
-    score = average_value_estimation_scorer(algo, episodes)
+    score = average_value_estimation_scorer(
+        algo, episodes, BasicTransitionPicker()
+    )
     assert np.allclose(score, np.mean(total_values))
 
 
@@ -230,11 +240,10 @@ def test_value_estimation_std_scorer(
         actions = np.matmul(observations, A).astype("f4")
         rewards = np.random.random((episode_length, 1)).astype("f4")
         episode = Episode(
-            observation_shape,
-            action_size,
             observations.astype("f4"),
             actions,
             rewards,
+            False,
         )
         episodes.append(episode)
 
@@ -242,12 +251,12 @@ def test_value_estimation_std_scorer(
 
     total_stds = []
     for episode in episodes:
-        batch = TransitionMiniBatch(episode.transitions)
+        batch = _convert_episode_to_batch(episode)
         policy_actions = algo.predict(batch.observations)
         _, stds = algo.predict_value(batch.observations, policy_actions, True)
         total_stds += stds.tolist()
 
-    score = value_estimation_std_scorer(algo, episodes)
+    score = value_estimation_std_scorer(algo, episodes, BasicTransitionPicker())
     assert np.allclose(score, np.mean(total_stds))
 
 
@@ -266,11 +275,10 @@ def test_initial_state_value_estimation_scorer(
         actions = np.matmul(observations, A).astype("f4")
         rewards = np.random.random((episode_length, 1)).astype("f4")
         episode = Episode(
-            observation_shape,
-            action_size,
             observations.astype("f4"),
             actions,
             rewards,
+            False,
         )
         episodes.append(episode)
 
@@ -283,7 +291,9 @@ def test_initial_state_value_estimation_scorer(
         values = algo.predict_value(observation, policy_actions)
         total_values.append(values)
 
-    score = initial_state_value_estimation_scorer(algo, episodes)
+    score = initial_state_value_estimation_scorer(
+        algo, episodes, BasicTransitionPicker()
+    )
     assert np.allclose(score, np.mean(total_values))
 
 
@@ -303,11 +313,10 @@ def test_soft_opc_scorer(
         actions = np.matmul(observations, A).astype("f4")
         rewards = np.random.random((episode_length, 1)).astype("f4")
         episode = Episode(
-            observation_shape,
-            action_size,
             observations.astype("f4"),
             actions,
             rewards,
+            False,
         )
         episodes.append(episode)
 
@@ -316,14 +325,14 @@ def test_soft_opc_scorer(
     all_values = []
     for episode in episodes:
         is_success = episode.compute_return() >= threshold
-        batch = TransitionMiniBatch(episode.transitions)
+        batch = _convert_episode_to_batch(episode)
         values = algo.predict_value(batch.observations, batch.actions)
         if is_success:
             success_values += values.tolist()
         all_values += values.tolist()
 
     scorer = soft_opc_scorer(threshold)
-    score = scorer(algo, episodes)
+    score = scorer(algo, episodes, BasicTransitionPicker())
     assert np.allclose(score, np.mean(success_values) - np.mean(all_values))
 
 
@@ -342,11 +351,10 @@ def test_continuous_action_diff_scorer(
         actions = np.random.random((episode_length, action_size)).astype("f4")
         rewards = np.random.random((episode_length, 1)).astype("f4")
         episode = Episode(
-            observation_shape,
-            action_size,
             observations.astype("f4"),
             actions,
             rewards,
+            False,
         )
         episodes.append(episode)
 
@@ -354,11 +362,13 @@ def test_continuous_action_diff_scorer(
 
     total_diffs = []
     for episode in episodes:
-        batch = TransitionMiniBatch(episode.transitions)
+        batch = _convert_episode_to_batch(episode)
         policy_actions = algo.predict(batch.observations)
         diff = ((batch.actions - policy_actions) ** 2).sum(axis=1).tolist()
         total_diffs += diff
-    score = continuous_action_diff_scorer(algo, episodes)
+    score = continuous_action_diff_scorer(
+        algo, episodes, BasicTransitionPicker()
+    )
     assert np.allclose(score, np.mean(total_diffs))
 
 
@@ -366,7 +376,7 @@ def test_continuous_action_diff_scorer(
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_episodes", [100])
 @pytest.mark.parametrize("episode_length", [10])
-def test_discrete_action_math_scorer(
+def test_discrete_action_match_scorer(
     observation_shape, action_size, n_episodes, episode_length
 ):
     # projection matrix for deterministic action
@@ -374,14 +384,13 @@ def test_discrete_action_math_scorer(
     episodes = []
     for _ in range(n_episodes):
         observations = np.random.random((episode_length,) + observation_shape)
-        actions = np.random.randint(action_size, size=episode_length)
+        actions = np.random.randint(action_size, size=(episode_length, 1))
         rewards = np.random.random((episode_length, 1)).astype("f4")
         episode = Episode(
-            observation_shape,
-            action_size,
             observations.astype("f4"),
             actions,
             rewards,
+            False,
         )
         episodes.append(episode)
 
@@ -389,11 +398,13 @@ def test_discrete_action_math_scorer(
 
     total_matches = []
     for episode in episodes:
-        batch = TransitionMiniBatch(episode.transitions)
+        batch = _convert_episode_to_batch(episode)
         policy_actions = algo.predict(batch.observations)
         match = (batch.actions.reshape(-1) == policy_actions).tolist()
         total_matches += match
-    score = discrete_action_match_scorer(algo, episodes)
+    score = discrete_action_match_scorer(
+        algo, episodes, BasicTransitionPicker()
+    )
     assert np.allclose(score, np.mean(total_matches))
 
 
@@ -472,11 +483,10 @@ def test_dynamics_observation_prediction_error_scorer(
         actions = np.random.random((episode_length, action_size)).astype("f4")
         rewards = np.random.random((episode_length, 1)).astype("f4")
         episode = Episode(
-            observation_shape,
-            action_size,
             observations.astype("f4"),
             actions,
             rewards,
+            False,
         )
         episodes.append(episode)
 
@@ -484,11 +494,13 @@ def test_dynamics_observation_prediction_error_scorer(
 
     total_errors = []
     for episode in episodes:
-        batch = TransitionMiniBatch(episode.transitions)
+        batch = _convert_episode_to_batch(episode)
         pred_x, _ = dynamics.predict(batch.observations, batch.actions)
         errors = ((batch.next_observations - pred_x) ** 2).sum(axis=1)
         total_errors += errors.tolist()
-    score = dynamics_observation_prediction_error_scorer(dynamics, episodes)
+    score = dynamics_observation_prediction_error_scorer(
+        dynamics, episodes, BasicTransitionPicker()
+    )
     assert np.allclose(score, np.mean(total_errors))
 
 
@@ -512,11 +524,10 @@ def test_dynamics_reward_prediction_error_scorer(
         actions = np.random.random((episode_length, action_size)).astype("f4")
         rewards = np.random.random((episode_length, 1)).astype("f4")
         episode = Episode(
-            observation_shape,
-            action_size,
             observations.astype("f4"),
             actions,
             rewards,
+            False,
         )
         episodes.append(episode)
 
@@ -524,7 +535,7 @@ def test_dynamics_reward_prediction_error_scorer(
 
     total_errors = []
     for episode in episodes:
-        batch = TransitionMiniBatch(episode.transitions)
+        batch = _convert_episode_to_batch(episode)
         _, pred_reward = dynamics.predict(batch.observations, batch.actions)
         if reward_scaler:
             rewards = reward_scaler.transform_numpy(batch.rewards)
@@ -532,7 +543,9 @@ def test_dynamics_reward_prediction_error_scorer(
             rewards = batch.rewards
         errors = ((rewards - pred_reward) ** 2).reshape(-1)
         total_errors += errors.tolist()
-    score = dynamics_reward_prediction_error_scorer(dynamics, episodes)
+    score = dynamics_reward_prediction_error_scorer(
+        dynamics, episodes, BasicTransitionPicker()
+    )
     assert np.allclose(score, np.mean(total_errors))
 
 
@@ -549,11 +562,10 @@ def test_dynamics_prediction_variance_scorer(
         actions = np.random.random((episode_length, action_size))
         rewards = np.random.random((episode_length, 1))
         episode = Episode(
-            observation_shape,
-            action_size,
             observations.astype("f4"),
             actions.astype("f4"),
             rewards.astype("f4"),
+            False,
         )
         episodes.append(episode)
 
@@ -561,8 +573,10 @@ def test_dynamics_prediction_variance_scorer(
 
     total_variances = []
     for episode in episodes:
-        batch = TransitionMiniBatch(episode.transitions)
+        batch = _convert_episode_to_batch(episode)
         _, _, var = dynamics.predict(batch.observations, batch.actions, True)
         total_variances += var.tolist()
-    score = dynamics_prediction_variance_scorer(dynamics, episodes)
+    score = dynamics_prediction_variance_scorer(
+        dynamics, episodes, BasicTransitionPicker()
+    )
     assert np.allclose(score, np.mean(total_variances))
