@@ -10,7 +10,11 @@ from .mini_batch import TrajectoryMiniBatch, TransitionMiniBatch
 from .trajectory_slicers import BasicTrajectorySlicer, TrajectorySlicerProtocol
 from .transition_pickers import BasicTransitionPicker, TransitionPickerProtocol
 from .types import Observation
-from .writers import ExperienceWriter
+from .writers import (
+    BasicWriterPreprocess,
+    ExperienceWriter,
+    WriterPreprocessProtocol,
+)
 
 __all__ = [
     "ReplayBuffer",
@@ -31,20 +35,20 @@ class ReplayBuffer:
         buffer: BufferProtocol,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+        writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
         episodes: Optional[Sequence[EpisodeBase]] = None,
     ):
+        if transition_picker is None:
+            transition_picker = BasicTransitionPicker()
+        if trajectory_slicer is None:
+            trajectory_slicer = BasicTrajectorySlicer()
+        if writer_preprocessor is None:
+            writer_preprocessor = BasicWriterPreprocess()
+
         self._buffer = buffer
-        self._writer = ExperienceWriter(buffer)
-
-        if transition_picker:
-            self._transition_picker = transition_picker
-        else:
-            self._transition_picker = BasicTransitionPicker()
-
-        if trajectory_slicer:
-            self._trajectory_slicer = trajectory_slicer
-        else:
-            self._trajectory_slicer = BasicTrajectorySlicer()
+        self._writer = ExperienceWriter(buffer, writer_preprocessor)
+        self._transition_picker = transition_picker
+        self._trajectory_slicer = trajectory_slicer
 
         if episodes:
             for episode in episodes:
