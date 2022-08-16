@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 
-class WriterPreprocessProtocol:
+class WriterPreprocessProtocol(Protocol):
     def process_observation(self, observation: Observation) -> Observation:
         raise NotImplementedError
 
