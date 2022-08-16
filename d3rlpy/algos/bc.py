@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
-from ..dataset import TransitionMiniBatch
+from ..dataset import Shape, TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
 from ..models.optimizers import AdamFactory, OptimizerFactory
@@ -33,7 +33,6 @@ class _BCBase(AlgoBase):
         optim_factory: OptimizerFactory = AdamFactory(),
         encoder_factory: EncoderArg = "default",
         batch_size: int = 100,
-        n_frames: int = 1,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
@@ -42,7 +41,6 @@ class _BCBase(AlgoBase):
     ):
         super().__init__(
             batch_size=batch_size,
-            n_frames=n_frames,
             gamma=1.0,
             scaler=scaler,
             action_scaler=action_scaler,
@@ -94,7 +92,6 @@ class BC(_BCBase):
         encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory.
         batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
         policy_type (str): the policy type. The available options are
             ``['deterministic', 'stochastic']``.
         use_gpu (bool, int or d3rlpy.gpu.Device):
@@ -118,7 +115,6 @@ class BC(_BCBase):
         optim_factory: OptimizerFactory = AdamFactory(),
         encoder_factory: EncoderArg = "default",
         batch_size: int = 100,
-        n_frames: int = 1,
         policy_type: str = "deterministic",
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
@@ -131,7 +127,6 @@ class BC(_BCBase):
             optim_factory=optim_factory,
             encoder_factory=encoder_factory,
             batch_size=batch_size,
-            n_frames=n_frames,
             use_gpu=use_gpu,
             scaler=scaler,
             action_scaler=action_scaler,
@@ -140,9 +135,7 @@ class BC(_BCBase):
         )
         self._policy_type = policy_type
 
-    def _create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
+    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = BCImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -183,7 +176,6 @@ class DiscreteBC(_BCBase):
         encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory.
         batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
         beta (float): reguralization factor.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
@@ -204,7 +196,6 @@ class DiscreteBC(_BCBase):
         optim_factory: OptimizerFactory = AdamFactory(),
         encoder_factory: EncoderArg = "default",
         batch_size: int = 100,
-        n_frames: int = 1,
         beta: float = 0.5,
         use_gpu: UseGPUArg = False,
         scaler: ScalerArg = None,
@@ -216,7 +207,6 @@ class DiscreteBC(_BCBase):
             optim_factory=optim_factory,
             encoder_factory=encoder_factory,
             batch_size=batch_size,
-            n_frames=n_frames,
             use_gpu=use_gpu,
             scaler=scaler,
             impl=impl,
@@ -224,9 +214,7 @@ class DiscreteBC(_BCBase):
         )
         self._beta = beta
 
-    def _create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
+    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = DiscreteBCImpl(
             observation_shape=observation_shape,
             action_size=action_size,

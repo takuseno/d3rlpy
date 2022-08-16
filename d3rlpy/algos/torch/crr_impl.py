@@ -1,8 +1,9 @@
-from typing import Optional, Sequence
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
 
+from ...dataset import Shape
 from ...gpu import Device
 from ...models.builders import create_non_squashed_normal_policy
 from ...models.encoders import EncoderFactory
@@ -26,7 +27,7 @@ class CRRImpl(DDPGBaseImpl):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         actor_learning_rate: float,
         critic_learning_rate: float,

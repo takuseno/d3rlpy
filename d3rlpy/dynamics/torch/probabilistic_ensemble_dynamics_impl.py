@@ -1,9 +1,10 @@
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
 from torch.optim import Optimizer
 
+from ...dataset import Shape
 from ...gpu import Device
 from ...models.builders import create_probabilistic_ensemble_dynamics_model
 from ...models.encoders import EncoderFactory
@@ -28,7 +29,7 @@ class ProbabilisticEnsembleDynamicsImpl(TorchImplBase):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         learning_rate: float,
         optim_factory: OptimizerFactory,

@@ -10,9 +10,7 @@ from typing import (
     Generator,
     List,
     Optional,
-    Sequence,
     Tuple,
-    cast,
 )
 
 import gym
@@ -39,6 +37,7 @@ from .dataset import (
     DatasetInfo,
     Episode,
     ReplayBuffer,
+    Shape,
     Transition,
     TransitionMiniBatch,
     TransitionPickerProtocol,
@@ -71,7 +70,7 @@ class ImplBase(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def observation_shape(self) -> Sequence[int]:
+    def observation_shape(self) -> Shape:
         pass
 
     @property
@@ -137,7 +136,6 @@ def _deseriealize_params(params: Dict[str, Any]) -> Dict[str, Any]:
 class LearnableBase:
 
     _batch_size: int
-    _n_frames: int
     _gamma: float
     _scaler: Optional[Scaler]
     _action_scaler: Optional[ActionScaler]
@@ -153,7 +151,6 @@ class LearnableBase:
     def __init__(
         self,
         batch_size: int,
-        n_frames: int,
         gamma: float,
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
@@ -163,7 +160,6 @@ class LearnableBase:
         kwargs: Optional[Dict[str, Any]] = None,
     ):
         self._batch_size = batch_size
-        self._n_frames = n_frames
         self._gamma = gamma
         self._scaler = check_scaler(scaler)
         self._action_scaler = check_action_scaler(action_scaler)
@@ -536,12 +532,8 @@ class LearnableBase:
         if self._impl is None:
             LOG.debug("Building models...")
             action_size = dataset_info.action_size
-            observation_shape = cast(
-                Sequence[int], tuple(dataset_info.observation_shape)
-            )
-            self.create_impl(
-                self._process_observation_shape(observation_shape), action_size
-            )
+            observation_shape = dataset.sample_transition().observation_shape
+            self.create_impl(observation_shape, action_size)
             LOG.debug("Models have been built.")
         else:
             LOG.warning("Skip building models since they're already built.")
@@ -639,9 +631,7 @@ class LearnableBase:
         self._active_logger.close()
         self._active_logger = None
 
-    def create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
+    def create_impl(self, observation_shape: Shape, action_size: int) -> None:
         """Instantiate implementation objects with the dataset shapes.
 
         This method will be used internally when `fit` method is called.
@@ -655,9 +645,7 @@ class LearnableBase:
             LOG.warn("Parameters will be reinitialized.")
         self._create_impl(observation_shape, action_size)
 
-    def _create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
+    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         raise NotImplementedError
 
     def build_with_dataset(self, dataset: ReplayBuffer) -> None:
@@ -668,11 +656,8 @@ class LearnableBase:
 
         """
         dataset_info = DatasetInfo.from_episodes(dataset.episodes)
-        observation_shape = cast(Sequence[int], dataset_info.observation_shape)
-        self.create_impl(
-            self._process_observation_shape(observation_shape),
-            dataset_info.action_size,
-        )
+        observation_shape = dataset.sample_transition().observation_shape
+        self.create_impl(observation_shape, dataset_info.action_size)
 
     def build_with_env(self, env: gym.Env) -> None:
         """Instantiate implementation object with OpenAI Gym object.
@@ -682,20 +667,7 @@ class LearnableBase:
 
         """
         observation_shape = env.observation_space.shape
-        self.create_impl(
-            self._process_observation_shape(observation_shape),
-            get_action_size_from_env(env),
-        )
-
-    def _process_observation_shape(
-        self, observation_shape: Sequence[int]
-    ) -> Sequence[int]:
-        if len(observation_shape) == 3:
-            n_channels = observation_shape[0]
-            image_size = observation_shape[1:]
-            # frame stacking for image observation
-            observation_shape = (self._n_frames * n_channels, *image_size)
-        return observation_shape
+        self.create_impl(observation_shape, get_action_size_from_env(env))
 
     def update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         """Update parameters with mini-batch of data.
@@ -826,22 +798,6 @@ class LearnableBase:
         self._batch_size = batch_size
 
     @property
-    def n_frames(self) -> int:
-        """Number of frames to stack.
-
-        This is only for image observation.
-
-        Returns:
-            int: number of frames to stack.
-
-        """
-        return self._n_frames
-
-    @n_frames.setter
-    def n_frames(self, n_frames: int) -> None:
-        self._n_frames = n_frames
-
-    @property
     def gamma(self) -> float:
         """Discount factor.
 
@@ -912,7 +868,7 @@ class LearnableBase:
         self._impl = impl
 
     @property
-    def observation_shape(self) -> Optional[Sequence[int]]:
+    def observation_shape(self) -> Optional[Shape]:
         """Observation shape.
 
         Returns:

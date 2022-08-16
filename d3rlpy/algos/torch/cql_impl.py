@@ -1,11 +1,12 @@
 import math
-from typing import Optional, Sequence
+from typing import Optional
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
+from ...dataset import Shape
 from ...gpu import Device
 from ...models.builders import create_parameter
 from ...models.encoders import EncoderFactory
@@ -32,7 +33,7 @@ class CQLImpl(SACImpl):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         actor_learning_rate: float,
         critic_learning_rate: float,
@@ -248,7 +249,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         learning_rate: float,
         optim_factory: OptimizerFactory,

@@ -9,7 +9,6 @@ from ..dataset import ReplayBuffer, TransitionMiniBatch
 from ..logger import LOG, D3RLPyLogger
 from ..metrics.scorer import evaluate_on_environment
 from ..preprocessing import ActionScaler, Scaler
-from ..preprocessing.stack import StackedObservation
 from .explorers import Explorer
 
 
@@ -45,10 +44,6 @@ class AlgoProtocol(Protocol):
 
     @property
     def action_scaler(self) -> Optional[ActionScaler]:
-        ...
-
-    @property
-    def n_frames(self) -> int:
         ...
 
     @property
@@ -165,13 +160,6 @@ def train_single_env(
     # initialize algorithm parameters
     _setup_algo(algo, env)
 
-    observation_shape = env.observation_space.shape
-    is_image = len(observation_shape) == 3
-
-    # prepare stacked observation
-    if is_image:
-        stacked_frame = StackedObservation(observation_shape, algo.n_frames)
-
     # save hyperparameters
     algo.save_params(logger)
 
@@ -190,23 +178,17 @@ def train_single_env(
     rollout_return = 0.0
     for total_step in xrange(1, n_steps + 1):
         with logger.measure_time("step"):
-            # stack observation if necessary
-            if is_image:
-                stacked_frame.append(observation)
-                fed_observation = stacked_frame.eval()
-            else:
-                observation = observation.astype("f4")
-                fed_observation = observation
+            observation = observation.astype("f4")
 
             # sample exploration action
             with logger.measure_time("inference"):
                 if total_step < random_steps:
                     action = env.action_space.sample()
                 elif explorer:
-                    x = fed_observation.reshape((1,) + fed_observation.shape)
+                    x = observation.reshape((1,) + observation.shape)
                     action = explorer.sample(algo, x, total_step)[0]
                 else:
-                    action = algo.sample_action([fed_observation])[0]
+                    action = algo.sample_action([observation])[0]
 
             # step environment
             with logger.measure_time("environment_step"):
@@ -229,9 +211,6 @@ def train_single_env(
                 observation = env.reset()
                 logger.add_metric("rollout_return", rollout_return)
                 rollout_return = 0.0
-                # for image observation
-                if is_image:
-                    stacked_frame.clear()
             else:
                 observation = next_observation
 
@@ -305,36 +284,23 @@ def collect(
     # initialize algorithm parameters
     _setup_algo(algo, env)
 
-    observation_shape = env.observation_space.shape
-    is_image = len(observation_shape) == 3
-
-    # prepare stacked observation
-    if is_image:
-        stacked_frame = StackedObservation(observation_shape, algo.n_frames)
-
     # switch based on show_progress flag
     xrange = trange if show_progress else range
 
     # start training loop
     observation = env.reset()
     for total_step in xrange(1, n_steps + 1):
-        # stack observation if necessary
-        if is_image:
-            stacked_frame.append(observation)
-            fed_observation = stacked_frame.eval()
-        else:
-            observation = observation.astype("f4")
-            fed_observation = observation
+        observation = observation.astype("f4")
 
         # sample exploration action
         if deterministic:
-            action = algo.predict([fed_observation])[0]
+            action = algo.predict([observation])[0]
         else:
             if explorer:
-                x = fed_observation.reshape((1,) + fed_observation.shape)
+                x = observation.reshape((1,) + observation.shape)
                 action = explorer.sample(algo, x, total_step)[0]
             else:
-                action = algo.sample_action([fed_observation])[0]
+                action = algo.sample_action([observation])[0]
 
         # step environment
         next_observation, reward, terminal, info = env.step(action)
@@ -353,9 +319,6 @@ def collect(
         if clip_episode:
             buffer.clip_episode(terminal)
             observation = env.reset()
-            # for image observation
-            if is_image:
-                stacked_frame.clear()
         else:
             observation = next_observation
 

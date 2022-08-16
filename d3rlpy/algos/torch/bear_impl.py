@@ -1,10 +1,11 @@
 import math
-from typing import Optional, Sequence
+from typing import Optional
 
 import numpy as np
 import torch
 from torch.optim import Optimizer
 
+from ...dataset import Shape
 from ...gpu import Device
 from ...models.builders import create_conditional_vae, create_parameter
 from ...models.encoders import EncoderFactory
@@ -57,7 +58,7 @@ class BEARImpl(SACImpl):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         actor_learning_rate: float,
         critic_learning_rate: float,

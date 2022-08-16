@@ -3,6 +3,7 @@ from typing import Sequence, cast
 import torch
 from torch import nn
 
+from ..dataset import Shape
 from .encoders import EncoderFactory
 from .q_functions import QFunctionFactory
 from .torch import (
@@ -25,7 +26,7 @@ from .torch import (
 
 
 def create_discrete_q_function(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
     q_func_factory: QFunctionFactory,
@@ -46,7 +47,7 @@ def create_discrete_q_function(
 
 
 def create_continuous_q_function(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
     q_func_factory: QFunctionFactory,
@@ -71,7 +72,7 @@ def create_continuous_q_function(
 
 
 def create_deterministic_policy(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
 ) -> DeterministicPolicy:
@@ -80,7 +81,7 @@ def create_deterministic_policy(
 
 
 def create_deterministic_residual_policy(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     scale: float,
     encoder_factory: EncoderFactory,
@@ -90,7 +91,7 @@ def create_deterministic_residual_policy(
 
 
 def create_squashed_normal_policy(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
     min_logstd: float = -20.0,
@@ -108,7 +109,7 @@ def create_squashed_normal_policy(
 
 
 def create_non_squashed_normal_policy(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
     min_logstd: float = -20.0,
@@ -126,7 +127,7 @@ def create_non_squashed_normal_policy(
 
 
 def create_categorical_policy(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
 ) -> CategoricalPolicy:
@@ -135,7 +136,7 @@ def create_categorical_policy(
 
 
 def create_conditional_vae(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     latent_size: int,
     beta: float,
@@ -159,7 +160,7 @@ def create_conditional_vae(
 
 
 def create_discrete_imitator(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     beta: float,
     encoder_factory: EncoderFactory,
@@ -169,7 +170,7 @@ def create_discrete_imitator(
 
 
 def create_deterministic_regressor(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
 ) -> DeterministicRegressor:
@@ -178,7 +179,7 @@ def create_deterministic_regressor(
 
 
 def create_probablistic_regressor(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
     min_logstd: float = -20.0,
@@ -191,14 +192,14 @@ def create_probablistic_regressor(
 
 
 def create_value_function(
-    observation_shape: Sequence[int], encoder_factory: EncoderFactory
+    observation_shape: Shape, encoder_factory: EncoderFactory
 ) -> ValueFunction:
     encoder = encoder_factory.create(observation_shape)
     return ValueFunction(encoder)
 
 
 def create_probabilistic_ensemble_dynamics_model(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
     n_ensembles: int = 5,

@@ -1,10 +1,11 @@
 import copy
-from typing import Optional, Sequence
+from typing import Optional
 
 import numpy as np
 import torch
 from torch.optim import Optimizer
 
+from ...dataset import Shape
 from ...gpu import Device
 from ...models.builders import create_discrete_q_function
 from ...models.encoders import EncoderFactory
@@ -32,7 +33,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         learning_rate: float,
         optim_factory: OptimizerFactory,

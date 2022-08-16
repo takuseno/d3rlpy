@@ -1,9 +1,10 @@
 # pylint: disable=too-many-ancestors
 
-from typing import Optional, Sequence
+from typing import Optional
 
 import torch
 
+from ...dataset import Shape
 from ...gpu import Device
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
@@ -18,7 +19,7 @@ class COMBOImpl(CQLImpl):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         actor_learning_rate: float,
         critic_learning_rate: float,

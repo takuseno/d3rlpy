@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -19,7 +19,7 @@ from ..constants import (
     IMPL_NOT_INITIALIZED_ERROR,
     ActionSpace,
 )
-from ..dataset import TransitionMiniBatch
+from ..dataset import Shape, TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
 from ..models.optimizers import AdamFactory, OptimizerFactory
@@ -48,7 +48,6 @@ class _FQEBase(AlgoBase):
         encoder_factory: EncoderArg = "default",
         q_func_factory: QFuncArg = "mean",
         batch_size: int = 100,
-        n_frames: int = 1,
         gamma: float = 0.99,
         n_critics: int = 1,
         target_update_interval: int = 100,
@@ -61,7 +60,6 @@ class _FQEBase(AlgoBase):
     ):
         super().__init__(
             batch_size=batch_size,
-            n_frames=n_frames,
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,
@@ -129,7 +127,6 @@ class FQE(_FQEBase):
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         target_update_interval (int): interval to update the target network.
@@ -148,9 +145,7 @@ class FQE(_FQEBase):
 
     _impl: Optional[FQEImpl]
 
-    def _create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
+    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = FQEImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -200,7 +195,6 @@ class DiscreteFQE(_FQEBase):
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         target_update_interval (int): interval to update the target network.
@@ -217,9 +211,7 @@ class DiscreteFQE(_FQEBase):
 
     _impl: Optional[DiscreteFQEImpl]
 
-    def _create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
+    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = DiscreteFQEImpl(
             observation_shape=observation_shape,
             action_size=action_size,

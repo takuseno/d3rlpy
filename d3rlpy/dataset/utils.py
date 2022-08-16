@@ -19,6 +19,9 @@ __all__ = [
     "check_non_1d_array",
     "cast_recursively",
     "detect_action_space",
+    "is_tuple_shape",
+    "cast_flat_shape",
+    "cast_tuple_shape",
 ]
 
 
@@ -173,3 +176,17 @@ def detect_action_space(actions: np.ndarray) -> ActionSpace:
         return ActionSpace.DISCRETE
     else:
         return ActionSpace.CONTINUOUS
+
+
+def is_tuple_shape(shape: Shape) -> bool:
+    return isinstance(shape[0], (list, tuple))
+
+
+def cast_tuple_shape(shape: Shape) -> Sequence[Sequence[int]]:
+    assert is_tuple_shape(shape)
+    return shape  # type: ignore
+
+
+def cast_flat_shape(shape: Shape) -> Sequence[int]:
+    assert not is_tuple_shape(shape)
+    return shape  # type: ignore

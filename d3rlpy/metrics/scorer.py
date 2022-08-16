@@ -6,7 +6,6 @@ from typing_extensions import Protocol
 
 from ..dataset import Episode, TransitionMiniBatch, TransitionPickerProtocol
 from ..preprocessing.reward_scalers import RewardScaler
-from ..preprocessing.stack import StackedObservation
 
 WINDOW_SIZE = 1024
 
@@ -473,41 +472,21 @@ def evaluate_on_environment(
 
     """
 
-    # for image observation
-    observation_shape = env.observation_space.shape
-    is_image = len(observation_shape) == 3
-
     def scorer(algo: AlgoProtocol, *args: Any) -> float:
-        if is_image:
-            stacked_observation = StackedObservation(
-                observation_shape, algo.n_frames
-            )
-
         episode_rewards = []
         for _ in range(n_trials):
             observation = env.reset()
             episode_reward = 0.0
-
-            # frame stacking
-            if is_image:
-                stacked_observation.clear()
-                stacked_observation.append(observation)
 
             while True:
                 # take action
                 if np.random.random() < epsilon:
                     action = env.action_space.sample()
                 else:
-                    if is_image:
-                        action = algo.predict([stacked_observation.eval()])[0]
-                    else:
-                        action = algo.predict([observation])[0]
+                    action = algo.predict([observation])[0]
 
                 observation, reward, done, _ = env.step(action)
                 episode_reward += reward
-
-                if is_image:
-                    stacked_observation.append(observation)
 
                 if render:
                     env.render()

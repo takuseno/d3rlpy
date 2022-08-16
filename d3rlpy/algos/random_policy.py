@@ -1,9 +1,10 @@
-from typing import Any, List, Sequence, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 import numpy as np
 
 from ..argument_utility import ActionScalerArg
 from ..constants import ActionSpace
+from ..dataset import Shape
 from .base import AlgoBase
 
 
@@ -37,7 +38,6 @@ class RandomPolicy(AlgoBase):
     ):
         super().__init__(
             batch_size=1,
-            n_frames=1,
             gamma=0.0,
             scaler=None,
             action_scaler=action_scaler,
@@ -48,9 +48,7 @@ class RandomPolicy(AlgoBase):
         self._action_size = 1
         self._impl = None
 
-    def _create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
+    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._action_size = action_size
 
     def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
@@ -99,7 +97,6 @@ class DiscreteRandomPolicy(AlgoBase):
     def __init__(self, **kwargs: Any):
         super().__init__(
             batch_size=1,
-            n_frames=1,
             gamma=0.0,
             scaler=None,
             action_scaler=None,
@@ -108,9 +105,7 @@ class DiscreteRandomPolicy(AlgoBase):
         self._action_size = 1
         self._impl = None
 
-    def _create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
+    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._action_size = action_size
 
     def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:

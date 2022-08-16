@@ -1,9 +1,10 @@
 from abc import abstractmethod
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
 
+from ...dataset import Shape
 from ...gpu import Device
 from ...preprocessing import ActionScaler, RewardScaler, Scaler
 from ...torch_utility import (
@@ -20,7 +21,7 @@ from ..base import DynamicsImplBase
 
 class TorchImplBase(DynamicsImplBase):
 
-    _observation_shape: Sequence[int]
+    _observation_shape: Shape
     _action_size: int
     _scaler: Optional[Scaler]
     _action_scaler: Optional[ActionScaler]
@@ -29,7 +30,7 @@ class TorchImplBase(DynamicsImplBase):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
@@ -90,7 +91,7 @@ class TorchImplBase(DynamicsImplBase):
         set_state_dict(self, chkpt)
 
     @property
-    def observation_shape(self) -> Sequence[int]:
+    def observation_shape(self) -> Shape:
         return self._observation_shape
 
     @property

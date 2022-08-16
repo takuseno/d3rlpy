@@ -1,9 +1,10 @@
-from typing import Optional, Sequence, cast
+from typing import Optional, cast
 
 import numpy as np
 import torch
 from torch.optim import Optimizer
 
+from ...dataset import Shape, is_tuple_shape
 from ...gpu import Device
 from ...models.torch.policies import Policy
 from ...models.torch.q_functions.ensemble_q_function import EnsembleQFunction
@@ -27,7 +28,7 @@ from ..base import AlgoImplBase
 
 class TorchImplBase(AlgoImplBase):
 
-    _observation_shape: Sequence[int]
+    _observation_shape: Shape
     _action_size: int
     _scaler: Optional[Scaler]
     _action_scaler: Optional[ActionScaler]
@@ -36,7 +37,7 @@ class TorchImplBase(AlgoImplBase):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         scaler: Optional[Scaler],
         action_scaler: Optional[ActionScaler],
@@ -85,7 +86,15 @@ class TorchImplBase(AlgoImplBase):
 
     @eval_api
     def save_policy(self, fname: str) -> None:
-        dummy_x = torch.rand(1, *self.observation_shape, device=self._device)
+        if is_tuple_shape(self.observation_shape):
+            dummy_x = [
+                torch.rand(1, *shape, device=self._device)
+                for shape in self.observation_shape
+            ]
+        else:
+            dummy_x = torch.rand(
+                1, *self.observation_shape, device=self._device
+            )
 
         # workaround until version 1.6
         freeze(self)
@@ -200,7 +209,7 @@ class TorchImplBase(AlgoImplBase):
         reset_optimizer_states(self)
 
     @property
-    def observation_shape(self) -> Sequence[int]:
+    def observation_shape(self) -> Shape:
         return self._observation_shape
 
     @property

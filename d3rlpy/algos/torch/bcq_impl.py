@@ -1,10 +1,11 @@
 import math
-from typing import Optional, Sequence, cast
+from typing import Optional, cast
 
 import numpy as np
 import torch
 from torch.optim import Optimizer
 
+from ...dataset import Shape
 from ...gpu import Device
 from ...models.builders import (
     create_conditional_vae,
@@ -43,7 +44,7 @@ class BCQImpl(DDPGBaseImpl):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         actor_learning_rate: float,
         critic_learning_rate: float,
@@ -234,7 +235,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         learning_rate: float,
         optim_factory: OptimizerFactory,

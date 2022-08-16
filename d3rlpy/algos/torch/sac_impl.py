@@ -1,11 +1,12 @@
 import copy
 import math
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
 from torch.optim import Optimizer
 
+from ...dataset import Shape
 from ...gpu import Device
 from ...models.builders import (
     create_categorical_policy,
@@ -43,7 +44,7 @@ class SACImpl(DDPGBaseImpl):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         actor_learning_rate: float,
         critic_learning_rate: float,
@@ -187,7 +188,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         actor_learning_rate: float,
         critic_learning_rate: float,

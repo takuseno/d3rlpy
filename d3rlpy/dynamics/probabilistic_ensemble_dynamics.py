@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional
 
 from ..argument_utility import (
     ActionScalerArg,
@@ -10,7 +10,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
-from ..dataset import TransitionMiniBatch
+from ..dataset import Shape, TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
 from ..models.optimizers import AdamFactory, OptimizerFactory
@@ -50,7 +50,6 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
         encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory.
         batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
         n_ensembles (int): the number of dynamics model for ensemble.
         variance_type (str): variance calculation type. The available options
             are ``['max', 'data']``.
@@ -84,7 +83,6 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
         optim_factory: OptimizerFactory = AdamFactory(weight_decay=1e-4),
         encoder_factory: EncoderArg = "default",
         batch_size: int = 100,
-        n_frames: int = 1,
         n_ensembles: int = 5,
         variance_type: str = "max",
         discrete_action: bool = False,
@@ -97,7 +95,6 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
     ):
         super().__init__(
             batch_size=batch_size,
-            n_frames=n_frames,
             scaler=scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
@@ -112,9 +109,7 @@ class ProbabilisticEnsembleDynamics(DynamicsBase):
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
-    def _create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
+    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = ProbabilisticEnsembleDynamicsImpl(
             observation_shape=observation_shape,
             action_size=action_size,

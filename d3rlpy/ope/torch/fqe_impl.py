@@ -1,6 +1,6 @@
 import copy
 from abc import abstractmethod
-from typing import Optional, Sequence
+from typing import Optional
 
 import numpy as np
 import torch
@@ -11,6 +11,7 @@ from ...algos.torch.utility import (
     ContinuousQFunctionMixin,
     DiscreteQFunctionMixin,
 )
+from ...dataset import Shape
 from ...gpu import Device
 from ...models.builders import (
     create_continuous_q_function,
@@ -43,7 +44,7 @@ class FQEBaseImpl(TorchImplBase):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         learning_rate: float,
         optim_factory: OptimizerFactory,

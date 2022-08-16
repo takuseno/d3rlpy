@@ -3,6 +3,7 @@ from typing import Any, ClassVar, Dict, List, Optional, Sequence, Type, Union
 
 from torch import nn
 
+from ..dataset import Shape, cast_flat_shape
 from ..decorators import pretty_repr
 from ..torch_utility import Swish
 from .torch import (
@@ -29,7 +30,7 @@ def _create_activation(activation_type: str) -> nn.Module:
 class EncoderFactory:
     TYPE: ClassVar[str] = "none"
 
-    def create(self, observation_shape: Sequence[int]) -> Encoder:
+    def create(self, observation_shape: Shape) -> Encoder:
         """Returns PyTorch's state enocder module.
 
         Args:
@@ -43,7 +44,7 @@ class EncoderFactory:
 
     def create_with_action(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         discrete_action: bool = False,
     ) -> EncoderWithAction:
@@ -123,10 +124,10 @@ class PixelEncoderFactory(EncoderFactory):
         self._use_batch_norm = use_batch_norm
         self._dropout_rate = dropout_rate
 
-    def create(self, observation_shape: Sequence[int]) -> PixelEncoder:
+    def create(self, observation_shape: Shape) -> PixelEncoder:
         assert len(observation_shape) == 3
         return PixelEncoder(
-            observation_shape=observation_shape,
+            observation_shape=cast_flat_shape(observation_shape),
             filters=self._filters,
             feature_size=self._feature_size,
             use_batch_norm=self._use_batch_norm,
@@ -136,13 +137,13 @@ class PixelEncoderFactory(EncoderFactory):
 
     def create_with_action(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         discrete_action: bool = False,
     ) -> PixelEncoderWithAction:
         assert len(observation_shape) == 3
         return PixelEncoderWithAction(
-            observation_shape=observation_shape,
+            observation_shape=cast_flat_shape(observation_shape),
             action_size=action_size,
             filters=self._filters,
             feature_size=self._feature_size,
@@ -206,10 +207,10 @@ class VectorEncoderFactory(EncoderFactory):
         self._dropout_rate = dropout_rate
         self._use_dense = use_dense
 
-    def create(self, observation_shape: Sequence[int]) -> VectorEncoder:
+    def create(self, observation_shape: Shape) -> VectorEncoder:
         assert len(observation_shape) == 1
         return VectorEncoder(
-            observation_shape=observation_shape,
+            observation_shape=cast_flat_shape(observation_shape),
             hidden_units=self._hidden_units,
             use_batch_norm=self._use_batch_norm,
             dropout_rate=self._dropout_rate,
@@ -219,13 +220,13 @@ class VectorEncoderFactory(EncoderFactory):
 
     def create_with_action(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         discrete_action: bool = False,
     ) -> VectorEncoderWithAction:
         assert len(observation_shape) == 1
         return VectorEncoderWithAction(
-            observation_shape=observation_shape,
+            observation_shape=cast_flat_shape(observation_shape),
             action_size=action_size,
             hidden_units=self._hidden_units,
             use_batch_norm=self._use_batch_norm,
@@ -277,7 +278,7 @@ class DefaultEncoderFactory(EncoderFactory):
         self._use_batch_norm = use_batch_norm
         self._dropout_rate = dropout_rate
 
-    def create(self, observation_shape: Sequence[int]) -> Encoder:
+    def create(self, observation_shape: Shape) -> Encoder:
         factory: Union[PixelEncoderFactory, VectorEncoderFactory]
         if len(observation_shape) == 3:
             factory = PixelEncoderFactory(
@@ -295,7 +296,7 @@ class DefaultEncoderFactory(EncoderFactory):
 
     def create_with_action(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         discrete_action: bool = False,
     ) -> EncoderWithAction:
@@ -365,7 +366,7 @@ class DenseEncoderFactory(EncoderFactory):
         self._use_batch_norm = use_batch_norm
         self._dropout_rate = dropout_rate
 
-    def create(self, observation_shape: Sequence[int]) -> VectorEncoder:
+    def create(self, observation_shape: Shape) -> VectorEncoder:
         if len(observation_shape) == 3:
             raise NotImplementedError("pixel observation is not supported.")
         factory = VectorEncoderFactory(
@@ -379,7 +380,7 @@ class DenseEncoderFactory(EncoderFactory):
 
     def create_with_action(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         discrete_action: bool = False,
     ) -> VectorEncoderWithAction:

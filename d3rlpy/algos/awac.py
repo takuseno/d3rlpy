@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional
 
 from ..argument_utility import (
     ActionScalerArg,
@@ -12,7 +12,7 @@ from ..argument_utility import (
     check_use_gpu,
 )
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
-from ..dataset import TransitionMiniBatch
+from ..dataset import Shape, TransitionMiniBatch
 from ..gpu import Device
 from ..models.encoders import EncoderFactory
 from ..models.optimizers import AdamFactory, OptimizerFactory
@@ -60,7 +60,6 @@ class AWAC(AlgoBase):
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
         batch_size (int): mini-batch size.
-        n_frames (int): the number of frames to stack for image observation.
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         lam (float): :math:`\lambda` for weight calculation.
@@ -107,7 +106,6 @@ class AWAC(AlgoBase):
         critic_encoder_factory: EncoderArg = "default",
         q_func_factory: QFuncArg = "mean",
         batch_size: int = 1024,
-        n_frames: int = 1,
         gamma: float = 0.99,
         tau: float = 0.005,
         lam: float = 1.0,
@@ -123,7 +121,6 @@ class AWAC(AlgoBase):
     ):
         super().__init__(
             batch_size=batch_size,
-            n_frames=n_frames,
             gamma=gamma,
             scaler=scaler,
             action_scaler=action_scaler,
@@ -145,9 +142,7 @@ class AWAC(AlgoBase):
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
 
-    def _create_impl(
-        self, observation_shape: Sequence[int], action_size: int
-    ) -> None:
+    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = AWACImpl(
             observation_shape=observation_shape,
             action_size=action_size,

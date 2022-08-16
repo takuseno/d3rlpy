@@ -1,10 +1,11 @@
 from abc import ABCMeta, abstractmethod
-from typing import Optional, Sequence, Union
+from typing import Optional, Union
 
 import numpy as np
 import torch
 from torch.optim import Optimizer
 
+from ...dataset import Shape
 from ...gpu import Device
 from ...models.builders import (
     create_deterministic_policy,
@@ -38,7 +39,7 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         learning_rate: float,
         optim_factory: OptimizerFactory,
@@ -122,7 +123,7 @@ class BCImpl(BCBaseImpl):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         learning_rate: float,
         optim_factory: OptimizerFactory,
@@ -202,7 +203,7 @@ class DiscreteBCImpl(BCBaseImpl):
 
     def __init__(
         self,
-        observation_shape: Sequence[int],
+        observation_shape: Shape,
         action_size: int,
         learning_rate: float,
         optim_factory: OptimizerFactory,

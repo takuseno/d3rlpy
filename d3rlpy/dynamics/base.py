@@ -26,7 +26,6 @@ class DynamicsBase(LearnableBase):
     def __init__(
         self,
         batch_size: int,
-        n_frames: int,
         scaler: ScalerArg,
         action_scaler: ActionScalerArg,
         reward_scaler: RewardScalerArg,
@@ -34,7 +33,6 @@ class DynamicsBase(LearnableBase):
     ):
         super().__init__(
             batch_size=batch_size,
-            n_frames=n_frames,
             gamma=1.0,
             scaler=scaler,
             action_scaler=action_scaler,
