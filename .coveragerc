@@ -1,3 +1,2 @@
 [run]
-plugins = Cython.Coverage
 omit = d3rlpy/cli.py
