@@ -80,8 +80,8 @@ it's confirmed that the reward scale affects training performance.
   sac = d3rlpy.algos.SAC(reward_scaler="standard")
 
   # setup manuall
-  mean = np.mean(dataset.rewards, axis=0, keepdims=True)
-  std = np.std(dataset.rewards, axis=0, keepdims=True)
+  mean = np.mean(dataset.rewards)
+  std = np.std(dataset.rewards)
   reward_scaler = StandardRewardScaler(mean=mean, std=std)
 
   # specify by object
