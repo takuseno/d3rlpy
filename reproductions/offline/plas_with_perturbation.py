@@ -2,6 +2,21 @@ import argparse
 import d3rlpy
 from sklearn.model_selection import train_test_split
 
+ACTION_FLEXIBILITY = {
+    "walker2d-random-v0": 0.05,
+    "hopper-random-v0": 0.5,
+    "halfcheetah-random-v0": 0.01,
+    "walker2d-medium-v0": 0.1,
+    "hopper-medium-v0": 0.01,
+    "halfcheetah-medium-v0": 0.1,
+    "walker2d-medium-relay-v0": 0.01,
+    "hopper-medium-replay-v0": 0.2,
+    "halfcheetah-medium-replay-v0": 0.05,
+    "walker2d-medium-expert-v0": 0.01,
+    "hopper-medium-expert-v0": 0.01,
+    "halfcheetah-medium-expert-v0": 0.01,
+}
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -34,7 +49,7 @@ def main():
         batch_size=100,
         lam=1.0,
         warmup_steps=500000,
-        action_flexibility=0.05,
+        action_flexibility=ACTION_FLEXIBILITY[args.dataset],
         use_gpu=args.gpu)
 
     plas.fit(
