@@ -25,6 +25,7 @@ def main():
                              actor_encoder_factory=encoder,
                              actor_optim_factory=optim,
                              critic_learning_rate=3e-4,
+                             critic_encoder_factory=encoder,
                              batch_size=1024,
                              lam=1.0,
                              use_gpu=args.gpu)
