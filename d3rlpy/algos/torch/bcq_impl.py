@@ -317,6 +317,8 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         ratio = log_probs - log_probs.max(dim=1, keepdim=True).values
         mask = (ratio > math.log(self._action_flexibility)).float()
         value = self._q_func(x)
-        normalized_value = value - value.min(dim=1, keepdim=True).values
+        # add a small constant value to deal with the case where the all
+        # actions except the min value are masked
+        normalized_value = value - value.min(dim=1, keepdim=True).values + 1e-5
         action = (normalized_value * cast(torch.Tensor, mask)).argmax(dim=1)
         return action
