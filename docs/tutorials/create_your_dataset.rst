@@ -66,7 +66,7 @@ In this case, you can use ``episode_terminals`` to represent this timeout states
   # timeout states
   episode_terminals = np.random.randint(2, size=1000)
 
-  dataset = d3rlpy.dataest.MDPDataset(
+  dataset = d3rlpy.dataset.MDPDataset(
       observations=observations,
       actions=actions,
       rewards=rewards,
