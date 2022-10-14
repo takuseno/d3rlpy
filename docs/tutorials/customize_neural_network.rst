@@ -21,13 +21,14 @@ feature size to the final layer.
 
   class CustomEncoder(nn.Module):
       def __init__(self, observation_shape, feature_size):
+          super().__init__()
           self.feature_size = feature_size
           self.fc1 = nn.Linear(observation_shape[0], feature_size)
           self.fc2 = nn.Linear(feature_size, feature_size)
 
       def forward(self, x):
           h = torch.relu(self.fc1(x))
-          h = torch.relu(self.fc2(x))
+          h = torch.relu(self.fc2(h))
           return h
 
       # THIS IS IMPORTANT!
@@ -78,6 +79,7 @@ you need to prepare an action-conditioned model.
 
   class CustomEncoderWithAction(nn.Module):
       def __init__(self, observation_shape, action_size, feature_size):
+          super().__init__()
           self.feature_size = feature_size
           self.fc1 = nn.Linear(observation_shape[0] + action_size, feature_size)
           self.fc2 = nn.Linear(feature_size, feature_size)
