@@ -13,7 +13,6 @@ from d3rlpy.models.builders import (
     create_discrete_q_function,
     create_non_squashed_normal_policy,
     create_parameter,
-    create_probabilistic_ensemble_dynamics_model,
     create_probablistic_regressor,
     create_squashed_normal_policy,
     create_value_function,
@@ -24,7 +23,6 @@ from d3rlpy.models.torch import (
     EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
 )
-from d3rlpy.models.torch.dynamics import ProbabilisticEnsembleDynamicsModel
 from d3rlpy.models.torch.imitators import (
     ConditionalVAE,
     DeterministicRegressor,
@@ -305,42 +303,6 @@ def test_create_value_function(observation_shape, encoder_factory, batch_size):
     x = torch.rand((batch_size,) + observation_shape)
     y = v_func(x)
     assert y.shape == (batch_size, 1)
-
-
-@pytest.mark.parametrize("observation_shape", [(100,)])
-@pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
-@pytest.mark.parametrize("n_ensembles", [5])
-@pytest.mark.parametrize("discrete_action", [False, True])
-@pytest.mark.parametrize("batch_size", [32])
-def test_create_probabilistic_ensemble_dynamics_model(
-    observation_shape,
-    action_size,
-    encoder_factory,
-    n_ensembles,
-    discrete_action,
-    batch_size,
-):
-    dynamics = create_probabilistic_ensemble_dynamics_model(
-        observation_shape,
-        action_size,
-        encoder_factory,
-        n_ensembles,
-        discrete_action,
-    )
-
-    assert isinstance(dynamics, ProbabilisticEnsembleDynamicsModel)
-    assert len(dynamics.models) == n_ensembles
-
-    x = torch.rand((batch_size,) + observation_shape)
-    indices = torch.randint(n_ensembles, size=(batch_size,))
-    if discrete_action:
-        action = torch.randint(0, action_size, size=(batch_size, 1))
-    else:
-        action = torch.rand(batch_size, action_size)
-    observation, reward = dynamics(x, action, indices)
-    assert observation.shape == (batch_size,) + observation_shape
-    assert reward.shape == (batch_size, 1)
 
 
 @pytest.mark.parametrize("shape", [(100,)])

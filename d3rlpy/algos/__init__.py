@@ -5,13 +5,11 @@ from .base import AlgoBase
 from .bc import BC, DiscreteBC
 from .bcq import BCQ, DiscreteBCQ
 from .bear import BEAR
-from .combo import COMBO
 from .cql import CQL, DiscreteCQL
 from .crr import CRR
 from .ddpg import DDPG
 from .dqn import DQN, DoubleDQN
 from .iql import IQL
-from .mopo import MOPO
 from .nfq import NFQ
 from .plas import PLAS, PLASWithPerturbation
 from .random_policy import DiscreteRandomPolicy, RandomPolicy
@@ -27,7 +25,6 @@ __all__ = [
     "BCQ",
     "DiscreteBCQ",
     "BEAR",
-    "COMBO",
     "CQL",
     "DiscreteCQL",
     "CRR",
@@ -35,7 +32,6 @@ __all__ = [
     "DQN",
     "DoubleDQN",
     "IQL",
-    "MOPO",
     "NFQ",
     "PLAS",
     "PLASWithPerturbation",
@@ -66,12 +62,10 @@ CONTINUOUS_ALGORITHMS: Dict[str, Type[AlgoBase]] = {
     "bc": BC,
     "bcq": BCQ,
     "bear": BEAR,
-    "combo": COMBO,
     "cql": CQL,
     "crr": CRR,
     "ddpg": DDPG,
     "iql": IQL,
-    "mopo": MOPO,
     "plas": PLASWithPerturbation,
     "sac": SAC,
     "td3": TD3,

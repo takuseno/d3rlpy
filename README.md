@@ -97,9 +97,6 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 - [x] [Implicit Quantile Network](https://arxiv.org/abs/1806.06923)
 
 ## experimental features
-- Model-based Algorithms
-  - [Model-based Offline Policy Optimization (MOPO)](https://arxiv.org/abs/2005.13239)
-  - [Conservative Offline Model-Based Policy Optimization (COMBO)](https://arxiv.org/abs/2102.08363)
 - Q-functions
   - [Fully parametrized Quantile Function](https://arxiv.org/abs/1911.02140) (experimental)
 

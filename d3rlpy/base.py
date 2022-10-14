@@ -38,7 +38,6 @@ from .dataset import (
     Episode,
     ReplayBuffer,
     Shape,
-    Transition,
     TransitionMiniBatch,
     TransitionPickerProtocol,
 )
@@ -140,8 +139,6 @@ class LearnableBase:
     _scaler: Optional[Scaler]
     _action_scaler: Optional[ActionScaler]
     _reward_scaler: Optional[RewardScaler]
-    _real_ratio: float
-    _generated_maxlen: int
     _impl: Optional[ImplBase]
     _eval_results: DefaultDict[str, List[float]]
     _loss_history: DefaultDict[str, List[float]]
@@ -155,8 +152,6 @@ class LearnableBase:
         scaler: ScalerArg = None,
         action_scaler: ActionScalerArg = None,
         reward_scaler: RewardScalerArg = None,
-        real_ratio: float = 1.0,
-        generated_maxlen: int = 100000,
         kwargs: Optional[Dict[str, Any]] = None,
     ):
         self._batch_size = batch_size
@@ -164,8 +159,6 @@ class LearnableBase:
         self._scaler = check_scaler(scaler)
         self._action_scaler = check_action_scaler(action_scaler)
         self._reward_scaler = check_reward_scaler(reward_scaler)
-        self._real_ratio = real_ratio
-        self._generated_maxlen = generated_maxlen
 
         self._impl = None
         self._eval_results = defaultdict(list)
@@ -562,20 +555,6 @@ class LearnableBase:
             )
 
             for itr in range_gen:
-
-                # TODO: support model-based rollout
-                # # generate new transitions with dynamics models
-                # new_transitions = self.generate_new_data(
-                #     transitions=iterator.transitions,
-                # )
-                # if new_transitions:
-                #     iterator.add_generated_transitions(new_transitions)
-                #     LOG.debug(
-                #         f"{len(new_transitions)} transitions are generated.",
-                #         real_transitions=len(iterator.transitions),
-                #         fake_transitions=len(iterator.generated_transitions),
-                #     )
-
                 with logger.measure_time("step"):
                     # pick transitions
                     with logger.measure_time("sample_batch"):
@@ -685,22 +664,6 @@ class LearnableBase:
 
     def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         raise NotImplementedError
-
-    def generate_new_data(
-        self, transitions: List[Transition]
-    ) -> Optional[List[Transition]]:
-        """Returns generated transitions for data augmentation.
-
-        This method is for model-based RL algorithms.
-
-        Args:
-            transitions: list of transitions.
-
-        Returns:
-            list of new transitions.
-
-        """
-        return None
 
     def _prepare_logger(
         self,

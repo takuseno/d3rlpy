@@ -17,8 +17,6 @@ from .torch import (
     EnsembleDiscreteQFunction,
     NonSquashedNormalPolicy,
     Parameter,
-    ProbabilisticDynamicsModel,
-    ProbabilisticEnsembleDynamicsModel,
     ProbablisticRegressor,
     SquashedNormalPolicy,
     ValueFunction,
@@ -196,25 +194,6 @@ def create_value_function(
 ) -> ValueFunction:
     encoder = encoder_factory.create(observation_shape)
     return ValueFunction(encoder)
-
-
-def create_probabilistic_ensemble_dynamics_model(
-    observation_shape: Shape,
-    action_size: int,
-    encoder_factory: EncoderFactory,
-    n_ensembles: int = 5,
-    discrete_action: bool = False,
-) -> ProbabilisticEnsembleDynamicsModel:
-    models = []
-    for _ in range(n_ensembles):
-        encoder = encoder_factory.create_with_action(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            discrete_action=discrete_action,
-        )
-        model = ProbabilisticDynamicsModel(encoder)
-        models.append(model)
-    return ProbabilisticEnsembleDynamicsModel(models)
 
 
 def create_parameter(shape: Sequence[int], initial_value: float) -> Parameter:
