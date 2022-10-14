@@ -108,7 +108,7 @@ class DummyImpl:
         self._fc2 = torch.nn.Linear(100, 100)
         self._optim = torch.optim.Adam(self._fc1.parameters())
         self._device = "cpu:0"
-        self._scaler = None
+        self._observation_scaler = None
         self._action_scaler = None
         self._reward_scaler = None
 
@@ -116,8 +116,8 @@ class DummyImpl:
     def torch_api_func(self, x):
         assert isinstance(x, torch.Tensor)
 
-    @torch_api(scaler_targets=["x"])
-    def torch_api_func_with_scaler(self, x, y, ref_x, ref_y):
+    @torch_api(observation_scaler_targets=["x"])
+    def torch_api_func_with_observation_scaler(self, x, y, ref_x, ref_y):
         assert isinstance(x, torch.Tensor)
         assert torch.allclose(x, torch.tensor(ref_x, dtype=torch.float32))
         assert torch.allclose(y, torch.tensor(ref_y, dtype=torch.float32))
@@ -148,8 +148,8 @@ class DummyImpl:
         return self._device
 
     @property
-    def scaler(self):
-        return self._scaler
+    def observation_scaler(self):
+        return self._observation_scaler
 
     @property
     def action_scaler(self):
@@ -276,14 +276,14 @@ def test_unfreeze():
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("use_scaler", [False, True])
+@pytest.mark.parametrize("use_observation_scaler", [False, True])
 @pytest.mark.parametrize("use_action_scaler", [False, True])
 @pytest.mark.parametrize("use_reward_scaler", [False, True])
 def test_torch_mini_batch(
     batch_size,
     observation_shape,
     action_size,
-    use_scaler,
+    use_observation_scaler,
     use_action_scaler,
     use_reward_scaler,
 ):
@@ -300,15 +300,15 @@ def test_torch_mini_batch(
         )
         transitions.append(transition)
 
-    if use_scaler:
+    if use_observation_scaler:
 
-        class DummyScaler:
+        class DummyObservationScaler:
             def transform(self, x):
                 return x + 0.1
 
-        scaler = DummyScaler()
+        observation_scaler = DummyObservationScaler()
     else:
-        scaler = None
+        observation_scaler = None
 
     if use_action_scaler:
 
@@ -335,12 +335,12 @@ def test_torch_mini_batch(
     torch_batch = TorchMiniBatch.from_batch(
         batch=batch,
         device="cpu:0",
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )
 
-    if use_scaler:
+    if use_observation_scaler:
         assert np.all(
             torch_batch.observations.numpy() == batch.observations + 0.1
         )
@@ -370,25 +370,25 @@ def test_torch_mini_batch(
 
 def test_torch_api():
     impl = DummyImpl()
-    impl._scaler = None
+    impl._observation_scaler = None
 
     x = np.random.random((100, 100))
     impl.torch_api_func(x)
 
 
-def test_torch_api_with_scaler():
+def test_torch_api_with_observation_scaler():
     impl = DummyImpl()
 
-    class DummyScaler:
+    class DummyObservationScaler:
         def transform(self, x):
             return x + 0.1
 
-    scaler = DummyScaler()
-    impl._scaler = scaler
+    observation_scaler = DummyObservationScaler()
+    impl._observation_scaler = observation_scaler
 
     x = np.random.random((100, 100))
     y = np.random.random((100, 100))
-    impl.torch_api_func_with_scaler(x, y, ref_x=x + 0.1, ref_y=y)
+    impl.torch_api_func_with_observation_scaler(x, y, ref_x=x + 0.1, ref_y=y)
 
 
 def test_torch_api_with_action_scaler():
@@ -409,14 +409,14 @@ def test_torch_api_with_action_scaler():
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("use_scaler", [False, True])
+@pytest.mark.parametrize("use_observation_scaler", [False, True])
 @pytest.mark.parametrize("use_action_scaler", [False, True])
 @pytest.mark.parametrize("use_reward_scaler", [False, True])
 def test_torch_api_with_batch(
     batch_size,
     observation_shape,
     action_size,
-    use_scaler,
+    use_observation_scaler,
     use_action_scaler,
     use_reward_scaler,
 ):
@@ -433,15 +433,15 @@ def test_torch_api_with_batch(
         )
         transitions.append(transition)
 
-    if use_scaler:
+    if use_observation_scaler:
 
-        class DummyScaler:
+        class DummyObservationScaler:
             def transform(self, x):
                 return x + 0.1
 
-        scaler = DummyScaler()
+        observation_scaler = DummyObservationScaler()
     else:
-        scaler = None
+        observation_scaler = None
 
     if use_action_scaler:
 
@@ -466,13 +466,13 @@ def test_torch_api_with_batch(
     batch = TransitionMiniBatch.from_transitions(transitions)
 
     impl = DummyImpl()
-    impl._scaler = scaler
+    impl._observation_scaler = observation_scaler
     impl._action_scaler = action_scaler
     impl._reward_scaler = reward_scaler
 
     torch_batch = impl.torch_api_func_with_batch(batch)
 
-    if use_scaler:
+    if use_observation_scaler:
         assert np.all(
             torch_batch.observations.numpy() == batch.observations + 0.1
         )

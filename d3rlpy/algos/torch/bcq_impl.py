@@ -22,7 +22,7 @@ from ...models.torch import (
     PixelEncoder,
     compute_max_with_n_actions,
 )
-from ...preprocessing import ActionScaler, RewardScaler, Scaler
+from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 from .dqn_impl import DoubleDQNImpl
@@ -64,7 +64,7 @@ class BCQImpl(DDPGBaseImpl):
         action_flexibility: float,
         beta: float,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -82,7 +82,7 @@ class BCQImpl(DDPGBaseImpl):
             tau=tau,
             n_critics=n_critics,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
         )
@@ -246,7 +246,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         action_flexibility: float,
         beta: float,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
@@ -259,7 +259,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             gamma=gamma,
             n_critics=n_critics,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             reward_scaler=reward_scaler,
         )
         self._action_flexibility = action_flexibility

@@ -20,7 +20,7 @@ from ...models.torch import (
     DeterministicPolicy,
     DeterministicResidualPolicy,
 )
-from ...preprocessing import ActionScaler, RewardScaler, Scaler
+from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, soft_sync, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 
@@ -58,7 +58,7 @@ class PLASImpl(DDPGBaseImpl):
         lam: float,
         beta: float,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -76,7 +76,7 @@ class PLASImpl(DDPGBaseImpl):
             tau=tau,
             n_critics=n_critics,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
         )
@@ -196,7 +196,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         beta: float,
         action_flexibility: float,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -219,7 +219,7 @@ class PLASWithPerturbationImpl(PLASImpl):
             lam=lam,
             beta=beta,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
         )

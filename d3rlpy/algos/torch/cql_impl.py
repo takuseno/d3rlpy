@@ -13,7 +13,7 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import Parameter
-from ...preprocessing import ActionScaler, RewardScaler, Scaler
+from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .dqn_impl import DoubleDQNImpl
 from .sac_impl import SACImpl
@@ -56,7 +56,7 @@ class CQLImpl(SACImpl):
         n_action_samples: int,
         soft_q_backup: bool,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -77,7 +77,7 @@ class CQLImpl(SACImpl):
             n_critics=n_critics,
             initial_temperature=initial_temperature,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
         )
@@ -259,7 +259,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         n_critics: int,
         alpha: float,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
@@ -272,7 +272,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
             gamma=gamma,
             n_critics=n_critics,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             reward_scaler=reward_scaler,
         )
         self._alpha = alpha

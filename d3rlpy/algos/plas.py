@@ -3,9 +3,9 @@ from typing import Any, Dict, Optional
 from ..argument_utility import (
     ActionScalerArg,
     EncoderArg,
+    ObservationScalerArg,
     QFuncArg,
     RewardScalerArg,
-    ScalerArg,
     UseGPUArg,
     check_encoder,
     check_q_func,
@@ -67,8 +67,9 @@ class PLAS(AlgoBase):
         beta (float): KL reguralization term for Conditional VAE.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`.
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
         reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
@@ -119,7 +120,7 @@ class PLAS(AlgoBase):
         warmup_steps: int = 500000,
         beta: float = 0.5,
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         action_scaler: ActionScalerArg = None,
         reward_scaler: RewardScalerArg = None,
         impl: Optional[PLASImpl] = None,
@@ -128,7 +129,7 @@ class PLAS(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             gamma=gamma,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
             kwargs=kwargs,
@@ -172,7 +173,7 @@ class PLAS(AlgoBase):
             lam=self._lam,
             beta=self._beta,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
             action_scaler=self._action_scaler,
             reward_scaler=self._reward_scaler,
         )
@@ -240,8 +241,9 @@ class PLASWithPerturbation(PLAS):
         beta (float): KL reguralization term for Conditional VAE.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`.
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
         reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
@@ -277,7 +279,7 @@ class PLASWithPerturbation(PLAS):
         warmup_steps: int = 500000,
         beta: float = 0.5,
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         action_scaler: ActionScalerArg = None,
         reward_scaler: RewardScalerArg = None,
         impl: Optional[PLASWithPerturbationImpl] = None,
@@ -303,7 +305,7 @@ class PLASWithPerturbation(PLAS):
             warmup_steps=warmup_steps,
             beta=beta,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
             impl=impl,
@@ -332,7 +334,7 @@ class PLASWithPerturbation(PLAS):
             beta=self._beta,
             action_flexibility=self._action_flexibility,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
             action_scaler=self._action_scaler,
             reward_scaler=self._reward_scaler,
         )

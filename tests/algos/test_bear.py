@@ -18,10 +18,10 @@ def test_bear(
     q_func_factory,
     scalers,
 ):
-    scaler, action_scaler, reward_scaler = scalers
+    observation_scaler, action_scaler, reward_scaler = scalers
     bear = BEAR(
         q_func_factory=q_func_factory,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )

@@ -4,29 +4,29 @@ import torch
 
 from d3rlpy.dataset import EpisodeGenerator
 from d3rlpy.preprocessing import (
-    MinMaxScaler,
-    PixelScaler,
-    StandardScaler,
-    create_scaler,
+    MinMaxObservationScaler,
+    PixelObservationScaler,
+    StandardObservationScaler,
+    create_observation_scaler,
 )
 
 from ..dummy_env import DummyAtari
 
 
 @pytest.mark.parametrize("scaler_type", ["pixel", "min_max", "standard"])
-def test_create_scaler(scaler_type):
-    scaler = create_scaler(scaler_type)
+def test_create_observation_scaler(scaler_type):
+    scaler = create_observation_scaler(scaler_type)
     if scaler_type == "pixel":
-        assert isinstance(scaler, PixelScaler)
+        assert isinstance(scaler, PixelObservationScaler)
     elif scaler_type == "min_max":
-        assert isinstance(scaler, MinMaxScaler)
+        assert isinstance(scaler, MinMaxObservationScaler)
     elif scaler_type == "standard":
-        assert isinstance(scaler, StandardScaler)
+        assert isinstance(scaler, StandardObservationScaler)
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84)])
-def test_pixel_scaler(observation_shape):
-    scaler = PixelScaler()
+def test_pixel_observation_scaler(observation_shape):
+    scaler = PixelObservationScaler()
 
     x = torch.randint(high=255, size=observation_shape)
 
@@ -41,13 +41,13 @@ def test_pixel_scaler(observation_shape):
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("batch_size", [32])
-def test_min_max_scaler(observation_shape, batch_size):
+def test_min_max_observation_scaler(observation_shape, batch_size):
     shape = (batch_size,) + observation_shape
     observations = np.random.random(shape).astype("f4")
 
     max = observations.max(axis=0)
     min = observations.min(axis=0)
-    scaler = MinMaxScaler(maximum=max, minimum=min)
+    scaler = MinMaxObservationScaler(maximum=max, minimum=min)
 
     # check range
     y = scaler.transform(torch.tensor(observations))
@@ -68,7 +68,7 @@ def test_min_max_scaler(observation_shape, batch_size):
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("batch_size", [32])
-def test_min_max_scaler_with_episode(observation_shape, batch_size):
+def test_min_max_observation_scaler_with_episode(observation_shape, batch_size):
     shape = (batch_size,) + observation_shape
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1))
@@ -86,7 +86,7 @@ def test_min_max_scaler_with_episode(observation_shape, batch_size):
     max = observations.max(axis=0)
     min = observations.min(axis=0)
 
-    scaler = MinMaxScaler()
+    scaler = MinMaxObservationScaler()
     scaler.fit(episodes)
 
     x = torch.rand((batch_size,) + observation_shape)
@@ -97,10 +97,10 @@ def test_min_max_scaler_with_episode(observation_shape, batch_size):
     assert np.allclose(y.numpy(), ref_y)
 
 
-def test_min_max_scaler_with_env():
+def test_min_max_observation_scaler_with_env():
     env = DummyAtari()
 
-    scaler = MinMaxScaler()
+    scaler = MinMaxObservationScaler()
     scaler.fit_with_env(env)
 
     x = torch.tensor(env.reset().reshape((1,) + env.observation_space.shape))
@@ -112,14 +112,14 @@ def test_min_max_scaler_with_env():
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("eps", [0.3])
-def test_standard_scaler(observation_shape, batch_size, eps):
+def test_standard_observation_scaler(observation_shape, batch_size, eps):
     shape = (batch_size,) + observation_shape
     observations = np.random.random(shape).astype("f4")
 
     mean = observations.mean(axis=0)
     std = observations.std(axis=0)
 
-    scaler = StandardScaler(mean=mean, std=std, eps=eps)
+    scaler = StandardObservationScaler(mean=mean, std=std, eps=eps)
 
     x = torch.rand((batch_size,) + observation_shape)
 
@@ -139,7 +139,9 @@ def test_standard_scaler(observation_shape, batch_size, eps):
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("eps", [32])
-def test_standard_scaler_with_episode(observation_shape, batch_size, eps):
+def test_standard_observation_scaler_with_episode(
+    observation_shape, batch_size, eps
+):
     shape = (batch_size,) + observation_shape
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1)).astype("f4")
@@ -157,7 +159,7 @@ def test_standard_scaler_with_episode(observation_shape, batch_size, eps):
     mean = observations.mean(axis=0)
     std = observations.std(axis=0)
 
-    scaler = StandardScaler(eps=eps)
+    scaler = StandardObservationScaler(eps=eps)
     scaler.fit(episodes)
 
     x = torch.rand((batch_size,) + observation_shape)

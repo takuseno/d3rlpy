@@ -15,9 +15,9 @@ def test_iql(
     action_size,
     scalers,
 ):
-    scaler, action_scaler, reward_scaler = scalers
+    observation_scaler, action_scaler, reward_scaler = scalers
     iql = IQL(
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )

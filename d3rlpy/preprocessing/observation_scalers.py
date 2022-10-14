@@ -9,7 +9,7 @@ from ..decorators import pretty_repr
 
 
 @pretty_repr
-class Scaler:
+class ObservationScaler:
 
     TYPE: ClassVar[str] = "none"
 
@@ -77,7 +77,7 @@ class Scaler:
         raise NotImplementedError
 
 
-class PixelScaler(Scaler):
+class PixelObservationScaler(ObservationScaler):
     """Pixel normalization preprocessing.
 
     .. math::
@@ -116,7 +116,7 @@ class PixelScaler(Scaler):
         return {}
 
 
-class MinMaxScaler(Scaler):
+class MinMaxObservationScaler(ObservationScaler):
     r"""Min-Max normalization preprocessing.
 
     .. math::
@@ -239,7 +239,7 @@ class MinMaxScaler(Scaler):
         return {"maximum": maximum, "minimum": minimum}
 
 
-class StandardScaler(Scaler):
+class StandardObservationScaler(ObservationScaler):
     r"""Standardization preprocessing.
 
     .. math::
@@ -357,22 +357,22 @@ class StandardScaler(Scaler):
         return {"mean": mean, "std": std, "eps": self._eps}
 
 
-SCALER_LIST: Dict[str, Type[Scaler]] = {}
+OBSERVATION_SCALER_LIST: Dict[str, Type[ObservationScaler]] = {}
 
 
-def register_scaler(cls: Type[Scaler]) -> None:
+def register_observation_scaler(cls: Type[ObservationScaler]) -> None:
     """Registers scaler class.
 
     Args:
         cls: scaler class inheriting ``Scaler``.
 
     """
-    is_registered = cls.TYPE in SCALER_LIST
+    is_registered = cls.TYPE in OBSERVATION_SCALER_LIST
     assert not is_registered, f"{cls.TYPE} seems to be already registered"
-    SCALER_LIST[cls.TYPE] = cls
+    OBSERVATION_SCALER_LIST[cls.TYPE] = cls
 
 
-def create_scaler(name: str, **kwargs: Any) -> Scaler:
+def create_observation_scaler(name: str, **kwargs: Any) -> ObservationScaler:
     """Returns registered scaler object.
 
     Args:
@@ -383,12 +383,14 @@ def create_scaler(name: str, **kwargs: Any) -> Scaler:
         scaler object.
 
     """
-    assert name in SCALER_LIST, f"{name} seems not to be registered."
-    scaler = SCALER_LIST[name](**kwargs)
-    assert isinstance(scaler, Scaler)
+    assert (
+        name in OBSERVATION_SCALER_LIST
+    ), f"{name} seems not to be registered."
+    scaler = OBSERVATION_SCALER_LIST[name](**kwargs)
+    assert isinstance(scaler, ObservationScaler)
     return scaler
 
 
-register_scaler(PixelScaler)
-register_scaler(MinMaxScaler)
-register_scaler(StandardScaler)
+register_observation_scaler(PixelObservationScaler)
+register_observation_scaler(MinMaxObservationScaler)
+register_observation_scaler(StandardObservationScaler)

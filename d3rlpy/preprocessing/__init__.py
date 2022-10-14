@@ -3,6 +3,13 @@ from .action_scalers import (
     MinMaxActionScaler,
     create_action_scaler,
 )
+from .observation_scalers import (
+    MinMaxObservationScaler,
+    ObservationScaler,
+    PixelObservationScaler,
+    StandardObservationScaler,
+    create_observation_scaler,
+)
 from .reward_scalers import (
     ClipRewardScaler,
     ConstantShiftRewardScaler,
@@ -13,20 +20,13 @@ from .reward_scalers import (
     StandardRewardScaler,
     create_reward_scaler,
 )
-from .scalers import (
-    MinMaxScaler,
-    PixelScaler,
-    Scaler,
-    StandardScaler,
-    create_scaler,
-)
 
 __all__ = [
-    "create_scaler",
-    "Scaler",
-    "PixelScaler",
-    "MinMaxScaler",
-    "StandardScaler",
+    "create_observation_scaler",
+    "ObservationScaler",
+    "PixelObservationScaler",
+    "MinMaxObservationScaler",
+    "StandardObservationScaler",
     "create_action_scaler",
     "ActionScaler",
     "MinMaxActionScaler",

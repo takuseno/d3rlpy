@@ -64,7 +64,7 @@ These are the links to the API reference.
      - :doc:`references/q_functions`
    * - OptimizerFactory
      - :doc:`references/optimizers`
-   * - Scaler
+   * - ObservationScaler
      - :doc:`references/preprocessing`
    * - ActionScaler
      - :doc:`references/preprocessing`

@@ -13,7 +13,7 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import MeanQFunctionFactory
 from ...models.torch import NonSquashedNormalPolicy, ValueFunction
-from ...preprocessing import ActionScaler, RewardScaler, Scaler
+from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 
@@ -44,7 +44,7 @@ class IQLImpl(DDPGBaseImpl):
         weight_temp: float,
         max_weight: float,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -62,7 +62,7 @@ class IQLImpl(DDPGBaseImpl):
             tau=tau,
             n_critics=n_critics,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
         )

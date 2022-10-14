@@ -64,11 +64,11 @@ def test_fqe(
     q_func_factory,
     scalers,
 ):
-    scaler, action_scaler, reward_scaler = scalers
+    observation_scaler, action_scaler, reward_scaler = scalers
     algo = DDPG()
     fqe = FQE(
         algo=algo,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
         q_func_factory=q_func_factory,
@@ -83,11 +83,11 @@ def test_fqe(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("scalers", [(None, None), ("min_max", "min_max")])
 def test_discrete_fqe(observation_shape, action_size, q_func_factory, scalers):
-    scaler, reward_scaler = scalers
+    observation_scaler, reward_scaler = scalers
     algo = DQN()
     fqe = DiscreteFQE(
         algo=algo,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
         q_func_factory=q_func_factory,
     )

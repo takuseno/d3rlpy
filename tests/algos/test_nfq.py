@@ -18,11 +18,11 @@ def test_nfq(
     q_func_factory,
     scalers,
 ):
-    scaler, reward_scaler = scalers
+    observation_scaler, reward_scaler = scalers
     nfq = NFQ(
         n_critics=n_critics,
         q_func_factory=q_func_factory,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )
     algo_tester(nfq, observation_shape, test_q_function_copy=True)

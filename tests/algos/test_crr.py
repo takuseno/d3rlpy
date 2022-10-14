@@ -24,10 +24,10 @@ def test_crr(
     weight_type,
     target_update_type,
 ):
-    scaler, action_scaler, reward_scaler = scalers
+    observation_scaler, action_scaler, reward_scaler = scalers
     crr = CRR(
         q_func_factory=q_func_factory,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
         advantage_type=advantage_type,

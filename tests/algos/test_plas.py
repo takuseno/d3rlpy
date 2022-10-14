@@ -18,10 +18,10 @@ def test_plas(
     q_func_factory,
     scalers,
 ):
-    scaler, action_scaler, reward_scaler = scalers
+    observation_scaler, action_scaler, reward_scaler = scalers
     plas = PLAS(
         q_func_factory=q_func_factory,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
         warmup_steps=0,
@@ -60,10 +60,10 @@ def test_plas_with_perturbation(
     q_func_factory,
     scalers,
 ):
-    scaler, action_scaler, reward_scaler = scalers
+    observation_scaler, action_scaler, reward_scaler = scalers
     plas = PLASWithPerturbation(
         q_func_factory=q_func_factory,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
         warmup_steps=0,

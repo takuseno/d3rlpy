@@ -6,8 +6,8 @@ from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import create_q_func_factory
 from tests.algos.algo_test import (
     DummyActionScaler,
+    DummyObservationScaler,
     DummyRewardScaler,
-    DummyScaler,
     torch_impl_tester,
 )
 
@@ -27,7 +27,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("n_critics", [2])
 @pytest.mark.parametrize("lam", [0.75])
 @pytest.mark.parametrize("beta", [0.5])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_plas_impl(
@@ -46,7 +46,7 @@ def test_plas_impl(
     n_critics,
     lam,
     beta,
-    scaler,
+    observation_scaler,
     action_scaler,
     reward_scaler,
 ):
@@ -69,7 +69,7 @@ def test_plas_impl(
         lam=lam,
         beta=beta,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )
@@ -94,7 +94,7 @@ def test_plas_impl(
 @pytest.mark.parametrize("lam", [0.75])
 @pytest.mark.parametrize("beta", [0.5])
 @pytest.mark.parametrize("action_flexibility", [0.05])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_plas_with_perturbation_impl(
@@ -114,7 +114,7 @@ def test_plas_with_perturbation_impl(
     lam,
     beta,
     action_flexibility,
-    scaler,
+    observation_scaler,
     action_scaler,
     reward_scaler,
 ):
@@ -138,7 +138,7 @@ def test_plas_with_perturbation_impl(
         beta=beta,
         action_flexibility=action_flexibility,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )

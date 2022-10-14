@@ -5,9 +5,9 @@ import numpy as np
 from ..argument_utility import (
     ActionScalerArg,
     EncoderArg,
+    ObservationScalerArg,
     QFuncArg,
     RewardScalerArg,
-    ScalerArg,
     UseGPUArg,
     check_encoder,
     check_q_func,
@@ -131,8 +131,9 @@ class BCQ(AlgoBase):
         beta (float): KL reguralization term for Conditional VAE.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`.
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
         reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
@@ -187,7 +188,7 @@ class BCQ(AlgoBase):
         rl_start_step: int = 0,
         beta: float = 0.5,
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         action_scaler: ActionScalerArg = None,
         reward_scaler: RewardScalerArg = None,
         impl: Optional[BCQImpl] = None,
@@ -196,7 +197,7 @@ class BCQ(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             gamma=gamma,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
             kwargs=kwargs,
@@ -244,7 +245,7 @@ class BCQ(AlgoBase):
             action_flexibility=self._action_flexibility,
             beta=self._beta,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
             action_scaler=self._action_scaler,
             reward_scaler=self._reward_scaler,
         )
@@ -334,8 +335,9 @@ class DiscreteBCQ(AlgoBase):
         target_update_interval (int): interval to update the target network.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
             reward preprocessor. The available options are
             ``['clip', 'min_max', 'standard']``.
@@ -369,7 +371,7 @@ class DiscreteBCQ(AlgoBase):
         beta: float = 0.5,
         target_update_interval: int = 8000,
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         reward_scaler: RewardScalerArg = None,
         impl: Optional[DiscreteBCQImpl] = None,
         **kwargs: Any
@@ -377,7 +379,7 @@ class DiscreteBCQ(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             gamma=gamma,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=None,
             reward_scaler=reward_scaler,
             kwargs=kwargs,
@@ -406,7 +408,7 @@ class DiscreteBCQ(AlgoBase):
             action_flexibility=self._action_flexibility,
             beta=self._beta,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
             reward_scaler=self._reward_scaler,
         )
         self._impl.build()

@@ -18,11 +18,11 @@ def test_dqn(
     q_func_factory,
     scalers,
 ):
-    scaler, reward_scaler = scalers
+    observation_scaler, reward_scaler = scalers
     dqn = DQN(
         n_critics=n_critics,
         q_func_factory=q_func_factory,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )
     algo_tester(dqn, observation_shape, test_q_function_copy=True)
@@ -54,11 +54,11 @@ def test_double_dqn(
     q_func_factory,
     scalers,
 ):
-    scaler, reward_scaler = scalers
+    observation_scaler, reward_scaler = scalers
     double_dqn = DoubleDQN(
         n_critics=n_critics,
         q_func_factory=q_func_factory,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )
     algo_tester(double_dqn, observation_shape, test_q_function_copy=True)

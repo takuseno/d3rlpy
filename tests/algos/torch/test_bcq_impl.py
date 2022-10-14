@@ -7,8 +7,8 @@ from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import create_q_func_factory
 from tests.algos.algo_test import (
     DummyActionScaler,
+    DummyObservationScaler,
     DummyRewardScaler,
-    DummyScaler,
     torch_impl_tester,
 )
 
@@ -30,7 +30,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("n_action_samples", [10])  # small for test
 @pytest.mark.parametrize("action_flexibility", [0.05])
 @pytest.mark.parametrize("beta", [0.5])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_bcq_impl(
@@ -51,7 +51,7 @@ def test_bcq_impl(
     n_action_samples,
     action_flexibility,
     beta,
-    scaler,
+    observation_scaler,
     action_scaler,
     reward_scaler,
 ):
@@ -76,7 +76,7 @@ def test_bcq_impl(
         action_flexibility=action_flexibility,
         beta=beta,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )
@@ -110,7 +110,7 @@ def test_bcq_impl(
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("action_flexibility", [0.3])
 @pytest.mark.parametrize("beta", [1e-2])
-@pytest.mark.parametrize("scaler", [None])
+@pytest.mark.parametrize("observation_scaler", [None])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_discrete_bcq_impl(
     observation_shape,
@@ -123,7 +123,7 @@ def test_discrete_bcq_impl(
     n_critics,
     action_flexibility,
     beta,
-    scaler,
+    observation_scaler,
     reward_scaler,
 ):
     impl = DiscreteBCQImpl(
@@ -138,7 +138,7 @@ def test_discrete_bcq_impl(
         action_flexibility=action_flexibility,
         beta=beta,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )
     torch_impl_tester(

@@ -11,7 +11,7 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import AdamFactory, OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch.policies import NonSquashedNormalPolicy
-from ...preprocessing import ActionScaler, RewardScaler, Scaler
+from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .sac_impl import SACImpl
 
@@ -39,7 +39,7 @@ class AWACImpl(SACImpl):
         n_action_samples: int,
         n_critics: int,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -60,7 +60,7 @@ class AWACImpl(SACImpl):
             n_critics=n_critics,
             initial_temperature=1e-20,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
         )

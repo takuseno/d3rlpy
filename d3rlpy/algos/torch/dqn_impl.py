@@ -12,7 +12,7 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import EnsembleDiscreteQFunction, EnsembleQFunction
-from ...preprocessing import RewardScaler, Scaler
+from ...preprocessing import ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
 from .base import TorchImplBase
 from .utility import DiscreteQFunctionMixin
@@ -42,13 +42,13 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         gamma: float,
         n_critics: int,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=None,
             reward_scaler=reward_scaler,
         )
@@ -96,7 +96,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         )
 
     @train_api
-    @torch_api(scaler_targets=["obs_t", "obs_tpn"])
+    @torch_api(observation_scaler_targets=["obs_t", "obs_tpn"])
     def update(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._optim is not None
 

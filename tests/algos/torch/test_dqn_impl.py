@@ -5,8 +5,8 @@ from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import create_q_func_factory
 from tests.algos.algo_test import (
+    DummyObservationScaler,
     DummyRewardScaler,
-    DummyScaler,
     torch_impl_tester,
 )
 
@@ -19,7 +19,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_dqn_impl(
     observation_shape,
@@ -30,7 +30,7 @@ def test_dqn_impl(
     q_func_factory,
     gamma,
     n_critics,
-    scaler,
+    observation_scaler,
     reward_scaler,
 ):
     impl = DQNImpl(
@@ -43,7 +43,7 @@ def test_dqn_impl(
         gamma=gamma,
         n_critics=n_critics,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )
     torch_impl_tester(
@@ -59,7 +59,7 @@ def test_dqn_impl(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_double_dqn_impl(
     observation_shape,
@@ -70,7 +70,7 @@ def test_double_dqn_impl(
     q_func_factory,
     gamma,
     n_critics,
-    scaler,
+    observation_scaler,
     reward_scaler,
 ):
     impl = DoubleDQNImpl(
@@ -83,7 +83,7 @@ def test_double_dqn_impl(
         gamma=gamma,
         n_critics=n_critics,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )
     torch_impl_tester(

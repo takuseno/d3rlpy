@@ -9,8 +9,8 @@ from d3rlpy.models.q_functions import create_q_func_factory
 from d3rlpy.ope.torch.fqe_impl import DiscreteFQEImpl, FQEImpl
 from tests.algos.algo_test import (
     DummyActionScaler,
+    DummyObservationScaler,
     DummyRewardScaler,
-    DummyScaler,
 )
 
 
@@ -46,7 +46,7 @@ def torch_impl_tester(impl, discrete):
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_fqe_impl(
@@ -58,7 +58,7 @@ def test_fqe_impl(
     q_func_factory,
     gamma,
     n_critics,
-    scaler,
+    observation_scaler,
     action_scaler,
     reward_scaler,
 ):
@@ -72,7 +72,7 @@ def test_fqe_impl(
         gamma=gamma,
         n_critics=n_critics,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )
@@ -88,7 +88,7 @@ def test_fqe_impl(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_discrete_fqe_impl(
     observation_shape,
@@ -99,7 +99,7 @@ def test_discrete_fqe_impl(
     q_func_factory,
     gamma,
     n_critics,
-    scaler,
+    observation_scaler,
     reward_scaler,
 ):
     fqe = DiscreteFQEImpl(
@@ -112,7 +112,7 @@ def test_discrete_fqe_impl(
         gamma=gamma,
         n_critics=n_critics,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=None,
         reward_scaler=reward_scaler,
     )

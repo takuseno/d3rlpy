@@ -21,7 +21,7 @@ class _ContinuousQFunctionProtocol(Protocol):
 
 class DiscreteQFunctionMixin:
     @eval_api
-    @torch_api(scaler_targets=["x"])
+    @torch_api(observation_scaler_targets=["x"])
     def predict_value(
         self: _DiscreteQFunctionProtocol,
         x: torch.Tensor,
@@ -54,7 +54,9 @@ class DiscreteQFunctionMixin:
 
 class ContinuousQFunctionMixin:
     @eval_api
-    @torch_api(scaler_targets=["x"], action_scaler_targets=["action"])
+    @torch_api(
+        observation_scaler_targets=["x"], action_scaler_targets=["action"]
+    )
     def predict_value(
         self: _ContinuousQFunctionProtocol,
         x: torch.Tensor,

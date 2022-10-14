@@ -7,8 +7,8 @@ from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import create_q_func_factory
 from tests.algos.algo_test import (
     DummyActionScaler,
+    DummyObservationScaler,
     DummyRewardScaler,
-    DummyScaler,
     torch_impl_tester,
 )
 
@@ -40,7 +40,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("mmd_kernel", ["laplacian"])
 @pytest.mark.parametrize("mmd_sigma", [20.0])
 @pytest.mark.parametrize("vae_kl_weight", [0.5])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_bear_impl(
@@ -71,7 +71,7 @@ def test_bear_impl(
     mmd_kernel,
     mmd_sigma,
     vae_kl_weight,
-    scaler,
+    observation_scaler,
     action_scaler,
     reward_scaler,
 ):
@@ -106,7 +106,7 @@ def test_bear_impl(
         mmd_sigma=mmd_sigma,
         vae_kl_weight=vae_kl_weight,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )

@@ -125,7 +125,7 @@ def base_tester(model, impl, observation_shape, action_size=2):
     assert new_model.impl is not None
     assert new_model.impl.observation_shape == observation_shape
     assert new_model.impl.action_size == action_size
-    assert type(model.scaler) == type(new_model.scaler)
+    assert type(model.observation_scaler) == type(new_model.observation_scaler)
 
     # check __setattr__ override
     prev_batch_size = model.impl.batch_size

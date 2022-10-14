@@ -6,8 +6,8 @@ from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import create_q_func_factory
 from tests.algos.algo_test import (
     DummyActionScaler,
+    DummyObservationScaler,
     DummyRewardScaler,
-    DummyScaler,
     torch_impl_tester,
 )
 
@@ -26,7 +26,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("target_smoothing_sigma", [0.2])
 @pytest.mark.parametrize("target_smoothing_clip", [0.5])
 @pytest.mark.parametrize("alpha", [0.25])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_td3_plus_bc_impl(
@@ -44,7 +44,7 @@ def test_td3_plus_bc_impl(
     target_smoothing_sigma,
     target_smoothing_clip,
     alpha,
-    scaler,
+    observation_scaler,
     action_scaler,
     reward_scaler,
 ):
@@ -65,7 +65,7 @@ def test_td3_plus_bc_impl(
         target_smoothing_clip=target_smoothing_clip,
         alpha=alpha,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )

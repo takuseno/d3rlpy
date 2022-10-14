@@ -2,9 +2,9 @@ from typing import Any, Dict, Optional
 
 from ..argument_utility import (
     EncoderArg,
+    ObservationScalerArg,
     QFuncArg,
     RewardScalerArg,
-    ScalerArg,
     UseGPUArg,
     check_encoder,
     check_q_func,
@@ -49,8 +49,9 @@ class DQN(AlgoBase):
         target_update_interval (int): interval to update the target network.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
             reward preprocessor. The available options are
             ``['clip', 'min_max', 'standard']``.
@@ -79,7 +80,7 @@ class DQN(AlgoBase):
         n_critics: int = 1,
         target_update_interval: int = 8000,
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         reward_scaler: RewardScalerArg = None,
         impl: Optional[DQNImpl] = None,
         **kwargs: Any,
@@ -87,7 +88,7 @@ class DQN(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             gamma=gamma,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             reward_scaler=reward_scaler,
             kwargs=kwargs,
         )
@@ -111,7 +112,7 @@ class DQN(AlgoBase):
             gamma=self._gamma,
             n_critics=self._n_critics,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
             reward_scaler=self._reward_scaler,
         )
         self._impl.build()
@@ -163,8 +164,9 @@ class DoubleDQN(DQN):
             network.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         impl (d3rlpy.algos.torch.dqn_impl.DoubleDQNImpl):
             algorithm implementation.
 
@@ -183,7 +185,7 @@ class DoubleDQN(DQN):
             gamma=self._gamma,
             n_critics=self._n_critics,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
             reward_scaler=self._reward_scaler,
         )
         self._impl.build()

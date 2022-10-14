@@ -10,7 +10,7 @@ Preprocess Observations
 -----------------------
 
 If your dataset includes unnormalized observations, you can normalize or
-standardize the observations by specifying ``scaler`` argument with a string alias.
+standardize the observations by specifying ``observation_scaler`` argument with a string alias.
 In this case, the statistics of the dataset will be computed at the beginning
 of offline training.
 
@@ -21,7 +21,7 @@ of offline training.
   dataset, _ = d3rlpy.datasets.get_dataset("pendulum-random")
 
   # specify by string alias
-  sac = d3rlpy.algos.SAC(scaler="standard")
+  sac = d3rlpy.algos.SAC(observation_scaler="standard")
 
 Alternatively, you can manually instantiate preprocessing parameters.
 
@@ -30,10 +30,10 @@ Alternatively, you can manually instantiate preprocessing parameters.
   # setup manually
   mean = np.mean(dataset.observations, axis=0, keepdims=True)
   std = np.std(dataset.observations, axis=0, keepdims=True)
-  scaler = d3rlpy.preprocessing.StandardScaler(mean=mean, std=std)
+  observation_scaler = d3rlpy.preprocessing.StandardObservationScaler(mean=mean, std=std)
 
   # specify by object
-  sac = d3rlpy.algos.SAC(scaler=scaler)
+  sac = d3rlpy.algos.SAC(observation_scaler=observation_scaler)
 
 
 Please check :doc:`../references/preprocessing` for the full list of available

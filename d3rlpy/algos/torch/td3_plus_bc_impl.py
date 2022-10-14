@@ -9,7 +9,7 @@ from ...gpu import Device
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
-from ...preprocessing import ActionScaler, RewardScaler, Scaler
+from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch
 from .td3_impl import TD3Impl
 
@@ -36,7 +36,7 @@ class TD3PlusBCImpl(TD3Impl):
         target_smoothing_clip: float,
         alpha: float,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -56,7 +56,7 @@ class TD3PlusBCImpl(TD3Impl):
             target_smoothing_sigma=target_smoothing_sigma,
             target_smoothing_clip=target_smoothing_clip,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
         )

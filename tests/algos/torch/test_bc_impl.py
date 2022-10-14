@@ -5,7 +5,7 @@ from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
 from tests.algos.algo_test import (
     DummyActionScaler,
-    DummyScaler,
+    DummyObservationScaler,
     torch_impl_tester,
 )
 
@@ -16,7 +16,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize("policy_type", ["deterministic", "stochastic"])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 def test_bc_impl(
     observation_shape,
@@ -25,7 +25,7 @@ def test_bc_impl(
     optim_factory,
     encoder_factory,
     policy_type,
-    scaler,
+    observation_scaler,
     action_scaler,
 ):
     impl = BCImpl(
@@ -36,7 +36,7 @@ def test_bc_impl(
         encoder_factory=encoder_factory,
         policy_type=policy_type,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
     )
     torch_impl_tester(impl, discrete=False, imitator=True)
@@ -48,7 +48,7 @@ def test_bc_impl(
 @pytest.mark.parametrize("optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize("beta", [0.5])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 def test_discrete_bc_impl(
     observation_shape,
     action_size,
@@ -56,7 +56,7 @@ def test_discrete_bc_impl(
     optim_factory,
     encoder_factory,
     beta,
-    scaler,
+    observation_scaler,
 ):
     impl = DiscreteBCImpl(
         observation_shape=observation_shape,
@@ -66,6 +66,6 @@ def test_discrete_bc_impl(
         encoder_factory=encoder_factory,
         beta=beta,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
     )
     torch_impl_tester(impl, discrete=True, imitator=True)

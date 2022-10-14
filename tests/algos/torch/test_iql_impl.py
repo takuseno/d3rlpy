@@ -5,8 +5,8 @@ from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
 from tests.algos.algo_test import (
     DummyActionScaler,
+    DummyObservationScaler,
     DummyRewardScaler,
-    DummyScaler,
     torch_impl_tester,
 )
 
@@ -24,7 +24,7 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("expectile", [0.7])
 @pytest.mark.parametrize("weight_temp", [3.0])
 @pytest.mark.parametrize("max_weight", [100.0])
-@pytest.mark.parametrize("scaler", [None, DummyScaler()])
+@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 @pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_iql_impl(
@@ -41,7 +41,7 @@ def test_iql_impl(
     expectile,
     weight_temp,
     max_weight,
-    scaler,
+    observation_scaler,
     action_scaler,
     reward_scaler,
 ):
@@ -62,7 +62,7 @@ def test_iql_impl(
         weight_temp=weight_temp,
         max_weight=max_weight,
         use_gpu=None,
-        scaler=scaler,
+        observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )

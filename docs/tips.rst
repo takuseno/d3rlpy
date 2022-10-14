@@ -42,7 +42,7 @@ image observations.
 
   from d3rlpy.algos import DQN
 
-  dqn = DQN(scaler='pixel', # you MUST set pixel scaler
+  dqn = DQN(observation_scaler='pixel', # you MUST set pixel scaler
             n_frames=4) # you CAN set the number of frames to stack
 
 Improve performance beyond the original paper

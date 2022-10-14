@@ -25,7 +25,7 @@ from ...models.torch import (
     Policy,
     SquashedNormalPolicy,
 )
-from ...preprocessing import ActionScaler, RewardScaler, Scaler
+from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
 from .base import TorchImplBase
 from .ddpg_impl import DDPGBaseImpl
@@ -60,7 +60,7 @@ class SACImpl(DDPGBaseImpl):
         n_critics: int,
         initial_temperature: float,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -78,7 +78,7 @@ class SACImpl(DDPGBaseImpl):
             tau=tau,
             n_critics=n_critics,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
         )
@@ -203,13 +203,13 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         n_critics: int,
         initial_temperature: float,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=None,
             reward_scaler=reward_scaler,
         )

@@ -1,7 +1,6 @@
 import os
 from unittest.mock import Mock
 
-import gym
 import numpy as np
 import onnxruntime as ort
 import torch
@@ -9,7 +8,7 @@ import torch
 from d3rlpy.algos.torch.base import TorchImplBase
 from d3rlpy.constants import ActionSpace
 from d3rlpy.datasets import get_cartpole, get_pendulum
-from d3rlpy.preprocessing import ActionScaler, RewardScaler, Scaler
+from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from tests.base_test import base_tester, base_update_tester
 
 
@@ -49,7 +48,7 @@ class DummyImpl(TorchImplBase):
         return self._action_size
 
 
-class DummyScaler(Scaler):
+class DummyObservationScaler(ObservationScaler):
     def fit(self, episodes):
         pass
 

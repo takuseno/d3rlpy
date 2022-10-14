@@ -23,7 +23,7 @@ from ...models.torch import (
     Policy,
     ProbablisticRegressor,
 )
-from ...preprocessing import ActionScaler, Scaler
+from ...preprocessing import ActionScaler, ObservationScaler
 from ...torch_utility import hard_sync, torch_api, train_api
 from .base import TorchImplBase
 
@@ -45,13 +45,13 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
         optim_factory: OptimizerFactory,
         encoder_factory: EncoderFactory,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=None,
         )
@@ -85,7 +85,9 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
         )
 
     @train_api
-    @torch_api(scaler_targets=["obs_t"], action_scaler_targets=["act_t"])
+    @torch_api(
+        observation_scaler_targets=["obs_t"], action_scaler_targets=["act_t"]
+    )
     def update_imitator(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> np.ndarray:
@@ -130,7 +132,7 @@ class BCImpl(BCBaseImpl):
         encoder_factory: EncoderFactory,
         policy_type: str,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
     ):
         super().__init__(
@@ -140,7 +142,7 @@ class BCImpl(BCBaseImpl):
             optim_factory=optim_factory,
             encoder_factory=encoder_factory,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
         )
         self._policy_type = policy_type
@@ -210,7 +212,7 @@ class DiscreteBCImpl(BCBaseImpl):
         encoder_factory: EncoderFactory,
         beta: float,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -219,7 +221,7 @@ class DiscreteBCImpl(BCBaseImpl):
             optim_factory=optim_factory,
             encoder_factory=encoder_factory,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=None,
         )
         self._beta = beta

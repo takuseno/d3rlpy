@@ -5,7 +5,7 @@ import numpy as np
 from ..argument_utility import (
     ActionScalerArg,
     EncoderArg,
-    ScalerArg,
+    ObservationScalerArg,
     UseGPUArg,
     check_encoder,
     check_use_gpu,
@@ -34,7 +34,7 @@ class _BCBase(AlgoBase):
         encoder_factory: EncoderArg = "default",
         batch_size: int = 100,
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         action_scaler: ActionScalerArg = None,
         impl: Optional[BCBaseImpl] = None,
         **kwargs: Any
@@ -42,7 +42,7 @@ class _BCBase(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             gamma=1.0,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             kwargs=kwargs,
         )
@@ -96,8 +96,9 @@ class BC(_BCBase):
             ``['deterministic', 'stochastic']``.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`.
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action scaler. The available options are ``['min_max']``.
         impl (d3rlpy.algos.torch.bc_impl.BCImpl):
@@ -117,7 +118,7 @@ class BC(_BCBase):
         batch_size: int = 100,
         policy_type: str = "deterministic",
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         action_scaler: ActionScalerArg = None,
         impl: Optional[BCBaseImpl] = None,
         **kwargs: Any
@@ -128,7 +129,7 @@ class BC(_BCBase):
             encoder_factory=encoder_factory,
             batch_size=batch_size,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             impl=impl,
             **kwargs,
@@ -144,7 +145,7 @@ class BC(_BCBase):
             encoder_factory=self._encoder_factory,
             policy_type=self._policy_type,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
             action_scaler=self._action_scaler,
         )
         self._impl.build()
@@ -179,8 +180,9 @@ class DiscreteBC(_BCBase):
         beta (float): reguralization factor.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
             implemenation of the algorithm.
 
@@ -198,7 +200,7 @@ class DiscreteBC(_BCBase):
         batch_size: int = 100,
         beta: float = 0.5,
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         impl: Optional[DiscreteBCImpl] = None,
         **kwargs: Any
     ):
@@ -208,7 +210,7 @@ class DiscreteBC(_BCBase):
             encoder_factory=encoder_factory,
             batch_size=batch_size,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             impl=impl,
             **kwargs,
         )
@@ -223,7 +225,7 @@ class DiscreteBC(_BCBase):
             encoder_factory=self._encoder_factory,
             beta=self._beta,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
         )
         self._impl.build()
 

@@ -3,9 +3,9 @@ from typing import Any, Dict, Optional
 from ..argument_utility import (
     ActionScalerArg,
     EncoderArg,
+    ObservationScalerArg,
     QFuncArg,
     RewardScalerArg,
-    ScalerArg,
     UseGPUArg,
     check_encoder,
     check_q_func,
@@ -98,8 +98,9 @@ class CQL(AlgoBase):
         soft_q_backup (bool): flag to use SAC-style backup.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`.
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
         reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
@@ -156,7 +157,7 @@ class CQL(AlgoBase):
         n_action_samples: int = 10,
         soft_q_backup: bool = False,
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         action_scaler: ActionScalerArg = None,
         reward_scaler: RewardScalerArg = None,
         impl: Optional[CQLImpl] = None,
@@ -165,7 +166,7 @@ class CQL(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             gamma=gamma,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
             kwargs=kwargs,
@@ -217,7 +218,7 @@ class CQL(AlgoBase):
             n_action_samples=self._n_action_samples,
             soft_q_backup=self._soft_q_backup,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
             action_scaler=self._action_scaler,
             reward_scaler=self._reward_scaler,
         )
@@ -291,8 +292,9 @@ class DiscreteCQL(DoubleDQN):
         alpha (float): the :math:`\alpha` value above.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
             reward preprocessor. The available options are
             ``['clip', 'min_max', 'standard']``.
@@ -317,7 +319,7 @@ class DiscreteCQL(DoubleDQN):
         target_update_interval: int = 8000,
         alpha: float = 1.0,
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         reward_scaler: RewardScalerArg = None,
         impl: Optional[DiscreteCQLImpl] = None,
         **kwargs: Any,
@@ -332,7 +334,7 @@ class DiscreteCQL(DoubleDQN):
             n_critics=n_critics,
             target_update_interval=target_update_interval,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             reward_scaler=reward_scaler,
             impl=impl,
             **kwargs,
@@ -351,7 +353,7 @@ class DiscreteCQL(DoubleDQN):
             n_critics=self._n_critics,
             alpha=self._alpha,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
             reward_scaler=self._reward_scaler,
         )
         self._impl.build()

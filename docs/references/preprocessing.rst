@@ -18,9 +18,9 @@ in the model exported by `save_policy` method.
     dataset = MDPDataset(...)
 
     # choose from ['pixel', 'min_max', 'standard'] or None
-    cql = CQL(scaler='standard')
+    cql = CQL(observation_scaler='standard')
 
-    # scaler is fitted from the given episodes
+    # observation scaler is fitted from the given episodes
     cql.fit(dataset.episodes)
 
     # preprocesing is included in TorchScript
@@ -30,23 +30,23 @@ in the model exported by `save_policy` method.
     policy = torch.jit.load('policy.pt')
     action = policy(unpreprocessed_x)
 
-You can also initialize scalers by yourself.
+You can also initialize observation scalers by yourself.
 
 .. code-block:: python
 
-    from d3rlpy.preprocessing import StandardScaler
+    from d3rlpy.preprocessing import StandardObservationScaler
 
-    scaler = StandardScaler(mean=..., std=...)
+    observation_scaler = StandardObservationScaler(mean=..., std=...)
 
-    cql = CQL(scaler=scaler)
+    cql = CQL(observation_scaler=observation_scaler)
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
-   d3rlpy.preprocessing.PixelScaler
-   d3rlpy.preprocessing.MinMaxScaler
-   d3rlpy.preprocessing.StandardScaler
+   d3rlpy.preprocessing.PixelObservationScaler
+   d3rlpy.preprocessing.MinMaxObservationScaler
+   d3rlpy.preprocessing.StandardObservationScaler
 
 
 Action

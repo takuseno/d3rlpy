@@ -8,7 +8,7 @@ from typing_extensions import Protocol
 from ..dataset import ReplayBuffer, TransitionMiniBatch
 from ..logger import LOG, D3RLPyLogger
 from ..metrics.scorer import evaluate_on_environment
-from ..preprocessing import ActionScaler, Scaler
+from ..preprocessing import ActionScaler, ObservationScaler
 from .explorers import Explorer
 
 
@@ -39,7 +39,7 @@ class AlgoProtocol(Protocol):
         ...
 
     @property
-    def scaler(self) -> Optional[Scaler]:
+    def observation_scaler(self) -> Optional[ObservationScaler]:
         ...
 
     @property
@@ -64,10 +64,13 @@ class AlgoProtocol(Protocol):
 
 
 def _setup_algo(algo: AlgoProtocol, env: gym.Env) -> None:
-    # initialize scaler
-    if algo.scaler:
-        LOG.debug("Fitting scaler...", scler=algo.scaler.get_type())
-        algo.scaler.fit_with_env(env)
+    # initialize observation scaler
+    if algo.observation_scaler:
+        LOG.debug(
+            "Fitting observation scaler...",
+            observation_scaler=algo.observation_scaler.get_type(),
+        )
+        algo.observation_scaler.fit_with_env(env)
 
     # initialize action scaler
     if algo.action_scaler:

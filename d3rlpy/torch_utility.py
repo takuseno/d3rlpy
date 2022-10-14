@@ -11,7 +11,7 @@ from torch.utils.data._utils.collate import default_collate
 from typing_extensions import Protocol
 
 from .dataset import TransitionMiniBatch
-from .preprocessing import ActionScaler, RewardScaler, Scaler
+from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
 
 BLACK_LIST = [
     "policy",
@@ -132,7 +132,7 @@ class _WithDeviceAndScalerProtocol(Protocol):
         ...
 
     @property
-    def scaler(self) -> Optional[Scaler]:
+    def observation_scaler(self) -> Optional[ObservationScaler]:
         ...
 
     @property
@@ -176,7 +176,7 @@ class TorchMiniBatch:
         cls,
         batch: TransitionMiniBatch,
         device: str,
-        scaler: Optional[Scaler] = None,
+        observation_scaler: Optional[ObservationScaler] = None,
         action_scaler: Optional[ActionScaler] = None,
         reward_scaler: Optional[RewardScaler] = None,
     ) -> "TorchMiniBatch":
@@ -195,9 +195,9 @@ class TorchMiniBatch:
         assert isinstance(next_observations, torch.Tensor)
 
         # apply scaler
-        if scaler:
-            observations = scaler.transform(observations)
-            next_observations = scaler.transform(next_observations)
+        if observation_scaler:
+            observations = observation_scaler.transform(observations)
+            next_observations = observation_scaler.transform(next_observations)
         if action_scaler:
             actions = action_scaler.transform(actions)
         if reward_scaler:
@@ -215,7 +215,7 @@ class TorchMiniBatch:
 
 
 def torch_api(
-    scaler_targets: Optional[List[str]] = None,
+    observation_scaler_targets: Optional[List[str]] = None,
     action_scaler_targets: Optional[List[str]] = None,
     reward_scaler_targets: Optional[List[str]] = None,
 ) -> Callable[..., Callable[..., np.ndarray]]:
@@ -253,7 +253,7 @@ def torch_api(
                     tensor = TorchMiniBatch.from_batch(
                         val,
                         self.device,
-                        scaler=self.scaler,
+                        observation_scaler=self.observation_scaler,
                         action_scaler=self.action_scaler,
                         reward_scaler=self.reward_scaler,
                     )
@@ -266,9 +266,9 @@ def torch_api(
 
                 if isinstance(tensor, torch.Tensor):
                     # preprocess
-                    if self.scaler and scaler_targets:
-                        if arg_keys[i] in scaler_targets:
-                            tensor = self.scaler.transform(tensor)
+                    if self.observation_scaler and observation_scaler_targets:
+                        if arg_keys[i] in observation_scaler_targets:
+                            tensor = self.observation_scaler.transform(tensor)
 
                     # preprocess action
                     if self.action_scaler and action_scaler_targets:

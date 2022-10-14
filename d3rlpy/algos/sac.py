@@ -3,9 +3,9 @@ from typing import Any, Dict, Optional
 from ..argument_utility import (
     ActionScalerArg,
     EncoderArg,
+    ObservationScalerArg,
     QFuncArg,
     RewardScalerArg,
-    ScalerArg,
     UseGPUArg,
     check_encoder,
     check_q_func,
@@ -87,8 +87,9 @@ class SAC(AlgoBase):
         initial_temperature (float): initial temperature value.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`.
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         action_scaler (d3rlpy.preprocessing.ActionScaler or str):
             action preprocessor. The available options are ``['min_max']``.
         reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
@@ -131,7 +132,7 @@ class SAC(AlgoBase):
         n_critics: int = 2,
         initial_temperature: float = 1.0,
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         action_scaler: ActionScalerArg = None,
         reward_scaler: RewardScalerArg = None,
         impl: Optional[SACImpl] = None,
@@ -140,7 +141,7 @@ class SAC(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             gamma=gamma,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
             kwargs=kwargs,
@@ -178,7 +179,7 @@ class SAC(AlgoBase):
             n_critics=self._n_critics,
             initial_temperature=self._initial_temperature,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
             action_scaler=self._action_scaler,
             reward_scaler=self._reward_scaler,
         )
@@ -261,8 +262,9 @@ class DiscreteSAC(AlgoBase):
         initial_temperature (float): initial temperature value.
         use_gpu (bool, int or d3rlpy.gpu.Device):
             flag to use GPU, device ID or device.
-        scaler (d3rlpy.preprocessing.Scaler or str): preprocessor.
-            The available options are `['pixel', 'min_max', 'standard']`
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
+            observation preprocessor. The available options are
+            ``['pixel', 'min_max', 'standard']``.
         reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
             reward preprocessor. The available options are
             ``['clip', 'min_max', 'standard']``.
@@ -304,7 +306,7 @@ class DiscreteSAC(AlgoBase):
         initial_temperature: float = 1.0,
         target_update_interval: int = 8000,
         use_gpu: UseGPUArg = False,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         reward_scaler: RewardScalerArg = None,
         impl: Optional[DiscreteSACImpl] = None,
         **kwargs: Any
@@ -312,7 +314,7 @@ class DiscreteSAC(AlgoBase):
         super().__init__(
             batch_size=batch_size,
             gamma=gamma,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=None,
             reward_scaler=reward_scaler,
             kwargs=kwargs,
@@ -349,7 +351,7 @@ class DiscreteSAC(AlgoBase):
             n_critics=self._n_critics,
             initial_temperature=self._initial_temperature,
             use_gpu=self._use_gpu,
-            scaler=self._scaler,
+            observation_scaler=self._observation_scaler,
             reward_scaler=self._reward_scaler,
         )
         self._impl.build()

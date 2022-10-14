@@ -19,12 +19,12 @@ from tqdm.auto import tqdm
 
 from .argument_utility import (
     ActionScalerArg,
+    ObservationScalerArg,
     RewardScalerArg,
-    ScalerArg,
     UseGPUArg,
     check_action_scaler,
+    check_observation_scaler,
     check_reward_scaler,
-    check_scaler,
 )
 from .constants import (
     CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR,
@@ -50,11 +50,11 @@ from .models.q_functions import QFunctionFactory, create_q_func_factory
 from .online.utility import get_action_size_from_env
 from .preprocessing import (
     ActionScaler,
+    ObservationScaler,
     RewardScaler,
-    Scaler,
     create_action_scaler,
+    create_observation_scaler,
     create_reward_scaler,
-    create_scaler,
 )
 
 
@@ -85,7 +85,7 @@ def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         elif isinstance(
             value,
             (
-                Scaler,
+                ObservationScaler,
                 ActionScaler,
                 RewardScaler,
                 EncoderFactory,
@@ -103,10 +103,10 @@ def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
 
 def _deseriealize_params(params: Dict[str, Any]) -> Dict[str, Any]:
     for key, value in params.items():
-        if key == "scaler" and params["scaler"]:
-            scaler_type = params["scaler"]["type"]
-            scaler_params = params["scaler"]["params"]
-            scaler = create_scaler(scaler_type, **scaler_params)
+        if key == "observation_scaler" and params["observation_scaler"]:
+            scaler_type = params["observation_scaler"]["type"]
+            scaler_params = params["observation_scaler"]["params"]
+            scaler = create_observation_scaler(scaler_type, **scaler_params)
             params[key] = scaler
         elif key == "action_scaler" and params["action_scaler"]:
             scaler_type = params["action_scaler"]["type"]
@@ -136,7 +136,7 @@ class LearnableBase:
 
     _batch_size: int
     _gamma: float
-    _scaler: Optional[Scaler]
+    _observation_scaler: Optional[ObservationScaler]
     _action_scaler: Optional[ActionScaler]
     _reward_scaler: Optional[RewardScaler]
     _impl: Optional[ImplBase]
@@ -149,14 +149,14 @@ class LearnableBase:
         self,
         batch_size: int,
         gamma: float,
-        scaler: ScalerArg = None,
+        observation_scaler: ObservationScalerArg = None,
         action_scaler: ActionScalerArg = None,
         reward_scaler: RewardScalerArg = None,
         kwargs: Optional[Dict[str, Any]] = None,
     ):
         self._batch_size = batch_size
         self._gamma = gamma
-        self._scaler = check_scaler(scaler)
+        self._observation_scaler = check_observation_scaler(observation_scaler)
         self._action_scaler = check_action_scaler(action_scaler)
         self._reward_scaler = check_reward_scaler(reward_scaler)
 
@@ -500,10 +500,13 @@ class LearnableBase:
         # add reference to active logger to algo class during fit
         self._active_logger = logger
 
-        # initialize scaler
-        if self._scaler:
-            LOG.debug("Fitting scaler...", scaler=self._scaler.get_type())
-            self._scaler.fit(dataset.episodes)
+        # initialize observation scaler
+        if self._observation_scaler:
+            LOG.debug(
+                "Fitting observation scaler...",
+                observation_scaler=self._observation_scaler.get_type(),
+            )
+            self._observation_scaler.fit(dataset.episodes)
 
         # initialize action scaler
         if self._action_scaler:
@@ -775,18 +778,18 @@ class LearnableBase:
         self._gamma = gamma
 
     @property
-    def scaler(self) -> Optional[Scaler]:
-        """Preprocessing scaler.
+    def observation_scaler(self) -> Optional[ObservationScaler]:
+        """Preprocessing observation scaler.
 
         Returns:
-            Optional[Scaler]: preprocessing scaler.
+            Optional[ObservationScaler]: preprocessing observation scaler.
 
         """
-        return self._scaler
+        return self._observation_scaler
 
-    @scaler.setter
-    def scaler(self, scaler: Scaler) -> None:
-        self._scaler = scaler
+    @observation_scaler.setter
+    def observation_scaler(self, observation_scaler: ObservationScaler) -> None:
+        self._observation_scaler = observation_scaler
 
     @property
     def action_scaler(self) -> Optional[ActionScaler]:

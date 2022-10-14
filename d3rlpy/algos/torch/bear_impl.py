@@ -16,7 +16,7 @@ from ...models.torch import (
     Parameter,
     compute_max_with_n_actions_and_indices,
 )
-from ...preprocessing import ActionScaler, RewardScaler, Scaler
+from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .sac_impl import SACImpl
 
@@ -88,7 +88,7 @@ class BEARImpl(SACImpl):
         mmd_sigma: float,
         vae_kl_weight: float,
         use_gpu: Optional[Device],
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -109,7 +109,7 @@ class BEARImpl(SACImpl):
             n_critics=n_critics,
             initial_temperature=initial_temperature,
             use_gpu=use_gpu,
-            scaler=scaler,
+            observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
         )

@@ -8,7 +8,7 @@ from ...dataset import Shape, is_tuple_shape
 from ...gpu import Device
 from ...models.torch.policies import Policy
 from ...models.torch.q_functions.ensemble_q_function import EnsembleQFunction
-from ...preprocessing import ActionScaler, RewardScaler, Scaler
+from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import (
     eval_api,
     freeze,
@@ -30,7 +30,7 @@ class TorchImplBase(AlgoImplBase):
 
     _observation_shape: Shape
     _action_size: int
-    _scaler: Optional[Scaler]
+    _observation_scaler: Optional[ObservationScaler]
     _action_scaler: Optional[ActionScaler]
     _reward_scaler: Optional[RewardScaler]
     _device: str
@@ -39,19 +39,19 @@ class TorchImplBase(AlgoImplBase):
         self,
         observation_shape: Shape,
         action_size: int,
-        scaler: Optional[Scaler],
+        observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
     ):
         self._observation_shape = observation_shape
         self._action_size = action_size
-        self._scaler = scaler
+        self._observation_scaler = observation_scaler
         self._action_scaler = action_scaler
         self._reward_scaler = reward_scaler
         self._device = "cpu:0"
 
     @eval_api
-    @torch_api(scaler_targets=["x"])
+    @torch_api(observation_scaler_targets=["x"])
     def predict_best_action(self, x: torch.Tensor) -> np.ndarray:
         assert x.ndim > 1, "Input must have batch dimension."
 
@@ -68,7 +68,7 @@ class TorchImplBase(AlgoImplBase):
         raise NotImplementedError
 
     @eval_api
-    @torch_api(scaler_targets=["x"])
+    @torch_api(observation_scaler_targets=["x"])
     def sample_action(self, x: torch.Tensor) -> np.ndarray:
         assert x.ndim > 1, "Input must have batch dimension."
 
@@ -101,8 +101,8 @@ class TorchImplBase(AlgoImplBase):
 
         # dummy function to select best actions
         def _func(x: torch.Tensor) -> torch.Tensor:
-            if self._scaler:
-                x = self._scaler.transform(x)
+            if self._observation_scaler:
+                x = self._observation_scaler.transform(x)
 
             action = self._predict_best_action(x)
 
@@ -221,8 +221,8 @@ class TorchImplBase(AlgoImplBase):
         return self._device
 
     @property
-    def scaler(self) -> Optional[Scaler]:
-        return self._scaler
+    def observation_scaler(self) -> Optional[ObservationScaler]:
+        return self._observation_scaler
 
     @property
     def action_scaler(self) -> Optional[ActionScaler]:
