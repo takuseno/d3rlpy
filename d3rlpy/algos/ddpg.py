@@ -20,6 +20,8 @@ from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
 from .torch.ddpg_impl import DDPGImpl
 
+__all__ = ["DDPG"]
+
 
 class DDPG(AlgoBase):
     r"""Deep Deterministic Policy Gradients algorithm.

@@ -17,6 +17,8 @@ from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 
+__all__ = ["IQLImpl"]
+
 
 class IQLImpl(DDPGBaseImpl):
     _policy: Optional[NonSquashedNormalPolicy]

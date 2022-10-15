@@ -20,6 +20,8 @@ from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
 from .torch.crr_impl import CRRImpl
 
+__all__ = ["CRR"]
+
 
 class CRR(AlgoBase):
     r"""Critic Reguralized Regression algorithm.

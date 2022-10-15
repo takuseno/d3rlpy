@@ -17,6 +17,8 @@ from ..models.optimizers import AdamFactory, OptimizerFactory
 from .base import AlgoBase
 from .torch.iql_impl import IQLImpl
 
+__all__ = ["IQL"]
+
 
 class IQL(AlgoBase):
     r"""Implicit Q-Learning algorithm.

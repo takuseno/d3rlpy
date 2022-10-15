@@ -20,6 +20,8 @@ from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .sac_impl import SACImpl
 
+__all__ = ["BEARImpl"]
+
 
 def _gaussian_kernel(
     x: torch.Tensor, y: torch.Tensor, sigma: float

@@ -11,6 +11,8 @@ from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch
 from .ddpg_impl import DDPGImpl
 
+__all__ = ["TD3Impl"]
+
 
 class TD3Impl(DDPGImpl):
 

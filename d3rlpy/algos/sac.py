@@ -20,6 +20,8 @@ from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
 from .torch.sac_impl import DiscreteSACImpl, SACImpl
 
+__all__ = ["SAC", "DiscreteSAC"]
+
 
 class SAC(AlgoBase):
     r"""Soft Actor-Critic algorithm.

@@ -12,6 +12,8 @@ from .utility import (
     pick_quantile_value_by_action,
 )
 
+__all__ = ["DiscreteIQNQFunction", "ContinuousIQNQFunction"]
+
 
 def _make_taus(
     h: torch.Tensor, n_quantiles: int, training: bool

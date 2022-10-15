@@ -16,6 +16,13 @@ from .torch import (
     EncoderWithAction,
 )
 
+__all__ = [
+    "QFunctionFactory",
+    "MeanQFunctionFactory",
+    "QRQFunctionFactory",
+    "IQNQFunctionFactory",
+]
+
 
 @pretty_repr
 class QFunctionFactory:

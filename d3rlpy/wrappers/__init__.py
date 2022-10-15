@@ -1,1 +1,1 @@
-from . import sb3
+from .sb3 import *

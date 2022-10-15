@@ -17,6 +17,8 @@ from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
 from .base import TorchImplBase
 from .utility import DiscreteQFunctionMixin
 
+__all__ = ["DQNImpl", "DoubleDQNImpl"]
+
 
 class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
 

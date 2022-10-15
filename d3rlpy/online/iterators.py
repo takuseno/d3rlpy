@@ -11,6 +11,8 @@ from ..metrics.scorer import evaluate_on_environment
 from ..preprocessing import ActionScaler, ObservationScaler
 from .explorers import Explorer
 
+__all__ = ["train_single_env", "collect", "AlgoProtocol"]
+
 
 class AlgoProtocol(Protocol):
     def update(self, batch: TransitionMiniBatch) -> Dict[str, float]:

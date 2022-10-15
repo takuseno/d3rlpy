@@ -7,6 +7,8 @@ from ..constants import ActionSpace
 from ..dataset import Shape
 from .base import AlgoBase
 
+__all__ = ["RandomPolicy", "DiscreteRandomPolicy"]
+
 
 class RandomPolicy(AlgoBase):
     r"""Random Policy for continuous control algorithm.

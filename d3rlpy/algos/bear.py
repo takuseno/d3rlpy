@@ -20,6 +20,8 @@ from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
 from .torch.bear_impl import BEARImpl
 
+__all__ = ["BEAR"]
+
 
 class BEAR(AlgoBase):
     r"""Bootstrapping Error Accumulation Reduction algorithm.

@@ -2,6 +2,14 @@ from enum import Enum
 
 from ._version import __version__
 
+__all__ = [
+    "IMPL_NOT_INITIALIZED_ERROR",
+    "ALGO_NOT_GIVEN_ERROR",
+    "DISCRETE_ACTION_SPACE_MISMATCH_ERROR",
+    "CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR",
+    "ActionSpace",
+]
+
 IMPL_NOT_INITIALIZED_ERROR = (
     "The neural network parameters are not "
     "initialized. Pleaes call build_with_dataset, "
@@ -12,11 +20,6 @@ IMPL_NOT_INITIALIZED_ERROR = (
 ALGO_NOT_GIVEN_ERROR = (
     "The algorithm to evaluate is not given. Please give the trained algorithm"
     " to the argument."
-)
-
-DYNAMICS_NOT_GIVEN_ERROR = (
-    "The dynamics to generate transitions is not given. Please give the trained"
-    " dynamics to the argument."
 )
 
 DISCRETE_ACTION_SPACE_MISMATCH_ERROR = (

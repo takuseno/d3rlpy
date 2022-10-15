@@ -3,6 +3,15 @@ from typing import cast
 import torch
 import torch.nn.functional as F
 
+__all__ = [
+    "pick_value_by_action",
+    "pick_quantile_value_by_action",
+    "compute_huber_loss",
+    "compute_quantile_huber_loss",
+    "compute_quantile_loss",
+    "compute_reduce",
+]
+
 
 def pick_value_by_action(
     values: torch.Tensor, action: torch.Tensor, keepdim: bool = False

@@ -13,6 +13,28 @@ from typing_extensions import Protocol
 from .dataset import TransitionMiniBatch
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
 
+__all__ = [
+    "soft_sync",
+    "hard_sync",
+    "sync_optimizer_state",
+    "set_eval_mode",
+    "set_train_mode",
+    "to_cuda",
+    "to_cpu",
+    "freeze",
+    "unfreeze",
+    "get_state_dict",
+    "set_state_dict",
+    "reset_optimizer_states",
+    "map_location",
+    "TorchMiniBatch",
+    "torch_api",
+    "eval_api",
+    "train_api",
+    "View",
+]
+
+
 BLACK_LIST = [
     "policy",
     "q_function",

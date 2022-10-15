@@ -20,6 +20,8 @@ from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
 from .torch.td3_impl import TD3Impl
 
+__all__ = ["TD3"]
+
 
 class TD3(AlgoBase):
     r"""Twin Delayed Deep Deterministic Policy Gradients algorithm.

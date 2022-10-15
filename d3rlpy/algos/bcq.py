@@ -22,6 +22,8 @@ from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 
+__all__ = ["BCQ", "DiscreteBCQ"]
+
 
 class BCQ(AlgoBase):
     r"""Batch-Constrained Q-learning algorithm.

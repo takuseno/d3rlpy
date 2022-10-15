@@ -20,6 +20,8 @@ from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
 from .torch.awac_impl import AWACImpl
 
+__all__ = ["AWAC"]
+
 
 class AWAC(AlgoBase):
     r"""Advantage Weighted Actor-Critic algorithm.

@@ -27,6 +27,8 @@ from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 from .dqn_impl import DoubleDQNImpl
 
+__all__ = ["BCQImpl", "DiscreteBCQImpl"]
+
 
 class BCQImpl(DDPGBaseImpl):
 

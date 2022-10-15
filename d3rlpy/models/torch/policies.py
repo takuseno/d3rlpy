@@ -10,6 +10,17 @@ from torch.distributions import Categorical
 from .distributions import GaussianDistribution, SquashedGaussianDistribution
 from .encoders import Encoder, EncoderWithAction
 
+__all__ = [
+    "squash_action",
+    "Policy",
+    "DeterministicPolicy",
+    "DeterministicResidualPolicy",
+    "NormalPolicy",
+    "SquashedNormalPolicy",
+    "NonSquashedNormalPolicy",
+    "CategoricalPolicy",
+]
+
 
 def squash_action(
     dist: torch.distributions.Distribution, raw_action: torch.Tensor

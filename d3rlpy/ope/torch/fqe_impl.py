@@ -28,6 +28,8 @@ from ...models.torch import (
 from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
 
+__all__ = ["FQEBaseImpl", "FQEImpl", "DiscreteFQEImpl"]
+
 
 class FQEBaseImpl(TorchImplBase):
 

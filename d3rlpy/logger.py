@@ -10,6 +10,8 @@ import structlog
 from tensorboardX import SummaryWriter
 from typing_extensions import Protocol
 
+__all__ = ["LOG", "D3RLPyLogger"]
+
 
 class _SaveProtocol(Protocol):
     def save_model(self, fname: str) -> None:

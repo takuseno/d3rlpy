@@ -27,6 +27,8 @@ from ...preprocessing import ActionScaler, ObservationScaler
 from ...torch_utility import hard_sync, torch_api, train_api
 from .base import TorchImplBase
 
+__all__ = ["BCImpl", "DiscreteBCImpl"]
+
 
 class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
 

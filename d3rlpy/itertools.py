@@ -1,5 +1,7 @@
 from typing import Iterator, Tuple, TypeVar
 
+__all__ = ["last_flag", "first_flag"]
+
 T = TypeVar("T")
 
 

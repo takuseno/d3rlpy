@@ -15,6 +15,8 @@ from ..dataset import ReplayBuffer, create_fifo_replay_buffer
 from ..online.explorers import Explorer
 from ..online.iterators import AlgoProtocol, collect, train_single_env
 
+__all__ = ["AlgoImplBase", "AlgoBase"]
+
 
 def _assert_action_space(algo: LearnableBase, env: gym.Env) -> None:
     if isinstance(env.action_space, gym.spaces.Box):

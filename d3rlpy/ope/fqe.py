@@ -26,6 +26,8 @@ from ..models.optimizers import AdamFactory, OptimizerFactory
 from ..models.q_functions import QFunctionFactory
 from .torch.fqe_impl import DiscreteFQEImpl, FQEBaseImpl, FQEImpl
 
+__all__ = ["FQE", "DiscreteFQE"]
+
 
 class _FQEBase(AlgoBase):
 

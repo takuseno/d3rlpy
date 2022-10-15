@@ -5,6 +5,8 @@ import torch
 
 from ..encoders import Encoder, EncoderWithAction
 
+__all__ = ["QFunction", "DiscreteQFunction", "ContinuousQFunction"]
+
 
 class QFunction(metaclass=ABCMeta):
     @abstractmethod

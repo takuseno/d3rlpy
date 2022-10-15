@@ -11,6 +11,8 @@ from .utility import (
     pick_quantile_value_by_action,
 )
 
+__all__ = ["DiscreteQRQFunction", "ContinuousQRQFunction"]
+
 
 def _make_taus(h: torch.Tensor, n_quantiles: int) -> torch.Tensor:
     steps = torch.arange(n_quantiles, dtype=torch.float32, device=h.device)

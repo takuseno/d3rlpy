@@ -15,6 +15,17 @@ from .torch import (
     VectorEncoderWithAction,
 )
 
+__all__ = [
+    "EncoderFactory",
+    "PixelEncoderFactory",
+    "VectorEncoderFactory",
+    "DefaultEncoderFactory",
+    "DenseEncoderFactory",
+    "ENCODER_LIST",
+    "register_encoder_factory",
+    "create_encoder_factory",
+]
+
 
 def _create_activation(activation_type: str) -> nn.Module:
     if activation_type == "relu":

@@ -14,6 +14,8 @@ from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, hard_sync
 from .ddpg_impl import DDPGBaseImpl
 
+__all__ = ["CRRImpl"]
+
 
 class CRRImpl(DDPGBaseImpl):
 

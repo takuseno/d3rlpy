@@ -8,6 +8,8 @@ from ..encoders import Encoder, EncoderWithAction
 from .base import ContinuousQFunction, DiscreteQFunction
 from .utility import compute_huber_loss, compute_reduce, pick_value_by_action
 
+__all__ = ["DiscreteMeanQFunction", "ContinuousMeanQFunction"]
+
 
 class DiscreteMeanQFunction(DiscreteQFunction, nn.Module):  # type: ignore
     _action_size: int

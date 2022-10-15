@@ -31,6 +31,8 @@ from .base import TorchImplBase
 from .ddpg_impl import DDPGBaseImpl
 from .utility import DiscreteQFunctionMixin
 
+__all__ = ["SACImpl", "DiscreteSACImpl"]
+
 
 class SACImpl(DDPGBaseImpl):
 

@@ -20,6 +20,8 @@ from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
 from .torch.td3_plus_bc_impl import TD3PlusBCImpl
 
+__all__ = ["TD3PlusBC"]
+
 
 class TD3PlusBC(AlgoBase):
     r"""TD3+BC algorithm.

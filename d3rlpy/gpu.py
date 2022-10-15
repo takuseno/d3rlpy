@@ -2,6 +2,8 @@ from typing import Any, Dict
 
 from .decorators import pretty_repr
 
+__all__ = ["Device"]
+
 
 @pretty_repr
 class Device:

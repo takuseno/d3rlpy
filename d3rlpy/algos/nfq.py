@@ -19,6 +19,8 @@ from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
 from .torch.dqn_impl import DQNImpl
 
+__all__ = ["NFQ"]
+
 
 class NFQ(AlgoBase):
     r"""Neural Fitted Q Iteration algorithm.

@@ -18,6 +18,8 @@ from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .dqn_impl import DoubleDQNImpl
 from .sac_impl import SACImpl
 
+__all__ = ["CQLImpl", "DiscreteCQLImpl"]
+
 
 class CQLImpl(SACImpl):
 

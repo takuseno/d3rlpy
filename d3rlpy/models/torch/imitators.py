@@ -9,6 +9,14 @@ from torch.distributions.kl import kl_divergence
 
 from .encoders import Encoder, EncoderWithAction
 
+__all__ = [
+    "ConditionalVAE",
+    "Imitator",
+    "DiscreteImitator",
+    "DeterministicRegressor",
+    "ProbablisticRegressor",
+]
+
 
 class ConditionalVAE(nn.Module):  # type: ignore
     _encoder_encoder: EncoderWithAction

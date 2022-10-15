@@ -1,5 +1,7 @@
 from typing import Type, TypeVar
 
+__all__ = ["pretty_repr"]
+
 T = TypeVar("T")
 
 

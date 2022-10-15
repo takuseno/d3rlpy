@@ -1,11 +1,15 @@
-from .awac_impl import AWACImpl
-from .bc_impl import BCImpl, DiscreteBCImpl
-from .bcq_impl import BCQImpl, DiscreteBCQImpl
-from .bear_impl import BEARImpl
-from .cql_impl import CQLImpl, DiscreteCQLImpl
-from .crr_impl import CRRImpl
-from .ddpg_impl import DDPGImpl
-from .dqn_impl import DoubleDQNImpl, DQNImpl
-from .plas_impl import PLASImpl, PLASWithPerturbationImpl
-from .sac_impl import DiscreteSACImpl, SACImpl
-from .td3_impl import TD3Impl
+from .awac_impl import *
+from .base import *
+from .bc_impl import *
+from .bcq_impl import *
+from .bear_impl import *
+from .cql_impl import *
+from .crr_impl import *
+from .ddpg_impl import *
+from .dqn_impl import *
+from .iql_impl import *
+from .plas_impl import *
+from .sac_impl import *
+from .td3_impl import *
+from .td3_plus_bc_impl import *
+from .utility import *

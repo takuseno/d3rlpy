@@ -15,6 +15,8 @@ from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, torch_api, train_api
 from .sac_impl import SACImpl
 
+__all__ = ["AWACImpl"]
+
 
 class AWACImpl(SACImpl):
 

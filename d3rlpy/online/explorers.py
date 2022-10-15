@@ -6,6 +6,13 @@ from typing_extensions import Protocol
 
 from ..preprocessing.action_scalers import ActionScaler, MinMaxActionScaler
 
+__all__ = [
+    "Explorer",
+    "ConstantEpsilonGreedy",
+    "LinearDecayEpsilonGreedy",
+    "NormalNoise",
+]
+
 
 class _ActionProtocol(Protocol):
     def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:

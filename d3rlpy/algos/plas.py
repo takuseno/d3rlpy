@@ -20,6 +20,8 @@ from ..models.q_functions import QFunctionFactory
 from .base import AlgoBase
 from .torch.plas_impl import PLASImpl, PLASWithPerturbationImpl
 
+__all__ = ["PLAS", "PLASWithPerturbation"]
+
 
 class PLAS(AlgoBase):
     r"""Policy in Latent Action Space algorithm.

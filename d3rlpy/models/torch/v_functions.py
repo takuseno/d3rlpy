@@ -6,6 +6,8 @@ from torch import nn
 
 from .encoders import Encoder
 
+__all__ = ["ValueFunction"]
+
 
 class ValueFunction(nn.Module):  # type: ignore
     _encoder: Encoder

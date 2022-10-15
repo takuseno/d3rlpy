@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+__all__ = ["Parameter"]
+
 
 class Parameter(nn.Module):  # type: ignore
 

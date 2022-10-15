@@ -32,7 +32,6 @@ from .constants import (
     IMPL_NOT_INITIALIZED_ERROR,
     ActionSpace,
 )
-from .context import disable_parallel
 from .dataset import (
     DatasetInfo,
     Episode,
@@ -56,6 +55,11 @@ from .preprocessing import (
     create_observation_scaler,
     create_reward_scaler,
 )
+
+__all__ = [
+    "ImplBase",
+    "LearnableBase",
+]
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -722,11 +726,10 @@ class LearnableBase:
 
         # get hyperparameters without impl
         params = {}
-        with disable_parallel():
-            for k, v in self.get_params(deep=False).items():
-                if isinstance(v, (ImplBase, LearnableBase)):
-                    continue
-                params[k] = v
+        for k, v in self.get_params(deep=False).items():
+            if isinstance(v, (ImplBase, LearnableBase)):
+                continue
+            params[k] = v
 
         # save algorithm name
         params["algorithm"] = self.__class__.__name__

@@ -13,6 +13,8 @@ except ImportError:
 from gym.spaces import Box
 from gym.wrappers import TransformReward
 
+__all__ = ["ChannelFirst", "AtariPreprocessing", "Atari", "Monitor"]
+
 
 class ChannelFirst(gym.Wrapper):  # type: ignore
     """Channel-first wrapper for image observation environments.

@@ -18,6 +18,8 @@ from ..models.optimizers import AdamFactory, OptimizerFactory
 from .base import AlgoBase
 from .torch.bc_impl import BCBaseImpl, BCImpl, DiscreteBCImpl
 
+__all__ = ["BC", "DiscreteBC"]
+
 
 class _BCBase(AlgoBase):
     _learning_rate: float

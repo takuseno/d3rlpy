@@ -24,6 +24,8 @@ from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, soft_sync, torch_api, train_api
 from .ddpg_impl import DDPGBaseImpl
 
+__all__ = ["PLASImpl", "PLASWithPerturbationImpl"]
+
 
 class PLASImpl(DDPGBaseImpl):
 

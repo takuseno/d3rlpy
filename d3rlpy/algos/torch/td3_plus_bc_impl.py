@@ -13,6 +13,8 @@ from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch
 from .td3_impl import TD3Impl
 
+__all__ = ["TD3PlusBCImpl"]
+
 
 class TD3PlusBCImpl(TD3Impl):
 

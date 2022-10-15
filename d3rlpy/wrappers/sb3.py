@@ -12,6 +12,8 @@ from ..dataset import (
 if TYPE_CHECKING:
     from stable_baselines3.common.buffers import ReplayBuffer as SB3ReplayBuffer
 
+__all__ = ["SB3Wrapper", "to_mdp_dataset"]
+
 
 class SB3Wrapper:
     """A wrapper for d3rlpy algorithms so they can be used with Stable-Baselines3 (SB3).

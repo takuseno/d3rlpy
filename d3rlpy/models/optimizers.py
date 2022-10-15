@@ -6,6 +6,8 @@ from torch.optim import SGD, Adam, Optimizer, RMSprop
 
 from ..decorators import pretty_repr
 
+__all__ = ["OptimizerFactory", "SGDFactory", "AdamFactory", "RMSpropFactory"]
+
 
 @pretty_repr
 class OptimizerFactory:

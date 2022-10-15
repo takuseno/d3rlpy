@@ -1,14 +1,22 @@
-from typing import Callable, List
+from typing import Any, Callable, List, Union
 
 import numpy as np
+from typing_extensions import Protocol
 
 from ..dataset import Episode, TransitionPickerProtocol
-from .scorer import WINDOW_SIZE, AlgoProtocol, _make_batches
+from .scorer import WINDOW_SIZE, _make_batches
+
+__all__ = ["compare_continuous_action_diff", "compare_discrete_action_match"]
+
+
+class _AlgoProtocol(Protocol):
+    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+        ...
 
 
 def compare_continuous_action_diff(
-    base_algo: AlgoProtocol,
-) -> Callable[[AlgoProtocol, List[Episode], TransitionPickerProtocol], float]:
+    base_algo: _AlgoProtocol,
+) -> Callable[[_AlgoProtocol, List[Episode], TransitionPickerProtocol], float]:
     r"""Returns scorer function of action difference between algorithms.
 
     This metrics suggests how different the two algorithms are in continuous
@@ -42,7 +50,7 @@ def compare_continuous_action_diff(
     """
 
     def scorer(
-        algo: AlgoProtocol,
+        algo: _AlgoProtocol,
         episodes: List[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:
@@ -61,8 +69,8 @@ def compare_continuous_action_diff(
 
 
 def compare_discrete_action_match(
-    base_algo: AlgoProtocol,
-) -> Callable[[AlgoProtocol, List[Episode], TransitionPickerProtocol], float]:
+    base_algo: _AlgoProtocol,
+) -> Callable[[_AlgoProtocol, List[Episode], TransitionPickerProtocol], float]:
     r"""Returns scorer function of action matches between algorithms.
 
     This metrics suggests how different the two algorithms are in discrete
@@ -97,7 +105,7 @@ def compare_discrete_action_match(
     """
 
     def scorer(
-        algo: AlgoProtocol,
+        algo: _AlgoProtocol,
         episodes: List[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:
