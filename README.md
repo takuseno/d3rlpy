@@ -1,5 +1,41 @@
 <p align="center"><img align="center" width="300px" src="assets/logo.png"></p>
 
+# OPS Project (Local/CC Setup):
+
+## Mac Setup
+
+1. Create a conda environment `conda create -n d3rlpy python=3.8`
+2. Activate env `conda activate d3rlpy`
+2. Install numpy and Cython
+```
+pip install numpy
+pip install Cython
+```
+3. `pip install gym[accept-rom-license]=0.17.2` (I think this version of gym is needed to avoid bugs)
+4. Install Atari stuff
+```
+pip install atari-py
+```
+Download [Roms.rar](http://www.atarimania.com/rom_collection_archive_atari_2600_roms.html) and extract it (need unarchiver or some software to extract Roms).
+
+```
+python -m atari_py.import_roms <path-to-file>
+```
+
+5. Do the following installs:
+```
+pip install git+https://github.com/rail-berkeley/d4rl
+pip install git+https://github.com/takuseno/d4rl-atari
+```
+
+6. Install the repo itself: `pip install -e .`
+
+7. Run example.py (not that I made the dataset smaller in the file just for the example)
+
+## CC Setup [TODO]
+
+
+
 # d3rlpy: An offline deep reinforcement learning library
 
 ![test](https://github.com/takuseno/d3rlpy/workflows/test/badge.svg)
