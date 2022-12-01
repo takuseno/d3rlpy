@@ -38,6 +38,7 @@ Discrete control algorithms
    :nosignatures:
 
    d3rlpy.algos.DiscreteBC
+   d3rlpy.algos.NFQ
    d3rlpy.algos.DQN
    d3rlpy.algos.DoubleDQN
    d3rlpy.algos.DiscreteSAC

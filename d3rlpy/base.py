@@ -675,6 +675,7 @@ class LearnableBase:
 
         # drop reference to active logger since out of fit there is no active
         # logger
+        self._active_logger.close()
         self._active_logger = None
 
     def create_impl(

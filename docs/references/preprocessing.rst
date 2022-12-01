@@ -139,3 +139,5 @@ You can also initialize scalers by yourself.
    d3rlpy.preprocessing.StandardRewardScaler
    d3rlpy.preprocessing.ClipRewardScaler
    d3rlpy.preprocessing.MultiplyRewardScaler
+   d3rlpy.preprocessing.ReturnBasedRewardScaler
+   d3rlpy.preprocessing.ConstantShiftRewardScaler

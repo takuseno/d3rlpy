@@ -161,7 +161,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
             rewards=batch.rewards,
             target=q_tpn,
             terminals=batch.terminals,
-            gamma=self._gamma ** batch.n_steps,
+            gamma=self._gamma**batch.n_steps,
         )
 
     @train_api

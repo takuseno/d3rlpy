@@ -29,7 +29,7 @@ def compute_huber_loss(
 ) -> torch.Tensor:
     diff = target - y
     cond = diff.detach().abs() < beta
-    return torch.where(cond, 0.5 * diff ** 2, beta * (diff.abs() - 0.5 * beta))
+    return torch.where(cond, 0.5 * diff**2, beta * (diff.abs() - 0.5 * beta))
 
 
 def compute_quantile_huber_loss(

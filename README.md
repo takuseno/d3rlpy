@@ -40,11 +40,11 @@ actions = sac.predict(x)
 - **online RL**: d3rlpy also supports conventional state-of-the-art online training algorithms without any compromising, which means that you can solve any kinds of RL problems only with `d3rlpy`.
 - **advanced engineering**: d3rlpy is designed to implement the faster and efficient training algorithms. For example, you can train Atari environments with x4 less memory space and as fast as the fastest RL library.
 
-### :beginner: Easy-To-Use API
+### :beginner: User-friendly API
 - **zero-knowledge of DL library**: d3rlpy provides many state-of-the-art algorithms through intuitive APIs. You can become a RL engineer even without knowing how to use deep learning libraries.
-- **scikit-learn compatibility**: d3rlpy is not only easy, but also completely compatible with scikit-learn API, which means that you can maximize your productivity with the useful scikit-learn's utilities.
+- **extensive documentation**: d3rlpy is fully documented and accompanied with tutorials and reproduction scripts of the original papers.
 
-### :rocket: Beyond State-Of-The-Art
+### :rocket: Beyond State-of-the-art
 - **distributional Q function**: d3rlpy is the first library that supports distributional Q functions in the all algorithms. The distributional Q function is known as the very powerful method to achieve the state-of-the-performance.
 - **many tweek options**: d3rlpy is also the first to support N-step TD backup and ensemble value functions in the all algorithms, which lead you to the place no one ever reached yet.
 
@@ -76,6 +76,7 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 | algorithm | discrete control | continuous control | offline RL? |
 |:-|:-:|:-:|:-:|
 | Behavior Cloning (supervised learning) | :white_check_mark: | :white_check_mark: | |
+| [Neural Fitted Q Iteration (NFQ)](https://link.springer.com/chapter/10.1007/11564096_32) | :white_check_mark: | :no_entry: | :white_check_mark: |
 | [Deep Q-Network (DQN)](https://www.nature.com/articles/nature14236) | :white_check_mark: | :no_entry: | |
 | [Double DQN](https://arxiv.org/abs/1509.06461) | :white_check_mark: | :no_entry: | |
 | [Deep Deterministic Policy Gradients (DDPG)](https://arxiv.org/abs/1509.02971) | :no_entry: | :white_check_mark: | |
@@ -121,13 +122,15 @@ dataset, env = d3rlpy.datasets.get_d4rl('hopper-medium-v0')
 cql = d3rlpy.algos.CQL(use_gpu=True)
 
 # train
-cql.fit(dataset,
-        eval_episodes=dataset,
-        n_epochs=100,
-        scorers={
-            'environment': d3rlpy.metrics.evaluate_on_environment(env),
-            'td_error': d3rlpy.metrics.td_error_scorer
-        })
+cql.fit(
+    dataset,
+    eval_episodes=dataset,
+    n_epochs=100,
+    scorers={
+        'environment': d3rlpy.metrics.evaluate_on_environment(env),
+        'td_error': d3rlpy.metrics.td_error_scorer,
+    },
+)
 ```
 
 See more datasets at [d4rl](https://github.com/rail-berkeley/d4rl).
@@ -146,16 +149,23 @@ dataset, env = d3rlpy.datasets.get_atari('breakout-expert-v0')
 train_episodes, test_episodes = train_test_split(dataset, test_size=0.1)
 
 # prepare algorithm
-cql = d3rlpy.algos.DiscreteCQL(n_frames=4, q_func_factory='qr', scaler='pixel', use_gpu=True)
+cql = d3rlpy.algos.DiscreteCQL(
+    n_frames=4,
+    q_func_factory='qr',
+    scaler='pixel',
+    use_gpu=True,
+)
 
 # start training
-cql.fit(train_episodes,
-        eval_episodes=test_episodes,
-        n_epochs=100,
-        scorers={
-            'environment': d3rlpy.metrics.evaluate_on_environment(env),
-            'td_error': d3rlpy.metrics.td_error_scorer
-        })
+cql.fit(
+    train_episodes,
+    eval_episodes=test_episodes,
+    n_epochs=100,
+    scorers={
+        'environment': d3rlpy.metrics.evaluate_on_environment(env),
+        'td_error': d3rlpy.metrics.td_error_scorer,
+    },
+)
 ```
 
 See more Atari datasets at [d4rl-atari](https://github.com/takuseno/d4rl-atari).
@@ -181,10 +191,12 @@ sac.fit_online(env, buffer, n_steps=1000000, eval_env=eval_env)
 ```
 
 ## tutorials
-Try a cartpole example on Google Colaboratory!
+Try cartpole examples on Google Colaboratory!
 
 - offline RL tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/takuseno/d3rlpy/blob/master/tutorials/cartpole.ipynb)
 - online RL tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/takuseno/d3rlpy/blob/master/tutorials/online.ipynb)
+
+More tutorial documentations are available [here](https://d3rlpy.readthedocs.io/en/stable/tutorials/index.html).
 
 ## contributions
 Any kind of contribution to d3rlpy would be highly appreciated!

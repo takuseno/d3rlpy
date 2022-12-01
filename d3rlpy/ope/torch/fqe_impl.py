@@ -126,7 +126,7 @@ class FQEBaseImpl(TorchImplBase):
             rewards=batch.rewards,
             target=q_tpn,
             terminals=batch.terminals,
-            gamma=self._gamma ** batch.n_steps,
+            gamma=self._gamma**batch.n_steps,
         )
 
     def compute_target(
@@ -188,7 +188,7 @@ class DiscreteFQEImpl(DiscreteQFunctionMixin, FQEBaseImpl):
             rewards=batch.rewards,
             target=q_tpn,
             terminals=batch.terminals,
-            gamma=self._gamma ** batch.n_steps,
+            gamma=self._gamma**batch.n_steps,
         )
 
     def compute_target(

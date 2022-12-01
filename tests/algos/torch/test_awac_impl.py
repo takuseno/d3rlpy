@@ -24,7 +24,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("lam", [1.0])
 @pytest.mark.parametrize("n_action_samples", [10])
-@pytest.mark.parametrize("max_weight", [20.0])
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("scaler", [None, DummyScaler()])
 @pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
@@ -42,7 +41,6 @@ def test_awac_impl(
     tau,
     lam,
     n_action_samples,
-    max_weight,
     n_critics,
     scaler,
     action_scaler,
@@ -62,7 +60,6 @@ def test_awac_impl(
         tau=tau,
         lam=lam,
         n_action_samples=n_action_samples,
-        max_weight=max_weight,
         n_critics=n_critics,
         use_gpu=None,
         scaler=scaler,

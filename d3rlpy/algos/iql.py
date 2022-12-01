@@ -58,13 +58,10 @@ class IQL(AlgoBase):
     Args:
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
-        value_learning_rate (float): learning rate for state-value function.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the critic.
-        value_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the value function.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
             encoder factory for the actor.
         critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
@@ -96,10 +93,8 @@ class IQL(AlgoBase):
 
     _actor_learning_rate: float
     _critic_learning_rate: float
-    _value_learning_rate: float
     _actor_optim_factory: OptimizerFactory
     _critic_optim_factory: OptimizerFactory
-    _value_optim_factory: OptimizerFactory
     _actor_encoder_factory: EncoderFactory
     _critic_encoder_factory: EncoderFactory
     _value_encoder_factory: EncoderFactory
@@ -116,10 +111,8 @@ class IQL(AlgoBase):
         *,
         actor_learning_rate: float = 3e-4,
         critic_learning_rate: float = 3e-4,
-        value_learning_rate: float = 3e-4,
         actor_optim_factory: OptimizerFactory = AdamFactory(),
         critic_optim_factory: OptimizerFactory = AdamFactory(),
-        value_optim_factory: OptimizerFactory = AdamFactory(),
         actor_encoder_factory: EncoderArg = "default",
         critic_encoder_factory: EncoderArg = "default",
         value_encoder_factory: EncoderArg = "default",
@@ -151,10 +144,8 @@ class IQL(AlgoBase):
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
-        self._value_learning_rate = value_learning_rate
         self._actor_optim_factory = actor_optim_factory
         self._critic_optim_factory = critic_optim_factory
-        self._value_optim_factory = value_optim_factory
         self._actor_encoder_factory = check_encoder(actor_encoder_factory)
         self._critic_encoder_factory = check_encoder(critic_encoder_factory)
         self._value_encoder_factory = check_encoder(value_encoder_factory)
@@ -174,10 +165,8 @@ class IQL(AlgoBase):
             action_size=action_size,
             actor_learning_rate=self._actor_learning_rate,
             critic_learning_rate=self._critic_learning_rate,
-            value_learning_rate=self._value_learning_rate,
             actor_optim_factory=self._actor_optim_factory,
             critic_optim_factory=self._critic_optim_factory,
-            value_optim_factory=self._value_optim_factory,
             actor_encoder_factory=self._actor_encoder_factory,
             critic_encoder_factory=self._critic_encoder_factory,
             value_encoder_factory=self._value_encoder_factory,
@@ -199,11 +188,8 @@ class IQL(AlgoBase):
 
         metrics = {}
 
-        value_loss = self._impl.update_value_func(batch)
-        metrics.update({"value_loss": value_loss})
-
-        critic_loss = self._impl.update_critic(batch)
-        metrics.update({"critic_loss": critic_loss})
+        critic_loss, value_loss = self._impl.update_critic(batch)
+        metrics.update({"critic_loss": critic_loss, "value_loss": value_loss})
 
         actor_loss = self._impl.update_actor(batch)
         metrics.update({"actor_loss": actor_loss})

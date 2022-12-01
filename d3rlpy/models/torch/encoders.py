@@ -5,9 +5,6 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ...itertools import last_flag
-from ...torch_utility import View
-
 
 class Encoder(metaclass=ABCMeta):
     @abstractmethod
@@ -25,9 +22,6 @@ class Encoder(metaclass=ABCMeta):
     @abstractmethod
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         pass
-
-    def create_reverse(self) -> Sequence[torch.nn.Module]:
-        raise NotImplementedError
 
     @property
     def last_layer(self) -> nn.Linear:
@@ -54,9 +48,6 @@ class EncoderWithAction(metaclass=ABCMeta):
     @abstractmethod
     def __call__(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         pass
-
-    def create_reverse(self) -> Sequence[torch.nn.Module]:
-        raise NotImplementedError
 
     @property
     def last_layer(self) -> nn.Linear:
@@ -170,31 +161,6 @@ class PixelEncoder(_PixelEncoder, Encoder):
 
         return h
 
-    def create_reverse(self) -> Sequence[torch.nn.Module]:
-        modules: List[torch.nn.Module] = []
-
-        # add linear layer
-        modules.append(nn.Linear(self.get_feature_size(), self._fc.in_features))
-        modules.append(self._activation)
-
-        # reshape output
-        modules.append(View((-1, *self._get_last_conv_shape()[1:])))
-
-        # add conv layers
-        for is_last, conv in last_flag(reversed(self._convs)):
-            deconv = nn.ConvTranspose2d(
-                conv.out_channels,
-                conv.in_channels,
-                kernel_size=conv.kernel_size,
-                stride=conv.stride,
-            )
-            modules.append(deconv)
-
-            if not is_last:
-                modules.append(self._activation)
-
-        return modules
-
 
 class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
 
@@ -248,32 +214,6 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
     @property
     def action_size(self) -> int:
         return self._action_size
-
-    def create_reverse(self) -> Sequence[torch.nn.Module]:
-        modules: List[torch.nn.Module] = []
-
-        # add linear layer
-        in_features = self._fc.in_features - self._action_size
-        modules.append(nn.Linear(self.get_feature_size(), in_features))
-        modules.append(self._activation)
-
-        # reshape output
-        modules.append(View((-1, *self._get_last_conv_shape()[1:])))
-
-        # add conv layers
-        for is_last, conv in last_flag(reversed(self._convs)):
-            deconv = nn.ConvTranspose2d(
-                conv.out_channels,
-                conv.in_channels,
-                kernel_size=conv.kernel_size,
-                stride=conv.stride,
-            )
-            modules.append(deconv)
-
-            if not is_last:
-                modules.append(self._activation)
-
-        return modules
 
 
 class _VectorEncoder(nn.Module):  # type: ignore
@@ -355,15 +295,6 @@ class VectorEncoder(_VectorEncoder, Encoder):
             h = self._dropouts[-1](h)
         return h
 
-    def create_reverse(self) -> Sequence[torch.nn.Module]:
-        assert not self._use_dense, "use_dense=True is not supported yet"
-        modules: List[torch.nn.Module] = []
-        for is_last, fc in last_flag(reversed(self._fcs)):
-            modules.append(nn.Linear(fc.out_features, fc.in_features))
-            if not is_last:
-                modules.append(self._activation)
-        return modules
-
 
 class VectorEncoderWithAction(_VectorEncoder, EncoderWithAction):
 
@@ -410,18 +341,3 @@ class VectorEncoderWithAction(_VectorEncoder, EncoderWithAction):
     @property
     def action_size(self) -> int:
         return self._action_size
-
-    def create_reverse(self) -> Sequence[torch.nn.Module]:
-        assert not self._use_dense, "use_dense=True is not supported yet"
-        modules: List[torch.nn.Module] = []
-        for is_last, fc in last_flag(reversed(self._fcs)):
-            if is_last:
-                in_features = fc.in_features - self._action_size
-            else:
-                in_features = fc.in_features
-
-            modules.append(nn.Linear(fc.out_features, in_features))
-
-            if not is_last:
-                modules.append(self._activation)
-        return modules

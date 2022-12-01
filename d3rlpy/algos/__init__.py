@@ -12,6 +12,7 @@ from .ddpg import DDPG
 from .dqn import DQN, DoubleDQN
 from .iql import IQL
 from .mopo import MOPO
+from .nfq import NFQ
 from .plas import PLAS, PLASWithPerturbation
 from .random_policy import DiscreteRandomPolicy, RandomPolicy
 from .sac import SAC, DiscreteSAC
@@ -35,6 +36,7 @@ __all__ = [
     "DoubleDQN",
     "IQL",
     "MOPO",
+    "NFQ",
     "PLAS",
     "PLASWithPerturbation",
     "SAC",
@@ -54,6 +56,7 @@ DISCRETE_ALGORITHMS: Dict[str, Type[AlgoBase]] = {
     "cql": DiscreteCQL,
     "dqn": DQN,
     "double_dqn": DoubleDQN,
+    "nfq": NFQ,
     "sac": DiscreteSAC,
     "random": DiscreteRandomPolicy,
 }

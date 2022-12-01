@@ -77,7 +77,7 @@ def test_discrete_imitator(feature_size, action_size, beta, batch_size):
 
     action = torch.randint(low=0, high=action_size - 1, size=(batch_size,))
     loss = imitator.compute_error(x, action)
-    penalty = (logits ** 2).mean()
+    penalty = (logits**2).mean()
     assert torch.allclose(loss, F.nll_loss(y, action) + beta * penalty)
 
     # check layer connections

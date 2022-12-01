@@ -12,7 +12,6 @@ from .algo_test import algo_pendulum_tester, algo_tester, algo_update_tester
 @pytest.mark.parametrize(
     "scalers", [(None, None, None), ("min_max", "min_max", "min_max")]
 )
-@pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 @pytest.mark.parametrize("rollout_interval", [1])
 @pytest.mark.parametrize("rollout_horizon", [2])
 @pytest.mark.parametrize("rollout_batch_size", [4])
@@ -21,7 +20,6 @@ def test_combo(
     action_size,
     q_func_factory,
     scalers,
-    target_reduction_type,
     rollout_interval,
     rollout_horizon,
     rollout_batch_size,
@@ -37,7 +35,6 @@ def test_combo(
         scaler=scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
-        target_reduction_type=target_reduction_type,
         rollout_interval=rollout_interval,
         rollout_horizon=rollout_horizon,
         rollout_batch_size=rollout_batch_size,

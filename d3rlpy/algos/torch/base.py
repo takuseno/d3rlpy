@@ -114,7 +114,6 @@ class TorchImplBase(AlgoImplBase):
                 opset_version=11,
                 input_names=["input_0"],
                 output_names=["output_0"],
-                example_outputs=traced_script(dummy_x),
             )
         elif fname.endswith(".pt"):
             traced_script.save(fname)

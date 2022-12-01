@@ -6,6 +6,7 @@ import torch
 from d3rlpy.dataset import MDPDataset
 from d3rlpy.preprocessing import (
     ClipRewardScaler,
+    ConstantShiftRewardScaler,
     MinMaxRewardScaler,
     MultiplyRewardScaler,
     ReturnBasedRewardScaler,
@@ -279,3 +280,27 @@ def test_return_based_reward_scaler_with_episode(
     params = scaler.get_params()
     assert np.allclose(params["return_max"], max(returns))
     assert np.allclose(params["return_min"], min(returns))
+
+
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("shift", [-1])
+def test_constant_shift_reward_scaler(batch_size, shift):
+    rewards = np.random.random(batch_size).astype("f4") * 2 - 1
+
+    scaler = ConstantShiftRewardScaler(shift)
+
+    # check trnsform
+    y = scaler.transform(torch.tensor(rewards))
+    assert np.allclose(y.numpy(), rewards + shift)
+
+    # check reverse_transform
+    x = scaler.reverse_transform(y)
+    assert np.allclose(x.numpy(), rewards)
+
+    # check reverse_transform_numpy
+    y = scaler.transform_numpy(rewards)
+    assert np.allclose(y, rewards + shift)
+
+    assert scaler.get_type() == "shift"
+    params = scaler.get_params()
+    assert params["shift"] == shift

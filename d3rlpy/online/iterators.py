@@ -285,6 +285,9 @@ def train_single_env(
     # clip the last episode
     buffer.clip_episode()
 
+    # close logger
+    logger.close()
+
 
 def collect(
     algo: AlgoProtocol,

@@ -17,13 +17,11 @@ from .algo_test import (
 @pytest.mark.parametrize(
     "scalers", [(None, None, None), ("min_max", "min_max", "min_max")]
 )
-@pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 def test_sac(
     observation_shape,
     action_size,
     q_func_factory,
     scalers,
-    target_reduction_type,
 ):
     scaler, action_scaler, reward_scaler = scalers
     sac = SAC(
@@ -31,7 +29,6 @@ def test_sac(
         scaler=scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
-        target_reduction_type=target_reduction_type,
     )
     algo_tester(
         sac, observation_shape, test_policy_copy=True, test_q_function_copy=True

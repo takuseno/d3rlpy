@@ -12,13 +12,11 @@ from .algo_test import algo_pendulum_tester, algo_tester, algo_update_tester
 @pytest.mark.parametrize(
     "scalers", [(None, None, None), ("min_max", "min_max", "min_max")]
 )
-@pytest.mark.parametrize("target_reduction_type", ["min", "none"])
 def test_td3_plus_bc(
     observation_shape,
     action_size,
     q_func_factory,
     scalers,
-    target_reduction_type,
 ):
     scaler, action_scaler, reward_scaler = scalers
     td3 = TD3PlusBC(
@@ -26,7 +24,6 @@ def test_td3_plus_bc(
         scaler=scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
-        target_reduction_type=target_reduction_type,
     )
     algo_tester(
         td3, observation_shape, test_policy_copy=True, test_q_function_copy=True

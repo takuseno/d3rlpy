@@ -404,7 +404,7 @@ def test_transition_minibatch(
         terminal = 0.0
         next_t = t
         for j in range(n):
-            n_step_reward += rewards[i + j] * gamma ** j
+            n_step_reward += rewards[i + j] * gamma**j
             terminal = next_t.terminal
             next_t = next_t.next_transition
 

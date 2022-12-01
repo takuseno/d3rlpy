@@ -22,13 +22,14 @@ powerful performance beyond their papers via several tweaks.
    :maxdepth: 2
    :caption: Tutorials
 
-   getting_started
+   tutorials/index
    notebooks
 
 .. toctree::
    :maxdepth: 2
    :caption: References
 
+   software_design
    references/index
    cli
    installation
