@@ -55,6 +55,30 @@ class Scaler:
         """
         raise NotImplementedError
 
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        """Returns processed observations in numpy array.
+
+        Args:
+            x: observation.
+
+        Returns:
+            processed observation.
+
+        """
+        raise NotImplementedError
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        """Returns reversely transformed observations in numpy array.
+
+        Args:
+            x: observation.
+
+        Returns:
+            reversely transformed observation.
+
+        """
+        raise NotImplementedError
+
     def get_type(self) -> str:
         """Returns a scaler type.
 
@@ -111,6 +135,12 @@ class PixelScaler(Scaler):
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         return (x * 255.0).long()
+
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        return x.astype(float) / 255.0
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        return (x * 255.0).astype(int)
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {}
@@ -229,6 +259,16 @@ class MinMaxScaler(Scaler):
         maximum = torch.tensor(
             self._maximum, dtype=torch.float32, device=x.device
         )
+        return ((maximum - minimum) * x) + minimum
+
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self._minimum is not None and self._maximum is not None
+        minimum, maximum = self._minimum, self._maximum
+        return (x - minimum) / (maximum - minimum)
+
+    def reverse_transform_numpy(self, x: torch.Tensor) -> torch.Tensor:
+        assert self._minimum is not None and self._maximum is not None
+        minimum, maximum = self._minimum, self._maximum
         return ((maximum - minimum) * x) + minimum
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
@@ -357,6 +397,16 @@ class StandardScaler(Scaler):
         assert self._mean is not None and self._std is not None
         mean = torch.tensor(self._mean, dtype=torch.float32, device=x.device)
         std = torch.tensor(self._std, dtype=torch.float32, device=x.device)
+        return ((std + self._eps) * x) + mean
+
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self._mean is not None and self._std is not None
+        mean, std = self._mean, self._std
+        return (x - mean) / (std + self._eps)
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self._mean is not None and self._std is not None
+        mean, std = self._mean, self._std
         return ((std + self._eps) * x) + mean
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:

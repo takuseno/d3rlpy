@@ -54,6 +54,18 @@ class ActionScaler:
         """
         raise NotImplementedError
 
+    def transform_numpy(self, action: np.ndarray) -> np.ndarray:
+        """Returns processed action in numpy array.
+
+        Args:
+            action: action vector.
+
+        Returns:
+            processed action.
+
+        """
+        raise NotImplementedError
+
     def reverse_transform_numpy(self, action: np.ndarray) -> np.ndarray:
         """Returns reversely transformed action in numpy array.
 
@@ -206,6 +218,12 @@ class MinMaxActionScaler(ActionScaler):
         )
         # transform action from [-1.0, 1.0]
         return ((maximum - minimum) * ((action + 1.0) / 2.0)) + minimum
+
+    def transform_numpy(self, action: np.ndarray) -> np.ndarray:
+        assert self._minimum is not None and self._maximum is not None
+        minimum, maximum = self._minimum, self._maximum
+        # transform action into [-1.0, 1.0]
+        return ((action - minimum) / (maximum - minimum)) * 2.0 - 1.0
 
     def reverse_transform_numpy(self, action: np.ndarray) -> np.ndarray:
         assert self._minimum is not None and self._maximum is not None

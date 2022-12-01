@@ -71,6 +71,18 @@ class RewardScaler:
         """
         raise NotImplementedError
 
+    def reverse_transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+        """Returns reversely processed rewards in numpy array.
+
+        Args:
+            reward: reward.
+
+        Returns:
+            reversely processed reward.
+
+        """
+        raise NotImplementedError
+
     def get_type(self) -> str:
         """Returns a scaler type.
 
@@ -131,6 +143,9 @@ class MultiplyRewardScaler(RewardScaler):
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
         return self._multiplier * reward
 
+    def reverse_transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+        return reward / self._multiplier
+
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {"multiplier": self._multiplier}
 
@@ -181,6 +196,9 @@ class ClipRewardScaler(RewardScaler):
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
         return self._multiplier * np.clip(reward, self._low, self._high)
+
+    def reverse_transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+        return reward / self._multiplier
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
@@ -272,6 +290,11 @@ class MinMaxRewardScaler(RewardScaler):
         assert self._minimum is not None and self._maximum is not None
         base = self._maximum - self._minimum
         return self._multiplier * (reward - self._minimum) / base
+
+    def reverse_transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+        assert self._minimum is not None and self._maximum is not None
+        base = self._maximum - self._minimum
+        return reward * base / self._multiplier + self._minimum
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
@@ -366,6 +389,10 @@ class StandardRewardScaler(RewardScaler):
         assert self._mean is not None and self._std is not None
         nonzero_std = self._std + self._eps
         return self._multiplier * (reward - self._mean) / nonzero_std
+
+    def reverse_transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+        assert self._mean is not None and self._std is not None
+        return reward * (self._std + self._eps) / self._multiplier + self._mean
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
@@ -479,6 +506,10 @@ class ReturnBasedRewardScaler(RewardScaler):
         assert self._return_max is not None and self._return_min is not None
         return self._multiplier * reward / (self._return_max - self._return_min)
 
+    def reverse_transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+        assert self._return_max is not None and self._return_min is not None
+        return reward * (self._return_max + self._return_min) / self._multiplier
+
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
             "return_max": self._return_max,
@@ -534,6 +565,9 @@ class ConstantShiftRewardScaler(RewardScaler):
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
         return self._shift + reward
+
+    def reverse_transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+        return reward - self._shift
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {"shift": self._shift}
