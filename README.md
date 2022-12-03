@@ -223,12 +223,15 @@ The roadmap to the future release is available in [ROADMAP.md](ROADMAP.md).
 ## citation
 The paper is available [here](https://arxiv.org/abs/2111.03788).
 ```
-@InProceedings{seno2021d3rlpy,
-  author = {Takuma Seno, Michita Imai},
-  title = {d3rlpy: An Offline Deep Reinforcement Library},
-  booktitle = {NeurIPS 2021 Offline Reinforcement Learning Workshop},
-  month = {December},
-  year = {2021}
+@article{d3rlpy,
+  author  = {Takuma Seno and Michita Imai},
+  title   = {d3rlpy: An Offline Deep Reinforcement Learning Library},
+  journal = {Journal of Machine Learning Research},
+  year    = {2022},
+  volume  = {23},
+  number  = {315},
+  pages   = {1--20},
+  url     = {http://jmlr.org/papers/v23/22-0017.html}
 }
 ```
 
