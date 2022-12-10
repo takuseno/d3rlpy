@@ -16,6 +16,7 @@ docs/references/generated
 coverage.xml
 .coverage
 .mypy_cache
+.ipynb_checkpoints
 build
 dist
 /.idea/
