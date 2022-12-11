@@ -1,30 +1,27 @@
-from typing import Any, Dict, Optional
+import dataclasses
+from typing import Dict, Optional
 
-from ..argument_utility import (
-    ActionScalerArg,
-    EncoderArg,
-    ObservationScalerArg,
-    QFuncArg,
-    RewardScalerArg,
-    UseGPUArg,
-    check_encoder,
-    check_q_func,
-    check_use_gpu,
-)
+from ..argument_utility import UseGPUArg
+from ..base import ImplBase, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
-from ..gpu import Device
-from ..models.encoders import EncoderFactory
-from ..models.optimizers import AdamFactory, OptimizerFactory
-from ..models.q_functions import QFunctionFactory
+from ..models.encoders import EncoderFactory, make_encoder_field
+from ..models.optimizers import OptimizerFactory, make_optimizer_field
+from ..models.q_functions import QFunctionFactory, make_q_func_field
 from .base import AlgoBase
 from .torch.plas_impl import PLASImpl, PLASWithPerturbationImpl
 
-__all__ = ["PLAS", "PLASWithPerturbation"]
+__all__ = [
+    "PLASConfig",
+    "PLAS",
+    "PLASWithPerturbationConfig",
+    "PLASWithPerturbation",
+]
 
 
-class PLAS(AlgoBase):
-    r"""Policy in Latent Action Space algorithm.
+@dataclasses.dataclass(frozen=True)
+class PLASConfig(LearnableConfig):
+    r"""Config of Policy in Latent Action Space algorithm.
 
     PLAS is an offline deep reinforcement learning algorithm whose policy
     function is trained in latent space of Conditional VAE.
@@ -51,13 +48,13 @@ class PLAS(AlgoBase):
             optimizer factory for the critic.
         imitator_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the conditional VAE.
-        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory for the critic.
-        imitator_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        imitator_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory for the conditional VAE.
-        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
@@ -67,117 +64,67 @@ class PLAS(AlgoBase):
         lam (float): weight factor for critic ensemble.
         warmup_steps (int): the number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
-            observation preprocessor. The available options are
-            ``['pixel', 'min_max', 'standard']``.
-        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
-            action preprocessor. The available options are ``['min_max']``.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
-            reward preprocessor. The available options are
-            ``['clip', 'min_max', 'standard']``.
-        impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
-
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
+    actor_learning_rate: float = 1e-4
+    critic_learning_rate: float = 1e-3
+    imitator_learning_rate: float = 1e-4
+    actor_optim_factory: OptimizerFactory = make_optimizer_field()
+    critic_optim_factory: OptimizerFactory = make_optimizer_field()
+    imitator_optim_factory: OptimizerFactory = make_optimizer_field()
+    actor_encoder_factory: EncoderFactory = make_encoder_field()
+    critic_encoder_factory: EncoderFactory = make_encoder_field()
+    imitator_encoder_factory: EncoderFactory = make_encoder_field()
+    q_func_factory: QFunctionFactory = make_q_func_field()
+    batch_size: int = 100
+    gamma: float = 0.99
+    tau: float = 0.005
+    n_critics: int = 2
+    update_actor_interval: int = 1
+    lam: float = 0.75
+    warmup_steps: int = 500000
+    beta: float = 0.5
 
-    _actor_learning_rate: float
-    _critic_learning_rate: float
-    _imitator_learning_rate: float
-    _actor_optim_factory: OptimizerFactory
-    _critic_optim_factory: OptimizerFactory
-    _imitator_optim_factory: OptimizerFactory
-    _actor_encoder_factory: EncoderFactory
-    _critic_encoder_factory: EncoderFactory
-    _imitator_encoder_factory: EncoderFactory
-    _q_func_factory: QFunctionFactory
-    _tau: float
-    _n_critics: int
-    _update_actor_interval: int
-    _lam: float
-    _warmup_steps: int
-    _beta: float
-    _use_gpu: Optional[Device]
+    def create(
+        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
+    ) -> "PLAS":
+        return PLAS(self, use_gpu, impl)
+
+    @staticmethod
+    def get_type() -> str:
+        return "plas"
+
+
+class PLAS(AlgoBase):
+    _config: PLASConfig
     _impl: Optional[PLASImpl]
-
-    def __init__(
-        self,
-        *,
-        actor_learning_rate: float = 1e-4,
-        critic_learning_rate: float = 1e-3,
-        imitator_learning_rate: float = 1e-4,
-        actor_optim_factory: OptimizerFactory = AdamFactory(),
-        critic_optim_factory: OptimizerFactory = AdamFactory(),
-        imitator_optim_factory: OptimizerFactory = AdamFactory(),
-        actor_encoder_factory: EncoderArg = "default",
-        critic_encoder_factory: EncoderArg = "default",
-        imitator_encoder_factory: EncoderArg = "default",
-        q_func_factory: QFuncArg = "mean",
-        batch_size: int = 100,
-        gamma: float = 0.99,
-        tau: float = 0.005,
-        n_critics: int = 2,
-        update_actor_interval: int = 1,
-        lam: float = 0.75,
-        warmup_steps: int = 500000,
-        beta: float = 0.5,
-        use_gpu: UseGPUArg = False,
-        observation_scaler: ObservationScalerArg = None,
-        action_scaler: ActionScalerArg = None,
-        reward_scaler: RewardScalerArg = None,
-        impl: Optional[PLASImpl] = None,
-        **kwargs: Any
-    ):
-        super().__init__(
-            batch_size=batch_size,
-            gamma=gamma,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
-            kwargs=kwargs,
-        )
-        self._actor_learning_rate = actor_learning_rate
-        self._critic_learning_rate = critic_learning_rate
-        self._imitator_learning_rate = imitator_learning_rate
-        self._actor_optim_factory = actor_optim_factory
-        self._critic_optim_factory = critic_optim_factory
-        self._imitator_optim_factory = imitator_optim_factory
-        self._actor_encoder_factory = check_encoder(actor_encoder_factory)
-        self._critic_encoder_factory = check_encoder(critic_encoder_factory)
-        self._imitator_encoder_factory = check_encoder(imitator_encoder_factory)
-        self._q_func_factory = check_q_func(q_func_factory)
-        self._tau = tau
-        self._n_critics = n_critics
-        self._update_actor_interval = update_actor_interval
-        self._lam = lam
-        self._warmup_steps = warmup_steps
-        self._beta = beta
-        self._use_gpu = check_use_gpu(use_gpu)
-        self._impl = impl
 
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = PLASImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self._actor_learning_rate,
-            critic_learning_rate=self._critic_learning_rate,
-            imitator_learning_rate=self._imitator_learning_rate,
-            actor_optim_factory=self._actor_optim_factory,
-            critic_optim_factory=self._critic_optim_factory,
-            imitator_optim_factory=self._imitator_optim_factory,
-            actor_encoder_factory=self._actor_encoder_factory,
-            critic_encoder_factory=self._critic_encoder_factory,
-            imitator_encoder_factory=self._imitator_encoder_factory,
-            q_func_factory=self._q_func_factory,
-            gamma=self._gamma,
-            tau=self._tau,
-            n_critics=self._n_critics,
-            lam=self._lam,
-            beta=self._beta,
+            actor_learning_rate=self._config.actor_learning_rate,
+            critic_learning_rate=self._config.critic_learning_rate,
+            imitator_learning_rate=self._config.imitator_learning_rate,
+            actor_optim_factory=self._config.actor_optim_factory,
+            critic_optim_factory=self._config.critic_optim_factory,
+            imitator_optim_factory=self._config.imitator_optim_factory,
+            actor_encoder_factory=self._config.actor_encoder_factory,
+            critic_encoder_factory=self._config.critic_encoder_factory,
+            imitator_encoder_factory=self._config.imitator_encoder_factory,
+            q_func_factory=self._config.q_func_factory,
+            gamma=self._config.gamma,
+            tau=self._config.tau,
+            n_critics=self._config.n_critics,
+            lam=self._config.lam,
+            beta=self._config.beta,
+            observation_scaler=self._config.observation_scaler,
+            action_scaler=self._config.action_scaler,
+            reward_scaler=self._config.reward_scaler,
             use_gpu=self._use_gpu,
-            observation_scaler=self._observation_scaler,
-            action_scaler=self._action_scaler,
-            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
 
@@ -186,13 +133,13 @@ class PLAS(AlgoBase):
 
         metrics = {}
 
-        if self._grad_step < self._warmup_steps:
+        if self._grad_step < self._config.warmup_steps:
             imitator_loss = self._impl.update_imitator(batch)
             metrics.update({"imitator_loss": imitator_loss})
         else:
             critic_loss = self._impl.update_critic(batch)
             metrics.update({"critic_loss": critic_loss})
-            if self._grad_step % self._update_actor_interval == 0:
+            if self._grad_step % self._config.update_actor_interval == 0:
                 actor_loss = self._impl.update_actor(batch)
                 metrics.update({"actor_loss": actor_loss})
                 self._impl.update_actor_target()
@@ -204,8 +151,9 @@ class PLAS(AlgoBase):
         return ActionSpace.CONTINUOUS
 
 
-class PLASWithPerturbation(PLAS):
-    r"""Policy in Latent Action Space algorithm with perturbation layer.
+@dataclasses.dataclass(frozen=True)
+class PLASWithPerturbationConfig(PLASConfig):
+    r"""Config of Policy in Latent Action Space algorithm with perturbation layer.
 
     PLAS with perturbation layer enables PLAS to output out-of-distribution
     action.
@@ -224,13 +172,13 @@ class PLASWithPerturbation(PLAS):
             optimizer factory for the critic.
         imitator_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the conditional VAE.
-        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory for the critic.
-        imitator_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        imitator_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory for the conditional VAE.
-        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
@@ -241,103 +189,56 @@ class PLASWithPerturbation(PLAS):
         action_flexibility (float): output scale of perturbation layer.
         warmup_steps (int): the number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
-            observation preprocessor. The available options are
-            ``['pixel', 'min_max', 'standard']``.
-        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
-            action preprocessor. The available options are ``['min_max']``.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
-            reward preprocessor. The available options are
-            ``['clip', 'min_max', 'standard']``.
-        impl (d3rlpy.algos.torch.bcq_impl.BCQImpl): algorithm implementation.
-
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
+    action_flexibility: float = 0.05
 
-    _action_flexibility: float
-    _impl: Optional[PLASWithPerturbationImpl]
-
-    def __init__(
+    def create(
         self,
-        *,
-        actor_learning_rate: float = 1e-4,
-        critic_learning_rate: float = 1e-3,
-        imitator_learning_rate: float = 1e-4,
-        actor_optim_factory: OptimizerFactory = AdamFactory(),
-        critic_optim_factory: OptimizerFactory = AdamFactory(),
-        imitator_optim_factory: OptimizerFactory = AdamFactory(),
-        actor_encoder_factory: EncoderArg = "default",
-        critic_encoder_factory: EncoderArg = "default",
-        imitator_encoder_factory: EncoderArg = "default",
-        q_func_factory: QFuncArg = "mean",
-        batch_size: int = 100,
-        gamma: float = 0.99,
-        tau: float = 0.005,
-        n_critics: int = 2,
-        update_actor_interval: int = 1,
-        lam: float = 0.75,
-        action_flexibility: float = 0.05,
-        warmup_steps: int = 500000,
-        beta: float = 0.5,
         use_gpu: UseGPUArg = False,
-        observation_scaler: ObservationScalerArg = None,
-        action_scaler: ActionScalerArg = None,
-        reward_scaler: RewardScalerArg = None,
-        impl: Optional[PLASWithPerturbationImpl] = None,
-        **kwargs: Any
-    ):
-        super().__init__(
-            actor_learning_rate=actor_learning_rate,
-            critic_learning_rate=critic_learning_rate,
-            imitator_learning_rate=imitator_learning_rate,
-            actor_optim_factory=actor_optim_factory,
-            critic_optim_factory=critic_optim_factory,
-            imitator_optim_factory=imitator_optim_factory,
-            actor_encoder_factory=actor_encoder_factory,
-            critic_encoder_factory=critic_encoder_factory,
-            imitator_encoder_factory=imitator_encoder_factory,
-            q_func_factory=q_func_factory,
-            batch_size=batch_size,
-            gamma=gamma,
-            tau=tau,
-            n_critics=n_critics,
-            update_actor_interval=update_actor_interval,
-            lam=lam,
-            warmup_steps=warmup_steps,
-            beta=beta,
-            use_gpu=use_gpu,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
-            impl=impl,
-            **kwargs,
-        )
-        self._action_flexibility = action_flexibility
+        impl: Optional[ImplBase] = None,
+    ) -> "PLASWithPerturbation":
+        return PLASWithPerturbation(self, use_gpu, impl)
+
+    @staticmethod
+    def get_type() -> str:
+        return "plas_with_perturbation"
+
+
+class PLASWithPerturbation(PLAS):
+    _config: PLASWithPerturbationConfig
+    _impl: Optional[PLASWithPerturbationImpl]
 
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = PLASWithPerturbationImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self._actor_learning_rate,
-            critic_learning_rate=self._critic_learning_rate,
-            imitator_learning_rate=self._imitator_learning_rate,
-            actor_optim_factory=self._actor_optim_factory,
-            critic_optim_factory=self._critic_optim_factory,
-            imitator_optim_factory=self._imitator_optim_factory,
-            actor_encoder_factory=self._actor_encoder_factory,
-            critic_encoder_factory=self._critic_encoder_factory,
-            imitator_encoder_factory=self._imitator_encoder_factory,
-            q_func_factory=self._q_func_factory,
-            gamma=self._gamma,
-            tau=self._tau,
-            n_critics=self._n_critics,
-            lam=self._lam,
-            beta=self._beta,
-            action_flexibility=self._action_flexibility,
+            actor_learning_rate=self._config.actor_learning_rate,
+            critic_learning_rate=self._config.critic_learning_rate,
+            imitator_learning_rate=self._config.imitator_learning_rate,
+            actor_optim_factory=self._config.actor_optim_factory,
+            critic_optim_factory=self._config.critic_optim_factory,
+            imitator_optim_factory=self._config.imitator_optim_factory,
+            actor_encoder_factory=self._config.actor_encoder_factory,
+            critic_encoder_factory=self._config.critic_encoder_factory,
+            imitator_encoder_factory=self._config.imitator_encoder_factory,
+            q_func_factory=self._config.q_func_factory,
+            gamma=self._config.gamma,
+            tau=self._config.tau,
+            n_critics=self._config.n_critics,
+            lam=self._config.lam,
+            beta=self._config.beta,
+            action_flexibility=self._config.action_flexibility,
+            observation_scaler=self._config.observation_scaler,
+            action_scaler=self._config.action_scaler,
+            reward_scaler=self._config.reward_scaler,
             use_gpu=self._use_gpu,
-            observation_scaler=self._observation_scaler,
-            action_scaler=self._action_scaler,
-            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
+
+
+register_learnable(PLASConfig)
+register_learnable(PLASWithPerturbationConfig)

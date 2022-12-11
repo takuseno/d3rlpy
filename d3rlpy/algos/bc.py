@@ -1,58 +1,24 @@
+import dataclasses
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
-from ..argument_utility import (
-    ActionScalerArg,
-    EncoderArg,
-    ObservationScalerArg,
-    UseGPUArg,
-    check_encoder,
-    check_use_gpu,
-)
+from ..argument_utility import UseGPUArg
+from ..base import ImplBase, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..gpu import Device
-from ..models.encoders import EncoderFactory
-from ..models.optimizers import AdamFactory, OptimizerFactory
+from ..models.encoders import EncoderFactory, make_encoder_field
+from ..models.optimizers import OptimizerFactory, make_optimizer_field
 from .base import AlgoBase
 from .torch.bc_impl import BCBaseImpl, BCImpl, DiscreteBCImpl
 
-__all__ = ["BC", "DiscreteBC"]
+__all__ = ["BCConfig", "BC", "DiscreteBCConfig", "DiscreteBC"]
 
 
 class _BCBase(AlgoBase):
-    _learning_rate: float
-    _optim_factory: OptimizerFactory
-    _encoder_factory: EncoderFactory
     _use_gpu: Optional[Device]
     _impl: Optional[BCBaseImpl]
-
-    def __init__(
-        self,
-        *,
-        learning_rate: float = 1e-3,
-        optim_factory: OptimizerFactory = AdamFactory(),
-        encoder_factory: EncoderArg = "default",
-        batch_size: int = 100,
-        use_gpu: UseGPUArg = False,
-        observation_scaler: ObservationScalerArg = None,
-        action_scaler: ActionScalerArg = None,
-        impl: Optional[BCBaseImpl] = None,
-        **kwargs: Any
-    ):
-        super().__init__(
-            batch_size=batch_size,
-            gamma=1.0,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            kwargs=kwargs,
-        )
-        self._learning_rate = learning_rate
-        self._optim_factory = optim_factory
-        self._encoder_factory = check_encoder(encoder_factory)
-        self._use_gpu = check_use_gpu(use_gpu)
-        self._impl = impl
 
     def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
@@ -73,8 +39,9 @@ class _BCBase(AlgoBase):
         raise NotImplementedError("BC does not support sampling action.")
 
 
-class BC(_BCBase):
-    r"""Behavior Cloning algorithm.
+@dataclasses.dataclass(frozen=True)
+class BCConfig(LearnableConfig):
+    r"""Config of Behavior Cloning algorithm.
 
     Behavior Cloning (BC) is to imitate actions in the dataset via a supervised
     learning approach.
@@ -91,64 +58,47 @@ class BC(_BCBase):
         learning_rate (float): learing rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory.
-        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory.
         batch_size (int): mini-batch size.
         policy_type (str): the policy type. The available options are
             ``['deterministic', 'stochastic']``.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
-            observation preprocessor. The available options are
-            ``['pixel', 'min_max', 'standard']``.
-        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
-            action scaler. The available options are ``['min_max']``.
-        impl (d3rlpy.algos.torch.bc_impl.BCImpl):
-            implemenation of the algorithm.
-
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action scaler.
     """
+    batch_size: int = 100
+    learning_rate: float = 1e-3
+    policy_type: str = "deterministic"
+    optim_factory: OptimizerFactory = make_optimizer_field()
+    encoder_factory: EncoderFactory = make_encoder_field()
 
-    _policy_type: str
+    def create(
+        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
+    ) -> "BC":
+        return BC(self, use_gpu, impl)
+
+    @staticmethod
+    def get_type() -> str:
+        return "bc"
+
+
+class BC(_BCBase):
+
+    _config: BCConfig
     _impl: Optional[BCImpl]
-
-    def __init__(
-        self,
-        *,
-        learning_rate: float = 1e-3,
-        optim_factory: OptimizerFactory = AdamFactory(),
-        encoder_factory: EncoderArg = "default",
-        batch_size: int = 100,
-        policy_type: str = "deterministic",
-        use_gpu: UseGPUArg = False,
-        observation_scaler: ObservationScalerArg = None,
-        action_scaler: ActionScalerArg = None,
-        impl: Optional[BCBaseImpl] = None,
-        **kwargs: Any
-    ):
-        super().__init__(
-            learning_rate=learning_rate,
-            optim_factory=optim_factory,
-            encoder_factory=encoder_factory,
-            batch_size=batch_size,
-            use_gpu=use_gpu,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            impl=impl,
-            **kwargs,
-        )
-        self._policy_type = policy_type
 
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = BCImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=self._learning_rate,
-            optim_factory=self._optim_factory,
-            encoder_factory=self._encoder_factory,
-            policy_type=self._policy_type,
+            learning_rate=self._config.learning_rate,
+            optim_factory=self._config.optim_factory,
+            encoder_factory=self._config.encoder_factory,
+            policy_type=self._config.policy_type,
+            observation_scaler=self._config.observation_scaler,
+            action_scaler=self._config.action_scaler,
             use_gpu=self._use_gpu,
-            observation_scaler=self._observation_scaler,
-            action_scaler=self._action_scaler,
         )
         self._impl.build()
 
@@ -156,8 +106,9 @@ class BC(_BCBase):
         return ActionSpace.CONTINUOUS
 
 
-class DiscreteBC(_BCBase):
-    r"""Behavior Cloning algorithm for discrete control.
+@dataclasses.dataclass(frozen=True)
+class DiscreteBCConfig(LearnableConfig):
+    r"""Config of Behavior Cloning algorithm for discrete control.
 
     Behavior Cloning (BC) is to imitate actions in the dataset via a supervised
     learning approach.
@@ -176,60 +127,49 @@ class DiscreteBC(_BCBase):
         learning_rate (float): learing rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory.
-        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory.
         batch_size (int): mini-batch size.
         beta (float): reguralization factor.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
-            observation preprocessor. The available options are
-            ``['pixel', 'min_max', 'standard']``.
-        impl (d3rlpy.algos.torch.bc_impl.DiscreteBCImpl):
-            implemenation of the algorithm.
-
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
     """
+    batch_size: int = 100
+    learning_rate: float = 1e-3
+    optim_factory: OptimizerFactory = make_optimizer_field()
+    encoder_factory: EncoderFactory = make_encoder_field()
+    beta: float = 0.5
 
-    _beta: float
+    def create(
+        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
+    ) -> "DiscreteBC":
+        return DiscreteBC(self, use_gpu, impl)
+
+    @staticmethod
+    def get_type() -> str:
+        return "discrete_bc"
+
+
+class DiscreteBC(_BCBase):
+    _config: DiscreteBCConfig
     _impl: Optional[DiscreteBCImpl]
-
-    def __init__(
-        self,
-        *,
-        learning_rate: float = 1e-3,
-        optim_factory: OptimizerFactory = AdamFactory(),
-        encoder_factory: EncoderArg = "default",
-        batch_size: int = 100,
-        beta: float = 0.5,
-        use_gpu: UseGPUArg = False,
-        observation_scaler: ObservationScalerArg = None,
-        impl: Optional[DiscreteBCImpl] = None,
-        **kwargs: Any
-    ):
-        super().__init__(
-            learning_rate=learning_rate,
-            optim_factory=optim_factory,
-            encoder_factory=encoder_factory,
-            batch_size=batch_size,
-            use_gpu=use_gpu,
-            observation_scaler=observation_scaler,
-            impl=impl,
-            **kwargs,
-        )
-        self._beta = beta
 
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = DiscreteBCImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=self._learning_rate,
-            optim_factory=self._optim_factory,
-            encoder_factory=self._encoder_factory,
-            beta=self._beta,
+            learning_rate=self._config.learning_rate,
+            optim_factory=self._config.optim_factory,
+            encoder_factory=self._config.encoder_factory,
+            beta=self._config.beta,
+            observation_scaler=self._config.observation_scaler,
             use_gpu=self._use_gpu,
-            observation_scaler=self._observation_scaler,
         )
         self._impl.build()
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE
+
+
+register_learnable(BCConfig)
+register_learnable(DiscreteBCConfig)

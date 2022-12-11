@@ -1,11 +1,12 @@
-from typing import Any, ClassVar, Dict, Optional, Sequence, Type
+from dataclasses import field
+from typing import Any, Dict, Optional, Sequence, Type
 
 import gym
 import numpy as np
 import torch
+from dataclasses_json import config
 
 from ..dataset import EpisodeBase
-from ..decorators import pretty_repr
 from ..logger import LOG
 
 __all__ = [
@@ -19,14 +20,11 @@ __all__ = [
     "REWARD_SCALER_LIST",
     "register_reward_scaler",
     "create_reward_scaler",
+    "make_reward_scaler_field",
 ]
 
 
-@pretty_repr
 class RewardScaler:
-
-    TYPE: ClassVar[str] = "none"
-
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         """Estimates scaling parameters from dataset.
 
@@ -84,14 +82,15 @@ class RewardScaler:
         """
         raise NotImplementedError
 
-    def get_type(self) -> str:
+    @staticmethod
+    def get_type() -> str:
         """Returns a scaler type.
 
         Returns:
             scaler type.
 
         """
-        return self.TYPE
+        raise NotImplementedError
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         """Returns scaling parameters.
@@ -124,8 +123,6 @@ class MultiplyRewardScaler(RewardScaler):
         multiplier (float): constant multiplication value.
 
     """
-
-    TYPE: ClassVar[str] = "multiply"
     _multiplier: Optional[float]
 
     def __init__(self, multiplier: Optional[float] = None):
@@ -143,6 +140,10 @@ class MultiplyRewardScaler(RewardScaler):
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
         return self._multiplier * reward
+
+    @staticmethod
+    def get_type() -> str:
+        return "multiply"
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {"multiplier": self._multiplier}
@@ -166,8 +167,6 @@ class ClipRewardScaler(RewardScaler):
         multiplier (float): constant multiplication value.
 
     """
-
-    TYPE: ClassVar[str] = "clip"
     _low: Optional[float]
     _high: Optional[float]
     _multiplier: float
@@ -194,6 +193,10 @@ class ClipRewardScaler(RewardScaler):
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
         return self._multiplier * np.clip(reward, self._low, self._high)
+
+    @staticmethod
+    def get_type() -> str:
+        return "clip"
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
@@ -234,7 +237,6 @@ class MinMaxRewardScaler(RewardScaler):
         multiplier (float): constant multiplication value.
 
     """
-    TYPE: ClassVar[str] = "min_max"
     _minimum: Optional[float]
     _maximum: Optional[float]
     _multiplier: float
@@ -276,6 +278,10 @@ class MinMaxRewardScaler(RewardScaler):
         base = self._maximum - self._minimum
         return self._multiplier * (reward - self._minimum) / base
 
+    @staticmethod
+    def get_type() -> str:
+        return "min_max"
+
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
             "minimum": self._minimum,
@@ -316,7 +322,6 @@ class StandardRewardScaler(RewardScaler):
         multiplier (float): constant multiplication value
 
     """
-    TYPE: ClassVar[str] = "standard"
     _mean: Optional[float]
     _std: Optional[float]
     _eps: float
@@ -359,6 +364,10 @@ class StandardRewardScaler(RewardScaler):
         assert self._mean is not None and self._std is not None
         nonzero_std = self._std + self._eps
         return self._multiplier * (reward - self._mean) / nonzero_std
+
+    @staticmethod
+    def get_type() -> str:
+        return "standard"
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
@@ -404,7 +413,6 @@ class ReturnBasedRewardScaler(RewardScaler):
         multiplier (float): constant multiplication value
 
     """
-    TYPE: ClassVar[str] = "return"
     _return_max: Optional[float]
     _return_min: Optional[float]
     _multiplier: float
@@ -446,6 +454,10 @@ class ReturnBasedRewardScaler(RewardScaler):
         assert self._return_max is not None and self._return_min is not None
         return self._multiplier * reward / (self._return_max - self._return_min)
 
+    @staticmethod
+    def get_type() -> str:
+        return "return"
+
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {
             "return_max": self._return_max,
@@ -480,7 +492,6 @@ class ConstantShiftRewardScaler(RewardScaler):
         shift (float): constant shift value
 
     """
-    TYPE: ClassVar[str] = "shift"
     _shift: float
 
     def __init__(
@@ -502,6 +513,10 @@ class ConstantShiftRewardScaler(RewardScaler):
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
         return self._shift + reward
 
+    @staticmethod
+    def get_type() -> str:
+        return "shift"
+
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {"shift": self._shift}
 
@@ -516,9 +531,10 @@ def register_reward_scaler(cls: Type[RewardScaler]) -> None:
         cls: scaler class inheriting ``RewardScaler``.
 
     """
-    is_registered = cls.TYPE in REWARD_SCALER_LIST
-    assert not is_registered, f"{cls.TYPE} seems to be already registered"
-    REWARD_SCALER_LIST[cls.TYPE] = cls
+    type_name = cls.get_type()
+    is_registered = type_name in REWARD_SCALER_LIST
+    assert not is_registered, f"{type_name} seems to be already registered"
+    REWARD_SCALER_LIST[type_name] = cls
 
 
 def create_reward_scaler(name: str, **kwargs: Any) -> RewardScaler:
@@ -526,6 +542,24 @@ def create_reward_scaler(name: str, **kwargs: Any) -> RewardScaler:
     reward_scaler = REWARD_SCALER_LIST[name](**kwargs)
     assert isinstance(reward_scaler, RewardScaler)
     return reward_scaler
+
+
+def _encoder(scaler: Optional[RewardScaler]) -> Dict[str, Any]:
+    if scaler is None:
+        return {"type": "none", "params": {}}
+    return {"type": scaler.get_type(), "params": scaler.get_params()}
+
+
+def _decoder(dict_config: Dict[str, Any]) -> Optional[RewardScaler]:
+    if dict_config["type"] == "none":
+        return None
+    return create_reward_scaler(dict_config["type"], **dict_config["params"])
+
+
+def make_reward_scaler_field() -> Optional[RewardScaler]:
+    return field(
+        metadata=config(encoder=_encoder, decoder=_decoder), default=None
+    )
 
 
 register_reward_scaler(MultiplyRewardScaler)

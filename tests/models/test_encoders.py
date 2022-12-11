@@ -32,11 +32,7 @@ def test_pixel_encoder_factory(observation_shape, action_size, discrete_action):
     assert isinstance(encoder, PixelEncoderWithAction)
     assert encoder._discrete_action == discrete_action
 
-    # test get_params
     assert factory.get_type() == "pixel"
-    params = factory.get_params()
-    new_factory = PixelEncoderFactory(**params)
-    assert new_factory.get_params() == params
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -58,11 +54,7 @@ def test_vector_encoder_factory(
     assert isinstance(encoder, VectorEncoderWithAction)
     assert encoder._discrete_action == discrete_action
 
-    # test get params
     assert factory.get_type() == "vector"
-    params = factory.get_params()
-    new_factory = VectorEncoderFactory(**params)
-    assert new_factory.get_params() == params
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -90,11 +82,7 @@ def test_default_encoder_factory(
         assert isinstance(encoder, VectorEncoderWithAction)
     assert encoder._discrete_action == discrete_action
 
-    # test get_params
     assert factory.get_type() == "default"
-    params = factory.get_params()
-    new_factory = DefaultEncoderFactory(**params)
-    assert new_factory.get_params() == params
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -116,11 +104,7 @@ def test_dense_encoder_factory(observation_shape, action_size, discrete_action):
     assert encoder._discrete_action == discrete_action
     assert encoder._use_dense
 
-    # test get_params
     assert factory.get_type() == "dense"
-    params = factory.get_params()
-    new_factory = DenseEncoderFactory(**params)
-    assert new_factory.get_params() == params
 
 
 @pytest.mark.parametrize("name", ["pixel", "vector", "default", "dense"])

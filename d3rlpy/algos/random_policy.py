@@ -1,16 +1,24 @@
-from typing import Any, List, Tuple, Union
+import dataclasses
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 
-from ..argument_utility import ActionScalerArg
+from ..argument_utility import UseGPUArg
+from ..base import ImplBase, LearnableConfig, register_learnable
 from ..constants import ActionSpace
 from ..dataset import Shape
 from .base import AlgoBase
 
-__all__ = ["RandomPolicy", "DiscreteRandomPolicy"]
+__all__ = [
+    "RandomPolicyConfig",
+    "RandomPolicy",
+    "DiscreteRandomPolicyConfig",
+    "DiscreteRandomPolicy",
+]
 
 
-class RandomPolicy(AlgoBase):
+@dataclasses.dataclass(frozen=True)
+class RandomPolicyConfig(LearnableConfig):
     r"""Random Policy for continuous control algorithm.
 
     This is designed for data collection and lightweight interaction tests.
@@ -21,34 +29,29 @@ class RandomPolicy(AlgoBase):
             ``['uniform', 'normal']``.
         normal_std (float): standard deviation of the normal distribution. This
             is only used when ``distribution='normal'``.
-        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
-            action preprocessor. The available options are ``['min_max']``.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
 
     """
+    distribution: str = "uniform"
+    normal_std: float = 1.0
 
-    _distribution: str
-    _normal_std: float
+    def create(
+        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
+    ) -> "RandomPolicy":
+        return RandomPolicy(self)
+
+    @staticmethod
+    def get_type() -> str:
+        return "random_policy"
+
+
+class RandomPolicy(AlgoBase):
+    _config: RandomPolicyConfig
     _action_size: int
 
-    def __init__(
-        self,
-        *,
-        distribution: str = "uniform",
-        normal_std: float = 1.0,
-        action_scaler: ActionScalerArg = None,
-        **kwargs: Any,
-    ):
-        super().__init__(
-            batch_size=1,
-            gamma=0.0,
-            observation_scaler=None,
-            action_scaler=action_scaler,
-            kwargs=kwargs,
-        )
-        self._distribution = distribution
-        self._normal_std = normal_std
+    def __init__(self, config: RandomPolicyConfig):
+        super().__init__(config, False, None)
         self._action_size = 1
-        self._impl = None
 
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._action_size = action_size
@@ -60,17 +63,21 @@ class RandomPolicy(AlgoBase):
         x = np.asarray(x)
         action_shape = (x.shape[0], self._action_size)
 
-        if self._distribution == "uniform":
+        if self._config.distribution == "uniform":
             action = np.random.uniform(-1.0, 1.0, size=action_shape)
-        elif self._distribution == "normal":
-            action = np.random.normal(0.0, self._normal_std, size=action_shape)
+        elif self._config.distribution == "normal":
+            action = np.random.normal(
+                0.0, self._config.normal_std, size=action_shape
+            )
         else:
-            raise ValueError(f"invalid distribution type: {self._distribution}")
+            raise ValueError(
+                f"invalid distribution type: {self._config.distribution}"
+            )
 
         action = np.clip(action, -1.0, 1.0)
 
-        if self._action_scaler:
-            action = self._action_scaler.reverse_transform_numpy(action)
+        if self._config.action_scaler:
+            action = self._config.action_scaler.reverse_transform_numpy(action)
 
         return action
 
@@ -86,7 +93,8 @@ class RandomPolicy(AlgoBase):
         return ActionSpace.CONTINUOUS
 
 
-class DiscreteRandomPolicy(AlgoBase):
+@dataclasses.dataclass(frozen=True)
+class DiscreteRandomPolicyConfig(LearnableConfig):
     r"""Random Policy for discrete control algorithm.
 
     This is designed for data collection and lightweight interaction tests.
@@ -94,18 +102,23 @@ class DiscreteRandomPolicy(AlgoBase):
 
     """
 
+    def create(
+        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
+    ) -> "DiscreteRandomPolicy":
+        return DiscreteRandomPolicy(self)
+
+    @staticmethod
+    def get_type() -> str:
+        return "discrete_random_policy"
+
+
+class DiscreteRandomPolicy(AlgoBase):
+    _config: DiscreteRandomPolicyConfig
     _action_size: int
 
-    def __init__(self, **kwargs: Any):
-        super().__init__(
-            batch_size=1,
-            gamma=0.0,
-            observation_scaler=None,
-            action_scaler=None,
-            kwargs=kwargs,
-        )
+    def __init__(self, config: DiscreteRandomPolicyConfig):
+        super().__init__(config, False, None)
         self._action_size = 1
-        self._impl = None
 
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._action_size = action_size
@@ -127,3 +140,7 @@ class DiscreteRandomPolicy(AlgoBase):
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE
+
+
+register_learnable(RandomPolicyConfig)
+register_learnable(DiscreteRandomPolicyConfig)

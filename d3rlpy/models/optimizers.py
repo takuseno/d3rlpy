@@ -1,45 +1,29 @@
-import copy
-from typing import Any, Dict, Iterable, Tuple, Type, Union, cast
+from dataclasses import asdict, dataclass, field
+from typing import Any, Dict, Iterable, Tuple, Type
 
-from torch import nn, optim
+from dataclasses_json import config
+from torch import nn
 from torch.optim import SGD, Adam, Optimizer, RMSprop
 
-from ..decorators import pretty_repr
+__all__ = [
+    "OptimizerFactory",
+    "SGDFactory",
+    "AdamFactory",
+    "RMSpropFactory",
+    "OPTIMIZER_LIST",
+    "register_optimizer_factory",
+    "create_optimizer_factory",
+    "make_optimizer_field",
+]
 
-__all__ = ["OptimizerFactory", "SGDFactory", "AdamFactory", "RMSpropFactory"]
 
-
-@pretty_repr
+@dataclass(frozen=True)
 class OptimizerFactory:
     """A factory class that creates an optimizer object in a lazy way.
 
     The optimizers in algorithms can be configured through this factory class.
 
-    .. code-block:: python
-
-        from torch.optim Adam
-        from d3rlpy.optimizers import OptimizerFactory
-        from d3rlpy.algos import DQN
-
-        factory = OptimizerFactory(Adam, eps=0.001)
-
-        dqn = DQN(optim_factory=factory)
-
-    Args:
-        optim_cls: An optimizer class.
-        kwargs: arbitrary keyword-arguments.
-
     """
-
-    _optim_cls: Type[Optimizer]
-    _optim_kwargs: Dict[str, Any]
-
-    def __init__(self, optim_cls: Union[Type[Optimizer], str], **kwargs: Any):
-        if isinstance(optim_cls, str):
-            self._optim_cls = cast(Type[Optimizer], getattr(optim, optim_cls))
-        else:
-            self._optim_cls = optim_cls
-        self._optim_kwargs = kwargs
 
     def create(self, params: Iterable[nn.Parameter], lr: float) -> Optimizer:
         """Returns an optimizer object.
@@ -52,25 +36,20 @@ class OptimizerFactory:
             torch.optim.Optimizer: an optimizer object.
 
         """
-        return self._optim_cls(params, lr=lr, **self._optim_kwargs)
+        raise NotImplementedError
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns optimizer parameters.
-
-        Args:
-            deep: flag to deeply copy the parameters.
+    @staticmethod
+    def get_type() -> str:
+        """Returns optimizer type.
 
         Returns:
-            optimizer parameters.
+            optimizer type name.
 
         """
-        if deep:
-            params = copy.deepcopy(self._optim_kwargs)
-        else:
-            params = self._optim_kwargs
-        return {"optim_cls": self._optim_cls.__name__, **params}
+        raise NotImplementedError
 
 
+@dataclass(frozen=True)
 class SGDFactory(OptimizerFactory):
     """An alias for SGD optimizer.
 
@@ -88,23 +67,27 @@ class SGDFactory(OptimizerFactory):
 
     """
 
-    def __init__(
-        self,
-        momentum: float = 0,
-        dampening: float = 0,
-        weight_decay: float = 0,
-        nesterov: bool = False,
-        **kwargs: Any
-    ):
-        super().__init__(
-            optim_cls=SGD,
-            momentum=momentum,
-            dampening=dampening,
-            weight_decay=weight_decay,
-            nesterov=nesterov,
+    momentum: float = 0.0
+    dampening: float = 0.0
+    weight_decay: float = 0.0
+    nesterov: bool = False
+
+    def create(self, params: Iterable[nn.Parameter], lr: float) -> SGD:
+        return SGD(
+            params,
+            lr=lr,
+            momentum=self.momentum,
+            dampening=self.dampening,
+            weight_decay=self.weight_decay,
+            nesterov=self.nesterov,
         )
 
+    @staticmethod
+    def get_type() -> str:
+        return "sgd"
 
+
+@dataclass(frozen=True)
 class AdamFactory(OptimizerFactory):
     """An alias for Adam optimizer.
 
@@ -123,23 +106,27 @@ class AdamFactory(OptimizerFactory):
 
     """
 
-    def __init__(
-        self,
-        betas: Tuple[float, float] = (0.9, 0.999),
-        eps: float = 1e-8,
-        weight_decay: float = 0,
-        amsgrad: bool = False,
-        **kwargs: Any
-    ):
-        super().__init__(
-            optim_cls=Adam,
-            betas=betas,
-            eps=eps,
-            weight_decay=weight_decay,
-            amsgrad=amsgrad,
+    betas: Tuple[float, float] = (0.9, 0.999)
+    eps: float = 1e-8
+    weight_decay: float = 0
+    amsgrad: bool = False
+
+    def create(self, params: Iterable[nn.Parameter], lr: float) -> Adam:
+        return Adam(
+            params,
+            lr=lr,
+            betas=self.betas,
+            eps=self.eps,
+            weight_decay=self.weight_decay,
+            amsgrad=self.amsgrad,
         )
 
+    @staticmethod
+    def get_type() -> str:
+        return "adam"
 
+
+@dataclass(frozen=True)
 class RMSpropFactory(OptimizerFactory):
     """An alias for RMSprop optimizer.
 
@@ -159,20 +146,68 @@ class RMSpropFactory(OptimizerFactory):
 
     """
 
-    def __init__(
-        self,
-        alpha: float = 0.95,
-        eps: float = 1e-2,
-        weight_decay: float = 0,
-        momentum: float = 0,
-        centered: bool = True,
-        **kwargs: Any
-    ):
-        super().__init__(
-            optim_cls=RMSprop,
-            alpha=alpha,
-            eps=eps,
-            weight_decay=weight_decay,
-            momentum=momentum,
-            centered=centered,
+    alpha: float = 0.95
+    eps: float = 1e-2
+    weight_decay: float = 0.0
+    momentum: float = 0.0
+    centered: bool = True
+
+    def create(self, params: Iterable[nn.Parameter], lr: float) -> RMSprop:
+        return RMSprop(
+            params,
+            lr=lr,
+            alpha=self.alpha,
+            eps=self.eps,
+            weight_decay=self.weight_decay,
+            momentum=self.momentum,
+            centered=self.centered,
         )
+
+    @staticmethod
+    def get_type() -> str:
+        return "rmsprop"
+
+
+OPTIMIZER_LIST: Dict[str, Type[OptimizerFactory]] = {}
+
+
+def register_optimizer_factory(cls: Type[OptimizerFactory]) -> None:
+    """Registers optimizer factory class.
+
+    Args:
+        cls: Optimizer factory class inheriting ``OptimizerFactory``.
+
+    """
+    type_name = cls.get_type()
+    is_registered = type_name in OPTIMIZER_LIST
+    assert not is_registered, f"{type_name} seems to be already registered"
+    OPTIMIZER_LIST[type_name] = cls
+
+
+def create_optimizer_factory(name: str, **kwargs: Any) -> OptimizerFactory:
+    assert name in OPTIMIZER_LIST, "f{name} seems not to be registered"
+    factory = OPTIMIZER_LIST[name](**kwargs)
+    assert isinstance(factory, OptimizerFactory)
+    return factory
+
+
+def _encoder(optim: OptimizerFactory) -> Dict[str, Any]:
+    return {"type": optim.get_type(), "params": asdict(optim)}
+
+
+def _decoder(dict_config: Dict[str, Any]) -> OptimizerFactory:
+    return create_optimizer_factory(
+        dict_config["type"], **dict_config["params"]
+    )
+
+
+def make_optimizer_field() -> OptimizerFactory:
+    return field(
+        metadata=config(encoder=_encoder, decoder=_decoder),
+        default=AdamFactory(),
+    )
+
+
+register_optimizer_factory(SGDFactory)
+register_optimizer_factory(AdamFactory)
+register_optimizer_factory(RMSpropFactory)

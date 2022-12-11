@@ -1,7 +1,7 @@
 import gym
 import pytest
 
-from d3rlpy.algos import DQN, SAC
+from d3rlpy.algos import DQNConfig, SACConfig
 from d3rlpy.dataset import InfiniteBuffer, ReplayBuffer
 from d3rlpy.envs import ChannelFirst
 from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
@@ -13,7 +13,7 @@ def test_fit_online_cartpole_with_dqn():
     env = gym.make("CartPole-v0")
     eval_env = gym.make("CartPole-v0")
 
-    algo = DQN()
+    algo = DQNConfig().create()
 
     buffer = ReplayBuffer(InfiniteBuffer())
 
@@ -35,7 +35,7 @@ def test_fit_online_atari_with_dqn():
     env = ChannelFirst(DummyAtari())
     eval_env = ChannelFirst(DummyAtari())
 
-    algo = DQN()
+    algo = DQNConfig().create()
 
     buffer = ReplayBuffer(InfiniteBuffer())
 
@@ -57,7 +57,7 @@ def test_fit_online_pendulum_with_sac():
     env = gym.make("Pendulum-v0")
     eval_env = gym.make("Pendulum-v0")
 
-    algo = SAC()
+    algo = SACConfig().create()
 
     buffer = ReplayBuffer(InfiniteBuffer())
 
@@ -74,7 +74,7 @@ def test_fit_online_pendulum_with_sac():
 def test_collect_pendulum_with_sac(deterministic):
     env = gym.make("Pendulum-v0")
 
-    algo = SAC()
+    algo = SACConfig().create()
 
     buffer = algo.collect(env, n_steps=500, deterministic=deterministic)
 
@@ -86,7 +86,7 @@ def test_collect_atari_with_dqn():
 
     env = ChannelFirst(DummyAtari())
 
-    algo = DQN()
+    algo = DQNConfig().create()
 
     explorer = LinearDecayEpsilonGreedy()
 
@@ -100,7 +100,7 @@ def test_collect_atari_with_dqn():
 def test_timelimit_aware(timelimit_aware):
     env = gym.make("Pendulum-v0")
 
-    algo = SAC()
+    algo = SACConfig().create()
 
     buffer = ReplayBuffer(InfiniteBuffer())
 

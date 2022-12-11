@@ -1,11 +1,10 @@
-from typing import Any, Dict
-
-from .decorators import pretty_repr
+import dataclasses
+from typing import Any
 
 __all__ = ["Device"]
 
 
-@pretty_repr
+@dataclasses.dataclass(frozen=True)
 class Device:
     """GPU Device class.
 
@@ -16,10 +15,7 @@ class Device:
 
     """
 
-    _idx: int
-
-    def __init__(self, idx: int = 0):
-        self._idx = idx
+    idx: int = 0
 
     def get_id(self) -> int:
         """Returns GPU id.
@@ -28,15 +24,12 @@ class Device:
             GPU id.
 
         """
-        return self._idx
+        return self.idx
 
     def __eq__(self, obj: Any) -> bool:
         if isinstance(obj, Device):
-            return self._idx == obj.get_id()
+            return self.idx == obj.get_id()
         raise ValueError("Device cannot be comapred with non Device objects.")
 
     def __ne__(self, obj: Any) -> bool:
         return not self.__eq__(obj)
-
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {"idx": self._idx}

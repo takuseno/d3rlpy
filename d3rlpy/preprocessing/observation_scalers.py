@@ -1,11 +1,12 @@
-from typing import Any, ClassVar, Dict, Optional, Sequence, Type
+from dataclasses import field
+from typing import Any, Dict, Optional, Sequence, Type
 
 import gym
 import numpy as np
 import torch
+from dataclasses_json import config
 
 from ..dataset import EpisodeBase
-from ..decorators import pretty_repr
 
 __all__ = [
     "ObservationScaler",
@@ -15,14 +16,11 @@ __all__ = [
     "OBSERVATION_SCALER_LIST",
     "register_observation_scaler",
     "create_observation_scaler",
+    "make_observation_scaler_field",
 ]
 
 
-@pretty_repr
 class ObservationScaler:
-
-    TYPE: ClassVar[str] = "none"
-
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         """Estimates scaling parameters from dataset.
 
@@ -65,14 +63,15 @@ class ObservationScaler:
         """
         raise NotImplementedError
 
-    def get_type(self) -> str:
+    @staticmethod
+    def get_type() -> str:
         """Returns a scaler type.
 
         Returns:
             scaler type.
 
         """
-        return self.TYPE
+        raise NotImplementedError
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         """Returns scaling parameters.
@@ -108,8 +107,6 @@ class PixelObservationScaler(ObservationScaler):
 
     """
 
-    TYPE: ClassVar[str] = "pixel"
-
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         pass
 
@@ -121,6 +118,10 @@ class PixelObservationScaler(ObservationScaler):
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         return (x * 255.0).long()
+
+    @staticmethod
+    def get_type() -> str:
+        return "pixel"
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         return {}
@@ -168,8 +169,6 @@ class MinMaxObservationScaler(ObservationScaler):
         max (numpy.ndarray): maximum values at each entry.
 
     """
-
-    TYPE: ClassVar[str] = "min_max"
     _minimum: Optional[np.ndarray]
     _maximum: Optional[np.ndarray]
 
@@ -235,6 +234,10 @@ class MinMaxObservationScaler(ObservationScaler):
         )
         return ((maximum - minimum) * x) + minimum
 
+    @staticmethod
+    def get_type() -> str:
+        return "min_max"
+
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         if self._maximum is not None:
             maximum = self._maximum.copy() if deep else self._maximum
@@ -292,8 +295,6 @@ class StandardObservationScaler(ObservationScaler):
         eps (float): small constant value to avoid zero-division.
 
     """
-
-    TYPE = "standard"
     _mean: Optional[np.ndarray]
     _std: Optional[np.ndarray]
     _eps: float
@@ -353,6 +354,10 @@ class StandardObservationScaler(ObservationScaler):
         std = torch.tensor(self._std, dtype=torch.float32, device=x.device)
         return ((std + self._eps) * x) + mean
 
+    @staticmethod
+    def get_type() -> str:
+        return "standard"
+
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         if self._mean is not None:
             mean = self._mean.copy() if deep else self._mean
@@ -377,9 +382,10 @@ def register_observation_scaler(cls: Type[ObservationScaler]) -> None:
         cls: scaler class inheriting ``Scaler``.
 
     """
-    is_registered = cls.TYPE in OBSERVATION_SCALER_LIST
-    assert not is_registered, f"{cls.TYPE} seems to be already registered"
-    OBSERVATION_SCALER_LIST[cls.TYPE] = cls
+    type_name = cls.get_type()
+    is_registered = type_name in OBSERVATION_SCALER_LIST
+    assert not is_registered, f"{type_name} seems to be already registered"
+    OBSERVATION_SCALER_LIST[type_name] = cls
 
 
 def create_observation_scaler(name: str, **kwargs: Any) -> ObservationScaler:
@@ -399,6 +405,26 @@ def create_observation_scaler(name: str, **kwargs: Any) -> ObservationScaler:
     scaler = OBSERVATION_SCALER_LIST[name](**kwargs)
     assert isinstance(scaler, ObservationScaler)
     return scaler
+
+
+def _encoder(scaler: Optional[ObservationScaler]) -> Dict[str, Any]:
+    if scaler is None:
+        return {"type": "none", "params": {}}
+    return {"type": scaler.get_type(), "params": scaler.get_params()}
+
+
+def _decoder(dict_config: Dict[str, Any]) -> Optional[ObservationScaler]:
+    if dict_config["type"] == "none":
+        return None
+    return create_observation_scaler(
+        dict_config["type"], **dict_config["params"]
+    )
+
+
+def make_observation_scaler_field() -> Optional[ObservationScaler]:
+    return field(
+        metadata=config(encoder=_encoder, decoder=_decoder), default=None
+    )
 
 
 register_observation_scaler(PixelObservationScaler)

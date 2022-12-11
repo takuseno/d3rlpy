@@ -1,11 +1,12 @@
-from typing import Any, ClassVar, Dict, Optional, Sequence, Type
+from dataclasses import field
+from typing import Any, Dict, Optional, Sequence, Type
 
 import gym
 import numpy as np
 import torch
+from dataclasses_json import config
 
 from ..dataset import EpisodeBase
-from ..decorators import pretty_repr
 
 __all__ = [
     "ActionScaler",
@@ -13,13 +14,11 @@ __all__ = [
     "ACTION_SCALER_LIST",
     "register_action_scaler",
     "create_action_scaler",
+    "make_action_scaler_field",
 ]
 
 
-@pretty_repr
 class ActionScaler:
-    TYPE: ClassVar[str] = "none"
-
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         """Estimates scaling parameters from dataset.
 
@@ -74,14 +73,15 @@ class ActionScaler:
         """
         raise NotImplementedError
 
-    def get_type(self) -> str:
+    @staticmethod
+    def get_type() -> str:
         """Returns action scaler type.
 
         Returns:
             action scaler type.
 
         """
-        return self.TYPE
+        raise NotImplementedError
 
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         """Returns action scaler params.
@@ -140,8 +140,6 @@ class MinMaxActionScaler(ActionScaler):
         max (numpy.ndarray): maximum values at each entry.
 
     """
-
-    TYPE: ClassVar[str] = "min_max"
     _minimum: Optional[np.ndarray]
     _maximum: Optional[np.ndarray]
 
@@ -215,6 +213,10 @@ class MinMaxActionScaler(ActionScaler):
         # transform action from [-1.0, 1.0]
         return ((maximum - minimum) * ((action + 1.0) / 2.0)) + minimum
 
+    @staticmethod
+    def get_type() -> str:
+        return "min_max"
+
     def get_params(self, deep: bool = False) -> Dict[str, Any]:
         if self._minimum is not None:
             minimum = self._minimum.copy() if deep else self._minimum
@@ -239,9 +241,10 @@ def register_action_scaler(cls: Type[ActionScaler]) -> None:
         cls: action scaler class inheriting ``ActionScaler``.
 
     """
-    is_registered = cls.TYPE in ACTION_SCALER_LIST
-    assert not is_registered, f"{cls.TYPE} seems to be already registered"
-    ACTION_SCALER_LIST[cls.TYPE] = cls
+    type_name = cls.get_type()
+    is_registered = type_name in ACTION_SCALER_LIST
+    assert not is_registered, f"{type_name} seems to be already registered"
+    ACTION_SCALER_LIST[type_name] = cls
 
 
 def create_action_scaler(name: str, **kwargs: Any) -> ActionScaler:
@@ -259,6 +262,24 @@ def create_action_scaler(name: str, **kwargs: Any) -> ActionScaler:
     scaler = ACTION_SCALER_LIST[name](**kwargs)
     assert isinstance(scaler, ActionScaler)
     return scaler
+
+
+def _encoder(scaler: Optional[ActionScaler]) -> Dict[str, Any]:
+    if scaler is None:
+        return {"type": "none", "params": {}}
+    return {"type": scaler.get_type(), "params": scaler.get_params()}
+
+
+def _decoder(dict_config: Dict[str, Any]) -> Optional[ActionScaler]:
+    if dict_config["type"] == "none":
+        return None
+    return create_action_scaler(dict_config["type"], **dict_config["params"])
+
+
+def make_action_scaler_field() -> Optional[ActionScaler]:
+    return field(
+        metadata=config(encoder=_encoder, decoder=_decoder), default=None
+    )
 
 
 register_action_scaler(MinMaxActionScaler)

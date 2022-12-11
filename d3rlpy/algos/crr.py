@@ -1,30 +1,22 @@
-from typing import Any, Dict, Optional
+import dataclasses
+from typing import Dict, Optional
 
-from ..argument_utility import (
-    ActionScalerArg,
-    EncoderArg,
-    ObservationScalerArg,
-    QFuncArg,
-    RewardScalerArg,
-    UseGPUArg,
-    check_encoder,
-    check_q_func,
-    check_use_gpu,
-)
+from ..argument_utility import UseGPUArg
+from ..base import ImplBase, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
-from ..gpu import Device
-from ..models.encoders import EncoderFactory
-from ..models.optimizers import AdamFactory, OptimizerFactory
-from ..models.q_functions import QFunctionFactory
+from ..models.encoders import EncoderFactory, make_encoder_field
+from ..models.optimizers import OptimizerFactory, make_optimizer_field
+from ..models.q_functions import QFunctionFactory, make_q_func_field
 from .base import AlgoBase
 from .torch.crr_impl import CRRImpl
 
-__all__ = ["CRR"]
+__all__ = ["CRRConfig", "CRR"]
 
 
-class CRR(AlgoBase):
-    r"""Critic Reguralized Regression algorithm.
+@dataclasses.dataclass(frozen=True)
+class CRRConfig(LearnableConfig):
+    r"""Config of Critic Reguralized Regression algorithm.
 
     CRR is a simple offline RL method similar to AWAC.
 
@@ -78,11 +70,11 @@ class CRR(AlgoBase):
             optimizer factory for the actor.
         critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for the critic.
-        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory for the critic.
-        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
@@ -101,120 +93,68 @@ class CRR(AlgoBase):
             ``soft`` target update.
         update_actor_interval (int): interval to update policy function used
             with ``hard`` target update.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
-            observation preprocessor. The available options are
-            ``['pixel', 'min_max', 'standard']``.
-        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
-            action preprocessor. The available options are ``['min_max']``.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
-            reward preprocessor. The available options are
-            ``['clip', 'min_max', 'standard']``.
-        impl (d3rlpy.algos.torch.crr_impl.CRRImpl): algorithm implementation.
-
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
+    actor_learning_rate: float = 3e-4
+    critic_learning_rate: float = 3e-4
+    actor_optim_factory: OptimizerFactory = make_optimizer_field()
+    critic_optim_factory: OptimizerFactory = make_optimizer_field()
+    actor_encoder_factory: EncoderFactory = make_encoder_field()
+    critic_encoder_factory: EncoderFactory = make_encoder_field()
+    q_func_factory: QFunctionFactory = make_q_func_field()
+    batch_size: int = 100
+    gamma: float = 0.99
+    beta: float = 1.0
+    n_action_samples: int = 4
+    advantage_type: str = "mean"
+    weight_type: str = "exp"
+    max_weight: float = 20.0
+    n_critics: int = 1
+    target_update_type: str = "hard"
+    tau: float = 5e-3
+    target_update_interval: int = 100
+    update_actor_interval: int = 1
 
-    _actor_learning_rate: float
-    _critic_learning_rate: float
-    _actor_optim_factory: OptimizerFactory
-    _critic_optim_factory: OptimizerFactory
-    _actor_encoder_factory: EncoderFactory
-    _critic_encoder_factory: EncoderFactory
-    _q_func_factory: QFunctionFactory
-    _beta: float
-    _n_action_samples: int
-    _advantage_type: str
-    _weight_type: str
-    _max_weight: float
-    _n_critics: int
-    _target_update_type: str
-    _tau: float
-    _target_update_interval: int
-    _update_actor_interval: int
-    _use_gpu: Optional[Device]
+    def create(
+        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
+    ) -> "CRR":
+        return CRR(self, use_gpu, impl)
+
+    @staticmethod
+    def get_type() -> str:
+        return "crr"
+
+
+class CRR(AlgoBase):
+    _config: CRRConfig
     _impl: Optional[CRRImpl]
-
-    def __init__(
-        self,
-        *,
-        actor_learning_rate: float = 3e-4,
-        critic_learning_rate: float = 3e-4,
-        actor_optim_factory: OptimizerFactory = AdamFactory(),
-        critic_optim_factory: OptimizerFactory = AdamFactory(),
-        actor_encoder_factory: EncoderArg = "default",
-        critic_encoder_factory: EncoderArg = "default",
-        q_func_factory: QFuncArg = "mean",
-        batch_size: int = 100,
-        gamma: float = 0.99,
-        beta: float = 1.0,
-        n_action_samples: int = 4,
-        advantage_type: str = "mean",
-        weight_type: str = "exp",
-        max_weight: float = 20.0,
-        n_critics: int = 1,
-        target_update_type: str = "hard",
-        tau: float = 5e-3,
-        target_update_interval: int = 100,
-        update_actor_interval: int = 1,
-        use_gpu: UseGPUArg = False,
-        observation_scaler: ObservationScalerArg = None,
-        action_scaler: ActionScalerArg = None,
-        reward_scaler: RewardScalerArg = None,
-        impl: Optional[CRRImpl] = None,
-        **kwargs: Any,
-    ):
-        super().__init__(
-            batch_size=batch_size,
-            gamma=gamma,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
-            kwargs=kwargs,
-        )
-        self._actor_learning_rate = actor_learning_rate
-        self._critic_learning_rate = critic_learning_rate
-        self._actor_optim_factory = actor_optim_factory
-        self._critic_optim_factory = critic_optim_factory
-        self._actor_encoder_factory = check_encoder(actor_encoder_factory)
-        self._critic_encoder_factory = check_encoder(critic_encoder_factory)
-        self._q_func_factory = check_q_func(q_func_factory)
-        self._beta = beta
-        self._n_action_samples = n_action_samples
-        self._advantage_type = advantage_type
-        self._weight_type = weight_type
-        self._max_weight = max_weight
-        self._n_critics = n_critics
-        self._target_update_type = target_update_type
-        self._tau = tau
-        self._target_update_interval = target_update_interval
-        self._update_actor_interval = update_actor_interval
-        self._use_gpu = check_use_gpu(use_gpu)
-        self._impl = impl
 
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = CRRImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self._actor_learning_rate,
-            critic_learning_rate=self._critic_learning_rate,
-            actor_optim_factory=self._actor_optim_factory,
-            critic_optim_factory=self._critic_optim_factory,
-            actor_encoder_factory=self._actor_encoder_factory,
-            critic_encoder_factory=self._critic_encoder_factory,
-            q_func_factory=self._q_func_factory,
-            gamma=self._gamma,
-            beta=self._beta,
-            n_action_samples=self._n_action_samples,
-            advantage_type=self._advantage_type,
-            weight_type=self._weight_type,
-            max_weight=self._max_weight,
-            n_critics=self._n_critics,
-            tau=self._tau,
+            actor_learning_rate=self._config.actor_learning_rate,
+            critic_learning_rate=self._config.critic_learning_rate,
+            actor_optim_factory=self._config.actor_optim_factory,
+            critic_optim_factory=self._config.critic_optim_factory,
+            actor_encoder_factory=self._config.actor_encoder_factory,
+            critic_encoder_factory=self._config.critic_encoder_factory,
+            q_func_factory=self._config.q_func_factory,
+            gamma=self._config.gamma,
+            beta=self._config.beta,
+            n_action_samples=self._config.n_action_samples,
+            advantage_type=self._config.advantage_type,
+            weight_type=self._config.weight_type,
+            max_weight=self._config.max_weight,
+            n_critics=self._config.n_critics,
+            tau=self._config.tau,
+            observation_scaler=self._config.observation_scaler,
+            action_scaler=self._config.action_scaler,
+            reward_scaler=self._config.reward_scaler,
             use_gpu=self._use_gpu,
-            observation_scaler=self._observation_scaler,
-            action_scaler=self._action_scaler,
-            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
 
@@ -224,19 +164,22 @@ class CRR(AlgoBase):
         critic_loss = self._impl.update_critic(batch)
         actor_loss = self._impl.update_actor(batch)
 
-        if self._target_update_type == "hard":
-            if self._grad_step % self._target_update_interval == 0:
+        if self._config.target_update_type == "hard":
+            if self._grad_step % self._config.target_update_interval == 0:
                 self._impl.sync_critic_target()
                 self._impl.sync_actor_target()
-        elif self._target_update_type == "soft":
+        elif self._config.target_update_type == "soft":
             self._impl.update_critic_target()
             self._impl.update_actor_target()
         else:
             raise ValueError(
-                f"invalid target_update_type: {self._target_update_type}"
+                f"invalid target_update_type: {self._config.target_update_type}"
             )
 
         return {"critic_loss": critic_loss, "actor_loss": actor_loss}
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
+
+
+register_learnable(CRRConfig)

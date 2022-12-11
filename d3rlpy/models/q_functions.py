@@ -1,6 +1,8 @@
-from typing import Any, ClassVar, Dict, Type
+from dataclasses import asdict, dataclass, field
+from typing import Any, Dict, Type
 
-from ..decorators import pretty_repr
+from dataclasses_json import config
+
 from .torch import (
     ContinuousFQFQFunction,
     ContinuousIQNQFunction,
@@ -21,17 +23,14 @@ __all__ = [
     "MeanQFunctionFactory",
     "QRQFunctionFactory",
     "IQNQFunctionFactory",
+    "Q_FUNC_LIST",
+    "make_q_func_field",
 ]
 
 
-@pretty_repr
+@dataclass(frozen=True)
 class QFunctionFactory:
-    TYPE: ClassVar[str] = "none"
-
-    _share_encoder: bool
-
-    def __init__(self, share_encoder: bool):
-        self._share_encoder = share_encoder
+    share_encoder: bool = False
 
     def create_discrete(
         self, encoder: Encoder, action_size: int
@@ -64,29 +63,18 @@ class QFunctionFactory:
         """
         raise NotImplementedError
 
-    def get_type(self) -> str:
+    @staticmethod
+    def get_type() -> str:
         """Returns Q function type.
 
         Returns:
             Q function type.
 
         """
-        return self.TYPE
-
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns Q function parameters.
-
-        Returns:
-            Q function parameters.
-
-        """
         raise NotImplementedError
 
-    @property
-    def share_encoder(self) -> bool:
-        return self._share_encoder
 
-
+@dataclass(frozen=True)
 class MeanQFunctionFactory(QFunctionFactory):
     """Standard Q function factory class.
 
@@ -103,11 +91,6 @@ class MeanQFunctionFactory(QFunctionFactory):
 
     """
 
-    TYPE: ClassVar[str] = "mean"
-
-    def __init__(self, share_encoder: bool = False, **kwargs: Any):
-        super().__init__(share_encoder)
-
     def create_discrete(
         self,
         encoder: Encoder,
@@ -121,12 +104,12 @@ class MeanQFunctionFactory(QFunctionFactory):
     ) -> ContinuousMeanQFunction:
         return ContinuousMeanQFunction(encoder)
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {
-            "share_encoder": self._share_encoder,
-        }
+    @staticmethod
+    def get_type() -> str:
+        return "mean"
 
 
+@dataclass(frozen=True)
 class QRQFunctionFactory(QFunctionFactory):
     """Quantile Regression Q function factory class.
 
@@ -140,37 +123,25 @@ class QRQFunctionFactory(QFunctionFactory):
 
     """
 
-    TYPE: ClassVar[str] = "qr"
-    _n_quantiles: int
-
-    def __init__(
-        self, share_encoder: bool = False, n_quantiles: int = 32, **kwargs: Any
-    ):
-        super().__init__(share_encoder)
-        self._n_quantiles = n_quantiles
+    n_quantiles: int = 32
 
     def create_discrete(
         self, encoder: Encoder, action_size: int
     ) -> DiscreteQRQFunction:
-        return DiscreteQRQFunction(encoder, action_size, self._n_quantiles)
+        return DiscreteQRQFunction(encoder, action_size, self.n_quantiles)
 
     def create_continuous(
         self,
         encoder: EncoderWithAction,
     ) -> ContinuousQRQFunction:
-        return ContinuousQRQFunction(encoder, self._n_quantiles)
+        return ContinuousQRQFunction(encoder, self.n_quantiles)
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {
-            "share_encoder": self._share_encoder,
-            "n_quantiles": self._n_quantiles,
-        }
-
-    @property
-    def n_quantiles(self) -> int:
-        return self._n_quantiles
+    @staticmethod
+    def get_type() -> str:
+        return "qr"
 
 
+@dataclass(frozen=True)
 class IQNQFunctionFactory(QFunctionFactory):
     """Implicit Quantile Network Q function factory class.
 
@@ -186,23 +157,9 @@ class IQNQFunctionFactory(QFunctionFactory):
 
     """
 
-    TYPE: ClassVar[str] = "iqn"
-    _n_quantiles: int
-    _n_greedy_quantiles: int
-    _embed_size: int
-
-    def __init__(
-        self,
-        share_encoder: bool = False,
-        n_quantiles: int = 64,
-        n_greedy_quantiles: int = 32,
-        embed_size: int = 64,
-        **kwargs: Any,
-    ):
-        super().__init__(share_encoder)
-        self._n_quantiles = n_quantiles
-        self._n_greedy_quantiles = n_greedy_quantiles
-        self._embed_size = embed_size
+    n_quantiles: int = 64
+    n_greedy_quantiles: int = 32
+    embed_size: int = 64
 
     def create_discrete(
         self,
@@ -212,9 +169,9 @@ class IQNQFunctionFactory(QFunctionFactory):
         return DiscreteIQNQFunction(
             encoder=encoder,
             action_size=action_size,
-            n_quantiles=self._n_quantiles,
-            n_greedy_quantiles=self._n_greedy_quantiles,
-            embed_size=self._embed_size,
+            n_quantiles=self.n_quantiles,
+            n_greedy_quantiles=self.n_greedy_quantiles,
+            embed_size=self.embed_size,
         )
 
     def create_continuous(
@@ -223,32 +180,17 @@ class IQNQFunctionFactory(QFunctionFactory):
     ) -> ContinuousIQNQFunction:
         return ContinuousIQNQFunction(
             encoder=encoder,
-            n_quantiles=self._n_quantiles,
-            n_greedy_quantiles=self._n_greedy_quantiles,
-            embed_size=self._embed_size,
+            n_quantiles=self.n_quantiles,
+            n_greedy_quantiles=self.n_greedy_quantiles,
+            embed_size=self.embed_size,
         )
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {
-            "share_encoder": self._share_encoder,
-            "n_quantiles": self._n_quantiles,
-            "n_greedy_quantiles": self._n_greedy_quantiles,
-            "embed_size": self._embed_size,
-        }
-
-    @property
-    def n_quantiles(self) -> int:
-        return self._n_quantiles
-
-    @property
-    def n_greedy_quantiles(self) -> int:
-        return self._n_greedy_quantiles
-
-    @property
-    def embed_size(self) -> int:
-        return self._embed_size
+    @staticmethod
+    def get_type() -> str:
+        return "iqn"
 
 
+@dataclass(frozen=True)
 class FQFQFunctionFactory(QFunctionFactory):
     """Fully parameterized Quantile Function Q function factory.
 
@@ -265,23 +207,9 @@ class FQFQFunctionFactory(QFunctionFactory):
 
     """
 
-    TYPE: ClassVar[str] = "fqf"
-    _n_quantiles: int
-    _embed_size: int
-    _entropy_coeff: float
-
-    def __init__(
-        self,
-        share_encoder: bool = False,
-        n_quantiles: int = 32,
-        embed_size: int = 64,
-        entropy_coeff: float = 0.0,
-        **kwargs: Any,
-    ):
-        super().__init__(share_encoder)
-        self._n_quantiles = n_quantiles
-        self._embed_size = embed_size
-        self._entropy_coeff = entropy_coeff
+    n_quantiles: int = 32
+    embed_size: int = 64
+    entropy_coeff: float = 0.0
 
     def create_discrete(
         self,
@@ -291,9 +219,9 @@ class FQFQFunctionFactory(QFunctionFactory):
         return DiscreteFQFQFunction(
             encoder=encoder,
             action_size=action_size,
-            n_quantiles=self._n_quantiles,
-            embed_size=self._embed_size,
-            entropy_coeff=self._entropy_coeff,
+            n_quantiles=self.n_quantiles,
+            embed_size=self.embed_size,
+            entropy_coeff=self.entropy_coeff,
         )
 
     def create_continuous(
@@ -302,30 +230,14 @@ class FQFQFunctionFactory(QFunctionFactory):
     ) -> ContinuousFQFQFunction:
         return ContinuousFQFQFunction(
             encoder=encoder,
-            n_quantiles=self._n_quantiles,
-            embed_size=self._embed_size,
-            entropy_coeff=self._entropy_coeff,
+            n_quantiles=self.n_quantiles,
+            embed_size=self.embed_size,
+            entropy_coeff=self.entropy_coeff,
         )
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {
-            "share_encoder": self._share_encoder,
-            "n_quantiles": self._n_quantiles,
-            "embed_size": self._embed_size,
-            "entropy_coeff": self._entropy_coeff,
-        }
-
-    @property
-    def n_quantiles(self) -> int:
-        return self._n_quantiles
-
-    @property
-    def embed_size(self) -> int:
-        return self._embed_size
-
-    @property
-    def entropy_coeff(self) -> float:
-        return self._entropy_coeff
+    @staticmethod
+    def get_type() -> str:
+        return "fqf"
 
 
 Q_FUNC_LIST: Dict[str, Type[QFunctionFactory]] = {}
@@ -338,9 +250,10 @@ def register_q_func_factory(cls: Type[QFunctionFactory]) -> None:
         cls: Q function factory class inheriting ``QFunctionFactory``.
 
     """
-    is_registered = cls.TYPE in Q_FUNC_LIST
-    assert not is_registered, f"{cls.TYPE} seems to be already registered"
-    Q_FUNC_LIST[cls.TYPE] = cls
+    type_name = cls.get_type()
+    is_registered = type_name in Q_FUNC_LIST
+    assert not is_registered, f"{type_name} seems to be already registered"
+    Q_FUNC_LIST[type_name] = cls
 
 
 def create_q_func_factory(name: str, **kwargs: Any) -> QFunctionFactory:
@@ -358,6 +271,21 @@ def create_q_func_factory(name: str, **kwargs: Any) -> QFunctionFactory:
     factory = Q_FUNC_LIST[name](**kwargs)
     assert isinstance(factory, QFunctionFactory)
     return factory
+
+
+def _encoder(q_func: QFunctionFactory) -> Dict[str, Any]:
+    return {"type": q_func.get_type(), "params": asdict(q_func)}
+
+
+def _decoder(dict_config: Dict[str, Any]) -> QFunctionFactory:
+    return create_q_func_factory(dict_config["type"], **dict_config["params"])
+
+
+def make_q_func_field() -> QFunctionFactory:
+    return field(
+        metadata=config(encoder=_encoder, decoder=_decoder),
+        default=MeanQFunctionFactory(),
+    )
 
 
 register_q_func_factory(MeanQFunctionFactory)

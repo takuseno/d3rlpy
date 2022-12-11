@@ -1,5 +1,4 @@
-import copy
-import json
+import dataclasses
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from typing import (
@@ -11,21 +10,15 @@ from typing import (
     List,
     Optional,
     Tuple,
+    Type,
 )
 
+import dataclasses_json
 import gym
 import numpy as np
 from tqdm.auto import tqdm
 
-from .argument_utility import (
-    ActionScalerArg,
-    ObservationScalerArg,
-    RewardScalerArg,
-    UseGPUArg,
-    check_action_scaler,
-    check_observation_scaler,
-    check_reward_scaler,
-)
+from .argument_utility import UseGPUArg, check_use_gpu
 from .constants import (
     CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR,
     DISCRETE_ACTION_SPACE_MISMATCH_ERROR,
@@ -40,25 +33,26 @@ from .dataset import (
     TransitionMiniBatch,
     TransitionPickerProtocol,
 )
-from .decorators import pretty_repr
 from .gpu import Device
 from .logger import LOG, D3RLPyLogger
-from .models.encoders import EncoderFactory, create_encoder_factory
-from .models.optimizers import OptimizerFactory
-from .models.q_functions import QFunctionFactory, create_q_func_factory
 from .online.utility import get_action_size_from_env
 from .preprocessing import (
     ActionScaler,
     ObservationScaler,
     RewardScaler,
-    create_action_scaler,
-    create_observation_scaler,
-    create_reward_scaler,
+    make_action_scaler_field,
+    make_observation_scaler_field,
+    make_reward_scaler_field,
 )
+from .serializable_config import SerializableConfig
 
 __all__ = [
     "ImplBase",
     "LearnableBase",
+    "LearnableConfig",
+    "LearnableConfigWithShape",
+    "register_learnable",
+    "LEARNABLE_LIST",
 ]
 
 
@@ -82,67 +76,69 @@ class ImplBase(metaclass=ABCMeta):
         pass
 
 
-def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
-    for key, value in params.items():
-        if isinstance(value, Device):
-            params[key] = value.get_id()
-        elif isinstance(
-            value,
-            (
-                ObservationScaler,
-                ActionScaler,
-                RewardScaler,
-                EncoderFactory,
-                QFunctionFactory,
-            ),
-        ):
-            params[key] = {
-                "type": value.get_type(),
-                "params": value.get_params(),
-            }
-        elif isinstance(value, OptimizerFactory):
-            params[key] = value.get_params()
-    return params
+@dataclasses.dataclass(frozen=True)
+class LearnableConfig(SerializableConfig):
+    batch_size: int = 256
+    gamma: float = 0.99
+    observation_scaler: Optional[
+        ObservationScaler
+    ] = make_observation_scaler_field()
+    action_scaler: Optional[ActionScaler] = make_action_scaler_field()
+    reward_scaler: Optional[RewardScaler] = make_reward_scaler_field()
+
+    def create(
+        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
+    ) -> "LearnableBase":
+        return LearnableBase(self, use_gpu, impl)
+
+    @staticmethod
+    def get_type() -> str:
+        raise NotImplementedError
 
 
-def _deseriealize_params(params: Dict[str, Any]) -> Dict[str, Any]:
-    for key, value in params.items():
-        if key == "observation_scaler" and params["observation_scaler"]:
-            scaler_type = params["observation_scaler"]["type"]
-            scaler_params = params["observation_scaler"]["params"]
-            scaler = create_observation_scaler(scaler_type, **scaler_params)
-            params[key] = scaler
-        elif key == "action_scaler" and params["action_scaler"]:
-            scaler_type = params["action_scaler"]["type"]
-            scaler_params = params["action_scaler"]["params"]
-            action_scaler = create_action_scaler(scaler_type, **scaler_params)
-            params[key] = action_scaler
-        elif key == "reward_scaler" and params["reward_scaler"]:
-            scaler_type = params["reward_scaler"]["type"]
-            scaler_params = params["reward_scaler"]["params"]
-            reward_scaler = create_reward_scaler(scaler_type, **scaler_params)
-            params[key] = reward_scaler
-        elif "optim_factory" in key:
-            params[key] = OptimizerFactory(**value)
-        elif "encoder_factory" in key:
-            params[key] = create_encoder_factory(
-                value["type"], **value["params"]
-            )
-        elif key == "q_func_factory":
-            params[key] = create_q_func_factory(
-                value["type"], **value["params"]
-            )
-    return params
+LEARNABLE_LIST: Dict[str, Type[LearnableConfig]] = {}
 
 
-@pretty_repr
+def register_learnable(cls: Type[LearnableConfig]) -> None:
+    """Registers LearnableConfig class.
+
+    Args:
+        cls: scaler class inheriting ``LearnableConfig``.
+
+    """
+    type_name = cls.get_type()
+    is_registered = type_name in LEARNABLE_LIST
+    assert not is_registered, f"{type_name} seems to be already registered"
+    LEARNABLE_LIST[type_name] = cls
+
+
+def _encoder(config: LearnableConfig) -> Dict[str, Any]:
+    return {"type": config.get_type(), "params": config.serialize_to_dict()}
+
+
+def _decoder(dict_config: Dict[str, Any]) -> LearnableConfig:
+    name = dict_config["type"]
+    params = dict_config["params"]
+    return LEARNABLE_LIST[name].deserialize_from_dict(params)
+
+
+@dataclasses.dataclass(frozen=True)
+class LearnableConfigWithShape(SerializableConfig):
+    observation_shape: Shape
+    action_size: int
+    config: LearnableConfig = dataclasses.field(
+        metadata=dataclasses_json.config(encoder=_encoder, decoder=_decoder)
+    )
+
+    def create(self, use_gpu: UseGPUArg = False) -> "LearnableBase":
+        algo = self.config.create(use_gpu)
+        algo.create_impl(self.observation_shape, self.action_size)
+        return algo
+
+
 class LearnableBase:
-
-    _batch_size: int
-    _gamma: float
-    _observation_scaler: Optional[ObservationScaler]
-    _action_scaler: Optional[ActionScaler]
-    _reward_scaler: Optional[RewardScaler]
+    _config: LearnableConfig
+    _use_gpu: Optional[Device]
     _impl: Optional[ImplBase]
     _eval_results: DefaultDict[str, List[float]]
     _loss_history: DefaultDict[str, List[float]]
@@ -151,167 +147,17 @@ class LearnableBase:
 
     def __init__(
         self,
-        batch_size: int,
-        gamma: float,
-        observation_scaler: ObservationScalerArg = None,
-        action_scaler: ActionScalerArg = None,
-        reward_scaler: RewardScalerArg = None,
-        kwargs: Optional[Dict[str, Any]] = None,
+        config: LearnableConfig,
+        use_gpu: UseGPUArg,
+        impl: Optional[ImplBase],
     ):
-        self._batch_size = batch_size
-        self._gamma = gamma
-        self._observation_scaler = check_observation_scaler(observation_scaler)
-        self._action_scaler = check_action_scaler(action_scaler)
-        self._reward_scaler = check_reward_scaler(reward_scaler)
-
-        self._impl = None
+        self._config = config
+        self._use_gpu = check_use_gpu(use_gpu)
+        self._impl = impl
         self._eval_results = defaultdict(list)
         self._loss_history = defaultdict(list)
         self._active_logger = None
         self._grad_step = 0
-
-        if kwargs and len(kwargs.keys()) > 0:
-            LOG.warning("Unused arguments are passed.", **kwargs)
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        super().__setattr__(name, value)
-        # propagate property updates to implementation object
-        if hasattr(self, "_impl") and self._impl and hasattr(self._impl, name):
-            setattr(self._impl, name, value)
-
-    @classmethod
-    def from_json(
-        cls, fname: str, use_gpu: UseGPUArg = False
-    ) -> "LearnableBase":
-        """Returns algorithm configured with json file.
-
-        The Json file should be the one saved during fitting.
-
-        .. code-block:: python
-
-            from d3rlpy.algos import Algo
-
-            # create algorithm with saved configuration
-            algo = Algo.from_json('d3rlpy_logs/<path-to-json>/params.json')
-
-            # ready to load
-            algo.load_model('d3rlpy_logs/<path-to-model>/model_100.pt')
-
-            # ready to predict
-            algo.predict(...)
-
-        Args:
-            fname: file path to `params.json`.
-            use_gpu: flag to use GPU, device ID or device.
-
-        Returns:
-            algorithm.
-
-        """
-        with open(fname, "r") as f:
-            params = json.load(f)
-
-        observation_shape = tuple(params["observation_shape"])
-        action_size = params["action_size"]
-        del params["observation_shape"]
-        del params["action_size"]
-
-        # reconstruct objects from json
-        params = _deseriealize_params(params)
-
-        # overwrite use_gpu flag
-        params["use_gpu"] = use_gpu
-
-        algo = cls(**params)
-        algo.create_impl(observation_shape, action_size)
-        return algo
-
-    def set_params(self, **params: Any) -> "LearnableBase":
-        """Sets the given arguments to the attributes if they exist.
-
-        This method sets the given values to the attributes including ones in
-        subclasses. If the values that don't exist as attributes are
-        passed, they are ignored.
-        Some of scikit-learn utilities will use this method.
-
-        .. code-block:: python
-
-            algo.set_params(batch_size=100)
-
-        Args:
-            params: arbitrary inputs to set as attributes.
-
-        Returns:
-            itself.
-
-        """
-        for key, val in params.items():
-            if hasattr(self, key):
-                try:
-                    setattr(self, key, val)
-                except AttributeError:
-                    # try passing to protected keys
-                    assert hasattr(self, "_" + key), f"{key} does not exist."
-                    setattr(self, "_" + key, val)
-            else:
-                assert hasattr(self, "_" + key), f"{key} does not exist."
-                setattr(self, "_" + key, val)
-        return self
-
-    def get_params(self, deep: bool = True) -> Dict[str, Any]:
-        """Returns the all attributes.
-
-        This method returns the all attributes including ones in subclasses.
-        Some of scikit-learn utilities will use this method.
-
-        .. code-block:: python
-
-            params = algo.get_params(deep=True)
-
-            # the returned values can be used to instantiate the new object.
-            algo2 = AlgoBase(**params)
-
-        Args:
-            deep: flag to deeply copy objects such as `impl`.
-
-        Returns:
-            attribute values in dictionary.
-
-        """
-        rets = {}
-        for key in dir(self):
-            # remove magic properties
-            if key[:2] == "__":
-                continue
-
-            # remove specific keys
-            if key in [
-                "_eval_results",
-                "_loss_history",
-                "_active_logger",
-                "_grad_step",
-                "active_logger",
-                "grad_step",
-                "observation_shape",
-                "action_size",
-            ]:
-                continue
-
-            value = getattr(self, key)
-
-            # remove underscore
-            if key[0] == "_":
-                key = key[1:]
-
-            # pick scalar parameters
-            if np.isscalar(value):
-                rets[key] = value
-            elif isinstance(value, object) and not callable(value):
-                if deep:
-                    rets[key] = copy.deepcopy(value)
-                else:
-                    rets[key] = value
-        return rets
 
     def save_model(self, fname: str) -> None:
         """Saves neural network parameters.
@@ -340,6 +186,13 @@ class LearnableBase:
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         self._impl.load_model(fname)
+
+    @classmethod
+    def from_json(
+        cls, fname: str, use_gpu: UseGPUArg = False
+    ) -> "LearnableBase":
+        config = LearnableConfigWithShape.deserialize_from_file(fname)
+        return config.create(use_gpu)
 
     def fit(
         self,
@@ -505,28 +358,28 @@ class LearnableBase:
         self._active_logger = logger
 
         # initialize observation scaler
-        if self._observation_scaler:
+        if self._config.observation_scaler:
             LOG.debug(
                 "Fitting observation scaler...",
-                observation_scaler=self._observation_scaler.get_type(),
+                observation_scaler=self._config.observation_scaler.get_type(),
             )
-            self._observation_scaler.fit(dataset.episodes)
+            self._config.observation_scaler.fit(dataset.episodes)
 
         # initialize action scaler
-        if self._action_scaler:
+        if self._config.action_scaler:
             LOG.debug(
                 "Fitting action scaler...",
-                action_scaler=self._action_scaler.get_type(),
+                action_scaler=self._config.action_scaler.get_type(),
             )
-            self._action_scaler.fit(dataset.episodes)
+            self._config.action_scaler.fit(dataset.episodes)
 
         # initialize reward scaler
-        if self._reward_scaler:
+        if self._config.reward_scaler:
             LOG.debug(
                 "Fitting reward scaler...",
-                reward_scaler=self._reward_scaler.get_type(),
+                reward_scaler=self._config.reward_scaler.get_type(),
             )
-            self._reward_scaler.fit(dataset.episodes)
+            self._config.reward_scaler.fit(dataset.episodes)
 
         # instantiate implementation
         if self._impl is None:
@@ -566,7 +419,7 @@ class LearnableBase:
                     # pick transitions
                     with logger.measure_time("sample_batch"):
                         batch = dataset.sample_transition_batch(
-                            self._batch_size
+                            self._config.batch_size
                         )
 
                     # update parameters
@@ -724,24 +577,13 @@ class LearnableBase:
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
-        # get hyperparameters without impl
-        params = {}
-        for k, v in self.get_params(deep=False).items():
-            if isinstance(v, (ImplBase, LearnableBase)):
-                continue
-            params[k] = v
+        config = LearnableConfigWithShape(
+            observation_shape=self._impl.observation_shape,
+            action_size=self._impl.action_size,
+            config=self._config,
+        )
 
-        # save algorithm name
-        params["algorithm"] = self.__class__.__name__
-
-        # save shapes
-        params["observation_shape"] = self._impl.observation_shape
-        params["action_size"] = self._impl.action_size
-
-        # serialize objects
-        params = _serialize_params(params)
-
-        logger.add_params(params)
+        logger.add_params(config.serialize_to_dict())
 
     def get_action_type(self) -> ActionSpace:
         """Returns action type (continuous or discrete).
@@ -753,6 +595,10 @@ class LearnableBase:
         raise NotImplementedError
 
     @property
+    def config(self) -> LearnableConfig:
+        return self._config
+
+    @property
     def batch_size(self) -> int:
         """Batch size to train.
 
@@ -760,11 +606,7 @@ class LearnableBase:
             int: batch size.
 
         """
-        return self._batch_size
-
-    @batch_size.setter
-    def batch_size(self, batch_size: int) -> None:
-        self._batch_size = batch_size
+        return self._config.batch_size
 
     @property
     def gamma(self) -> float:
@@ -774,11 +616,7 @@ class LearnableBase:
             float: discount factor.
 
         """
-        return self._gamma
-
-    @gamma.setter
-    def gamma(self, gamma: float) -> None:
-        self._gamma = gamma
+        return self._config.gamma
 
     @property
     def observation_scaler(self) -> Optional[ObservationScaler]:
@@ -788,11 +626,7 @@ class LearnableBase:
             Optional[ObservationScaler]: preprocessing observation scaler.
 
         """
-        return self._observation_scaler
-
-    @observation_scaler.setter
-    def observation_scaler(self, observation_scaler: ObservationScaler) -> None:
-        self._observation_scaler = observation_scaler
+        return self._config.observation_scaler
 
     @property
     def action_scaler(self) -> Optional[ActionScaler]:
@@ -802,11 +636,7 @@ class LearnableBase:
             Optional[ActionScaler]: preprocessing action scaler.
 
         """
-        return self._action_scaler
-
-    @action_scaler.setter
-    def action_scaler(self, action_scaler: ActionScaler) -> None:
-        self._action_scaler = action_scaler
+        return self._config.action_scaler
 
     @property
     def reward_scaler(self) -> Optional[RewardScaler]:
@@ -816,11 +646,7 @@ class LearnableBase:
             Optional[RewardScaler]: preprocessing reward scaler.
 
         """
-        return self._reward_scaler
-
-    @reward_scaler.setter
-    def reward_scaler(self, reward_scaler: RewardScaler) -> None:
-        self._reward_scaler = reward_scaler
+        return self._config.reward_scaler
 
     @property
     def impl(self) -> Optional[ImplBase]:

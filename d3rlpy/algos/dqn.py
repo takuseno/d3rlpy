@@ -1,29 +1,22 @@
-from typing import Any, Dict, Optional
+import dataclasses
+from typing import Dict, Optional
 
-from ..argument_utility import (
-    EncoderArg,
-    ObservationScalerArg,
-    QFuncArg,
-    RewardScalerArg,
-    UseGPUArg,
-    check_encoder,
-    check_q_func,
-    check_use_gpu,
-)
+from ..argument_utility import UseGPUArg
+from ..base import ImplBase, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
-from ..gpu import Device
-from ..models.encoders import EncoderFactory
-from ..models.optimizers import AdamFactory, OptimizerFactory
-from ..models.q_functions import QFunctionFactory
+from ..models.encoders import EncoderFactory, make_encoder_field
+from ..models.optimizers import OptimizerFactory, make_optimizer_field
+from ..models.q_functions import QFunctionFactory, make_q_func_field
 from .base import AlgoBase
 from .torch.dqn_impl import DoubleDQNImpl, DQNImpl
 
-__all__ = ["DQN", "DoubleDQN"]
+__all__ = ["DQNConfig", "DQN", "DoubleDQNConfig", "DoubleDQN"]
 
 
-class DQN(AlgoBase):
-    r"""Deep Q-Network algorithm.
+@dataclasses.dataclass(frozen=True)
+class DQNConfig(LearnableConfig):
+    r"""Config of Deep Q-Network algorithm.
 
     .. math::
 
@@ -39,90 +32,63 @@ class DQN(AlgoBase):
 
     Args:
         learning_rate (float): learning rate.
-        optim_factory (d3rlpy.models.optimizers.OptimizerFactory or str):
+        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory.
-        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory.
-        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         target_update_interval (int): interval to update the target network.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
-            observation preprocessor. The available options are
-            ``['pixel', 'min_max', 'standard']``.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
-            reward preprocessor. The available options are
-            ``['clip', 'min_max', 'standard']``.
-        impl (d3rlpy.algos.torch.dqn_impl.DQNImpl): algorithm implementation.
-
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
+    batch_size: int = 32
+    learning_rate: float = 6.25e-5
+    optim_factory: OptimizerFactory = make_optimizer_field()
+    encoder_factory: EncoderFactory = make_encoder_field()
+    q_func_factory: QFunctionFactory = make_q_func_field()
+    gamma: float = 0.99
+    n_critics: int = 1
+    target_update_interval: int = 8000
 
-    _learning_rate: float
-    _optim_factory: OptimizerFactory
-    _encoder_factory: EncoderFactory
-    _q_func_factory: QFunctionFactory
-    _n_critics: int
-    _target_update_interval: int
-    _use_gpu: Optional[Device]
+    def create(
+        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
+    ) -> "DQN":
+        return DQN(self, use_gpu, impl)
+
+    @staticmethod
+    def get_type() -> str:
+        return "dqn"
+
+
+class DQN(AlgoBase):
+    _config: DQNConfig
     _impl: Optional[DQNImpl]
-
-    def __init__(
-        self,
-        *,
-        learning_rate: float = 6.25e-5,
-        optim_factory: OptimizerFactory = AdamFactory(),
-        encoder_factory: EncoderArg = "default",
-        q_func_factory: QFuncArg = "mean",
-        batch_size: int = 32,
-        gamma: float = 0.99,
-        n_critics: int = 1,
-        target_update_interval: int = 8000,
-        use_gpu: UseGPUArg = False,
-        observation_scaler: ObservationScalerArg = None,
-        reward_scaler: RewardScalerArg = None,
-        impl: Optional[DQNImpl] = None,
-        **kwargs: Any,
-    ):
-        super().__init__(
-            batch_size=batch_size,
-            gamma=gamma,
-            observation_scaler=observation_scaler,
-            reward_scaler=reward_scaler,
-            kwargs=kwargs,
-        )
-        self._learning_rate = learning_rate
-        self._optim_factory = optim_factory
-        self._encoder_factory = check_encoder(encoder_factory)
-        self._q_func_factory = check_q_func(q_func_factory)
-        self._n_critics = n_critics
-        self._target_update_interval = target_update_interval
-        self._use_gpu = check_use_gpu(use_gpu)
-        self._impl = impl
 
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = DQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=self._learning_rate,
-            optim_factory=self._optim_factory,
-            encoder_factory=self._encoder_factory,
-            q_func_factory=self._q_func_factory,
-            gamma=self._gamma,
-            n_critics=self._n_critics,
+            learning_rate=self._config.learning_rate,
+            optim_factory=self._config.optim_factory,
+            encoder_factory=self._config.encoder_factory,
+            q_func_factory=self._config.q_func_factory,
+            gamma=self._config.gamma,
+            n_critics=self._config.n_critics,
             use_gpu=self._use_gpu,
-            observation_scaler=self._observation_scaler,
-            reward_scaler=self._reward_scaler,
+            observation_scaler=self._config.observation_scaler,
+            reward_scaler=self._config.reward_scaler,
         )
         self._impl.build()
 
     def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         loss = self._impl.update(batch)
-        if self._grad_step % self._target_update_interval == 0:
+        if self._grad_step % self._config.target_update_interval == 0:
             self._impl.update_target()
         return {"loss": loss}
 
@@ -130,8 +96,9 @@ class DQN(AlgoBase):
         return ActionSpace.DISCRETE
 
 
-class DoubleDQN(DQN):
-    r"""Double Deep Q-Network algorithm.
+@dataclasses.dataclass(frozen=True)
+class DoubleDQNConfig(DQNConfig):
+    r"""Config of Double Deep Q-Network algorithm.
 
     The difference from DQN is that the action is taken from the current Q
     function instead of the target Q function.
@@ -155,39 +122,57 @@ class DoubleDQN(DQN):
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory.
-        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory.
-        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions.
         target_update_interval (int): interval to synchronize the target
             network.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
-            observation preprocessor. The available options are
-            ``['pixel', 'min_max', 'standard']``.
-        impl (d3rlpy.algos.torch.dqn_impl.DoubleDQNImpl):
-            algorithm implementation.
-
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
     """
+    batch_size: int = 32
+    learning_rate: float = 6.25e-5
+    optim_factory: OptimizerFactory = make_optimizer_field()
+    encoder_factory: EncoderFactory = make_encoder_field()
+    q_func_factory: QFunctionFactory = make_q_func_field()
+    gamma: float = 0.99
+    n_critics: int = 1
+    target_update_interval: int = 8000
 
+    def create(
+        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
+    ) -> "DoubleDQN":
+        return DoubleDQN(self, use_gpu, impl)
+
+    @staticmethod
+    def get_type() -> str:
+        return "double_dqn"
+
+
+class DoubleDQN(DQN):
+    _config: DoubleDQNConfig
     _impl: Optional[DoubleDQNImpl]
 
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = DoubleDQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=self._learning_rate,
-            optim_factory=self._optim_factory,
-            encoder_factory=self._encoder_factory,
-            q_func_factory=self._q_func_factory,
-            gamma=self._gamma,
-            n_critics=self._n_critics,
+            learning_rate=self._config.learning_rate,
+            optim_factory=self._config.optim_factory,
+            encoder_factory=self._config.encoder_factory,
+            q_func_factory=self._config.q_func_factory,
+            gamma=self._config.gamma,
+            n_critics=self._config.n_critics,
+            observation_scaler=self._config.observation_scaler,
+            reward_scaler=self._config.reward_scaler,
             use_gpu=self._use_gpu,
-            observation_scaler=self._observation_scaler,
-            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
+
+
+register_learnable(DQNConfig)
+register_learnable(DoubleDQNConfig)

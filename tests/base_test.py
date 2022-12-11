@@ -14,7 +14,9 @@ from d3rlpy.dataset import (
 from d3rlpy.logger import D3RLPyLogger
 
 
-def base_tester(model, impl, observation_shape, action_size=2):
+def base_tester(
+    model, impl, observation_shape, action_size=2, skip_from_json=False
+):
     # dummy impl object
     model._impl = impl
 
@@ -28,37 +30,16 @@ def base_tester(model, impl, observation_shape, action_size=2):
     model.load_model("mock.pt")
     impl.load_model.assert_called_with("mock.pt")
 
-    # check get_params
-    params = model.get_params(deep=False)
-    clone = model.__class__(**params)
-    for key, val in clone.get_params(deep=False).items():
-        assert params[key] is val
-
-    # check deep flag
-    deep_params = model.get_params(deep=True)
-    assert deep_params["impl"] is not impl
-
-    # check set_params
-    clone = model.__class__()
-    for key, val in params.items():
-        if np.isscalar(val) and not isinstance(val, str):
-            params[key] = val + np.random.random()
-    # set_params returns itself
-    assert clone.set_params(**params) is clone
-    for key, val in clone.get_params(deep=False).items():
-        assert params[key] is val
-
     # check fit and fitter
     update_backup = model.update
     model.update = Mock(return_value={"loss": np.random.random()})
     n_episodes = 4
     episode_length = 25
-    n_batch = 32
+    n_batch = model.config.batch_size
     n_steps = 10
     n_steps_per_epoch = 5
     n_epochs = n_steps // n_steps_per_epoch
     data_size = n_episodes * episode_length
-    model._batch_size = n_batch
     shape = (data_size,) + observation_shape
     if len(observation_shape) == 3:
         observations = np.random.randint(256, size=shape, dtype=np.uint8)
@@ -120,17 +101,16 @@ def base_tester(model, impl, observation_shape, action_size=2):
     # save parameters to test_data/test/params.json
     model.save_params(logger)
     # load params.json
-    json_path = os.path.join(logger.logdir, "params.json")
-    new_model = model.__class__.from_json(json_path)
-    assert new_model.impl is not None
-    assert new_model.impl.observation_shape == observation_shape
-    assert new_model.impl.action_size == action_size
-    assert type(model.observation_scaler) == type(new_model.observation_scaler)
-
-    # check __setattr__ override
-    prev_batch_size = model.impl.batch_size
-    model.batch_size = prev_batch_size + 1
-    assert model.impl.batch_size == model.batch_size
+    if not skip_from_json:
+        json_path = os.path.join(logger.logdir, "params.json")
+        new_model = model.__class__.from_json(json_path)
+        assert new_model.impl is not None
+        assert type(new_model) == type(model)
+        assert tuple(new_model.impl.observation_shape) == observation_shape
+        assert new_model.impl.action_size == action_size
+        assert type(model.observation_scaler) == type(
+            new_model.observation_scaler
+        )
 
     # check builds
     model._impl = None

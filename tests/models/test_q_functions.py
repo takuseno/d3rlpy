@@ -43,9 +43,6 @@ def test_mean_q_function_factory(observation_shape, action_size):
         assert isinstance(q_func, DiscreteMeanQFunction)
 
     assert factory.get_type() == "mean"
-    params = factory.get_params()
-    new_factory = MeanQFunctionFactory(**params)
-    assert new_factory.get_params() == params
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -62,9 +59,6 @@ def test_qr_q_function_factory(observation_shape, action_size):
         assert isinstance(q_func, DiscreteQRQFunction)
 
     assert factory.get_type() == "qr"
-    params = factory.get_params()
-    new_factory = QRQFunctionFactory(**params)
-    assert new_factory.get_params() == params
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -81,9 +75,6 @@ def test_iqn_q_function_factory(observation_shape, action_size):
         assert isinstance(q_func, DiscreteIQNQFunction)
 
     assert factory.get_type() == "iqn"
-    params = factory.get_params()
-    new_factory = IQNQFunctionFactory(**params)
-    assert new_factory.get_params() == params
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -100,9 +91,6 @@ def test_fqf_q_function_factory(observation_shape, action_size):
         assert isinstance(q_func, DiscreteFQFQFunction)
 
     assert factory.get_type() == "fqf"
-    params = factory.get_params()
-    new_factory = FQFQFunctionFactory(**params)
-    assert new_factory.get_params() == params
 
 
 @pytest.mark.parametrize("name", ["mean", "qr", "iqn", "fqf"])

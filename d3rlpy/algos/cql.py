@@ -1,31 +1,22 @@
-from typing import Any, Dict, Optional
+import dataclasses
+from typing import Dict, Optional
 
-from ..argument_utility import (
-    ActionScalerArg,
-    EncoderArg,
-    ObservationScalerArg,
-    QFuncArg,
-    RewardScalerArg,
-    UseGPUArg,
-    check_encoder,
-    check_q_func,
-    check_use_gpu,
-)
+from ..argument_utility import UseGPUArg
+from ..base import ImplBase, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
-from ..gpu import Device
-from ..models.encoders import EncoderFactory
-from ..models.optimizers import AdamFactory, OptimizerFactory
-from ..models.q_functions import QFunctionFactory
+from ..models.encoders import EncoderFactory, make_encoder_field
+from ..models.optimizers import OptimizerFactory, make_optimizer_field
+from ..models.q_functions import QFunctionFactory, make_q_func_field
 from .base import AlgoBase
-from .dqn import DoubleDQN
 from .torch.cql_impl import CQLImpl, DiscreteCQLImpl
 
-__all__ = ["CQL", "DiscreteCQL"]
+__all__ = ["CQLConfig", "CQL", "DiscreteCQLConfig", "DiscreteCQL"]
 
 
-class CQL(AlgoBase):
-    r"""Conservative Q-Learning algorithm.
+@dataclasses.dataclass(frozen=True)
+class CQLConfig(LearnableConfig):
+    r"""Config of Conservative Q-Learning algorithm.
 
     CQL is a SAC-based data-driven deep reinforcement learning algorithm, which
     achieves state-of-the-art performance in offline RL problems.
@@ -81,11 +72,11 @@ class CQL(AlgoBase):
             optimizer factory for the temperature.
         alpha_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory for :math:`\alpha`.
-        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory for the actor.
-        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory for the critic.
-        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
@@ -98,131 +89,75 @@ class CQL(AlgoBase):
         n_action_samples (int): the number of sampled actions to compute
             :math:`\log{\sum_a \exp{Q(s, a)}}`.
         soft_q_backup (bool): flag to use SAC-style backup.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
-            observation preprocessor. The available options are
-            ``['pixel', 'min_max', 'standard']``.
-        action_scaler (d3rlpy.preprocessing.ActionScaler or str):
-            action preprocessor. The available options are ``['min_max']``.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
-            reward preprocessor. The available options are
-            ``['clip', 'min_max', 'standard']``.
-        impl (d3rlpy.algos.torch.cql_impl.CQLImpl): algorithm implementation.
-
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
+    actor_learning_rate: float = 1e-4
+    critic_learning_rate: float = 3e-4
+    temp_learning_rate: float = 1e-4
+    alpha_learning_rate: float = 1e-4
+    actor_optim_factory: OptimizerFactory = make_optimizer_field()
+    critic_optim_factory: OptimizerFactory = make_optimizer_field()
+    temp_optim_factory: OptimizerFactory = make_optimizer_field()
+    alpha_optim_factory: OptimizerFactory = make_optimizer_field()
+    actor_encoder_factory: EncoderFactory = make_encoder_field()
+    critic_encoder_factory: EncoderFactory = make_encoder_field()
+    q_func_factory: QFunctionFactory = make_q_func_field()
+    batch_size: int = 256
+    gamma: float = 0.99
+    tau: float = 0.005
+    n_critics: int = 2
+    initial_temperature: float = 1.0
+    initial_alpha: float = 1.0
+    alpha_threshold: float = 10.0
+    conservative_weight: float = 5.0
+    n_action_samples: int = 10
+    soft_q_backup: bool = False
 
-    _actor_learning_rate: float
-    _critic_learning_rate: float
-    _temp_learning_rate: float
-    _alpha_learning_rate: float
-    _actor_optim_factory: OptimizerFactory
-    _critic_optim_factory: OptimizerFactory
-    _temp_optim_factory: OptimizerFactory
-    _alpha_optim_factory: OptimizerFactory
-    _actor_encoder_factory: EncoderFactory
-    _critic_encoder_factory: EncoderFactory
-    _q_func_factory: QFunctionFactory
-    _tau: float
-    _n_critics: int
-    _initial_temperature: float
-    _initial_alpha: float
-    _alpha_threshold: float
-    _conservative_weight: float
-    _n_action_samples: int
-    _soft_q_backup: bool
-    _use_gpu: Optional[Device]
+    def create(
+        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
+    ) -> "CQL":
+        return CQL(self, use_gpu, impl)
+
+    @staticmethod
+    def get_type() -> str:
+        return "cql"
+
+
+class CQL(AlgoBase):
+    _config: CQLConfig
     _impl: Optional[CQLImpl]
-
-    def __init__(
-        self,
-        *,
-        actor_learning_rate: float = 1e-4,
-        critic_learning_rate: float = 3e-4,
-        temp_learning_rate: float = 1e-4,
-        alpha_learning_rate: float = 1e-4,
-        actor_optim_factory: OptimizerFactory = AdamFactory(),
-        critic_optim_factory: OptimizerFactory = AdamFactory(),
-        temp_optim_factory: OptimizerFactory = AdamFactory(),
-        alpha_optim_factory: OptimizerFactory = AdamFactory(),
-        actor_encoder_factory: EncoderArg = "default",
-        critic_encoder_factory: EncoderArg = "default",
-        q_func_factory: QFuncArg = "mean",
-        batch_size: int = 256,
-        gamma: float = 0.99,
-        tau: float = 0.005,
-        n_critics: int = 2,
-        initial_temperature: float = 1.0,
-        initial_alpha: float = 1.0,
-        alpha_threshold: float = 10.0,
-        conservative_weight: float = 5.0,
-        n_action_samples: int = 10,
-        soft_q_backup: bool = False,
-        use_gpu: UseGPUArg = False,
-        observation_scaler: ObservationScalerArg = None,
-        action_scaler: ActionScalerArg = None,
-        reward_scaler: RewardScalerArg = None,
-        impl: Optional[CQLImpl] = None,
-        **kwargs: Any,
-    ):
-        super().__init__(
-            batch_size=batch_size,
-            gamma=gamma,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
-            kwargs=kwargs,
-        )
-        self._actor_learning_rate = actor_learning_rate
-        self._critic_learning_rate = critic_learning_rate
-        self._temp_learning_rate = temp_learning_rate
-        self._alpha_learning_rate = alpha_learning_rate
-        self._actor_optim_factory = actor_optim_factory
-        self._critic_optim_factory = critic_optim_factory
-        self._temp_optim_factory = temp_optim_factory
-        self._alpha_optim_factory = alpha_optim_factory
-        self._actor_encoder_factory = check_encoder(actor_encoder_factory)
-        self._critic_encoder_factory = check_encoder(critic_encoder_factory)
-        self._q_func_factory = check_q_func(q_func_factory)
-        self._tau = tau
-        self._n_critics = n_critics
-        self._initial_temperature = initial_temperature
-        self._initial_alpha = initial_alpha
-        self._alpha_threshold = alpha_threshold
-        self._conservative_weight = conservative_weight
-        self._n_action_samples = n_action_samples
-        self._soft_q_backup = soft_q_backup
-        self._use_gpu = check_use_gpu(use_gpu)
-        self._impl = impl
 
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = CQLImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self._actor_learning_rate,
-            critic_learning_rate=self._critic_learning_rate,
-            temp_learning_rate=self._temp_learning_rate,
-            alpha_learning_rate=self._alpha_learning_rate,
-            actor_optim_factory=self._actor_optim_factory,
-            critic_optim_factory=self._critic_optim_factory,
-            temp_optim_factory=self._temp_optim_factory,
-            alpha_optim_factory=self._alpha_optim_factory,
-            actor_encoder_factory=self._actor_encoder_factory,
-            critic_encoder_factory=self._critic_encoder_factory,
-            q_func_factory=self._q_func_factory,
-            gamma=self._gamma,
-            tau=self._tau,
-            n_critics=self._n_critics,
-            initial_temperature=self._initial_temperature,
-            initial_alpha=self._initial_alpha,
-            alpha_threshold=self._alpha_threshold,
-            conservative_weight=self._conservative_weight,
-            n_action_samples=self._n_action_samples,
-            soft_q_backup=self._soft_q_backup,
+            actor_learning_rate=self._config.actor_learning_rate,
+            critic_learning_rate=self._config.critic_learning_rate,
+            temp_learning_rate=self._config.temp_learning_rate,
+            alpha_learning_rate=self._config.alpha_learning_rate,
+            actor_optim_factory=self._config.actor_optim_factory,
+            critic_optim_factory=self._config.critic_optim_factory,
+            temp_optim_factory=self._config.temp_optim_factory,
+            alpha_optim_factory=self._config.alpha_optim_factory,
+            actor_encoder_factory=self._config.actor_encoder_factory,
+            critic_encoder_factory=self._config.critic_encoder_factory,
+            q_func_factory=self._config.q_func_factory,
+            gamma=self._config.gamma,
+            tau=self._config.tau,
+            n_critics=self._config.n_critics,
+            initial_temperature=self._config.initial_temperature,
+            initial_alpha=self._config.initial_alpha,
+            alpha_threshold=self._config.alpha_threshold,
+            conservative_weight=self._config.conservative_weight,
+            n_action_samples=self._config.n_action_samples,
+            soft_q_backup=self._config.soft_q_backup,
+            observation_scaler=self._config.observation_scaler,
+            action_scaler=self._config.action_scaler,
+            reward_scaler=self._config.reward_scaler,
             use_gpu=self._use_gpu,
-            observation_scaler=self._observation_scaler,
-            action_scaler=self._action_scaler,
-            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
 
@@ -232,12 +167,12 @@ class CQL(AlgoBase):
         metrics = {}
 
         # lagrangian parameter update for SAC temperature
-        if self._temp_learning_rate > 0:
+        if self._config.temp_learning_rate > 0:
             temp_loss, temp = self._impl.update_temp(batch)
             metrics.update({"temp_loss": temp_loss, "temp": temp})
 
         # lagrangian parameter update for conservative loss weight
-        if self._alpha_learning_rate > 0:
+        if self._config.alpha_learning_rate > 0:
             alpha_loss, alpha = self._impl.update_alpha(batch)
             metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
 
@@ -256,8 +191,9 @@ class CQL(AlgoBase):
         return ActionSpace.CONTINUOUS
 
 
-class DiscreteCQL(DoubleDQN):
-    r"""Discrete version of Conservative Q-Learning algorithm.
+@dataclasses.dataclass(frozen=True)
+class DiscreteCQLConfig(LearnableConfig):
+    r"""Config of Discrete version of Conservative Q-Learning algorithm.
 
     Discrete version of CQL is a DoubleDQN-based data-driven deep reinforcement
     learning algorithm (the original paper uses DQN), which achieves
@@ -282,9 +218,9 @@ class DiscreteCQL(DoubleDQN):
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory.
-        encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             encoder factory.
-        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
+        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
@@ -292,70 +228,61 @@ class DiscreteCQL(DoubleDQN):
         target_update_interval (int): interval to synchronize the target
             network.
         alpha (float): the :math:`\alpha` value above.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler or str):
-            observation preprocessor. The available options are
-            ``['pixel', 'min_max', 'standard']``.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler or str):
-            reward preprocessor. The available options are
-            ``['clip', 'min_max', 'standard']``.
-        impl (d3rlpy.algos.torch.cql_impl.DiscreteCQLImpl):
-            algorithm implementation.
-
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
+    learning_rate: float = 6.25e-5
+    optim_factory: OptimizerFactory = make_optimizer_field()
+    encoder_factory: EncoderFactory = make_encoder_field()
+    q_func_factory: QFunctionFactory = make_q_func_field()
+    batch_size: int = 32
+    gamma: float = 0.99
+    n_critics: int = 1
+    target_update_interval: int = 8000
+    alpha: float = 1.0
 
-    _alpha: float
+    def create(
+        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
+    ) -> "DiscreteCQL":
+        return DiscreteCQL(self, use_gpu, impl)
+
+    @staticmethod
+    def get_type() -> str:
+        return "discrete_cql"
+
+
+class DiscreteCQL(AlgoBase):
+    _config: DiscreteCQLConfig
     _impl: Optional[DiscreteCQLImpl]
-
-    def __init__(
-        self,
-        *,
-        learning_rate: float = 6.25e-5,
-        optim_factory: OptimizerFactory = AdamFactory(),
-        encoder_factory: EncoderArg = "default",
-        q_func_factory: QFuncArg = "mean",
-        batch_size: int = 32,
-        gamma: float = 0.99,
-        n_critics: int = 1,
-        target_update_interval: int = 8000,
-        alpha: float = 1.0,
-        use_gpu: UseGPUArg = False,
-        observation_scaler: ObservationScalerArg = None,
-        reward_scaler: RewardScalerArg = None,
-        impl: Optional[DiscreteCQLImpl] = None,
-        **kwargs: Any,
-    ):
-        super().__init__(
-            learning_rate=learning_rate,
-            optim_factory=optim_factory,
-            encoder_factory=encoder_factory,
-            q_func_factory=q_func_factory,
-            batch_size=batch_size,
-            gamma=gamma,
-            n_critics=n_critics,
-            target_update_interval=target_update_interval,
-            use_gpu=use_gpu,
-            observation_scaler=observation_scaler,
-            reward_scaler=reward_scaler,
-            impl=impl,
-            **kwargs,
-        )
-        self._alpha = alpha
 
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._impl = DiscreteCQLImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=self._learning_rate,
-            optim_factory=self._optim_factory,
-            encoder_factory=self._encoder_factory,
-            q_func_factory=self._q_func_factory,
-            gamma=self._gamma,
-            n_critics=self._n_critics,
-            alpha=self._alpha,
+            learning_rate=self._config.learning_rate,
+            optim_factory=self._config.optim_factory,
+            encoder_factory=self._config.encoder_factory,
+            q_func_factory=self._config.q_func_factory,
+            gamma=self._config.gamma,
+            n_critics=self._config.n_critics,
+            alpha=self._config.alpha,
+            observation_scaler=self._config.observation_scaler,
+            reward_scaler=self._config.reward_scaler,
             use_gpu=self._use_gpu,
-            observation_scaler=self._observation_scaler,
-            reward_scaler=self._reward_scaler,
         )
         self._impl.build()
+
+    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+        loss = self._impl.update(batch)
+        if self._grad_step % self._config.target_update_interval == 0:
+            self._impl.update_target()
+        return {"loss": loss}
+
+    def get_action_type(self) -> ActionSpace:
+        return ActionSpace.DISCRETE
+
+
+register_learnable(CQLConfig)
+register_learnable(DiscreteCQLConfig)

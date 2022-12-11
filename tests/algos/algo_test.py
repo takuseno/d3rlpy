@@ -7,7 +7,6 @@ import torch
 
 from d3rlpy.algos.torch.base import TorchImplBase
 from d3rlpy.constants import ActionSpace
-from d3rlpy.datasets import get_cartpole, get_pendulum
 from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from tests.base_test import base_tester, base_update_tester
 
@@ -158,7 +157,7 @@ def algo_tester(
     algo.create_impl(observation_shape, action_size)
 
     if test_policy_copy:
-        algo2 = algo.__class__(**algo.get_params())
+        algo2 = algo.config.create()
         algo2.create_impl(observation_shape, action_size)
         algo.copy_policy_from(algo2)
         observations = np.random.random((100, *observation_shape))
@@ -167,7 +166,7 @@ def algo_tester(
         assert np.all(action1 == action2)
 
     if test_q_function_copy:
-        algo2 = algo.__class__(**algo.get_params())
+        algo2 = algo.config.create()
         algo2.create_impl(observation_shape, action_size)
         algo.copy_q_function_from(algo2)
         observations = np.random.random((100, *observation_shape))
@@ -193,103 +192,18 @@ def algo_update_tester(
     base_update_tester(algo, observation_shape, action_size, discrete)
 
     if test_q_function_optim_copy:
-        algo2 = algo.__class__(**algo.get_params())
+        algo2 = algo.config.create()
         algo2.create_impl(observation_shape, action_size)
         assert not algo2.impl.q_function_optim.state
         algo2.copy_q_function_optim_from(algo)
         assert algo2.impl.q_function_optim.state
 
     if test_policy_optim_copy:
-        algo2 = algo.__class__(**algo.get_params())
+        algo2 = algo.config.create()
         algo2.create_impl(observation_shape, action_size)
         assert not algo2.impl.policy_optim.state
         algo2.copy_policy_optim_from(algo)
         assert algo2.impl.policy_optim.state
-
-
-def algo_cartpole_tester(algo, n_evaluations=100, n_episodes=100, n_trials=3):
-    # load dataset
-    dataset, env = get_cartpole()
-
-    # try multiple trials to reduce failures due to random seeds
-    trial_count = 0
-    for _ in range(n_trials):
-        # reset parameters
-        algo._impl = None
-
-        # train
-        algo.fit(
-            dataset.episodes[:n_episodes],
-            n_epochs=3,
-            logdir="test_data",
-            verbose=False,
-        )
-
-        # evaluation loop
-        success_count = 0
-        evaluation_count = 0
-        while evaluation_count < n_evaluations:
-            observation = env.reset()
-            episode_rew = 0.0
-            while True:
-                action = algo.predict([observation])[0]
-                observation, reward, done, _ = env.step(action)
-                episode_rew += reward
-                if done:
-                    break
-            evaluation_count += 1
-            if episode_rew >= 160:
-                success_count += 1
-
-        if success_count >= n_evaluations * 0.8:
-            break
-
-        trial_count += 1
-        if trial_count == n_trials:
-            assert False, "performance is not good enough: %d." % success_count
-
-
-def algo_pendulum_tester(algo, n_evaluations=100, n_episodes=500, n_trials=3):
-    # load dataset
-    dataset, env = get_pendulum()
-    upper_bound = env.action_space.high
-
-    # try multiple trials to reduce failures due to random seeds
-    trial_count = 0
-    for _ in range(n_trials):
-        # reset parameters
-        algo._impl = None
-
-        # train
-        algo.fit(
-            dataset.episodes[:n_episodes],
-            n_epochs=3,
-            logdir="test_data",
-            verbose=False,
-        )
-
-        # evaluation loop
-        success_count = 0
-        evaluation_count = 0
-        while evaluation_count < n_evaluations:
-            observation = env.reset()
-            episode_rew = 0.0
-            while True:
-                action = algo.predict([observation])[0]
-                observation, reward, done, _ = env.step(upper_bound * action)
-                episode_rew += reward
-                if done:
-                    break
-            evaluation_count += 1
-            if episode_rew >= -600:
-                success_count += 1
-
-        if success_count >= n_evaluations * 0.8:
-            break
-
-        trial_count += 1
-        if trial_count == n_trials:
-            assert False, "performance is not good enough: %d." % success_count
 
 
 def impl_tester(impl, discrete, imitator, test_with_std):

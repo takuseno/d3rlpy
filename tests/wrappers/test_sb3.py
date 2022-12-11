@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import stable_baselines3 as sb3
 
-from d3rlpy.algos import SAC
+from d3rlpy.algos import SACConfig
 from d3rlpy.constants import ActionSpace
 from d3rlpy.dataset import DatasetInfo, ReplayBuffer
 from d3rlpy.wrappers.sb3 import SB3Wrapper, to_mdp_dataset
@@ -12,7 +12,7 @@ from d3rlpy.wrappers.sb3 import SB3Wrapper, to_mdp_dataset
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [22])
 def test_sb3_wrapper(observation_shape, action_size, batch_size):
-    algo = SAC()
+    algo = SACConfig().create()
     algo.create_impl(observation_shape, action_size)
 
     sb3 = SB3Wrapper(algo)

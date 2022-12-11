@@ -1,6 +1,11 @@
 import numpy as np
 
 from d3rlpy.dataset import Episode, PartialTrajectory, Transition
+from d3rlpy.preprocessing import (
+    MinMaxActionScaler,
+    MinMaxObservationScaler,
+    MinMaxRewardScaler,
+)
 
 
 def create_observation(observation_shape):
@@ -92,3 +97,9 @@ def create_partial_trajectory(
         masks=np.ones(length),
         length=length,
     )
+
+
+def create_scaler_tuple(name):
+    if name is None:
+        return None, None, None
+    return MinMaxObservationScaler(), MinMaxActionScaler(), MinMaxRewardScaler()

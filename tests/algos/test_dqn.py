@@ -1,16 +1,19 @@
 import pytest
 
-from d3rlpy.algos.dqn import DQN, DoubleDQN
-from tests import performance_test
+from d3rlpy.algos.dqn import DoubleDQNConfig, DQNConfig
+from d3rlpy.models import MeanQFunctionFactory, QRQFunctionFactory
 
-from .algo_test import algo_cartpole_tester, algo_tester, algo_update_tester
+from ..testing_utils import create_scaler_tuple
+from .algo_test import algo_tester, algo_update_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-@pytest.mark.parametrize("scalers", [(None, None), ("min_max", "min_max")])
+@pytest.mark.parametrize(
+    "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
+)
+@pytest.mark.parametrize("scalers", [None, "min_max"])
 def test_dqn(
     observation_shape,
     action_size,
@@ -18,13 +21,14 @@ def test_dqn(
     q_func_factory,
     scalers,
 ):
-    observation_scaler, reward_scaler = scalers
-    dqn = DQN(
+    observation_scaler, _, reward_scaler = create_scaler_tuple(scalers)
+    config = DQNConfig(
         n_critics=n_critics,
         q_func_factory=q_func_factory,
         observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )
+    dqn = config.create()
     algo_tester(dqn, observation_shape, test_q_function_copy=True)
     algo_update_tester(
         dqn,
@@ -35,18 +39,13 @@ def test_dqn(
     )
 
 
-@performance_test
-@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-def test_dqn_performance(q_func_factory):
-    dqn = DQN(q_func_factory=q_func_factory)
-    algo_cartpole_tester(dqn)
-
-
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_critics", [1])
-@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-@pytest.mark.parametrize("scalers", [(None, None), ("min_max", "min_max")])
+@pytest.mark.parametrize(
+    "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
+)
+@pytest.mark.parametrize("scalers", [None, "min_max"])
 def test_double_dqn(
     observation_shape,
     action_size,
@@ -54,13 +53,14 @@ def test_double_dqn(
     q_func_factory,
     scalers,
 ):
-    observation_scaler, reward_scaler = scalers
-    double_dqn = DoubleDQN(
+    observation_scaler, _, reward_scaler = create_scaler_tuple(scalers)
+    config = DoubleDQNConfig(
         n_critics=n_critics,
         q_func_factory=q_func_factory,
         observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )
+    double_dqn = config.create()
     algo_tester(double_dqn, observation_shape, test_q_function_copy=True)
     algo_update_tester(
         double_dqn,
@@ -69,10 +69,3 @@ def test_double_dqn(
         discrete=True,
         test_q_function_optim_copy=True,
     )
-
-
-@performance_test
-@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
-def test_double_dqn_performance(q_func_factory):
-    double_dqn = DoubleDQN(q_func_factory=q_func_factory)
-    algo_cartpole_tester(double_dqn)

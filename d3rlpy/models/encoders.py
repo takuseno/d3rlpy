@@ -1,10 +1,11 @@
-import copy
-from typing import Any, ClassVar, Dict, List, Optional, Sequence, Type, Union
+from dataclasses import asdict, dataclass, field
+from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
+from dataclasses_json import config
 from torch import nn
 
 from ..dataset import Shape, cast_flat_shape
-from ..decorators import pretty_repr
+from ..serializable_config import SerializableConfig
 from ..torch_utility import Swish
 from .torch import (
     Encoder,
@@ -24,6 +25,7 @@ __all__ = [
     "ENCODER_LIST",
     "register_encoder_factory",
     "create_encoder_factory",
+    "make_encoder_field",
 ]
 
 
@@ -37,10 +39,7 @@ def _create_activation(activation_type: str) -> nn.Module:
     raise ValueError("invalid activation_type.")
 
 
-@pretty_repr
-class EncoderFactory:
-    TYPE: ClassVar[str] = "none"
-
+class EncoderFactory(SerializableConfig):
     def create(self, observation_shape: Shape) -> Encoder:
         """Returns PyTorch's state enocder module.
 
@@ -73,28 +72,18 @@ class EncoderFactory:
         """
         raise NotImplementedError
 
-    def get_type(self) -> str:
+    @staticmethod
+    def get_type() -> str:
         """Returns encoder type.
 
         Returns:
             encoder type.
 
         """
-        return self.TYPE
-
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns encoder parameters.
-
-        Args:
-            deep: flag to deeply copy the parameters.
-
-        Returns:
-            encoder parameters.
-
-        """
         raise NotImplementedError
 
 
+@dataclass(frozen=True)
 class PixelEncoderFactory(EncoderFactory):
     """Pixel encoder factory class.
 
@@ -111,39 +100,23 @@ class PixelEncoderFactory(EncoderFactory):
 
     """
 
-    TYPE: ClassVar[str] = "pixel"
-    _filters: List[Sequence[int]]
-    _feature_size: int
-    _activation: str
-    _use_batch_norm: bool
-    _dropout_rate: Optional[float]
-
-    def __init__(
-        self,
-        filters: Optional[List[Sequence[int]]] = None,
-        feature_size: int = 512,
-        activation: str = "relu",
-        use_batch_norm: bool = False,
-        dropout_rate: Optional[float] = None,
-    ):
-        if filters is None:
-            self._filters = [(32, 8, 4), (64, 4, 2), (64, 3, 1)]
-        else:
-            self._filters = filters
-        self._feature_size = feature_size
-        self._activation = activation
-        self._use_batch_norm = use_batch_norm
-        self._dropout_rate = dropout_rate
+    filters: List[Sequence[int]] = field(
+        default_factory=lambda: [(32, 8, 4), (64, 4, 2), (64, 3, 1)]
+    )
+    feature_size: int = 512
+    activation: str = "relu"
+    use_batch_norm: bool = False
+    dropout_rate: Optional[float] = None
 
     def create(self, observation_shape: Shape) -> PixelEncoder:
         assert len(observation_shape) == 3
         return PixelEncoder(
             observation_shape=cast_flat_shape(observation_shape),
-            filters=self._filters,
-            feature_size=self._feature_size,
-            use_batch_norm=self._use_batch_norm,
-            dropout_rate=self._dropout_rate,
-            activation=_create_activation(self._activation),
+            filters=self.filters,
+            feature_size=self.feature_size,
+            use_batch_norm=self.use_batch_norm,
+            dropout_rate=self.dropout_rate,
+            activation=_create_activation(self.activation),
         )
 
     def create_with_action(
@@ -156,29 +129,20 @@ class PixelEncoderFactory(EncoderFactory):
         return PixelEncoderWithAction(
             observation_shape=cast_flat_shape(observation_shape),
             action_size=action_size,
-            filters=self._filters,
-            feature_size=self._feature_size,
-            use_batch_norm=self._use_batch_norm,
-            dropout_rate=self._dropout_rate,
+            filters=self.filters,
+            feature_size=self.feature_size,
+            use_batch_norm=self.use_batch_norm,
+            dropout_rate=self.dropout_rate,
             discrete_action=discrete_action,
-            activation=_create_activation(self._activation),
+            activation=_create_activation(self.activation),
         )
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        if deep:
-            filters = copy.deepcopy(self._filters)
-        else:
-            filters = self._filters
-        params = {
-            "filters": filters,
-            "feature_size": self._feature_size,
-            "activation": self._activation,
-            "use_batch_norm": self._use_batch_norm,
-            "dropout_rate": self._dropout_rate,
-        }
-        return params
+    @staticmethod
+    def get_type() -> str:
+        return "pixel"
 
 
+@dataclass(frozen=True)
 class VectorEncoderFactory(EncoderFactory):
     """Vector encoder factory class.
 
@@ -194,39 +158,21 @@ class VectorEncoderFactory(EncoderFactory):
 
     """
 
-    TYPE: ClassVar[str] = "vector"
-    _hidden_units: Sequence[int]
-    _activation: str
-    _use_batch_norm: bool
-    _dropout_rate: Optional[float]
-    _use_dense: bool
-
-    def __init__(
-        self,
-        hidden_units: Optional[Sequence[int]] = None,
-        activation: str = "relu",
-        use_batch_norm: bool = False,
-        dropout_rate: Optional[float] = None,
-        use_dense: bool = False,
-    ):
-        if hidden_units is None:
-            self._hidden_units = [256, 256]
-        else:
-            self._hidden_units = hidden_units
-        self._activation = activation
-        self._use_batch_norm = use_batch_norm
-        self._dropout_rate = dropout_rate
-        self._use_dense = use_dense
+    hidden_units: Sequence[int] = field(default_factory=lambda: [256, 256])
+    activation: str = "relu"
+    use_batch_norm: bool = False
+    dropout_rate: Optional[float] = None
+    use_dense: bool = False
 
     def create(self, observation_shape: Shape) -> VectorEncoder:
         assert len(observation_shape) == 1
         return VectorEncoder(
             observation_shape=cast_flat_shape(observation_shape),
-            hidden_units=self._hidden_units,
-            use_batch_norm=self._use_batch_norm,
-            dropout_rate=self._dropout_rate,
-            use_dense=self._use_dense,
-            activation=_create_activation(self._activation),
+            hidden_units=self.hidden_units,
+            use_batch_norm=self.use_batch_norm,
+            dropout_rate=self.dropout_rate,
+            use_dense=self.use_dense,
+            activation=_create_activation(self.activation),
         )
 
     def create_with_action(
@@ -239,29 +185,20 @@ class VectorEncoderFactory(EncoderFactory):
         return VectorEncoderWithAction(
             observation_shape=cast_flat_shape(observation_shape),
             action_size=action_size,
-            hidden_units=self._hidden_units,
-            use_batch_norm=self._use_batch_norm,
-            dropout_rate=self._dropout_rate,
-            use_dense=self._use_dense,
+            hidden_units=self.hidden_units,
+            use_batch_norm=self.use_batch_norm,
+            dropout_rate=self.dropout_rate,
+            use_dense=self.use_dense,
             discrete_action=discrete_action,
-            activation=_create_activation(self._activation),
+            activation=_create_activation(self.activation),
         )
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        if deep:
-            hidden_units = copy.deepcopy(self._hidden_units)
-        else:
-            hidden_units = self._hidden_units
-        params = {
-            "hidden_units": hidden_units,
-            "activation": self._activation,
-            "use_batch_norm": self._use_batch_norm,
-            "dropout_rate": self._dropout_rate,
-            "use_dense": self._use_dense,
-        }
-        return params
+    @staticmethod
+    def get_type() -> str:
+        return "vector"
 
 
+@dataclass(frozen=True)
 class DefaultEncoderFactory(EncoderFactory):
     """Default encoder factory class.
 
@@ -274,34 +211,23 @@ class DefaultEncoderFactory(EncoderFactory):
 
     """
 
-    TYPE: ClassVar[str] = "default"
-    _activation: str
-    _use_batch_norm: bool
-    _dropout_rate: Optional[float]
-
-    def __init__(
-        self,
-        activation: str = "relu",
-        use_batch_norm: bool = False,
-        dropout_rate: Optional[float] = None,
-    ):
-        self._activation = activation
-        self._use_batch_norm = use_batch_norm
-        self._dropout_rate = dropout_rate
+    activation: str = "relu"
+    use_batch_norm: bool = False
+    dropout_rate: Optional[float] = None
 
     def create(self, observation_shape: Shape) -> Encoder:
         factory: Union[PixelEncoderFactory, VectorEncoderFactory]
         if len(observation_shape) == 3:
             factory = PixelEncoderFactory(
-                activation=self._activation,
-                use_batch_norm=self._use_batch_norm,
-                dropout_rate=self._dropout_rate,
+                activation=self.activation,
+                use_batch_norm=self.use_batch_norm,
+                dropout_rate=self.dropout_rate,
             )
         else:
             factory = VectorEncoderFactory(
-                activation=self._activation,
-                use_batch_norm=self._use_batch_norm,
-                dropout_rate=self._dropout_rate,
+                activation=self.activation,
+                use_batch_norm=self.use_batch_norm,
+                dropout_rate=self.dropout_rate,
             )
         return factory.create(observation_shape)
 
@@ -314,28 +240,26 @@ class DefaultEncoderFactory(EncoderFactory):
         factory: Union[PixelEncoderFactory, VectorEncoderFactory]
         if len(observation_shape) == 3:
             factory = PixelEncoderFactory(
-                activation=self._activation,
-                use_batch_norm=self._use_batch_norm,
-                dropout_rate=self._dropout_rate,
+                activation=self.activation,
+                use_batch_norm=self.use_batch_norm,
+                dropout_rate=self.dropout_rate,
             )
         else:
             factory = VectorEncoderFactory(
-                activation=self._activation,
-                use_batch_norm=self._use_batch_norm,
-                dropout_rate=self._dropout_rate,
+                activation=self.activation,
+                use_batch_norm=self.use_batch_norm,
+                dropout_rate=self.dropout_rate,
             )
         return factory.create_with_action(
             observation_shape, action_size, discrete_action
         )
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {
-            "activation": self._activation,
-            "use_batch_norm": self._use_batch_norm,
-            "dropout_rate": self._dropout_rate,
-        }
+    @staticmethod
+    def get_type() -> str:
+        return "default"
 
 
+@dataclass(frozen=True)
 class DenseEncoderFactory(EncoderFactory):
     """DenseNet encoder factory class.
 
@@ -362,30 +286,19 @@ class DenseEncoderFactory(EncoderFactory):
 
     """
 
-    TYPE: ClassVar[str] = "dense"
-    _activation: str
-    _use_batch_norm: bool
-    _dropout_rate: Optional[float]
-
-    def __init__(
-        self,
-        activation: str = "relu",
-        use_batch_norm: bool = False,
-        dropout_rate: Optional[float] = None,
-    ):
-        self._activation = activation
-        self._use_batch_norm = use_batch_norm
-        self._dropout_rate = dropout_rate
+    activation: str = "relu"
+    use_batch_norm: bool = False
+    dropout_rate: Optional[float] = None
 
     def create(self, observation_shape: Shape) -> VectorEncoder:
         if len(observation_shape) == 3:
             raise NotImplementedError("pixel observation is not supported.")
         factory = VectorEncoderFactory(
             hidden_units=[256, 256, 256, 256],
-            activation=self._activation,
+            activation=self.activation,
             use_dense=True,
-            use_batch_norm=self._use_batch_norm,
-            dropout_rate=self._dropout_rate,
+            use_batch_norm=self.use_batch_norm,
+            dropout_rate=self.dropout_rate,
         )
         return factory.create(observation_shape)
 
@@ -399,21 +312,18 @@ class DenseEncoderFactory(EncoderFactory):
             raise NotImplementedError("pixel observation is not supported.")
         factory = VectorEncoderFactory(
             hidden_units=[256, 256, 256, 256],
-            activation=self._activation,
+            activation=self.activation,
             use_dense=True,
-            use_batch_norm=self._use_batch_norm,
-            dropout_rate=self._dropout_rate,
+            use_batch_norm=self.use_batch_norm,
+            dropout_rate=self.dropout_rate,
         )
         return factory.create_with_action(
             observation_shape, action_size, discrete_action
         )
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {
-            "activation": self._activation,
-            "use_batch_norm": self._use_batch_norm,
-            "dropout_rate": self._dropout_rate,
-        }
+    @staticmethod
+    def get_type() -> str:
+        return "dense"
 
 
 ENCODER_LIST: Dict[str, Type[EncoderFactory]] = {}
@@ -426,9 +336,10 @@ def register_encoder_factory(cls: Type[EncoderFactory]) -> None:
         cls: encoder factory class inheriting ``EncoderFactory``.
 
     """
-    is_registered = cls.TYPE in ENCODER_LIST
-    assert not is_registered, f"{cls.TYPE} seems to be already registered"
-    ENCODER_LIST[cls.TYPE] = cls
+    type_name = cls.get_type()
+    is_registered = type_name in ENCODER_LIST
+    assert not is_registered, f"{type_name} seems to be already registered"
+    ENCODER_LIST[type_name] = cls
 
 
 def create_encoder_factory(name: str, **kwargs: Any) -> EncoderFactory:
@@ -446,6 +357,21 @@ def create_encoder_factory(name: str, **kwargs: Any) -> EncoderFactory:
     factory = ENCODER_LIST[name](**kwargs)
     assert isinstance(factory, EncoderFactory)
     return factory
+
+
+def _encoder(encoder: EncoderFactory) -> Dict[str, Any]:
+    return {"type": encoder.get_type(), "params": asdict(encoder)}
+
+
+def _decoder(dict_config: Dict[str, Any]) -> EncoderFactory:
+    return create_encoder_factory(dict_config["type"], **dict_config["params"])
+
+
+def make_encoder_field() -> EncoderFactory:
+    return field(
+        metadata=config(encoder=_encoder, decoder=_decoder),
+        default=DefaultEncoderFactory(),
+    )
 
 
 register_encoder_factory(VectorEncoderFactory)

@@ -1,8 +1,7 @@
 import gym
 import pytest
-from gym.wrappers import AtariPreprocessing
 
-from d3rlpy.algos import DQN
+from d3rlpy.algos import DQNConfig
 from d3rlpy.envs.wrappers import Atari, ChannelFirst
 
 from ..dummy_env import DummyAtari
@@ -24,7 +23,7 @@ def test_channel_first():
     assert observation.shape == (channel, width, height)
 
     # check with algorithm
-    dqn = DQN()
+    dqn = DQNConfig().create()
     dqn.build_with_env(wrapper)
     dqn.predict([observation])
 
@@ -45,7 +44,7 @@ def test_channel_first_with_2_dim_obs():
     assert observation.shape == (1, width, height)
 
     # check with algorithm
-    dqn = DQN()
+    dqn = DQNConfig().create()
     dqn.build_with_env(wrapper)
     dqn.predict([observation])
 
