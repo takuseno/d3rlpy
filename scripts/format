@@ -11,10 +11,10 @@ else
 fi
 
 # format package imports
-isort -l 80 --profile black $ISORT_ARG d3rlpy tests
+isort -l 80 --profile black $ISORT_ARG d3rlpy tests setup.py
 
 # use black for the better type annotations
-black -l 80 $BLACK_ARG d3rlpy tests
+black -l 80 $BLACK_ARG d3rlpy tests setup.py
 
 # use yapf for the better visuals
 yapf -r -vv $YAPF_ARG examples reproductions
