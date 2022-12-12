@@ -11,23 +11,7 @@ from d3rlpy.preprocessing import (
     MultiplyRewardScaler,
     ReturnBasedRewardScaler,
     StandardRewardScaler,
-    create_reward_scaler,
 )
-
-
-@pytest.mark.parametrize(
-    "scaler_type", ["clip", "multiply", "min_max", "standard"]
-)
-def test_create_reward_scaler(scaler_type):
-    scaler = create_reward_scaler(scaler_type)
-    if scaler_type == "clip":
-        assert isinstance(scaler, ClipRewardScaler)
-    elif scaler_type == "multiply":
-        assert isinstance(scaler, MultiplyRewardScaler)
-    elif scaler_type == "min_max":
-        assert isinstance(scaler, MinMaxRewardScaler)
-    elif scaler_type == "standard":
-        assert isinstance(scaler, StandardRewardScaler)
 
 
 @pytest.mark.parametrize("batch_size", [32])
@@ -50,8 +34,6 @@ def test_multiply_reward_scaler(batch_size, multiplier):
     assert np.allclose(y, rewards * multiplier)
 
     assert scaler.get_type() == "multiply"
-    params = scaler.get_params()
-    assert params["multiplier"] == multiplier
 
 
 @pytest.mark.parametrize("batch_size", [32])
@@ -77,10 +59,6 @@ def test_clip_reward_scaler(batch_size, low, high, multiplier):
     assert np.all(y == multiplier * np.clip(rewards, low, high))
 
     assert scaler.get_type() == "clip"
-    params = scaler.get_params()
-    assert params["low"] == low
-    assert params["high"] == high
-    assert params["multiplier"] == multiplier
 
 
 @pytest.mark.parametrize("batch_size", [32])
@@ -112,10 +90,6 @@ def test_min_max_reward_scaler(batch_size, multiplier):
     assert np.allclose(scaler.transform_numpy(rewards), ref_y)
 
     assert scaler.get_type() == "min_max"
-    params = scaler.get_params()
-    assert np.allclose(params["minimum"], minimum)
-    assert np.allclose(params["maximum"], maximum)
-    assert np.allclose(params["multiplier"], multiplier)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -154,10 +128,6 @@ def test_min_max_reward_scaler_with_episode(
     ref_y = (x.numpy() - minimum) / (maximum - minimum)
     assert np.allclose(y.numpy(), ref_y, atol=1e-4)
 
-    params = scaler.get_params()
-    assert np.allclose(params["minimum"], minimum)
-    assert np.allclose(params["maximum"], maximum)
-
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("eps", [0.3])
@@ -186,11 +156,6 @@ def test_standard_reward_scaler(batch_size, eps, multiplier):
     assert np.allclose(y, ref_y, atol=1e-4)
 
     assert scaler.get_type() == "standard"
-    params = scaler.get_params()
-    assert np.allclose(params["mean"], mean)
-    assert np.allclose(params["std"], std)
-    assert params["eps"] == eps
-    assert params["multiplier"] == multiplier
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -230,10 +195,6 @@ def test_standard_reward_scaler_with_episode(
     ref_y = (x.numpy() - mean) / (std + eps)
     assert np.allclose(y, ref_y, atol=1e-4)
 
-    params = scaler.get_params()
-    assert np.allclose(params["mean"], mean)
-    assert np.allclose(params["std"], std)
-
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [10])
@@ -268,10 +229,6 @@ def test_return_based_reward_scaler_with_episode(
     ref_y = x.numpy() / (max(returns) - min(returns))
     assert np.allclose(y, ref_y, atol=1e-4)
 
-    params = scaler.get_params()
-    assert np.allclose(params["return_max"], max(returns))
-    assert np.allclose(params["return_min"], min(returns))
-
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("shift", [-1])
@@ -293,5 +250,3 @@ def test_constant_shift_reward_scaler(batch_size, shift):
     assert np.allclose(y, rewards + shift, atol=1e-4)
 
     assert scaler.get_type() == "shift"
-    params = scaler.get_params()
-    assert params["shift"] == shift

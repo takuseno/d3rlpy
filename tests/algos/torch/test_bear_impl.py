@@ -4,7 +4,7 @@ import torch
 from d3rlpy.algos.torch.bear_impl import BEARImpl
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
-from d3rlpy.models.q_functions import create_q_func_factory
+from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory
 from tests.algos.algo_test import (
     DummyActionScaler,
     DummyObservationScaler,
@@ -26,7 +26,9 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("temp_optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("alpha_optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
-@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
+@pytest.mark.parametrize(
+    "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
+)
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
@@ -91,7 +93,7 @@ def test_bear_impl(
         actor_encoder_factory=encoder_factory,
         critic_encoder_factory=encoder_factory,
         imitator_encoder_factory=encoder_factory,
-        q_func_factory=create_q_func_factory(q_func_factory),
+        q_func_factory=q_func_factory,
         gamma=gamma,
         tau=tau,
         n_critics=n_critics,

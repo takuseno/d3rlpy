@@ -152,9 +152,8 @@ class NormalNoise(Explorer):
 
         if isinstance(algo.action_scaler, MinMaxActionScaler):
             # scale noise
-            params = algo.action_scaler.get_params()
-            minimum = params["minimum"]
-            maximum = params["maximum"]
+            minimum = algo.action_scaler.minimum
+            maximum = algo.action_scaler.maximum
         else:
             minimum = -1.0
             maximum = 1.0

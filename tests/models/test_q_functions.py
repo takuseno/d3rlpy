@@ -6,7 +6,6 @@ from d3rlpy.models.q_functions import (
     IQNQFunctionFactory,
     MeanQFunctionFactory,
     QRQFunctionFactory,
-    create_q_func_factory,
 )
 from d3rlpy.models.torch import (
     ContinuousFQFQFunction,
@@ -91,16 +90,3 @@ def test_fqf_q_function_factory(observation_shape, action_size):
         assert isinstance(q_func, DiscreteFQFQFunction)
 
     assert factory.get_type() == "fqf"
-
-
-@pytest.mark.parametrize("name", ["mean", "qr", "iqn", "fqf"])
-def test_create_q_func_factory(name):
-    factory = create_q_func_factory(name)
-    if name == "mean":
-        assert isinstance(factory, MeanQFunctionFactory)
-    elif name == "qr":
-        assert isinstance(factory, QRQFunctionFactory)
-    elif name == "iqn":
-        assert isinstance(factory, IQNQFunctionFactory)
-    elif name == "fqf":
-        assert isinstance(factory, FQFQFunctionFactory)

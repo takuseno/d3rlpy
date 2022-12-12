@@ -3,7 +3,7 @@ import pytest
 from d3rlpy.algos.torch.crr_impl import CRRImpl
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
-from d3rlpy.models.q_functions import create_q_func_factory
+from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory
 from tests.algos.algo_test import (
     DummyActionScaler,
     DummyObservationScaler,
@@ -19,7 +19,9 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("actor_optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("critic_optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
-@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
+@pytest.mark.parametrize(
+    "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
+)
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("beta", [1.0])
 @pytest.mark.parametrize("n_action_samples", [10])
@@ -61,7 +63,7 @@ def test_crr_impl(
         critic_optim_factory=critic_optim_factory,
         actor_encoder_factory=encoder_factory,
         critic_encoder_factory=encoder_factory,
-        q_func_factory=create_q_func_factory(q_func_factory),
+        q_func_factory=q_func_factory,
         gamma=gamma,
         beta=beta,
         n_action_samples=n_action_samples,

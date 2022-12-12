@@ -1,26 +1,28 @@
-from dataclasses import field
-from typing import Any, Dict, Optional, Sequence, Type
+import dataclasses
+from typing import Optional, Sequence
 
 import gym
 import numpy as np
 import torch
-from dataclasses_json import config
 
 from ..dataset import EpisodeBase
+from ..serializable_config import (
+    DynamicConfig,
+    generate_optional_config_generation,
+    make_optional_numpy_field,
+)
 
 __all__ = [
     "ObservationScaler",
     "PixelObservationScaler",
     "MinMaxObservationScaler",
     "StandardObservationScaler",
-    "OBSERVATION_SCALER_LIST",
     "register_observation_scaler",
-    "create_observation_scaler",
     "make_observation_scaler_field",
 ]
 
 
-class ObservationScaler:
+class ObservationScaler(DynamicConfig):
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         """Estimates scaling parameters from dataset.
 
@@ -63,28 +65,6 @@ class ObservationScaler:
         """
         raise NotImplementedError
 
-    @staticmethod
-    def get_type() -> str:
-        """Returns a scaler type.
-
-        Returns:
-            scaler type.
-
-        """
-        raise NotImplementedError
-
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns scaling parameters.
-
-        Args:
-            deep: flag to deeply copy objects.
-
-        Returns:
-            scaler parameters.
-
-        """
-        raise NotImplementedError
-
 
 class PixelObservationScaler(ObservationScaler):
     """Pixel normalization preprocessing.
@@ -123,10 +103,8 @@ class PixelObservationScaler(ObservationScaler):
     def get_type() -> str:
         return "pixel"
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {}
 
-
+@dataclasses.dataclass()
 class MinMaxObservationScaler(ObservationScaler):
     r"""Min-Max normalization preprocessing.
 
@@ -165,26 +143,21 @@ class MinMaxObservationScaler(ObservationScaler):
         cql = CQL(scaler=scaler)
 
     Args:
-        min (numpy.ndarray): minimum values at each entry.
-        max (numpy.ndarray): maximum values at each entry.
+        minimum (numpy.ndarray): minimum values at each entry.
+        maximum (numpy.ndarray): maximum values at each entry.
 
     """
-    _minimum: Optional[np.ndarray]
-    _maximum: Optional[np.ndarray]
+    minimum: Optional[np.ndarray] = make_optional_numpy_field()
+    maximum: Optional[np.ndarray] = make_optional_numpy_field()
 
-    def __init__(
-        self,
-        maximum: Optional[np.ndarray] = None,
-        minimum: Optional[np.ndarray] = None,
-    ):
-        self._minimum = None
-        self._maximum = None
-        if maximum is not None and minimum is not None:
-            self._minimum = np.asarray(minimum)
-            self._maximum = np.asarray(maximum)
+    def __post_init__(self) -> None:
+        if self.minimum is not None:
+            self.minimum = np.asarray(self.minimum)
+        if self.maximum is not None:
+            self.maximum = np.asarray(self.maximum)
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self._minimum is not None and self._maximum is not None:
+        if self.minimum is not None and self.maximum is not None:
             return
 
         maximum = np.zeros(episodes[0].observation_shape)
@@ -200,37 +173,37 @@ class MinMaxObservationScaler(ObservationScaler):
                 minimum = np.minimum(minimum, min_observation)
                 maximum = np.maximum(maximum, max_observation)
 
-        self._minimum = minimum.reshape((1,) + minimum.shape)
-        self._maximum = maximum.reshape((1,) + maximum.shape)
+        self.minimum = minimum.reshape((1,) + minimum.shape)
+        self.maximum = maximum.reshape((1,) + maximum.shape)
 
     def fit_with_env(self, env: gym.Env) -> None:
-        if self._minimum is not None and self._maximum is not None:
+        if self.minimum is not None and self.maximum is not None:
             return
 
         assert isinstance(env.observation_space, gym.spaces.Box)
         shape = env.observation_space.shape
         low = np.asarray(env.observation_space.low)
         high = np.asarray(env.observation_space.high)
-        self._minimum = low.reshape((1,) + shape)
-        self._maximum = high.reshape((1,) + shape)
+        self.minimum = low.reshape((1,) + shape)
+        self.maximum = high.reshape((1,) + shape)
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._minimum is not None and self._maximum is not None
+        assert self.minimum is not None and self.maximum is not None
         minimum = torch.tensor(
-            self._minimum, dtype=torch.float32, device=x.device
+            self.minimum, dtype=torch.float32, device=x.device
         )
         maximum = torch.tensor(
-            self._maximum, dtype=torch.float32, device=x.device
+            self.maximum, dtype=torch.float32, device=x.device
         )
         return (x - minimum) / (maximum - minimum)
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._minimum is not None and self._maximum is not None
+        assert self.minimum is not None and self.maximum is not None
         minimum = torch.tensor(
-            self._minimum, dtype=torch.float32, device=x.device
+            self.minimum, dtype=torch.float32, device=x.device
         )
         maximum = torch.tensor(
-            self._maximum, dtype=torch.float32, device=x.device
+            self.maximum, dtype=torch.float32, device=x.device
         )
         return ((maximum - minimum) * x) + minimum
 
@@ -238,20 +211,8 @@ class MinMaxObservationScaler(ObservationScaler):
     def get_type() -> str:
         return "min_max"
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        if self._maximum is not None:
-            maximum = self._maximum.copy() if deep else self._maximum
-        else:
-            maximum = None
 
-        if self._minimum is not None:
-            minimum = self._minimum.copy() if deep else self._minimum
-        else:
-            minimum = None
-
-        return {"maximum": maximum, "minimum": minimum}
-
-
+@dataclasses.dataclass()
 class StandardObservationScaler(ObservationScaler):
     r"""Standardization preprocessing.
 
@@ -295,25 +256,18 @@ class StandardObservationScaler(ObservationScaler):
         eps (float): small constant value to avoid zero-division.
 
     """
-    _mean: Optional[np.ndarray]
-    _std: Optional[np.ndarray]
-    _eps: float
+    mean: Optional[np.ndarray] = make_optional_numpy_field()
+    std: Optional[np.ndarray] = make_optional_numpy_field()
+    eps: float = 1e-3
 
-    def __init__(
-        self,
-        mean: Optional[np.ndarray] = None,
-        std: Optional[np.ndarray] = None,
-        eps: float = 1e-3,
-    ):
-        self._mean = None
-        self._std = None
-        self._eps = eps
-        if mean is not None and std is not None:
-            self._mean = np.asarray(mean)
-            self._std = np.asarray(std)
+    def __post_init__(self) -> None:
+        if self.mean is not None:
+            self.mean = np.asarray(self.mean)
+        if self.std is not None:
+            self.std = np.asarray(self.std)
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self._mean is not None and self._std is not None:
+        if self.mean is not None and self.std is not None:
             return
 
         # compute mean
@@ -332,100 +286,37 @@ class StandardObservationScaler(ObservationScaler):
             total_sqsum += np.sum((observations - expanded_mean) ** 2, axis=0)
         std = np.sqrt(total_sqsum / total_count)
 
-        self._mean = mean.reshape((1,) + mean.shape)
-        self._std = std.reshape((1,) + std.shape)
+        self.mean = mean.reshape((1,) + mean.shape)
+        self.std = std.reshape((1,) + std.shape)
 
     def fit_with_env(self, env: gym.Env) -> None:
-        if self._mean is not None and self._std is not None:
+        if self.mean is not None and self.std is not None:
             return
         raise NotImplementedError(
             "standard scaler does not support fit_with_env."
         )
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._mean is not None and self._std is not None
-        mean = torch.tensor(self._mean, dtype=torch.float32, device=x.device)
-        std = torch.tensor(self._std, dtype=torch.float32, device=x.device)
-        return (x - mean) / (std + self._eps)
+        assert self.mean is not None and self.std is not None
+        mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
+        std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
+        return (x - mean) / (std + self.eps)
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._mean is not None and self._std is not None
-        mean = torch.tensor(self._mean, dtype=torch.float32, device=x.device)
-        std = torch.tensor(self._std, dtype=torch.float32, device=x.device)
-        return ((std + self._eps) * x) + mean
+        assert self.mean is not None and self.std is not None
+        mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
+        std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
+        return ((std + self.eps) * x) + mean
 
     @staticmethod
     def get_type() -> str:
         return "standard"
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        if self._mean is not None:
-            mean = self._mean.copy() if deep else self._mean
-        else:
-            mean = None
 
-        if self._std is not None:
-            std = self._std.copy() if deep else self._std
-        else:
-            std = None
-
-        return {"mean": mean, "std": std, "eps": self._eps}
-
-
-OBSERVATION_SCALER_LIST: Dict[str, Type[ObservationScaler]] = {}
-
-
-def register_observation_scaler(cls: Type[ObservationScaler]) -> None:
-    """Registers scaler class.
-
-    Args:
-        cls: scaler class inheriting ``Scaler``.
-
-    """
-    type_name = cls.get_type()
-    is_registered = type_name in OBSERVATION_SCALER_LIST
-    assert not is_registered, f"{type_name} seems to be already registered"
-    OBSERVATION_SCALER_LIST[type_name] = cls
-
-
-def create_observation_scaler(name: str, **kwargs: Any) -> ObservationScaler:
-    """Returns registered scaler object.
-
-    Args:
-        name: regsitered scaler type name.
-        kwargs: scaler arguments.
-
-    Returns:
-        scaler object.
-
-    """
-    assert (
-        name in OBSERVATION_SCALER_LIST
-    ), f"{name} seems not to be registered."
-    scaler = OBSERVATION_SCALER_LIST[name](**kwargs)
-    assert isinstance(scaler, ObservationScaler)
-    return scaler
-
-
-def _encoder(scaler: Optional[ObservationScaler]) -> Dict[str, Any]:
-    if scaler is None:
-        return {"type": "none", "params": {}}
-    return {"type": scaler.get_type(), "params": scaler.get_params()}
-
-
-def _decoder(dict_config: Dict[str, Any]) -> Optional[ObservationScaler]:
-    if dict_config["type"] == "none":
-        return None
-    return create_observation_scaler(
-        dict_config["type"], **dict_config["params"]
-    )
-
-
-def make_observation_scaler_field() -> Optional[ObservationScaler]:
-    return field(
-        metadata=config(encoder=_encoder, decoder=_decoder), default=None
-    )
-
+(
+    register_observation_scaler,
+    make_observation_scaler_field,
+) = generate_optional_config_generation(ObservationScaler)
 
 register_observation_scaler(PixelObservationScaler)
 register_observation_scaler(MinMaxObservationScaler)

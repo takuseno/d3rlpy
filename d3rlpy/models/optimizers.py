@@ -1,24 +1,23 @@
-from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Iterable, Tuple, Type
+import dataclasses
+from typing import Iterable, Tuple
 
-from dataclasses_json import config
 from torch import nn
 from torch.optim import SGD, Adam, Optimizer, RMSprop
+
+from ..serializable_config import DynamicConfig, generate_config_registration
 
 __all__ = [
     "OptimizerFactory",
     "SGDFactory",
     "AdamFactory",
     "RMSpropFactory",
-    "OPTIMIZER_LIST",
     "register_optimizer_factory",
-    "create_optimizer_factory",
     "make_optimizer_field",
 ]
 
 
-@dataclass(frozen=True)
-class OptimizerFactory:
+@dataclasses.dataclass(frozen=True)
+class OptimizerFactory(DynamicConfig):
     """A factory class that creates an optimizer object in a lazy way.
 
     The optimizers in algorithms can be configured through this factory class.
@@ -38,18 +37,8 @@ class OptimizerFactory:
         """
         raise NotImplementedError
 
-    @staticmethod
-    def get_type() -> str:
-        """Returns optimizer type.
 
-        Returns:
-            optimizer type name.
-
-        """
-        raise NotImplementedError
-
-
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class SGDFactory(OptimizerFactory):
     """An alias for SGD optimizer.
 
@@ -87,7 +76,7 @@ class SGDFactory(OptimizerFactory):
         return "sgd"
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class AdamFactory(OptimizerFactory):
     """An alias for Adam optimizer.
 
@@ -126,7 +115,7 @@ class AdamFactory(OptimizerFactory):
         return "adam"
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class RMSpropFactory(OptimizerFactory):
     """An alias for RMSprop optimizer.
 
@@ -168,44 +157,9 @@ class RMSpropFactory(OptimizerFactory):
         return "rmsprop"
 
 
-OPTIMIZER_LIST: Dict[str, Type[OptimizerFactory]] = {}
-
-
-def register_optimizer_factory(cls: Type[OptimizerFactory]) -> None:
-    """Registers optimizer factory class.
-
-    Args:
-        cls: Optimizer factory class inheriting ``OptimizerFactory``.
-
-    """
-    type_name = cls.get_type()
-    is_registered = type_name in OPTIMIZER_LIST
-    assert not is_registered, f"{type_name} seems to be already registered"
-    OPTIMIZER_LIST[type_name] = cls
-
-
-def create_optimizer_factory(name: str, **kwargs: Any) -> OptimizerFactory:
-    assert name in OPTIMIZER_LIST, "f{name} seems not to be registered"
-    factory = OPTIMIZER_LIST[name](**kwargs)
-    assert isinstance(factory, OptimizerFactory)
-    return factory
-
-
-def _encoder(optim: OptimizerFactory) -> Dict[str, Any]:
-    return {"type": optim.get_type(), "params": asdict(optim)}
-
-
-def _decoder(dict_config: Dict[str, Any]) -> OptimizerFactory:
-    return create_optimizer_factory(
-        dict_config["type"], **dict_config["params"]
-    )
-
-
-def make_optimizer_field() -> OptimizerFactory:
-    return field(
-        metadata=config(encoder=_encoder, decoder=_decoder),
-        default=AdamFactory(),
-    )
+register_optimizer_factory, make_optimizer_field = generate_config_registration(
+    OptimizerFactory, lambda: AdamFactory()
+)
 
 
 register_optimizer_factory(SGDFactory)

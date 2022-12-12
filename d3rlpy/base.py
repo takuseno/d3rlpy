@@ -10,10 +10,8 @@ from typing import (
     List,
     Optional,
     Tuple,
-    Type,
 )
 
-import dataclasses_json
 import gym
 import numpy as np
 from tqdm.auto import tqdm
@@ -44,7 +42,7 @@ from .preprocessing import (
     make_observation_scaler_field,
     make_reward_scaler_field,
 )
-from .serializable_config import SerializableConfig
+from .serializable_config import DynamicConfig, generate_config_registration
 
 __all__ = [
     "ImplBase",
@@ -52,7 +50,6 @@ __all__ = [
     "LearnableConfig",
     "LearnableConfigWithShape",
     "register_learnable",
-    "LEARNABLE_LIST",
 ]
 
 
@@ -77,7 +74,7 @@ class ImplBase(metaclass=ABCMeta):
 
 
 @dataclasses.dataclass(frozen=True)
-class LearnableConfig(SerializableConfig):
+class LearnableConfig(DynamicConfig):
     batch_size: int = 256
     gamma: float = 0.99
     observation_scaler: Optional[
@@ -91,44 +88,17 @@ class LearnableConfig(SerializableConfig):
     ) -> "LearnableBase":
         return LearnableBase(self, use_gpu, impl)
 
-    @staticmethod
-    def get_type() -> str:
-        raise NotImplementedError
 
-
-LEARNABLE_LIST: Dict[str, Type[LearnableConfig]] = {}
-
-
-def register_learnable(cls: Type[LearnableConfig]) -> None:
-    """Registers LearnableConfig class.
-
-    Args:
-        cls: scaler class inheriting ``LearnableConfig``.
-
-    """
-    type_name = cls.get_type()
-    is_registered = type_name in LEARNABLE_LIST
-    assert not is_registered, f"{type_name} seems to be already registered"
-    LEARNABLE_LIST[type_name] = cls
-
-
-def _encoder(config: LearnableConfig) -> Dict[str, Any]:
-    return {"type": config.get_type(), "params": config.serialize_to_dict()}
-
-
-def _decoder(dict_config: Dict[str, Any]) -> LearnableConfig:
-    name = dict_config["type"]
-    params = dict_config["params"]
-    return LEARNABLE_LIST[name].deserialize_from_dict(params)
+register_learnable, make_learnable_field = generate_config_registration(
+    LearnableConfig
+)
 
 
 @dataclasses.dataclass(frozen=True)
-class LearnableConfigWithShape(SerializableConfig):
+class LearnableConfigWithShape(DynamicConfig):
     observation_shape: Shape
     action_size: int
-    config: LearnableConfig = dataclasses.field(
-        metadata=dataclasses_json.config(encoder=_encoder, decoder=_decoder)
-    )
+    config: LearnableConfig = make_learnable_field()
 
     def create(self, use_gpu: UseGPUArg = False) -> "LearnableBase":
         algo = self.config.create(use_gpu)

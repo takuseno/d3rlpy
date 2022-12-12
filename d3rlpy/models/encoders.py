@@ -1,11 +1,10 @@
-from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Type, Union
+from dataclasses import dataclass, field
+from typing import List, Optional, Sequence, Union
 
-from dataclasses_json import config
 from torch import nn
 
 from ..dataset import Shape, cast_flat_shape
-from ..serializable_config import SerializableConfig
+from ..serializable_config import DynamicConfig, generate_config_registration
 from ..torch_utility import Swish
 from .torch import (
     Encoder,
@@ -22,9 +21,7 @@ __all__ = [
     "VectorEncoderFactory",
     "DefaultEncoderFactory",
     "DenseEncoderFactory",
-    "ENCODER_LIST",
     "register_encoder_factory",
-    "create_encoder_factory",
     "make_encoder_field",
 ]
 
@@ -39,7 +36,7 @@ def _create_activation(activation_type: str) -> nn.Module:
     raise ValueError("invalid activation_type.")
 
 
-class EncoderFactory(SerializableConfig):
+class EncoderFactory(DynamicConfig):
     def create(self, observation_shape: Shape) -> Encoder:
         """Returns PyTorch's state enocder module.
 
@@ -68,16 +65,6 @@ class EncoderFactory(SerializableConfig):
 
         Returns:
             an enocder object.
-
-        """
-        raise NotImplementedError
-
-    @staticmethod
-    def get_type() -> str:
-        """Returns encoder type.
-
-        Returns:
-            encoder type.
 
         """
         raise NotImplementedError
@@ -326,52 +313,9 @@ class DenseEncoderFactory(EncoderFactory):
         return "dense"
 
 
-ENCODER_LIST: Dict[str, Type[EncoderFactory]] = {}
-
-
-def register_encoder_factory(cls: Type[EncoderFactory]) -> None:
-    """Registers encoder factory class.
-
-    Args:
-        cls: encoder factory class inheriting ``EncoderFactory``.
-
-    """
-    type_name = cls.get_type()
-    is_registered = type_name in ENCODER_LIST
-    assert not is_registered, f"{type_name} seems to be already registered"
-    ENCODER_LIST[type_name] = cls
-
-
-def create_encoder_factory(name: str, **kwargs: Any) -> EncoderFactory:
-    """Returns registered encoder factory object.
-
-    Args:
-        name: regsitered encoder factory type name.
-        kwargs: encoder arguments.
-
-    Returns:
-        encoder factory object.
-
-    """
-    assert name in ENCODER_LIST, f"{name} seems not to be registered."
-    factory = ENCODER_LIST[name](**kwargs)
-    assert isinstance(factory, EncoderFactory)
-    return factory
-
-
-def _encoder(encoder: EncoderFactory) -> Dict[str, Any]:
-    return {"type": encoder.get_type(), "params": asdict(encoder)}
-
-
-def _decoder(dict_config: Dict[str, Any]) -> EncoderFactory:
-    return create_encoder_factory(dict_config["type"], **dict_config["params"])
-
-
-def make_encoder_field() -> EncoderFactory:
-    return field(
-        metadata=config(encoder=_encoder, decoder=_decoder),
-        default=DefaultEncoderFactory(),
-    )
+register_encoder_factory, make_encoder_field = generate_config_registration(
+    EncoderFactory, lambda: DefaultEncoderFactory()
+)
 
 
 register_encoder_factory(VectorEncoderFactory)

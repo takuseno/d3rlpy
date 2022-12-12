@@ -5,7 +5,6 @@ from d3rlpy.models.encoders import (
     DenseEncoderFactory,
     PixelEncoderFactory,
     VectorEncoderFactory,
-    create_encoder_factory,
 )
 from d3rlpy.models.torch.encoders import (
     PixelEncoder,
@@ -105,16 +104,3 @@ def test_dense_encoder_factory(observation_shape, action_size, discrete_action):
     assert encoder._use_dense
 
     assert factory.get_type() == "dense"
-
-
-@pytest.mark.parametrize("name", ["pixel", "vector", "default", "dense"])
-def test_create_encoder_factory(name):
-    factory = create_encoder_factory(name)
-    if name == "pixel":
-        assert isinstance(factory, PixelEncoderFactory)
-    elif name == "vector":
-        assert isinstance(factory, VectorEncoderFactory)
-    elif name == "default":
-        assert isinstance(factory, DefaultEncoderFactory)
-    elif name == "dense":
-        assert isinstance(factory, DenseEncoderFactory)

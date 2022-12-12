@@ -4,14 +4,7 @@ import pytest
 import torch
 
 from d3rlpy.dataset import EpisodeGenerator
-from d3rlpy.preprocessing import MinMaxActionScaler, create_action_scaler
-
-
-@pytest.mark.parametrize("scaler_type", ["min_max"])
-def test_create_action_scaler(scaler_type):
-    scaler = create_action_scaler(scaler_type)
-    if scaler_type == "min_max":
-        assert isinstance(scaler, MinMaxActionScaler)
+from d3rlpy.preprocessing import MinMaxActionScaler
 
 
 @pytest.mark.parametrize("action_size", [10])
@@ -35,10 +28,6 @@ def test_min_max_action_scaler(action_size, batch_size):
     assert np.allclose(y.numpy(), ref_y * 2.0 - 1.0)
 
     assert scaler.get_type() == "min_max"
-    params = scaler.get_params()
-    assert np.all(params["minimum"] == min)
-    assert np.all(params["maximum"] == max)
-    assert torch.allclose(scaler.reverse_transform(y), x, atol=1e-6)
 
     # check numpy
     x = np.random.random((batch_size, action_size))
@@ -78,9 +67,6 @@ def test_min_max_action_scaler_with_episode(
     ref_y = (x.numpy() - min.reshape((1, -1))) / (max - min).reshape((1, -1))
 
     assert np.allclose(y.numpy(), ref_y * 2.0 - 1.0)
-    params = scaler.get_params()
-    assert np.all(params["minimum"] == min)
-    assert np.all(params["maximum"] == max)
 
 
 def test_min_max_action_scaler_with_env():
@@ -89,5 +75,5 @@ def test_min_max_action_scaler_with_env():
     scaler = MinMaxActionScaler()
     scaler.fit_with_env(env)
 
-    assert np.all(scaler._minimum == env.action_space.low)
-    assert np.all(scaler._maximum == env.action_space.high)
+    assert np.all(scaler.minimum == env.action_space.low)
+    assert np.all(scaler.maximum == env.action_space.high)

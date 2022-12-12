@@ -1,13 +1,15 @@
-from dataclasses import field
-from typing import Any, Dict, Optional, Sequence, Type
+import dataclasses
+from typing import Optional, Sequence
 
 import gym
 import numpy as np
 import torch
-from dataclasses_json import config
 
 from ..dataset import EpisodeBase
-from ..logger import LOG
+from ..serializable_config import (
+    DynamicConfig,
+    generate_optional_config_generation,
+)
 
 __all__ = [
     "RewardScaler",
@@ -17,14 +19,12 @@ __all__ = [
     "StandardRewardScaler",
     "ReturnBasedRewardScaler",
     "ConstantShiftRewardScaler",
-    "REWARD_SCALER_LIST",
     "register_reward_scaler",
-    "create_reward_scaler",
     "make_reward_scaler_field",
 ]
 
 
-class RewardScaler:
+class RewardScaler(DynamicConfig):
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         """Estimates scaling parameters from dataset.
 
@@ -82,29 +82,8 @@ class RewardScaler:
         """
         raise NotImplementedError
 
-    @staticmethod
-    def get_type() -> str:
-        """Returns a scaler type.
 
-        Returns:
-            scaler type.
-
-        """
-        raise NotImplementedError
-
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns scaling parameters.
-
-        Args:
-            deep: flag to deeply copy objects.
-
-        Returns:
-            scaler parameters.
-
-        """
-        raise NotImplementedError
-
-
+@dataclasses.dataclass(frozen=True)
 class MultiplyRewardScaler(RewardScaler):
     r"""Multiplication reward preprocessing.
 
@@ -123,32 +102,26 @@ class MultiplyRewardScaler(RewardScaler):
         multiplier (float): constant multiplication value.
 
     """
-    _multiplier: Optional[float]
-
-    def __init__(self, multiplier: Optional[float] = None):
-        self._multiplier = multiplier
+    multiplier: float = 1.0
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self._multiplier is None:
-            LOG.warning("Please initialize MultiplyRewardScaler manually.")
+        pass
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return self._multiplier * reward
+        return self.multiplier * reward
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return reward / self._multiplier
+        return reward / self.multiplier
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        return self._multiplier * reward
+        return self.multiplier * reward
 
     @staticmethod
     def get_type() -> str:
         return "multiply"
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {"multiplier": self._multiplier}
 
-
+@dataclasses.dataclass(frozen=True)
 class ClipRewardScaler(RewardScaler):
     r"""Reward clipping preprocessing.
 
@@ -167,45 +140,28 @@ class ClipRewardScaler(RewardScaler):
         multiplier (float): constant multiplication value.
 
     """
-    _low: Optional[float]
-    _high: Optional[float]
-    _multiplier: float
-
-    def __init__(
-        self,
-        low: Optional[float] = None,
-        high: Optional[float] = None,
-        multiplier: float = 1.0,
-    ):
-        self._low = low
-        self._high = high
-        self._multiplier = multiplier
+    low: Optional[float] = None
+    high: Optional[float] = None
+    multiplier: float = 1.0
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self._low is None and self._high is None:
-            LOG.warning("Please initialize ClipRewardScaler manually.")
+        pass
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return self._multiplier * reward.clamp(self._low, self._high)
+        return self.multiplier * reward.clamp(self.low, self.high)
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return reward / self._multiplier
+        return reward / self.multiplier
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        return self._multiplier * np.clip(reward, self._low, self._high)
+        return self.multiplier * np.clip(reward, self.low, self.high)
 
     @staticmethod
     def get_type() -> str:
         return "clip"
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {
-            "low": self._low,
-            "high": self._high,
-            "multiplier": self._multiplier,
-        }
 
-
+@dataclasses.dataclass()
 class MinMaxRewardScaler(RewardScaler):
     r"""Min-Max reward normalization preprocessing.
 
@@ -237,59 +193,40 @@ class MinMaxRewardScaler(RewardScaler):
         multiplier (float): constant multiplication value.
 
     """
-    _minimum: Optional[float]
-    _maximum: Optional[float]
-    _multiplier: float
-
-    def __init__(
-        self,
-        minimum: Optional[float] = None,
-        maximum: Optional[float] = None,
-        multiplier: float = 1.0,
-    ):
-        self._minimum = None
-        self._maximum = None
-        self._multiplier = multiplier
-        if minimum is not None and maximum is not None:
-            self._minimum = minimum
-            self._maximum = maximum
+    minimum: Optional[float] = None
+    maximum: Optional[float] = None
+    multiplier: float = 1.0
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self._minimum is not None and self._maximum is not None:
+        if self.minimum is not None and self.maximum is not None:
             return
 
         rewards = [episode.rewards for episode in episodes]
 
-        self._minimum = float(np.min(rewards))
-        self._maximum = float(np.max(rewards))
+        self.minimum = float(np.min(rewards))
+        self.maximum = float(np.max(rewards))
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self._minimum is not None and self._maximum is not None
-        base = self._maximum - self._minimum
-        return self._multiplier * (reward - self._minimum) / base
+        assert self.minimum is not None and self.maximum is not None
+        base = self.maximum - self.minimum
+        return self.multiplier * (reward - self.minimum) / base
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self._minimum is not None and self._maximum is not None
-        base = self._maximum - self._minimum
-        return reward * base / self._multiplier + self._minimum
+        assert self.minimum is not None and self.maximum is not None
+        base = self.maximum - self.minimum
+        return reward * base / self.multiplier + self.minimum
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        assert self._minimum is not None and self._maximum is not None
-        base = self._maximum - self._minimum
-        return self._multiplier * (reward - self._minimum) / base
+        assert self.minimum is not None and self.maximum is not None
+        base = self.maximum - self.minimum
+        return self.multiplier * (reward - self.minimum) / base
 
     @staticmethod
     def get_type() -> str:
         return "min_max"
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {
-            "minimum": self._minimum,
-            "maximum": self._maximum,
-            "multiplier": self._multiplier,
-        }
 
-
+@dataclasses.dataclass()
 class StandardRewardScaler(RewardScaler):
     r"""Reward standardization preprocessing.
 
@@ -322,60 +259,37 @@ class StandardRewardScaler(RewardScaler):
         multiplier (float): constant multiplication value
 
     """
-    _mean: Optional[float]
-    _std: Optional[float]
-    _eps: float
-    _multiplier: float
-
-    def __init__(
-        self,
-        mean: Optional[float] = None,
-        std: Optional[float] = None,
-        eps: float = 1e-3,
-        multiplier: float = 1.0,
-    ):
-        self._mean = None
-        self._std = None
-        self._eps = eps
-        self._multiplier = multiplier
-        if mean is not None and std is not None:
-            self._mean = mean
-            self._std = std
+    mean: Optional[float] = None
+    std: Optional[float] = None
+    eps: float = 1e-3
+    multiplier: float = 1.0
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self._mean is not None and self._std is not None:
+        if self.mean is not None and self.std is not None:
             return
 
         rewards = [episode.rewards for episode in episodes]
 
-        self._mean = float(np.mean(rewards))
-        self._std = float(np.std(rewards))
+        self.mean = float(np.mean(rewards))
+        self.std = float(np.std(rewards))
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self._mean is not None and self._std is not None
-        nonzero_std = self._std + self._eps
-        return self._multiplier * (reward - self._mean) / nonzero_std
+        assert self.mean is not None and self.std is not None
+        nonzero_std = self.std + self.eps
+        return self.multiplier * (reward - self.mean) / nonzero_std
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self._mean is not None and self._std is not None
-        return reward * (self._std + self._eps) / self._multiplier + self._mean
+        assert self.mean is not None and self.std is not None
+        return reward * (self.std + self.eps) / self.multiplier + self.mean
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        assert self._mean is not None and self._std is not None
-        nonzero_std = self._std + self._eps
-        return self._multiplier * (reward - self._mean) / nonzero_std
+        assert self.mean is not None and self.std is not None
+        nonzero_std = self.std + self.eps
+        return self.multiplier * (reward - self.mean) / nonzero_std
 
     @staticmethod
     def get_type() -> str:
         return "standard"
-
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {
-            "mean": self._mean,
-            "std": self._std,
-            "eps": self._eps,
-            "multiplier": self._multiplier,
-        }
 
 
 class ReturnBasedRewardScaler(RewardScaler):
@@ -413,25 +327,12 @@ class ReturnBasedRewardScaler(RewardScaler):
         multiplier (float): constant multiplication value
 
     """
-    _return_max: Optional[float]
-    _return_min: Optional[float]
-    _multiplier: float
-
-    def __init__(
-        self,
-        return_max: Optional[float] = None,
-        return_min: Optional[float] = None,
-        multiplier: float = 1.0,
-    ):
-        self._return_max = None
-        self._return_min = None
-        self._multiplier = multiplier
-        if return_max is not None and return_min is not None:
-            self._return_max = return_max
-            self._return_min = return_min
+    return_max: Optional[float] = None
+    return_min: Optional[float] = None
+    multiplier: float = 1.0
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self._return_max is not None and self._return_min is not None:
+        if self.return_max is not None and self.return_min is not None:
             return
 
         # accumulate all rewards
@@ -439,33 +340,27 @@ class ReturnBasedRewardScaler(RewardScaler):
         for episode in episodes:
             returns.append(episode.compute_return())
 
-        self._return_max = float(np.max(returns))
-        self._return_min = float(np.min(returns))
+        self.return_max = float(np.max(returns))
+        self.return_min = float(np.min(returns))
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self._return_max is not None and self._return_min is not None
-        return self._multiplier * reward / (self._return_max - self._return_min)
+        assert self.return_max is not None and self.return_min is not None
+        return self.multiplier * reward / (self.return_max - self.return_min)
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self._return_max is not None and self._return_min is not None
-        return reward * (self._return_max + self._return_min) / self._multiplier
+        assert self.return_max is not None and self.return_min is not None
+        return reward * (self.return_max + self.return_min) / self.multiplier
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        assert self._return_max is not None and self._return_min is not None
-        return self._multiplier * reward / (self._return_max - self._return_min)
+        assert self.return_max is not None and self.return_min is not None
+        return self.multiplier * reward / (self.return_max - self.return_min)
 
     @staticmethod
     def get_type() -> str:
         return "return"
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {
-            "return_max": self._return_max,
-            "return_min": self._return_min,
-            "multiplier": self._multiplier,
-        }
 
-
+@dataclasses.dataclass(frozen=True)
 class ConstantShiftRewardScaler(RewardScaler):
     r"""Reward shift preprocessing.
 
@@ -492,74 +387,29 @@ class ConstantShiftRewardScaler(RewardScaler):
         shift (float): constant shift value
 
     """
-    _shift: float
-
-    def __init__(
-        self,
-        shift: float = 0.0,
-    ):
-        self._shift = shift
+    shift: float
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self._shift is None:
-            LOG.warning("Please initialize ConstantShiftRewardScaler manually.")
+        pass
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return self._shift + reward
+        return self.shift + reward
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return reward - self._shift
+        return reward - self.shift
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        return self._shift + reward
+        return self.shift + reward
 
     @staticmethod
     def get_type() -> str:
         return "shift"
 
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        return {"shift": self._shift}
 
-
-REWARD_SCALER_LIST: Dict[str, Type[RewardScaler]] = {}
-
-
-def register_reward_scaler(cls: Type[RewardScaler]) -> None:
-    """Registers reward scaler class.
-
-    Args:
-        cls: scaler class inheriting ``RewardScaler``.
-
-    """
-    type_name = cls.get_type()
-    is_registered = type_name in REWARD_SCALER_LIST
-    assert not is_registered, f"{type_name} seems to be already registered"
-    REWARD_SCALER_LIST[type_name] = cls
-
-
-def create_reward_scaler(name: str, **kwargs: Any) -> RewardScaler:
-    assert name in REWARD_SCALER_LIST, f"{name} seems not to be registered."
-    reward_scaler = REWARD_SCALER_LIST[name](**kwargs)
-    assert isinstance(reward_scaler, RewardScaler)
-    return reward_scaler
-
-
-def _encoder(scaler: Optional[RewardScaler]) -> Dict[str, Any]:
-    if scaler is None:
-        return {"type": "none", "params": {}}
-    return {"type": scaler.get_type(), "params": scaler.get_params()}
-
-
-def _decoder(dict_config: Dict[str, Any]) -> Optional[RewardScaler]:
-    if dict_config["type"] == "none":
-        return None
-    return create_reward_scaler(dict_config["type"], **dict_config["params"])
-
-
-def make_reward_scaler_field() -> Optional[RewardScaler]:
-    return field(
-        metadata=config(encoder=_encoder, decoder=_decoder), default=None
-    )
+(
+    register_reward_scaler,
+    make_reward_scaler_field,
+) = generate_optional_config_generation(RewardScaler)
 
 
 register_reward_scaler(MultiplyRewardScaler)

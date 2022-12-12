@@ -7,21 +7,9 @@ from d3rlpy.preprocessing import (
     MinMaxObservationScaler,
     PixelObservationScaler,
     StandardObservationScaler,
-    create_observation_scaler,
 )
 
 from ..dummy_env import DummyAtari
-
-
-@pytest.mark.parametrize("scaler_type", ["pixel", "min_max", "standard"])
-def test_create_observation_scaler(scaler_type):
-    scaler = create_observation_scaler(scaler_type)
-    if scaler_type == "pixel":
-        assert isinstance(scaler, PixelObservationScaler)
-    elif scaler_type == "min_max":
-        assert isinstance(scaler, MinMaxObservationScaler)
-    elif scaler_type == "standard":
-        assert isinstance(scaler, StandardObservationScaler)
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84)])
@@ -35,7 +23,6 @@ def test_pixel_observation_scaler(observation_shape):
     assert torch.all(y == x.float() / 255.0)
 
     assert scaler.get_type() == "pixel"
-    assert scaler.get_params() == {}
     assert torch.all(scaler.reverse_transform(y) == x)
 
 
@@ -60,9 +47,6 @@ def test_min_max_observation_scaler(observation_shape, batch_size):
     assert np.allclose(y.numpy(), ref_y)
 
     assert scaler.get_type() == "min_max"
-    params = scaler.get_params()
-    assert np.all(params["minimum"] == min)
-    assert np.all(params["maximum"] == max)
     assert torch.allclose(scaler.reverse_transform(y), x)
 
 
@@ -130,9 +114,6 @@ def test_standard_observation_scaler(observation_shape, batch_size, eps):
     assert np.allclose(y.numpy(), ref_y)
 
     assert scaler.get_type() == "standard"
-    params = scaler.get_params()
-    assert np.all(params["mean"] == mean)
-    assert np.all(params["std"] == std)
     assert torch.allclose(scaler.reverse_transform(y), x, atol=1e-6)
 
 

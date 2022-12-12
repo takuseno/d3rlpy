@@ -5,7 +5,7 @@ import pytest
 
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
-from d3rlpy.models.q_functions import create_q_func_factory
+from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory
 from d3rlpy.ope.torch.fqe_impl import DiscreteFQEImpl, FQEImpl
 from tests.algos.algo_test import (
     DummyActionScaler,
@@ -43,7 +43,9 @@ def torch_impl_tester(impl, discrete):
 @pytest.mark.parametrize("learning_rate", [1e-3])
 @pytest.mark.parametrize("optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
-@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
+@pytest.mark.parametrize(
+    "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
+)
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
@@ -68,7 +70,7 @@ def test_fqe_impl(
         learning_rate=learning_rate,
         optim_factory=optim_factory,
         encoder_factory=encoder_factory,
-        q_func_factory=create_q_func_factory(q_func_factory),
+        q_func_factory=q_func_factory,
         gamma=gamma,
         n_critics=n_critics,
         use_gpu=None,
@@ -85,7 +87,9 @@ def test_fqe_impl(
 @pytest.mark.parametrize("learning_rate", [1e-3])
 @pytest.mark.parametrize("optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
-@pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
+@pytest.mark.parametrize(
+    "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
+)
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
@@ -108,7 +112,7 @@ def test_discrete_fqe_impl(
         learning_rate=learning_rate,
         optim_factory=optim_factory,
         encoder_factory=encoder_factory,
-        q_func_factory=create_q_func_factory(q_func_factory),
+        q_func_factory=q_func_factory,
         gamma=gamma,
         n_critics=n_critics,
         use_gpu=None,
