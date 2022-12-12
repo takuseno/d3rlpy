@@ -83,10 +83,8 @@ class LearnableConfig(DynamicConfig):
     action_scaler: Optional[ActionScaler] = make_action_scaler_field()
     reward_scaler: Optional[RewardScaler] = make_reward_scaler_field()
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "LearnableBase":
-        return LearnableBase(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "LearnableBase":
+        raise NotImplementedError
 
 
 register_learnable, make_learnable_field = generate_config_registration(
@@ -119,7 +117,7 @@ class LearnableBase:
         self,
         config: LearnableConfig,
         use_gpu: UseGPUArg,
-        impl: Optional[ImplBase],
+        impl: Optional[ImplBase] = None,
     ):
         self._config = config
         self._use_gpu = check_use_gpu(use_gpu)

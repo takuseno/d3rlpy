@@ -2,7 +2,7 @@ import dataclasses
 from typing import Dict, Optional
 
 from ..argument_utility import UseGPUArg
-from ..base import ImplBase, LearnableConfig, register_learnable
+from ..base import LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
@@ -81,10 +81,8 @@ class AWACConfig(LearnableConfig):
     n_critics: int = 2
     update_actor_interval: int = 1
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "AWAC":
-        return AWAC(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "AWAC":
+        return AWAC(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:

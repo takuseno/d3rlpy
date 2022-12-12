@@ -1,10 +1,10 @@
 import dataclasses
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 import numpy as np
 
 from ..argument_utility import UseGPUArg
-from ..base import ImplBase, LearnableConfig, register_learnable
+from ..base import LearnableConfig, register_learnable
 from ..constants import ActionSpace
 from ..dataset import Shape
 from .base import AlgoBase
@@ -35,9 +35,7 @@ class RandomPolicyConfig(LearnableConfig):
     distribution: str = "uniform"
     normal_std: float = 1.0
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "RandomPolicy":
+    def create(self, use_gpu: UseGPUArg = False) -> "RandomPolicy":
         return RandomPolicy(self)
 
     @staticmethod
@@ -102,9 +100,7 @@ class DiscreteRandomPolicyConfig(LearnableConfig):
 
     """
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "DiscreteRandomPolicy":
+    def create(self, use_gpu: UseGPUArg = False) -> "DiscreteRandomPolicy":
         return DiscreteRandomPolicy(self)
 
     @staticmethod

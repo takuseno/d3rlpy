@@ -2,7 +2,7 @@ import dataclasses
 from typing import Dict, Optional
 
 from ..argument_utility import UseGPUArg
-from ..base import ImplBase, LearnableConfig, register_learnable
+from ..base import LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
@@ -79,10 +79,8 @@ class TD3PlusBCConfig(LearnableConfig):
     alpha: float = 2.5
     update_actor_interval: int = 2
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "TD3PlusBC":
-        return TD3PlusBC(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "TD3PlusBC":
+        return TD3PlusBC(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:

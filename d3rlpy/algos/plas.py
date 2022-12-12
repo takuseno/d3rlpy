@@ -2,7 +2,7 @@ import dataclasses
 from typing import Dict, Optional
 
 from ..argument_utility import UseGPUArg
-from ..base import ImplBase, LearnableConfig, register_learnable
+from ..base import LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
@@ -88,10 +88,8 @@ class PLASConfig(LearnableConfig):
     warmup_steps: int = 500000
     beta: float = 0.5
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "PLAS":
-        return PLAS(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "PLAS":
+        return PLAS(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:
@@ -196,12 +194,8 @@ class PLASWithPerturbationConfig(PLASConfig):
     """
     action_flexibility: float = 0.05
 
-    def create(
-        self,
-        use_gpu: UseGPUArg = False,
-        impl: Optional[ImplBase] = None,
-    ) -> "PLASWithPerturbation":
-        return PLASWithPerturbation(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "PLASWithPerturbation":
+        return PLASWithPerturbation(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:

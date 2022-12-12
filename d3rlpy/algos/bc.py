@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 
 from ..argument_utility import UseGPUArg
-from ..base import ImplBase, LearnableConfig, register_learnable
+from ..base import LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..gpu import Device
@@ -73,10 +73,8 @@ class BCConfig(LearnableConfig):
     optim_factory: OptimizerFactory = make_optimizer_field()
     encoder_factory: EncoderFactory = make_encoder_field()
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "BC":
-        return BC(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "BC":
+        return BC(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:
@@ -140,10 +138,8 @@ class DiscreteBCConfig(LearnableConfig):
     encoder_factory: EncoderFactory = make_encoder_field()
     beta: float = 0.5
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "DiscreteBC":
-        return DiscreteBC(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "DiscreteBC":
+        return DiscreteBC(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:

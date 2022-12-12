@@ -2,7 +2,7 @@ import dataclasses
 from typing import Dict, Optional
 
 from ..argument_utility import UseGPUArg
-from ..base import ImplBase, LearnableConfig, register_learnable
+from ..base import LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
@@ -116,10 +116,8 @@ class CQLConfig(LearnableConfig):
     n_action_samples: int = 10
     soft_q_backup: bool = False
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "CQL":
-        return CQL(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "CQL":
+        return CQL(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:
@@ -242,10 +240,8 @@ class DiscreteCQLConfig(LearnableConfig):
     target_update_interval: int = 8000
     alpha: float = 1.0
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "DiscreteCQL":
-        return DiscreteCQL(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "DiscreteCQL":
+        return DiscreteCQL(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:

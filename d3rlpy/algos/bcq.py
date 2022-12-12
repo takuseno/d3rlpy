@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 
 from ..argument_utility import UseGPUArg
-from ..base import ImplBase, LearnableConfig, register_learnable
+from ..base import LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
@@ -149,10 +149,8 @@ class BCQConfig(LearnableConfig):
     rl_start_step: int = 0
     beta: float = 0.5
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "BCQ":
-        return BCQ(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "BCQ":
+        return BCQ(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:
@@ -289,10 +287,8 @@ class DiscreteBCQConfig(LearnableConfig):
     beta: float = 0.5
     target_update_interval: int = 8000
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "DiscreteBCQ":
-        return DiscreteBCQ(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "DiscreteBCQ":
+        return DiscreteBCQ(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:

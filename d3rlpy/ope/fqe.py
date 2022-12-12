@@ -5,7 +5,7 @@ import numpy as np
 
 from ..algos import AlgoBase
 from ..argument_utility import UseGPUArg
-from ..base import ImplBase, LearnableConfig, register_learnable
+from ..base import LearnableConfig, register_learnable
 from ..constants import (
     ALGO_NOT_GIVEN_ERROR,
     IMPL_NOT_INITIALIZED_ERROR,
@@ -69,9 +69,7 @@ class FQEConfig(LearnableConfig):
     n_critics: int = 1
     target_update_interval: int = 100
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "_FQEBase":
+    def create(self, use_gpu: UseGPUArg = False) -> "_FQEBase":
         raise NotImplementedError(
             "Config object must be directly given to constructor"
         )

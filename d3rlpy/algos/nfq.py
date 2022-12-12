@@ -2,7 +2,7 @@ import dataclasses
 from typing import Dict, Optional
 
 from ..argument_utility import UseGPUArg
-from ..base import ImplBase, LearnableConfig, register_learnable
+from ..base import LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
@@ -58,10 +58,8 @@ class NFQConfig(LearnableConfig):
     gamma: float = 0.99
     n_critics: int = 1
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "NFQ":
-        return NFQ(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "NFQ":
+        return NFQ(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:

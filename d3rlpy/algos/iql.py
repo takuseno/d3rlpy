@@ -2,7 +2,7 @@ import dataclasses
 from typing import Dict, Optional
 
 from ..argument_utility import UseGPUArg
-from ..base import ImplBase, LearnableConfig, register_learnable
+from ..base import LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
@@ -92,10 +92,8 @@ class IQLConfig(LearnableConfig):
     weight_temp: float = 3.0
     max_weight: float = 100.0
 
-    def create(
-        self, use_gpu: UseGPUArg = False, impl: Optional[ImplBase] = None
-    ) -> "IQL":
-        return IQL(self, use_gpu, impl)
+    def create(self, use_gpu: UseGPUArg = False) -> "IQL":
+        return IQL(self, use_gpu)
 
     @staticmethod
     def get_type() -> str:
