@@ -1,16 +1,7 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-from typing import (
-    Any,
-    Callable,
-    DefaultDict,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Tuple,
-)
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 
 import gym
 import numpy as np
@@ -108,9 +99,6 @@ class LearnableBase:
     _config: LearnableConfig
     _use_gpu: Optional[Device]
     _impl: Optional[ImplBase]
-    _eval_results: DefaultDict[str, List[float]]
-    _loss_history: DefaultDict[str, List[float]]
-    _active_logger: Optional[D3RLPyLogger]
     _grad_step: int
 
     def __init__(
@@ -122,9 +110,6 @@ class LearnableBase:
         self._config = config
         self._use_gpu = check_use_gpu(use_gpu)
         self._impl = impl
-        self._eval_results = defaultdict(list)
-        self._loss_history = defaultdict(list)
-        self._active_logger = None
         self._grad_step = 0
 
     def save_model(self, fname: str) -> None:
@@ -322,9 +307,6 @@ class LearnableBase:
             tensorboard_dir,
         )
 
-        # add reference to active logger to algo class during fit
-        self._active_logger = logger
-
         # initialize observation scaler
         if self._config.observation_scaler:
             LOG.debug(
@@ -361,12 +343,6 @@ class LearnableBase:
 
         # save hyperparameters
         self.save_params(logger)
-
-        # refresh evaluation metrics
-        self._eval_results = defaultdict(list)
-
-        # refresh loss history
-        self._loss_history = defaultdict(list)
 
         # training loop
         n_epochs = n_steps // n_steps_per_epoch
@@ -412,13 +388,6 @@ class LearnableBase:
                 if callback:
                     callback(self, epoch, total_step)
 
-            # save loss to loss history dict
-            self._loss_history["epoch"].append(epoch)
-            self._loss_history["step"].append(total_step)
-            for name, vals in epoch_loss.items():
-                if vals:
-                    self._loss_history[name].append(np.mean(vals))
-
             if scorers and eval_episodes:
                 self._evaluate(
                     eval_episodes, scorers, logger, dataset.transition_picker
@@ -433,10 +402,7 @@ class LearnableBase:
 
             yield epoch, metrics
 
-        # drop reference to active logger since out of fit there is no active
-        # logger
-        self._active_logger.close()
-        self._active_logger = None
+        logger.close()
 
     def create_impl(self, observation_shape: Shape, action_size: int) -> None:
         """Instantiate implementation objects with the dataset shapes.
@@ -532,10 +498,6 @@ class LearnableBase:
             # logging metrics
             logger.add_metric(name, test_score)
 
-            # store metric locally
-            if test_score is not None:
-                self._eval_results[name].append(test_score)
-
     def save_params(self, logger: D3RLPyLogger) -> None:
         """Saves configurations as params.json.
 
@@ -626,10 +588,6 @@ class LearnableBase:
         """
         return self._impl
 
-    @impl.setter
-    def impl(self, impl: ImplBase) -> None:
-        self._impl = impl
-
     @property
     def observation_shape(self) -> Optional[Shape]:
         """Observation shape.
@@ -653,27 +611,6 @@ class LearnableBase:
         if self._impl:
             return self._impl.action_size
         return None
-
-    @property
-    def active_logger(self) -> Optional[D3RLPyLogger]:
-        """Active D3RLPyLogger object.
-
-        This will be only available during training.
-
-        Returns:
-            logger object.
-
-        """
-        return self._active_logger
-
-    def set_active_logger(self, logger: D3RLPyLogger) -> None:
-        """Set active D3RLPyLogger object
-
-        Args:
-            logger: logger object.
-
-        """
-        self._active_logger = logger
 
     @property
     def grad_step(self) -> int:

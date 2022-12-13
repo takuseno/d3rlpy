@@ -33,9 +33,6 @@ class AlgoProtocol(Protocol):
     def save_model(self, fname: str) -> None:
         ...
 
-    def set_active_logger(self, logger: D3RLPyLogger) -> None:
-        ...
-
     @property
     def action_size(self) -> Optional[int]:
         ...
@@ -160,7 +157,6 @@ def train_single_env(
         tensorboard_dir=tensorboard_dir,
         with_timestamp=with_timestamp,
     )
-    algo.set_active_logger(logger)
 
     # initialize algorithm parameters
     _setup_algo(algo, env)
