@@ -177,8 +177,8 @@ import d3rlpy
 import gym
 
 # prepare environment
-env = gym.make('HopperBulletEnv-v0')
-eval_env = gym.make('HopperBulletEnv-v0')
+env = gym.make('Hopper-v3')
+eval_env = gym.make('Hopper-v3')
 
 # prepare algorithm
 sac = d3rlpy.algos.SAC(use_gpu=True)
