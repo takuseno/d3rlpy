@@ -96,13 +96,6 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 - [x] [Quantile Regression](https://arxiv.org/abs/1710.10044)
 - [x] [Implicit Quantile Network](https://arxiv.org/abs/1806.06923)
 
-## experimental features
-- Model-based Algorithms
-  - [Model-based Offline Policy Optimization (MOPO)](https://arxiv.org/abs/2005.13239)
-  - [Conservative Offline Model-Based Policy Optimization (COMBO)](https://arxiv.org/abs/2102.08363)
-- Q-functions
-  - [Fully parametrized Quantile Function](https://arxiv.org/abs/1911.02140) (experimental)
-
 ## benchmark results
 d3rlpy is benchmarked to ensure the implementation quality.
 The benchmark scripts are available [reproductions](https://github.com/takuseno/d3rlpy/tree/master/reproductions) directory.
@@ -213,9 +206,7 @@ The release planning can be checked at [milestones](https://github.com/takuseno/
 ## family projects
 | Project | Description |
 |:-:|:-|
-| [d4rl-pybullet](https://github.com/takuseno/d4rl-pybullet) | An offline RL datasets of PyBullet tasks |
 | [d4rl-atari](https://github.com/takuseno/d4rl-atari) | A d4rl-style library of Google's Atari 2600 datasets |
-| [MINERVA](https://github.com/takuseno/minerva) | An out-of-the-box GUI tool for offline RL |
 
 ## roadmap
 The roadmap to the future release is available in [ROADMAP.md](ROADMAP.md).
