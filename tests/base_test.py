@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import numpy as np
 
+from d3rlpy.base import save_config
 from d3rlpy.constants import ActionSpace
 from d3rlpy.dataset import (
     DatasetInfo,
@@ -99,7 +100,7 @@ def base_tester(
     # save params.json
     logger = D3RLPyLogger("test", root_dir="test_data", verbose=False)
     # save parameters to test_data/test/params.json
-    model.save_params(logger)
+    save_config(model, logger)
     # load params.json
     if not skip_from_json:
         json_path = os.path.join(logger.logdir, "params.json")

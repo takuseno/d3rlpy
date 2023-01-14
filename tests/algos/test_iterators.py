@@ -2,9 +2,9 @@ import gym
 import pytest
 
 from d3rlpy.algos import DQNConfig, SACConfig
+from d3rlpy.algos.explorers import LinearDecayEpsilonGreedy
 from d3rlpy.dataset import InfiniteBuffer, ReplayBuffer
 from d3rlpy.envs import ChannelFirst
-from d3rlpy.online.explorers import LinearDecayEpsilonGreedy
 
 from ..dummy_env import DummyAtari
 

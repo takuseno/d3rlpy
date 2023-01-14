@@ -18,8 +18,8 @@ def ope_tester(ope, observation_shape, action_size=2):
 
     base_tester(ope, impl, observation_shape, action_size, skip_from_json=True)
 
-    ope._algo.impl = impl
-    ope.impl = impl
+    ope._algo._impl = impl
+    ope._impl = impl
 
     # check save policy
     impl.save_policy = Mock()
@@ -51,8 +51,8 @@ def ope_tester(ope, observation_shape, action_size=2):
     except NotImplementedError:
         pass
 
-    ope.impl = None
-    ope._algo.impl = None
+    ope._impl = None
+    ope._algo._impl = None
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])

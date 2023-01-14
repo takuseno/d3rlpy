@@ -3,8 +3,9 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 
 import gym
 import numpy as np
+from tqdm.auto import trange
 
-from ..base import ImplBase, LearnableBase
+from ..base import ImplBase, LearnableBase, save_config
 from ..constants import (
     CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR,
     DISCRETE_ACTION_SPACE_MISMATCH_ERROR,
@@ -12,8 +13,9 @@ from ..constants import (
     ActionSpace,
 )
 from ..dataset import ReplayBuffer, create_fifo_replay_buffer
-from ..online.explorers import Explorer
-from ..online.iterators import AlgoProtocol, collect, train_single_env
+from ..logger import LOG, D3RLPyLogger
+from ..metrics.scorer import evaluate_on_environment
+from .explorers import Explorer
 
 __all__ = ["AlgoImplBase", "AlgoBase"]
 
@@ -70,6 +72,32 @@ class AlgoImplBase(ImplBase):
 
     def reset_optimizer_states(self) -> None:
         raise NotImplementedError
+
+
+def _setup_algo(algo: "AlgoBase", env: gym.Env) -> None:
+    # initialize observation scaler
+    if algo.observation_scaler:
+        LOG.debug(
+            "Fitting observation scaler...",
+            observation_scaler=algo.observation_scaler.get_type(),
+        )
+        algo.observation_scaler.fit_with_env(env)
+
+    # initialize action scaler
+    if algo.action_scaler:
+        LOG.debug(
+            "Fitting action scaler...",
+            action_scler=algo.action_scaler.get_type(),
+        )
+        algo.action_scaler.fit_with_env(env)
+
+    # setup algorithm
+    if algo.impl is None:
+        LOG.debug("Building model...")
+        algo.build_with_env(env)
+        LOG.debug("Model has been built.")
+    else:
+        LOG.warning("Skip building models since they're already built.")
 
 
 class AlgoBase(LearnableBase):
@@ -207,7 +235,7 @@ class AlgoBase(LearnableBase):
         show_progress: bool = True,
         tensorboard_dir: Optional[str] = None,
         timelimit_aware: bool = True,
-        callback: Optional[Callable[[AlgoProtocol, int, int], None]] = None,
+        callback: Optional[Callable[["AlgoBase", int, int], None]] = None,
     ) -> None:
         """Start training loop of online deep reinforcement learning.
 
@@ -250,29 +278,117 @@ class AlgoBase(LearnableBase):
         # check action-space
         _assert_action_space(self, env)
 
-        train_single_env(
-            algo=self,
-            env=env,
-            buffer=buffer,
-            explorer=explorer,
-            n_steps=n_steps,
-            n_steps_per_epoch=n_steps_per_epoch,
-            update_interval=update_interval,
-            update_start_step=update_start_step,
-            random_steps=random_steps,
-            eval_env=eval_env,
-            eval_epsilon=eval_epsilon,
+        # setup logger
+        if experiment_name is None:
+            experiment_name = self.__class__.__name__ + "_online"
+        logger = D3RLPyLogger(
+            experiment_name,
             save_metrics=save_metrics,
-            save_interval=save_interval,
-            experiment_name=experiment_name,
-            with_timestamp=with_timestamp,
-            logdir=logdir,
+            root_dir=logdir,
             verbose=verbose,
-            show_progress=show_progress,
             tensorboard_dir=tensorboard_dir,
-            timelimit_aware=timelimit_aware,
-            callback=callback,
+            with_timestamp=with_timestamp,
         )
+
+        # initialize algorithm parameters
+        _setup_algo(self, env)
+
+        # save hyperparameters
+        save_config(self, logger)
+
+        # switch based on show_progress flag
+        xrange = trange if show_progress else range
+
+        # setup evaluation scorer
+        eval_scorer: Optional[Callable[..., float]]
+        if eval_env:
+            eval_scorer = evaluate_on_environment(
+                eval_env, epsilon=eval_epsilon
+            )
+        else:
+            eval_scorer = None
+
+        # start training loop
+        observation = env.reset()
+        rollout_return = 0.0
+        for total_step in xrange(1, n_steps + 1):
+            with logger.measure_time("step"):
+                # sample exploration action
+                with logger.measure_time("inference"):
+                    if total_step < random_steps:
+                        action = env.action_space.sample()
+                    elif explorer:
+                        x = observation.reshape((1,) + observation.shape)
+                        action = explorer.sample(self, x, total_step)[0]
+                    else:
+                        action = self.sample_action([observation])[0]
+
+                # step environment
+                with logger.measure_time("environment_step"):
+                    next_observation, reward, terminal, info = env.step(action)
+                    rollout_return += reward
+
+                # special case for TimeLimit wrapper
+                if timelimit_aware and "TimeLimit.truncated" in info:
+                    clip_episode = True
+                    terminal = False
+                else:
+                    clip_episode = terminal
+
+                # store observation
+                buffer.append(observation, action, reward)
+
+                # reset if terminated
+                if clip_episode:
+                    buffer.clip_episode(terminal)
+                    observation = env.reset()
+                    logger.add_metric("rollout_return", rollout_return)
+                    rollout_return = 0.0
+                else:
+                    observation = next_observation
+
+                # psuedo epoch count
+                epoch = total_step // n_steps_per_epoch
+
+                if (
+                    total_step > update_start_step
+                    and buffer.transition_count > self.batch_size
+                ):
+                    if total_step % update_interval == 0:
+                        # sample mini-batch
+                        with logger.measure_time("sample_batch"):
+                            batch = buffer.sample_transition_batch(
+                                self.batch_size
+                            )
+
+                        # update parameters
+                        with logger.measure_time("algorithm_update"):
+                            loss = self.update(batch)
+
+                        # record metrics
+                        for name, val in loss.items():
+                            logger.add_metric(name, val)
+
+                # call callback if given
+                if callback:
+                    callback(self, epoch, total_step)
+
+            if epoch > 0 and total_step % n_steps_per_epoch == 0:
+                # evaluation
+                if eval_scorer:
+                    logger.add_metric("evaluation", eval_scorer(self))
+
+                if epoch % save_interval == 0:
+                    logger.save_model(total_step, self)
+
+                # save metrics
+                logger.commit(epoch, total_step)
+
+        # clip the last episode
+        buffer.clip_episode(False)
+
+        # close logger
+        logger.close()
 
     def collect(
         self,
@@ -310,16 +426,47 @@ class AlgoBase(LearnableBase):
         # check action-space
         _assert_action_space(self, env)
 
-        collect(
-            algo=self,
-            env=env,
-            buffer=buffer,
-            explorer=explorer,
-            deterministic=deterministic,
-            n_steps=n_steps,
-            show_progress=show_progress,
-            timelimit_aware=timelimit_aware,
-        )
+        # initialize algorithm parameters
+        _setup_algo(self, env)
+
+        # switch based on show_progress flag
+        xrange = trange if show_progress else range
+
+        # start training loop
+        observation = env.reset()
+        for total_step in xrange(1, n_steps + 1):
+            # sample exploration action
+            if deterministic:
+                action = self.predict([observation])[0]
+            else:
+                if explorer:
+                    x = observation.reshape((1,) + observation.shape)
+                    action = explorer.sample(self, x, total_step)[0]
+                else:
+                    action = self.sample_action([observation])[0]
+
+            # step environment
+            next_observation, reward, terminal, info = env.step(action)
+
+            # special case for TimeLimit wrapper
+            if timelimit_aware and "TimeLimit.truncated" in info:
+                clip_episode = True
+                terminal = False
+            else:
+                clip_episode = terminal
+
+            # store observation
+            buffer.append(observation, action, reward)
+
+            # reset if terminated
+            if clip_episode:
+                buffer.clip_episode(terminal)
+                observation = env.reset()
+            else:
+                observation = next_observation
+
+        # clip the last episode
+        buffer.clip_episode(False)
 
         return buffer
 

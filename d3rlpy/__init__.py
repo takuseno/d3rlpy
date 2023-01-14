@@ -10,7 +10,6 @@ from .dataset import *
 from .envs import *
 from .metrics import *
 from .models import *
-from .online import *
 from .ope import *
 from .preprocessing import *
 from .wrappers import *

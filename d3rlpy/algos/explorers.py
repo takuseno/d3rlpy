@@ -18,9 +18,6 @@ class _ActionProtocol(Protocol):
     def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
         ...
 
-    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
-        ...
-
     @property
     def action_size(self) -> Optional[int]:
         ...

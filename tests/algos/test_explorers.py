@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from d3rlpy.online.explorers import (
+from d3rlpy.algos.explorers import (
     ConstantEpsilonGreedy,
     LinearDecayEpsilonGreedy,
     NormalNoise,

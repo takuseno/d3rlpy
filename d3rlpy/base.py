@@ -1,10 +1,11 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, cast
 
 import gym
 import numpy as np
+from gym.spaces import Discrete
 from tqdm.auto import tqdm
 
 from .argument_utility import UseGPUArg, check_use_gpu
@@ -24,7 +25,6 @@ from .dataset import (
 )
 from .gpu import Device
 from .logger import LOG, D3RLPyLogger
-from .online.utility import get_action_size_from_env
 from .preprocessing import (
     ActionScaler,
     ObservationScaler,
@@ -37,6 +37,7 @@ from .serializable_config import DynamicConfig, generate_config_registration
 
 __all__ = [
     "ImplBase",
+    "save_config",
     "LearnableBase",
     "LearnableConfig",
     "LearnableConfigWithShape",
@@ -93,6 +94,32 @@ class LearnableConfigWithShape(DynamicConfig):
         algo = self.config.create(use_gpu)
         algo.create_impl(self.observation_shape, self.action_size)
         return algo
+
+
+def save_config(alg: "LearnableBase", logger: D3RLPyLogger) -> None:
+    assert alg.impl
+    config = LearnableConfigWithShape(
+        observation_shape=alg.impl.observation_shape,
+        action_size=alg.impl.action_size,
+        config=alg.config,
+    )
+    logger.add_params(config.serialize_to_dict())
+
+
+def evaluate(
+    alg: "LearnableBase",
+    scorers: Dict[
+        str, Callable[[Any, List[Episode], TransitionPickerProtocol], float]
+    ],
+    episodes: List[Episode],
+    transition_picker: TransitionPickerProtocol,
+    logger: D3RLPyLogger,
+) -> None:
+    for name, scorer in scorers.items():
+        # evaluate with test data
+        test_score = scorer(alg, episodes, transition_picker)
+        # save metrics
+        logger.add_metric(name, test_score)
 
 
 class LearnableBase:
@@ -298,13 +325,15 @@ class LearnableBase:
             ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
 
         # setup logger
-        logger = self._prepare_logger(
-            save_metrics,
+        if experiment_name is None:
+            experiment_name = self.__class__.__name__
+        logger = D3RLPyLogger(
             experiment_name,
-            with_timestamp,
-            logdir,
-            verbose,
-            tensorboard_dir,
+            save_metrics=save_metrics,
+            root_dir=logdir,
+            verbose=verbose,
+            tensorboard_dir=tensorboard_dir,
+            with_timestamp=with_timestamp,
         )
 
         # initialize observation scaler
@@ -342,7 +371,7 @@ class LearnableBase:
             LOG.warning("Skip building models since they're already built.")
 
         # save hyperparameters
-        self.save_params(logger)
+        save_config(self, logger)
 
         # training loop
         n_epochs = n_steps // n_steps_per_epoch
@@ -389,8 +418,12 @@ class LearnableBase:
                     callback(self, epoch, total_step)
 
             if scorers and eval_episodes:
-                self._evaluate(
-                    eval_episodes, scorers, logger, dataset.transition_picker
+                evaluate(
+                    alg=self,
+                    scorers=scorers,
+                    episodes=eval_episodes,
+                    transition_picker=dataset.transition_picker,
+                    logger=logger,
                 )
 
             # save metrics
@@ -440,7 +473,11 @@ class LearnableBase:
 
         """
         observation_shape = env.observation_space.shape
-        self.create_impl(observation_shape, get_action_size_from_env(env))
+        if isinstance(env.action_space, Discrete):
+            action_size = cast(int, env.action_space.n)
+        else:
+            action_size = cast(int, env.action_space.shape[0])
+        self.create_impl(observation_shape, action_size)
 
     def update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         """Update parameters with mini-batch of data.
@@ -458,62 +495,6 @@ class LearnableBase:
 
     def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         raise NotImplementedError
-
-    def _prepare_logger(
-        self,
-        save_metrics: bool,
-        experiment_name: Optional[str],
-        with_timestamp: bool,
-        logdir: str,
-        verbose: bool,
-        tensorboard_dir: Optional[str],
-    ) -> D3RLPyLogger:
-        if experiment_name is None:
-            experiment_name = self.__class__.__name__
-
-        logger = D3RLPyLogger(
-            experiment_name,
-            save_metrics=save_metrics,
-            root_dir=logdir,
-            verbose=verbose,
-            tensorboard_dir=tensorboard_dir,
-            with_timestamp=with_timestamp,
-        )
-
-        return logger
-
-    def _evaluate(
-        self,
-        episodes: List[Episode],
-        scorers: Dict[
-            str, Callable[[Any, List[Episode], TransitionPickerProtocol], float]
-        ],
-        logger: D3RLPyLogger,
-        transition_picker: TransitionPickerProtocol,
-    ) -> None:
-        for name, scorer in scorers.items():
-            # evaluation with test data
-            test_score = scorer(self, episodes, transition_picker)
-
-            # logging metrics
-            logger.add_metric(name, test_score)
-
-    def save_params(self, logger: D3RLPyLogger) -> None:
-        """Saves configurations as params.json.
-
-        Args:
-            logger: logger object.
-
-        """
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        config = LearnableConfigWithShape(
-            observation_shape=self._impl.observation_shape,
-            action_size=self._impl.action_size,
-            config=self._config,
-        )
-
-        logger.add_params(config.serialize_to_dict())
 
     def get_action_type(self) -> ActionSpace:
         """Returns action type (continuous or discrete).
