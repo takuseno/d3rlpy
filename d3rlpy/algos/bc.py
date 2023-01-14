@@ -3,8 +3,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
-from ..argument_utility import UseGPUArg
-from ..base import LearnableConfig, register_learnable
+from ..base import LearnableConfig, UseGPUArg, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..gpu import Device

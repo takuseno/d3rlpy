@@ -1,14 +1,23 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import gym
 import numpy as np
 from gym.spaces import Discrete
 from tqdm.auto import tqdm
 
-from .argument_utility import UseGPUArg, check_use_gpu
 from .constants import (
     CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR,
     DISCRETE_ACTION_SPACE_MISMATCH_ERROR,
@@ -36,6 +45,7 @@ from .preprocessing import (
 from .serializable_config import DynamicConfig, generate_config_registration
 
 __all__ = [
+    "UseGPUArg",
     "ImplBase",
     "save_config",
     "LearnableBase",
@@ -43,6 +53,9 @@ __all__ = [
     "LearnableConfigWithShape",
     "register_learnable",
 ]
+
+
+UseGPUArg = Optional[Union[bool, int, Device]]
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -122,6 +135,27 @@ def evaluate(
         logger.add_metric(name, test_score)
 
 
+def _process_use_gpu(value: UseGPUArg) -> Optional[Device]:
+    """Checks value and returns Device object.
+
+    Returns:
+        d3rlpy.gpu.Device: device object.
+
+    """
+    # isinstance cannot tell difference between bool and int
+    if isinstance(value, bool):
+        if value:
+            return Device(0)
+        return None
+    if isinstance(value, int):
+        return Device(value)
+    if isinstance(value, Device):
+        return value
+    if value is None:
+        return None
+    raise ValueError("This argument must be bool, int or Device.")
+
+
 class LearnableBase:
     _config: LearnableConfig
     _use_gpu: Optional[Device]
@@ -135,7 +169,7 @@ class LearnableBase:
         impl: Optional[ImplBase] = None,
     ):
         self._config = config
-        self._use_gpu = check_use_gpu(use_gpu)
+        self._use_gpu = _process_use_gpu(use_gpu)
         self._impl = impl
         self._grad_step = 0
 

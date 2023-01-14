@@ -3,8 +3,7 @@ from typing import Any, List, Tuple, Union
 
 import numpy as np
 
-from ..argument_utility import UseGPUArg
-from ..base import LearnableConfig, register_learnable
+from ..base import LearnableConfig, UseGPUArg, register_learnable
 from ..constants import ActionSpace
 from ..dataset import Shape
 from .base import AlgoBase

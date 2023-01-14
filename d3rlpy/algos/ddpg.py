@@ -1,8 +1,7 @@
 import dataclasses
 from typing import Dict, Optional
 
-from ..argument_utility import UseGPUArg
-from ..base import LearnableConfig, register_learnable
+from ..base import LearnableConfig, UseGPUArg, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
