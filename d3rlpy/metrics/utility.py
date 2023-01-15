@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 
-from .evaluators import AlgoProtocol
+from ..algos.interface import AlgoProtocol
 
 __all__ = ["evaluate_with_environment"]
 

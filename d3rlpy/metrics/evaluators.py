@@ -1,10 +1,10 @@
-from typing import Any, Iterator, List, Optional, Sequence, Tuple, Union, cast
+from typing import Iterator, Sequence, cast
 
 import numpy as np
 from typing_extensions import Protocol
 
+from ..algos.interface import AlgoProtocol
 from ..dataset import Episode, TransitionMiniBatch, TransitionPickerProtocol
-from ..preprocessing.reward_scalers import RewardScaler
 
 __all__ = [
     "EvaluatorProtocol",
@@ -23,27 +23,6 @@ __all__ = [
 
 
 WINDOW_SIZE = 1024
-
-
-class AlgoProtocol(Protocol):
-    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
-        ...
-
-    def predict_value(
-        self,
-        x: Union[np.ndarray, List[Any]],
-        action: Union[np.ndarray, List[Any]],
-        with_std: bool = False,
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
-        ...
-
-    @property
-    def gamma(self) -> float:
-        ...
-
-    @property
-    def reward_scaler(self) -> Optional[RewardScaler]:
-        ...
 
 
 class EvaluatorProtocol(Protocol):
