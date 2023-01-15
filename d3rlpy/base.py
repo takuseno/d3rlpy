@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Optional, Union, cast
+from typing import Dict, Optional, Type, TypeVar, Union, cast
 
 import gym
 from gym.spaces import Discrete
@@ -30,6 +30,7 @@ __all__ = [
 ]
 
 
+TLearnable = TypeVar("TLearnable", bound="LearnableBase")
 UseGPUArg = Optional[Union[bool, int, Device]]
 
 
@@ -162,10 +163,10 @@ class LearnableBase:
 
     @classmethod
     def from_json(
-        cls, fname: str, use_gpu: UseGPUArg = False
-    ) -> "LearnableBase":
+        cls: Type[TLearnable], fname: str, use_gpu: UseGPUArg = False
+    ) -> TLearnable:
         config = LearnableConfigWithShape.deserialize_from_file(fname)
-        return config.create(use_gpu)
+        return config.create(use_gpu)  # type: ignore
 
     def create_impl(self, observation_shape: Shape, action_size: int) -> None:
         """Instantiate implementation objects with the dataset shapes.
