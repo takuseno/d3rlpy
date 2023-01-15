@@ -1,21 +1,18 @@
-from functools import reduce
-from operator import mul
-
 import numpy as np
 import pytest
-from gym import spaces
 
 from d3rlpy.dataset import BasicTransitionPicker, Episode, TransitionMiniBatch
-from d3rlpy.metrics.scorer import (
-    average_value_estimation_scorer,
-    continuous_action_diff_scorer,
-    discounted_sum_of_advantage_scorer,
-    discrete_action_match_scorer,
-    evaluate_on_environment,
-    initial_state_value_estimation_scorer,
-    soft_opc_scorer,
-    td_error_scorer,
-    value_estimation_std_scorer,
+from d3rlpy.metrics.evaluators import (
+    AverageValueEstimationEvaluator,
+    CompareContinuousActionDiffEvaluator,
+    CompareDiscreteActionMatchEvaluator,
+    ContinuousActionDiffEvaluator,
+    DiscountedSumOfAdvantageEvaluator,
+    DiscreteActionMatchEvaluator,
+    InitialStateValueEstimationEvaluator,
+    SoftOPCEvaluator,
+    TDErrorEvaluator,
+    ValueEstimationStdEvaluator,
 )
 from d3rlpy.preprocessing import ClipRewardScaler
 
@@ -120,7 +117,7 @@ def test_td_error_scorer(
         )
         ref_errors += ref_error
 
-    score = td_error_scorer(algo, episodes, BasicTransitionPicker())
+    score = TDErrorEvaluator()(algo, episodes, BasicTransitionPicker())
     assert np.allclose(score, np.mean(ref_errors))
 
 
@@ -179,7 +176,7 @@ def test_discounted_sum_of_advantage_scorer(
         )
         ref_sums += ref_sum
 
-    score = discounted_sum_of_advantage_scorer(
+    score = DiscountedSumOfAdvantageEvaluator()(
         algo, episodes, BasicTransitionPicker()
     )
     assert np.allclose(score, np.mean(ref_sums))
@@ -216,7 +213,7 @@ def test_average_value_estimation_scorer(
         values = algo.predict_value(batch.observations, policy_actions)
         total_values += values.tolist()
 
-    score = average_value_estimation_scorer(
+    score = AverageValueEstimationEvaluator()(
         algo, episodes, BasicTransitionPicker()
     )
     assert np.allclose(score, np.mean(total_values))
@@ -253,7 +250,9 @@ def test_value_estimation_std_scorer(
         _, stds = algo.predict_value(batch.observations, policy_actions, True)
         total_stds += stds.tolist()
 
-    score = value_estimation_std_scorer(algo, episodes, BasicTransitionPicker())
+    score = ValueEstimationStdEvaluator()(
+        algo, episodes, BasicTransitionPicker()
+    )
     assert np.allclose(score, np.mean(total_stds))
 
 
@@ -288,7 +287,7 @@ def test_initial_state_value_estimation_scorer(
         values = algo.predict_value(observation, policy_actions)
         total_values.append(values)
 
-    score = initial_state_value_estimation_scorer(
+    score = InitialStateValueEstimationEvaluator()(
         algo, episodes, BasicTransitionPicker()
     )
     assert np.allclose(score, np.mean(total_values))
@@ -328,7 +327,7 @@ def test_soft_opc_scorer(
             success_values += values.tolist()
         all_values += values.tolist()
 
-    scorer = soft_opc_scorer(threshold)
+    scorer = SoftOPCEvaluator(threshold)
     score = scorer(algo, episodes, BasicTransitionPicker())
     assert np.allclose(score, np.mean(success_values) - np.mean(all_values))
 
@@ -363,7 +362,7 @@ def test_continuous_action_diff_scorer(
         policy_actions = algo.predict(batch.observations)
         diff = ((batch.actions - policy_actions) ** 2).sum(axis=1).tolist()
         total_diffs += diff
-    score = continuous_action_diff_scorer(
+    score = ContinuousActionDiffEvaluator()(
         algo, episodes, BasicTransitionPicker()
     )
     assert np.allclose(score, np.mean(total_diffs))
@@ -399,55 +398,85 @@ def test_discrete_action_match_scorer(
         policy_actions = algo.predict(batch.observations)
         match = (batch.actions.reshape(-1) == policy_actions).tolist()
         total_matches += match
-    score = discrete_action_match_scorer(
+    score = DiscreteActionMatchEvaluator()(
         algo, episodes, BasicTransitionPicker()
     )
     assert np.allclose(score, np.mean(total_matches))
 
 
-@pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
+@pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
 @pytest.mark.parametrize("episode_length", [10])
-@pytest.mark.parametrize("n_trials", [10])
-def test_evaluate_on_environment(
-    observation_shape, action_size, episode_length, n_trials
+def test_compare_continuous_action_diff(
+    observation_shape, action_size, n_episodes, episode_length
 ):
-    shape = (n_trials, episode_length + 1) + observation_shape
-    if len(observation_shape) == 3:
-        observations = np.random.randint(0, 255, size=shape, dtype=np.uint8)
-    else:
-        observations = np.random.random(shape).astype("f4")
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length,) + observation_shape)
+        actions = np.random.random((episode_length, action_size))
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(
+            observations.astype("f4"),
+            actions,
+            rewards,
+            False,
+        )
+        episodes.append(episode)
 
-    class DummyEnv:
-        def __init__(self):
-            self.episode = 0
-            self.observation_space = spaces.Box(
-                low=0, high=255, shape=observation_shape
-            )
+    A1 = np.random.random(observation_shape + (action_size,))
+    A2 = np.random.random(observation_shape + (action_size,))
+    algo = DummyAlgo(A1, 0.0)
+    base_algo = DummyAlgo(A2, 0.0)
 
-        def step(self, action):
-            self.t += 1
-            observation = observations[self.episode - 1, self.t]
-            reward = np.mean(observation) + np.mean(action)
-            done = self.t == episode_length
-            return observation, reward, done, {}
+    total_diffs = []
+    for episode in episodes:
+        batch = _convert_episode_to_batch(episode)
+        actions = algo.predict(batch.observations)
+        base_actions = base_algo.predict(batch.observations)
+        diff = ((actions - base_actions) ** 2).sum(axis=1).tolist()
+        total_diffs += diff
 
-        def reset(self):
-            self.t = 0
-            self.episode += 1
-            return observations[self.episode - 1, 0]
+    score = CompareContinuousActionDiffEvaluator(base_algo)(
+        algo, episodes, BasicTransitionPicker()
+    )
+    assert np.allclose(score, np.mean(total_diffs))
 
-    # projection matrix for deterministic action
-    feature_size = reduce(mul, observation_shape)
-    A = np.random.random((feature_size, action_size))
-    algo = DummyAlgo(A, 0.0)
 
-    ref_rewards = []
-    for i in range(n_trials):
-        episode_obs = observations[i].reshape((-1, feature_size))
-        actions = algo.predict(episode_obs[:-1])
-        rewards = np.mean(episode_obs[1:], axis=1) + np.mean(actions, axis=1)
-        ref_rewards.append(np.sum(rewards))
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("n_episodes", [100])
+@pytest.mark.parametrize("episode_length", [10])
+def test_compare_discrete_action_diff(
+    observation_shape, action_size, n_episodes, episode_length
+):
+    episodes = []
+    for _ in range(n_episodes):
+        observations = np.random.random((episode_length,) + observation_shape)
+        actions = np.random.random((episode_length, action_size))
+        rewards = np.random.random((episode_length, 1))
+        episode = Episode(
+            observations.astype("f4"),
+            actions,
+            rewards,
+            False,
+        )
+        episodes.append(episode)
 
-    mean_reward = evaluate_on_environment(DummyEnv(), n_trials)(algo)
-    assert np.allclose(mean_reward, np.mean(ref_rewards))
+    A1 = np.random.random(observation_shape + (action_size,))
+    A2 = np.random.random(observation_shape + (action_size,))
+    algo = DummyAlgo(A1, 0.0, discrete=True)
+    base_algo = DummyAlgo(A2, 0.0, discrete=True)
+
+    total_matches = []
+    for episode in episodes:
+        batch = _convert_episode_to_batch(episode)
+        actions = algo.predict(batch.observations)
+        base_actions = base_algo.predict(batch.observations)
+        match = (actions == base_actions).tolist()
+        total_matches += match
+
+    score = CompareDiscreteActionMatchEvaluator(base_algo)(
+        algo, episodes, BasicTransitionPicker()
+    )
+    assert np.allclose(score, np.mean(total_matches))

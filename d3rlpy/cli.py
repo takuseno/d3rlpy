@@ -13,7 +13,7 @@ from scipy.ndimage.filters import uniform_filter1d
 from . import algos
 from ._version import __version__
 from .envs import Monitor
-from .metrics.scorer import evaluate_on_environment
+from .metrics.utility import evaluate_with_environment
 
 if TYPE_CHECKING:
     import matplotlib.pyplot
@@ -312,7 +312,7 @@ def record(
     )
 
     # run episodes
-    evaluate_on_environment(wrapped_env, n_episodes, epsilon=epsilon)(algo)
+    evaluate_with_environment(algo, wrapped_env, n_episodes, epsilon=epsilon)
 
 
 @cli.command(short_help="Run evaluation episodes with rendering.")
@@ -354,4 +354,4 @@ def play(
         raise ValueError("env_id or env_header must be provided.")
 
     # run episodes
-    evaluate_on_environment(env, n_episodes, render=True)(algo)
+    evaluate_with_environment(algo, env, n_episodes, render=True)

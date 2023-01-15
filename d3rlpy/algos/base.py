@@ -1,9 +1,10 @@
 from abc import abstractmethod
-from typing import Any, Callable, List, Optional, Tuple, Union
+from collections import defaultdict
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import gym
 import numpy as np
-from tqdm.auto import trange
+from tqdm.auto import tqdm, trange
 
 from ..base import ImplBase, LearnableBase, save_config
 from ..constants import (
@@ -12,9 +13,14 @@ from ..constants import (
     IMPL_NOT_INITIALIZED_ERROR,
     ActionSpace,
 )
-from ..dataset import ReplayBuffer, create_fifo_replay_buffer
+from ..dataset import (
+    DatasetInfo,
+    Episode,
+    ReplayBuffer,
+    create_fifo_replay_buffer,
+)
 from ..logger import LOG, D3RLPyLogger
-from ..metrics.scorer import evaluate_on_environment
+from ..metrics import EvaluatorProtocol, evaluate_with_environment
 from .explorers import Explorer
 
 __all__ = ["AlgoImplBase", "AlgoBase"]
@@ -214,6 +220,268 @@ class AlgoBase(LearnableBase):
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         return self._impl.sample_action(x)
 
+    def fit(
+        self,
+        dataset: ReplayBuffer,
+        n_steps: int,
+        n_steps_per_epoch: int = 10000,
+        save_metrics: bool = True,
+        experiment_name: Optional[str] = None,
+        with_timestamp: bool = True,
+        logdir: str = "d3rlpy_logs",
+        verbose: bool = True,
+        show_progress: bool = True,
+        tensorboard_dir: Optional[str] = None,
+        eval_episodes: Optional[List[Episode]] = None,
+        eval_env: Optional[gym.Env] = None,
+        save_interval: int = 1,
+        evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
+        callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
+    ) -> List[Tuple[int, Dict[str, float]]]:
+        """Trains with the given dataset.
+
+        .. code-block:: python
+
+            algo.fit(episodes, n_steps=1000000)
+
+        Args:
+            dataset: ReplayBuffer object.
+            n_steps: the number of steps to train.
+            n_steps_per_epoch: the number of steps per epoch. This value will
+                be ignored when ``n_steps`` is ``None``.
+            save_metrics: flag to record metrics in files. If False,
+                the log directory is not created and the model parameters are
+                not saved during training.
+            experiment_name: experiment name for logging. If not passed,
+                the directory name will be `{class name}_{timestamp}`.
+            with_timestamp: flag to add timestamp string to the last of
+                directory name.
+            logdir: root directory name to save logs.
+            verbose: flag to show logged information on stdout.
+            show_progress: flag to show progress bar for iterations.
+            tensorboard_dir: directory to save logged information in
+                tensorboard (additional to the csv data).  if ``None``, the
+                directory will not be created.
+            eval_episodes: list of episodes to test.
+            eval_env: evaluation environment.
+            save_interval: interval to save parameters.
+            evaluators: list of evaluators used with `eval_episodes`.
+            callback: callable function that takes ``(algo, epoch, total_step)``
+                , which is called every step.
+
+        Returns:
+            list of result tuples (epoch, metrics) per epoch.
+
+        """
+        results = list(
+            self.fitter(
+                dataset,
+                n_steps,
+                n_steps_per_epoch,
+                save_metrics,
+                experiment_name,
+                with_timestamp,
+                logdir,
+                verbose,
+                show_progress,
+                tensorboard_dir,
+                eval_episodes,
+                eval_env,
+                save_interval,
+                evaluators,
+                callback,
+            )
+        )
+        return results
+
+    def fitter(
+        self,
+        dataset: ReplayBuffer,
+        n_steps: int,
+        n_steps_per_epoch: int = 10000,
+        save_metrics: bool = True,
+        experiment_name: Optional[str] = None,
+        with_timestamp: bool = True,
+        logdir: str = "d3rlpy_logs",
+        verbose: bool = True,
+        show_progress: bool = True,
+        tensorboard_dir: Optional[str] = None,
+        eval_episodes: Optional[List[Episode]] = None,
+        eval_env: Optional[gym.Env] = None,
+        save_interval: int = 1,
+        evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
+        callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
+    ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
+        """Iterate over epochs steps to train with the given dataset. At each
+             iteration algo methods and properties can be changed or queried.
+
+        .. code-block:: python
+
+            for epoch, metrics in algo.fitter(episodes):
+                my_plot(metrics)
+                algo.save_model(my_path)
+
+        Args:
+            dataset: offline dataset to train.
+            n_steps: the number of steps to train.
+            n_steps_per_epoch: the number of steps per epoch. This value will
+                be ignored when ``n_steps`` is ``None``.
+            save_metrics: flag to record metrics in files. If False,
+                the log directory is not created and the model parameters are
+                not saved during training.
+            experiment_name: experiment name for logging. If not passed,
+                the directory name will be `{class name}_{timestamp}`.
+            with_timestamp: flag to add timestamp string to the last of
+                directory name.
+            logdir: root directory name to save logs.
+            verbose: flag to show logged information on stdout.
+            show_progress: flag to show progress bar for iterations.
+            tensorboard_dir: directory to save logged information in
+                tensorboard (additional to the csv data).  if ``None``, the
+                directory will not be created.
+            eval_episodes: list of episodes to test.
+            eval_env: evaluation environment.
+            save_interval: interval to save parameters.
+            evaluators: list of evaluators used with `eval_episodes`.
+            callback: callable function that takes ``(algo, epoch, total_step)``
+                , which is called every step.
+
+        Returns:
+            iterator yielding current epoch and metrics dict.
+
+        """
+        dataset_info = DatasetInfo.from_episodes(dataset.episodes)
+        LOG.info("dataset info", dataset_info=dataset_info)
+
+        # check action space
+        if self.get_action_type() == ActionSpace.BOTH:
+            pass
+        elif dataset_info.action_space == ActionSpace.DISCRETE:
+            assert (
+                self.get_action_type() == ActionSpace.DISCRETE
+            ), DISCRETE_ACTION_SPACE_MISMATCH_ERROR
+        else:
+            assert (
+                self.get_action_type() == ActionSpace.CONTINUOUS
+            ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
+
+        # setup logger
+        if experiment_name is None:
+            experiment_name = self.__class__.__name__
+        logger = D3RLPyLogger(
+            experiment_name,
+            save_metrics=save_metrics,
+            root_dir=logdir,
+            verbose=verbose,
+            tensorboard_dir=tensorboard_dir,
+            with_timestamp=with_timestamp,
+        )
+
+        # initialize observation scaler
+        if self._config.observation_scaler:
+            LOG.debug(
+                "Fitting observation scaler...",
+                observation_scaler=self._config.observation_scaler.get_type(),
+            )
+            self._config.observation_scaler.fit(dataset.episodes)
+
+        # initialize action scaler
+        if self._config.action_scaler:
+            LOG.debug(
+                "Fitting action scaler...",
+                action_scaler=self._config.action_scaler.get_type(),
+            )
+            self._config.action_scaler.fit(dataset.episodes)
+
+        # initialize reward scaler
+        if self._config.reward_scaler:
+            LOG.debug(
+                "Fitting reward scaler...",
+                reward_scaler=self._config.reward_scaler.get_type(),
+            )
+            self._config.reward_scaler.fit(dataset.episodes)
+
+        # instantiate implementation
+        if self._impl is None:
+            LOG.debug("Building models...")
+            action_size = dataset_info.action_size
+            observation_shape = dataset.sample_transition().observation_shape
+            self.create_impl(observation_shape, action_size)
+            LOG.debug("Models have been built.")
+        else:
+            LOG.warning("Skip building models since they're already built.")
+
+        # save hyperparameters
+        save_config(self, logger)
+
+        # training loop
+        n_epochs = n_steps // n_steps_per_epoch
+        total_step = 0
+        for epoch in range(1, n_epochs + 1):
+
+            # dict to add incremental mean losses to epoch
+            epoch_loss = defaultdict(list)
+
+            range_gen = tqdm(
+                range(n_steps_per_epoch),
+                disable=not show_progress,
+                desc=f"Epoch {int(epoch)}/{n_epochs}",
+            )
+
+            for itr in range_gen:
+                with logger.measure_time("step"):
+                    # pick transitions
+                    with logger.measure_time("sample_batch"):
+                        batch = dataset.sample_transition_batch(
+                            self._config.batch_size
+                        )
+
+                    # update parameters
+                    with logger.measure_time("algorithm_update"):
+                        loss = self.update(batch)
+
+                    # record metrics
+                    for name, val in loss.items():
+                        logger.add_metric(name, val)
+                        epoch_loss[name].append(val)
+
+                    # update progress postfix with losses
+                    if itr % 10 == 0:
+                        mean_loss = {
+                            k: np.mean(v) for k, v in epoch_loss.items()
+                        }
+                        range_gen.set_postfix(mean_loss)
+
+                total_step += 1
+
+                # call callback if given
+                if callback:
+                    callback(self, epoch, total_step)
+
+            if evaluators and eval_episodes:
+                for name, evaluator in evaluators.items():
+                    test_score = evaluator(
+                        algo=self,
+                        episodes=eval_episodes,
+                        transition_picker=dataset.transition_picker,
+                    )
+                    logger.add_metric(name, test_score)
+
+            if eval_env:
+                eval_score = evaluate_with_environment(self, eval_env)
+                logger.add_metric("environment", eval_score)
+
+            # save metrics
+            metrics = logger.commit(epoch, total_step)
+
+            # save model parameters
+            if epoch % save_interval == 0:
+                logger.save_model(total_step, self)
+
+            yield epoch, metrics
+
+        logger.close()
+
     def fit_online(
         self,
         env: gym.Env,
@@ -299,15 +567,6 @@ class AlgoBase(LearnableBase):
         # switch based on show_progress flag
         xrange = trange if show_progress else range
 
-        # setup evaluation scorer
-        eval_scorer: Optional[Callable[..., float]]
-        if eval_env:
-            eval_scorer = evaluate_on_environment(
-                eval_env, epsilon=eval_epsilon
-            )
-        else:
-            eval_scorer = None
-
         # start training loop
         observation = env.reset()
         rollout_return = 0.0
@@ -375,8 +634,11 @@ class AlgoBase(LearnableBase):
 
             if epoch > 0 and total_step % n_steps_per_epoch == 0:
                 # evaluation
-                if eval_scorer:
-                    logger.add_metric("evaluation", eval_scorer(self))
+                if eval_env:
+                    eval_score = evaluate_with_environment(
+                        self, eval_env, epsilon=eval_epsilon
+                    )
+                    logger.add_metric("evaluation", eval_score)
 
                 if epoch % save_interval == 0:
                     logger.save_model(total_step, self)
