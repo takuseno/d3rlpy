@@ -7,7 +7,6 @@ import torch
 from torch.optim import Optimizer
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import (
     create_continuous_q_function,
     create_deterministic_policy,
@@ -22,7 +21,13 @@ from ...models.torch import (
     Policy,
 )
 from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from ...torch_utility import TorchMiniBatch, soft_sync, torch_api, train_api
+from ...torch_utility import (
+    TorchMiniBatch,
+    soft_sync,
+    to_device,
+    torch_api,
+    train_api,
+)
 from .base import TorchImplBase
 from .utility import ContinuousQFunctionMixin
 
@@ -41,7 +46,6 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
     _gamma: float
     _tau: float
     _n_critics: int
-    _use_gpu: Optional[Device]
     _q_func: Optional[EnsembleContinuousQFunction]
     _policy: Optional[Policy]
     _targ_q_func: Optional[EnsembleContinuousQFunction]
@@ -63,7 +67,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         gamma: float,
         tau: float,
         n_critics: int,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -74,6 +78,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
+            device=device,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -85,7 +90,6 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         self._gamma = gamma
         self._tau = tau
         self._n_critics = n_critics
-        self._use_gpu = use_gpu
 
         # initialized in build
         self._q_func = None
@@ -104,10 +108,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         self._targ_q_func = copy.deepcopy(self._q_func)
         self._targ_policy = copy.deepcopy(self._policy)
 
-        if self._use_gpu:
-            self.to_gpu(self._use_gpu)
-        else:
-            self.to_cpu()
+        to_device(self, self._device)
 
         # setup optimizer after the parameters move to GPU
         self._build_critic_optim()

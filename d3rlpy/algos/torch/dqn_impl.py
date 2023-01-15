@@ -6,14 +6,19 @@ import torch
 from torch.optim import Optimizer
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import create_discrete_q_function
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import EnsembleDiscreteQFunction, EnsembleQFunction
 from ...preprocessing import ObservationScaler, RewardScaler
-from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
+from ...torch_utility import (
+    TorchMiniBatch,
+    hard_sync,
+    to_device,
+    torch_api,
+    train_api,
+)
 from .base import TorchImplBase
 from .utility import DiscreteQFunctionMixin
 
@@ -28,7 +33,6 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
     _q_func_factory: QFunctionFactory
     _gamma: float
     _n_critics: int
-    _use_gpu: Optional[Device]
     _q_func: Optional[EnsembleDiscreteQFunction]
     _targ_q_func: Optional[EnsembleDiscreteQFunction]
     _optim: Optional[Optimizer]
@@ -43,7 +47,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         q_func_factory: QFunctionFactory,
         gamma: float,
         n_critics: int,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -53,6 +57,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
             observation_scaler=observation_scaler,
             action_scaler=None,
             reward_scaler=reward_scaler,
+            device=device,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
@@ -60,7 +65,6 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         self._q_func_factory = q_func_factory
         self._gamma = gamma
         self._n_critics = n_critics
-        self._use_gpu = use_gpu
 
         # initialized in build
         self._q_func = None
@@ -74,10 +78,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         # setup target network
         self._targ_q_func = copy.deepcopy(self._q_func)
 
-        if self._use_gpu:
-            self.to_gpu(self._use_gpu)
-        else:
-            self.to_cpu()
+        to_device(self, self._device)
 
         # setup optimizer after the parameters move to GPU
         self._build_optim()

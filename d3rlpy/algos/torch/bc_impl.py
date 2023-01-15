@@ -6,7 +6,6 @@ import torch
 from torch.optim import Optimizer
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import (
     create_deterministic_policy,
     create_deterministic_regressor,
@@ -24,7 +23,7 @@ from ...models.torch import (
     ProbablisticRegressor,
 )
 from ...preprocessing import ActionScaler, ObservationScaler
-from ...torch_utility import hard_sync, torch_api, train_api
+from ...torch_utility import hard_sync, to_device, torch_api, train_api
 from .base import TorchImplBase
 
 __all__ = ["BCImpl", "DiscreteBCImpl"]
@@ -35,7 +34,6 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
     _learning_rate: float
     _optim_factory: OptimizerFactory
     _encoder_factory: EncoderFactory
-    _use_gpu: Optional[Device]
     _imitator: Optional[Imitator]
     _optim: Optional[Optimizer]
 
@@ -46,7 +44,7 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
         learning_rate: float,
         optim_factory: OptimizerFactory,
         encoder_factory: EncoderFactory,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
     ):
@@ -56,11 +54,11 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=None,
+            device=device,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
         self._encoder_factory = encoder_factory
-        self._use_gpu = use_gpu
 
         # initialized in build
         self._imitator = None
@@ -69,10 +67,7 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
     def build(self) -> None:
         self._build_network()
 
-        if self._use_gpu:
-            self.to_gpu(self._use_gpu)
-        else:
-            self.to_cpu()
+        to_device(self, self._device)
 
         self._build_optim()
 
@@ -133,7 +128,7 @@ class BCImpl(BCBaseImpl):
         optim_factory: OptimizerFactory,
         encoder_factory: EncoderFactory,
         policy_type: str,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
     ):
@@ -143,7 +138,7 @@ class BCImpl(BCBaseImpl):
             learning_rate=learning_rate,
             optim_factory=optim_factory,
             encoder_factory=encoder_factory,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
         )
@@ -213,7 +208,7 @@ class DiscreteBCImpl(BCBaseImpl):
         optim_factory: OptimizerFactory,
         encoder_factory: EncoderFactory,
         beta: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
     ):
         super().__init__(
@@ -222,7 +217,7 @@ class DiscreteBCImpl(BCBaseImpl):
             learning_rate=learning_rate,
             optim_factory=optim_factory,
             encoder_factory=encoder_factory,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=None,
         )

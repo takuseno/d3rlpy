@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Dict, Optional
 
-from ..base import LearnableConfig, UseGPUArg, register_learnable
+from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
@@ -86,8 +86,8 @@ class TD3Config(LearnableConfig):
     target_smoothing_clip: float = 0.5
     update_actor_interval: int = 2
 
-    def create(self, use_gpu: UseGPUArg = False) -> "TD3":
-        return TD3(self, use_gpu)
+    def create(self, device: DeviceArg = False) -> "TD3":
+        return TD3(self, device)
 
     @staticmethod
     def get_type() -> str:
@@ -117,7 +117,7 @@ class TD3(AlgoBase):
             observation_scaler=self._config.observation_scaler,
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
-            use_gpu=self._use_gpu,
+            device=self._device,
         )
         self._impl.build()
 

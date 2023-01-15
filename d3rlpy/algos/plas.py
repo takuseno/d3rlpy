@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Dict, Optional
 
-from ..base import LearnableConfig, UseGPUArg, register_learnable
+from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
@@ -87,8 +87,8 @@ class PLASConfig(LearnableConfig):
     warmup_steps: int = 500000
     beta: float = 0.5
 
-    def create(self, use_gpu: UseGPUArg = False) -> "PLAS":
-        return PLAS(self, use_gpu)
+    def create(self, device: DeviceArg = False) -> "PLAS":
+        return PLAS(self, device)
 
     @staticmethod
     def get_type() -> str:
@@ -121,7 +121,7 @@ class PLAS(AlgoBase):
             observation_scaler=self._config.observation_scaler,
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
-            use_gpu=self._use_gpu,
+            device=self._device,
         )
         self._impl.build()
 
@@ -193,8 +193,8 @@ class PLASWithPerturbationConfig(PLASConfig):
     """
     action_flexibility: float = 0.05
 
-    def create(self, use_gpu: UseGPUArg = False) -> "PLASWithPerturbation":
-        return PLASWithPerturbation(self, use_gpu)
+    def create(self, device: DeviceArg = False) -> "PLASWithPerturbation":
+        return PLASWithPerturbation(self, device)
 
     @staticmethod
     def get_type() -> str:
@@ -228,7 +228,7 @@ class PLASWithPerturbation(PLAS):
             observation_scaler=self._config.observation_scaler,
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
-            use_gpu=self._use_gpu,
+            device=self._device,
         )
         self._impl.build()
 

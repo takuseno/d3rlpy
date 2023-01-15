@@ -107,7 +107,7 @@ def test_bear_impl(
         mmd_kernel=mmd_kernel,
         mmd_sigma=mmd_sigma,
         vae_kl_weight=vae_kl_weight,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,

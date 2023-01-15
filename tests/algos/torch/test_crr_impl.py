@@ -72,7 +72,7 @@ def test_crr_impl(
         max_weight=max_weight,
         n_critics=n_critics,
         tau=tau,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,

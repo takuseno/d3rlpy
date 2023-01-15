@@ -4,7 +4,6 @@ import numpy as np
 import torch
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import (
     create_non_squashed_normal_policy,
     create_value_function,
@@ -45,7 +44,7 @@ class IQLImpl(DDPGBaseImpl):
         expectile: float,
         weight_temp: float,
         max_weight: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -63,7 +62,7 @@ class IQLImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             n_critics=n_critics,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,

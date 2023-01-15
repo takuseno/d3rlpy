@@ -6,7 +6,6 @@ import torch
 from torch.optim import Optimizer
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import (
     create_conditional_vae,
     create_deterministic_residual_policy,
@@ -65,7 +64,7 @@ class BCQImpl(DDPGBaseImpl):
         n_action_samples: int,
         action_flexibility: float,
         beta: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -83,7 +82,7 @@ class BCQImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             n_critics=n_critics,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
@@ -247,7 +246,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         n_critics: int,
         action_flexibility: float,
         beta: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -260,7 +259,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             q_func_factory=q_func_factory,
             gamma=gamma,
             n_critics=n_critics,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             reward_scaler=reward_scaler,
         )

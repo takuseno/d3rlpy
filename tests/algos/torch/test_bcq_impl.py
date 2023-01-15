@@ -77,7 +77,7 @@ def test_bcq_impl(
         n_action_samples=n_action_samples,
         action_flexibility=action_flexibility,
         beta=beta,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
@@ -141,7 +141,7 @@ def test_discrete_bcq_impl(
         n_critics=n_critics,
         action_flexibility=action_flexibility,
         beta=beta,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )

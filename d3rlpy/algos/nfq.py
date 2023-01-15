@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Dict, Optional
 
-from ..base import LearnableConfig, UseGPUArg, register_learnable
+from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
@@ -57,8 +57,8 @@ class NFQConfig(LearnableConfig):
     gamma: float = 0.99
     n_critics: int = 1
 
-    def create(self, use_gpu: UseGPUArg = False) -> "NFQ":
-        return NFQ(self, use_gpu)
+    def create(self, device: DeviceArg = False) -> "NFQ":
+        return NFQ(self, device)
 
     @staticmethod
     def get_type() -> str:
@@ -81,7 +81,7 @@ class NFQ(AlgoBase):
             n_critics=self._config.n_critics,
             observation_scaler=self._config.observation_scaler,
             reward_scaler=self._config.reward_scaler,
-            use_gpu=self._use_gpu,
+            device=self._device,
         )
         self._impl.build()
 

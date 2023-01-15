@@ -7,7 +7,6 @@ from gym.spaces import Discrete
 
 from .constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from .dataset import DatasetInfo, ReplayBuffer, Shape, TransitionMiniBatch
-from .gpu import Device
 from .logger import LOG, D3RLPyLogger
 from .preprocessing import (
     ActionScaler,
@@ -20,7 +19,7 @@ from .preprocessing import (
 from .serializable_config import DynamicConfig, generate_config_registration
 
 __all__ = [
-    "UseGPUArg",
+    "DeviceArg",
     "ImplBase",
     "save_config",
     "LearnableBase",
@@ -31,7 +30,7 @@ __all__ = [
 
 
 TLearnable = TypeVar("TLearnable", bound="LearnableBase")
-UseGPUArg = Optional[Union[bool, int, Device]]
+DeviceArg = Optional[Union[bool, int, str]]
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -64,7 +63,7 @@ class LearnableConfig(DynamicConfig):
     action_scaler: Optional[ActionScaler] = make_action_scaler_field()
     reward_scaler: Optional[RewardScaler] = make_reward_scaler_field()
 
-    def create(self, use_gpu: UseGPUArg = False) -> "LearnableBase":
+    def create(self, device: DeviceArg = False) -> "LearnableBase":
         raise NotImplementedError
 
 
@@ -79,8 +78,8 @@ class LearnableConfigWithShape(DynamicConfig):
     action_size: int
     config: LearnableConfig = make_learnable_field()
 
-    def create(self, use_gpu: UseGPUArg = False) -> "LearnableBase":
-        algo = self.config.create(use_gpu)
+    def create(self, device: DeviceArg = False) -> "LearnableBase":
+        algo = self.config.create(device)
         algo.create_impl(self.observation_shape, self.action_size)
         return algo
 
@@ -95,41 +94,39 @@ def save_config(alg: "LearnableBase", logger: D3RLPyLogger) -> None:
     logger.add_params(config.serialize_to_dict())
 
 
-def _process_use_gpu(value: UseGPUArg) -> Optional[Device]:
-    """Checks value and returns Device object.
+def _process_device(value: DeviceArg) -> str:
+    """Checks value and returns PyTorch target device.
 
     Returns:
-        d3rlpy.gpu.Device: device object.
+        str: target device.
 
     """
     # isinstance cannot tell difference between bool and int
     if isinstance(value, bool):
-        if value:
-            return Device(0)
-        return None
+        return "cuda:0" if value else "cpu:0"
     if isinstance(value, int):
-        return Device(value)
-    if isinstance(value, Device):
+        return f"cuda:{value}"
+    if isinstance(value, str):
         return value
     if value is None:
-        return None
-    raise ValueError("This argument must be bool, int or Device.")
+        return "cpu:0"
+    raise ValueError("This argument must be bool, int or str.")
 
 
 class LearnableBase:
     _config: LearnableConfig
-    _use_gpu: Optional[Device]
+    _device: str
     _impl: Optional[ImplBase]
     _grad_step: int
 
     def __init__(
         self,
         config: LearnableConfig,
-        use_gpu: UseGPUArg,
+        device: DeviceArg,
         impl: Optional[ImplBase] = None,
     ):
         self._config = config
-        self._use_gpu = _process_use_gpu(use_gpu)
+        self._device = _process_device(device)
         self._impl = impl
         self._grad_step = 0
 
@@ -163,10 +160,10 @@ class LearnableBase:
 
     @classmethod
     def from_json(
-        cls: Type[TLearnable], fname: str, use_gpu: UseGPUArg = False
+        cls: Type[TLearnable], fname: str, device: DeviceArg = False
     ) -> TLearnable:
         config = LearnableConfigWithShape.deserialize_from_file(fname)
-        return config.create(use_gpu)  # type: ignore
+        return config.create(device)  # type: ignore
 
     def create_impl(self, observation_shape: Shape, action_size: int) -> None:
         """Instantiate implementation objects with the dataset shapes.

@@ -57,7 +57,7 @@ def test_ddpg_impl(
         gamma=gamma,
         tau=tau,
         n_critics=n_critics,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,

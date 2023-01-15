@@ -12,7 +12,6 @@ from ...algos.torch.utility import (
     DiscreteQFunctionMixin,
 )
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import (
     create_continuous_q_function,
     create_discrete_q_function,
@@ -26,7 +25,13 @@ from ...models.torch import (
     EnsembleQFunction,
 )
 from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
+from ...torch_utility import (
+    TorchMiniBatch,
+    hard_sync,
+    to_device,
+    torch_api,
+    train_api,
+)
 
 __all__ = ["FQEBaseImpl", "FQEImpl", "DiscreteFQEImpl"]
 
@@ -39,7 +44,6 @@ class FQEBaseImpl(TorchImplBase):
     _q_func_factory: QFunctionFactory
     _gamma: float
     _n_critics: int
-    _use_gpu: Optional[Device]
     _q_func: Optional[EnsembleQFunction]
     _targ_q_func: Optional[EnsembleQFunction]
     _optim: Optional[Optimizer]
@@ -54,7 +58,7 @@ class FQEBaseImpl(TorchImplBase):
         q_func_factory: QFunctionFactory,
         gamma: float,
         n_critics: int,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -65,6 +69,7 @@ class FQEBaseImpl(TorchImplBase):
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
+            device=device,
         )
         self._learning_rate = learning_rate
         self._optim_factory = optim_factory
@@ -72,7 +77,6 @@ class FQEBaseImpl(TorchImplBase):
         self._q_func_factory = q_func_factory
         self._gamma = gamma
         self._n_critics = n_critics
-        self._use_gpu = use_gpu
 
         # initialized in build
         self._q_func = None
@@ -84,10 +88,7 @@ class FQEBaseImpl(TorchImplBase):
 
         self._targ_q_func = copy.deepcopy(self._q_func)
 
-        if self._use_gpu:
-            self.to_gpu(self._use_gpu)
-        else:
-            self.to_cpu()
+        to_device(self, self._device)
 
         self._build_optim()
 

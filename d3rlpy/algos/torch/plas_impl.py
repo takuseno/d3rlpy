@@ -6,7 +6,6 @@ import torch
 from torch.optim import Optimizer
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import (
     create_conditional_vae,
     create_deterministic_policy,
@@ -59,7 +58,7 @@ class PLASImpl(DDPGBaseImpl):
         n_critics: int,
         lam: float,
         beta: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -77,7 +76,7 @@ class PLASImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             n_critics=n_critics,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
@@ -197,7 +196,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         lam: float,
         beta: float,
         action_flexibility: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -220,7 +219,7 @@ class PLASWithPerturbationImpl(PLASImpl):
             n_critics=n_critics,
             lam=lam,
             beta=beta,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 
 from ..algos import AlgoBase
-from ..base import LearnableConfig, UseGPUArg, register_learnable
+from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import (
     ALGO_NOT_GIVEN_ERROR,
     IMPL_NOT_INITIALIZED_ERROR,
@@ -68,7 +68,7 @@ class FQEConfig(LearnableConfig):
     n_critics: int = 1
     target_update_interval: int = 100
 
-    def create(self, use_gpu: UseGPUArg = False) -> "_FQEBase":
+    def create(self, device: DeviceArg = False) -> "_FQEBase":
         raise NotImplementedError(
             "Config object must be directly given to constructor"
         )
@@ -88,10 +88,10 @@ class _FQEBase(AlgoBase):
         self,
         algo: AlgoBase,
         config: FQEConfig,
-        use_gpu: UseGPUArg = False,
+        device: DeviceArg = False,
         impl: Optional[FQEBaseImpl] = None,
     ):
-        super().__init__(config, use_gpu, impl)
+        super().__init__(config, device, impl)
         self._algo = algo
 
     def save_policy(self, fname: str) -> None:
@@ -138,8 +138,8 @@ class FQE(_FQEBase):
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
         config (d3rlpy.ope.FQEConfig): FQE config.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
+        device (bool, int or str):
+            flag to use GPU, device ID or PyTorch device identifier.
         impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     """
@@ -159,7 +159,7 @@ class FQE(_FQEBase):
             observation_scaler=self._config.observation_scaler,
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
-            use_gpu=self._use_gpu,
+            device=self._device,
         )
         self._impl.build()
 
@@ -189,8 +189,8 @@ class DiscreteFQE(_FQEBase):
     Args:
         algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
         config (d3rlpy.ope.FQEConfig): FQE config.
-        use_gpu (bool, int or d3rlpy.gpu.Device):
-            flag to use GPU, device ID or device.
+        device (bool, int or str):
+            flag to use GPU, device ID or PyTorch device identifier.
         impl (d3rlpy.metrics.ope.torch.DiscreteFQEImpl):
             algorithm implementation.
 
@@ -211,7 +211,7 @@ class DiscreteFQE(_FQEBase):
             observation_scaler=self._config.observation_scaler,
             action_scaler=None,
             reward_scaler=self._config.reward_scaler,
-            use_gpu=self._use_gpu,
+            device=self._device,
         )
         self._impl.build()
 

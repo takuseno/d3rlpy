@@ -7,7 +7,6 @@ import torch
 from torch.optim import Optimizer
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import (
     create_categorical_policy,
     create_discrete_q_function,
@@ -26,7 +25,13 @@ from ...models.torch import (
     SquashedNormalPolicy,
 )
 from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from ...torch_utility import TorchMiniBatch, hard_sync, torch_api, train_api
+from ...torch_utility import (
+    TorchMiniBatch,
+    hard_sync,
+    to_device,
+    torch_api,
+    train_api,
+)
 from .base import TorchImplBase
 from .ddpg_impl import DDPGBaseImpl
 from .utility import DiscreteQFunctionMixin
@@ -61,7 +66,7 @@ class SACImpl(DDPGBaseImpl):
         tau: float,
         n_critics: int,
         initial_temperature: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -79,7 +84,7 @@ class SACImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             n_critics=n_critics,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
@@ -179,7 +184,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
     _gamma: float
     _n_critics: int
     _initial_temperature: float
-    _use_gpu: Optional[Device]
     _policy: Optional[CategoricalPolicy]
     _q_func: Optional[EnsembleDiscreteQFunction]
     _targ_q_func: Optional[EnsembleDiscreteQFunction]
@@ -204,7 +208,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         gamma: float,
         n_critics: int,
         initial_temperature: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -214,6 +218,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
             observation_scaler=observation_scaler,
             action_scaler=None,
             reward_scaler=reward_scaler,
+            device=device,
         )
         self._actor_learning_rate = actor_learning_rate
         self._critic_learning_rate = critic_learning_rate
@@ -227,7 +232,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         self._gamma = gamma
         self._n_critics = n_critics
         self._initial_temperature = initial_temperature
-        self._use_gpu = use_gpu
 
         # initialized in build
         self._q_func = None
@@ -246,10 +250,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         # setup target networks
         self._targ_q_func = copy.deepcopy(self._q_func)
 
-        if self._use_gpu:
-            self.to_gpu(self._use_gpu)
-        else:
-            self.to_cpu()
+        to_device(self, self._device)
 
         # setup optimizer after the parameters move to GPU
         self._build_critic_optim()

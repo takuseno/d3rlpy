@@ -5,7 +5,6 @@ from typing import Optional
 import torch
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
@@ -37,7 +36,7 @@ class TD3PlusBCImpl(TD3Impl):
         target_smoothing_sigma: float,
         target_smoothing_clip: float,
         alpha: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -57,7 +56,7 @@ class TD3PlusBCImpl(TD3Impl):
             n_critics=n_critics,
             target_smoothing_sigma=target_smoothing_sigma,
             target_smoothing_clip=target_smoothing_clip,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,

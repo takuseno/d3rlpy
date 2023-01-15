@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Dict, Optional
 
-from ..base import LearnableConfig, UseGPUArg, register_learnable
+from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
 from ..models.encoders import EncoderFactory, make_encoder_field
@@ -98,8 +98,8 @@ class SACConfig(LearnableConfig):
     n_critics: int = 2
     initial_temperature: float = 1.0
 
-    def create(self, use_gpu: UseGPUArg = False) -> "SAC":
-        return SAC(self, use_gpu)
+    def create(self, device: DeviceArg = False) -> "SAC":
+        return SAC(self, device)
 
     @staticmethod
     def get_type() -> str:
@@ -130,7 +130,7 @@ class SAC(AlgoBase):
             observation_scaler=self._config.observation_scaler,
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
-            use_gpu=self._use_gpu,
+            device=self._device,
         )
         self._impl.build()
 
@@ -229,8 +229,8 @@ class DiscreteSACConfig(LearnableConfig):
     initial_temperature: float = 1.0
     target_update_interval: int = 8000
 
-    def create(self, use_gpu: UseGPUArg = False) -> "DiscreteSAC":
-        return DiscreteSAC(self, use_gpu)
+    def create(self, device: DeviceArg = False) -> "DiscreteSAC":
+        return DiscreteSAC(self, device)
 
     @staticmethod
     def get_type() -> str:
@@ -259,7 +259,7 @@ class DiscreteSAC(AlgoBase):
             initial_temperature=self._config.initial_temperature,
             observation_scaler=self._config.observation_scaler,
             reward_scaler=self._config.reward_scaler,
-            use_gpu=self._use_gpu,
+            device=self._device,
         )
         self._impl.build()
 

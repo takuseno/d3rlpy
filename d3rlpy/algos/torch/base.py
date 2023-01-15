@@ -5,7 +5,6 @@ import torch
 from torch.optim import Optimizer
 
 from ...dataset import Shape, is_tuple_shape
-from ...gpu import Device
 from ...models.torch.policies import Policy
 from ...models.torch.q_functions.ensemble_q_function import EnsembleQFunction
 from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
@@ -44,13 +43,14 @@ class TorchImplBase(AlgoImplBase):
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
+        device: str,
     ):
         self._observation_shape = observation_shape
         self._action_size = action_size
         self._observation_scaler = observation_scaler
         self._action_scaler = action_scaler
         self._reward_scaler = reward_scaler
-        self._device = "cpu:0"
+        self._device = device
 
     @eval_api
     @torch_api(observation_scaler_targets=["x"])
@@ -137,8 +137,8 @@ class TorchImplBase(AlgoImplBase):
         # workaround until version 1.6
         unfreeze(self)
 
-    def to_gpu(self, device: Device = Device()) -> None:
-        self._device = f"cuda:{device.get_id()}"
+    def to_gpu(self, device: str) -> None:
+        self._device = device
         to_cuda(self, self._device)
 
     def to_cpu(self) -> None:

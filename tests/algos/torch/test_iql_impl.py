@@ -61,7 +61,7 @@ def test_iql_impl(
         expectile=expectile,
         weight_temp=weight_temp,
         max_weight=max_weight,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,

@@ -4,7 +4,6 @@ import torch
 import torch.nn.functional as F
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import create_non_squashed_normal_policy
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
@@ -46,7 +45,7 @@ class CRRImpl(DDPGBaseImpl):
         max_weight: float,
         n_critics: int,
         tau: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -64,7 +63,7 @@ class CRRImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             n_critics=n_critics,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,

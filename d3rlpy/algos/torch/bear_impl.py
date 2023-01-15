@@ -6,7 +6,6 @@ import torch
 from torch.optim import Optimizer
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import create_conditional_vae, create_parameter
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
@@ -89,7 +88,7 @@ class BEARImpl(SACImpl):
         mmd_kernel: str,
         mmd_sigma: float,
         vae_kl_weight: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -110,7 +109,7 @@ class BEARImpl(SACImpl):
             tau=tau,
             n_critics=n_critics,
             initial_temperature=initial_temperature,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,

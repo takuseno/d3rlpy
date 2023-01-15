@@ -21,6 +21,7 @@ __all__ = [
     "set_train_mode",
     "to_cuda",
     "to_cpu",
+    "to_device",
     "freeze",
     "unfreeze",
     "get_state_dict",
@@ -99,6 +100,13 @@ def to_cpu(impl: Any) -> None:
         module = getattr(impl, key)
         if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
             module.cpu()
+
+
+def to_device(impl: Any, device: str) -> None:
+    if device.startswith("cuda"):
+        to_cuda(impl, device)
+    else:
+        to_cpu(impl)
 
 
 def freeze(impl: Any) -> None:

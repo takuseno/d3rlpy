@@ -66,7 +66,7 @@ def test_td3_plus_bc_impl(
         target_smoothing_sigma=target_smoothing_sigma,
         target_smoothing_clip=target_smoothing_clip,
         alpha=alpha,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,

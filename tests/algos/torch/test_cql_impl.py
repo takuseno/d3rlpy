@@ -87,7 +87,7 @@ def test_cql_impl(
         conservative_weight=conservative_weight,
         n_action_samples=n_action_samples,
         soft_q_backup=soft_q_backup,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
@@ -131,7 +131,7 @@ def test_discrete_cql_impl(
         gamma=gamma,
         n_critics=n_critics,
         alpha=alpha,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )

@@ -3,7 +3,7 @@ from typing import Any, List, Tuple, Union
 
 import numpy as np
 
-from ..base import LearnableConfig, UseGPUArg, register_learnable
+from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import ActionSpace
 from ..dataset import Shape
 from .base import AlgoBase
@@ -34,7 +34,7 @@ class RandomPolicyConfig(LearnableConfig):
     distribution: str = "uniform"
     normal_std: float = 1.0
 
-    def create(self, use_gpu: UseGPUArg = False) -> "RandomPolicy":
+    def create(self, device: DeviceArg = False) -> "RandomPolicy":
         return RandomPolicy(self)
 
     @staticmethod
@@ -99,7 +99,7 @@ class DiscreteRandomPolicyConfig(LearnableConfig):
 
     """
 
-    def create(self, use_gpu: UseGPUArg = False) -> "DiscreteRandomPolicy":
+    def create(self, device: DeviceArg = False) -> "DiscreteRandomPolicy":
         return DiscreteRandomPolicy(self)
 
     @staticmethod

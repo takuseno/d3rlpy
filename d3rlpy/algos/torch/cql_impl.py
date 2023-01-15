@@ -7,7 +7,6 @@ import torch.nn.functional as F
 from torch.optim import Optimizer
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import create_parameter
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
@@ -57,7 +56,7 @@ class CQLImpl(SACImpl):
         conservative_weight: float,
         n_action_samples: int,
         soft_q_backup: bool,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -78,7 +77,7 @@ class CQLImpl(SACImpl):
             tau=tau,
             n_critics=n_critics,
             initial_temperature=initial_temperature,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
@@ -260,7 +259,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         gamma: float,
         n_critics: int,
         alpha: float,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         reward_scaler: Optional[RewardScaler],
     ):
@@ -273,7 +272,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
             q_func_factory=q_func_factory,
             gamma=gamma,
             n_critics=n_critics,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             reward_scaler=reward_scaler,
         )

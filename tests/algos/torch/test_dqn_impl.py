@@ -44,7 +44,7 @@ def test_dqn_impl(
         q_func_factory=q_func_factory,
         gamma=gamma,
         n_critics=n_critics,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )
@@ -84,7 +84,7 @@ def test_double_dqn_impl(
         q_func_factory=q_func_factory,
         gamma=gamma,
         n_critics=n_critics,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )

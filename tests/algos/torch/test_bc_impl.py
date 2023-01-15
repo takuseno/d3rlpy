@@ -35,7 +35,7 @@ def test_bc_impl(
         optim_factory=optim_factory,
         encoder_factory=encoder_factory,
         policy_type=policy_type,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
     )
@@ -65,7 +65,7 @@ def test_discrete_bc_impl(
         optim_factory=optim_factory,
         encoder_factory=encoder_factory,
         beta=beta,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
     )
     torch_impl_tester(impl, discrete=True, imitator=True)

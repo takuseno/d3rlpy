@@ -3,10 +3,9 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
-from ..base import LearnableConfig, UseGPUArg, register_learnable
+from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ..dataset import Shape, TransitionMiniBatch
-from ..gpu import Device
 from ..models.encoders import EncoderFactory, make_encoder_field
 from ..models.optimizers import OptimizerFactory, make_optimizer_field
 from .base import AlgoBase
@@ -16,7 +15,6 @@ __all__ = ["BCConfig", "BC", "DiscreteBCConfig", "DiscreteBC"]
 
 
 class _BCBase(AlgoBase):
-    _use_gpu: Optional[Device]
     _impl: Optional[BCBaseImpl]
 
     def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
@@ -72,8 +70,8 @@ class BCConfig(LearnableConfig):
     optim_factory: OptimizerFactory = make_optimizer_field()
     encoder_factory: EncoderFactory = make_encoder_field()
 
-    def create(self, use_gpu: UseGPUArg = False) -> "BC":
-        return BC(self, use_gpu)
+    def create(self, device: DeviceArg = False) -> "BC":
+        return BC(self, device)
 
     @staticmethod
     def get_type() -> str:
@@ -95,7 +93,7 @@ class BC(_BCBase):
             policy_type=self._config.policy_type,
             observation_scaler=self._config.observation_scaler,
             action_scaler=self._config.action_scaler,
-            use_gpu=self._use_gpu,
+            device=self._device,
         )
         self._impl.build()
 
@@ -137,8 +135,8 @@ class DiscreteBCConfig(LearnableConfig):
     encoder_factory: EncoderFactory = make_encoder_field()
     beta: float = 0.5
 
-    def create(self, use_gpu: UseGPUArg = False) -> "DiscreteBC":
-        return DiscreteBC(self, use_gpu)
+    def create(self, device: DeviceArg = False) -> "DiscreteBC":
+        return DiscreteBC(self, device)
 
     @staticmethod
     def get_type() -> str:
@@ -158,7 +156,7 @@ class DiscreteBC(_BCBase):
             encoder_factory=self._config.encoder_factory,
             beta=self._config.beta,
             observation_scaler=self._config.observation_scaler,
-            use_gpu=self._use_gpu,
+            device=self._device,
         )
         self._impl.build()
 

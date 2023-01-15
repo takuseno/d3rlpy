@@ -66,7 +66,7 @@ def test_sac_impl(
         tau=tau,
         n_critics=n_critics,
         initial_temperature=initial_temperature,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
@@ -123,7 +123,7 @@ def test_discrete_sac_impl(
         gamma=gamma,
         n_critics=n_critics,
         initial_temperature=initial_temperature,
-        use_gpu=None,
+        device="cpu:0",
         observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
     )

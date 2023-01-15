@@ -5,7 +5,6 @@ import torch
 import torch.nn.functional as F
 
 from ...dataset import Shape
-from ...gpu import Device
 from ...models.builders import create_non_squashed_normal_policy
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import AdamFactory, OptimizerFactory
@@ -40,7 +39,7 @@ class AWACImpl(SACImpl):
         lam: float,
         n_action_samples: int,
         n_critics: int,
-        use_gpu: Optional[Device],
+        device: str,
         observation_scaler: Optional[ObservationScaler],
         action_scaler: Optional[ActionScaler],
         reward_scaler: Optional[RewardScaler],
@@ -61,7 +60,7 @@ class AWACImpl(SACImpl):
             tau=tau,
             n_critics=n_critics,
             initial_temperature=1e-20,
-            use_gpu=use_gpu,
+            device=device,
             observation_scaler=observation_scaler,
             action_scaler=action_scaler,
             reward_scaler=reward_scaler,
