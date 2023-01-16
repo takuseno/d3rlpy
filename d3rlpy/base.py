@@ -113,7 +113,7 @@ def _process_device(value: DeviceArg) -> str:
     raise ValueError("This argument must be bool, int or str.")
 
 
-class LearnableBase:
+class LearnableBase(metaclass=ABCMeta):
     _config: LearnableConfig
     _device: str
     _impl: Optional[ImplBase]
@@ -177,10 +177,13 @@ class LearnableBase:
         """
         if self._impl:
             LOG.warn("Parameters will be reinitialized.")
-        self._create_impl(observation_shape, action_size)
+        self.inner_create_impl(observation_shape, action_size)
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
-        raise NotImplementedError
+    @abstractmethod
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
+        pass
 
     def build_with_dataset(self, dataset: ReplayBuffer) -> None:
         """Instantiate implementation object with MDPDataset object.

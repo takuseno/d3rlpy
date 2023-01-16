@@ -91,7 +91,9 @@ class TD3PlusBC(AlgoBase):
     _config: TD3PlusBCConfig
     _impl: Optional[TD3PlusBCImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = TD3PlusBCImpl(
             observation_shape=observation_shape,
             action_size=action_size,

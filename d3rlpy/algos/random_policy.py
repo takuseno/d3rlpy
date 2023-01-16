@@ -49,7 +49,9 @@ class RandomPolicy(AlgoBase):
         super().__init__(config, False, None)
         self._action_size = 1
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._action_size = action_size
 
     def predict(self, x: Observation) -> np.ndarray:
@@ -109,7 +111,9 @@ class DiscreteRandomPolicy(AlgoBase):
         super().__init__(config, False, None)
         self._action_size = 1
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._action_size = action_size
 
     def predict(self, x: Observation) -> np.ndarray:

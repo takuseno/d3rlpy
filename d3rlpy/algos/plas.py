@@ -100,7 +100,9 @@ class PLAS(AlgoBase):
     _config: PLASConfig
     _impl: Optional[PLASImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = PLASImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -203,7 +205,9 @@ class PLASWithPerturbation(PLAS):
     _config: PLASWithPerturbationConfig
     _impl: Optional[PLASWithPerturbationImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = PLASWithPerturbationImpl(
             observation_shape=observation_shape,
             action_size=action_size,

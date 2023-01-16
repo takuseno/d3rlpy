@@ -130,7 +130,9 @@ class CRR(AlgoBase):
     _config: CRRConfig
     _impl: Optional[CRRImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = CRRImpl(
             observation_shape=observation_shape,
             action_size=action_size,

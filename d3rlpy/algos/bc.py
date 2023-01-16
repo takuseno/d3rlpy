@@ -69,7 +69,9 @@ class BC(_BCBase):
     _config: BCConfig
     _impl: Optional[BCImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = BCImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -131,7 +133,9 @@ class DiscreteBC(_BCBase):
     _config: DiscreteBCConfig
     _impl: Optional[DiscreteBCImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = DiscreteBCImpl(
             observation_shape=observation_shape,
             action_size=action_size,

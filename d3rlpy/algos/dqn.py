@@ -67,7 +67,9 @@ class DQN(AlgoBase):
     _config: DQNConfig
     _impl: Optional[DQNImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = DQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -151,7 +153,9 @@ class DoubleDQN(DQN):
     _config: DoubleDQNConfig
     _impl: Optional[DoubleDQNImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = DoubleDQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,

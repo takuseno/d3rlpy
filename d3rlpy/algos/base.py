@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from collections import defaultdict
 from typing import Callable, Dict, Generator, List, Optional, Tuple, cast
 
@@ -77,22 +78,21 @@ class AlgoImplBase(ImplBase):
         self._action_size = action_size
         self._device = device
 
-    def build(self) -> None:
-        raise NotImplementedError
-
     @eval_api
     def predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
+    @abstractmethod
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
+        pass
 
     @eval_api
     def sample_action(self, x: torch.Tensor) -> torch.Tensor:
         return self.inner_sample_action(x)
 
+    @abstractmethod
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
+        pass
 
     @eval_api
     def predict_value(
@@ -100,10 +100,11 @@ class AlgoImplBase(ImplBase):
     ) -> torch.Tensor:
         return self.inner_predict_value(x, action)
 
+    @abstractmethod
     def inner_predict_value(
         self, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
-        raise NotImplementedError
+        pass
 
     def to_gpu(self, device: str) -> None:
         self._device = device

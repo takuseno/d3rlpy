@@ -150,7 +150,9 @@ class FQE(_FQEBase):
 
     _impl: Optional[FQEImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = FQEImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -199,7 +201,9 @@ class DiscreteFQE(_FQEBase):
 
     _impl: Optional[DiscreteFQEImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = DiscreteFQEImpl(
             observation_shape=observation_shape,
             action_size=action_size,

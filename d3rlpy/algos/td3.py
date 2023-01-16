@@ -99,7 +99,9 @@ class TD3(AlgoBase):
     _config: TD3Config
     _impl: Optional[TD3Impl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = TD3Impl(
             observation_shape=observation_shape,
             action_size=action_size,

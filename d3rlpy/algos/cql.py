@@ -128,7 +128,9 @@ class CQL(AlgoBase):
     _config: CQLConfig
     _impl: Optional[CQLImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = CQLImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -249,7 +251,9 @@ class DiscreteCQL(AlgoBase):
     _config: DiscreteCQLConfig
     _impl: Optional[DiscreteCQLImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = DiscreteCQLImpl(
             observation_shape=observation_shape,
             action_size=action_size,

@@ -159,7 +159,9 @@ class BCQ(AlgoBase):
     _config: BCQConfig
     _impl: Optional[BCQImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = BCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -290,7 +292,9 @@ class DiscreteBCQ(AlgoBase):
     _config: DiscreteBCQConfig
     _impl: Optional[DiscreteBCQImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = DiscreteBCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,

@@ -91,7 +91,9 @@ class DDPG(AlgoBase):
     _config: DDPGConfig
     _impl: Optional[DDPGImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = DDPGImpl(
             observation_shape=observation_shape,
             action_size=action_size,

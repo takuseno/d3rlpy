@@ -132,7 +132,10 @@ class FQEBaseImpl(AlgoImplBase):
         assert self._targ_q_func is not None
         hard_sync(self._targ_q_func, self._q_func)
 
-    def save_policy(self, fname: str) -> None:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
 
 

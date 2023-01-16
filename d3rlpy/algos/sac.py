@@ -111,7 +111,9 @@ class SAC(AlgoBase):
     _config: SACConfig
     _impl: Optional[SACImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = SACImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -239,7 +241,9 @@ class DiscreteSAC(AlgoBase):
     _config: DiscreteSACConfig
     _impl: Optional[DiscreteSACImpl]
 
-    def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
         self._impl = DiscreteSACImpl(
             observation_shape=observation_shape,
             action_size=action_size,
