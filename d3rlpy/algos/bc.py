@@ -1,13 +1,12 @@
 import dataclasses
-from typing import Any, Dict, List, Optional, Union
-
-import numpy as np
+from typing import Dict, Optional
 
 from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
-from ..dataset import Shape, TransitionMiniBatch
+from ..dataset import Shape
 from ..models.encoders import EncoderFactory, make_encoder_field
 from ..models.optimizers import OptimizerFactory, make_optimizer_field
+from ..torch_utility import TorchMiniBatch
 from .base import AlgoBase
 from .torch.bc_impl import BCBaseImpl, BCImpl, DiscreteBCImpl
 
@@ -17,23 +16,10 @@ __all__ = ["BCConfig", "BC", "DiscreteBCConfig", "DiscreteBC"]
 class _BCBase(AlgoBase):
     _impl: Optional[BCBaseImpl]
 
-    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
+    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update_imitator(batch.observations, batch.actions)
+        loss = self._impl.update_imitator(batch)
         return {"loss": loss}
-
-    def predict_value(
-        self,
-        x: Union[np.ndarray, List[Any]],
-        action: Union[np.ndarray, List[Any]],
-        with_std: bool = False,
-    ) -> np.ndarray:
-        """value prediction is not supported by BC algorithms."""
-        raise NotImplementedError("BC does not support value estimation.")
-
-    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> None:
-        """sampling action is not supported by BC algorithm."""
-        raise NotImplementedError("BC does not support sampling action.")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -91,8 +77,6 @@ class BC(_BCBase):
             optim_factory=self._config.optim_factory,
             encoder_factory=self._config.encoder_factory,
             policy_type=self._config.policy_type,
-            observation_scaler=self._config.observation_scaler,
-            action_scaler=self._config.action_scaler,
             device=self._device,
         )
         self._impl.build()
@@ -155,7 +139,6 @@ class DiscreteBC(_BCBase):
             optim_factory=self._config.optim_factory,
             encoder_factory=self._config.encoder_factory,
             beta=self._config.beta,
-            observation_scaler=self._config.observation_scaler,
             device=self._device,
         )
         self._impl.build()

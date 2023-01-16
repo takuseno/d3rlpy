@@ -1,12 +1,12 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Optional, Type, TypeVar, Union, cast
+from typing import Optional, Type, TypeVar, Union, cast
 
 import gym
 from gym.spaces import Discrete
 
 from .constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
-from .dataset import DatasetInfo, ReplayBuffer, Shape, TransitionMiniBatch
+from .dataset import DatasetInfo, ReplayBuffer, Shape
 from .logger import LOG, D3RLPyLogger
 from .preprocessing import (
     ActionScaler,
@@ -206,23 +206,6 @@ class LearnableBase:
         else:
             action_size = cast(int, env.action_space.shape[0])
         self.create_impl(observation_shape, action_size)
-
-    def update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
-        """Update parameters with mini-batch of data.
-
-        Args:
-            batch: mini-batch data.
-
-        Returns:
-            dictionary of metrics.
-
-        """
-        loss = self._update(batch)
-        self._grad_step += 1
-        return loss
-
-    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
-        raise NotImplementedError
 
     def get_action_type(self) -> ActionSpace:
         """Returns action type (continuous or discrete).

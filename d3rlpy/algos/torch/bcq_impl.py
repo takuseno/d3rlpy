@@ -1,7 +1,6 @@
 import math
 from typing import Optional, cast
 
-import numpy as np
 import torch
 from torch.optim import Optimizer
 
@@ -21,8 +20,7 @@ from ...models.torch import (
     PixelEncoder,
     compute_max_with_n_actions,
 )
-from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from ...torch_utility import TorchMiniBatch, torch_api, train_api
+from ...torch_utility import TorchMiniBatch, train_api
 from .ddpg_impl import DDPGBaseImpl
 from .dqn_impl import DoubleDQNImpl
 
@@ -65,9 +63,6 @@ class BCQImpl(DDPGBaseImpl):
         action_flexibility: float,
         beta: float,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -83,9 +78,6 @@ class BCQImpl(DDPGBaseImpl):
             tau=tau,
             n_critics=n_critics,
             device=device,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
         )
         self._imitator_learning_rate = imitator_learning_rate
         self._imitator_optim_factory = imitator_optim_factory
@@ -148,8 +140,7 @@ class BCQImpl(DDPGBaseImpl):
         return -self._q_func(batch.observations, action, "none")[0].mean()
 
     @train_api
-    @torch_api()
-    def update_imitator(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update_imitator(self, batch: TorchMiniBatch) -> float:
         assert self._imitator_optim is not None
         assert self._imitator is not None
 
@@ -160,7 +151,7 @@ class BCQImpl(DDPGBaseImpl):
         loss.backward()
         self._imitator_optim.step()
 
-        return loss.cpu().detach().numpy()
+        return float(loss.cpu().detach().numpy())
 
     def _repeat_observation(self, x: torch.Tensor) -> torch.Tensor:
         # (batch_size, *obs_shape) -> (batch_size, n, *obs_shape)
@@ -202,7 +193,7 @@ class BCQImpl(DDPGBaseImpl):
         # estimate values
         return self._q_func(flattened_x, flattend_action, "none")
 
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         # TODO: this seems to be slow with image observation
         repeated_x = self._repeat_observation(x)
         action = self._sample_repeated_action(repeated_x)
@@ -211,8 +202,8 @@ class BCQImpl(DDPGBaseImpl):
         index = values.view(-1, self._n_action_samples).argmax(dim=1)
         return action[torch.arange(action.shape[0]), index]
 
-    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError("BCQ does not support sampling action")
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._targ_q_func is not None
@@ -247,8 +238,6 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         action_flexibility: float,
         beta: float,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -260,8 +249,6 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             gamma=gamma,
             n_critics=n_critics,
             device=device,
-            observation_scaler=observation_scaler,
-            reward_scaler=reward_scaler,
         )
         self._action_flexibility = action_flexibility
         self._beta = beta
@@ -312,7 +299,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         )
         return loss + imitator_loss
 
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None
         assert self._q_func is not None
         log_probs = self._imitator(x)

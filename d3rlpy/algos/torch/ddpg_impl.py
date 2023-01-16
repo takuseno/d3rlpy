@@ -2,7 +2,6 @@ import copy
 from abc import ABCMeta, abstractmethod
 from typing import Optional
 
-import numpy as np
 import torch
 from torch.optim import Optimizer
 
@@ -20,21 +19,14 @@ from ...models.torch import (
     EnsembleQFunction,
     Policy,
 )
-from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from ...torch_utility import (
-    TorchMiniBatch,
-    soft_sync,
-    to_device,
-    torch_api,
-    train_api,
-)
-from .base import TorchImplBase
+from ...torch_utility import TorchMiniBatch, soft_sync, to_device, train_api
+from ..base import AlgoImplBase
 from .utility import ContinuousQFunctionMixin
 
 __all__ = ["DDPGImpl"]
 
 
-class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
+class DDPGBaseImpl(ContinuousQFunctionMixin, AlgoImplBase, metaclass=ABCMeta):
 
     _actor_learning_rate: float
     _critic_learning_rate: float
@@ -68,16 +60,10 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         tau: float,
         n_critics: int,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
             device=device,
         )
         self._actor_learning_rate = actor_learning_rate
@@ -140,8 +126,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         )
 
     @train_api
-    @torch_api()
-    def update_critic(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update_critic(self, batch: TorchMiniBatch) -> float:
         assert self._critic_optim is not None
 
         self._critic_optim.zero_grad()
@@ -153,7 +138,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         loss.backward()
         self._critic_optim.step()
 
-        return loss.cpu().detach().numpy()
+        return float(loss.cpu().detach().numpy())
 
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
@@ -169,8 +154,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         )
 
     @train_api
-    @torch_api()
-    def update_actor(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update_actor(self, batch: TorchMiniBatch) -> float:
         assert self._q_func is not None
         assert self._actor_optim is not None
 
@@ -184,7 +168,7 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
         loss.backward()
         self._actor_optim.step()
 
-        return loss.cpu().detach().numpy()
+        return float(loss.cpu().detach().numpy())
 
     @abstractmethod
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
@@ -194,11 +178,11 @@ class DDPGBaseImpl(ContinuousQFunctionMixin, TorchImplBase, metaclass=ABCMeta):
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         pass
 
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         return self._policy.best_action(x)
 
-    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         return self._policy.sample(x)
 
@@ -263,5 +247,5 @@ class DDPGImpl(DDPGBaseImpl):
                 reduction="min",
             )
 
-    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._predict_best_action(x)
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self.inner_predict_best_action(x)

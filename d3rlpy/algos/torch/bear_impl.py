@@ -1,7 +1,6 @@
 import math
-from typing import Optional
+from typing import Optional, Tuple
 
-import numpy as np
 import torch
 from torch.optim import Optimizer
 
@@ -15,8 +14,7 @@ from ...models.torch import (
     Parameter,
     compute_max_with_n_actions_and_indices,
 )
-from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from ...torch_utility import TorchMiniBatch, torch_api, train_api
+from ...torch_utility import TorchMiniBatch, train_api
 from .sac_impl import SACImpl
 
 __all__ = ["BEARImpl"]
@@ -89,9 +87,6 @@ class BEARImpl(SACImpl):
         mmd_sigma: float,
         vae_kl_weight: float,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -110,9 +105,6 @@ class BEARImpl(SACImpl):
             n_critics=n_critics,
             initial_temperature=initial_temperature,
             device=device,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
         )
         self._imitator_learning_rate = imitator_learning_rate
         self._alpha_learning_rate = alpha_learning_rate
@@ -175,8 +167,7 @@ class BEARImpl(SACImpl):
         return loss + mmd_loss
 
     @train_api
-    @torch_api()
-    def warmup_actor(self, batch: TorchMiniBatch) -> np.ndarray:
+    def warmup_actor(self, batch: TorchMiniBatch) -> float:
         assert self._actor_optim is not None
 
         self._actor_optim.zero_grad()
@@ -186,7 +177,7 @@ class BEARImpl(SACImpl):
         loss.backward()
         self._actor_optim.step()
 
-        return loss.cpu().detach().numpy()
+        return float(loss.cpu().detach().numpy())
 
     def _compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
         assert self._log_alpha
@@ -195,8 +186,7 @@ class BEARImpl(SACImpl):
         return (alpha * (mmd - self._alpha_threshold)).mean()
 
     @train_api
-    @torch_api()
-    def update_imitator(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update_imitator(self, batch: TorchMiniBatch) -> float:
         assert self._imitator_optim is not None
 
         self._imitator_optim.zero_grad()
@@ -207,15 +197,14 @@ class BEARImpl(SACImpl):
 
         self._imitator_optim.step()
 
-        return loss.cpu().detach().numpy()
+        return float(loss.cpu().detach().numpy())
 
     def compute_imitator_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._imitator is not None
         return self._imitator.compute_error(batch.observations, batch.actions)
 
     @train_api
-    @torch_api()
-    def update_alpha(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update_alpha(self, batch: TorchMiniBatch) -> Tuple[float, float]:
         assert self._alpha_optim is not None
         assert self._log_alpha is not None
 
@@ -230,7 +219,7 @@ class BEARImpl(SACImpl):
 
         cur_alpha = self._log_alpha().exp().cpu().detach().numpy()[0][0]
 
-        return loss.cpu().detach().numpy(), cur_alpha
+        return float(loss.cpu().detach().numpy()), float(cur_alpha)
 
     def _compute_mmd(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None
@@ -301,7 +290,7 @@ class BEARImpl(SACImpl):
 
             return values - self._log_temp().exp() * max_log_prob
 
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         assert self._q_func is not None
         with torch.no_grad():

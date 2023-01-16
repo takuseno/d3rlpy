@@ -12,7 +12,6 @@ from d3rlpy.metrics.evaluators import (
     InitialStateValueEstimationEvaluator,
     SoftOPCEvaluator,
     TDErrorEvaluator,
-    ValueEstimationStdEvaluator,
 )
 from d3rlpy.preprocessing import ClipRewardScaler
 
@@ -217,43 +216,6 @@ def test_average_value_estimation_scorer(
         algo, episodes, BasicTransitionPicker()
     )
     assert np.allclose(score, np.mean(total_values))
-
-
-@pytest.mark.parametrize("observation_shape", [(100,)])
-@pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("n_episodes", [100])
-@pytest.mark.parametrize("episode_length", [10])
-def test_value_estimation_std_scorer(
-    observation_shape, action_size, n_episodes, episode_length
-):
-    # projection matrix for deterministic action
-    A = np.random.random(observation_shape + (action_size,))
-    episodes = []
-    for _ in range(n_episodes):
-        observations = np.random.random((episode_length,) + observation_shape)
-        actions = np.matmul(observations, A).astype("f4")
-        rewards = np.random.random((episode_length, 1)).astype("f4")
-        episode = Episode(
-            observations.astype("f4"),
-            actions,
-            rewards,
-            False,
-        )
-        episodes.append(episode)
-
-    algo = DummyAlgo(A, 0.0)
-
-    total_stds = []
-    for episode in episodes:
-        batch = _convert_episode_to_batch(episode)
-        policy_actions = algo.predict(batch.observations)
-        _, stds = algo.predict_value(batch.observations, policy_actions, True)
-        total_stds += stds.tolist()
-
-    score = ValueEstimationStdEvaluator()(
-        algo, episodes, BasicTransitionPicker()
-    )
-    assert np.allclose(score, np.mean(total_stds))
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])

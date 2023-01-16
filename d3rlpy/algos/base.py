@@ -1,9 +1,9 @@
-from abc import abstractmethod
 from collections import defaultdict
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Callable, Dict, Generator, List, Optional, Tuple, cast
 
 import gym
 import numpy as np
+import torch
 from tqdm.auto import tqdm, trange
 
 from ..base import ImplBase, LearnableBase, save_config
@@ -16,11 +16,33 @@ from ..constants import (
 from ..dataset import (
     DatasetInfo,
     Episode,
+    Observation,
     ReplayBuffer,
+    Shape,
+    TransitionMiniBatch,
+    check_non_1d_array,
     create_fifo_replay_buffer,
+    is_tuple_shape,
 )
 from ..logger import LOG, D3RLPyLogger
 from ..metrics import EvaluatorProtocol, evaluate_with_environment
+from ..models.torch import EnsembleQFunction, Policy
+from ..torch_utility import (
+    TorchMiniBatch,
+    convert_to_torch,
+    convert_to_torch_recursively,
+    eval_api,
+    freeze,
+    get_state_dict,
+    hard_sync,
+    map_location,
+    reset_optimizer_states,
+    set_state_dict,
+    sync_optimizer_state,
+    to_cpu,
+    to_cuda,
+    unfreeze,
+)
 from .explorers import Explorer
 
 __all__ = ["AlgoImplBase", "AlgoBase"]
@@ -41,43 +63,128 @@ def _assert_action_space(algo: LearnableBase, env: gym.Env) -> None:
 
 
 class AlgoImplBase(ImplBase):
-    @abstractmethod
-    def save_policy(self, fname: str) -> None:
-        pass
+    _observation_shape: Shape
+    _action_size: int
+    _device: str
 
-    @abstractmethod
-    def predict_best_action(
-        self, x: Union[np.ndarray, List[Any]]
-    ) -> np.ndarray:
-        pass
-
-    @abstractmethod
-    def predict_value(
+    def __init__(
         self,
-        x: Union[np.ndarray, List[Any]],
-        action: Union[np.ndarray, List[Any]],
-        with_std: bool,
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
-        pass
+        observation_shape: Shape,
+        action_size: int,
+        device: str,
+    ):
+        self._observation_shape = observation_shape
+        self._action_size = action_size
+        self._device = device
 
-    @abstractmethod
-    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
-        pass
+    def build(self) -> None:
+        raise NotImplementedError
+
+    @eval_api
+    def predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self.inner_predict_best_action(x)
+
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+    @eval_api
+    def sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self.inner_sample_action(x)
+
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+    @eval_api
+    def predict_value(
+        self, x: torch.Tensor, action: torch.Tensor
+    ) -> torch.Tensor:
+        return self.inner_predict_value(x, action)
+
+    def inner_predict_value(
+        self, x: torch.Tensor, action: torch.Tensor
+    ) -> torch.Tensor:
+        raise NotImplementedError
+
+    def to_gpu(self, device: str) -> None:
+        self._device = device
+        to_cuda(self, self._device)
+
+    def to_cpu(self) -> None:
+        self._device = "cpu:0"
+        to_cpu(self)
+
+    def save_model(self, fname: str) -> None:
+        torch.save(get_state_dict(self), fname)
+
+    def load_model(self, fname: str) -> None:
+        chkpt = torch.load(fname, map_location=map_location(self._device))
+        set_state_dict(self, chkpt)
+
+    @property
+    def policy(self) -> Policy:
+        raise NotImplementedError
 
     def copy_policy_from(self, impl: "AlgoImplBase") -> None:
+        if not isinstance(impl.policy, type(self.policy)):
+            raise ValueError(
+                f"Invalid policy type: expected={type(self.policy)},"
+                f"actual={type(impl.policy)}"
+            )
+        hard_sync(self.policy, impl.policy)
+
+    @property
+    def policy_optim(self) -> torch.optim.Optimizer:
         raise NotImplementedError
 
     def copy_policy_optim_from(self, impl: "AlgoImplBase") -> None:
+        if not isinstance(impl.policy_optim, type(self.policy_optim)):
+            raise ValueError(
+                "Invalid policy optimizer type: "
+                f"expected={type(self.policy_optim)},"
+                f"actual={type(impl.policy_optim)}"
+            )
+        sync_optimizer_state(self.policy_optim, impl.policy_optim)
+
+    @property
+    def q_function(self) -> EnsembleQFunction:
         raise NotImplementedError
 
     def copy_q_function_from(self, impl: "AlgoImplBase") -> None:
+        q_func = self.q_function.q_funcs[0]
+        if not isinstance(impl.q_function.q_funcs[0], type(q_func)):
+            raise ValueError(
+                f"Invalid Q-function type: expected={type(q_func)},"
+                f"actual={type(impl.q_function.q_funcs[0])}"
+            )
+        hard_sync(self.q_function, impl.q_function)
+
+    @property
+    def q_function_optim(self) -> torch.optim.Optimizer:
         raise NotImplementedError
 
     def copy_q_function_optim_from(self, impl: "AlgoImplBase") -> None:
-        raise NotImplementedError
+        if not isinstance(impl.q_function_optim, type(self.q_function_optim)):
+            raise ValueError(
+                "Invalid Q-function optimizer type: "
+                f"expected={type(self.q_function_optim)}",
+                f"actual={type(impl.q_function_optim)}",
+            )
+        sync_optimizer_state(self.q_function_optim, impl.q_function_optim)
 
     def reset_optimizer_states(self) -> None:
-        raise NotImplementedError
+        reset_optimizer_states(self)
+
+    @property
+    def observation_shape(self) -> Shape:
+        return self._observation_shape
+
+    @property
+    def action_size(self) -> int:
+        return self._action_size
+
+    @property
+    def device(self) -> str:
+        return self._device
 
 
 def _setup_algo(algo: "AlgoBase", env: gym.Env) -> None:
@@ -138,9 +245,59 @@ class AlgoBase(LearnableBase):
 
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        self._impl.save_policy(fname)
 
-    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+        if is_tuple_shape(self._impl.observation_shape):
+            dummy_x = [
+                torch.rand(1, *shape, device=self._device)
+                for shape in self._impl.observation_shape
+            ]
+        else:
+            dummy_x = torch.rand(
+                1, *self._impl.observation_shape, device=self._device
+            )
+
+        # workaround until version 1.6
+        freeze(self._impl)
+
+        # dummy function to select best actions
+        def _func(x: torch.Tensor) -> torch.Tensor:
+            assert self._impl
+
+            if self._config.observation_scaler:
+                x = self._config.observation_scaler.transform(x)
+
+            action = self._impl.predict_best_action(x)
+
+            if self._config.action_scaler:
+                action = self._config.action_scaler.reverse_transform(action)
+
+            return action
+
+        traced_script = torch.jit.trace(_func, dummy_x, check_trace=False)
+
+        if fname.endswith(".onnx"):
+            # currently, PyTorch cannot directly export function as ONNX.
+            torch.onnx.export(
+                traced_script,
+                dummy_x,
+                fname,
+                export_params=True,
+                opset_version=11,
+                input_names=["input_0"],
+                output_names=["output_0"],
+            )
+        elif fname.endswith(".pt"):
+            traced_script.save(fname)
+        else:
+            raise ValueError(
+                f"invalid format type: {fname}."
+                " .pt and .onnx extensions are currently supported."
+            )
+
+        # workaround until version 1.6
+        unfreeze(self._impl)
+
+    def predict(self, x: Observation) -> np.ndarray:
         """Returns greedy actions.
 
         .. code-block:: python
@@ -160,14 +317,25 @@ class AlgoBase(LearnableBase):
 
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        return self._impl.predict_best_action(x)
+        assert check_non_1d_array(x), "Input must have batch dimension."
 
-    def predict_value(
-        self,
-        x: Union[np.ndarray, List[Any]],
-        action: Union[np.ndarray, List[Any]],
-        with_std: bool = False,
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        # TODO: support tuple inputs
+        torch_x = cast(
+            torch.Tensor, convert_to_torch_recursively(x, self._device)
+        )
+
+        with torch.no_grad():
+            if self._config.observation_scaler:
+                torch_x = self._config.observation_scaler.transform(torch_x)
+
+            action = self._impl.predict_best_action(torch_x)
+
+            if self._config.action_scaler:
+                action = self._config.action_scaler.reverse_transform(action)
+
+        return action.cpu().detach().numpy()
+
+    def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
         """Returns predicted action-values.
 
         .. code-block:: python
@@ -186,25 +354,43 @@ class AlgoBase(LearnableBase):
             values = algo.predict_value(x, actions)
             # values.shape == (100,)
 
-            values, stds = algo.predict_value(x, actions, with_std=True)
-            # stds.shape  == (100,)
-
         Args:
             x: observations
             action: actions
-            with_std: flag to return standard deviation of ensemble
-                estimation. This deviation reflects uncertainty for the given
-                observations. This uncertainty will be more accurate if you
-                enable ``bootstrap`` flag and increase ``n_critics`` value.
 
         Returns:
             predicted action-values
 
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        return self._impl.predict_value(x, action, with_std)
+        assert check_non_1d_array(x), "Input must have batch dimension."
 
-    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+        # TODO: support tuple inputs
+        torch_x = cast(
+            torch.Tensor, convert_to_torch_recursively(x, self._device)
+        )
+
+        torch_action = convert_to_torch(action, self._device)
+
+        with torch.no_grad():
+            if self._config.observation_scaler:
+                torch_x = self._config.observation_scaler.transform(torch_x)
+
+            if self.get_action_type() == ActionSpace.CONTINUOUS:
+                if self._config.action_scaler:
+                    torch_action = self._config.action_scaler.transform(
+                        torch_action
+                    )
+            elif self.get_action_type() == ActionSpace.DISCRETE:
+                torch_action = torch_action.long()
+            else:
+                raise ValueError("invalid action type")
+
+            value = self._impl.predict_value(torch_x, torch_action)
+
+        return value.cpu().detach().numpy()
+
+    def sample_action(self, x: Observation) -> np.ndarray:
         """Returns sampled actions.
 
         The sampled actions are identical to the output of `predict` method if
@@ -218,7 +404,24 @@ class AlgoBase(LearnableBase):
 
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        return self._impl.sample_action(x)
+        assert check_non_1d_array(x), "Input must have batch dimension."
+
+        # TODO: support tuple inputs
+        torch_x = cast(
+            torch.Tensor, convert_to_torch_recursively(x, self._device)
+        )
+
+        with torch.no_grad():
+            if self._config.observation_scaler:
+                torch_x = self._config.observation_scaler.transform(torch_x)
+
+            action = self._impl.sample_action(torch_x)
+
+            # transform action back to the original range
+            if self._config.action_scaler:
+                action = self._config.action_scaler.reverse_transform(action)
+
+        return action.cpu().detach().numpy()
 
     def fit(
         self,
@@ -580,7 +783,9 @@ class AlgoBase(LearnableBase):
                         x = observation.reshape((1,) + observation.shape)
                         action = explorer.sample(self, x, total_step)[0]
                     else:
-                        action = self.sample_action([observation])[0]
+                        action = self.sample_action(
+                            np.expand_dims(observation, axis=0)
+                        )[0]
 
                 # step environment
                 with logger.measure_time("environment_step"):
@@ -699,13 +904,15 @@ class AlgoBase(LearnableBase):
         for total_step in xrange(1, n_steps + 1):
             # sample exploration action
             if deterministic:
-                action = self.predict([observation])[0]
+                action = self.predict(np.expand_dims(observation, axis=0))[0]
             else:
                 if explorer:
                     x = observation.reshape((1,) + observation.shape)
                     action = explorer.sample(self, x, total_step)[0]
                 else:
-                    action = self.sample_action([observation])[0]
+                    action = self.sample_action(
+                        np.expand_dims(observation, axis=0)
+                    )[0]
 
             # step environment
             next_observation, reward, terminal, info = env.step(action)
@@ -731,6 +938,39 @@ class AlgoBase(LearnableBase):
         buffer.clip_episode(False)
 
         return buffer
+
+    def update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
+        """Update parameters with mini-batch of data.
+
+        Args:
+            batch: mini-batch data.
+
+        Returns:
+            dictionary of metrics.
+
+        """
+        torch_batch = TorchMiniBatch.from_batch(
+            batch=batch,
+            device=self._device,
+            observation_scaler=self._config.observation_scaler,
+            action_scaler=self._config.action_scaler,
+            reward_scaler=self._config.reward_scaler,
+        )
+        loss = self.inner_update(torch_batch)
+        self._grad_step += 1
+        return loss
+
+    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        """Update parameters with PyTorch mini-batch.
+
+        Args:
+            batch: PyTorch mini-batch data.
+
+        Returns:
+            dictionary of metrics.
+
+        """
+        raise NotImplementedError
 
     def copy_policy_from(self, algo: "AlgoBase") -> None:
         """Copies policy parameters from the given algorithm.

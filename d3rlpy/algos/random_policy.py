@@ -1,11 +1,10 @@
 import dataclasses
-from typing import Any, List, Tuple, Union
 
 import numpy as np
 
 from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import ActionSpace
-from ..dataset import Shape
+from ..dataset import Observation, Shape
 from .base import AlgoBase
 
 __all__ = [
@@ -53,10 +52,10 @@ class RandomPolicy(AlgoBase):
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._action_size = action_size
 
-    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+    def predict(self, x: Observation) -> np.ndarray:
         return self.sample_action(x)
 
-    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+    def sample_action(self, x: Observation) -> np.ndarray:
         x = np.asarray(x)
         action_shape = (x.shape[0], self._action_size)
 
@@ -78,12 +77,7 @@ class RandomPolicy(AlgoBase):
 
         return action
 
-    def predict_value(
-        self,
-        x: Union[np.ndarray, List[Any]],
-        action: Union[np.ndarray, List[Any]],
-        with_std: bool = False,
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
     def get_action_type(self) -> ActionSpace:
@@ -118,19 +112,14 @@ class DiscreteRandomPolicy(AlgoBase):
     def _create_impl(self, observation_shape: Shape, action_size: int) -> None:
         self._action_size = action_size
 
-    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+    def predict(self, x: Observation) -> np.ndarray:
         return self.sample_action(x)
 
-    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+    def sample_action(self, x: Observation) -> np.ndarray:
         x = np.asarray(x)
         return np.random.randint(self._action_size, size=x.shape[0])
 
-    def predict_value(
-        self,
-        x: Union[np.ndarray, List[Any]],
-        action: Union[np.ndarray, List[Any]],
-        with_std: bool = False,
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
     def get_action_type(self) -> ActionSpace:

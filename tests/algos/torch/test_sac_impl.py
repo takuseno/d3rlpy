@@ -4,12 +4,7 @@ from d3rlpy.algos.torch.sac_impl import DiscreteSACImpl, SACImpl
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory
-from tests.algos.algo_test import (
-    DummyActionScaler,
-    DummyObservationScaler,
-    DummyRewardScaler,
-    torch_impl_tester,
-)
+from tests.algos.algo_impl_test import impl_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -28,9 +23,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("n_critics", [2])
 @pytest.mark.parametrize("initial_temperature", [1.0])
-@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
-@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
-@pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_sac_impl(
     observation_shape,
     action_size,
@@ -46,9 +38,6 @@ def test_sac_impl(
     tau,
     n_critics,
     initial_temperature,
-    observation_scaler,
-    action_scaler,
-    reward_scaler,
 ):
     impl = SACImpl(
         observation_shape=observation_shape,
@@ -67,11 +56,8 @@ def test_sac_impl(
         n_critics=n_critics,
         initial_temperature=initial_temperature,
         device="cpu:0",
-        observation_scaler=observation_scaler,
-        action_scaler=action_scaler,
-        reward_scaler=reward_scaler,
     )
-    torch_impl_tester(impl, discrete=False)
+    impl_tester(impl, discrete=False)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -89,8 +75,6 @@ def test_sac_impl(
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [2])
 @pytest.mark.parametrize("initial_temperature", [1.0])
-@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
-@pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_discrete_sac_impl(
     observation_shape,
     action_size,
@@ -105,8 +89,6 @@ def test_discrete_sac_impl(
     gamma,
     n_critics,
     initial_temperature,
-    observation_scaler,
-    reward_scaler,
 ):
     impl = DiscreteSACImpl(
         observation_shape=observation_shape,
@@ -124,7 +106,5 @@ def test_discrete_sac_impl(
         n_critics=n_critics,
         initial_temperature=initial_temperature,
         device="cpu:0",
-        observation_scaler=observation_scaler,
-        reward_scaler=reward_scaler,
     )
-    torch_impl_tester(impl, discrete=True)
+    impl_tester(impl, discrete=True)

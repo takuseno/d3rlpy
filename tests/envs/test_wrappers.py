@@ -1,4 +1,5 @@
 import gym
+import numpy as np
 import pytest
 
 from d3rlpy.algos import DQNConfig
@@ -25,7 +26,7 @@ def test_channel_first():
     # check with algorithm
     dqn = DQNConfig().create()
     dqn.build_with_env(wrapper)
-    dqn.predict([observation])
+    dqn.predict(np.expand_dims(observation, axis=0))
 
 
 def test_channel_first_with_2_dim_obs():
@@ -46,7 +47,7 @@ def test_channel_first_with_2_dim_obs():
     # check with algorithm
     dqn = DQNConfig().create()
     dqn.build_with_env(wrapper)
-    dqn.predict([observation])
+    dqn.predict(np.expand_dims(observation, axis=0))
 
 
 @pytest.mark.skip(reason="This needs actual Atari 2600 environments.")

@@ -4,7 +4,7 @@ from d3rlpy.algos.nfq import NFQConfig
 from d3rlpy.models import MeanQFunctionFactory, QRQFunctionFactory
 
 from ..testing_utils import create_scaler_tuple
-from .algo_test import algo_tester, algo_update_tester
+from .algo_test import algo_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -29,11 +29,9 @@ def test_nfq(
         reward_scaler=reward_scaler,
     )
     nfq = config.create()
-    algo_tester(nfq, observation_shape, test_q_function_copy=True)
-    algo_update_tester(
+    algo_tester(
         nfq,
         observation_shape,
-        action_size,
-        discrete=True,
-        test_q_function_optim_copy=True,
+        test_policy_copy=False,
+        test_policy_optim_copy=False,
     )

@@ -21,7 +21,6 @@ from d3rlpy.torch_utility import (
     set_train_mode,
     soft_sync,
     sync_optimizer_state,
-    torch_api,
     train_api,
     unfreeze,
 )
@@ -108,30 +107,6 @@ class DummyImpl:
         self._fc2 = torch.nn.Linear(100, 100)
         self._optim = torch.optim.Adam(self._fc1.parameters())
         self._device = "cpu:0"
-        self._observation_scaler = None
-        self._action_scaler = None
-        self._reward_scaler = None
-
-    @torch_api()
-    def torch_api_func(self, x):
-        assert isinstance(x, torch.Tensor)
-
-    @torch_api(observation_scaler_targets=["x"])
-    def torch_api_func_with_observation_scaler(self, x, y, ref_x, ref_y):
-        assert isinstance(x, torch.Tensor)
-        assert torch.allclose(x, torch.tensor(ref_x, dtype=torch.float32))
-        assert torch.allclose(y, torch.tensor(ref_y, dtype=torch.float32))
-
-    @torch_api(action_scaler_targets=["x"])
-    def torch_api_func_with_action_scaler(self, x, y, ref_x, ref_y):
-        assert isinstance(x, torch.Tensor)
-        assert torch.allclose(x, torch.tensor(ref_x, dtype=torch.float32))
-        assert torch.allclose(y, torch.tensor(ref_y, dtype=torch.float32))
-
-    @torch_api()
-    def torch_api_func_with_batch(self, batch):
-        assert isinstance(batch, TorchMiniBatch)
-        return batch
 
     @train_api
     def train_api_func(self):
@@ -146,18 +121,6 @@ class DummyImpl:
     @property
     def device(self):
         return self._device
-
-    @property
-    def observation_scaler(self):
-        return self._observation_scaler
-
-    @property
-    def action_scaler(self):
-        return self._action_scaler
-
-    @property
-    def reward_scaler(self):
-        return self._reward_scaler
 
 
 def check_if_same_dict(a, b):
@@ -339,138 +302,6 @@ def test_torch_mini_batch(
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )
-
-    if use_observation_scaler:
-        assert np.all(
-            torch_batch.observations.numpy() == batch.observations + 0.1
-        )
-        assert np.all(
-            torch_batch.next_observations.numpy()
-            == batch.next_observations + 0.1
-        )
-    else:
-        assert np.all(torch_batch.observations.numpy() == batch.observations)
-        assert np.all(
-            torch_batch.next_observations.numpy() == batch.next_observations
-        )
-
-    if use_action_scaler:
-        assert np.all(torch_batch.actions.numpy() == batch.actions + 0.2)
-    else:
-        assert np.all(torch_batch.actions.numpy() == batch.actions)
-
-    if use_reward_scaler:
-        assert np.all(torch_batch.rewards.numpy() == batch.rewards + 0.2)
-    else:
-        assert np.all(torch_batch.rewards.numpy() == batch.rewards)
-
-    assert np.all(torch_batch.terminals.numpy() == batch.terminals)
-    assert np.all(torch_batch.intervals.numpy() == batch.intervals)
-
-
-def test_torch_api():
-    impl = DummyImpl()
-    impl._observation_scaler = None
-
-    x = np.random.random((100, 100))
-    impl.torch_api_func(x)
-
-
-def test_torch_api_with_observation_scaler():
-    impl = DummyImpl()
-
-    class DummyObservationScaler:
-        def transform(self, x):
-            return x + 0.1
-
-    observation_scaler = DummyObservationScaler()
-    impl._observation_scaler = observation_scaler
-
-    x = np.random.random((100, 100))
-    y = np.random.random((100, 100))
-    impl.torch_api_func_with_observation_scaler(x, y, ref_x=x + 0.1, ref_y=y)
-
-
-def test_torch_api_with_action_scaler():
-    impl = DummyImpl()
-
-    class DummyActionScaler:
-        def transform(self, action):
-            return action + 0.1
-
-    scaler = DummyActionScaler()
-    impl._action_scaler = scaler
-
-    x = np.random.random((100, 100))
-    y = np.random.random((100, 100))
-    impl.torch_api_func_with_action_scaler(x, y, ref_x=x + 0.1, ref_y=y)
-
-
-@pytest.mark.parametrize("batch_size", [32])
-@pytest.mark.parametrize("observation_shape", [(100,)])
-@pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("use_observation_scaler", [False, True])
-@pytest.mark.parametrize("use_action_scaler", [False, True])
-@pytest.mark.parametrize("use_reward_scaler", [False, True])
-def test_torch_api_with_batch(
-    batch_size,
-    observation_shape,
-    action_size,
-    use_observation_scaler,
-    use_action_scaler,
-    use_reward_scaler,
-):
-    obs_shape = (batch_size,) + observation_shape
-    transitions = []
-    for _ in range(batch_size):
-        transition = Transition(
-            observation=np.random.random(obs_shape),
-            action=np.random.random(action_size),
-            reward=np.random.random((1,)),
-            next_observation=np.random.random(obs_shape),
-            terminal=0.0,
-            interval=1,
-        )
-        transitions.append(transition)
-
-    if use_observation_scaler:
-
-        class DummyObservationScaler:
-            def transform(self, x):
-                return x + 0.1
-
-        observation_scaler = DummyObservationScaler()
-    else:
-        observation_scaler = None
-
-    if use_action_scaler:
-
-        class DummyActionScaler:
-            def transform(self, x):
-                return x + 0.2
-
-        action_scaler = DummyActionScaler()
-    else:
-        action_scaler = None
-
-    if use_reward_scaler:
-
-        class DummyRewardScaler:
-            def transform(self, x):
-                return x + 0.2
-
-        reward_scaler = DummyRewardScaler()
-    else:
-        reward_scaler = None
-
-    batch = TransitionMiniBatch.from_transitions(transitions)
-
-    impl = DummyImpl()
-    impl._observation_scaler = observation_scaler
-    impl._action_scaler = action_scaler
-    impl._reward_scaler = reward_scaler
-
-    torch_batch = impl.torch_api_func_with_batch(batch)
 
     if use_observation_scaler:
         assert np.all(

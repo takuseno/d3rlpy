@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from typing import Optional, Union
 
-import numpy as np
 import torch
 from torch.optim import Optimizer
 
@@ -22,14 +21,13 @@ from ...models.torch import (
     Policy,
     ProbablisticRegressor,
 )
-from ...preprocessing import ActionScaler, ObservationScaler
-from ...torch_utility import hard_sync, to_device, torch_api, train_api
-from .base import TorchImplBase
+from ...torch_utility import TorchMiniBatch, hard_sync, to_device, train_api
+from ..base import AlgoImplBase
 
 __all__ = ["BCImpl", "DiscreteBCImpl"]
 
 
-class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
+class BCBaseImpl(AlgoImplBase, metaclass=ABCMeta):
 
     _learning_rate: float
     _optim_factory: OptimizerFactory
@@ -45,15 +43,10 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
         optim_factory: OptimizerFactory,
         encoder_factory: EncoderFactory,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=None,
             device=device,
         )
         self._learning_rate = learning_rate
@@ -82,22 +75,17 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
         )
 
     @train_api
-    @torch_api(
-        observation_scaler_targets=["obs_t"], action_scaler_targets=["act_t"]
-    )
-    def update_imitator(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
-    ) -> np.ndarray:
+    def update_imitator(self, batch: TorchMiniBatch) -> float:
         assert self._optim is not None
 
         self._optim.zero_grad()
 
-        loss = self.compute_loss(obs_t, act_t)
+        loss = self.compute_loss(batch.observations, batch.actions)
 
         loss.backward()
         self._optim.step()
 
-        return loss.cpu().detach().numpy()
+        return float(loss.cpu().detach().numpy())
 
     def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
@@ -105,13 +93,16 @@ class BCBaseImpl(TorchImplBase, metaclass=ABCMeta):
         assert self._imitator is not None
         return self._imitator.compute_error(obs_t, act_t)
 
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None
         return self._imitator(x)
 
-    def predict_value(
-        self, x: np.ndarray, action: np.ndarray, with_std: bool
-    ) -> np.ndarray:
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self.inner_predict_best_action(x)
+
+    def inner_predict_value(
+        self, x: torch.Tensor, action: torch.Tensor
+    ) -> torch.Tensor:
         raise NotImplementedError("BC does not support value estimation")
 
 
@@ -129,8 +120,6 @@ class BCImpl(BCBaseImpl):
         encoder_factory: EncoderFactory,
         policy_type: str,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -139,8 +128,6 @@ class BCImpl(BCBaseImpl):
             optim_factory=optim_factory,
             encoder_factory=encoder_factory,
             device=device,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
         )
         self._policy_type = policy_type
 
@@ -178,8 +165,8 @@ class BCImpl(BCBaseImpl):
                 self._observation_shape,
                 self._action_size,
                 self._encoder_factory,
-                min_logstd=-20.0,
-                max_logstd=2.0,
+                min_logstd=-4.0,
+                max_logstd=15.0,
             )
         else:
             raise ValueError(f"invalid policy_type: {self._policy_type}")
@@ -209,7 +196,6 @@ class DiscreteBCImpl(BCBaseImpl):
         encoder_factory: EncoderFactory,
         beta: float,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -218,8 +204,6 @@ class DiscreteBCImpl(BCBaseImpl):
             optim_factory=optim_factory,
             encoder_factory=encoder_factory,
             device=device,
-            observation_scaler=observation_scaler,
-            action_scaler=None,
         )
         self._beta = beta
 
@@ -231,7 +215,7 @@ class DiscreteBCImpl(BCBaseImpl):
             self._encoder_factory,
         )
 
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None
         return self._imitator(x).argmax(dim=1)
 

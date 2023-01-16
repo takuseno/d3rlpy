@@ -3,11 +3,7 @@ import pytest
 from d3rlpy.algos.torch.bc_impl import BCImpl, DiscreteBCImpl
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
-from tests.algos.algo_test import (
-    DummyActionScaler,
-    DummyObservationScaler,
-    torch_impl_tester,
-)
+from tests.algos.algo_impl_test import impl_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -16,8 +12,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize("policy_type", ["deterministic", "stochastic"])
-@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
-@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
 def test_bc_impl(
     observation_shape,
     action_size,
@@ -25,8 +19,6 @@ def test_bc_impl(
     optim_factory,
     encoder_factory,
     policy_type,
-    observation_scaler,
-    action_scaler,
 ):
     impl = BCImpl(
         observation_shape=observation_shape,
@@ -36,10 +28,8 @@ def test_bc_impl(
         encoder_factory=encoder_factory,
         policy_type=policy_type,
         device="cpu:0",
-        observation_scaler=observation_scaler,
-        action_scaler=action_scaler,
     )
-    torch_impl_tester(impl, discrete=False, imitator=True)
+    impl_tester(impl, discrete=False, test_predict_value=False)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -48,7 +38,6 @@ def test_bc_impl(
 @pytest.mark.parametrize("optim_factory", [AdamFactory()])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize("beta", [0.5])
-@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
 def test_discrete_bc_impl(
     observation_shape,
     action_size,
@@ -56,7 +45,6 @@ def test_discrete_bc_impl(
     optim_factory,
     encoder_factory,
     beta,
-    observation_scaler,
 ):
     impl = DiscreteBCImpl(
         observation_shape=observation_shape,
@@ -66,6 +54,5 @@ def test_discrete_bc_impl(
         encoder_factory=encoder_factory,
         beta=beta,
         device="cpu:0",
-        observation_scaler=observation_scaler,
     )
-    torch_impl_tester(impl, discrete=True, imitator=True)
+    impl_tester(impl, discrete=True, test_predict_value=False)

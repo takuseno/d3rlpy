@@ -3,10 +3,11 @@ from typing import Dict, Optional
 
 from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
-from ..dataset import Shape, TransitionMiniBatch
+from ..dataset import Shape
 from ..models.encoders import EncoderFactory, make_encoder_field
 from ..models.optimizers import OptimizerFactory, make_optimizer_field
 from ..models.q_functions import QFunctionFactory, make_q_func_field
+from ..torch_utility import TorchMiniBatch
 from .base import AlgoBase
 from .torch.td3_impl import TD3Impl
 
@@ -114,14 +115,11 @@ class TD3(AlgoBase):
             n_critics=self._config.n_critics,
             target_smoothing_sigma=self._config.target_smoothing_sigma,
             target_smoothing_clip=self._config.target_smoothing_clip,
-            observation_scaler=self._config.observation_scaler,
-            action_scaler=self._config.action_scaler,
-            reward_scaler=self._config.reward_scaler,
             device=self._device,
         )
         self._impl.build()
 
-    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
+    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         metrics = {}

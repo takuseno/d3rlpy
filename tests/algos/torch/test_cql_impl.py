@@ -4,12 +4,7 @@ from d3rlpy.algos.torch.cql_impl import CQLImpl, DiscreteCQLImpl
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory
-from tests.algos.algo_test import (
-    DummyActionScaler,
-    DummyObservationScaler,
-    DummyRewardScaler,
-    torch_impl_tester,
-)
+from tests.algos.algo_impl_test import impl_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -35,9 +30,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("conservative_weight", [5.0])
 @pytest.mark.parametrize("n_action_samples", [10])
 @pytest.mark.parametrize("soft_q_backup", [True])
-@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
-@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
-@pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_cql_impl(
     observation_shape,
     action_size,
@@ -60,9 +52,6 @@ def test_cql_impl(
     conservative_weight,
     n_action_samples,
     soft_q_backup,
-    observation_scaler,
-    action_scaler,
-    reward_scaler,
 ):
     impl = CQLImpl(
         observation_shape=observation_shape,
@@ -88,11 +77,8 @@ def test_cql_impl(
         n_action_samples=n_action_samples,
         soft_q_backup=soft_q_backup,
         device="cpu:0",
-        observation_scaler=observation_scaler,
-        action_scaler=action_scaler,
-        reward_scaler=reward_scaler,
     )
-    torch_impl_tester(impl, discrete=False)
+    impl_tester(impl, discrete=False)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -106,8 +92,6 @@ def test_cql_impl(
 @pytest.mark.parametrize("gamma", [0.99])
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("alpha", [1.0])
-@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
-@pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_discrete_cql_impl(
     observation_shape,
     action_size,
@@ -118,8 +102,6 @@ def test_discrete_cql_impl(
     gamma,
     n_critics,
     alpha,
-    observation_scaler,
-    reward_scaler,
 ):
     impl = DiscreteCQLImpl(
         observation_shape=observation_shape,
@@ -132,7 +114,5 @@ def test_discrete_cql_impl(
         n_critics=n_critics,
         alpha=alpha,
         device="cpu:0",
-        observation_scaler=observation_scaler,
-        reward_scaler=reward_scaler,
     )
-    torch_impl_tester(impl, discrete=True)
+    impl_tester(impl, discrete=True)

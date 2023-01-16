@@ -1,26 +1,22 @@
-from typing import Any, List, Optional, Tuple, Union
+from typing import Optional
 
 import numpy as np
 from typing_extensions import Protocol
 
+from ..dataset import Observation
 from ..preprocessing import ActionScaler, ObservationScaler, RewardScaler
 
 __all__ = ["AlgoProtocol"]
 
 
 class AlgoProtocol(Protocol):
-    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+    def predict(self, x: Observation) -> np.ndarray:
         ...
 
-    def predict_value(
-        self,
-        x: Union[np.ndarray, List[Any]],
-        action: Union[np.ndarray, List[Any]],
-        with_std: bool = False,
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
         ...
 
-    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+    def sample_action(self, x: Observation) -> np.ndarray:
         ...
 
     @property

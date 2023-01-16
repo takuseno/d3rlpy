@@ -1,6 +1,3 @@
-from typing import Optional, Tuple
-
-import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -10,8 +7,7 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import AdamFactory, OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch.policies import NonSquashedNormalPolicy
-from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from ...torch_utility import TorchMiniBatch, torch_api, train_api
+from ...torch_utility import TorchMiniBatch
 from .sac_impl import SACImpl
 
 __all__ = ["AWACImpl"]
@@ -40,9 +36,6 @@ class AWACImpl(SACImpl):
         n_action_samples: int,
         n_critics: int,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -61,9 +54,6 @@ class AWACImpl(SACImpl):
             n_critics=n_critics,
             initial_temperature=1e-20,
             device=device,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
         )
         self._lam = lam
         self._n_action_samples = n_action_samples
@@ -77,30 +67,6 @@ class AWACImpl(SACImpl):
             max_logstd=0.0,
             use_std_parameter=True,
         )
-
-    @train_api
-    @torch_api()
-    def update_actor(
-        self, batch: TorchMiniBatch
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        assert self._q_func is not None
-        assert self._policy is not None
-        assert self._actor_optim is not None
-
-        # Q function should be inference mode for stability
-        self._q_func.eval()
-
-        self._actor_optim.zero_grad()
-
-        loss = self.compute_actor_loss(batch)
-
-        loss.backward()
-        self._actor_optim.step()
-
-        # get current standard deviation for policy function for debug
-        mean_std = self._policy.get_logstd_parameter().exp().mean()
-
-        return loss.cpu().detach().numpy(), mean_std.cpu().detach().numpy()
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy is not None

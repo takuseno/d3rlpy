@@ -1,7 +1,6 @@
 import copy
 from typing import Optional
 
-import numpy as np
 import torch
 from torch.optim import Optimizer
 
@@ -19,8 +18,7 @@ from ...models.torch import (
     DeterministicPolicy,
     DeterministicResidualPolicy,
 )
-from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from ...torch_utility import TorchMiniBatch, soft_sync, torch_api, train_api
+from ...torch_utility import TorchMiniBatch, soft_sync, train_api
 from .ddpg_impl import DDPGBaseImpl
 
 __all__ = ["PLASImpl", "PLASWithPerturbationImpl"]
@@ -59,9 +57,6 @@ class PLASImpl(DDPGBaseImpl):
         lam: float,
         beta: float,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -77,9 +72,6 @@ class PLASImpl(DDPGBaseImpl):
             tau=tau,
             n_critics=n_critics,
             device=device,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
         )
         self._imitator_learning_rate = imitator_learning_rate
         self._imitator_optim_factory = imitator_optim_factory
@@ -123,8 +115,7 @@ class PLASImpl(DDPGBaseImpl):
         )
 
     @train_api
-    @torch_api()
-    def update_imitator(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update_imitator(self, batch: TorchMiniBatch) -> float:
         assert self._imitator is not None
         assert self._imitator_optim is not None
 
@@ -135,7 +126,7 @@ class PLASImpl(DDPGBaseImpl):
         loss.backward()
         self._imitator_optim.step()
 
-        return loss.cpu().detach().numpy()
+        return float(loss.cpu().detach().numpy())
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._imitator is not None
@@ -145,13 +136,13 @@ class PLASImpl(DDPGBaseImpl):
         actions = self._imitator.decode(batch.observations, latent_actions)
         return -self._q_func(batch.observations, actions, "none")[0].mean()
 
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None
         assert self._policy is not None
         return self._imitator.decode(x, 2.0 * self._policy(x))
 
-    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._predict_best_action(x)
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._imitator is not None
@@ -197,9 +188,6 @@ class PLASWithPerturbationImpl(PLASImpl):
         beta: float,
         action_flexibility: float,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -220,9 +208,6 @@ class PLASWithPerturbationImpl(PLASImpl):
             lam=lam,
             beta=beta,
             device=device,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
         )
         self._action_flexibility = action_flexibility
 
@@ -263,15 +248,15 @@ class PLASWithPerturbationImpl(PLASImpl):
         q_value = self._q_func(batch.observations, residual_actions, "none")
         return -q_value[0].mean()
 
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None
         assert self._policy is not None
         assert self._perturbation is not None
         action = self._imitator.decode(x, 2.0 * self._policy(x))
         return self._perturbation(x, action)
 
-    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._predict_best_action(x)
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._imitator is not None

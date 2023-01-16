@@ -1,16 +1,10 @@
 import pytest
-import torch
 
 from d3rlpy.algos.torch.bear_impl import BEARImpl
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory
-from tests.algos.algo_test import (
-    DummyActionScaler,
-    DummyObservationScaler,
-    DummyRewardScaler,
-    torch_impl_tester,
-)
+from tests.algos.algo_impl_test import impl_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (1, 48, 48)])
@@ -42,9 +36,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("mmd_kernel", ["laplacian"])
 @pytest.mark.parametrize("mmd_sigma", [20.0])
 @pytest.mark.parametrize("vae_kl_weight", [0.5])
-@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
-@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
-@pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_bear_impl(
     observation_shape,
     action_size,
@@ -73,9 +64,6 @@ def test_bear_impl(
     mmd_kernel,
     mmd_sigma,
     vae_kl_weight,
-    observation_scaler,
-    action_scaler,
-    reward_scaler,
 ):
     impl = BEARImpl(
         observation_shape=observation_shape,
@@ -108,10 +96,7 @@ def test_bear_impl(
         mmd_sigma=mmd_sigma,
         vae_kl_weight=vae_kl_weight,
         device="cpu:0",
-        observation_scaler=observation_scaler,
-        action_scaler=action_scaler,
-        reward_scaler=reward_scaler,
     )
     impl.build()
 
-    torch_impl_tester(impl, discrete=False, deterministic_best_action=False)
+    impl_tester(impl, discrete=False)

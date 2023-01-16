@@ -4,18 +4,16 @@ from d3rlpy.algos.cql import CQLConfig, DiscreteCQLConfig
 from d3rlpy.models import MeanQFunctionFactory, QRQFunctionFactory
 
 from ..testing_utils import create_scaler_tuple
-from .algo_test import algo_tester, algo_update_tester
+from .algo_test import algo_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
-@pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize(
     "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
 )
 @pytest.mark.parametrize("scalers", [None, "min_max"])
 def test_cql(
     observation_shape,
-    action_size,
     q_func_factory,
     scalers,
 ):
@@ -29,20 +27,10 @@ def test_cql(
         reward_scaler=reward_scaler,
     )
     cql = config.create()
-    algo_tester(
-        cql, observation_shape, test_policy_copy=True, test_q_function_copy=True
-    )
-    algo_update_tester(
-        cql,
-        observation_shape,
-        action_size,
-        test_q_function_optim_copy=True,
-        test_policy_optim_copy=True,
-    )
+    algo_tester(cql, observation_shape)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
-@pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize(
     "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
@@ -50,7 +38,6 @@ def test_cql(
 @pytest.mark.parametrize("scalers", [None, None, "min_max"])
 def test_discrete_cql(
     observation_shape,
-    action_size,
     n_critics,
     q_func_factory,
     scalers,
@@ -63,11 +50,9 @@ def test_discrete_cql(
         reward_scaler=reward_scaler,
     )
     cql = config.create()
-    algo_tester(cql, observation_shape, test_q_function_copy=True)
-    algo_update_tester(
+    algo_tester(
         cql,
         observation_shape,
-        action_size,
-        discrete=True,
-        test_q_function_optim_copy=True,
+        test_policy_copy=False,
+        test_policy_optim_copy=False,
     )

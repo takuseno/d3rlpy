@@ -1,12 +1,9 @@
-from typing import Optional
-
 import torch
 
 from ...dataset import Shape
 from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
-from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch
 from .ddpg_impl import DDPGImpl
 
@@ -35,9 +32,6 @@ class TD3Impl(DDPGImpl):
         target_smoothing_sigma: float,
         target_smoothing_clip: float,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -53,9 +47,6 @@ class TD3Impl(DDPGImpl):
             tau=tau,
             n_critics=n_critics,
             device=device,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
         )
         self._target_smoothing_sigma = target_smoothing_sigma
         self._target_smoothing_clip = target_smoothing_clip

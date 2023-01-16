@@ -5,12 +5,7 @@ from d3rlpy.algos.torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory
-from tests.algos.algo_test import (
-    DummyActionScaler,
-    DummyObservationScaler,
-    DummyRewardScaler,
-    torch_impl_tester,
-)
+from tests.algos.algo_impl_test import impl_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (1, 48, 48)])
@@ -32,9 +27,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("n_action_samples", [10])  # small for test
 @pytest.mark.parametrize("action_flexibility", [0.05])
 @pytest.mark.parametrize("beta", [0.5])
-@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
-@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
-@pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_bcq_impl(
     observation_shape,
     action_size,
@@ -53,9 +45,6 @@ def test_bcq_impl(
     n_action_samples,
     action_flexibility,
     beta,
-    observation_scaler,
-    action_scaler,
-    reward_scaler,
 ):
     impl = BCQImpl(
         observation_shape=observation_shape,
@@ -78,9 +67,6 @@ def test_bcq_impl(
         action_flexibility=action_flexibility,
         beta=beta,
         device="cpu:0",
-        observation_scaler=observation_scaler,
-        action_scaler=action_scaler,
-        reward_scaler=reward_scaler,
     )
     impl.build()
 
@@ -96,10 +82,7 @@ def test_bcq_impl(
     value = impl._predict_value(repeated_x, action)
     assert value.shape == (n_critics, 32 * n_action_samples, 1)
 
-    best_action = impl._predict_best_action(x)
-    assert best_action.shape == (32, action_size)
-
-    torch_impl_tester(impl, discrete=False, deterministic_best_action=False)
+    impl_tester(impl, discrete=False)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -114,8 +97,6 @@ def test_bcq_impl(
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("action_flexibility", [0.3])
 @pytest.mark.parametrize("beta", [1e-2])
-@pytest.mark.parametrize("observation_scaler", [None])
-@pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_discrete_bcq_impl(
     observation_shape,
     action_size,
@@ -127,8 +108,6 @@ def test_discrete_bcq_impl(
     n_critics,
     action_flexibility,
     beta,
-    observation_scaler,
-    reward_scaler,
 ):
     impl = DiscreteBCQImpl(
         observation_shape=observation_shape,
@@ -142,7 +121,5 @@ def test_discrete_bcq_impl(
         action_flexibility=action_flexibility,
         beta=beta,
         device="cpu:0",
-        observation_scaler=observation_scaler,
-        reward_scaler=reward_scaler,
     )
-    torch_impl_tester(impl, discrete=True)
+    impl_tester(impl, discrete=True)

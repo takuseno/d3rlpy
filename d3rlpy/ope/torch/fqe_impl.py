@@ -2,11 +2,10 @@ import copy
 from abc import abstractmethod
 from typing import Optional
 
-import numpy as np
 import torch
 from torch.optim import Optimizer
 
-from ...algos.torch.base import TorchImplBase
+from ...algos.base import AlgoImplBase
 from ...algos.torch.utility import (
     ContinuousQFunctionMixin,
     DiscreteQFunctionMixin,
@@ -24,19 +23,12 @@ from ...models.torch import (
     EnsembleDiscreteQFunction,
     EnsembleQFunction,
 )
-from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from ...torch_utility import (
-    TorchMiniBatch,
-    hard_sync,
-    to_device,
-    torch_api,
-    train_api,
-)
+from ...torch_utility import TorchMiniBatch, hard_sync, to_device, train_api
 
 __all__ = ["FQEBaseImpl", "FQEImpl", "DiscreteFQEImpl"]
 
 
-class FQEBaseImpl(TorchImplBase):
+class FQEBaseImpl(AlgoImplBase):
 
     _learning_rate: float
     _optim_factory: OptimizerFactory
@@ -59,16 +51,10 @@ class FQEBaseImpl(TorchImplBase):
         gamma: float,
         n_critics: int,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
             device=device,
         )
         self._learning_rate = learning_rate
@@ -103,10 +89,9 @@ class FQEBaseImpl(TorchImplBase):
         )
 
     @train_api
-    @torch_api()
     def update(
         self, batch: TorchMiniBatch, next_actions: torch.Tensor
-    ) -> np.ndarray:
+    ) -> float:
         assert self._optim is not None
 
         q_tpn = self.compute_target(batch, next_actions)
@@ -116,7 +101,7 @@ class FQEBaseImpl(TorchImplBase):
         loss.backward()
         self._optim.step()
 
-        return loss.cpu().detach().numpy()
+        return float(loss.cpu().detach().numpy())
 
     def compute_loss(
         self,

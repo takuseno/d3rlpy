@@ -1,6 +1,5 @@
-from typing import Optional
+from typing import Optional, Tuple
 
-import numpy as np
 import torch
 
 from ...dataset import Shape
@@ -12,8 +11,7 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import MeanQFunctionFactory
 from ...models.torch import NonSquashedNormalPolicy, ValueFunction
-from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from ...torch_utility import TorchMiniBatch, torch_api, train_api
+from ...torch_utility import TorchMiniBatch, train_api
 from .ddpg_impl import DDPGBaseImpl
 
 __all__ = ["IQLImpl"]
@@ -45,9 +43,6 @@ class IQLImpl(DDPGBaseImpl):
         weight_temp: float,
         max_weight: float,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -63,9 +58,6 @@ class IQLImpl(DDPGBaseImpl):
             tau=tau,
             n_critics=n_critics,
             device=device,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
         )
         self._expectile = expectile
         self._weight_temp = weight_temp
@@ -147,8 +139,9 @@ class IQLImpl(DDPGBaseImpl):
         return (weight * (diff**2)).mean()
 
     @train_api
-    @torch_api()
-    def update_critic(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update_critic_and_state_value(
+        self, batch: TorchMiniBatch
+    ) -> Tuple[float, float]:
         assert self._critic_optim is not None
 
         self._critic_optim.zero_grad()
@@ -165,4 +158,6 @@ class IQLImpl(DDPGBaseImpl):
         loss.backward()
         self._critic_optim.step()
 
-        return q_loss.cpu().detach().numpy(), v_loss.cpu().detach().numpy()
+        return float(q_loss.cpu().detach().numpy()), float(
+            v_loss.cpu().detach().numpy()
+        )

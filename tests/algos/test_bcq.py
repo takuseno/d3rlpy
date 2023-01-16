@@ -4,18 +4,16 @@ from d3rlpy.algos.bcq import BCQConfig, DiscreteBCQConfig
 from d3rlpy.models import MeanQFunctionFactory, QRQFunctionFactory
 
 from ..testing_utils import create_scaler_tuple
-from .algo_test import algo_tester, algo_update_tester
+from .algo_test import algo_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
-@pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize(
     "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
 )
 @pytest.mark.parametrize("scalers", [None, "min_max"])
 def test_bcq(
     observation_shape,
-    action_size,
     q_func_factory,
     scalers,
 ):
@@ -30,18 +28,15 @@ def test_bcq(
         rl_start_step=0,
     )
     bcq = config.create()
-    algo_tester(bcq, observation_shape, test_q_function_copy=True)
-    algo_update_tester(
+    algo_tester(
         bcq,
         observation_shape,
-        action_size,
-        test_q_function_optim_copy=True,
-        test_policy_optim_copy=True,
+        deterministic_best_action=False,
+        test_policy_copy=False,
     )
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
-@pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize(
     "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
@@ -49,7 +44,6 @@ def test_bcq(
 @pytest.mark.parametrize("scalers", [None, "min_max"])
 def test_discrete_bcq(
     observation_shape,
-    action_size,
     n_critics,
     q_func_factory,
     scalers,
@@ -62,11 +56,9 @@ def test_discrete_bcq(
         reward_scaler=reward_scaler,
     )
     bcq = config.create()
-    algo_tester(bcq, observation_shape, test_q_function_copy=True)
-    algo_update_tester(
+    algo_tester(
         bcq,
         observation_shape,
-        action_size,
-        discrete=True,
-        test_q_function_optim_copy=True,
+        test_policy_copy=False,
+        test_policy_optim_copy=False,
     )

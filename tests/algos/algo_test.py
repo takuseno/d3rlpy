@@ -5,191 +5,248 @@ import numpy as np
 import onnxruntime as ort
 import torch
 
-from d3rlpy.algos.torch.base import TorchImplBase
 from d3rlpy.constants import ActionSpace
-from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from tests.base_test import base_tester, base_update_tester
-
-
-class DummyImpl(TorchImplBase):
-    def __init__(self, observation_shape, action_size):
-        self._observation_shape = observation_shape
-        self._action_size = action_size
-        self.batch_size = 32
-
-    def build(self):
-        pass
-
-    def save_model(self, fname):
-        pass
-
-    def load_model(self, fname):
-        pass
-
-    def save_policy(self, fname):
-        pass
-
-    def predict_best_action(self, x):
-        return np.random.random((x.shape[0], self._action_size))
-
-    def predict_value(self, x, action, with_std):
-        pass
-
-    def sample_action(self, x):
-        return np.random.random((x.shape[0], self._action_size))
-
-    @property
-    def observation_shape(self):
-        return self._observation_shape
-
-    @property
-    def action_size(self):
-        return self._action_size
-
-
-class DummyObservationScaler(ObservationScaler):
-    def fit(self, episodes):
-        pass
-
-    def fit_with_env(self, env):
-        pass
-
-    def transform(self, x):
-        return 0.1 * x
-
-    def reverse_transform(self, x):
-        return 10.0 * x
-
-    def get_type(self):
-        return "dummy"
-
-    def get_params(self):
-        return {}
-
-
-class DummyActionScaler(ActionScaler):
-    def fit(self, episodes):
-        pass
-
-    def fit_with_env(self, env):
-        pass
-
-    def transform(self, action):
-        return 0.1 * action
-
-    def reverse_transform(self, action):
-        return 10.0 * action
-
-    def get_type(self):
-        return "dummy"
-
-    def get_params(self):
-        return {}
-
-
-class DummyRewardScaler(RewardScaler):
-    def fit(self, episodes):
-        pass
-
-    def fit_with_env(self, env):
-        pass
-
-    def transform(self, reward):
-        return 0.1 * reward
-
-    def reverse_transform(self, reward):
-        return 10.0 * reward
-
-    def get_type(self):
-        return "dummy"
-
-    def get_params(self):
-        return {}
+from d3rlpy.dataset import (
+    EpisodeGenerator,
+    Transition,
+    TransitionMiniBatch,
+    create_infinite_replay_buffer,
+)
+from tests.base_test import from_json_tester
 
 
 def algo_tester(
     algo,
     observation_shape,
-    imitator=False,
     action_size=2,
-    state_value=False,
-    test_policy_copy=False,
-    test_q_function_copy=False,
+    deterministic_best_action=True,
+    test_predict_value=True,
+    test_policy_copy=True,
+    test_q_function_copy=True,
+    test_policy_optim_copy=True,
+    test_q_function_optim_copy=True,
+    test_from_json=True,
 ):
-    # dummy impl object
-    impl = DummyImpl(observation_shape, action_size)
-
-    base_tester(algo, impl, observation_shape, action_size)
-
-    algo._impl = impl
-
-    # check save policy
-    impl.save_policy = Mock()
-    algo.save_policy("policy.pt")
-    impl.save_policy.assert_called_with("policy.pt")
-
-    # check predict
-    x = np.random.random((2, 3)).tolist()
-    ref_y = np.random.random((2, action_size)).tolist()
-    impl.predict_best_action = Mock(return_value=ref_y)
-    y = algo.predict(x)
-    assert y == ref_y
-    impl.predict_best_action.assert_called_with(x)
-
-    # check predict_value
-    if not imitator and not state_value:
-        action = np.random.random((2, action_size)).tolist()
-        ref_value = np.random.random((2, 3)).tolist()
-        impl.predict_value = Mock(return_value=ref_value)
-        value = algo.predict_value(x, action)
-        assert value == ref_value
-        impl.predict_value.assert_called_with(x, action, False)
-
-    # check sample_action
-    impl.sample_action = Mock(return_value=ref_y)
-    try:
-        y = algo.sample_action(x)
-        assert y == ref_y
-        impl.sample_action.assert_called_with(x)
-    except NotImplementedError:
-        pass
-
-    algo.create_impl(observation_shape, action_size)
-
+    fit_tester(algo, observation_shape, action_size)
+    if test_from_json:
+        from_json_tester(algo, observation_shape, action_size)
+    predict_tester(algo, observation_shape, action_size)
+    sample_action_tester(algo, observation_shape, action_size)
+    save_and_load_tester(algo, observation_shape, action_size)
+    update_tester(
+        algo,
+        observation_shape,
+        action_size,
+        test_policy_optim_copy=test_policy_optim_copy,
+        test_q_function_optim_copy=test_q_function_optim_copy,
+    )
+    save_policy_tester(
+        algo, deterministic_best_action, observation_shape, action_size
+    )
+    if test_predict_value:
+        predict_value_tester(algo, observation_shape, action_size)
     if test_policy_copy:
-        algo2 = algo.config.create()
-        algo2.create_impl(observation_shape, action_size)
-        algo.copy_policy_from(algo2)
-        observations = np.random.random((100, *observation_shape))
-        action1 = algo.predict(observations)
-        action2 = algo.predict(observations)
-        assert np.all(action1 == action2)
-
+        policy_copy_tester(algo, observation_shape, action_size)
     if test_q_function_copy:
-        algo2 = algo.config.create()
-        algo2.create_impl(observation_shape, action_size)
-        algo.copy_q_function_from(algo2)
-        observations = np.random.random((100, *observation_shape))
-        if algo.get_action_type() == ActionSpace.CONTINUOUS:
-            actions = np.random.random((100, action_size))
-        else:
-            actions = np.random.randint(action_size, size=100)
-        value1 = algo.predict_value(observations, actions)
-        value2 = algo2.predict_value(observations, actions)
-        assert np.all(value1 == value2)
-
-    algo._impl = None
+        q_function_copy_tester(algo, observation_shape, action_size)
 
 
-def algo_update_tester(
+def fit_tester(algo, observation_shape, action_size):
+    update_backup = algo.update
+    algo.update = Mock(return_value={"loss": np.random.random()})
+
+    n_episodes = 4
+    episode_length = 25
+    n_batch = algo.config.batch_size
+    n_steps = 10
+    n_steps_per_epoch = 5
+    n_epochs = n_steps // n_steps_per_epoch
+    data_size = n_episodes * episode_length
+    shape = (data_size,) + observation_shape
+
+    if len(observation_shape) == 3:
+        observations = np.random.randint(256, size=shape, dtype=np.uint8)
+    else:
+        observations = np.random.random(shape).astype("f4")
+    if algo.get_action_type() == ActionSpace.CONTINUOUS:
+        actions = np.random.random((data_size, action_size))
+    else:
+        actions = np.random.randint(action_size, size=(data_size, 1))
+    rewards = np.random.random(data_size)
+    terminals = np.zeros(data_size)
+    for i in range(n_episodes):
+        terminals[(i + 1) * episode_length - 1] = 1.0
+    dataset = create_infinite_replay_buffer(
+        EpisodeGenerator(observations, actions, rewards, terminals)
+    )
+
+    # check fit
+    results = algo.fit(
+        dataset,
+        n_steps=n_steps,
+        n_steps_per_epoch=n_steps_per_epoch,
+        logdir="test_data",
+        verbose=False,
+        show_progress=False,
+    )
+
+    assert isinstance(results, list)
+    assert len(results) == n_epochs
+
+    # check if the correct number of iterations are performed
+    assert len(algo.update.call_args_list) == n_steps
+
+    # check arguments at each iteration
+    epoch = 0
+    for i, call in enumerate(algo.update.call_args_list):
+        epoch = i // n_steps_per_epoch
+        assert isinstance(call[0][0], TransitionMiniBatch)
+        assert len(call[0][0]) == n_batch
+
+    # check fitter
+    fitter = algo.fitter(
+        dataset,
+        n_steps=n_steps,
+        n_steps_per_epoch=n_steps_per_epoch,
+        logdir="test_data",
+        verbose=False,
+        show_progress=False,
+    )
+
+    for epoch, metrics in fitter:
+        assert isinstance(epoch, int)
+        assert isinstance(metrics, dict)
+
+    assert epoch == n_epochs
+
+    # set backed up methods
+    algo.update = update_backup
+
+
+def predict_tester(algo, observation_shape, action_size):
+    algo.create_impl(observation_shape, action_size)
+    x = np.random.random((100, *observation_shape))
+    y = algo.predict(x)
+    if algo.get_action_type() == ActionSpace.DISCRETE:
+        assert y.shape == (100,)
+    else:
+        assert y.shape == (100, action_size)
+
+
+def sample_action_tester(algo, observation_shape, action_size):
+    algo.create_impl(observation_shape, action_size)
+    x = np.random.random((100, *observation_shape))
+    y = algo.sample_action(x)
+    if algo.get_action_type() == ActionSpace.DISCRETE:
+        assert y.shape == (100,)
+    else:
+        assert y.shape == (100, action_size)
+
+
+def policy_copy_tester(algo, observation_shape, action_size):
+    algo.create_impl(observation_shape, action_size)
+    algo2 = algo.config.create()
+    algo2.create_impl(observation_shape, action_size)
+    x = np.random.random((100, *observation_shape))
+
+    action1 = algo.predict(x)
+    action2 = algo2.predict(x)
+    assert not np.all(action1 == action2)
+
+    algo2.copy_policy_from(algo)
+    action1 = algo.predict(x)
+    action2 = algo2.predict(x)
+    assert np.all(action1 == action2)
+
+
+def q_function_copy_tester(algo, observation_shape, action_size):
+    algo.create_impl(observation_shape, action_size)
+    algo2 = algo.config.create()
+    algo2.create_impl(observation_shape, action_size)
+    x = np.random.random((100, *observation_shape))
+    if algo.get_action_type() == ActionSpace.DISCRETE:
+        action = np.random.randint(action_size, size=(100,))
+    else:
+        action = np.random.random((100, action_size))
+
+    value1 = algo.predict_value(x, action)
+    value2 = algo2.predict_value(x, action)
+    assert not np.all(value1 == value2)
+
+    algo2.copy_q_function_from(algo)
+    value1 = algo.predict_value(x, action)
+    value2 = algo2.predict_value(x, action)
+    assert np.all(value1 == value2)
+
+
+def predict_value_tester(algo, observation_shape, action_size):
+    algo.create_impl(observation_shape, action_size)
+    x = np.random.random((100, *observation_shape))
+    if algo.get_action_type() == ActionSpace.DISCRETE:
+        action = np.random.randint(action_size, size=(100,))
+    else:
+        action = np.random.random((100, action_size))
+    value = algo.predict_value(x, action)
+    assert value.shape == (100,)
+
+
+def save_and_load_tester(algo, observation_shape, action_size):
+    algo.create_impl(observation_shape, action_size)
+    algo.save_model(os.path.join("test_data", "model.pt"))
+    algo.load_model(os.path.join("test_data", "model.pt"))
+
+
+def update_tester(
     algo,
     observation_shape,
     action_size,
-    discrete=False,
-    test_q_function_optim_copy=False,
-    test_policy_optim_copy=False,
+    test_policy_optim_copy=True,
+    test_q_function_optim_copy=True,
 ):
-    base_update_tester(algo, observation_shape, action_size, discrete)
+    # make mini-batch
+    transitions = []
+    for i in range(algo.config.batch_size):
+        if len(observation_shape) == 3:
+            observation = np.random.randint(
+                256, size=observation_shape, dtype=np.uint8
+            )
+            next_observation = np.random.randint(
+                256, size=observation_shape, dtype=np.uint8
+            )
+        else:
+            observation = np.random.random(observation_shape).astype("f4")
+            next_observation = np.random.random(observation_shape).astype("f4")
+        reward = np.random.random((1,))
+        terminal = np.random.randint(2)
+        if algo.get_action_type() == ActionSpace.DISCRETE:
+            action = np.random.randint(action_size, size=(1,))
+        else:
+            action = np.random.random(action_size).astype("f4")
+
+        transition = Transition(
+            observation=observation,
+            action=action,
+            reward=reward,
+            next_observation=next_observation,
+            terminal=terminal,
+            interval=1,
+        )
+        transitions.append(transition)
+
+    batch = TransitionMiniBatch.from_transitions(transitions)
+
+    # build models
+    algo.create_impl(observation_shape, action_size)
+
+    # check if update runs without errors
+    grad_step = algo.grad_step
+    loss = algo.update(batch)
+    assert algo.grad_step == grad_step + 1
+
+    algo.set_grad_step(0)
+    assert algo.grad_step == 0
+
+    assert len(loss.items()) > 0
 
     if test_q_function_optim_copy:
         algo2 = algo.config.create()
@@ -206,68 +263,20 @@ def algo_update_tester(
         assert algo2.impl.policy_optim.state
 
 
-def impl_tester(impl, discrete, imitator, test_with_std):
-    # setup implementation
-    impl.build()
-
-    observations = np.random.random((100,) + impl.observation_shape)
-    if discrete:
-        actions = np.random.randint(impl.action_size, size=100)
-    else:
-        actions = np.random.random((100, impl.action_size))
-
-    # check predict_best_action
-    y = impl.predict_best_action(observations)
-    if discrete:
-        assert y.shape == (100,)
-    else:
-        assert y.shape == (100, impl.action_size)
-
-    # check predict_values
-    if not imitator:
-        value = impl.predict_value(observations, actions, with_std=False)
-        assert value.shape == (100,)
-
-        if test_with_std:
-            value, std = impl.predict_value(
-                observations, actions, with_std=True
-            )
-            assert value.shape == (100,)
-            assert std.shape == (100,)
-
-    # check sample_action
-    try:
-        action = impl.sample_action(observations)
-        if discrete:
-            assert action.shape == (100,)
-        else:
-            assert action.shape == (100, impl.action_size)
-    except NotImplementedError:
-        pass
-
-
-def torch_impl_tester(
-    impl,
-    discrete,
-    deterministic_best_action=True,
-    imitator=False,
-    test_with_std=True,
+def save_policy_tester(
+    algo, deterministic_best_action, observation_shape, action_size
 ):
-    impl_tester(impl, discrete, imitator, test_with_std)
-
-    # check save_model and load_model
-    impl.save_model(os.path.join("test_data", "model.pt"))
-    impl.load_model(os.path.join("test_data", "model.pt"))
+    algo.create_impl(observation_shape, action_size)
 
     # check save_policy as TorchScript
-    impl.save_policy(os.path.join("test_data", "model.pt"))
+    algo.save_policy(os.path.join("test_data", "model.pt"))
     policy = torch.jit.load(os.path.join("test_data", "model.pt"))
-    observations = torch.rand(100, *impl.observation_shape)
+    observations = torch.rand(100, *observation_shape)
     action = policy(observations)
-    if discrete:
+    if algo.get_action_type() == ActionSpace.DISCRETE:
         assert action.shape == (100,)
     else:
-        assert action.shape == (100, impl.action_size)
+        assert action.shape == (100, action_size)
 
     # check output consistency between the full model and TorchScript
     # TODO: check probablistic policy
@@ -275,23 +284,21 @@ def torch_impl_tester(
     if deterministic_best_action:
         action = action.detach().numpy()
         assert np.allclose(
-            action, impl.predict_best_action(observations), atol=1e-6
+            action, algo.predict(observations.numpy()), atol=1e-6
         )
 
     # check save_policy as ONNX
-    impl.save_policy(os.path.join("test_data", "model.onnx"))
+    algo.save_policy(os.path.join("test_data", "model.onnx"))
     ort_session = ort.InferenceSession(os.path.join("test_data", "model.onnx"))
-    observations = np.random.rand(1, *impl.observation_shape).astype("f4")
+    observations = np.random.rand(1, *observation_shape).astype("f4")
     action = ort_session.run(None, {"input_0": observations})[0]
-    if discrete:
+    if algo.get_action_type() == ActionSpace.DISCRETE:
         assert action.shape == (1,)
     else:
-        assert action.shape == (1, impl.action_size)
+        assert action.shape == (1, action_size)
 
     # check output consistency between the full model and ONNX
     # TODO: check probablistic policy
     # https://github.com/pytorch/pytorch/pull/25753
     if deterministic_best_action:
-        assert np.allclose(
-            action, impl.predict_best_action(observations), atol=1e-6
-        )
+        assert np.allclose(action, algo.predict(observations), atol=1e-6)

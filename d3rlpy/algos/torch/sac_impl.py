@@ -2,7 +2,6 @@ import copy
 import math
 from typing import Optional, Tuple
 
-import numpy as np
 import torch
 from torch.optim import Optimizer
 
@@ -24,15 +23,8 @@ from ...models.torch import (
     Policy,
     SquashedNormalPolicy,
 )
-from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from ...torch_utility import (
-    TorchMiniBatch,
-    hard_sync,
-    to_device,
-    torch_api,
-    train_api,
-)
-from .base import TorchImplBase
+from ...torch_utility import TorchMiniBatch, hard_sync, to_device, train_api
+from ..base import AlgoImplBase
 from .ddpg_impl import DDPGBaseImpl
 from .utility import DiscreteQFunctionMixin
 
@@ -67,9 +59,6 @@ class SACImpl(DDPGBaseImpl):
         n_critics: int,
         initial_temperature: float,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -85,9 +74,6 @@ class SACImpl(DDPGBaseImpl):
             tau=tau,
             n_critics=n_critics,
             device=device,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
         )
         self._temp_learning_rate = temp_learning_rate
         self._temp_optim_factory = temp_optim_factory
@@ -129,10 +115,7 @@ class SACImpl(DDPGBaseImpl):
         return (entropy - q_t).mean()
 
     @train_api
-    @torch_api()
-    def update_temp(
-        self, batch: TorchMiniBatch
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def update_temp(self, batch: TorchMiniBatch) -> Tuple[float, float]:
         assert self._temp_optim is not None
         assert self._policy is not None
         assert self._log_temp is not None
@@ -151,7 +134,7 @@ class SACImpl(DDPGBaseImpl):
         # current temperature value
         cur_temp = self._log_temp().exp().cpu().detach().numpy()[0][0]
 
-        return loss.cpu().detach().numpy(), cur_temp
+        return float(loss.cpu().detach().numpy()), float(cur_temp)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy is not None
@@ -170,7 +153,7 @@ class SACImpl(DDPGBaseImpl):
             return target - entropy
 
 
-class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
+class DiscreteSACImpl(DiscreteQFunctionMixin, AlgoImplBase):
 
     _actor_learning_rate: float
     _critic_learning_rate: float
@@ -209,15 +192,10 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         n_critics: int,
         initial_temperature: float,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            observation_scaler=observation_scaler,
-            action_scaler=None,
-            reward_scaler=reward_scaler,
             device=device,
         )
         self._actor_learning_rate = actor_learning_rate
@@ -296,8 +274,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         )
 
     @train_api
-    @torch_api()
-    def update_critic(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update_critic(self, batch: TorchMiniBatch) -> float:
         assert self._critic_optim is not None
 
         self._critic_optim.zero_grad()
@@ -308,7 +285,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         loss.backward()
         self._critic_optim.step()
 
-        return loss.cpu().detach().numpy()
+        return float(loss.cpu().detach().numpy())
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._policy is not None
@@ -342,8 +319,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         )
 
     @train_api
-    @torch_api()
-    def update_actor(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update_actor(self, batch: TorchMiniBatch) -> float:
         assert self._q_func is not None
         assert self._actor_optim is not None
 
@@ -357,7 +333,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         loss.backward()
         self._actor_optim.step()
 
-        return loss.cpu().detach().numpy()
+        return float(loss.cpu().detach().numpy())
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._q_func is not None
@@ -371,8 +347,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         return (probs * (entropy - q_t)).sum(dim=1).mean()
 
     @train_api
-    @torch_api()
-    def update_temp(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update_temp(self, batch: TorchMiniBatch) -> Tuple[float, float]:
         assert self._temp_optim is not None
         assert self._policy is not None
         assert self._log_temp is not None
@@ -394,13 +369,13 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, TorchImplBase):
         # current temperature value
         cur_temp = self._log_temp().exp().cpu().detach().numpy()[0][0]
 
-        return loss.cpu().detach().numpy(), cur_temp
+        return float(loss.cpu().detach().numpy()), float(cur_temp)
 
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         return self._policy.best_action(x)
 
-    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         return self._policy.sample(x)
 

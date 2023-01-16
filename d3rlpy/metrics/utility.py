@@ -50,7 +50,7 @@ def evaluate_with_environment(
             if np.random.random() < epsilon:
                 action = env.action_space.sample()
             else:
-                action = algo.predict([observation])[0]
+                action = algo.predict(np.expand_dims(observation, axis=0))[0]
 
             observation, reward, done, _ = env.step(action)
             episode_reward += reward

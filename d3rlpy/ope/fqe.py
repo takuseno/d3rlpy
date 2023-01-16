@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, Optional
 
 import numpy as np
 
@@ -10,10 +10,11 @@ from ..constants import (
     IMPL_NOT_INITIALIZED_ERROR,
     ActionSpace,
 )
-from ..dataset import Shape, TransitionMiniBatch
+from ..dataset import Observation, Shape
 from ..models.encoders import EncoderFactory, make_encoder_field
 from ..models.optimizers import OptimizerFactory, make_optimizer_field
 from ..models.q_functions import QFunctionFactory, make_q_func_field
+from ..torch_utility import TorchMiniBatch, convert_to_torch
 from .torch.fqe_impl import DiscreteFQEImpl, FQEBaseImpl, FQEImpl
 
 __all__ = ["FQEConfig", "FQE", "DiscreteFQE"]
@@ -98,19 +99,22 @@ class _FQEBase(AlgoBase):
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         self._algo.save_policy(fname)
 
-    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+    def predict(self, x: Observation) -> np.ndarray:
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         return self._algo.predict(x)
 
-    def sample_action(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+    def sample_action(self, x: Observation) -> np.ndarray:
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         return self._algo.sample_action(x)
 
-    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
+    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        next_actions = self._algo.predict(batch.next_observations)
-        loss = self._impl.update(batch, next_actions)
+        assert batch.numpy_batch
+        next_actions = self._algo.predict(batch.numpy_batch.next_observations)
+        loss = self._impl.update(
+            batch, convert_to_torch(next_actions, self._device)
+        )
         if self._grad_step % self._config.target_update_interval == 0:
             self._impl.update_target()
         return {"loss": loss}
@@ -156,9 +160,6 @@ class FQE(_FQEBase):
             q_func_factory=self._config.q_func_factory,
             gamma=self._config.gamma,
             n_critics=self._config.n_critics,
-            observation_scaler=self._config.observation_scaler,
-            action_scaler=self._config.action_scaler,
-            reward_scaler=self._config.reward_scaler,
             device=self._device,
         )
         self._impl.build()
@@ -208,9 +209,6 @@ class DiscreteFQE(_FQEBase):
             q_func_factory=self._config.q_func_factory,
             gamma=self._config.gamma,
             n_critics=self._config.n_critics,
-            observation_scaler=self._config.observation_scaler,
-            action_scaler=None,
-            reward_scaler=self._config.reward_scaler,
             device=self._device,
         )
         self._impl.build()

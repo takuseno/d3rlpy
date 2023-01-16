@@ -1,7 +1,6 @@
 import copy
 from typing import Optional
 
-import numpy as np
 import torch
 from torch.optim import Optimizer
 
@@ -11,21 +10,14 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import EnsembleDiscreteQFunction, EnsembleQFunction
-from ...preprocessing import ObservationScaler, RewardScaler
-from ...torch_utility import (
-    TorchMiniBatch,
-    hard_sync,
-    to_device,
-    torch_api,
-    train_api,
-)
-from .base import TorchImplBase
+from ...torch_utility import TorchMiniBatch, hard_sync, to_device, train_api
+from ..base import AlgoImplBase
 from .utility import DiscreteQFunctionMixin
 
 __all__ = ["DQNImpl", "DoubleDQNImpl"]
 
 
-class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
+class DQNImpl(DiscreteQFunctionMixin, AlgoImplBase):
 
     _learning_rate: float
     _optim_factory: OptimizerFactory
@@ -48,15 +40,10 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         gamma: float,
         n_critics: int,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            observation_scaler=observation_scaler,
-            action_scaler=None,
-            reward_scaler=reward_scaler,
             device=device,
         )
         self._learning_rate = learning_rate
@@ -99,8 +86,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         )
 
     @train_api
-    @torch_api(observation_scaler_targets=["obs_t", "obs_tpn"])
-    def update(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update(self, batch: TorchMiniBatch) -> float:
         assert self._optim is not None
 
         self._optim.zero_grad()
@@ -112,7 +98,7 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
         loss.backward()
         self._optim.step()
 
-        return loss.cpu().detach().numpy()
+        return float(loss.cpu().detach().numpy())
 
     def compute_loss(
         self,
@@ -140,12 +126,12 @@ class DQNImpl(DiscreteQFunctionMixin, TorchImplBase):
                 reduction="min",
             )
 
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._q_func is not None
         return self._q_func(x).argmax(dim=1)
 
-    def _sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._predict_best_action(x)
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self.inner_predict_best_action(x)
 
     def update_target(self) -> None:
         assert self._q_func is not None
@@ -167,7 +153,7 @@ class DoubleDQNImpl(DQNImpl):
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         assert self._targ_q_func is not None
         with torch.no_grad():
-            action = self._predict_best_action(batch.next_observations)
+            action = self.inner_predict_best_action(batch.next_observations)
             return self._targ_q_func.compute_target(
                 batch.next_observations,
                 action,

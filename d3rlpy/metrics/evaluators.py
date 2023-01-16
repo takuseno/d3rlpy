@@ -12,7 +12,6 @@ __all__ = [
     "TDErrorEvaluator",
     "DiscountedSumOfAdvantageEvaluator",
     "AverageValueEstimationEvaluator",
-    "ValueEstimationStdEvaluator",
     "InitialStateValueEstimationEvaluator",
     "SoftOPCEvaluator",
     "ContinuousActionDiffEvaluator",
@@ -181,41 +180,6 @@ class AverageValueEstimationEvaluator(EvaluatorProtocol):
                 values = algo.predict_value(batch.observations, actions)
                 total_values += cast(np.ndarray, values).tolist()
         return float(np.mean(total_values))
-
-
-class ValueEstimationStdEvaluator(EvaluatorProtocol):
-    r"""Returns standard deviation of value estimation.
-
-    This metrics suggests how confident Q functions are for the given
-    episodes.
-    This metrics will be more accurate with `boostrap` enabled and the larger
-    `n_critics` at algorithm.
-    If standard deviation of value estimation is large, the Q functions are
-    overfitting to the training set.
-
-    .. math::
-
-        \mathbb{E}_{s_t \sim D, a \sim \text{argmax}_a Q_\theta(s_t, a)}
-            [Q_{\text{std}}(s_t, a)]
-
-    where :math:`Q_{\text{std}}(s, a)` is a standard deviation of action-value
-    estimation over ensemble functions.
-
-    """
-
-    def __call__(
-        self,
-        algo: AlgoProtocol,
-        episodes: Sequence[Episode],
-        transition_picker: TransitionPickerProtocol,
-    ) -> float:
-        total_stds = []
-        for episode in episodes:
-            for batch in make_batches(episode, WINDOW_SIZE, transition_picker):
-                actions = algo.predict(batch.observations)
-                _, stds = algo.predict_value(batch.observations, actions, True)
-                total_stds += stds.tolist()
-        return float(np.mean(total_stds))
 
 
 class InitialStateValueEstimationEvaluator(EvaluatorProtocol):

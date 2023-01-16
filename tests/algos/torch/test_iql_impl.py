@@ -3,12 +3,7 @@ import pytest
 from d3rlpy.algos.torch.iql_impl import IQLImpl
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
-from tests.algos.algo_test import (
-    DummyActionScaler,
-    DummyObservationScaler,
-    DummyRewardScaler,
-    torch_impl_tester,
-)
+from tests.algos.algo_impl_test import impl_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -24,9 +19,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("expectile", [0.7])
 @pytest.mark.parametrize("weight_temp", [3.0])
 @pytest.mark.parametrize("max_weight", [100.0])
-@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
-@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
-@pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_iql_impl(
     observation_shape,
     action_size,
@@ -41,9 +33,6 @@ def test_iql_impl(
     expectile,
     weight_temp,
     max_weight,
-    observation_scaler,
-    action_scaler,
-    reward_scaler,
 ):
     impl = IQLImpl(
         observation_shape=observation_shape,
@@ -62,8 +51,5 @@ def test_iql_impl(
         weight_temp=weight_temp,
         max_weight=max_weight,
         device="cpu:0",
-        observation_scaler=observation_scaler,
-        action_scaler=action_scaler,
-        reward_scaler=reward_scaler,
     )
-    torch_impl_tester(impl, discrete=False, deterministic_best_action=True)
+    impl_tester(impl, discrete=False)

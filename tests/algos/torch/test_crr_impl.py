@@ -4,12 +4,7 @@ from d3rlpy.algos.torch.crr_impl import CRRImpl
 from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.optimizers import AdamFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory
-from tests.algos.algo_test import (
-    DummyActionScaler,
-    DummyObservationScaler,
-    DummyRewardScaler,
-    torch_impl_tester,
-)
+from tests.algos.algo_impl_test import impl_tester
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -30,9 +25,6 @@ from tests.algos.algo_test import (
 @pytest.mark.parametrize("max_weight", [20.0])
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize("tau", [5e-3])
-@pytest.mark.parametrize("observation_scaler", [None, DummyObservationScaler()])
-@pytest.mark.parametrize("action_scaler", [None, DummyActionScaler()])
-@pytest.mark.parametrize("reward_scaler", [None, DummyRewardScaler()])
 def test_crr_impl(
     observation_shape,
     action_size,
@@ -50,9 +42,6 @@ def test_crr_impl(
     max_weight,
     n_critics,
     tau,
-    observation_scaler,
-    action_scaler,
-    reward_scaler,
 ):
     impl = CRRImpl(
         observation_shape=observation_shape,
@@ -73,8 +62,5 @@ def test_crr_impl(
         n_critics=n_critics,
         tau=tau,
         device="cpu:0",
-        observation_scaler=observation_scaler,
-        action_scaler=action_scaler,
-        reward_scaler=reward_scaler,
     )
-    torch_impl_tester(impl, discrete=False, deterministic_best_action=False)
+    impl_tester(impl, discrete=False)

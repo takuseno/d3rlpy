@@ -9,7 +9,6 @@ from ...models.encoders import EncoderFactory
 from ...models.optimizers import OptimizerFactory
 from ...models.q_functions import QFunctionFactory
 from ...models.torch import NonSquashedNormalPolicy
-from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import TorchMiniBatch, hard_sync
 from .ddpg_impl import DDPGBaseImpl
 
@@ -46,9 +45,6 @@ class CRRImpl(DDPGBaseImpl):
         n_critics: int,
         tau: float,
         device: str,
-        observation_scaler: Optional[ObservationScaler],
-        action_scaler: Optional[ActionScaler],
-        reward_scaler: Optional[RewardScaler],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -64,9 +60,6 @@ class CRRImpl(DDPGBaseImpl):
             tau=tau,
             n_critics=n_critics,
             device=device,
-            observation_scaler=observation_scaler,
-            action_scaler=action_scaler,
-            reward_scaler=reward_scaler,
         )
         self._beta = beta
         self._n_action_samples = n_action_samples
@@ -151,7 +144,7 @@ class CRRImpl(DDPGBaseImpl):
                 reduction="min",
             )
 
-    def _predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._policy is not None
         assert self._q_func is not None
 
