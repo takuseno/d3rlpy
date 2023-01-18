@@ -1,13 +1,13 @@
 import gym
 import numpy as np
 
-from ..algos.interface import AlgoProtocol
+from ..algos.qlearning.interface import QLearningAlgoProtocol
 
 __all__ = ["evaluate_with_environment"]
 
 
 def evaluate_with_environment(
-    algo: AlgoProtocol,
+    algo: QLearningAlgoProtocol,
     env: gym.Env,
     n_trials: int = 10,
     epsilon: float = 0.0,

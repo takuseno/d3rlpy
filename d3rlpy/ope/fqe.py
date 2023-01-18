@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 import numpy as np
 
-from ..algos import AlgoBase
+from ..algos.qlearning import QLearningAlgoBase
 from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import (
     ALGO_NOT_GIVEN_ERROR,
@@ -41,7 +41,8 @@ class FQEConfig(LearnableConfig):
           <https://arxiv.org/abs/1903.08738>`_
 
     Args:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
+        algo (d3rlpy.algos.qlearning.base.QLearningAlgoBase):
+            algorithm to evaluate.
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory.
@@ -79,15 +80,15 @@ class FQEConfig(LearnableConfig):
         return "fqe"
 
 
-class _FQEBase(AlgoBase):
+class _FQEBase(QLearningAlgoBase):
 
-    _algo: Optional[AlgoBase]
+    _algo: Optional[QLearningAlgoBase]
     _config: FQEConfig
     _impl: Optional[FQEBaseImpl]
 
     def __init__(
         self,
-        algo: AlgoBase,
+        algo: QLearningAlgoBase,
         config: FQEConfig,
         device: DeviceArg = False,
         impl: Optional[FQEBaseImpl] = None,
@@ -190,7 +191,8 @@ class DiscreteFQE(_FQEBase):
           <https://arxiv.org/abs/1903.08738>`_
 
     Args:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
+        algo (d3rlpy.algos.qlearning.base.QLearningAlgoBase):
+            algorithm to evaluate.
         config (d3rlpy.ope.FQEConfig): FQE config.
         device (bool, int or str):
             flag to use GPU, device ID or PyTorch device identifier.

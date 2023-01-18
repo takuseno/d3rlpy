@@ -5,8 +5,8 @@ from typing import Optional
 import torch
 from torch.optim import Optimizer
 
-from ...algos.base import AlgoImplBase
-from ...algos.torch.utility import (
+from ...algos.qlearning.base import QLearningAlgoImplBase
+from ...algos.qlearning.torch.utility import (
     ContinuousQFunctionMixin,
     DiscreteQFunctionMixin,
 )
@@ -28,7 +28,7 @@ from ...torch_utility import TorchMiniBatch, hard_sync, to_device, train_api
 __all__ = ["FQEBaseImpl", "FQEImpl", "DiscreteFQEImpl"]
 
 
-class FQEBaseImpl(AlgoImplBase):
+class FQEBaseImpl(QLearningAlgoImplBase):
 
     _learning_rate: float
     _optim_factory: OptimizerFactory

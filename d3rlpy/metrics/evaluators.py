@@ -3,7 +3,7 @@ from typing import Iterator, Sequence, cast
 import numpy as np
 from typing_extensions import Protocol
 
-from ..algos.interface import AlgoProtocol
+from ..algos.qlearning.interface import QLearningAlgoProtocol
 from ..dataset import Episode, TransitionMiniBatch, TransitionPickerProtocol
 
 __all__ = [
@@ -27,7 +27,7 @@ WINDOW_SIZE = 1024
 class EvaluatorProtocol(Protocol):
     def __call__(
         self,
-        algo: AlgoProtocol,
+        algo: QLearningAlgoProtocol,
         episodes: Sequence[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:
@@ -69,7 +69,7 @@ class TDErrorEvaluator(EvaluatorProtocol):
 
     def __call__(
         self,
-        algo: AlgoProtocol,
+        algo: QLearningAlgoProtocol,
         episodes: Sequence[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:
@@ -120,7 +120,7 @@ class DiscountedSumOfAdvantageEvaluator(EvaluatorProtocol):
 
     def __call__(
         self,
-        algo: AlgoProtocol,
+        algo: QLearningAlgoProtocol,
         episodes: Sequence[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:
@@ -169,7 +169,7 @@ class AverageValueEstimationEvaluator(EvaluatorProtocol):
 
     def __call__(
         self,
-        algo: AlgoProtocol,
+        algo: QLearningAlgoProtocol,
         episodes: Sequence[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:
@@ -202,7 +202,7 @@ class InitialStateValueEstimationEvaluator(EvaluatorProtocol):
 
     def __call__(
         self,
-        algo: AlgoProtocol,
+        algo: QLearningAlgoProtocol,
         episodes: Sequence[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:
@@ -246,7 +246,7 @@ class SoftOPCEvaluator(EvaluatorProtocol):
 
     def __call__(
         self,
-        algo: AlgoProtocol,
+        algo: QLearningAlgoProtocol,
         episodes: Sequence[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:
@@ -279,7 +279,7 @@ class ContinuousActionDiffEvaluator(EvaluatorProtocol):
 
     def __call__(
         self,
-        algo: AlgoProtocol,
+        algo: QLearningAlgoProtocol,
         episodes: Sequence[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:
@@ -309,7 +309,7 @@ class DiscreteActionMatchEvaluator(EvaluatorProtocol):
 
     def __call__(
         self,
-        algo: AlgoProtocol,
+        algo: QLearningAlgoProtocol,
         episodes: Sequence[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:
@@ -339,14 +339,14 @@ class CompareContinuousActionDiffEvaluator(EvaluatorProtocol):
         base_algo: algorithm to comapre with.
 
     """
-    _base_algo: AlgoProtocol
+    _base_algo: QLearningAlgoProtocol
 
-    def __init__(self, base_algo: AlgoProtocol):
+    def __init__(self, base_algo: QLearningAlgoProtocol):
         self._base_algo = base_algo
 
     def __call__(
         self,
-        algo: AlgoProtocol,
+        algo: QLearningAlgoProtocol,
         episodes: Sequence[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:
@@ -379,14 +379,14 @@ class CompareDiscreteActionMatchEvaluator(EvaluatorProtocol):
         base_algo: algorithm to comapre with.
 
     """
-    _base_algo: AlgoProtocol
+    _base_algo: QLearningAlgoProtocol
 
-    def __init__(self, base_algo: AlgoProtocol):
+    def __init__(self, base_algo: QLearningAlgoProtocol):
         self._base_algo = base_algo
 
     def __call__(
         self,
-        algo: AlgoProtocol,
+        algo: QLearningAlgoProtocol,
         episodes: Sequence[Episode],
         transition_picker: TransitionPickerProtocol,
     ) -> float:

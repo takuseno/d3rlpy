@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Any, List, Tuple, Union
 
 import numpy as np
 
-from ..algos import AlgoBase
+from ..algos.qlearning import QLearningAlgoBase
 from ..dataset import (
     EpisodeGenerator,
     ReplayBuffer,
@@ -19,14 +19,14 @@ class SB3Wrapper:
     """A wrapper for d3rlpy algorithms so they can be used with Stable-Baselines3 (SB3).
 
     Args:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm.
+        algo (d3rlpy.algos.base.qlearning.QLearningAlgoBase): algorithm.
 
     Attributes:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm.
+        algo (d3rlpy.algos.base.qlearning.QLearningAlgoBase): algorithm.
 
     """
 
-    def __init__(self, algo: AlgoBase):
+    def __init__(self, algo: QLearningAlgoBase):
         # Avoid infinite recursion due to override of setattr
         self.__dict__["algo"] = algo
 
