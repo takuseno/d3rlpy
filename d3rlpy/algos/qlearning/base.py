@@ -8,18 +8,12 @@ import torch
 from tqdm.auto import tqdm, trange
 
 from ...base import ImplBase, LearnableBase, save_config
-from ...constants import (
-    CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR,
-    DISCRETE_ACTION_SPACE_MISMATCH_ERROR,
-    IMPL_NOT_INITIALIZED_ERROR,
-    ActionSpace,
-)
+from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import (
     DatasetInfo,
     Episode,
     Observation,
     ReplayBuffer,
-    Shape,
     TransitionMiniBatch,
     check_non_1d_array,
     create_fifo_replay_buffer,
@@ -34,50 +28,23 @@ from ...torch_utility import (
     convert_to_torch_recursively,
     eval_api,
     freeze,
-    get_state_dict,
     hard_sync,
-    map_location,
     reset_optimizer_states,
-    set_state_dict,
     sync_optimizer_state,
-    to_cpu,
-    to_cuda,
     unfreeze,
+)
+from ..utility import (
+    assert_action_space_with_dataset,
+    assert_action_space_with_env,
+    build_scalers_with_dataset,
+    build_scalers_with_env,
 )
 from .explorers import Explorer
 
 __all__ = ["QLearningAlgoImplBase", "QLearningAlgoBase"]
 
 
-def _assert_action_space(algo: LearnableBase, env: gym.Env) -> None:
-    if isinstance(env.action_space, gym.spaces.Box):
-        assert (
-            algo.get_action_type() == ActionSpace.CONTINUOUS
-        ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
-    elif isinstance(env.action_space, gym.spaces.discrete.Discrete):
-        assert (
-            algo.get_action_type() == ActionSpace.DISCRETE
-        ), DISCRETE_ACTION_SPACE_MISMATCH_ERROR
-    else:
-        action_space = type(env.action_space)
-        raise ValueError(f"The action-space is not supported: {action_space}")
-
-
 class QLearningAlgoImplBase(ImplBase):
-    _observation_shape: Shape
-    _action_size: int
-    _device: str
-
-    def __init__(
-        self,
-        observation_shape: Shape,
-        action_size: int,
-        device: str,
-    ):
-        self._observation_shape = observation_shape
-        self._action_size = action_size
-        self._device = device
-
     @eval_api
     def predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         return self.inner_predict_best_action(x)
@@ -105,21 +72,6 @@ class QLearningAlgoImplBase(ImplBase):
         self, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
         pass
-
-    def to_gpu(self, device: str) -> None:
-        self._device = device
-        to_cuda(self, self._device)
-
-    def to_cpu(self) -> None:
-        self._device = "cpu:0"
-        to_cpu(self)
-
-    def save_model(self, fname: str) -> None:
-        torch.save(get_state_dict(self), fname)
-
-    def load_model(self, fname: str) -> None:
-        chkpt = torch.load(fname, map_location=map_location(self._device))
-        set_state_dict(self, chkpt)
 
     @property
     def policy(self) -> Policy:
@@ -174,44 +126,6 @@ class QLearningAlgoImplBase(ImplBase):
 
     def reset_optimizer_states(self) -> None:
         reset_optimizer_states(self)
-
-    @property
-    def observation_shape(self) -> Shape:
-        return self._observation_shape
-
-    @property
-    def action_size(self) -> int:
-        return self._action_size
-
-    @property
-    def device(self) -> str:
-        return self._device
-
-
-def _setup_algo(algo: "QLearningAlgoBase", env: gym.Env) -> None:
-    # initialize observation scaler
-    if algo.observation_scaler:
-        LOG.debug(
-            "Fitting observation scaler...",
-            observation_scaler=algo.observation_scaler.get_type(),
-        )
-        algo.observation_scaler.fit_with_env(env)
-
-    # initialize action scaler
-    if algo.action_scaler:
-        LOG.debug(
-            "Fitting action scaler...",
-            action_scler=algo.action_scaler.get_type(),
-        )
-        algo.action_scaler.fit_with_env(env)
-
-    # setup algorithm
-    if algo.impl is None:
-        LOG.debug("Building model...")
-        algo.build_with_env(env)
-        LOG.debug("Model has been built.")
-    else:
-        LOG.warning("Skip building models since they're already built.")
 
 
 class QLearningAlgoBase(LearnableBase):
@@ -558,16 +472,10 @@ class QLearningAlgoBase(LearnableBase):
         LOG.info("dataset info", dataset_info=dataset_info)
 
         # check action space
-        if self.get_action_type() == ActionSpace.BOTH:
-            pass
-        elif dataset_info.action_space == ActionSpace.DISCRETE:
-            assert (
-                self.get_action_type() == ActionSpace.DISCRETE
-            ), DISCRETE_ACTION_SPACE_MISMATCH_ERROR
-        else:
-            assert (
-                self.get_action_type() == ActionSpace.CONTINUOUS
-            ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
+        assert_action_space_with_dataset(self, dataset_info)
+
+        # initialize scalers
+        build_scalers_with_dataset(self, dataset)
 
         # setup logger
         if experiment_name is None:
@@ -580,30 +488,6 @@ class QLearningAlgoBase(LearnableBase):
             tensorboard_dir=tensorboard_dir,
             with_timestamp=with_timestamp,
         )
-
-        # initialize observation scaler
-        if self._config.observation_scaler:
-            LOG.debug(
-                "Fitting observation scaler...",
-                observation_scaler=self._config.observation_scaler.get_type(),
-            )
-            self._config.observation_scaler.fit(dataset.episodes)
-
-        # initialize action scaler
-        if self._config.action_scaler:
-            LOG.debug(
-                "Fitting action scaler...",
-                action_scaler=self._config.action_scaler.get_type(),
-            )
-            self._config.action_scaler.fit(dataset.episodes)
-
-        # initialize reward scaler
-        if self._config.reward_scaler:
-            LOG.debug(
-                "Fitting reward scaler...",
-                reward_scaler=self._config.reward_scaler.get_type(),
-            )
-            self._config.reward_scaler.fit(dataset.episodes)
 
         # instantiate implementation
         if self._impl is None:
@@ -750,7 +634,7 @@ class QLearningAlgoBase(LearnableBase):
             buffer = create_fifo_replay_buffer(1000000)
 
         # check action-space
-        _assert_action_space(self, env)
+        assert_action_space_with_env(self, env)
 
         # setup logger
         if experiment_name is None:
@@ -765,7 +649,15 @@ class QLearningAlgoBase(LearnableBase):
         )
 
         # initialize algorithm parameters
-        _setup_algo(self, env)
+        build_scalers_with_env(self, env)
+
+        # setup algorithm
+        if self.impl is None:
+            LOG.debug("Building model...")
+            self.build_with_env(env)
+            LOG.debug("Model has been built.")
+        else:
+            LOG.warning("Skip building models since they're already built.")
 
         # save hyperparameters
         save_config(self, logger)
@@ -894,10 +786,18 @@ class QLearningAlgoBase(LearnableBase):
             buffer = create_fifo_replay_buffer(1000000)
 
         # check action-space
-        _assert_action_space(self, env)
+        assert_action_space_with_env(self, env)
 
         # initialize algorithm parameters
-        _setup_algo(self, env)
+        build_scalers_with_env(self, env)
+
+        # setup algorithm
+        if self.impl is None:
+            LOG.debug("Building model...")
+            self.build_with_env(env)
+            LOG.debug("Model has been built.")
+        else:
+            LOG.warning("Skip building models since they're already built.")
 
         # switch based on show_progress flag
         xrange = trange if show_progress else range

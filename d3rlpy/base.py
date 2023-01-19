@@ -3,6 +3,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Optional, Type, TypeVar, Union, cast
 
 import gym
+import torch
 from gym.spaces import Discrete
 
 from .constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -17,6 +18,13 @@ from .preprocessing import (
     make_reward_scaler_field,
 )
 from .serializable_config import DynamicConfig, generate_config_registration
+from .torch_utility import (
+    get_state_dict,
+    map_location,
+    set_state_dict,
+    to_cpu,
+    to_cuda,
+)
 
 __all__ = [
     "DeviceArg",
@@ -34,23 +42,46 @@ DeviceArg = Optional[Union[bool, int, str]]
 
 
 class ImplBase(metaclass=ABCMeta):
-    @abstractmethod
+    _observation_shape: Shape
+    _action_size: int
+    _device: str
+
+    def __init__(
+        self,
+        observation_shape: Shape,
+        action_size: int,
+        device: str,
+    ):
+        self._observation_shape = observation_shape
+        self._action_size = action_size
+        self._device = device
+
+    def to_gpu(self, device: str) -> None:
+        self._device = device
+        to_cuda(self, self._device)
+
+    def to_cpu(self) -> None:
+        self._device = "cpu:0"
+        to_cpu(self)
+
     def save_model(self, fname: str) -> None:
-        pass
+        torch.save(get_state_dict(self), fname)
 
-    @abstractmethod
     def load_model(self, fname: str) -> None:
-        pass
+        chkpt = torch.load(fname, map_location=map_location(self._device))
+        set_state_dict(self, chkpt)
 
     @property
-    @abstractmethod
     def observation_shape(self) -> Shape:
-        pass
+        return self._observation_shape
 
     @property
-    @abstractmethod
     def action_size(self) -> int:
-        pass
+        return self._action_size
+
+    @property
+    def device(self) -> str:
+        return self._device
 
 
 @dataclasses.dataclass(frozen=True)
