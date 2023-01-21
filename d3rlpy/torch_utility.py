@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
-from .dataset import TransitionMiniBatch
+from .dataset import TrajectoryMiniBatch, TransitionMiniBatch
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
 
 __all__ = [
@@ -26,6 +26,7 @@ __all__ = [
     "reset_optimizer_states",
     "map_location",
     "TorchMiniBatch",
+    "TorchTrajectoryMiniBatch",
     "convert_to_torch",
     "convert_to_torch_recursively",
     "eval_api",
@@ -221,6 +222,61 @@ class TorchMiniBatch:
             next_observations=next_observations,
             terminals=terminals,
             intervals=intervals,
+            device=device,
+            numpy_batch=batch,
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class TorchTrajectoryMiniBatch:
+    observations: torch.Tensor  # (B, L, ...)
+    actions: torch.Tensor  # (B, L, ...)
+    rewards: torch.Tensor  # (B, L, 1)
+    returns_to_go: torch.Tensor  # (B, L, 1)
+    terminals: torch.Tensor  # (B, L, 1)
+    timesteps: torch.Tensor  # (B, L, 1)
+    masks: torch.Tensor  # (B, L)
+    device: str
+    numpy_batch: Optional[TrajectoryMiniBatch] = None
+
+    @classmethod
+    def from_batch(
+        cls,
+        batch: TrajectoryMiniBatch,
+        device: str,
+        observation_scaler: Optional[ObservationScaler] = None,
+        action_scaler: Optional[ActionScaler] = None,
+        reward_scaler: Optional[RewardScaler] = None,
+    ) -> "TorchTrajectoryMiniBatch":
+        # convert numpy array to torch tensor
+        observations = convert_to_torch_recursively(batch.observations, device)
+        actions = convert_to_torch(batch.actions, device)
+        rewards = convert_to_torch(batch.rewards, device)
+        returns_to_go = convert_to_torch(batch.returns_to_go, device)
+        terminals = convert_to_torch(batch.terminals, device)
+        timesteps = convert_to_torch(batch.timesteps, device)
+        masks = convert_to_torch(batch.masks, device)
+
+        # TODO: support tuple observation
+        assert isinstance(observations, torch.Tensor)
+
+        # apply scaler
+        if observation_scaler:
+            observations = observation_scaler.transform(observations)
+        if action_scaler:
+            actions = action_scaler.transform(actions)
+        if reward_scaler:
+            rewards = reward_scaler.transform(rewards)
+            returns_to_go = reward_scaler.transform(returns_to_go)
+
+        return TorchTrajectoryMiniBatch(
+            observations=observations,
+            actions=actions,
+            rewards=rewards,
+            returns_to_go=returns_to_go,
+            terminals=terminals,
+            timesteps=timesteps,
+            masks=masks,
             device=device,
             numpy_batch=batch,
         )

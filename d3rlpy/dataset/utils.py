@@ -22,6 +22,8 @@ __all__ = [
     "is_tuple_shape",
     "cast_flat_shape",
     "cast_tuple_shape",
+    "get_axis_size",
+    "get_batch_dim",
 ]
 
 
@@ -190,3 +192,21 @@ def cast_tuple_shape(shape: Shape) -> Sequence[Sequence[int]]:
 def cast_flat_shape(shape: Shape) -> Sequence[int]:
     assert not is_tuple_shape(shape)
     return shape  # type: ignore
+
+
+def get_axis_size(
+    array: Union[np.ndarray, Sequence[np.ndarray]], axis: int
+) -> int:
+    if isinstance(array, np.ndarray):
+        return int(array.shape[axis])
+    elif isinstance(array, (list, tuple)):
+        sizes = list(map(lambda v: v.shape[axis], array))
+        size = sizes[axis]
+        assert np.all(np.array(sizes) == size)
+        return int(size)
+    else:
+        raise ValueError(f"invalid array type: {type(array)}")
+
+
+def get_batch_dim(array: Union[np.ndarray, Sequence[np.ndarray]]) -> int:
+    return get_axis_size(array, axis=0)

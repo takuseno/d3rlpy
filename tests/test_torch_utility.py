@@ -5,10 +5,11 @@ import numpy as np
 import pytest
 import torch
 
-from d3rlpy.dataset import Transition, TransitionMiniBatch
+from d3rlpy.dataset import TrajectoryMiniBatch, Transition, TransitionMiniBatch
 from d3rlpy.torch_utility import (
     Swish,
     TorchMiniBatch,
+    TorchTrajectoryMiniBatch,
     View,
     eval_api,
     freeze,
@@ -24,6 +25,8 @@ from d3rlpy.torch_utility import (
     train_api,
     unfreeze,
 )
+
+from .testing_utils import create_partial_trajectory
 
 
 @pytest.mark.parametrize("tau", [0.05])
@@ -329,6 +332,93 @@ def test_torch_mini_batch(
 
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
     assert np.all(torch_batch.intervals.numpy() == batch.intervals)
+
+
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("length", [32])
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("use_observation_scaler", [False, True])
+@pytest.mark.parametrize("use_action_scaler", [False, True])
+@pytest.mark.parametrize("use_reward_scaler", [False, True])
+def test_torch_trajectory_mini_batch(
+    batch_size,
+    length,
+    observation_shape,
+    action_size,
+    use_observation_scaler,
+    use_action_scaler,
+    use_reward_scaler,
+):
+    trajectories = []
+    for _ in range(batch_size):
+        trajectory = create_partial_trajectory(
+            observation_shape, action_size, length
+        )
+        trajectories.append(trajectory)
+
+    if use_observation_scaler:
+
+        class DummyObservationScaler:
+            def transform(self, x):
+                return x + 0.1
+
+        observation_scaler = DummyObservationScaler()
+    else:
+        observation_scaler = None
+
+    if use_action_scaler:
+
+        class DummyActionScaler:
+            def transform(self, x):
+                return x + 0.2
+
+        action_scaler = DummyActionScaler()
+    else:
+        action_scaler = None
+
+    if use_reward_scaler:
+
+        class DummyRewardScaler:
+            def transform(self, x):
+                return x + 0.2
+
+        reward_scaler = DummyRewardScaler()
+    else:
+        reward_scaler = None
+
+    batch = TrajectoryMiniBatch.from_partial_trajectories(trajectories)
+
+    torch_batch = TorchTrajectoryMiniBatch.from_batch(
+        batch=batch,
+        device="cpu:0",
+        observation_scaler=observation_scaler,
+        action_scaler=action_scaler,
+        reward_scaler=reward_scaler,
+    )
+
+    if use_observation_scaler:
+        assert np.all(
+            torch_batch.observations.numpy() == batch.observations + 0.1
+        )
+    else:
+        assert np.all(torch_batch.observations.numpy() == batch.observations)
+
+    if use_action_scaler:
+        assert np.all(torch_batch.actions.numpy() == batch.actions + 0.2)
+    else:
+        assert np.all(torch_batch.actions.numpy() == batch.actions)
+
+    if use_reward_scaler:
+        assert np.all(torch_batch.rewards.numpy() == batch.rewards + 0.2)
+        assert np.all(
+            torch_batch.returns_to_go.numpy() == batch.returns_to_go + 0.2
+        )
+    else:
+        assert np.all(torch_batch.rewards.numpy() == batch.rewards)
+        assert np.all(torch_batch.returns_to_go.numpy() == batch.returns_to_go)
+
+    assert np.all(torch_batch.terminals.numpy() == batch.terminals)
 
 
 def test_train_api():
