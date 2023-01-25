@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from gym import spaces
 
-from d3rlpy.metrics.utility import evaluate_with_environment
+from d3rlpy.metrics.utility import evaluate_qlearning_with_environment
 
 
 class DummyAlgo:
@@ -62,5 +62,5 @@ def test_evaluate_on_environment(
         rewards = np.mean(episode_obs[1:], axis=1) + np.mean(actions, axis=1)
         ref_rewards.append(np.sum(rewards))
 
-    mean_reward = evaluate_with_environment(algo, DummyEnv(), n_trials)
+    mean_reward = evaluate_qlearning_with_environment(algo, DummyEnv(), n_trials)
     assert np.allclose(mean_reward, np.mean(ref_rewards))

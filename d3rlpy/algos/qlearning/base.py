@@ -20,7 +20,7 @@ from ...dataset import (
     is_tuple_shape,
 )
 from ...logger import LOG, D3RLPyLogger
-from ...metrics import EvaluatorProtocol, evaluate_with_environment
+from ...metrics import EvaluatorProtocol, evaluate_qlearning_with_environment
 from ...models.torch import EnsembleQFunction, Policy
 from ...torch_utility import (
     TorchMiniBatch,
@@ -556,7 +556,7 @@ class QLearningAlgoBase(LearnableBase):
                     logger.add_metric(name, test_score)
 
             if eval_env:
-                eval_score = evaluate_with_environment(self, eval_env)
+                eval_score = evaluate_qlearning_with_environment(self, eval_env)
                 logger.add_metric("environment", eval_score)
 
             # save metrics
@@ -735,7 +735,7 @@ class QLearningAlgoBase(LearnableBase):
             if epoch > 0 and total_step % n_steps_per_epoch == 0:
                 # evaluation
                 if eval_env:
-                    eval_score = evaluate_with_environment(
+                    eval_score = evaluate_qlearning_with_environment(
                         self, eval_env, epsilon=eval_epsilon
                     )
                     logger.add_metric("evaluation", eval_score)
@@ -863,6 +863,7 @@ class QLearningAlgoBase(LearnableBase):
         self._grad_step += 1
         return loss
 
+    @abstractmethod
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         """Update parameters with PyTorch mini-batch.
 
