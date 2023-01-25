@@ -20,5 +20,6 @@ preferred-citation:
   year: 2022
   url: http://jmlr.org/papers/v23/22-0017.html
   volume: 23
-  number: 315
-  pages: "1--20"
+  issue: 315
+  start: 1
+  end: 20
