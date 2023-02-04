@@ -1,24 +1,36 @@
 import dataclasses
 from abc import abstractmethod
 from collections import defaultdict, deque
-from typing import Dict, Optional, Callable, Tuple, Generator, Deque, Union
+from typing import Callable, Deque, Dict, Generator, Optional, Tuple, Union
 
-import numpy as np
 import gym
+import numpy as np
 import torch
 from tqdm.auto import tqdm
 
-from ...base import ImplBase, LearnableBase, save_config, LearnableConfig
+from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
-from ...dataset import TrajectoryMiniBatch, ReplayBuffer, DatasetInfo, Observation
-from ...torch_utility import TorchTrajectoryMiniBatch
-from ...logger import D3RLPyLogger, LOG
+from ...dataset import (
+    DatasetInfo,
+    Observation,
+    ReplayBuffer,
+    TrajectoryMiniBatch,
+)
+from ...logger import LOG, D3RLPyLogger
 from ...metrics import evaluate_transformer_with_environment
+from ...torch_utility import TorchTrajectoryMiniBatch
+from ..utility import (
+    assert_action_space_with_dataset,
+    build_scalers_with_dataset,
+)
 from .inputs import TorchTransformerInput, TransformerInput
-from ..utility import assert_action_space_with_dataset, build_scalers_with_dataset
 
-
-__all__ = ["TransformerAlgoImplBase", "StatefulTransformerWrapper", "TransformerConfig", "TransformerAlgoBase"]
+__all__ = [
+    "TransformerAlgoImplBase",
+    "StatefulTransformerWrapper",
+    "TransformerConfig",
+    "TransformerAlgoBase",
+]
 
 
 class TransformerAlgoImplBase(ImplBase):
@@ -214,7 +226,7 @@ class TransformerAlgoBase(LearnableBase):
                     with logger.measure_time("sample_batch"):
                         batch = dataset.sample_trajectory_batch(
                             self._config.batch_size,
-                            length=self._config.max_length
+                            length=self._config.max_length,
                         )
 
                     # update parameters

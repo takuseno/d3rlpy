@@ -4,7 +4,10 @@ import numpy as np
 from ..algos.qlearning.interface import QLearningAlgoProtocol
 from ..algos.transformer.interface import StatefulTransformerAlgoProtocol
 
-__all__ = ["evaluate_qlearning_with_environment", "evaluate_transformer_with_environment"]
+__all__ = [
+    "evaluate_qlearning_with_environment",
+    "evaluate_transformer_with_environment",
+]
 
 
 def evaluate_qlearning_with_environment(

@@ -1,6 +1,6 @@
-import numpy as np
 from typing import Union
 
+import numpy as np
 from typing_extensions import Protocol
 
 from ...dataset import Observation

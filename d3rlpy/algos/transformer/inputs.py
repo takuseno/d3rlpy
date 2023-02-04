@@ -14,7 +14,6 @@ from ...dataset import (
 from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import convert_to_torch, convert_to_torch_recursively
 
-
 __all__ = ["TransformerInput", "TorchTransformerInput"]
 
 

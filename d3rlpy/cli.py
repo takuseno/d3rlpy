@@ -312,7 +312,9 @@ def record(
     )
 
     # run episodes
-    evaluate_qlearning_with_environment(algo, wrapped_env, n_episodes, epsilon=epsilon)
+    evaluate_qlearning_with_environment(
+        algo, wrapped_env, n_episodes, epsilon=epsilon
+    )
 
 
 @cli.command(short_help="Run evaluation episodes with rendering.")
