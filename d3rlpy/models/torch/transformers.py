@@ -3,8 +3,8 @@ from abc import ABCMeta, abstractmethod
 from typing import Tuple
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from .encoders import Encoder
 from .parameters import Parameter
@@ -17,7 +17,7 @@ def create_attention_mask(max_step_size: int) -> torch.Tensor:
     return torch.triu(mask).view(1, 1, max_step_size, max_step_size)
 
 
-class CausalSelfAttention(nn.Module):
+class CausalSelfAttention(nn.Module):  # type: ignore
     _num_heads: int
     _max_step_size: int
     _k: nn.Linear
@@ -77,7 +77,7 @@ class CausalSelfAttention(nn.Module):
         return self._proj_dropout(self._proj(output))
 
 
-class MLP(nn.Module):
+class MLP(nn.Module):  # type: ignore
     _l1: nn.Linear
     _l2: nn.Linear
     _dropout: nn.Dropout
@@ -98,7 +98,7 @@ class MLP(nn.Module):
         return h
 
 
-class Block(nn.Module):
+class Block(nn.Module):  # type: ignore
     _attention: CausalSelfAttention
     _mlp: MLP
     _layer_norm1: nn.LayerNorm
@@ -140,7 +140,7 @@ class Block(nn.Module):
         return x
 
 
-class PositionEncoding(nn.Module, metaclass=ABCMeta):
+class PositionEncoding(nn.Module, metaclass=ABCMeta):  # type: ignore
     @abstractmethod
     def forward(self, t: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
@@ -192,7 +192,7 @@ class GlobalPositionEncoding(PositionEncoding):
         return global_embedding + block_embedding
 
 
-class GPT2(nn.Module):
+class GPT2(nn.Module):  # type: ignore
     _transformer: nn.Sequential
     _layer_norm: nn.LayerNorm
     _dropout: nn.Dropout
@@ -232,7 +232,7 @@ class GPT2(nn.Module):
         return h
 
 
-class ContinuousDecisionTransformer(nn.Module):
+class ContinuousDecisionTransformer(nn.Module):  # type: ignore
     _encoder: Encoder
     _position_encoding: PositionEncoding
     _action_embed: nn.Linear
@@ -299,7 +299,7 @@ class ContinuousDecisionTransformer(nn.Module):
         return torch.tanh(self._output(h[:, 1]))
 
 
-class DiscreteDecisionTransformer(nn.Module):
+class DiscreteDecisionTransformer(nn.Module):  # type: ignore
     _encoder: Encoder
     _position_encoding: PositionEncoding
     _action_embed: nn.Embedding

@@ -1,10 +1,12 @@
 import dataclasses
+from typing import Dict
 
 import numpy as np
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
 from ...dataset import Observation, Shape
+from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 
 __all__ = [
@@ -82,6 +84,9 @@ class RandomPolicy(QLearningAlgoBase):
     def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
+    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        raise NotImplementedError
+
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
 
@@ -124,6 +129,9 @@ class DiscreteRandomPolicy(QLearningAlgoBase):
         return np.random.randint(self._action_size, size=x.shape[0])
 
     def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
+
+    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         raise NotImplementedError
 
     def get_action_type(self) -> ActionSpace:
