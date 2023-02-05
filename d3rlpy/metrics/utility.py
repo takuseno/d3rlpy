@@ -1,8 +1,7 @@
 import gym
 import numpy as np
 
-from ..algos.qlearning.interface import QLearningAlgoProtocol
-from ..algos.transformer.interface import StatefulTransformerAlgoProtocol
+from ..interface import QLearningAlgoProtocol, StatefulTransformerAlgoProtocol
 
 __all__ = [
     "evaluate_qlearning_with_environment",

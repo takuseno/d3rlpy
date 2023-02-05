@@ -3,8 +3,8 @@ from typing import Iterator, Sequence, cast
 import numpy as np
 from typing_extensions import Protocol
 
-from ..algos.qlearning.interface import QLearningAlgoProtocol
 from ..dataset import Episode, TransitionMiniBatch, TransitionPickerProtocol
+from ..interface import QLearningAlgoProtocol
 
 __all__ = [
     "EvaluatorProtocol",
