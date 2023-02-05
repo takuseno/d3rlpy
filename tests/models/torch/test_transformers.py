@@ -146,7 +146,7 @@ def test_gpt2(
         context_size=context_size,
         attn_dropout=dropout,
         resid_dropout=dropout,
-        input_dropout=dropout,
+        embed_dropout=dropout,
         activation=torch.nn.ReLU(),
     )
 
@@ -189,7 +189,7 @@ def test_continuous_decision_transformer(
         context_size=context_size,
         attn_dropout=dropout,
         resid_dropout=dropout,
-        input_dropout=dropout,
+        embed_dropout=dropout,
         activation=torch.nn.ReLU(),
     )
 
@@ -235,7 +235,7 @@ def test_continuous_decision_transformer(
         context_size=context_size,
         attn_dropout=dropout,
         resid_dropout=dropout,
-        input_dropout=dropout,
+        embed_dropout=dropout,
         activation=torch.nn.ReLU(),
     )
 

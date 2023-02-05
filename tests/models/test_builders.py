@@ -354,7 +354,7 @@ def test_create_continuous_decision_transformer(
         context_size=context_size,
         attn_dropout=dropout,
         resid_dropout=dropout,
-        input_dropout=dropout,
+        embed_dropout=dropout,
         activation_type=activation_type,
         position_encoding_type=position_encoding_type,
     )
@@ -404,7 +404,7 @@ def test_create_discrete_decision_transformer(
         context_size=context_size,
         attn_dropout=dropout,
         resid_dropout=dropout,
-        input_dropout=dropout,
+        embed_dropout=dropout,
         activation_type=activation_type,
         position_encoding_type=position_encoding_type,
     )

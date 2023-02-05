@@ -234,7 +234,7 @@ def create_continuous_decision_transformer(
     context_size: int,
     attn_dropout: float,
     resid_dropout: float,
-    input_dropout: float,
+    embed_dropout: float,
     activation_type: str,
     position_encoding_type: str,
 ) -> ContinuousDecisionTransformer:
@@ -261,7 +261,7 @@ def create_continuous_decision_transformer(
         num_layers=num_layers,
         attn_dropout=attn_dropout,
         resid_dropout=resid_dropout,
-        input_dropout=input_dropout,
+        embed_dropout=embed_dropout,
         activation=create_activation(activation_type),
     )
 
@@ -276,7 +276,7 @@ def create_discrete_decision_transformer(
     context_size: int,
     attn_dropout: float,
     resid_dropout: float,
-    input_dropout: float,
+    embed_dropout: float,
     activation_type: str,
     position_encoding_type: str,
 ) -> DiscreteDecisionTransformer:
@@ -303,6 +303,6 @@ def create_discrete_decision_transformer(
         num_layers=num_layers,
         attn_dropout=attn_dropout,
         resid_dropout=resid_dropout,
-        input_dropout=input_dropout,
+        embed_dropout=embed_dropout,
         activation=create_activation(activation_type),
     )

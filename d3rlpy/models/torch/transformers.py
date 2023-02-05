@@ -210,7 +210,7 @@ class GPT2(nn.Module):  # type: ignore
         num_layers: int,
         attn_dropout: float,
         resid_dropout: float,
-        input_dropout: float,
+        embed_dropout: float,
         activation: nn.Module,
     ):
         super().__init__()
@@ -228,7 +228,7 @@ class GPT2(nn.Module):  # type: ignore
         ]
         self._transformer = nn.Sequential(*blocks)
         self._layer_norm = nn.LayerNorm(hidden_size, eps=0.003)
-        self._dropout = nn.Dropout(input_dropout)
+        self._dropout = nn.Dropout(embed_dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self._dropout(x)
@@ -255,7 +255,7 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         num_layers: int,
         attn_dropout: float,
         resid_dropout: float,
-        input_dropout: float,
+        embed_dropout: float,
         activation: nn.Module,
     ):
         super().__init__()
@@ -270,7 +270,7 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
             num_layers=num_layers,
             attn_dropout=attn_dropout,
             resid_dropout=resid_dropout,
-            input_dropout=input_dropout,
+            embed_dropout=embed_dropout,
             activation=activation,
         )
         self._output = nn.Linear(encoder.get_feature_size(), action_size)
@@ -328,7 +328,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         num_layers: int,
         attn_dropout: float,
         resid_dropout: float,
-        input_dropout: float,
+        embed_dropout: float,
         activation: nn.Module,
     ):
         super().__init__()
@@ -345,7 +345,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
             num_layers=num_layers,
             attn_dropout=attn_dropout,
             resid_dropout=resid_dropout,
-            input_dropout=input_dropout,
+            embed_dropout=embed_dropout,
             activation=activation,
         )
         self._output = nn.Linear(
