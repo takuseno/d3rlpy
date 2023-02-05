@@ -52,23 +52,23 @@ class TorchTransformerInput:
     def from_numpy(
         cls,
         inpt: TransformerInput,
-        max_length: int,
+        context_size: int,
         device: str,
         observation_scaler: Optional[ObservationScaler] = None,
         action_scaler: Optional[ActionScaler] = None,
         reward_scaler: Optional[RewardScaler] = None,
     ) -> "TorchTransformerInput":
-        if max_length < inpt.length:
+        if context_size < inpt.length:
             observations = slice_observations(
-                inpt.observations, inpt.length - max_length, inpt.length
+                inpt.observations, inpt.length - context_size, inpt.length
             )
-            actions = inpt.actions[-max_length:]
-            rewards = inpt.rewards[-max_length:]
-            returns_to_go = inpt.returns_to_go[-max_length:]
-            timesteps = inpt.timesteps[-max_length:]
-            masks = np.ones(max_length, dtype=np.float32)
+            actions = inpt.actions[-context_size:]
+            rewards = inpt.rewards[-context_size:]
+            returns_to_go = inpt.returns_to_go[-context_size:]
+            timesteps = inpt.timesteps[-context_size:]
+            masks = np.ones(context_size, dtype=np.float32)
         else:
-            pad_size = max_length - inpt.length
+            pad_size = context_size - inpt.length
             observations = batch_pad_observations(inpt.observations, pad_size)
             actions = batch_pad_array(inpt.actions, pad_size)
             rewards = batch_pad_array(inpt.rewards, pad_size)
@@ -83,7 +83,7 @@ class TorchTransformerInput:
         actions = convert_to_torch(actions, device)
         rewards = convert_to_torch(rewards, device)
         returns_to_go = convert_to_torch(returns_to_go, device)
-        timesteps = convert_to_torch(timesteps, device)
+        timesteps = convert_to_torch(timesteps, device).long()
         masks = convert_to_torch(masks, device)
 
         # TODO: support tuple observation
@@ -105,5 +105,5 @@ class TorchTransformerInput:
             returns_to_go=returns_to_go.unsqueeze(0),
             timesteps=timesteps.unsqueeze(0),
             masks=masks.unsqueeze(0),
-            length=max_length,
+            length=context_size,
         )

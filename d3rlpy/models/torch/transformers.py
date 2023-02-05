@@ -19,7 +19,7 @@ __all__ = [
 
 def create_attention_mask(context_size: int) -> torch.Tensor:
     mask = torch.ones(context_size, context_size, dtype=torch.float32)
-    return torch.triu(mask).view(1, 1, context_size, context_size)
+    return torch.tril(mask).view(1, 1, context_size, context_size)
 
 
 class CausalSelfAttention(nn.Module):  # type: ignore

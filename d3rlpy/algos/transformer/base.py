@@ -1,7 +1,7 @@
 import dataclasses
 from abc import abstractmethod
 from collections import defaultdict, deque
-from typing import Callable, Deque, Dict, Generator, Optional, Tuple, Union
+from typing import Callable, Deque, Dict, Optional, Union
 
 import gym
 import numpy as np
@@ -42,44 +42,55 @@ class TransformerAlgoImplBase(ImplBase):
 class StatefulTransformerWrapper:
     _algo: "TransformerAlgoBase"
     _target_return: float
+    _return_rest: float
     _observations: Deque[Observation]
     _actions: Deque[Union[np.ndarray, int]]
     _rewards: Deque[float]
+    _returns_to_go: Deque[float]
+    _timesteps: Deque[int]
     _timestep: int
 
     def __init__(self, algo: "TransformerAlgoBase", target_return: float):
         assert algo.impl, "algo must be built."
         self._algo = algo
         self._target_return = target_return
+        self._return_rest = target_return
 
-        max_length = algo.config.max_length
-        self._observations = deque([], maxlen=max_length)
-        self._actions = deque([self._get_pad_action()], maxlen=max_length)
-        self._rewards = deque([], maxlen=max_length)
+        context_size = algo.config.context_size
+        self._observations = deque([], maxlen=context_size)
+        self._actions = deque([self._get_pad_action()], maxlen=context_size)
+        self._rewards = deque([], maxlen=context_size)
+        self._returns_to_go = deque([], maxlen=context_size)
+        self._timesteps = deque([], maxlen=context_size)
         self._timestep = 0
 
     def predict(self, x: Observation, reward: float) -> Union[np.ndarray, int]:
-        self._timestep += 1
         self._observations.append(x)
         self._rewards.append(reward)
-        returns_to_go = np.empty((len(self._rewards), 1), dtype=np.float32)
-        returns_to_go.fill(self._target_return)
+        self._returns_to_go.append(self._return_rest - reward)
+        self._timesteps.append(self._timestep)
         inpt = TransformerInput(
             observations=np.array(self._observations),
             actions=np.array(self._actions),
             rewards=np.array(self._rewards).reshape((-1, 1)),
-            returns_to_go=returns_to_go,
-            timesteps=np.arange(self._timestep),
+            returns_to_go=np.array(self._returns_to_go).reshape((-1, 1)),
+            timesteps=np.array(self._timesteps),
         )
         action = self._algo.predict(inpt)
-        self._actions.append(action)
+        self._actions[-1] = action
+        self._actions.append(self._get_pad_action())
+        self._timestep += 1
         return action
 
     def reset(self) -> None:
         self._observations.clear()
         self._actions.clear()
         self._rewards.clear()
+        self._returns_to_go.clear()
+        self._timesteps.clear()
         self._actions.append(self._get_pad_action())
+        self._timestep = 0
+        self._return_rest = self._target_return
 
     def _get_pad_action(self) -> Union[int, np.ndarray]:
         assert self._algo.impl
@@ -92,7 +103,7 @@ class StatefulTransformerWrapper:
 
 @dataclasses.dataclass(frozen=True)
 class TransformerConfig(LearnableConfig):
-    max_length: int = 20
+    context_size: int = 20
 
 
 class TransformerAlgoBase(LearnableBase):
@@ -105,7 +116,7 @@ class TransformerAlgoBase(LearnableBase):
         with torch.no_grad():
             torch_inpt = TorchTransformerInput.from_numpy(
                 inpt=inpt,
-                max_length=self._config.max_length,
+                context_size=self._config.context_size,
                 device=self._device,
                 observation_scaler=self._config.observation_scaler,
                 action_scaler=self._config.action_scaler,
@@ -134,7 +145,7 @@ class TransformerAlgoBase(LearnableBase):
         eval_target_return: Optional[float] = None,
         save_interval: int = 1,
         callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
-    ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
+    ) -> None:
         """Iterate over epochs steps to train with the given dataset. At each
              iteration algo methods and properties can be changed or queried.
 
@@ -226,7 +237,7 @@ class TransformerAlgoBase(LearnableBase):
                     with logger.measure_time("sample_batch"):
                         batch = dataset.sample_trajectory_batch(
                             self._config.batch_size,
-                            length=self._config.max_length,
+                            length=self._config.context_size,
                         )
 
                     # update parameters
@@ -260,13 +271,11 @@ class TransformerAlgoBase(LearnableBase):
                 logger.add_metric("environment", eval_score)
 
             # save metrics
-            metrics = logger.commit(epoch, total_step)
+            logger.commit(epoch, total_step)
 
             # save model parameters
             if epoch % save_interval == 0:
                 logger.save_model(total_step, self)
-
-            yield epoch, metrics
 
         logger.close()
 

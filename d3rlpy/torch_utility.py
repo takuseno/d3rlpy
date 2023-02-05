@@ -254,7 +254,7 @@ class TorchTrajectoryMiniBatch:
         rewards = convert_to_torch(batch.rewards, device)
         returns_to_go = convert_to_torch(batch.returns_to_go, device)
         terminals = convert_to_torch(batch.terminals, device)
-        timesteps = convert_to_torch(batch.timesteps, device)
+        timesteps = convert_to_torch(batch.timesteps, device).long()
         masks = convert_to_torch(batch.masks, device)
 
         # TODO: support tuple observation
