@@ -1,11 +1,8 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Sequence, Union
 
-from torch import nn
-
 from ..dataset import Shape, cast_flat_shape
 from ..serializable_config import DynamicConfig, generate_config_registration
-from ..torch_utility import Swish
 from .torch import (
     Encoder,
     EncoderWithAction,
@@ -14,6 +11,7 @@ from .torch import (
     VectorEncoder,
     VectorEncoderWithAction,
 )
+from .utility import create_activation
 
 __all__ = [
     "EncoderFactory",
@@ -24,16 +22,6 @@ __all__ = [
     "register_encoder_factory",
     "make_encoder_field",
 ]
-
-
-def _create_activation(activation_type: str) -> nn.Module:
-    if activation_type == "relu":
-        return nn.ReLU()
-    elif activation_type == "tanh":
-        return nn.Tanh()
-    elif activation_type == "swish":
-        return Swish()
-    raise ValueError("invalid activation_type.")
 
 
 class EncoderFactory(DynamicConfig):
@@ -103,7 +91,7 @@ class PixelEncoderFactory(EncoderFactory):
             feature_size=self.feature_size,
             use_batch_norm=self.use_batch_norm,
             dropout_rate=self.dropout_rate,
-            activation=_create_activation(self.activation),
+            activation=create_activation(self.activation),
         )
 
     def create_with_action(
@@ -121,7 +109,7 @@ class PixelEncoderFactory(EncoderFactory):
             use_batch_norm=self.use_batch_norm,
             dropout_rate=self.dropout_rate,
             discrete_action=discrete_action,
-            activation=_create_activation(self.activation),
+            activation=create_activation(self.activation),
         )
 
     @staticmethod
@@ -159,7 +147,7 @@ class VectorEncoderFactory(EncoderFactory):
             use_batch_norm=self.use_batch_norm,
             dropout_rate=self.dropout_rate,
             use_dense=self.use_dense,
-            activation=_create_activation(self.activation),
+            activation=create_activation(self.activation),
         )
 
     def create_with_action(
@@ -177,7 +165,7 @@ class VectorEncoderFactory(EncoderFactory):
             dropout_rate=self.dropout_rate,
             use_dense=self.use_dense,
             discrete_action=discrete_action,
-            activation=_create_activation(self.activation),
+            activation=create_activation(self.activation),
         )
 
     @staticmethod

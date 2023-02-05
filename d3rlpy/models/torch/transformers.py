@@ -9,17 +9,22 @@ from torch import nn
 from .encoders import Encoder
 from .parameters import Parameter
 
-__all__ = ["ContinuousDecisionTransformer", "DiscreteDecisionTransformer"]
+__all__ = [
+    "ContinuousDecisionTransformer",
+    "DiscreteDecisionTransformer",
+    "SimplePositionEncoding",
+    "GlobalPositionEncoding",
+]
 
 
-def create_attention_mask(max_step_size: int) -> torch.Tensor:
-    mask = torch.ones(max_step_size, max_step_size, dtype=torch.float32)
-    return torch.triu(mask).view(1, 1, max_step_size, max_step_size)
+def create_attention_mask(context_size: int) -> torch.Tensor:
+    mask = torch.ones(context_size, context_size, dtype=torch.float32)
+    return torch.triu(mask).view(1, 1, context_size, context_size)
 
 
 class CausalSelfAttention(nn.Module):  # type: ignore
     _num_heads: int
-    _max_step_size: int
+    _context_size: int
     _k: nn.Linear
     _q: nn.Linear
     _v: nn.Linear
@@ -33,29 +38,29 @@ class CausalSelfAttention(nn.Module):  # type: ignore
         in_size: int,
         out_size: int,
         num_heads: int,
-        max_step_size: int,
+        context_size: int,
         attn_dropout: float,
         resid_dropout: float,
     ):
         super().__init__()
         self._num_heads = num_heads
-        self._max_step_size = max_step_size
+        self._context_size = context_size
         self._k = nn.Linear(in_size, out_size)
         self._q = nn.Linear(in_size, out_size)
         self._v = nn.Linear(in_size, out_size)
         self._proj = nn.Linear(out_size, out_size)
         self._attn_dropout = nn.Dropout(attn_dropout)
         self._proj_dropout = nn.Dropout(resid_dropout)
-        mask = create_attention_mask(max_step_size)
+        mask = create_attention_mask(context_size)
         self.register_buffer("_mask", mask)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         assert x.dim() == 3, f"Expects (B, T, N), but got {x.shape}"
-        batch_size, step_size, _ = x.shape
-        assert step_size < self._max_step_size, "Exceeds max_step_size"
+        batch_size, context_size, _ = x.shape
+        assert context_size <= self._context_size, "Exceeds context_size"
 
         # (B, T, N) -> (B, T, H, N / H) -> (B, H, T, N / H)
-        shape = (batch_size, step_size, self._num_heads, -1)
+        shape = (batch_size, context_size, self._num_heads, -1)
         k = self._k(x).view(shape).transpose(1, 2)
         q = self._q(x).view(shape).transpose(1, 2)
         v = self._v(x).view(shape).transpose(1, 2)
@@ -64,7 +69,7 @@ class CausalSelfAttention(nn.Module):  # type: ignore
         qkT = torch.matmul(q, k.transpose(2, 3))
         attention = qkT / math.sqrt(k.shape[-1])
         attention = attention.masked_fill(
-            self._mask[..., :step_size, :step_size] == 0, float("-inf")
+            self._mask[..., :context_size, :context_size] == 0, float("-inf")
         )
         attention = F.softmax(attention, dim=-1)
         attention = self._attn_dropout(attention)
@@ -72,7 +77,7 @@ class CausalSelfAttention(nn.Module):  # type: ignore
         # (B, H, T, T) x (B, H, T, N / H) -> (B, H, T, N / H)
         output = torch.matmul(attention, v)
         # (B, H, T, N / H) -> (B, T, N)
-        output = output.transpose(1, 2).view(batch_size, step_size, -1)
+        output = output.transpose(1, 2).reshape(batch_size, context_size, -1)
 
         return self._proj_dropout(self._proj(output))
 
@@ -109,7 +114,7 @@ class Block(nn.Module):  # type: ignore
         in_size: int,
         out_size: int,
         num_heads: int,
-        max_step_size: int,
+        context_size: int,
         attn_dropout: float,
         resid_dropout: float,
         activation: nn.Module,
@@ -119,7 +124,7 @@ class Block(nn.Module):  # type: ignore
             in_size=in_size,
             out_size=out_size,
             num_heads=num_heads,
-            max_step_size=max_step_size,
+            context_size=context_size,
             attn_dropout=attn_dropout,
             resid_dropout=resid_dropout,
         )
@@ -147,9 +152,9 @@ class PositionEncoding(nn.Module, metaclass=ABCMeta):  # type: ignore
 
 
 class SimplePositionEncoding(PositionEncoding):
-    def __init__(self, embed_dim: int, max_step_size: int):
+    def __init__(self, embed_dim: int, max_timestep: int):
         super().__init__()
-        self._embed = nn.Embedding(max_step_size, embed_dim)
+        self._embed = nn.Embedding(max_timestep, embed_dim)
 
     def forward(self, t: torch.Tensor) -> torch.Tensor:
         assert t.dim() == 2, "Expects (B, T)"
@@ -158,19 +163,19 @@ class SimplePositionEncoding(PositionEncoding):
 
 
 class GlobalPositionEncoding(PositionEncoding):
-    def __init__(self, embed_dim: int, max_step_size: int, context_length: int):
+    def __init__(self, embed_dim: int, max_timestep: int, context_size: int):
         super().__init__()
         self._embed_dim = embed_dim
         self._global_position_embedding = Parameter(
-            torch.zeros(1, max_step_size, embed_dim, dtype=torch.float32)
+            torch.zeros(1, max_timestep, embed_dim, dtype=torch.float32)
         )
         self._block_position_embedding = Parameter(
-            torch.zeros(1, 3 * context_length, embed_dim, dtype=torch.float32)
+            torch.zeros(1, 3 * context_size, embed_dim, dtype=torch.float32)
         )
 
     def forward(self, t: torch.Tensor) -> torch.Tensor:
         assert t.dim() == 2, "Expects (B, T)"
-        batch_size, step_size = t.shape
+        batch_size, context_size = t.shape
 
         # (B, 1, 1) -> (B, 1, N)
         last_t = torch.repeat_interleave(
@@ -186,7 +191,7 @@ class GlobalPositionEncoding(PositionEncoding):
         global_embedding = torch.gather(batched_global_embedding, 1, last_t)
 
         # (1, 3 * Cmax, N) -> (1, T, N)
-        block_embedding = self._block_position_embedding()[:, :step_size, :]
+        block_embedding = self._block_position_embedding()[:, :context_size, :]
 
         # (B, 1, N) + (1, T, N) -> (B, T, N)
         return global_embedding + block_embedding
@@ -201,7 +206,7 @@ class GPT2(nn.Module):  # type: ignore
         self,
         hidden_size: int,
         num_heads: int,
-        max_step_size: int,
+        context_size: int,
         num_layers: int,
         attn_dropout: float,
         resid_dropout: float,
@@ -214,7 +219,7 @@ class GPT2(nn.Module):  # type: ignore
                 in_size=hidden_size,
                 out_size=hidden_size,
                 num_heads=num_heads,
-                max_step_size=max_step_size,
+                context_size=context_size,
                 attn_dropout=attn_dropout,
                 resid_dropout=resid_dropout,
                 activation=activation,
@@ -245,9 +250,8 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         encoder: Encoder,
         position_encoding: PositionEncoding,
         action_size: int,
-        hidden_size: int,
         num_heads: int,
-        max_step_size: int,
+        context_size: int,
         num_layers: int,
         attn_dropout: float,
         resid_dropout: float,
@@ -257,19 +261,19 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         super().__init__()
         self._encoder = encoder
         self._position_encoding = position_encoding
-        self._action_embed = nn.Linear(action_size, hidden_size)
-        self._rtg_embed = nn.Linear(1, hidden_size)
+        self._action_embed = nn.Linear(action_size, encoder.get_feature_size())
+        self._rtg_embed = nn.Linear(1, encoder.get_feature_size())
         self._gpt2 = GPT2(
-            hidden_size=hidden_size,
+            hidden_size=encoder.get_feature_size(),
             num_heads=num_heads,
-            max_step_size=max_step_size,
+            context_size=3 * context_size,
             num_layers=num_layers,
             attn_dropout=attn_dropout,
             resid_dropout=resid_dropout,
             input_dropout=input_dropout,
             activation=activation,
         )
-        self._output = nn.Linear(hidden_size, action_size)
+        self._output = nn.Linear(encoder.get_feature_size(), action_size)
 
     def forward(
         self,
@@ -278,9 +282,16 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         return_to_go: torch.Tensor,
         timesteps: torch.Tensor,
     ) -> torch.Tensor:
-        batch_size, step_size, _ = return_to_go.shape
+        batch_size, context_size, _ = return_to_go.shape
         position_embedding = self._position_encoding(timesteps)
-        state_embedding = self._encoder(x) + position_embedding
+
+        flat_x = x.view(-1, *x.shape[2:])
+        flat_state_embedding = self._encoder(flat_x)
+        state_embedding = flat_state_embedding.view(
+            batch_size, context_size, -1
+        )
+        state_embedding = state_embedding + position_embedding
+
         action_embedding = self._action_embed(action) + position_embedding
         rtg_embedding = self._rtg_embed(return_to_go) + position_embedding
 
@@ -289,12 +300,12 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
             [rtg_embedding, state_embedding, action_embedding], dim=1
         )
         # (B, 3, T, N) -> (B, T, 3, N) -> (B, T * 3, N)
-        h = h.transpose(1, 2).view(batch_size, 3 * step_size, -1)
+        h = h.transpose(1, 2).reshape(batch_size, 3 * context_size, -1)
 
         h = self._gpt2(h)
 
         # (B, T * 3, N) -> (B, T, 3, N) -> (B, 3, T, N)
-        h = h.view(batch_size, step_size, 3, -1).transpose(1, 2)
+        h = h.view(batch_size, context_size, 3, -1).transpose(1, 2)
 
         return torch.tanh(self._output(h[:, 1]))
 
@@ -312,9 +323,8 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         encoder: Encoder,
         position_encoding: PositionEncoding,
         action_size: int,
-        hidden_size: int,
         num_heads: int,
-        max_step_size: int,
+        context_size: int,
         num_layers: int,
         attn_dropout: float,
         resid_dropout: float,
@@ -324,19 +334,23 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         super().__init__()
         self._encoder = encoder
         self._position_encoding = position_encoding
-        self._action_embed = nn.Embedding(action_size, hidden_size)
-        self._rtg_embed = nn.Linear(1, hidden_size)
+        self._action_embed = nn.Embedding(
+            action_size, encoder.get_feature_size()
+        )
+        self._rtg_embed = nn.Linear(1, encoder.get_feature_size())
         self._gpt2 = GPT2(
-            hidden_size=hidden_size,
+            hidden_size=encoder.get_feature_size(),
             num_heads=num_heads,
-            max_step_size=max_step_size,
+            context_size=3 * context_size,
             num_layers=num_layers,
             attn_dropout=attn_dropout,
             resid_dropout=resid_dropout,
             input_dropout=input_dropout,
             activation=activation,
         )
-        self._output = nn.Linear(hidden_size, action_size, bias=False)
+        self._output = nn.Linear(
+            encoder.get_feature_size(), action_size, bias=False
+        )
 
     def forward(
         self,
@@ -345,9 +359,16 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         return_to_go: torch.Tensor,
         timesteps: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        batch_size, step_size, _ = return_to_go.shape
+        batch_size, context_size, _ = return_to_go.shape
         position_embedding = self._position_encoding(timesteps)
-        state_embedding = self._encoder(x) + position_embedding
+
+        flat_x = x.view(-1, *x.shape[2:])
+        flat_state_embedding = self._encoder(flat_x)
+        state_embedding = flat_state_embedding.view(
+            batch_size, context_size, -1
+        )
+        state_embedding = state_embedding + position_embedding
+
         action_embedding = self._action_embed(action) + position_embedding
         rtg_embedding = self._rtg_embed(return_to_go) + position_embedding
 
@@ -356,13 +377,13 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
             [rtg_embedding, state_embedding, action_embedding], dim=1
         )
         # (B, 3, T, N) -> (B, T, 3, N) -> (B, T * 3, N)
-        h = h.transpose(1, 2).view(batch_size, 3 * step_size, -1)
+        h = h.transpose(1, 2).reshape(batch_size, 3 * context_size, -1)
 
         h = self._gpt2(h)
 
         # (B, T * 3, N) -> (B, T, 3, N) -> (B, 3, T, N)
-        h = h.view(batch_size, step_size, 3, -1).transpose(1, 2)
+        h = h.view(batch_size, context_size, 3, -1).transpose(1, 2)
 
         logits = self._output(h[:, 1])
 
-        return F.softmax(logits), logits
+        return F.softmax(logits, dim=-1), logits

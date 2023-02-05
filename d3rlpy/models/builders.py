@@ -9,18 +9,23 @@ from .q_functions import QFunctionFactory
 from .torch import (
     CategoricalPolicy,
     ConditionalVAE,
+    ContinuousDecisionTransformer,
     DeterministicPolicy,
     DeterministicRegressor,
     DeterministicResidualPolicy,
+    DiscreteDecisionTransformer,
     DiscreteImitator,
     EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
+    GlobalPositionEncoding,
     NonSquashedNormalPolicy,
     Parameter,
     ProbablisticRegressor,
+    SimplePositionEncoding,
     SquashedNormalPolicy,
     ValueFunction,
 )
+from .utility import create_activation
 
 __all__ = [
     "create_discrete_q_function",
@@ -36,6 +41,8 @@ __all__ = [
     "create_probablistic_regressor",
     "create_value_function",
     "create_parameter",
+    "create_continuous_decision_transformer",
+    "create_discrete_decision_transformer",
 ]
 
 
@@ -215,3 +222,87 @@ def create_value_function(
 def create_parameter(shape: Sequence[int], initial_value: float) -> Parameter:
     data = torch.full(shape, initial_value, dtype=torch.float32)
     return Parameter(data)
+
+
+def create_continuous_decision_transformer(
+    observation_shape: Shape,
+    action_size: int,
+    encoder_factory: EncoderFactory,
+    num_heads: int,
+    max_timestep: int,
+    num_layers: int,
+    context_size: int,
+    attn_dropout: float,
+    resid_dropout: float,
+    input_dropout: float,
+    activation_type: str,
+    position_encoding_type: str,
+) -> ContinuousDecisionTransformer:
+    encoder = encoder_factory.create(observation_shape)
+    hidden_size = encoder.get_feature_size()
+
+    if position_encoding_type == "simple":
+        position_encoding = SimplePositionEncoding(hidden_size, max_timestep)
+    elif position_encoding_type == "global":
+        position_encoding = GlobalPositionEncoding(
+            hidden_size, max_timestep, context_size
+        )
+    else:
+        raise ValueError(
+            f"invalid position_encoding_type: {position_encoding_type}"
+        )
+
+    return ContinuousDecisionTransformer(
+        encoder=encoder,
+        position_encoding=position_encoding,
+        action_size=action_size,
+        num_heads=num_heads,
+        context_size=context_size,
+        num_layers=num_layers,
+        attn_dropout=attn_dropout,
+        resid_dropout=resid_dropout,
+        input_dropout=input_dropout,
+        activation=create_activation(activation_type),
+    )
+
+
+def create_discrete_decision_transformer(
+    observation_shape: Shape,
+    action_size: int,
+    encoder_factory: EncoderFactory,
+    num_heads: int,
+    max_timestep: int,
+    num_layers: int,
+    context_size: int,
+    attn_dropout: float,
+    resid_dropout: float,
+    input_dropout: float,
+    activation_type: str,
+    position_encoding_type: str,
+) -> DiscreteDecisionTransformer:
+    encoder = encoder_factory.create(observation_shape)
+    hidden_size = encoder.get_feature_size()
+
+    if position_encoding_type == "simple":
+        position_encoding = SimplePositionEncoding(hidden_size, max_timestep)
+    elif position_encoding_type == "global":
+        position_encoding = GlobalPositionEncoding(
+            hidden_size, max_timestep, context_size
+        )
+    else:
+        raise ValueError(
+            f"invalid position_encoding_type: {position_encoding_type}"
+        )
+
+    return DiscreteDecisionTransformer(
+        encoder=encoder,
+        position_encoding=position_encoding,
+        action_size=action_size,
+        num_heads=num_heads,
+        context_size=context_size,
+        num_layers=num_layers,
+        attn_dropout=attn_dropout,
+        resid_dropout=resid_dropout,
+        input_dropout=input_dropout,
+        activation=create_activation(activation_type),
+    )

@@ -5,10 +5,12 @@ import torch
 from d3rlpy.models.builders import (
     create_categorical_policy,
     create_conditional_vae,
+    create_continuous_decision_transformer,
     create_continuous_q_function,
     create_deterministic_policy,
     create_deterministic_regressor,
     create_deterministic_residual_policy,
+    create_discrete_decision_transformer,
     create_discrete_imitator,
     create_discrete_q_function,
     create_non_squashed_normal_policy,
@@ -36,6 +38,10 @@ from d3rlpy.models.torch.policies import (
     DeterministicResidualPolicy,
     NonSquashedNormalPolicy,
     SquashedNormalPolicy,
+)
+from d3rlpy.models.torch.transformers import (
+    ContinuousDecisionTransformer,
+    DiscreteDecisionTransformer,
 )
 from d3rlpy.models.torch.v_functions import ValueFunction
 
@@ -312,3 +318,104 @@ def test_create_parameter(shape):
 
     assert len(list(parameter.parameters())) == 1
     assert np.allclose(parameter().detach().numpy(), x)
+
+
+@pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
+@pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("num_heads", [2])
+@pytest.mark.parametrize("max_timestep", [10])
+@pytest.mark.parametrize("num_layers", [3])
+@pytest.mark.parametrize("context_size", [10])
+@pytest.mark.parametrize("dropout", [0.1])
+@pytest.mark.parametrize("activation_type", ["relu"])
+@pytest.mark.parametrize("position_encoding_type", ["simple"])
+@pytest.mark.parametrize("batch_size", [32])
+def test_create_continuous_decision_transformer(
+    observation_shape,
+    encoder_factory,
+    action_size,
+    num_heads,
+    max_timestep,
+    num_layers,
+    context_size,
+    dropout,
+    activation_type,
+    position_encoding_type,
+    batch_size,
+):
+    transformer = create_continuous_decision_transformer(
+        observation_shape=observation_shape,
+        action_size=action_size,
+        encoder_factory=encoder_factory,
+        num_heads=num_heads,
+        max_timestep=max_timestep,
+        num_layers=num_layers,
+        context_size=context_size,
+        attn_dropout=dropout,
+        resid_dropout=dropout,
+        input_dropout=dropout,
+        activation_type=activation_type,
+        position_encoding_type=position_encoding_type,
+    )
+
+    assert isinstance(transformer, ContinuousDecisionTransformer)
+
+    x = torch.rand(batch_size, context_size, *observation_shape)
+    action = torch.rand(batch_size, context_size, action_size)
+    rtg = torch.rand(batch_size, context_size, 1)
+    timesteps = torch.randint(0, max_timestep, size=(batch_size, context_size))
+    y = transformer(x, action, rtg, timesteps)
+
+    assert y.shape == (batch_size, context_size, action_size)
+
+
+@pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
+@pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("num_heads", [2])
+@pytest.mark.parametrize("max_timestep", [10])
+@pytest.mark.parametrize("num_layers", [3])
+@pytest.mark.parametrize("context_size", [10])
+@pytest.mark.parametrize("dropout", [0.1])
+@pytest.mark.parametrize("activation_type", ["relu"])
+@pytest.mark.parametrize("position_encoding_type", ["simple"])
+@pytest.mark.parametrize("batch_size", [32])
+def test_create_discrete_decision_transformer(
+    observation_shape,
+    encoder_factory,
+    action_size,
+    num_heads,
+    max_timestep,
+    num_layers,
+    context_size,
+    dropout,
+    activation_type,
+    position_encoding_type,
+    batch_size,
+):
+    transformer = create_discrete_decision_transformer(
+        observation_shape=observation_shape,
+        action_size=action_size,
+        encoder_factory=encoder_factory,
+        num_heads=num_heads,
+        max_timestep=max_timestep,
+        num_layers=num_layers,
+        context_size=context_size,
+        attn_dropout=dropout,
+        resid_dropout=dropout,
+        input_dropout=dropout,
+        activation_type=activation_type,
+        position_encoding_type=position_encoding_type,
+    )
+
+    assert isinstance(transformer, DiscreteDecisionTransformer)
+
+    x = torch.rand(batch_size, context_size, *observation_shape)
+    action = torch.randint(0, action_size, size=(batch_size, context_size))
+    rtg = torch.rand(batch_size, context_size, 1)
+    timesteps = torch.randint(0, max_timestep, size=(batch_size, context_size))
+    probs, logits = transformer(x, action, rtg, timesteps)
+
+    assert probs.shape == (batch_size, context_size, action_size)
+    assert logits.shape == (batch_size, context_size, action_size)
