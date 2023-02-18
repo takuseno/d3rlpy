@@ -7,13 +7,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest, windows-latest]
+        os: [ubuntu-22.04, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Python.3.7.x
+      - name: Setup Python.3.9.x
         uses: actions/setup-python@v1
         with:
-          python-version: 3.7.x
+          python-version: 3.9.x
       - name: Cache pip
         uses: actions/cache@v1
         with:
@@ -42,7 +42,7 @@ jobs:
           mkdir -p test_data
           pytest --cov-report=xml --cov=d3rlpy --cov-config=.coveragerc tests -p no:warnings -v
       - name: Upload coverage
-        if: ${{ matrix.os == 'ubuntu-20.04' }}
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
