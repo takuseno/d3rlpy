@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies for Windows
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
-          pip install torch==1.6.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+          pip install torch==1.13.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
       - name: Install dependencies for macOS
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
