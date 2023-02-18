@@ -14,7 +14,7 @@ from .torch.bear_impl import BEARImpl
 __all__ = ["BEARConfig", "BEAR"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class BEARConfig(LearnableConfig):
     r"""Config of Bootstrapping Error Accumulation Reduction algorithm.
 

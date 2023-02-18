@@ -14,7 +14,7 @@ from .torch.td3_plus_bc_impl import TD3PlusBCImpl
 __all__ = ["TD3PlusBCConfig", "TD3PlusBC"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class TD3PlusBCConfig(LearnableConfig):
     r"""Config of TD3+BC algorithm.
 

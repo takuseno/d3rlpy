@@ -14,7 +14,7 @@ from .torch.ddpg_impl import DDPGImpl
 __all__ = ["DDPGConfig", "DDPG"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class DDPGConfig(LearnableConfig):
     r"""Config of Deep Deterministic Policy Gradients algorithm.
 

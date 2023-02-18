@@ -13,7 +13,7 @@ from .torch.iql_impl import IQLImpl
 __all__ = ["IQLConfig", "IQL"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class IQLConfig(LearnableConfig):
     r"""Implicit Q-Learning algorithm.
 

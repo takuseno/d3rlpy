@@ -25,7 +25,7 @@ __all__ = [
 ]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class QFunctionFactory(DynamicConfig):
     share_encoder: bool = False
 
@@ -71,7 +71,7 @@ class QFunctionFactory(DynamicConfig):
         raise NotImplementedError
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class MeanQFunctionFactory(QFunctionFactory):
     """Standard Q function factory class.
 
@@ -106,7 +106,7 @@ class MeanQFunctionFactory(QFunctionFactory):
         return "mean"
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class QRQFunctionFactory(QFunctionFactory):
     """Quantile Regression Q function factory class.
 
@@ -138,7 +138,7 @@ class QRQFunctionFactory(QFunctionFactory):
         return "qr"
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class IQNQFunctionFactory(QFunctionFactory):
     """Implicit Quantile Network Q function factory class.
 
@@ -187,7 +187,7 @@ class IQNQFunctionFactory(QFunctionFactory):
         return "iqn"
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class FQFQFunctionFactory(QFunctionFactory):
     """Fully parameterized Quantile Function Q function factory.
 

@@ -14,7 +14,7 @@ from .torch.dqn_impl import DQNImpl
 __all__ = ["NFQConfig", "NFQ"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class NFQConfig(LearnableConfig):
     r"""Config of Neural Fitted Q Iteration algorithm.
 

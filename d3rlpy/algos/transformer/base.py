@@ -101,7 +101,7 @@ class StatefulTransformerWrapper:
         return pad_action
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class TransformerConfig(LearnableConfig):
     context_size: int = 20
 

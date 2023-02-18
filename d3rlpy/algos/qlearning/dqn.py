@@ -14,7 +14,7 @@ from .torch.dqn_impl import DoubleDQNImpl, DQNImpl
 __all__ = ["DQNConfig", "DQN", "DoubleDQNConfig", "DoubleDQN"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class DQNConfig(LearnableConfig):
     r"""Config of Deep Q-Network algorithm.
 
@@ -94,7 +94,7 @@ class DQN(QLearningAlgoBase):
         return ActionSpace.DISCRETE
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class DoubleDQNConfig(DQNConfig):
     r"""Config of Double Deep Q-Network algorithm.
 

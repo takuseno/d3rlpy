@@ -14,7 +14,7 @@ from .torch.sac_impl import DiscreteSACImpl, SACImpl
 __all__ = ["SACConfig", "SAC", "DiscreteSACConfig", "DiscreteSAC"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class SACConfig(LearnableConfig):
     r"""Config Soft Actor-Critic algorithm.
 
@@ -159,7 +159,7 @@ class SAC(QLearningAlgoBase):
         return ActionSpace.CONTINUOUS
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class DiscreteSACConfig(LearnableConfig):
     r"""Config of Soft Actor-Critic algorithm for discrete action-space.
 

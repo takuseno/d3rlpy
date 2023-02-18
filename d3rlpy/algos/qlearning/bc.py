@@ -22,7 +22,7 @@ class _BCBase(QLearningAlgoBase):
         return {"loss": loss}
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class BCConfig(LearnableConfig):
     r"""Config of Behavior Cloning algorithm.
 
@@ -87,7 +87,7 @@ class BC(_BCBase):
         return ActionSpace.CONTINUOUS
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class DiscreteBCConfig(LearnableConfig):
     r"""Config of Behavior Cloning algorithm for discrete control.
 

@@ -16,7 +16,7 @@ __all__ = [
 ]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class OptimizerFactory(DynamicConfig):
     """A factory class that creates an optimizer object in a lazy way.
 
@@ -38,7 +38,7 @@ class OptimizerFactory(DynamicConfig):
         raise NotImplementedError
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class SGDFactory(OptimizerFactory):
     """An alias for SGD optimizer.
 
@@ -76,7 +76,7 @@ class SGDFactory(OptimizerFactory):
         return "sgd"
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class AdamFactory(OptimizerFactory):
     """An alias for Adam optimizer.
 
@@ -115,7 +115,7 @@ class AdamFactory(OptimizerFactory):
         return "adam"
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class RMSpropFactory(OptimizerFactory):
     """An alias for RMSprop optimizer.
 

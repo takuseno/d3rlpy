@@ -14,7 +14,7 @@ from .torch.td3_impl import TD3Impl
 __all__ = ["TD3Config", "TD3"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class TD3Config(LearnableConfig):
     r"""Config of Twin Delayed Deep Deterministic Policy Gradients algorithm.
 

@@ -20,7 +20,7 @@ from .torch.fqe_impl import DiscreteFQEImpl, FQEBaseImpl, FQEImpl
 __all__ = ["FQEConfig", "FQE", "DiscreteFQE"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class FQEConfig(LearnableConfig):
     r"""Config of Fitted Q Evaluation.
 

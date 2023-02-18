@@ -14,7 +14,7 @@ from .torch.crr_impl import CRRImpl
 __all__ = ["CRRConfig", "CRR"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class CRRConfig(LearnableConfig):
     r"""Config of Critic Reguralized Regression algorithm.
 

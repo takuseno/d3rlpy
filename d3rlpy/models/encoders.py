@@ -58,7 +58,7 @@ class EncoderFactory(DynamicConfig):
         raise NotImplementedError
 
 
-@dataclass(frozen=True)
+@dataclass()
 class PixelEncoderFactory(EncoderFactory):
     """Pixel encoder factory class.
 
@@ -117,7 +117,7 @@ class PixelEncoderFactory(EncoderFactory):
         return "pixel"
 
 
-@dataclass(frozen=True)
+@dataclass()
 class VectorEncoderFactory(EncoderFactory):
     """Vector encoder factory class.
 
@@ -173,7 +173,7 @@ class VectorEncoderFactory(EncoderFactory):
         return "vector"
 
 
-@dataclass(frozen=True)
+@dataclass()
 class DefaultEncoderFactory(EncoderFactory):
     """Default encoder factory class.
 
@@ -234,7 +234,7 @@ class DefaultEncoderFactory(EncoderFactory):
         return "default"
 
 
-@dataclass(frozen=True)
+@dataclass()
 class DenseEncoderFactory(EncoderFactory):
     """DenseNet encoder factory class.
 

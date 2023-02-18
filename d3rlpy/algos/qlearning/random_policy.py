@@ -17,7 +17,7 @@ __all__ = [
 ]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class RandomPolicyConfig(LearnableConfig):
     r"""Random Policy for continuous control algorithm.
 
@@ -91,7 +91,7 @@ class RandomPolicy(QLearningAlgoBase):
         return ActionSpace.CONTINUOUS
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class DiscreteRandomPolicyConfig(LearnableConfig):
     r"""Random Policy for discrete control algorithm.
 

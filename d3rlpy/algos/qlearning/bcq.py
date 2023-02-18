@@ -14,7 +14,7 @@ from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 __all__ = ["BCQConfig", "BCQ", "DiscreteBCQConfig", "DiscreteBCQ"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class BCQConfig(LearnableConfig):
     r"""Config of Batch-Constrained Q-learning algorithm.
 
@@ -210,7 +210,7 @@ class BCQ(QLearningAlgoBase):
         return ActionSpace.CONTINUOUS
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class DiscreteBCQConfig(LearnableConfig):
     r"""Config of Discrete version of Batch-Constrained Q-learning algorithm.
 

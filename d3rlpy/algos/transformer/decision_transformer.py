@@ -17,7 +17,7 @@ from .torch.decision_transformer_impl import DecisionTransformerImpl
 __all__ = ["DecisionTransformerConfig", "DecisionTransformer"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class DecisionTransformerConfig(TransformerConfig):
     batch_size: int = 64
     learning_rate: float = 1e-4

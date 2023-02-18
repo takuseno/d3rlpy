@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class PLASConfig(LearnableConfig):
     r"""Config of Policy in Latent Action Space algorithm.
 
@@ -148,7 +148,7 @@ class PLAS(QLearningAlgoBase):
         return ActionSpace.CONTINUOUS
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class PLASWithPerturbationConfig(PLASConfig):
     r"""Config of Policy in Latent Action Space algorithm with perturbation layer.
 

@@ -84,7 +84,7 @@ class ImplBase(metaclass=ABCMeta):
         return self._device
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class LearnableConfig(DynamicConfig):
     batch_size: int = 256
     gamma: float = 0.99
@@ -103,7 +103,7 @@ register_learnable, make_learnable_field = generate_config_registration(
 )
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class LearnableConfigWithShape(DynamicConfig):
     observation_shape: Shape
     action_size: int

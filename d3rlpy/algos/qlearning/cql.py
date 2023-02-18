@@ -14,7 +14,7 @@ from .torch.cql_impl import CQLImpl, DiscreteCQLImpl
 __all__ = ["CQLConfig", "CQL", "DiscreteCQLConfig", "DiscreteCQL"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class CQLConfig(LearnableConfig):
     r"""Config of Conservative Q-Learning algorithm.
 
@@ -188,7 +188,7 @@ class CQL(QLearningAlgoBase):
         return ActionSpace.CONTINUOUS
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class DiscreteCQLConfig(LearnableConfig):
     r"""Config of Discrete version of Conservative Q-Learning algorithm.
 

@@ -83,7 +83,7 @@ class RewardScaler(DynamicConfig):
         raise NotImplementedError
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class MultiplyRewardScaler(RewardScaler):
     r"""Multiplication reward preprocessing.
 
@@ -121,7 +121,7 @@ class MultiplyRewardScaler(RewardScaler):
         return "multiply"
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class ClipRewardScaler(RewardScaler):
     r"""Reward clipping preprocessing.
 
@@ -360,7 +360,7 @@ class ReturnBasedRewardScaler(RewardScaler):
         return "return"
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class ConstantShiftRewardScaler(RewardScaler):
     r"""Reward shift preprocessing.
 

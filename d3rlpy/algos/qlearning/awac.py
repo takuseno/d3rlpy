@@ -14,7 +14,7 @@ from .torch.awac_impl import AWACImpl
 __all__ = ["AWACConfig", "AWAC"]
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class AWACConfig(LearnableConfig):
     r"""Config of Advantage Weighted Actor-Critic algorithm.
 
