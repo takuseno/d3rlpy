@@ -4,13 +4,13 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Python.3.7.x
+      - name: Setup Python.3.9.x
         uses: actions/setup-python@v1
         with:
-          python-version: 3.7.x
+          python-version: 3.9.x
       - name: Cache pip
         uses: actions/cache@v1
         with:
