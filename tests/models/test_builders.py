@@ -54,7 +54,7 @@ def test_create_deterministic_policy(
     observation_shape, action_size, batch_size, encoder_factory
 ):
     policy = create_deterministic_policy(
-        observation_shape, action_size, encoder_factory
+        observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(policy, DeterministicPolicy)
@@ -73,7 +73,7 @@ def test_create_deterministic_residual_policy(
     observation_shape, action_size, scale, batch_size, encoder_factory
 ):
     policy = create_deterministic_residual_policy(
-        observation_shape, action_size, scale, encoder_factory
+        observation_shape, action_size, scale, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(policy, DeterministicResidualPolicy)
@@ -92,7 +92,7 @@ def test_create_squashed_normal_policy(
     observation_shape, action_size, batch_size, encoder_factory
 ):
     policy = create_squashed_normal_policy(
-        observation_shape, action_size, encoder_factory
+        observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(policy, SquashedNormalPolicy)
@@ -110,7 +110,7 @@ def test_create_non_squashed_normal_policy(
     observation_shape, action_size, batch_size, encoder_factory
 ):
     policy = create_non_squashed_normal_policy(
-        observation_shape, action_size, encoder_factory
+        observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(policy, NonSquashedNormalPolicy)
@@ -128,7 +128,7 @@ def test_create_categorical_policy(
     observation_shape, action_size, batch_size, encoder_factory
 ):
     policy = create_categorical_policy(
-        observation_shape, action_size, encoder_factory
+        observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(policy, CategoricalPolicy)
@@ -159,7 +159,8 @@ def test_create_discrete_q_function(
         action_size,
         encoder_factory,
         q_func_factory,
-        n_ensembles,
+        device="cpu:0",
+        n_ensembles=n_ensembles,
     )
 
     assert isinstance(q_func, EnsembleDiscreteQFunction)
@@ -198,7 +199,8 @@ def test_create_continuous_q_function(
         action_size,
         encoder_factory,
         q_func_factory,
-        n_ensembles,
+        device="cpu:0",
+        n_ensembles=n_ensembles,
     )
 
     assert isinstance(q_func, EnsembleContinuousQFunction)
@@ -232,7 +234,12 @@ def test_create_conditional_vae(
     encoder_factory,
 ):
     vae = create_conditional_vae(
-        observation_shape, action_size, latent_size, beta, encoder_factory
+        observation_shape,
+        action_size,
+        latent_size,
+        beta,
+        encoder_factory,
+        device="cpu:0",
     )
 
     assert isinstance(vae, ConditionalVAE)
@@ -252,7 +259,7 @@ def test_create_discrete_imitator(
     observation_shape, action_size, beta, batch_size, encoder_factory
 ):
     imitator = create_discrete_imitator(
-        observation_shape, action_size, beta, encoder_factory
+        observation_shape, action_size, beta, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(imitator, DiscreteImitator)
@@ -270,7 +277,7 @@ def test_create_deterministic_regressor(
     observation_shape, action_size, batch_size, encoder_factory
 ):
     imitator = create_deterministic_regressor(
-        observation_shape, action_size, encoder_factory
+        observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(imitator, DeterministicRegressor)
@@ -288,7 +295,7 @@ def test_create_probablistic_regressor(
     observation_shape, action_size, batch_size, encoder_factory
 ):
     imitator = create_probablistic_regressor(
-        observation_shape, action_size, encoder_factory
+        observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(imitator, ProbablisticRegressor)
@@ -302,7 +309,9 @@ def test_create_probablistic_regressor(
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize("batch_size", [32])
 def test_create_value_function(observation_shape, encoder_factory, batch_size):
-    v_func = create_value_function(observation_shape, encoder_factory)
+    v_func = create_value_function(
+        observation_shape, encoder_factory, device="cpu:0"
+    )
 
     assert isinstance(v_func, ValueFunction)
 
@@ -314,7 +323,7 @@ def test_create_value_function(observation_shape, encoder_factory, batch_size):
 @pytest.mark.parametrize("shape", [(100,)])
 def test_create_parameter(shape):
     x = np.random.random()
-    parameter = create_parameter(shape, x)
+    parameter = create_parameter(shape, x, device="cpu:0")
 
     assert len(list(parameter.parameters())) == 1
     assert np.allclose(parameter().detach().numpy(), x)
@@ -357,6 +366,7 @@ def test_create_continuous_decision_transformer(
         embed_dropout=dropout,
         activation_type=activation_type,
         position_encoding_type=position_encoding_type,
+        device="cpu:0",
     )
 
     assert isinstance(transformer, ContinuousDecisionTransformer)
@@ -407,6 +417,7 @@ def test_create_discrete_decision_transformer(
         embed_dropout=dropout,
         activation_type=activation_type,
         position_encoding_type=position_encoding_type,
+        device="cpu:0",
     )
 
     assert isinstance(transformer, DiscreteDecisionTransformer)

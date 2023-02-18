@@ -1,22 +1,9 @@
 import torch
+from torch.optim import Optimizer
 
 from ....dataset import Shape
-from ....models import (
-    EncoderFactory,
-    OptimizerFactory,
-    create_continuous_decision_transformer,
-    create_discrete_decision_transformer,
-)
-from ....models.torch import (
-    ContinuousDecisionTransformer,
-    DiscreteDecisionTransformer,
-)
-from ....torch_utility import (
-    TorchTrajectoryMiniBatch,
-    eval_api,
-    to_device,
-    train_api,
-)
+from ....models.torch import ContinuousDecisionTransformer
+from ....torch_utility import TorchTrajectoryMiniBatch, eval_api, train_api
 from ..base import TransformerAlgoImplBase
 from ..inputs import TorchTransformerInput
 
@@ -33,19 +20,9 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         self,
         observation_shape: Shape,
         action_size: int,
-        learning_rate: float,
-        encoder_factory: EncoderFactory,
-        optim_factory: OptimizerFactory,
-        num_heads: int,
-        max_timestep: int,
-        num_layers: int,
-        context_size: int,
-        attn_dropout: float,
-        resid_dropout: float,
-        embed_dropout: float,
-        activation_type: str,
-        position_encoding_type: str,
-        warmup_steps: int,
+        transformer: ContinuousDecisionTransformer,
+        optim: Optimizer,
+        scheduler: torch.optim.lr_scheduler.LambdaLR,
         clip_grad_norm: float,
         device: str,
     ):
@@ -54,29 +31,9 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
             action_size=action_size,
             device=device,
         )
-        self._transformer = create_continuous_decision_transformer(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            encoder_factory=encoder_factory,
-            num_heads=num_heads,
-            max_timestep=max_timestep,
-            num_layers=num_layers,
-            context_size=context_size,
-            attn_dropout=attn_dropout,
-            resid_dropout=resid_dropout,
-            embed_dropout=embed_dropout,
-            activation_type=activation_type,
-            position_encoding_type=position_encoding_type,
-        )
-
-        to_device(self, device)
-
-        self._optim = optim_factory.create(
-            self._transformer.parameters(), lr=learning_rate
-        )
-        self._scheduler = torch.optim.lr_scheduler.LambdaLR(
-            self._optim, lambda steps: min((steps + 1) / warmup_steps, 1)
-        )
+        self._transformer = transformer
+        self._optim = optim
+        self._scheduler = scheduler
         self._clip_grad_norm = clip_grad_norm
 
     @eval_api

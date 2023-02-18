@@ -1,6 +1,8 @@
 import dataclasses
 from typing import Dict
 
+import torch
+
 from ...base import DeviceArg, register_learnable
 from ...constants import ActionSpace
 from ...dataset import Shape
@@ -10,6 +12,7 @@ from ...models import (
     make_encoder_field,
     make_optimizer_field,
 )
+from ...models.builders import create_continuous_decision_transformer
 from ...torch_utility import TorchTrajectoryMiniBatch
 from .base import TransformerAlgoBase, TransformerConfig
 from .torch.decision_transformer_impl import DecisionTransformerImpl
@@ -49,22 +52,34 @@ class DecisionTransformer(TransformerAlgoBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        self._impl = DecisionTransformerImpl(
+        transformer = create_continuous_decision_transformer(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=self._config.learning_rate,
-            optim_factory=self._config.optim_factory,
             encoder_factory=self._config.encoder_factory,
             num_heads=self._config.num_heads,
-            num_layers=self._config.num_layers,
             max_timestep=self._config.max_timestep,
+            num_layers=self._config.num_layers,
             context_size=self._config.context_size,
             attn_dropout=self._config.attn_dropout,
             resid_dropout=self._config.resid_dropout,
             embed_dropout=self._config.embed_dropout,
             activation_type=self._config.activation_type,
             position_encoding_type=self._config.position_encoding_type,
-            warmup_steps=self._config.warmup_steps,
+            device=self._device,
+        )
+        optim = self._config.optim_factory.create(
+            transformer.parameters(), lr=self._config.learning_rate
+        )
+        scheduler = torch.optim.lr_scheduler.LambdaLR(
+            optim, lambda steps: min((steps + 1) / self._config.warmup_steps, 1)
+        )
+
+        self._impl = DecisionTransformerImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            transformer=transformer,
+            optim=optim,
+            scheduler=scheduler,
             clip_grad_norm=self._config.clip_grad_norm,
             device=self._device,
         )

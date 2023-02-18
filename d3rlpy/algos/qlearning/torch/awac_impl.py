@@ -1,12 +1,14 @@
 import torch
 import torch.nn.functional as F
+from torch.optim import Adam, Optimizer
 
 from ....dataset import Shape
-from ....models.builders import create_non_squashed_normal_policy
-from ....models.encoders import EncoderFactory
-from ....models.optimizers import AdamFactory, OptimizerFactory
-from ....models.q_functions import QFunctionFactory
-from ....models.torch.policies import NonSquashedNormalPolicy
+from ....models.torch import (
+    EnsembleContinuousQFunction,
+    NonSquashedNormalPolicy,
+    Parameter,
+    Policy,
+)
 from ....torch_utility import TorchMiniBatch
 from .sac_impl import SACImpl
 
@@ -14,7 +16,6 @@ __all__ = ["AWACImpl"]
 
 
 class AWACImpl(SACImpl):
-
     _policy: NonSquashedNormalPolicy
     _lam: float
     _n_action_samples: int
@@ -23,54 +24,35 @@ class AWACImpl(SACImpl):
         self,
         observation_shape: Shape,
         action_size: int,
-        actor_learning_rate: float,
-        critic_learning_rate: float,
-        actor_optim_factory: OptimizerFactory,
-        critic_optim_factory: OptimizerFactory,
-        actor_encoder_factory: EncoderFactory,
-        critic_encoder_factory: EncoderFactory,
-        q_func_factory: QFunctionFactory,
+        q_func: EnsembleContinuousQFunction,
+        policy: Policy,
+        actor_optim: Optimizer,
+        critic_optim: Optimizer,
         gamma: float,
         tau: float,
         lam: float,
         n_action_samples: int,
-        n_critics: int,
         device: str,
     ):
+        assert isinstance(policy, NonSquashedNormalPolicy)
+        dummy_log_temp = Parameter(torch.zeros(1))
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=actor_learning_rate,
-            critic_learning_rate=critic_learning_rate,
-            temp_learning_rate=0.0,
-            actor_optim_factory=actor_optim_factory,
-            critic_optim_factory=critic_optim_factory,
-            temp_optim_factory=AdamFactory(),
-            actor_encoder_factory=actor_encoder_factory,
-            critic_encoder_factory=critic_encoder_factory,
-            q_func_factory=q_func_factory,
+            q_func=q_func,
+            policy=policy,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
+            log_temp=dummy_log_temp,
+            temp_optim=Adam(dummy_log_temp.parameters(), lr=0.0),
             gamma=gamma,
             tau=tau,
-            n_critics=n_critics,
-            initial_temperature=1e-20,
             device=device,
         )
         self._lam = lam
         self._n_action_samples = n_action_samples
 
-    def _build_actor(self) -> None:
-        self._policy = create_non_squashed_normal_policy(
-            self._observation_shape,
-            self._action_size,
-            self._actor_encoder_factory,
-            min_logstd=-6.0,
-            max_logstd=0.0,
-            use_std_parameter=True,
-        )
-
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._policy is not None
-
         # compute log probability
         dist = self._policy.dist(batch.observations)
         log_probs = dist.log_prob(batch.actions)
@@ -83,8 +65,6 @@ class AWACImpl(SACImpl):
     def _compute_weights(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
-        assert self._q_func is not None
-        assert self._policy is not None
         with torch.no_grad():
             batch_size = obs_t.shape[0]
 

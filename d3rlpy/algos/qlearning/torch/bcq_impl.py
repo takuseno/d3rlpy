@@ -1,23 +1,16 @@
 import math
-from typing import Optional, cast
+from typing import cast
 
 import torch
 from torch.optim import Optimizer
 
 from ....dataset import Shape
-from ....models.builders import (
-    create_conditional_vae,
-    create_deterministic_residual_policy,
-    create_discrete_imitator,
-)
-from ....models.encoders import EncoderFactory
-from ....models.optimizers import OptimizerFactory
-from ....models.q_functions import QFunctionFactory
 from ....models.torch import (
     ConditionalVAE,
     DeterministicResidualPolicy,
     DiscreteImitator,
-    PixelEncoder,
+    EnsembleContinuousQFunction,
+    EnsembleDiscreteQFunction,
     compute_max_with_n_actions,
 )
 from ....torch_utility import TorchMiniBatch, train_api
@@ -29,35 +22,27 @@ __all__ = ["BCQImpl", "DiscreteBCQImpl"]
 
 class BCQImpl(DDPGBaseImpl):
 
-    _imitator_learning_rate: float
-    _imitator_optim_factory: OptimizerFactory
-    _imitator_encoder_factory: EncoderFactory
     _lam: float
     _n_action_samples: int
     _action_flexibility: float
     _beta: float
-    _policy: Optional[DeterministicResidualPolicy]
-    _targ_policy: Optional[DeterministicResidualPolicy]
-    _imitator: Optional[ConditionalVAE]
-    _imitator_optim: Optional[Optimizer]
+    _policy: DeterministicResidualPolicy
+    _targ_policy: DeterministicResidualPolicy
+    _imitator: ConditionalVAE
+    _imitator_optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        actor_learning_rate: float,
-        critic_learning_rate: float,
-        imitator_learning_rate: float,
-        actor_optim_factory: OptimizerFactory,
-        critic_optim_factory: OptimizerFactory,
-        imitator_optim_factory: OptimizerFactory,
-        actor_encoder_factory: EncoderFactory,
-        critic_encoder_factory: EncoderFactory,
-        imitator_encoder_factory: EncoderFactory,
-        q_func_factory: QFunctionFactory,
+        policy: DeterministicResidualPolicy,
+        q_func: EnsembleContinuousQFunction,
+        imitator: ConditionalVAE,
+        actor_optim: Optimizer,
+        critic_optim: Optimizer,
+        imitator_optim: Optimizer,
         gamma: float,
         tau: float,
-        n_critics: int,
         lam: float,
         n_action_samples: int,
         action_flexibility: float,
@@ -67,66 +52,22 @@ class BCQImpl(DDPGBaseImpl):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=actor_learning_rate,
-            critic_learning_rate=critic_learning_rate,
-            actor_optim_factory=actor_optim_factory,
-            critic_optim_factory=critic_optim_factory,
-            actor_encoder_factory=actor_encoder_factory,
-            critic_encoder_factory=critic_encoder_factory,
-            q_func_factory=q_func_factory,
+            policy=policy,
+            q_func=q_func,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
-            n_critics=n_critics,
             device=device,
         )
-        self._imitator_learning_rate = imitator_learning_rate
-        self._imitator_optim_factory = imitator_optim_factory
-        self._imitator_encoder_factory = imitator_encoder_factory
-        self._n_critics = n_critics
         self._lam = lam
         self._n_action_samples = n_action_samples
         self._action_flexibility = action_flexibility
         self._beta = beta
-
-        # initialized in build
-        self._imitator = None
-        self._imitator_optim = None
-
-    def build(self) -> None:
-        self._build_imitator()
-        super().build()
-        # setup optimizer after the parameters move to GPU
-        self._build_imitator_optim()
-
-    def _build_actor(self) -> None:
-        self._policy = create_deterministic_residual_policy(
-            self._observation_shape,
-            self._action_size,
-            self._action_flexibility,
-            self._actor_encoder_factory,
-        )
-
-    def _build_imitator(self) -> None:
-        self._imitator = create_conditional_vae(
-            observation_shape=self._observation_shape,
-            action_size=self._action_size,
-            latent_size=2 * self._action_size,
-            beta=self._beta,
-            min_logstd=-4.0,
-            max_logstd=15.0,
-            encoder_factory=self._imitator_encoder_factory,
-        )
-
-    def _build_imitator_optim(self) -> None:
-        assert self._imitator is not None
-        self._imitator_optim = self._imitator_optim_factory.create(
-            self._imitator.parameters(), lr=self._imitator_learning_rate
-        )
+        self._imitator = imitator
+        self._imitator_optim = imitator_optim
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._imitator is not None
-        assert self._policy is not None
-        assert self._q_func is not None
         latent = torch.randn(
             batch.observations.shape[0],
             2 * self._action_size,
@@ -141,9 +82,6 @@ class BCQImpl(DDPGBaseImpl):
 
     @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> float:
-        assert self._imitator_optim is not None
-        assert self._imitator is not None
-
         self._imitator_optim.zero_grad()
 
         loss = self._imitator.compute_error(batch.observations, batch.actions)
@@ -162,9 +100,6 @@ class BCQImpl(DDPGBaseImpl):
     def _sample_repeated_action(
         self, repeated_x: torch.Tensor, target: bool = False
     ) -> torch.Tensor:
-        assert self._imitator is not None
-        assert self._policy is not None
-        assert self._targ_policy is not None
         # TODO: this seems to be slow with image observation
         flattened_x = repeated_x.reshape(-1, *self.observation_shape)
         # sample latent variable
@@ -184,7 +119,6 @@ class BCQImpl(DDPGBaseImpl):
         repeated_x: torch.Tensor,
         action: torch.Tensor,
     ) -> torch.Tensor:
-        assert self._q_func is not None
         # TODO: this seems to be slow with image observation
         # (batch_size, n, *obs_shape) -> (batch_size * n, *obs_shape)
         flattened_x = repeated_x.reshape(-1, *self.observation_shape)
@@ -206,7 +140,6 @@ class BCQImpl(DDPGBaseImpl):
         return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._targ_q_func is not None
         # TODO: this seems to be slow with image observation
         with torch.no_grad():
             repeated_x = self._repeat_observation(batch.next_observations)
@@ -223,18 +156,16 @@ class DiscreteBCQImpl(DoubleDQNImpl):
 
     _action_flexibility: float
     _beta: float
-    _imitator: Optional[DiscreteImitator]
+    _imitator: DiscreteImitator
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        learning_rate: float,
-        optim_factory: OptimizerFactory,
-        encoder_factory: EncoderFactory,
-        q_func_factory: QFunctionFactory,
+        q_func: EnsembleDiscreteQFunction,
+        imitator: DiscreteImitator,
+        optim: Optimizer,
         gamma: float,
-        n_critics: int,
         action_flexibility: float,
         beta: float,
         device: str,
@@ -242,57 +173,18 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=learning_rate,
-            optim_factory=optim_factory,
-            encoder_factory=encoder_factory,
-            q_func_factory=q_func_factory,
+            q_func=q_func,
+            optim=optim,
             gamma=gamma,
-            n_critics=n_critics,
             device=device,
         )
         self._action_flexibility = action_flexibility
         self._beta = beta
-
-        # initialized in build
-        self._imitator = None
-
-    def _build_network(self) -> None:
-        super()._build_network()
-        assert self._q_func is not None
-        # share convolutional layers if observation is pixel
-        if isinstance(self._q_func.q_funcs[0].encoder, PixelEncoder):
-            self._imitator = DiscreteImitator(
-                self._q_func.q_funcs[0].encoder, self._action_size, self._beta
-            )
-        else:
-            self._imitator = create_discrete_imitator(
-                self._observation_shape,
-                self._action_size,
-                self._beta,
-                self._encoder_factory,
-            )
-
-    def _build_optim(self) -> None:
-        assert self._q_func is not None
-        assert self._imitator is not None
-        q_func_params = list(self._q_func.parameters())
-        imitator_params = list(self._imitator.parameters())
-
-        # TODO: replace this with a cleaner way
-        # retrieve unique elements
-        unique_dict = {}
-        for param in q_func_params + imitator_params:
-            unique_dict[param] = param
-        unique_params = list(unique_dict.values())
-
-        self._optim = self._optim_factory.create(
-            unique_params, lr=self._learning_rate
-        )
+        self._imitator = imitator
 
     def compute_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> torch.Tensor:
-        assert self._imitator is not None
         loss = super().compute_loss(batch, q_tpn)
         imitator_loss = self._imitator.compute_error(
             batch.observations, batch.actions.long()
@@ -300,8 +192,6 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         return loss + imitator_loss
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._imitator is not None
-        assert self._q_func is not None
         log_probs = self._imitator(x)
         ratio = log_probs - log_probs.max(dim=1, keepdim=True).values
         mask = (ratio > math.log(self._action_flexibility)).float()

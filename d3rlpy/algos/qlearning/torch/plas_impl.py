@@ -1,22 +1,14 @@
 import copy
-from typing import Optional
 
 import torch
 from torch.optim import Optimizer
 
 from ....dataset import Shape
-from ....models.builders import (
-    create_conditional_vae,
-    create_deterministic_policy,
-    create_deterministic_residual_policy,
-)
-from ....models.encoders import EncoderFactory
-from ....models.optimizers import OptimizerFactory
-from ....models.q_functions import QFunctionFactory
 from ....models.torch import (
     ConditionalVAE,
     DeterministicPolicy,
     DeterministicResidualPolicy,
+    EnsembleContinuousQFunction,
 )
 from ....torch_utility import TorchMiniBatch, soft_sync, train_api
 from .ddpg_impl import DDPGBaseImpl
@@ -26,99 +18,45 @@ __all__ = ["PLASImpl", "PLASWithPerturbationImpl"]
 
 class PLASImpl(DDPGBaseImpl):
 
-    _imitator_learning_rate: float
-    _imitator_optim_factory: OptimizerFactory
-    _imitator_encoder_factory: EncoderFactory
-    _n_critics: int
     _lam: float
     _beta: float
-    _policy: Optional[DeterministicPolicy]
-    _targ_policy: Optional[DeterministicPolicy]
-    _imitator: Optional[ConditionalVAE]
-    _imitator_optim: Optional[Optimizer]
+    _policy: DeterministicPolicy
+    _targ_policy: DeterministicPolicy
+    _imitator: ConditionalVAE
+    _imitator_optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        actor_learning_rate: float,
-        critic_learning_rate: float,
-        imitator_learning_rate: float,
-        actor_optim_factory: OptimizerFactory,
-        critic_optim_factory: OptimizerFactory,
-        imitator_optim_factory: OptimizerFactory,
-        actor_encoder_factory: EncoderFactory,
-        critic_encoder_factory: EncoderFactory,
-        imitator_encoder_factory: EncoderFactory,
-        q_func_factory: QFunctionFactory,
+        policy: DeterministicPolicy,
+        q_func: EnsembleContinuousQFunction,
+        imitator: ConditionalVAE,
+        actor_optim: Optimizer,
+        critic_optim: Optimizer,
+        imitator_optim: Optimizer,
         gamma: float,
         tau: float,
-        n_critics: int,
         lam: float,
-        beta: float,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=actor_learning_rate,
-            critic_learning_rate=critic_learning_rate,
-            actor_optim_factory=actor_optim_factory,
-            critic_optim_factory=critic_optim_factory,
-            actor_encoder_factory=actor_encoder_factory,
-            critic_encoder_factory=critic_encoder_factory,
-            q_func_factory=q_func_factory,
+            policy=policy,
+            q_func=q_func,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
-            n_critics=n_critics,
             device=device,
         )
-        self._imitator_learning_rate = imitator_learning_rate
-        self._imitator_optim_factory = imitator_optim_factory
-        self._imitator_encoder_factory = imitator_encoder_factory
-        self._n_critics = n_critics
         self._lam = lam
-        self._beta = beta
-
-        # initialized in build
-        self._imitator = None
-        self._imitator_optim = None
-
-    def build(self) -> None:
-        self._build_imitator()
-        super().build()
-        # setup optimizer after the parameters move to GPU
-        self._build_imitator_optim()
-
-    def _build_actor(self) -> None:
-        self._policy = create_deterministic_policy(
-            observation_shape=self._observation_shape,
-            action_size=2 * self._action_size,
-            encoder_factory=self._actor_encoder_factory,
-        )
-
-    def _build_imitator(self) -> None:
-        self._imitator = create_conditional_vae(
-            observation_shape=self._observation_shape,
-            action_size=self._action_size,
-            latent_size=2 * self._action_size,
-            beta=self._beta,
-            min_logstd=-4.0,
-            max_logstd=15.0,
-            encoder_factory=self._imitator_encoder_factory,
-        )
-
-    def _build_imitator_optim(self) -> None:
-        assert self._imitator is not None
-        self._imitator_optim = self._imitator_optim_factory.create(
-            params=self._imitator.parameters(), lr=self._imitator_learning_rate
-        )
+        self._imitator = imitator
+        self._imitator_optim = imitator_optim
 
     @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> float:
-        assert self._imitator is not None
-        assert self._imitator_optim is not None
-
         self._imitator_optim.zero_grad()
 
         loss = self._imitator.compute_error(batch.observations, batch.actions)
@@ -129,25 +67,17 @@ class PLASImpl(DDPGBaseImpl):
         return float(loss.cpu().detach().numpy())
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._imitator is not None
-        assert self._policy is not None
-        assert self._q_func is not None
         latent_actions = 2.0 * self._policy(batch.observations)
         actions = self._imitator.decode(batch.observations, latent_actions)
         return -self._q_func(batch.observations, actions, "none")[0].mean()
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._imitator is not None
-        assert self._policy is not None
         return self._imitator.decode(x, 2.0 * self._policy(x))
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._imitator is not None
-        assert self._targ_policy is not None
-        assert self._targ_q_func is not None
         with torch.no_grad():
             latent_actions = 2.0 * self._targ_policy(batch.next_observations)
             actions = self._imitator.decode(
@@ -163,85 +93,43 @@ class PLASImpl(DDPGBaseImpl):
 
 class PLASWithPerturbationImpl(PLASImpl):
 
-    _action_flexibility: float
-    _perturbation: Optional[DeterministicResidualPolicy]
-    _targ_perturbation: Optional[DeterministicResidualPolicy]
+    _perturbation: DeterministicResidualPolicy
+    _targ_perturbation: DeterministicResidualPolicy
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        actor_learning_rate: float,
-        critic_learning_rate: float,
-        imitator_learning_rate: float,
-        actor_optim_factory: OptimizerFactory,
-        critic_optim_factory: OptimizerFactory,
-        imitator_optim_factory: OptimizerFactory,
-        actor_encoder_factory: EncoderFactory,
-        critic_encoder_factory: EncoderFactory,
-        imitator_encoder_factory: EncoderFactory,
-        q_func_factory: QFunctionFactory,
+        policy: DeterministicPolicy,
+        q_func: EnsembleContinuousQFunction,
+        imitator: ConditionalVAE,
+        perturbation: DeterministicResidualPolicy,
+        actor_optim: Optimizer,
+        critic_optim: Optimizer,
+        imitator_optim: Optimizer,
         gamma: float,
         tau: float,
-        n_critics: int,
         lam: float,
-        beta: float,
-        action_flexibility: float,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=actor_learning_rate,
-            critic_learning_rate=critic_learning_rate,
-            imitator_learning_rate=imitator_learning_rate,
-            actor_optim_factory=actor_optim_factory,
-            critic_optim_factory=critic_optim_factory,
-            imitator_optim_factory=imitator_optim_factory,
-            actor_encoder_factory=actor_encoder_factory,
-            critic_encoder_factory=critic_encoder_factory,
-            imitator_encoder_factory=imitator_encoder_factory,
-            q_func_factory=q_func_factory,
+            policy=policy,
+            q_func=q_func,
+            imitator=imitator,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
+            imitator_optim=imitator_optim,
             gamma=gamma,
             tau=tau,
-            n_critics=n_critics,
             lam=lam,
-            beta=beta,
             device=device,
         )
-        self._action_flexibility = action_flexibility
-
-        # initialized in build
-        self._perturbation = None
-        self._targ_perturbation = None
-
-    def build(self) -> None:
-        super().build()
-        self._targ_perturbation = copy.deepcopy(self._perturbation)
-
-    def _build_actor(self) -> None:
-        super()._build_actor()
-        self._perturbation = create_deterministic_residual_policy(
-            observation_shape=self._observation_shape,
-            action_size=self._action_size,
-            scale=self._action_flexibility,
-            encoder_factory=self._actor_encoder_factory,
-        )
-
-    def _build_actor_optim(self) -> None:
-        assert self._policy is not None
-        assert self._perturbation is not None
-        parameters = list(self._policy.parameters())
-        parameters += list(self._perturbation.parameters())
-        self._actor_optim = self._actor_optim_factory.create(
-            params=parameters, lr=self._actor_learning_rate
-        )
+        self._perturbation = perturbation
+        self._targ_perturbation = copy.deepcopy(perturbation)
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._imitator is not None
-        assert self._policy is not None
-        assert self._perturbation is not None
-        assert self._q_func is not None
         latent_actions = 2.0 * self._policy(batch.observations)
         actions = self._imitator.decode(batch.observations, latent_actions)
         residual_actions = self._perturbation(batch.observations, actions)
@@ -249,9 +137,6 @@ class PLASWithPerturbationImpl(PLASImpl):
         return -q_value[0].mean()
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._imitator is not None
-        assert self._policy is not None
-        assert self._perturbation is not None
         action = self._imitator.decode(x, 2.0 * self._policy(x))
         return self._perturbation(x, action)
 
@@ -259,10 +144,6 @@ class PLASWithPerturbationImpl(PLASImpl):
         return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._imitator is not None
-        assert self._targ_policy is not None
-        assert self._targ_perturbation is not None
-        assert self._targ_q_func is not None
         with torch.no_grad():
             latent_actions = 2.0 * self._targ_policy(batch.next_observations)
             actions = self._imitator.decode(
@@ -279,7 +160,5 @@ class PLASWithPerturbationImpl(PLASImpl):
             )
 
     def update_actor_target(self) -> None:
-        assert self._perturbation is not None
-        assert self._targ_perturbation is not None
         super().update_actor_target()
         soft_sync(self._targ_perturbation, self._perturbation, self._tau)

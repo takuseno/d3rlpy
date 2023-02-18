@@ -140,6 +140,11 @@ class Imitator(nn.Module, metaclass=ABCMeta):  # type: ignore
     ) -> torch.Tensor:
         pass
 
+    @property
+    @abstractmethod
+    def encoder(self) -> Encoder:
+        pass
+
 
 class DiscreteImitator(Imitator):
     _encoder: Encoder
@@ -170,6 +175,10 @@ class DiscreteImitator(Imitator):
         penalty = (logits**2).mean()
         return F.nll_loss(log_probs, action.view(-1)) + self._beta * penalty
 
+    @property
+    def encoder(self) -> Encoder:
+        return self._encoder
+
 
 class DeterministicRegressor(Imitator):
     _encoder: Encoder
@@ -189,6 +198,10 @@ class DeterministicRegressor(Imitator):
         self, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
         return F.mse_loss(self.forward(x), action)
+
+    @property
+    def encoder(self) -> Encoder:
+        return self._encoder
 
 
 class ProbablisticRegressor(Imitator):
@@ -235,3 +248,7 @@ class ProbablisticRegressor(Imitator):
     ) -> torch.Tensor:
         dist = self.dist(x)
         return F.mse_loss(torch.tanh(dist.rsample()), action)
+
+    @property
+    def encoder(self) -> Encoder:
+        return self._encoder

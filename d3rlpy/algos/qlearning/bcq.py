@@ -4,9 +4,17 @@ from typing import Dict, Optional
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import Shape
+from ...models.builders import (
+    create_conditional_vae,
+    create_continuous_q_function,
+    create_deterministic_residual_policy,
+    create_discrete_imitator,
+    create_discrete_q_function,
+)
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
+from ...models.torch import DiscreteImitator, PixelEncoder
 from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
@@ -162,29 +170,59 @@ class BCQ(QLearningAlgoBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        policy = create_deterministic_residual_policy(
+            observation_shape,
+            action_size,
+            self._config.action_flexibility,
+            self._config.actor_encoder_factory,
+            device=self._device,
+        )
+        q_func = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        imitator = create_conditional_vae(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            latent_size=2 * action_size,
+            beta=self._config.beta,
+            min_logstd=-4.0,
+            max_logstd=15.0,
+            encoder_factory=self._config.imitator_encoder_factory,
+            device=self._device,
+        )
+
+        actor_optim = self._config.actor_optim_factory.create(
+            policy.parameters(), lr=self._config.actor_learning_rate
+        )
+        critic_optim = self._config.critic_optim_factory.create(
+            q_func.parameters(), lr=self._config.critic_learning_rate
+        )
+        imitator_optim = self._config.imitator_optim_factory.create(
+            imitator.parameters(), lr=self._config.imitator_learning_rate
+        )
+
         self._impl = BCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self._config.actor_learning_rate,
-            critic_learning_rate=self._config.critic_learning_rate,
-            imitator_learning_rate=self._config.imitator_learning_rate,
-            actor_optim_factory=self._config.actor_optim_factory,
-            critic_optim_factory=self._config.critic_optim_factory,
-            imitator_optim_factory=self._config.imitator_optim_factory,
-            actor_encoder_factory=self._config.actor_encoder_factory,
-            critic_encoder_factory=self._config.critic_encoder_factory,
-            imitator_encoder_factory=self._config.imitator_encoder_factory,
-            q_func_factory=self._config.q_func_factory,
+            policy=policy,
+            q_func=q_func,
+            imitator=imitator,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
+            imitator_optim=imitator_optim,
             gamma=self._config.gamma,
             tau=self._config.tau,
-            n_critics=self._config.n_critics,
             lam=self._config.lam,
             n_action_samples=self._config.n_action_samples,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
             device=self._device,
         )
-        self._impl.build()
 
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
@@ -295,20 +333,53 @@ class DiscreteBCQ(QLearningAlgoBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        q_func = create_discrete_q_function(
+            observation_shape,
+            action_size,
+            self._config.encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+
+        # share convolutional layers if observation is pixel
+        if isinstance(q_func.q_funcs[0].encoder, PixelEncoder):
+            imitator = DiscreteImitator(
+                q_func.q_funcs[0].encoder, action_size, self._config.beta
+            )
+            imitator.to(self._device)
+        else:
+            imitator = create_discrete_imitator(
+                observation_shape,
+                action_size,
+                self._config.beta,
+                self._config.encoder_factory,
+                device=self._device,
+            )
+
+        # TODO: replace this with a cleaner way
+        # retrieve unique elements
+        q_func_params = list(q_func.parameters())
+        imitator_params = list(imitator.parameters())
+        unique_dict = {}
+        for param in q_func_params + imitator_params:
+            unique_dict[param] = param
+        unique_params = list(unique_dict.values())
+        optim = self._config.optim_factory.create(
+            unique_params, lr=self._config.learning_rate
+        )
+
         self._impl = DiscreteBCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=self._config.learning_rate,
-            optim_factory=self._config.optim_factory,
-            encoder_factory=self._config.encoder_factory,
-            q_func_factory=self._config.q_func_factory,
+            q_func=q_func,
+            imitator=imitator,
+            optim=optim,
             gamma=self._config.gamma,
-            n_critics=self._config.n_critics,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
             device=self._device,
         )
-        self._impl.build()
 
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR

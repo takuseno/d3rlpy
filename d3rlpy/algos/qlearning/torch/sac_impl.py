@@ -1,29 +1,20 @@
 import copy
 import math
-from typing import Optional, Tuple
+from typing import Tuple
 
 import torch
 from torch.optim import Optimizer
 
 from ....dataset import Shape
-from ....models.builders import (
-    create_categorical_policy,
-    create_discrete_q_function,
-    create_parameter,
-    create_squashed_normal_policy,
-)
-from ....models.encoders import EncoderFactory
-from ....models.optimizers import OptimizerFactory
-from ....models.q_functions import QFunctionFactory
 from ....models.torch import (
     CategoricalPolicy,
+    EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
     EnsembleQFunction,
     Parameter,
     Policy,
-    SquashedNormalPolicy,
 )
-from ....torch_utility import TorchMiniBatch, hard_sync, to_device, train_api
+from ....torch_utility import TorchMiniBatch, hard_sync, train_api
 from ..base import QLearningAlgoImplBase
 from .ddpg_impl import DDPGBaseImpl
 from .utility import DiscreteQFunctionMixin
@@ -32,83 +23,38 @@ __all__ = ["SACImpl", "DiscreteSACImpl"]
 
 
 class SACImpl(DDPGBaseImpl):
-
-    _policy: Optional[SquashedNormalPolicy]
-    _targ_policy: Optional[SquashedNormalPolicy]
-    _temp_learning_rate: float
-    _temp_optim_factory: OptimizerFactory
-    _initial_temperature: float
-    _log_temp: Optional[Parameter]
-    _temp_optim: Optional[Optimizer]
+    _log_temp: Parameter
+    _temp_optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        actor_learning_rate: float,
-        critic_learning_rate: float,
-        temp_learning_rate: float,
-        actor_optim_factory: OptimizerFactory,
-        critic_optim_factory: OptimizerFactory,
-        temp_optim_factory: OptimizerFactory,
-        actor_encoder_factory: EncoderFactory,
-        critic_encoder_factory: EncoderFactory,
-        q_func_factory: QFunctionFactory,
+        policy: Policy,
+        q_func: EnsembleContinuousQFunction,
+        log_temp: Parameter,
+        actor_optim: Optimizer,
+        critic_optim: Optimizer,
+        temp_optim: Optimizer,
         gamma: float,
         tau: float,
-        n_critics: int,
-        initial_temperature: float,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=actor_learning_rate,
-            critic_learning_rate=critic_learning_rate,
-            actor_optim_factory=actor_optim_factory,
-            critic_optim_factory=critic_optim_factory,
-            actor_encoder_factory=actor_encoder_factory,
-            critic_encoder_factory=critic_encoder_factory,
-            q_func_factory=q_func_factory,
+            policy=policy,
+            q_func=q_func,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
-            n_critics=n_critics,
             device=device,
         )
-        self._temp_learning_rate = temp_learning_rate
-        self._temp_optim_factory = temp_optim_factory
-        self._initial_temperature = initial_temperature
-
-        # initialized in build
-        self._log_temp = None
-        self._temp_optim = None
-
-    def build(self) -> None:
-        self._build_temperature()
-        super().build()
-        self._build_temperature_optim()
-
-    def _build_actor(self) -> None:
-        self._policy = create_squashed_normal_policy(
-            self._observation_shape,
-            self._action_size,
-            self._actor_encoder_factory,
-        )
-
-    def _build_temperature(self) -> None:
-        initial_val = math.log(self._initial_temperature)
-        self._log_temp = create_parameter((1, 1), initial_val)
-
-    def _build_temperature_optim(self) -> None:
-        assert self._log_temp is not None
-        self._temp_optim = self._temp_optim_factory.create(
-            self._log_temp.parameters(), lr=self._temp_learning_rate
-        )
+        self._log_temp = log_temp
+        self._temp_optim = temp_optim
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._policy is not None
-        assert self._log_temp is not None
-        assert self._q_func is not None
         action, log_prob = self._policy.sample_with_log_prob(batch.observations)
         entropy = self._log_temp().exp() * log_prob
         q_t = self._q_func(batch.observations, action, "min")
@@ -116,10 +62,6 @@ class SACImpl(DDPGBaseImpl):
 
     @train_api
     def update_temp(self, batch: TorchMiniBatch) -> Tuple[float, float]:
-        assert self._temp_optim is not None
-        assert self._policy is not None
-        assert self._log_temp is not None
-
         self._temp_optim.zero_grad()
 
         with torch.no_grad():
@@ -137,9 +79,6 @@ class SACImpl(DDPGBaseImpl):
         return float(loss.cpu().detach().numpy()), float(cur_temp)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._policy is not None
-        assert self._log_temp is not None
-        assert self._targ_q_func is not None
         with torch.no_grad():
             action, log_prob = self._policy.sample_with_log_prob(
                 batch.next_observations
@@ -155,42 +94,25 @@ class SACImpl(DDPGBaseImpl):
 
 class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
-    _actor_learning_rate: float
-    _critic_learning_rate: float
-    _temp_learning_rate: float
-    _actor_optim_factory: OptimizerFactory
-    _critic_optim_factory: OptimizerFactory
-    _temp_optim_factory: OptimizerFactory
-    _actor_encoder_factory: EncoderFactory
-    _critic_encoder_factory: EncoderFactory
-    _q_func_factory: QFunctionFactory
-    _gamma: float
-    _n_critics: int
-    _initial_temperature: float
-    _policy: Optional[CategoricalPolicy]
-    _q_func: Optional[EnsembleDiscreteQFunction]
-    _targ_q_func: Optional[EnsembleDiscreteQFunction]
-    _log_temp: Optional[Parameter]
-    _actor_optim: Optional[Optimizer]
-    _critic_optim: Optional[Optimizer]
-    _temp_optim: Optional[Optimizer]
+    _policy: CategoricalPolicy
+    _q_func: EnsembleDiscreteQFunction
+    _targ_q_func: EnsembleDiscreteQFunction
+    _log_temp: Parameter
+    _actor_optim: Optimizer
+    _critic_optim: Optimizer
+    _temp_optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        actor_learning_rate: float,
-        critic_learning_rate: float,
-        temp_learning_rate: float,
-        actor_optim_factory: OptimizerFactory,
-        critic_optim_factory: OptimizerFactory,
-        temp_optim_factory: OptimizerFactory,
-        actor_encoder_factory: EncoderFactory,
-        critic_encoder_factory: EncoderFactory,
-        q_func_factory: QFunctionFactory,
+        q_func: EnsembleDiscreteQFunction,
+        policy: CategoricalPolicy,
+        log_temp: Parameter,
+        actor_optim: Optimizer,
+        critic_optim: Optimizer,
+        temp_optim: Optimizer,
         gamma: float,
-        n_critics: int,
-        initial_temperature: float,
         device: str,
     ):
         super().__init__(
@@ -198,85 +120,17 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             action_size=action_size,
             device=device,
         )
-        self._actor_learning_rate = actor_learning_rate
-        self._critic_learning_rate = critic_learning_rate
-        self._temp_learning_rate = temp_learning_rate
-        self._actor_optim_factory = actor_optim_factory
-        self._critic_optim_factory = critic_optim_factory
-        self._temp_optim_factory = temp_optim_factory
-        self._actor_encoder_factory = actor_encoder_factory
-        self._critic_encoder_factory = critic_encoder_factory
-        self._q_func_factory = q_func_factory
         self._gamma = gamma
-        self._n_critics = n_critics
-        self._initial_temperature = initial_temperature
-
-        # initialized in build
-        self._q_func = None
-        self._policy = None
-        self._targ_q_func = None
-        self._log_temp = None
-        self._actor_optim = None
-        self._critic_optim = None
-        self._temp_optim = None
-
-    def build(self) -> None:
-        self._build_critic()
-        self._build_actor()
-        self._build_temperature()
-
-        # setup target networks
-        self._targ_q_func = copy.deepcopy(self._q_func)
-
-        to_device(self, self._device)
-
-        # setup optimizer after the parameters move to GPU
-        self._build_critic_optim()
-        self._build_actor_optim()
-        self._build_temperature_optim()
-
-    def _build_critic(self) -> None:
-        self._q_func = create_discrete_q_function(
-            self._observation_shape,
-            self._action_size,
-            self._critic_encoder_factory,
-            self._q_func_factory,
-            n_ensembles=self._n_critics,
-        )
-
-    def _build_critic_optim(self) -> None:
-        assert self._q_func is not None
-        self._critic_optim = self._critic_optim_factory.create(
-            self._q_func.parameters(), lr=self._critic_learning_rate
-        )
-
-    def _build_actor(self) -> None:
-        self._policy = create_categorical_policy(
-            self._observation_shape,
-            self._action_size,
-            self._actor_encoder_factory,
-        )
-
-    def _build_actor_optim(self) -> None:
-        assert self._policy is not None
-        self._actor_optim = self._actor_optim_factory.create(
-            self._policy.parameters(), lr=self._actor_learning_rate
-        )
-
-    def _build_temperature(self) -> None:
-        initial_val = math.log(self._initial_temperature)
-        self._log_temp = create_parameter((1, 1), initial_val)
-
-    def _build_temperature_optim(self) -> None:
-        assert self._log_temp is not None
-        self._temp_optim = self._temp_optim_factory.create(
-            self._log_temp.parameters(), lr=self._temp_learning_rate
-        )
+        self._q_func = q_func
+        self._policy = policy
+        self._log_temp = log_temp
+        self._actor_optim = actor_optim
+        self._critic_optim = critic_optim
+        self._temp_optim = temp_optim
+        self._targ_q_func = copy.deepcopy(q_func)
 
     @train_api
     def update_critic(self, batch: TorchMiniBatch) -> float:
-        assert self._critic_optim is not None
-
         self._critic_optim.zero_grad()
 
         q_tpn = self.compute_target(batch)
@@ -288,9 +142,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         return float(loss.cpu().detach().numpy())
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._policy is not None
-        assert self._log_temp is not None
-        assert self._targ_q_func is not None
         with torch.no_grad():
             log_probs = self._policy.log_probs(batch.next_observations)
             probs = log_probs.exp()
@@ -308,7 +159,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
     ) -> torch.Tensor:
-        assert self._q_func is not None
         return self._q_func.compute_error(
             observations=batch.observations,
             actions=batch.actions.long(),
@@ -320,9 +170,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
     @train_api
     def update_actor(self, batch: TorchMiniBatch) -> float:
-        assert self._q_func is not None
-        assert self._actor_optim is not None
-
         # Q function should be inference mode for stability
         self._q_func.eval()
 
@@ -336,9 +183,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         return float(loss.cpu().detach().numpy())
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._q_func is not None
-        assert self._policy is not None
-        assert self._log_temp is not None
         with torch.no_grad():
             q_t = self._q_func(batch.observations, reduction="min")
         log_probs = self._policy.log_probs(batch.observations)
@@ -348,10 +192,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
     @train_api
     def update_temp(self, batch: TorchMiniBatch) -> Tuple[float, float]:
-        assert self._temp_optim is not None
-        assert self._policy is not None
-        assert self._log_temp is not None
-
         self._temp_optim.zero_grad()
 
         with torch.no_grad():
@@ -372,34 +212,26 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         return float(loss.cpu().detach().numpy()), float(cur_temp)
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._policy is not None
         return self._policy.best_action(x)
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._policy is not None
         return self._policy.sample(x)
 
     def update_target(self) -> None:
-        assert self._q_func is not None
-        assert self._targ_q_func is not None
         hard_sync(self._targ_q_func, self._q_func)
 
     @property
     def policy(self) -> Policy:
-        assert self._policy
         return self._policy
 
     @property
     def policy_optim(self) -> Optimizer:
-        assert self._actor_optim
         return self._actor_optim
 
     @property
     def q_function(self) -> EnsembleQFunction:
-        assert self._q_func
         return self._q_func
 
     @property
     def q_function_optim(self) -> Optimizer:
-        assert self._critic_optim
         return self._critic_optim

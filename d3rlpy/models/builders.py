@@ -51,6 +51,7 @@ def create_discrete_q_function(
     action_size: int,
     encoder_factory: EncoderFactory,
     q_func_factory: QFunctionFactory,
+    device: str,
     n_ensembles: int = 1,
 ) -> EnsembleDiscreteQFunction:
     if q_func_factory.share_encoder:
@@ -64,7 +65,9 @@ def create_discrete_q_function(
         if not q_func_factory.share_encoder:
             encoder = encoder_factory.create(observation_shape)
         q_funcs.append(q_func_factory.create_discrete(encoder, action_size))
-    return EnsembleDiscreteQFunction(q_funcs)
+    q_func = EnsembleDiscreteQFunction(q_funcs)
+    q_func.to(device)
+    return q_func
 
 
 def create_continuous_q_function(
@@ -72,6 +75,7 @@ def create_continuous_q_function(
     action_size: int,
     encoder_factory: EncoderFactory,
     q_func_factory: QFunctionFactory,
+    device: str,
     n_ensembles: int = 1,
 ) -> EnsembleContinuousQFunction:
     if q_func_factory.share_encoder:
@@ -89,16 +93,21 @@ def create_continuous_q_function(
                 observation_shape, action_size
             )
         q_funcs.append(q_func_factory.create_continuous(encoder))
-    return EnsembleContinuousQFunction(q_funcs)
+    q_func = EnsembleContinuousQFunction(q_funcs)
+    q_func.to(device)
+    return q_func
 
 
 def create_deterministic_policy(
     observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
+    device: str,
 ) -> DeterministicPolicy:
     encoder = encoder_factory.create(observation_shape)
-    return DeterministicPolicy(encoder, action_size)
+    policy = DeterministicPolicy(encoder, action_size)
+    policy.to(device)
+    return policy
 
 
 def create_deterministic_residual_policy(
@@ -106,54 +115,66 @@ def create_deterministic_residual_policy(
     action_size: int,
     scale: float,
     encoder_factory: EncoderFactory,
+    device: str,
 ) -> DeterministicResidualPolicy:
     encoder = encoder_factory.create_with_action(observation_shape, action_size)
-    return DeterministicResidualPolicy(encoder, scale)
+    policy = DeterministicResidualPolicy(encoder, scale)
+    policy.to(device)
+    return policy
 
 
 def create_squashed_normal_policy(
     observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
+    device: str,
     min_logstd: float = -20.0,
     max_logstd: float = 2.0,
     use_std_parameter: bool = False,
 ) -> SquashedNormalPolicy:
     encoder = encoder_factory.create(observation_shape)
-    return SquashedNormalPolicy(
+    policy = SquashedNormalPolicy(
         encoder,
         action_size,
         min_logstd=min_logstd,
         max_logstd=max_logstd,
         use_std_parameter=use_std_parameter,
     )
+    policy.to(device)
+    return policy
 
 
 def create_non_squashed_normal_policy(
     observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
+    device: str,
     min_logstd: float = -20.0,
     max_logstd: float = 2.0,
     use_std_parameter: bool = False,
 ) -> NonSquashedNormalPolicy:
     encoder = encoder_factory.create(observation_shape)
-    return NonSquashedNormalPolicy(
+    policy = NonSquashedNormalPolicy(
         encoder,
         action_size,
         min_logstd=min_logstd,
         max_logstd=max_logstd,
         use_std_parameter=use_std_parameter,
     )
+    policy.to(device)
+    return policy
 
 
 def create_categorical_policy(
     observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
+    device: str,
 ) -> CategoricalPolicy:
     encoder = encoder_factory.create(observation_shape)
-    return CategoricalPolicy(encoder, action_size)
+    policy = CategoricalPolicy(encoder, action_size)
+    policy.to(device)
+    return policy
 
 
 def create_conditional_vae(
@@ -162,6 +183,7 @@ def create_conditional_vae(
     latent_size: int,
     beta: float,
     encoder_factory: EncoderFactory,
+    device: str,
     min_logstd: float = -20.0,
     max_logstd: float = 2.0,
 ) -> ConditionalVAE:
@@ -171,13 +193,15 @@ def create_conditional_vae(
     decoder_encoder = encoder_factory.create_with_action(
         observation_shape, latent_size
     )
-    return ConditionalVAE(
+    policy = ConditionalVAE(
         encoder_encoder,
         decoder_encoder,
         beta,
         min_logstd=min_logstd,
         max_logstd=max_logstd,
     )
+    policy.to(device)
+    return policy
 
 
 def create_discrete_imitator(
@@ -185,43 +209,58 @@ def create_discrete_imitator(
     action_size: int,
     beta: float,
     encoder_factory: EncoderFactory,
+    device: str,
 ) -> DiscreteImitator:
     encoder = encoder_factory.create(observation_shape)
-    return DiscreteImitator(encoder, action_size, beta)
+    imitator = DiscreteImitator(encoder, action_size, beta)
+    imitator.to(device)
+    return imitator
 
 
 def create_deterministic_regressor(
     observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
+    device: str,
 ) -> DeterministicRegressor:
     encoder = encoder_factory.create(observation_shape)
-    return DeterministicRegressor(encoder, action_size)
+    regressor = DeterministicRegressor(encoder, action_size)
+    regressor.to(device)
+    return regressor
 
 
 def create_probablistic_regressor(
     observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
+    device: str,
     min_logstd: float = -20.0,
     max_logstd: float = 2.0,
 ) -> ProbablisticRegressor:
     encoder = encoder_factory.create(observation_shape)
-    return ProbablisticRegressor(
+    regressor = ProbablisticRegressor(
         encoder, action_size, min_logstd=min_logstd, max_logstd=max_logstd
     )
+    regressor.to(device)
+    return regressor
 
 
 def create_value_function(
-    observation_shape: Shape, encoder_factory: EncoderFactory
+    observation_shape: Shape, encoder_factory: EncoderFactory, device: str
 ) -> ValueFunction:
     encoder = encoder_factory.create(observation_shape)
-    return ValueFunction(encoder)
+    value_func = ValueFunction(encoder)
+    value_func.to(device)
+    return value_func
 
 
-def create_parameter(shape: Sequence[int], initial_value: float) -> Parameter:
+def create_parameter(
+    shape: Sequence[int], initial_value: float, device: str
+) -> Parameter:
     data = torch.full(shape, initial_value, dtype=torch.float32)
-    return Parameter(data)
+    parameter = Parameter(data)
+    parameter.to(device)
+    return parameter
 
 
 def create_continuous_decision_transformer(
@@ -237,6 +276,7 @@ def create_continuous_decision_transformer(
     embed_dropout: float,
     activation_type: str,
     position_encoding_type: str,
+    device: str,
 ) -> ContinuousDecisionTransformer:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = encoder.get_feature_size()
@@ -252,7 +292,7 @@ def create_continuous_decision_transformer(
             f"invalid position_encoding_type: {position_encoding_type}"
         )
 
-    return ContinuousDecisionTransformer(
+    transformer = ContinuousDecisionTransformer(
         encoder=encoder,
         position_encoding=position_encoding,
         action_size=action_size,
@@ -264,6 +304,8 @@ def create_continuous_decision_transformer(
         embed_dropout=embed_dropout,
         activation=create_activation(activation_type),
     )
+    transformer.to(device)
+    return transformer
 
 
 def create_discrete_decision_transformer(
@@ -279,6 +321,7 @@ def create_discrete_decision_transformer(
     embed_dropout: float,
     activation_type: str,
     position_encoding_type: str,
+    device: str,
 ) -> DiscreteDecisionTransformer:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = encoder.get_feature_size()
@@ -294,7 +337,7 @@ def create_discrete_decision_transformer(
             f"invalid position_encoding_type: {position_encoding_type}"
         )
 
-    return DiscreteDecisionTransformer(
+    transformer = DiscreteDecisionTransformer(
         encoder=encoder,
         position_encoding=position_encoding,
         action_size=action_size,
@@ -306,3 +349,5 @@ def create_discrete_decision_transformer(
         embed_dropout=embed_dropout,
         activation=create_activation(activation_type),
     )
+    transformer.to(device)
+    return transformer

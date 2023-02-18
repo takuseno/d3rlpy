@@ -18,13 +18,7 @@ from .preprocessing import (
     make_reward_scaler_field,
 )
 from .serializable_config import DynamicConfig, generate_config_registration
-from .torch_utility import (
-    get_state_dict,
-    map_location,
-    set_state_dict,
-    to_cpu,
-    to_cuda,
-)
+from .torch_utility import get_state_dict, map_location, set_state_dict
 
 __all__ = [
     "DeviceArg",
@@ -55,14 +49,6 @@ class ImplBase(metaclass=ABCMeta):
         self._observation_shape = observation_shape
         self._action_size = action_size
         self._device = device
-
-    def to_gpu(self, device: str) -> None:
-        self._device = device
-        to_cuda(self, self._device)
-
-    def to_cpu(self) -> None:
-        self._device = "cpu:0"
-        to_cpu(self)
 
     def save_model(self, fname: str) -> None:
         torch.save(get_state_dict(self), fname)

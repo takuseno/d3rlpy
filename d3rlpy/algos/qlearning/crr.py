@@ -4,6 +4,10 @@ from typing import Dict, Optional
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import Shape
+from ...models.builders import (
+    create_continuous_q_function,
+    create_non_squashed_normal_policy,
+)
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
@@ -133,27 +137,44 @@ class CRR(QLearningAlgoBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        policy = create_non_squashed_normal_policy(
+            observation_shape,
+            action_size,
+            self._config.actor_encoder_factory,
+            device=self._device,
+        )
+        q_func = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+
+        actor_optim = self._config.actor_optim_factory.create(
+            policy.parameters(), lr=self._config.actor_learning_rate
+        )
+        critic_optim = self._config.critic_optim_factory.create(
+            q_func.parameters(), lr=self._config.critic_learning_rate
+        )
+
         self._impl = CRRImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self._config.actor_learning_rate,
-            critic_learning_rate=self._config.critic_learning_rate,
-            actor_optim_factory=self._config.actor_optim_factory,
-            critic_optim_factory=self._config.critic_optim_factory,
-            actor_encoder_factory=self._config.actor_encoder_factory,
-            critic_encoder_factory=self._config.critic_encoder_factory,
-            q_func_factory=self._config.q_func_factory,
+            policy=policy,
+            q_func=q_func,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
             gamma=self._config.gamma,
             beta=self._config.beta,
             n_action_samples=self._config.n_action_samples,
             advantage_type=self._config.advantage_type,
             weight_type=self._config.weight_type,
             max_weight=self._config.max_weight,
-            n_critics=self._config.n_critics,
             tau=self._config.tau,
             device=self._device,
         )
-        self._impl.build()
 
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR

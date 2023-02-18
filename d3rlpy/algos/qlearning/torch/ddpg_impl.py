@@ -1,25 +1,16 @@
 import copy
 from abc import ABCMeta, abstractmethod
-from typing import Optional
 
 import torch
 from torch.optim import Optimizer
 
 from ....dataset import Shape
-from ....models.builders import (
-    create_continuous_q_function,
-    create_deterministic_policy,
-)
-from ....models.encoders import EncoderFactory
-from ....models.optimizers import OptimizerFactory
-from ....models.q_functions import QFunctionFactory
 from ....models.torch import (
-    DeterministicPolicy,
     EnsembleContinuousQFunction,
     EnsembleQFunction,
     Policy,
 )
-from ....torch_utility import TorchMiniBatch, soft_sync, to_device, train_api
+from ....torch_utility import TorchMiniBatch, soft_sync, train_api
 from ..base import QLearningAlgoImplBase
 from .utility import ContinuousQFunctionMixin
 
@@ -29,38 +20,25 @@ __all__ = ["DDPGImpl"]
 class DDPGBaseImpl(
     ContinuousQFunctionMixin, QLearningAlgoImplBase, metaclass=ABCMeta
 ):
-
-    _actor_learning_rate: float
-    _critic_learning_rate: float
-    _actor_optim_factory: OptimizerFactory
-    _critic_optim_factory: OptimizerFactory
-    _actor_encoder_factory: EncoderFactory
-    _critic_encoder_factory: EncoderFactory
-    _q_func_factory: QFunctionFactory
     _gamma: float
     _tau: float
-    _n_critics: int
-    _q_func: Optional[EnsembleContinuousQFunction]
-    _policy: Optional[Policy]
-    _targ_q_func: Optional[EnsembleContinuousQFunction]
-    _targ_policy: Optional[Policy]
-    _actor_optim: Optional[Optimizer]
-    _critic_optim: Optional[Optimizer]
+    _q_func: EnsembleContinuousQFunction
+    _policy: Policy
+    _targ_q_func: EnsembleContinuousQFunction
+    _targ_policy: Policy
+    _actor_optim: Optimizer
+    _critic_optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        actor_learning_rate: float,
-        critic_learning_rate: float,
-        actor_optim_factory: OptimizerFactory,
-        critic_optim_factory: OptimizerFactory,
-        actor_encoder_factory: EncoderFactory,
-        critic_encoder_factory: EncoderFactory,
-        q_func_factory: QFunctionFactory,
+        policy: Policy,
+        q_func: EnsembleContinuousQFunction,
+        actor_optim: Optimizer,
+        critic_optim: Optimizer,
         gamma: float,
         tau: float,
-        n_critics: int,
         device: str,
     ):
         super().__init__(
@@ -68,69 +46,17 @@ class DDPGBaseImpl(
             action_size=action_size,
             device=device,
         )
-        self._actor_learning_rate = actor_learning_rate
-        self._critic_learning_rate = critic_learning_rate
-        self._actor_optim_factory = actor_optim_factory
-        self._critic_optim_factory = critic_optim_factory
-        self._actor_encoder_factory = actor_encoder_factory
-        self._critic_encoder_factory = critic_encoder_factory
-        self._q_func_factory = q_func_factory
         self._gamma = gamma
         self._tau = tau
-        self._n_critics = n_critics
-
-        # initialized in build
-        self._q_func = None
-        self._policy = None
-        self._targ_q_func = None
-        self._targ_policy = None
-        self._actor_optim = None
-        self._critic_optim = None
-
-    def build(self) -> None:
-        # setup torch models
-        self._build_critic()
-        self._build_actor()
-
-        # setup target networks
-        self._targ_q_func = copy.deepcopy(self._q_func)
-        self._targ_policy = copy.deepcopy(self._policy)
-
-        to_device(self, self._device)
-
-        # setup optimizer after the parameters move to GPU
-        self._build_critic_optim()
-        self._build_actor_optim()
-
-    def _build_critic(self) -> None:
-        self._q_func = create_continuous_q_function(
-            self._observation_shape,
-            self._action_size,
-            self._critic_encoder_factory,
-            self._q_func_factory,
-            n_ensembles=self._n_critics,
-        )
-
-    def _build_critic_optim(self) -> None:
-        assert self._q_func is not None
-        self._critic_optim = self._critic_optim_factory.create(
-            self._q_func.parameters(), lr=self._critic_learning_rate
-        )
-
-    @abstractmethod
-    def _build_actor(self) -> None:
-        pass
-
-    def _build_actor_optim(self) -> None:
-        assert self._policy is not None
-        self._actor_optim = self._actor_optim_factory.create(
-            self._policy.parameters(), lr=self._actor_learning_rate
-        )
+        self._policy = policy
+        self._q_func = q_func
+        self._actor_optim = actor_optim
+        self._critic_optim = critic_optim
+        self._targ_q_func = copy.deepcopy(q_func)
+        self._targ_policy = copy.deepcopy(policy)
 
     @train_api
     def update_critic(self, batch: TorchMiniBatch) -> float:
-        assert self._critic_optim is not None
-
         self._critic_optim.zero_grad()
 
         q_tpn = self.compute_target(batch)
@@ -145,7 +71,6 @@ class DDPGBaseImpl(
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> torch.Tensor:
-        assert self._q_func is not None
         return self._q_func.compute_error(
             observations=batch.observations,
             actions=batch.actions,
@@ -157,9 +82,6 @@ class DDPGBaseImpl(
 
     @train_api
     def update_actor(self, batch: TorchMiniBatch) -> float:
-        assert self._q_func is not None
-        assert self._actor_optim is not None
-
         # Q function should be inference mode for stability
         self._q_func.eval()
 
@@ -181,66 +103,41 @@ class DDPGBaseImpl(
         pass
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._policy is not None
         return self._policy.best_action(x)
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._policy is not None
         return self._policy.sample(x)
 
     def update_critic_target(self) -> None:
-        assert self._q_func is not None
-        assert self._targ_q_func is not None
         soft_sync(self._targ_q_func, self._q_func, self._tau)
 
     def update_actor_target(self) -> None:
-        assert self._policy is not None
-        assert self._targ_policy is not None
         soft_sync(self._targ_policy, self._policy, self._tau)
 
     @property
     def policy(self) -> Policy:
-        assert self._policy
         return self._policy
 
     @property
     def policy_optim(self) -> Optimizer:
-        assert self._actor_optim
         return self._actor_optim
 
     @property
     def q_function(self) -> EnsembleQFunction:
-        assert self._q_func
         return self._q_func
 
     @property
     def q_function_optim(self) -> Optimizer:
-        assert self._critic_optim
         return self._critic_optim
 
 
 class DDPGImpl(DDPGBaseImpl):
-
-    _policy: Optional[DeterministicPolicy]
-    _targ_policy: Optional[DeterministicPolicy]
-
-    def _build_actor(self) -> None:
-        self._policy = create_deterministic_policy(
-            self._observation_shape,
-            self._action_size,
-            self._actor_encoder_factory,
-        )
-
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._policy is not None
-        assert self._q_func is not None
         action = self._policy(batch.observations)
         q_t = self._q_func(batch.observations, action, "none")[0]
         return -q_t.mean()
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._targ_q_func is not None
-        assert self._targ_policy is not None
         with torch.no_grad():
             action = self._targ_policy(batch.next_observations)
             return self._targ_q_func.compute_target(

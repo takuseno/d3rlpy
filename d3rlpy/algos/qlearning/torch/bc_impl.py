@@ -1,27 +1,20 @@
-from abc import ABCMeta, abstractmethod
-from typing import Optional, Union
+from abc import ABCMeta
+from typing import Union
 
 import torch
 from torch.optim import Optimizer
 
 from ....dataset import Shape
-from ....models.builders import (
-    create_deterministic_policy,
-    create_deterministic_regressor,
-    create_discrete_imitator,
-    create_probablistic_regressor,
-    create_squashed_normal_policy,
-)
-from ....models.encoders import EncoderFactory
-from ....models.optimizers import OptimizerFactory
 from ....models.torch import (
+    DeterministicPolicy,
     DeterministicRegressor,
     DiscreteImitator,
     Imitator,
     Policy,
     ProbablisticRegressor,
+    SquashedNormalPolicy,
 )
-from ....torch_utility import TorchMiniBatch, hard_sync, to_device, train_api
+from ....torch_utility import TorchMiniBatch, hard_sync, train_api
 from ..base import QLearningAlgoImplBase
 
 __all__ = ["BCImpl", "DiscreteBCImpl"]
@@ -30,18 +23,15 @@ __all__ = ["BCImpl", "DiscreteBCImpl"]
 class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
     _learning_rate: float
-    _optim_factory: OptimizerFactory
-    _encoder_factory: EncoderFactory
-    _imitator: Optional[Imitator]
-    _optim: Optional[Optimizer]
+    _imitator: Imitator
+    _optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        learning_rate: float,
-        optim_factory: OptimizerFactory,
-        encoder_factory: EncoderFactory,
+        imitator: Imitator,
+        optim: Optimizer,
         device: str,
     ):
         super().__init__(
@@ -49,30 +39,8 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
             action_size=action_size,
             device=device,
         )
-        self._learning_rate = learning_rate
-        self._optim_factory = optim_factory
-        self._encoder_factory = encoder_factory
-
-        # initialized in build
-        self._imitator = None
-        self._optim = None
-
-    def build(self) -> None:
-        self._build_network()
-
-        to_device(self, self._device)
-
-        self._build_optim()
-
-    @abstractmethod
-    def _build_network(self) -> None:
-        pass
-
-    def _build_optim(self) -> None:
-        assert self._imitator is not None
-        self._optim = self._optim_factory.create(
-            self._imitator.parameters(), lr=self._learning_rate
-        )
+        self._imitator = imitator
+        self._optim = optim
 
     @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> float:
@@ -109,67 +77,44 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 class BCImpl(BCBaseImpl):
 
     _policy_type: str
-    _imitator: Optional[Union[DeterministicRegressor, ProbablisticRegressor]]
+    _imitator: Union[DeterministicRegressor, ProbablisticRegressor]
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        learning_rate: float,
-        optim_factory: OptimizerFactory,
-        encoder_factory: EncoderFactory,
+        imitator: Union[DeterministicRegressor, ProbablisticRegressor],
+        optim: Optimizer,
         policy_type: str,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=learning_rate,
-            optim_factory=optim_factory,
-            encoder_factory=encoder_factory,
+            imitator=imitator,
+            optim=optim,
             device=device,
         )
         self._policy_type = policy_type
 
-    def _build_network(self) -> None:
-        if self._policy_type == "deterministic":
-            self._imitator = create_deterministic_regressor(
-                self._observation_shape,
-                self._action_size,
-                self._encoder_factory,
-            )
-        elif self._policy_type == "stochastic":
-            self._imitator = create_probablistic_regressor(
-                self._observation_shape,
-                self._action_size,
-                self._encoder_factory,
-                min_logstd=-4.0,
-                max_logstd=15.0,
-            )
-        else:
-            raise ValueError("invalid policy_type: {self._policy_type}")
-
     @property
     def policy(self) -> Policy:
-        assert self._imitator
-
         policy: Policy
         if self._policy_type == "deterministic":
-            policy = create_deterministic_policy(
-                self._observation_shape,
-                self._action_size,
-                self._encoder_factory,
+            policy = DeterministicPolicy(
+                self._imitator.encoder, self._action_size
             )
         elif self._policy_type == "stochastic":
-            policy = create_squashed_normal_policy(
-                self._observation_shape,
+            return SquashedNormalPolicy(
+                self._imitator.encoder,
                 self._action_size,
-                self._encoder_factory,
                 min_logstd=-4.0,
                 max_logstd=15.0,
+                use_std_parameter=False,
             )
         else:
             raise ValueError(f"invalid policy_type: {self._policy_type}")
+        policy.to(self._device)
 
         # copy parameters
         hard_sync(policy, self._imitator)
@@ -178,42 +123,31 @@ class BCImpl(BCBaseImpl):
 
     @property
     def policy_optim(self) -> Optimizer:
-        assert self._optim
         return self._optim
 
 
 class DiscreteBCImpl(BCBaseImpl):
 
     _beta: float
-    _imitator: Optional[DiscreteImitator]
+    _imitator: DiscreteImitator
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        learning_rate: float,
-        optim_factory: OptimizerFactory,
-        encoder_factory: EncoderFactory,
+        imitator: DiscreteImitator,
+        optim: Optimizer,
         beta: float,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=learning_rate,
-            optim_factory=optim_factory,
-            encoder_factory=encoder_factory,
+            imitator=imitator,
+            optim=optim,
             device=device,
         )
         self._beta = beta
-
-    def _build_network(self) -> None:
-        self._imitator = create_discrete_imitator(
-            self._observation_shape,
-            self._action_size,
-            self._beta,
-            self._encoder_factory,
-        )
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         assert self._imitator is not None

@@ -1,17 +1,14 @@
-import math
-from typing import Optional, Tuple
+from typing import Tuple
 
 import torch
 from torch.optim import Optimizer
 
 from ....dataset import Shape
-from ....models.builders import create_conditional_vae, create_parameter
-from ....models.encoders import EncoderFactory
-from ....models.optimizers import OptimizerFactory
-from ....models.q_functions import QFunctionFactory
 from ....models.torch import (
     ConditionalVAE,
+    EnsembleContinuousQFunction,
     Parameter,
+    SquashedNormalPolicy,
     compute_max_with_n_actions_and_indices,
 )
 from ....torch_utility import TorchMiniBatch, train_api
@@ -35,13 +32,7 @@ def _laplacian_kernel(
 
 
 class BEARImpl(SACImpl):
-
-    _imitator_learning_rate: float
-    _alpha_learning_rate: float
-    _imitator_optim_factory: OptimizerFactory
-    _alpha_optim_factory: OptimizerFactory
-    _imitator_encoder_factory: EncoderFactory
-    _initial_alpha: float
+    _policy: SquashedNormalPolicy
     _alpha_threshold: float
     _lam: float
     _n_action_samples: int
@@ -50,34 +41,27 @@ class BEARImpl(SACImpl):
     _mmd_kernel: str
     _mmd_sigma: float
     _vae_kl_weight: float
-    _imitator: Optional[ConditionalVAE]
-    _imitator_optim: Optional[Optimizer]
-    _log_alpha: Optional[Parameter]
-    _alpha_optim: Optional[Optimizer]
+    _imitator: ConditionalVAE
+    _imitator_optim: Optimizer
+    _log_alpha: Parameter
+    _alpha_optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        actor_learning_rate: float,
-        critic_learning_rate: float,
-        imitator_learning_rate: float,
-        temp_learning_rate: float,
-        alpha_learning_rate: float,
-        actor_optim_factory: OptimizerFactory,
-        critic_optim_factory: OptimizerFactory,
-        imitator_optim_factory: OptimizerFactory,
-        temp_optim_factory: OptimizerFactory,
-        alpha_optim_factory: OptimizerFactory,
-        actor_encoder_factory: EncoderFactory,
-        critic_encoder_factory: EncoderFactory,
-        imitator_encoder_factory: EncoderFactory,
-        q_func_factory: QFunctionFactory,
+        policy: SquashedNormalPolicy,
+        q_func: EnsembleContinuousQFunction,
+        imitator: ConditionalVAE,
+        log_temp: Parameter,
+        log_alpha: Parameter,
+        actor_optim: Optimizer,
+        critic_optim: Optimizer,
+        imitator_optim: Optimizer,
+        temp_optim: Optimizer,
+        alpha_optim: Optimizer,
         gamma: float,
         tau: float,
-        n_critics: int,
-        initial_temperature: float,
-        initial_alpha: float,
         alpha_threshold: float,
         lam: float,
         n_action_samples: int,
@@ -91,27 +75,16 @@ class BEARImpl(SACImpl):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=actor_learning_rate,
-            critic_learning_rate=critic_learning_rate,
-            temp_learning_rate=temp_learning_rate,
-            actor_optim_factory=actor_optim_factory,
-            critic_optim_factory=critic_optim_factory,
-            temp_optim_factory=temp_optim_factory,
-            actor_encoder_factory=actor_encoder_factory,
-            critic_encoder_factory=critic_encoder_factory,
-            q_func_factory=q_func_factory,
+            policy=policy,
+            q_func=q_func,
+            log_temp=log_temp,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
+            temp_optim=temp_optim,
             gamma=gamma,
             tau=tau,
-            n_critics=n_critics,
-            initial_temperature=initial_temperature,
             device=device,
         )
-        self._imitator_learning_rate = imitator_learning_rate
-        self._alpha_learning_rate = alpha_learning_rate
-        self._imitator_optim_factory = imitator_optim_factory
-        self._alpha_optim_factory = alpha_optim_factory
-        self._imitator_encoder_factory = imitator_encoder_factory
-        self._initial_alpha = initial_alpha
         self._alpha_threshold = alpha_threshold
         self._lam = lam
         self._n_action_samples = n_action_samples
@@ -120,46 +93,10 @@ class BEARImpl(SACImpl):
         self._mmd_kernel = mmd_kernel
         self._mmd_sigma = mmd_sigma
         self._vae_kl_weight = vae_kl_weight
-
-        # initialized in build
-        self._imitator = None
-        self._imitator_optim = None
-        self._log_alpha = None
-        self._alpha_optim = None
-
-    def build(self) -> None:
-        self._build_imitator()
-        self._build_alpha()
-        super().build()
-        self._build_imitator_optim()
-        self._build_alpha_optim()
-
-    def _build_imitator(self) -> None:
-        self._imitator = create_conditional_vae(
-            observation_shape=self._observation_shape,
-            action_size=self._action_size,
-            latent_size=2 * self._action_size,
-            beta=self._vae_kl_weight,
-            min_logstd=-4.0,
-            max_logstd=15.0,
-            encoder_factory=self._imitator_encoder_factory,
-        )
-
-    def _build_imitator_optim(self) -> None:
-        assert self._imitator is not None
-        self._imitator_optim = self._imitator_optim_factory.create(
-            self._imitator.parameters(), lr=self._imitator_learning_rate
-        )
-
-    def _build_alpha(self) -> None:
-        initial_val = math.log(self._initial_alpha)
-        self._log_alpha = create_parameter((1, 1), initial_val)
-
-    def _build_alpha_optim(self) -> None:
-        assert self._log_alpha is not None
-        self._alpha_optim = self._alpha_optim_factory.create(
-            self._log_alpha.parameters(), lr=self._alpha_learning_rate
-        )
+        self._imitator = imitator
+        self._log_alpha = log_alpha
+        self._imitator_optim = imitator_optim
+        self._alpha_optim = alpha_optim
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         loss = super().compute_actor_loss(batch)
@@ -168,8 +105,6 @@ class BEARImpl(SACImpl):
 
     @train_api
     def warmup_actor(self, batch: TorchMiniBatch) -> float:
-        assert self._actor_optim is not None
-
         self._actor_optim.zero_grad()
 
         loss = self._compute_mmd_loss(batch.observations)
@@ -180,15 +115,12 @@ class BEARImpl(SACImpl):
         return float(loss.cpu().detach().numpy())
 
     def _compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
-        assert self._log_alpha
         mmd = self._compute_mmd(obs_t)
         alpha = self._log_alpha().exp()
         return (alpha * (mmd - self._alpha_threshold)).mean()
 
     @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> float:
-        assert self._imitator_optim is not None
-
         self._imitator_optim.zero_grad()
 
         loss = self.compute_imitator_loss(batch)
@@ -200,14 +132,10 @@ class BEARImpl(SACImpl):
         return float(loss.cpu().detach().numpy())
 
     def compute_imitator_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._imitator is not None
         return self._imitator.compute_error(batch.observations, batch.actions)
 
     @train_api
     def update_alpha(self, batch: TorchMiniBatch) -> Tuple[float, float]:
-        assert self._alpha_optim is not None
-        assert self._log_alpha is not None
-
         loss = -self._compute_mmd_loss(batch.observations)
 
         self._alpha_optim.zero_grad()
@@ -222,8 +150,6 @@ class BEARImpl(SACImpl):
         return float(loss.cpu().detach().numpy()), float(cur_alpha)
 
     def _compute_mmd(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._imitator is not None
-        assert self._policy is not None
         with torch.no_grad():
             behavior_actions = self._imitator.sample_n_without_squash(
                 x, self._n_mmd_action_samples
@@ -271,9 +197,6 @@ class BEARImpl(SACImpl):
         return (mmd + 1e-6).sqrt().view(-1, 1)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._policy is not None
-        assert self._targ_q_func is not None
-        assert self._log_temp is not None
         with torch.no_grad():
             # BCQ-like target computation
             actions, log_probs = self._policy.sample_n_with_log_prob(
@@ -291,8 +214,6 @@ class BEARImpl(SACImpl):
             return values - self._log_temp().exp() * max_log_prob
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._policy is not None
-        assert self._q_func is not None
         with torch.no_grad():
             # (batch, n, action)
             actions = self._policy.onnx_safe_sample_n(x, self._n_action_samples)

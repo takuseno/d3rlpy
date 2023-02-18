@@ -1,14 +1,12 @@
-from typing import Optional
-
 import torch
 import torch.nn.functional as F
+from torch.optim import Optimizer
 
 from ....dataset import Shape
-from ....models.builders import create_non_squashed_normal_policy
-from ....models.encoders import EncoderFactory
-from ....models.optimizers import OptimizerFactory
-from ....models.q_functions import QFunctionFactory
-from ....models.torch import NonSquashedNormalPolicy
+from ....models.torch import (
+    EnsembleContinuousQFunction,
+    NonSquashedNormalPolicy,
+)
 from ....torch_utility import TorchMiniBatch, hard_sync
 from .ddpg_impl import DDPGBaseImpl
 
@@ -22,43 +20,35 @@ class CRRImpl(DDPGBaseImpl):
     _advantage_type: str
     _weight_type: str
     _max_weight: float
-    _policy: Optional[NonSquashedNormalPolicy]
-    _targ_policy: Optional[NonSquashedNormalPolicy]
+    _policy: NonSquashedNormalPolicy
+    _targ_policy: NonSquashedNormalPolicy
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        actor_learning_rate: float,
-        critic_learning_rate: float,
-        actor_optim_factory: OptimizerFactory,
-        critic_optim_factory: OptimizerFactory,
-        actor_encoder_factory: EncoderFactory,
-        critic_encoder_factory: EncoderFactory,
-        q_func_factory: QFunctionFactory,
+        policy: NonSquashedNormalPolicy,
+        q_func: EnsembleContinuousQFunction,
+        actor_optim: Optimizer,
+        critic_optim: Optimizer,
         gamma: float,
         beta: float,
         n_action_samples: int,
         advantage_type: str,
         weight_type: str,
         max_weight: float,
-        n_critics: int,
         tau: float,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=actor_learning_rate,
-            critic_learning_rate=critic_learning_rate,
-            actor_optim_factory=actor_optim_factory,
-            critic_optim_factory=critic_optim_factory,
-            actor_encoder_factory=actor_encoder_factory,
-            critic_encoder_factory=critic_encoder_factory,
-            q_func_factory=q_func_factory,
+            policy=policy,
+            q_func=q_func,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
-            n_critics=n_critics,
             device=device,
         )
         self._beta = beta
@@ -67,16 +57,7 @@ class CRRImpl(DDPGBaseImpl):
         self._weight_type = weight_type
         self._max_weight = max_weight
 
-    def _build_actor(self) -> None:
-        self._policy = create_non_squashed_normal_policy(
-            self._observation_shape,
-            self._action_size,
-            self._actor_encoder_factory,
-        )
-
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._policy is not None
-
         # compute log probability
         dist = self._policy.dist(batch.observations)
         log_probs = dist.log_prob(batch.actions)
@@ -98,8 +79,6 @@ class CRRImpl(DDPGBaseImpl):
     def _compute_advantage(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
-        assert self._q_func is not None
-        assert self._policy is not None
         with torch.no_grad():
             batch_size = obs_t.shape[0]
 
@@ -134,8 +113,6 @@ class CRRImpl(DDPGBaseImpl):
             return self._q_func(obs_t, act_t) - values
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._targ_q_func is not None
-        assert self._targ_policy is not None
         with torch.no_grad():
             action = self._targ_policy.sample(batch.next_observations)
             return self._targ_q_func.compute_target(
@@ -145,9 +122,6 @@ class CRRImpl(DDPGBaseImpl):
             )
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._policy is not None
-        assert self._q_func is not None
-
         # compute CWP
 
         actions = self._policy.onnx_safe_sample_n(x, self._n_action_samples)
@@ -176,11 +150,7 @@ class CRRImpl(DDPGBaseImpl):
         return actions[torch.arange(x.shape[0]), indices.view(-1)]
 
     def sync_critic_target(self) -> None:
-        assert self._targ_q_func is not None
-        assert self._q_func is not None
         hard_sync(self._targ_q_func, self._q_func)
 
     def sync_actor_target(self) -> None:
-        assert self._targ_policy is not None
-        assert self._policy is not None
         hard_sync(self._targ_policy, self._policy)

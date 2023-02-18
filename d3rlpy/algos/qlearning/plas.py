@@ -4,6 +4,12 @@ from typing import Dict, Optional
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import Shape
+from ...models.builders import (
+    create_conditional_vae,
+    create_continuous_q_function,
+    create_deterministic_policy,
+    create_deterministic_residual_policy,
+)
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
@@ -103,27 +109,55 @@ class PLAS(QLearningAlgoBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        policy = create_deterministic_policy(
+            observation_shape,
+            2 * action_size,
+            self._config.actor_encoder_factory,
+            device=self._device,
+        )
+        q_func = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        imitator = create_conditional_vae(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            latent_size=2 * action_size,
+            beta=self._config.beta,
+            min_logstd=-4.0,
+            max_logstd=15.0,
+            encoder_factory=self._config.imitator_encoder_factory,
+            device=self._device,
+        )
+
+        actor_optim = self._config.actor_optim_factory.create(
+            policy.parameters(), lr=self._config.actor_learning_rate
+        )
+        critic_optim = self._config.critic_optim_factory.create(
+            q_func.parameters(), lr=self._config.critic_learning_rate
+        )
+        imitator_optim = self._config.critic_optim_factory.create(
+            imitator.parameters(), lr=self._config.imitator_learning_rate
+        )
+
         self._impl = PLASImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self._config.actor_learning_rate,
-            critic_learning_rate=self._config.critic_learning_rate,
-            imitator_learning_rate=self._config.imitator_learning_rate,
-            actor_optim_factory=self._config.actor_optim_factory,
-            critic_optim_factory=self._config.critic_optim_factory,
-            imitator_optim_factory=self._config.imitator_optim_factory,
-            actor_encoder_factory=self._config.actor_encoder_factory,
-            critic_encoder_factory=self._config.critic_encoder_factory,
-            imitator_encoder_factory=self._config.imitator_encoder_factory,
-            q_func_factory=self._config.q_func_factory,
+            policy=policy,
+            q_func=q_func,
+            imitator=imitator,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
+            imitator_optim=imitator_optim,
             gamma=self._config.gamma,
             tau=self._config.tau,
-            n_critics=self._config.n_critics,
             lam=self._config.lam,
-            beta=self._config.beta,
             device=self._device,
         )
-        self._impl.build()
 
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
@@ -208,28 +242,65 @@ class PLASWithPerturbation(PLAS):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        policy = create_deterministic_policy(
+            observation_shape,
+            2 * action_size,
+            self._config.actor_encoder_factory,
+            device=self._device,
+        )
+        q_func = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        imitator = create_conditional_vae(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            latent_size=2 * action_size,
+            beta=self._config.beta,
+            min_logstd=-4.0,
+            max_logstd=15.0,
+            encoder_factory=self._config.imitator_encoder_factory,
+            device=self._device,
+        )
+        perturbation = create_deterministic_residual_policy(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            scale=self._config.action_flexibility,
+            encoder_factory=self._config.actor_encoder_factory,
+            device=self._device,
+        )
+
+        parameters = list(policy.parameters())
+        parameters += list(perturbation.parameters())
+        actor_optim = self._config.actor_optim_factory.create(
+            params=parameters, lr=self._config.actor_learning_rate
+        )
+        critic_optim = self._config.critic_optim_factory.create(
+            q_func.parameters(), lr=self._config.critic_learning_rate
+        )
+        imitator_optim = self._config.critic_optim_factory.create(
+            imitator.parameters(), lr=self._config.imitator_learning_rate
+        )
+
         self._impl = PLASWithPerturbationImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self._config.actor_learning_rate,
-            critic_learning_rate=self._config.critic_learning_rate,
-            imitator_learning_rate=self._config.imitator_learning_rate,
-            actor_optim_factory=self._config.actor_optim_factory,
-            critic_optim_factory=self._config.critic_optim_factory,
-            imitator_optim_factory=self._config.imitator_optim_factory,
-            actor_encoder_factory=self._config.actor_encoder_factory,
-            critic_encoder_factory=self._config.critic_encoder_factory,
-            imitator_encoder_factory=self._config.imitator_encoder_factory,
-            q_func_factory=self._config.q_func_factory,
+            policy=policy,
+            q_func=q_func,
+            imitator=imitator,
+            perturbation=perturbation,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
+            imitator_optim=imitator_optim,
             gamma=self._config.gamma,
             tau=self._config.tau,
-            n_critics=self._config.n_critics,
             lam=self._config.lam,
-            beta=self._config.beta,
-            action_flexibility=self._config.action_flexibility,
             device=self._device,
         )
-        self._impl.build()
 
 
 register_learnable(PLASConfig)

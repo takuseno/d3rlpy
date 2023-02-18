@@ -11,6 +11,10 @@ from ..constants import (
     ActionSpace,
 )
 from ..dataset import Observation, Shape
+from ..models.builders import (
+    create_continuous_q_function,
+    create_discrete_q_function,
+)
 from ..models.encoders import EncoderFactory, make_encoder_field
 from ..models.optimizers import OptimizerFactory, make_optimizer_field
 from ..models.q_functions import QFunctionFactory, make_q_func_field
@@ -154,18 +158,25 @@ class FQE(_FQEBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        q_func = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        optim = self._config.optim_factory.create(
+            q_func.parameters(), lr=self._config.learning_rate
+        )
         self._impl = FQEImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=self._config.learning_rate,
-            optim_factory=self._config.optim_factory,
-            encoder_factory=self._config.encoder_factory,
-            q_func_factory=self._config.q_func_factory,
+            q_func=q_func,
+            optim=optim,
             gamma=self._config.gamma,
-            n_critics=self._config.n_critics,
             device=self._device,
         )
-        self._impl.build()
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
@@ -206,18 +217,25 @@ class DiscreteFQE(_FQEBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        q_func = create_discrete_q_function(
+            observation_shape,
+            action_size,
+            self._config.encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        optim = self._config.optim_factory.create(
+            q_func.parameters(), lr=self._config.learning_rate
+        )
         self._impl = DiscreteFQEImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=self._config.learning_rate,
-            optim_factory=self._config.optim_factory,
-            encoder_factory=self._config.encoder_factory,
-            q_func_factory=self._config.q_func_factory,
+            q_func=q_func,
+            optim=optim,
             gamma=self._config.gamma,
-            n_critics=self._config.n_critics,
             device=self._device,
         )
-        self._impl.build()
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE

@@ -4,6 +4,11 @@ from typing import Dict, Optional
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import Shape
+from ...models.builders import (
+    create_deterministic_regressor,
+    create_discrete_imitator,
+    create_probablistic_regressor,
+)
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...torch_utility import TorchMiniBatch
@@ -72,16 +77,37 @@ class BC(_BCBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        if self._config.policy_type == "deterministic":
+            imitator = create_deterministic_regressor(
+                observation_shape,
+                action_size,
+                self._config.encoder_factory,
+                device=self._device,
+            )
+        elif self._config.policy_type == "stochastic":
+            imitator = create_probablistic_regressor(
+                observation_shape,
+                action_size,
+                self._config.encoder_factory,
+                min_logstd=-4.0,
+                max_logstd=15.0,
+                device=self._device,
+            )
+        else:
+            raise ValueError(f"invalid policy_type: {self._config.policy_type}")
+
+        optim = self._config.optim_factory.create(
+            imitator.parameters(), lr=self._config.learning_rate
+        )
+
         self._impl = BCImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=self._config.learning_rate,
-            optim_factory=self._config.optim_factory,
-            encoder_factory=self._config.encoder_factory,
+            imitator=imitator,
+            optim=optim,
             policy_type=self._config.policy_type,
             device=self._device,
         )
-        self._impl.build()
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
@@ -136,16 +162,26 @@ class DiscreteBC(_BCBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        imitator = create_discrete_imitator(
+            observation_shape,
+            action_size,
+            self._config.beta,
+            self._config.encoder_factory,
+            device=self._device,
+        )
+
+        optim = self._config.optim_factory.create(
+            imitator.parameters(), lr=self._config.learning_rate
+        )
+
         self._impl = DiscreteBCImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            learning_rate=self._config.learning_rate,
-            optim_factory=self._config.optim_factory,
-            encoder_factory=self._config.encoder_factory,
+            imitator=imitator,
+            optim=optim,
             beta=self._config.beta,
             device=self._device,
         )
-        self._impl.build()
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE

@@ -1,16 +1,11 @@
 import copy
-from typing import Optional
 
 import torch
 from torch.optim import Optimizer
 
 from ....dataset import Shape
-from ....models.builders import create_discrete_q_function
-from ....models.encoders import EncoderFactory
-from ....models.optimizers import OptimizerFactory
-from ....models.q_functions import QFunctionFactory
 from ....models.torch import EnsembleDiscreteQFunction, EnsembleQFunction
-from ....torch_utility import TorchMiniBatch, hard_sync, to_device, train_api
+from ....torch_utility import TorchMiniBatch, hard_sync, train_api
 from ..base import QLearningAlgoImplBase
 from .utility import DiscreteQFunctionMixin
 
@@ -19,26 +14,18 @@ __all__ = ["DQNImpl", "DoubleDQNImpl"]
 
 class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
-    _learning_rate: float
-    _optim_factory: OptimizerFactory
-    _encoder_factory: EncoderFactory
-    _q_func_factory: QFunctionFactory
     _gamma: float
-    _n_critics: int
-    _q_func: Optional[EnsembleDiscreteQFunction]
-    _targ_q_func: Optional[EnsembleDiscreteQFunction]
-    _optim: Optional[Optimizer]
+    _q_func: EnsembleDiscreteQFunction
+    _targ_q_func: EnsembleDiscreteQFunction
+    _optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        learning_rate: float,
-        optim_factory: OptimizerFactory,
-        encoder_factory: EncoderFactory,
-        q_func_factory: QFunctionFactory,
+        q_func: EnsembleDiscreteQFunction,
+        optim: Optimizer,
         gamma: float,
-        n_critics: int,
         device: str,
     ):
         super().__init__(
@@ -46,44 +33,10 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             action_size=action_size,
             device=device,
         )
-        self._learning_rate = learning_rate
-        self._optim_factory = optim_factory
-        self._encoder_factory = encoder_factory
-        self._q_func_factory = q_func_factory
         self._gamma = gamma
-        self._n_critics = n_critics
-
-        # initialized in build
-        self._q_func = None
-        self._targ_q_func = None
-        self._optim = None
-
-    def build(self) -> None:
-        # setup torch models
-        self._build_network()
-
-        # setup target network
-        self._targ_q_func = copy.deepcopy(self._q_func)
-
-        to_device(self, self._device)
-
-        # setup optimizer after the parameters move to GPU
-        self._build_optim()
-
-    def _build_network(self) -> None:
-        self._q_func = create_discrete_q_function(
-            self._observation_shape,
-            self._action_size,
-            self._encoder_factory,
-            self._q_func_factory,
-            n_ensembles=self._n_critics,
-        )
-
-    def _build_optim(self) -> None:
-        assert self._q_func is not None
-        self._optim = self._optim_factory.create(
-            self._q_func.parameters(), lr=self._learning_rate
-        )
+        self._q_func = q_func
+        self._optim = optim
+        self._targ_q_func = copy.deepcopy(q_func)
 
     @train_api
     def update(self, batch: TorchMiniBatch) -> float:

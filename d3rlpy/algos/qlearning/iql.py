@@ -4,8 +4,14 @@ from typing import Dict, Optional
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import Shape
+from ...models.builders import (
+    create_continuous_q_function,
+    create_non_squashed_normal_policy,
+    create_value_function,
+)
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
+from ...models.q_functions import MeanQFunctionFactory
 from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.iql_impl import IQLImpl
@@ -107,25 +113,53 @@ class IQL(QLearningAlgoBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        policy = create_non_squashed_normal_policy(
+            observation_shape,
+            action_size,
+            self._config.actor_encoder_factory,
+            min_logstd=-5.0,
+            max_logstd=2.0,
+            use_std_parameter=True,
+            device=self._device,
+        )
+        q_func = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            MeanQFunctionFactory(),
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        value_func = create_value_function(
+            observation_shape,
+            self._config.value_encoder_factory,
+            device=self._device,
+        )
+
+        actor_optim = self._config.actor_optim_factory.create(
+            policy.parameters(), lr=self._config.actor_learning_rate
+        )
+        q_func_params = list(q_func.parameters())
+        v_func_params = list(value_func.parameters())
+        critic_optim = self._config.critic_optim_factory.create(
+            q_func_params + v_func_params, lr=self._config.critic_learning_rate
+        )
+
         self._impl = IQLImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            actor_learning_rate=self._config.actor_learning_rate,
-            critic_learning_rate=self._config.critic_learning_rate,
-            actor_optim_factory=self._config.actor_optim_factory,
-            critic_optim_factory=self._config.critic_optim_factory,
-            actor_encoder_factory=self._config.actor_encoder_factory,
-            critic_encoder_factory=self._config.critic_encoder_factory,
-            value_encoder_factory=self._config.value_encoder_factory,
+            policy=policy,
+            q_func=q_func,
+            value_func=value_func,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
             gamma=self._config.gamma,
             tau=self._config.tau,
-            n_critics=self._config.n_critics,
             expectile=self._config.expectile,
             weight_temp=self._config.weight_temp,
             max_weight=self._config.max_weight,
             device=self._device,
         )
-        self._impl.build()
 
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
