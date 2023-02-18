@@ -40,8 +40,6 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
     @train_api
     def update(self, batch: TorchMiniBatch) -> float:
-        assert self._optim is not None
-
         self._optim.zero_grad()
 
         q_tpn = self.compute_target(batch)
@@ -58,7 +56,6 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
     ) -> torch.Tensor:
-        assert self._q_func is not None
         return self._q_func.compute_error(
             observations=batch.observations,
             actions=batch.actions.long(),
@@ -69,7 +66,6 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         )
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._targ_q_func is not None
         with torch.no_grad():
             next_actions = self._targ_q_func(batch.next_observations)
             max_action = next_actions.argmax(dim=1)
@@ -80,31 +76,25 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             )
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._q_func is not None
         return self._q_func(x).argmax(dim=1)
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
     def update_target(self) -> None:
-        assert self._q_func is not None
-        assert self._targ_q_func is not None
         hard_sync(self._targ_q_func, self._q_func)
 
     @property
     def q_function(self) -> EnsembleQFunction:
-        assert self._q_func
         return self._q_func
 
     @property
     def q_function_optim(self) -> Optimizer:
-        assert self._optim
         return self._optim
 
 
 class DoubleDQNImpl(DQNImpl):
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        assert self._targ_q_func is not None
         with torch.no_grad():
             action = self.inner_predict_best_action(batch.next_observations)
             return self._targ_q_func.compute_target(

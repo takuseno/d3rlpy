@@ -44,8 +44,6 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
     @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> float:
-        assert self._optim is not None
-
         self._optim.zero_grad()
 
         loss = self.compute_loss(batch.observations, batch.actions)
@@ -58,11 +56,9 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
     def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
-        assert self._imitator is not None
         return self._imitator.compute_error(obs_t, act_t)
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._imitator is not None
         return self._imitator(x)
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
@@ -150,11 +146,9 @@ class DiscreteBCImpl(BCBaseImpl):
         self._beta = beta
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        assert self._imitator is not None
         return self._imitator(x).argmax(dim=1)
 
     def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
-        assert self._imitator is not None
         return self._imitator.compute_error(obs_t, act_t.long())
