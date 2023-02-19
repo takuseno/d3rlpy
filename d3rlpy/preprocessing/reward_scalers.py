@@ -292,6 +292,7 @@ class StandardRewardScaler(RewardScaler):
         return "standard"
 
 
+@dataclasses.dataclass()
 class ReturnBasedRewardScaler(RewardScaler):
     r"""Reward normalization preprocessing based on return scale.
 

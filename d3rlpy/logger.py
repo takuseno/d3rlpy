@@ -14,7 +14,7 @@ __all__ = ["LOG", "D3RLPyLogger"]
 
 
 class _SaveProtocol(Protocol):
-    def save_model(self, fname: str) -> None:
+    def save(self, fname: str) -> None:
         ...
 
 
@@ -153,8 +153,8 @@ class D3RLPyLogger:
     def save_model(self, epoch: int, algo: _SaveProtocol) -> None:
         if self._save_metrics:
             # save entire model
-            model_path = os.path.join(self._logdir, f"model_{epoch}.pt")
-            algo.save_model(model_path)
+            model_path = os.path.join(self._logdir, f"model_{epoch}.d3")
+            algo.save(model_path)
             LOG.info(f"Model parameters are saved to {model_path}")
 
     def close(self) -> None:

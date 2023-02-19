@@ -1,6 +1,8 @@
 import dataclasses
+import io
+import pickle
 from abc import ABCMeta, abstractmethod
-from typing import Optional, Type, TypeVar, Union, cast
+from typing import BinaryIO, Optional, Type, TypeVar, Union, cast
 
 import gym
 import torch
@@ -24,6 +26,8 @@ __all__ = [
     "DeviceArg",
     "ImplBase",
     "save_config",
+    "dump_learnable",
+    "load_learnable",
     "LearnableBase",
     "LearnableConfig",
     "LearnableConfigWithShape",
@@ -50,11 +54,11 @@ class ImplBase(metaclass=ABCMeta):
         self._action_size = action_size
         self._device = device
 
-    def save_model(self, fname: str) -> None:
-        torch.save(get_state_dict(self), fname)
+    def save_model(self, f: BinaryIO) -> None:
+        torch.save(get_state_dict(self), f)
 
-    def load_model(self, fname: str) -> None:
-        chkpt = torch.load(fname, map_location=map_location(self._device))
+    def load_model(self, f: BinaryIO) -> None:
+        chkpt = torch.load(f, map_location=map_location(self._device))
         set_state_dict(self, chkpt)
 
     @property
@@ -101,12 +105,12 @@ class LearnableConfigWithShape(DynamicConfig):
         return algo
 
 
-def save_config(alg: "LearnableBase", logger: D3RLPyLogger) -> None:
-    assert alg.impl
+def save_config(algo: "LearnableBase", logger: D3RLPyLogger) -> None:
+    assert algo.impl
     config = LearnableConfigWithShape(
-        observation_shape=alg.impl.observation_shape,
-        action_size=alg.impl.action_size,
-        config=alg.config,
+        observation_shape=algo.impl.observation_shape,
+        action_size=algo.impl.action_size,
+        config=algo.config,
     )
     logger.add_params(config.serialize_to_dict())
 
@@ -130,6 +134,30 @@ def _process_device(value: DeviceArg) -> str:
     raise ValueError("This argument must be bool, int or str.")
 
 
+def dump_learnable(algo: "LearnableBase", fname: str) -> None:
+    assert algo.impl
+    with open(fname, "wb") as f:
+        torch_bytes = io.BytesIO()
+        algo.impl.save_model(torch_bytes)
+        config = LearnableConfigWithShape(
+            observation_shape=algo.impl.observation_shape,
+            action_size=algo.impl.action_size,
+            config=algo.config,
+        )
+        obj = {"torch": torch_bytes.getvalue(), "config": config.serialize()}
+        pickle.dump(obj, f)
+
+
+def load_learnable(fname: str, device: DeviceArg = None) -> "LearnableBase":
+    with open(fname, "rb") as f:
+        obj = pickle.load(f)
+        config = LearnableConfigWithShape.deserialize(obj["config"])
+        algo = config.create(device)
+        assert algo.impl
+        algo.impl.load_model(io.BytesIO(obj["torch"]))
+    return algo
+
+
 class LearnableBase(metaclass=ABCMeta):
     _config: LearnableConfig
     _device: str
@@ -147,6 +175,23 @@ class LearnableBase(metaclass=ABCMeta):
         self._impl = impl
         self._grad_step = 0
 
+    def save(self, fname: str) -> None:
+        """Saves paired data of neural network parameters and serialized config.
+
+        .. code-block:: python
+
+            algo.save('model.d3')
+
+            # reconstruct everything
+            algo2 = d3rlpy.load_learnable("model.d3", device="cuda:0")
+
+        Args:
+            fname: destination file path.
+
+        """
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+        dump_learnable(self, fname)
+
     def save_model(self, fname: str) -> None:
         """Saves neural network parameters.
 
@@ -159,7 +204,8 @@ class LearnableBase(metaclass=ABCMeta):
 
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        self._impl.save_model(fname)
+        with open(fname, "wb") as f:
+            self._impl.save_model(f)
 
     def load_model(self, fname: str) -> None:
         """Load neural network parameters.
@@ -173,7 +219,8 @@ class LearnableBase(metaclass=ABCMeta):
 
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        self._impl.load_model(fname)
+        with open(fname, "rb") as f:
+            self._impl.load_model(f)
 
     @classmethod
     def from_json(

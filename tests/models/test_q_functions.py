@@ -43,6 +43,9 @@ def test_mean_q_function_factory(observation_shape, action_size):
 
     assert factory.get_type() == "mean"
 
+    # check serization and deserialization
+    MeanQFunctionFactory.deserialize(factory.serialize())
+
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [None, 2])
@@ -58,6 +61,9 @@ def test_qr_q_function_factory(observation_shape, action_size):
         assert isinstance(q_func, DiscreteQRQFunction)
 
     assert factory.get_type() == "qr"
+
+    # check serization and deserialization
+    QRQFunctionFactory.deserialize(factory.serialize())
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -75,6 +81,9 @@ def test_iqn_q_function_factory(observation_shape, action_size):
 
     assert factory.get_type() == "iqn"
 
+    # check serization and deserialization
+    IQNQFunctionFactory.deserialize(factory.serialize())
+
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [None, 2])
@@ -90,3 +99,6 @@ def test_fqf_q_function_factory(observation_shape, action_size):
         assert isinstance(q_func, DiscreteFQFQFunction)
 
     assert factory.get_type() == "fqf"
+
+    # check serization and deserialization
+    FQFQFunctionFactory.deserialize(factory.serialize())

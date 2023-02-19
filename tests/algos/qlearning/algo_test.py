@@ -12,7 +12,7 @@ from d3rlpy.dataset import (
     TransitionMiniBatch,
     create_infinite_replay_buffer,
 )
-from tests.base_test import from_json_tester
+from tests.base_test import from_json_tester, load_learnable_tester
 
 
 def algo_tester(
@@ -30,6 +30,7 @@ def algo_tester(
     fit_tester(algo, observation_shape, action_size)
     if test_from_json:
         from_json_tester(algo, observation_shape, action_size)
+        load_learnable_tester(algo, observation_shape, action_size)
     predict_tester(algo, observation_shape, action_size)
     sample_action_tester(algo, observation_shape, action_size)
     save_and_load_tester(algo, observation_shape, action_size)

@@ -35,6 +35,10 @@ def test_multiply_reward_scaler(batch_size, multiplier):
 
     assert scaler.get_type() == "multiply"
 
+    # check serialization and deserialization
+    new_scaler = MultiplyRewardScaler.deserialize(scaler.serialize())
+    assert new_scaler.multiplier == scaler.multiplier
+
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("low", [-0.1])
@@ -60,14 +64,20 @@ def test_clip_reward_scaler(batch_size, low, high, multiplier):
 
     assert scaler.get_type() == "clip"
 
+    # check serialization and deserialization
+    new_scaler = ClipRewardScaler.deserialize(scaler.serialize())
+    assert new_scaler.low == scaler.low
+    assert new_scaler.high == scaler.high
+    assert new_scaler.multiplier == scaler.multiplier
+
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("multiplier", [10.0])
 def test_min_max_reward_scaler(batch_size, multiplier):
     rewards = 10.0 * np.random.random(batch_size).astype("f4")
 
-    maximum = rewards.max()
-    minimum = rewards.min()
+    maximum = float(rewards.max())
+    minimum = float(rewards.min())
 
     scaler = MinMaxRewardScaler(
         minimum=minimum, maximum=maximum, multiplier=multiplier
@@ -90,6 +100,11 @@ def test_min_max_reward_scaler(batch_size, multiplier):
     assert np.allclose(scaler.transform_numpy(rewards), ref_y)
 
     assert scaler.get_type() == "min_max"
+
+    # check serialization and deserialization
+    new_scaler = MinMaxRewardScaler.deserialize(scaler.serialize())
+    assert new_scaler.minimum == scaler.minimum
+    assert new_scaler.maximum == scaler.maximum
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -135,8 +150,8 @@ def test_min_max_reward_scaler_with_episode(
 def test_standard_reward_scaler(batch_size, eps, multiplier):
     rewards = 10.0 * np.random.random(batch_size).astype("f4")
 
-    mean = np.mean(rewards)
-    std = np.std(rewards)
+    mean = float(np.mean(rewards))
+    std = float(np.std(rewards))
 
     scaler = StandardRewardScaler(
         mean=mean, std=std, eps=eps, multiplier=multiplier
@@ -156,6 +171,12 @@ def test_standard_reward_scaler(batch_size, eps, multiplier):
     assert np.allclose(y, ref_y, atol=1e-4)
 
     assert scaler.get_type() == "standard"
+
+    # check serialization and deserialization
+    new_scaler = StandardRewardScaler.deserialize(scaler.serialize())
+    assert new_scaler.mean == scaler.mean
+    assert new_scaler.std == scaler.std
+    assert new_scaler.multiplier == scaler.multiplier
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -229,6 +250,12 @@ def test_return_based_reward_scaler_with_episode(
     ref_y = x.numpy() / (max(returns) - min(returns))
     assert np.allclose(y, ref_y, atol=1e-4)
 
+    # check serialization and deserialization
+    new_scaler = ReturnBasedRewardScaler.deserialize(scaler.serialize())
+    assert new_scaler.return_max == scaler.return_max
+    assert new_scaler.return_min == scaler.return_min
+    assert new_scaler.multiplier == scaler.multiplier
+
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("shift", [-1])
@@ -250,3 +277,7 @@ def test_constant_shift_reward_scaler(batch_size, shift):
     assert np.allclose(y, rewards + shift, atol=1e-4)
 
     assert scaler.get_type() == "shift"
+
+    # check serialization and deserialization
+    new_scaler = ConstantShiftRewardScaler.deserialize(scaler.serialize())
+    assert new_scaler.shift == scaler.shift

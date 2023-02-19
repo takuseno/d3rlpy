@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Union
 
 from ..dataset import Shape, cast_flat_shape
 from ..serializable_config import DynamicConfig, generate_config_registration
@@ -75,8 +75,8 @@ class PixelEncoderFactory(EncoderFactory):
 
     """
 
-    filters: List[Sequence[int]] = field(
-        default_factory=lambda: [(32, 8, 4), (64, 4, 2), (64, 3, 1)]
+    filters: List[List[int]] = field(
+        default_factory=lambda: [[32, 8, 4], [64, 4, 2], [64, 3, 1]]
     )
     feature_size: int = 512
     activation: str = "relu"
@@ -133,7 +133,7 @@ class VectorEncoderFactory(EncoderFactory):
 
     """
 
-    hidden_units: Sequence[int] = field(default_factory=lambda: [256, 256])
+    hidden_units: List[int] = field(default_factory=lambda: [256, 256])
     activation: str = "relu"
     use_batch_norm: bool = False
     dropout_rate: Optional[float] = None

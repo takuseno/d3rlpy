@@ -25,6 +25,9 @@ def test_pixel_observation_scaler(observation_shape):
     assert scaler.get_type() == "pixel"
     assert torch.all(scaler.reverse_transform(y) == x)
 
+    # check serialization and deserialization
+    PixelObservationScaler.deserialize(scaler.serialize())
+
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("batch_size", [32])
@@ -48,6 +51,11 @@ def test_min_max_observation_scaler(observation_shape, batch_size):
 
     assert scaler.get_type() == "min_max"
     assert torch.allclose(scaler.reverse_transform(y), x)
+
+    # check serialization and deserialization
+    new_scaler = MinMaxObservationScaler.deserialize(scaler.serialize())
+    assert np.all(new_scaler.minimum == scaler.minimum)
+    assert np.all(new_scaler.maximum == scaler.maximum)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -115,6 +123,11 @@ def test_standard_observation_scaler(observation_shape, batch_size, eps):
 
     assert scaler.get_type() == "standard"
     assert torch.allclose(scaler.reverse_transform(y), x, atol=1e-6)
+
+    # check serialization and deserialization
+    new_scaler = StandardObservationScaler.deserialize(scaler.serialize())
+    assert np.all(new_scaler.mean == scaler.mean)
+    assert np.all(new_scaler.std == scaler.std)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])

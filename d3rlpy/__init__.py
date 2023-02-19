@@ -6,6 +6,7 @@ import torch
 from . import datasets
 from ._version import __version__
 from .algos import *
+from .base import load_learnable
 from .dataset import *
 from .envs import *
 from .metrics import *

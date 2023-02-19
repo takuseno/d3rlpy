@@ -79,7 +79,7 @@ class _PixelEncoder(nn.Module):  # type: ignore
     def __init__(
         self,
         observation_shape: Sequence[int],
-        filters: Optional[List[Sequence[int]]] = None,
+        filters: Optional[List[List[int]]] = None,
         feature_size: int = 512,
         use_batch_norm: bool = False,
         dropout_rate: Optional[float] = False,
@@ -89,7 +89,7 @@ class _PixelEncoder(nn.Module):  # type: ignore
 
         # default architecture is based on Nature DQN paper.
         if filters is None:
-            filters = [(32, 8, 4), (64, 4, 2), (64, 3, 1)]
+            filters = [[32, 8, 4], [64, 4, 2], [64, 3, 1]]
         if feature_size is None:
             feature_size = 512
 
@@ -180,7 +180,7 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
         self,
         observation_shape: Sequence[int],
         action_size: int,
-        filters: Optional[List[Sequence[int]]] = None,
+        filters: Optional[List[List[int]]] = None,
         feature_size: int = 512,
         use_batch_norm: bool = False,
         dropout_rate: Optional[float] = None,

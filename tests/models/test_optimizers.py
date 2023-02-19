@@ -20,6 +20,9 @@ def test_sgd_factory(lr, module):
     assert isinstance(optim, SGD)
     assert optim.defaults["lr"] == lr
 
+    # check serialization and deserialization
+    SGDFactory.deserialize(factory.serialize())
+
 
 @pytest.mark.parametrize("lr", [1e-4])
 @pytest.mark.parametrize("module", [torch.nn.Linear(2, 3)])
@@ -30,6 +33,9 @@ def test_adam_factory(lr, module):
 
     assert isinstance(optim, Adam)
     assert optim.defaults["lr"] == lr
+
+    # check serialization and deserialization
+    AdamFactory.deserialize(factory.serialize())
 
 
 @pytest.mark.parametrize("lr", [1e-4])
@@ -42,6 +48,9 @@ def test_adam_w_factory(lr, module):
     assert isinstance(optim, AdamW)
     assert optim.defaults["lr"] == lr
 
+    # check serialization and deserialization
+    AdamWFactory.deserialize(factory.serialize())
+
 
 @pytest.mark.parametrize("lr", [1e-4])
 @pytest.mark.parametrize("module", [torch.nn.Linear(2, 3)])
@@ -52,3 +61,6 @@ def test_rmsprop_factory(lr, module):
 
     assert isinstance(optim, RMSprop)
     assert optim.defaults["lr"] == lr
+
+    # check serialization and deserialization
+    RMSpropFactory.deserialize(factory.serialize())

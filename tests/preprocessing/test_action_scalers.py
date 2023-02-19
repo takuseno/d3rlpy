@@ -34,6 +34,11 @@ def test_min_max_action_scaler(action_size, batch_size):
     ref_y = ((max - min) * ((x + 1.0) / 2.0)) + min
     assert np.allclose(scaler.reverse_transform_numpy(x), ref_y)
 
+    # check serialization and deserialization
+    new_scaler = MinMaxActionScaler.deserialize(scaler.serialize())
+    assert np.all(new_scaler.minimum == scaler.minimum)
+    assert np.all(new_scaler.maximum == scaler.maximum)
+
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [10])

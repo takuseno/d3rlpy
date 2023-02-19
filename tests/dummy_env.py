@@ -12,7 +12,6 @@ class DummyAtari(gym.Env):
         self.observation_space = Box(
             low=np.zeros(shape),
             high=np.zeros(shape) + 255,
-            shape=shape,
             dtype=np.uint8,
         )
         self.action_space = Discrete(4)

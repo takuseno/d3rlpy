@@ -33,6 +33,9 @@ def test_pixel_encoder_factory(observation_shape, action_size, discrete_action):
 
     assert factory.get_type() == "pixel"
 
+    # check serization and deserialization
+    PixelEncoderFactory.deserialize(factory.serialize())
+
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
@@ -54,6 +57,11 @@ def test_vector_encoder_factory(
     assert encoder._discrete_action == discrete_action
 
     assert factory.get_type() == "vector"
+
+    # check serization and deserialization
+    new_factory = VectorEncoderFactory.deserialize(factory.serialize())
+    assert new_factory.hidden_units == factory.hidden_units
+    assert new_factory.use_batch_norm == factory.use_batch_norm
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
@@ -83,6 +91,9 @@ def test_default_encoder_factory(
 
     assert factory.get_type() == "default"
 
+    # check serization and deserialization
+    DefaultEncoderFactory.deserialize(factory.serialize())
+
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
@@ -104,3 +115,6 @@ def test_dense_encoder_factory(observation_shape, action_size, discrete_action):
     assert encoder._use_dense
 
     assert factory.get_type() == "dense"
+
+    # check serization and deserialization
+    DenseEncoderFactory.deserialize(factory.serialize())
