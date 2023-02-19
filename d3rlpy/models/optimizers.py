@@ -2,7 +2,7 @@ import dataclasses
 from typing import Iterable, Tuple
 
 from torch import nn
-from torch.optim import SGD, Adam, Optimizer, RMSprop
+from torch.optim import SGD, Adam, AdamW, Optimizer, RMSprop
 
 from ..serializable_config import DynamicConfig, generate_config_registration
 
@@ -10,6 +10,7 @@ __all__ = [
     "OptimizerFactory",
     "SGDFactory",
     "AdamFactory",
+    "AdamWFactory",
     "RMSpropFactory",
     "register_optimizer_factory",
     "make_optimizer_field",
@@ -116,6 +117,45 @@ class AdamFactory(OptimizerFactory):
 
 
 @dataclasses.dataclass()
+class AdamWFactory(OptimizerFactory):
+    """An alias for AdamW optimizer.
+
+    .. code-block:: python
+
+        from d3rlpy.optimizers import AdamWFactory
+
+        factory = AdamWFactory(weight_decay=1e-4)
+
+    Args:
+        betas: coefficients used for computing running averages of
+            gradient and its square.
+        eps: term added to the denominator to improve numerical stability.
+        weight_decay: weight decay (L2 penalty).
+        amsgrad: flag to use the AMSGrad variant of this algorithm.
+
+    """
+
+    betas: Tuple[float, float] = (0.9, 0.999)
+    eps: float = 1e-8
+    weight_decay: float = 0
+    amsgrad: bool = False
+
+    def create(self, params: Iterable[nn.Parameter], lr: float) -> AdamW:
+        return AdamW(
+            params,
+            lr=lr,
+            betas=self.betas,
+            eps=self.eps,
+            weight_decay=self.weight_decay,
+            amsgrad=self.amsgrad,
+        )
+
+    @staticmethod
+    def get_type() -> str:
+        return "adam_w"
+
+
+@dataclasses.dataclass()
 class RMSpropFactory(OptimizerFactory):
     """An alias for RMSprop optimizer.
 
@@ -164,4 +204,5 @@ register_optimizer_factory, make_optimizer_field = generate_config_registration(
 
 register_optimizer_factory(SGDFactory)
 register_optimizer_factory(AdamFactory)
+register_optimizer_factory(AdamWFactory)
 register_optimizer_factory(RMSpropFactory)

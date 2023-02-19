@@ -1,8 +1,13 @@
 import pytest
 import torch
-from torch.optim import SGD, Adam, RMSprop
+from torch.optim import SGD, Adam, AdamW, RMSprop
 
-from d3rlpy.models.optimizers import AdamFactory, RMSpropFactory, SGDFactory
+from d3rlpy.models.optimizers import (
+    AdamFactory,
+    AdamWFactory,
+    RMSpropFactory,
+    SGDFactory,
+)
 
 
 @pytest.mark.parametrize("lr", [1e-4])
@@ -24,6 +29,17 @@ def test_adam_factory(lr, module):
     optim = factory.create(module.parameters(), lr)
 
     assert isinstance(optim, Adam)
+    assert optim.defaults["lr"] == lr
+
+
+@pytest.mark.parametrize("lr", [1e-4])
+@pytest.mark.parametrize("module", [torch.nn.Linear(2, 3)])
+def test_adam_w_factory(lr, module):
+    factory = AdamWFactory()
+
+    optim = factory.create(module.parameters(), lr)
+
+    assert isinstance(optim, AdamW)
     assert optim.defaults["lr"] == lr
 
 
