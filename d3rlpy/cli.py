@@ -12,8 +12,17 @@ from scipy.ndimage.filters import uniform_filter1d
 
 from . import algos
 from ._version import __version__
+from .algos import (
+    QLearningAlgoBase,
+    StatefulTransformerWrapper,
+    TransformerAlgoBase,
+)
+from .base import load_learnable
 from .envs import Monitor
-from .metrics.utility import evaluate_qlearning_with_environment
+from .metrics.utility import (
+    evaluate_qlearning_with_environment,
+    evaluate_transformer_with_environment,
+)
 
 if TYPE_CHECKING:
     import matplotlib.pyplot
@@ -263,36 +272,28 @@ def _exec_to_create_env(code: str) -> gym.Env:
 )
 @click.option("--out", default="videos", help="output directory path.")
 @click.option(
-    "--params-json", default=None, help="explicityly specify params.json."
-)
-@click.option(
     "--n-episodes", default=3, help="the number of episodes to record."
 )
 @click.option("--frame-rate", default=60, help="video frame rate.")
 @click.option("--record-rate", default=1, help="record frame rate.")
-@click.option("--epsilon", default=0.0, help="epsilon-greedy evaluation.")
+@click.option(
+    "--target-return",
+    default=None,
+    help="the target return for Decision Transformer variants.",
+)
 def record(
     model_path: str,
     env_id: Optional[str],
     env_header: Optional[str],
-    params_json: Optional[str],
     out: str,
     n_episodes: int,
     frame_rate: float,
     record_rate: int,
-    epsilon: float,
+    target_return: Optional[float],
 ) -> None:
-    if params_json is None:
-        params_json = _get_params_json_path(model_path)
-
-    # load params
-    with open(params_json, "r") as f:
-        params = json.loads(f.read())
-
     # load saved model
     print(f"Loading {model_path}...")
-    algo = getattr(algos, params["algorithm"]).from_json(params_json)
-    algo.load_model(model_path)
+    algo = load_learnable(model_path)
 
     # wrap environment with Monitor
     env: gym.Env
@@ -312,9 +313,20 @@ def record(
     )
 
     # run episodes
-    evaluate_qlearning_with_environment(
-        algo, wrapped_env, n_episodes, epsilon=epsilon
-    )
+    if isinstance(algo, QLearningAlgoBase):
+        evaluate_qlearning_with_environment(
+            algo, wrapped_env, n_episodes, render=True
+        )
+    elif isinstance(algo, TransformerAlgoBase):
+        assert target_return is not None, "--target-return must be specified."
+        evaluate_transformer_with_environment(
+            StatefulTransformerWrapper(algo, float(target_return)),
+            wrapped_env,
+            n_episodes,
+            render=True,
+        )
+    else:
+        raise ValueError("invalid algo type.")
 
 
 @cli.command(short_help="Run evaluation episodes with rendering.")
@@ -323,28 +335,22 @@ def record(
 @click.option(
     "--env-header", default=None, help="one-liner to create environment."
 )
-@click.option(
-    "--params-json", default=None, help="explicityly specify params.json."
-)
 @click.option("--n-episodes", default=3, help="the number of episodes to run.")
+@click.option(
+    "--target-return",
+    default=None,
+    help="the target return for Decision Transformer variants.",
+)
 def play(
     model_path: str,
     env_id: Optional[str],
     env_header: Optional[str],
-    params_json: Optional[str],
     n_episodes: int,
+    target_return: Optional[float],
 ) -> None:
-    if params_json is None:
-        params_json = _get_params_json_path(model_path)
-
-    # load params
-    with open(params_json, "r") as f:
-        params = json.loads(f.read())
-
     # load saved model
     print(f"Loading {model_path}...")
-    algo = getattr(algos, params["algorithm"]).from_json(params_json)
-    algo.load_model(model_path)
+    algo = load_learnable(model_path)
 
     # wrap environment with Monitor
     env: gym.Env
@@ -356,4 +362,15 @@ def play(
         raise ValueError("env_id or env_header must be provided.")
 
     # run episodes
-    evaluate_qlearning_with_environment(algo, env, n_episodes, render=True)
+    if isinstance(algo, QLearningAlgoBase):
+        evaluate_qlearning_with_environment(algo, env, n_episodes, render=True)
+    elif isinstance(algo, TransformerAlgoBase):
+        assert target_return is not None, "--target-return must be specified."
+        evaluate_transformer_with_environment(
+            StatefulTransformerWrapper(algo, float(target_return)),
+            env,
+            n_episodes,
+            render=True,
+        )
+    else:
+        raise ValueError("invalid algo type.")
