@@ -319,7 +319,7 @@ def test_episode_terminals(data_size, observation_size, action_size):
 
 
 @pytest.mark.parametrize("data_size", [100])
-@pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
+@pytest.mark.parametrize("observation_shape", [(100,), (60,40), (4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_frames", [1, 4])
 @pytest.mark.parametrize("n_steps", [1, 3])
