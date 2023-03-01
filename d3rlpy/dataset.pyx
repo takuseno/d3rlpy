@@ -1149,7 +1149,7 @@ cdef class TransitionMiniBatch:
         cdef tuple observation_shape = transitions[0].get_observation_shape()
         cdef int observation_ndim = len(observation_shape)
         observation_dtype = transitions[0].observation.dtype
-        if len(observation_shape) == 3 and n_frames > 1:
+        if observation_ndim == 3 and n_frames > 1:
             c, h, w = observation_shape
             observation_shape = (n_frames * c, h, w)
 
@@ -1213,7 +1213,8 @@ cdef class TransitionMiniBatch:
                 n_steps=n_steps,
                 gamma=gamma,
                 is_image=is_image,
-                is_discrete=is_discrete
+                is_discrete=is_discrete,
+                observation_ndim=observation_ndim
             )
 
     cdef void _assign_observation(
@@ -1223,9 +1224,10 @@ cdef class TransitionMiniBatch:
         void* observations_ptr,
         int n_frames,
         bool is_image,
-        bool is_next
+        bool is_next,
+        int observation_ndim
     ) nogil:
-        cdef int offset, channel, height, width
+        cdef int offset, channel, height, width, m, i
         cdef void* src_observation_ptr
         if is_image:
             channel = ptr.get().observation_shape[0]
@@ -1252,7 +1254,10 @@ cdef class TransitionMiniBatch:
                     channel * height * width
                 )
         else:
-            offset = batch_index * ptr.get().observation_shape[0]
+            m = 1
+            for i in range(observation_ndim):
+                m = m * ptr.get().observation_shape[i]
+            offset = batch_index * m
             if is_next:
                 src_observation_ptr = ptr.get().next_observation_f
             else:
@@ -1260,7 +1265,7 @@ cdef class TransitionMiniBatch:
             memcpy(
                 (<FLOAT_t*> observations_ptr) + offset,
                 <FLOAT_t*> src_observation_ptr,
-                ptr.get().observation_shape[0] * sizeof(FLOAT_t)
+                m * sizeof(FLOAT_t)
             )
 
     cdef void _assign_action(
@@ -1297,7 +1302,8 @@ cdef class TransitionMiniBatch:
         int n_steps,
         float gamma,
         bool is_image,
-        bool is_discrete
+        bool is_discrete,
+        int observation_ndim
     ) nogil:
         cdef int i
         cdef float n_step_return = 0.0
@@ -1310,7 +1316,8 @@ cdef class TransitionMiniBatch:
             observations_ptr=observations_ptr,
             n_frames=n_frames,
             is_image=is_image,
-            is_next=False
+            is_next=False,
+            observation_ndim=observation_ndim
         )
         self._assign_action(
             batch_index=batch_index,
@@ -1336,7 +1343,8 @@ cdef class TransitionMiniBatch:
             observations_ptr=next_observations_ptr,
             n_frames=n_frames,
             is_image=is_image,
-            is_next=True
+            is_next=True,
+            observation_ndim=observation_ndim
         )
         terminals_ptr[batch_index] = next_ptr.get().terminal
         n_steps_ptr[batch_index] = i + 1
