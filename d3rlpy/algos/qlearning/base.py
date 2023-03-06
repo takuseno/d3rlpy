@@ -351,7 +351,6 @@ class QLearningAlgoBase(LearnableBase):
         show_progress: bool = True,
         tensorboard_dir: Optional[str] = None,
         eval_episodes: Optional[List[Episode]] = None,
-        eval_env: Optional[gym.Env] = None,
         save_interval: int = 1,
         evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
@@ -381,7 +380,6 @@ class QLearningAlgoBase(LearnableBase):
                 tensorboard (additional to the csv data).  if ``None``, the
                 directory will not be created.
             eval_episodes: list of episodes to test.
-            eval_env: evaluation environment.
             save_interval: interval to save parameters.
             evaluators: list of evaluators used with `eval_episodes`.
             callback: callable function that takes ``(algo, epoch, total_step)``
@@ -404,7 +402,6 @@ class QLearningAlgoBase(LearnableBase):
                 show_progress,
                 tensorboard_dir,
                 eval_episodes,
-                eval_env,
                 save_interval,
                 evaluators,
                 callback,
@@ -425,7 +422,6 @@ class QLearningAlgoBase(LearnableBase):
         show_progress: bool = True,
         tensorboard_dir: Optional[str] = None,
         eval_episodes: Optional[List[Episode]] = None,
-        eval_env: Optional[gym.Env] = None,
         save_interval: int = 1,
         evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
@@ -458,7 +454,6 @@ class QLearningAlgoBase(LearnableBase):
                 tensorboard (additional to the csv data).  if ``None``, the
                 directory will not be created.
             eval_episodes: list of episodes to test.
-            eval_env: evaluation environment.
             save_interval: interval to save parameters.
             evaluators: list of evaluators used with `eval_episodes`.
             callback: callable function that takes ``(algo, epoch, total_step)``
@@ -546,18 +541,10 @@ class QLearningAlgoBase(LearnableBase):
                 if callback:
                     callback(self, epoch, total_step)
 
-            if evaluators and eval_episodes:
+            if evaluators:
                 for name, evaluator in evaluators.items():
-                    test_score = evaluator(
-                        algo=self,
-                        episodes=eval_episodes,
-                        transition_picker=dataset.transition_picker,
-                    )
+                    test_score = evaluator(self, dataset)
                     logger.add_metric(name, test_score)
-
-            if eval_env:
-                eval_score = evaluate_qlearning_with_environment(self, eval_env)
-                logger.add_metric("environment", eval_score)
 
             # save metrics
             metrics = logger.commit(epoch, total_step)

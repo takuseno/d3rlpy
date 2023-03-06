@@ -1,10 +1,12 @@
-from typing import Iterator, Sequence, cast
+from typing import Iterator, Sequence, cast, Optional
 
+import gym
 import numpy as np
 from typing_extensions import Protocol
 
-from ..dataset import Episode, TransitionMiniBatch, TransitionPickerProtocol
+from ..dataset import ReplayBuffer, EpisodeBase, TransitionMiniBatch, TransitionPickerProtocol
 from ..interface import QLearningAlgoProtocol
+from .utility import evaluate_qlearning_with_environment
 
 __all__ = [
     "EvaluatorProtocol",
@@ -18,6 +20,7 @@ __all__ = [
     "DiscreteActionMatchEvaluator",
     "CompareContinuousActionDiffEvaluator",
     "CompareDiscreteActionMatchEvaluator",
+    "EnvironmentEvaluator",
 ]
 
 
@@ -28,14 +31,13 @@ class EvaluatorProtocol(Protocol):
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        episodes: Sequence[Episode],
-        transition_picker: TransitionPickerProtocol,
+        dataset: ReplayBuffer,
     ) -> float:
         ...
 
 
 def make_batches(
-    episode: Episode,
+    episode: EpisodeBase,
     window_size: int,
     transition_picker: TransitionPickerProtocol,
 ) -> Iterator[TransitionMiniBatch]:
@@ -66,16 +68,20 @@ class TDErrorEvaluator(EvaluatorProtocol):
              - r_{t+1} - \gamma \max_a Q_\theta (s_{t+1}, a))^2]
 
     """
+    _episodes: Optional[Sequence[EpisodeBase]]
+
+    def __init__(self, episodes: Optional[Sequence[EpisodeBase]] = None):
+        self._episodes = episodes
 
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        episodes: Sequence[Episode],
-        transition_picker: TransitionPickerProtocol,
+        dataset: ReplayBuffer,
     ) -> float:
         total_errors = []
+        episodes = self._episodes if self._episodes else dataset.episodes
         for episode in episodes:
-            for batch in make_batches(episode, WINDOW_SIZE, transition_picker):
+            for batch in make_batches(episode, WINDOW_SIZE, dataset.transition_picker):
                 # estimate values for current observations
                 values = algo.predict_value(batch.observations, batch.actions)
 
@@ -117,16 +123,20 @@ class DiscountedSumOfAdvantageEvaluator(EvaluatorProtocol):
           <http://www.jmlr.org/papers/volume6/murphy05a/murphy05a.pdf>`_
 
     """
+    _episodes: Optional[Sequence[EpisodeBase]]
+
+    def __init__(self, episodes: Optional[Sequence[EpisodeBase]] = None):
+        self._episodes = episodes
 
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        episodes: Sequence[Episode],
-        transition_picker: TransitionPickerProtocol,
+        dataset: ReplayBuffer,
     ) -> float:
         total_sums = []
+        episodes = self._episodes if self._episodes else dataset.episodes
         for episode in episodes:
-            for batch in make_batches(episode, WINDOW_SIZE, transition_picker):
+            for batch in make_batches(episode, WINDOW_SIZE, dataset.transition_picker):
                 # estimate values for dataset actions
                 dataset_values = algo.predict_value(
                     batch.observations, batch.actions
@@ -166,16 +176,20 @@ class AverageValueEstimationEvaluator(EvaluatorProtocol):
         \mathbb{E}_{s_t \sim D} [ \max_a Q_\theta (s_t, a)]
 
     """
+    _episodes: Optional[Sequence[EpisodeBase]]
+
+    def __init__(self, episodes: Optional[Sequence[EpisodeBase]] = None):
+        self._episodes = episodes
 
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        episodes: Sequence[Episode],
-        transition_picker: TransitionPickerProtocol,
+        dataset: ReplayBuffer,
     ) -> float:
         total_values = []
+        episodes = self._episodes if self._episodes else dataset.episodes
         for episode in episodes:
-            for batch in make_batches(episode, WINDOW_SIZE, transition_picker):
+            for batch in make_batches(episode, WINDOW_SIZE, dataset.transition_picker):
                 actions = algo.predict(batch.observations)
                 values = algo.predict_value(batch.observations, actions)
                 total_values += cast(np.ndarray, values).tolist()
@@ -200,15 +214,20 @@ class InitialStateValueEstimationEvaluator(EvaluatorProtocol):
 
     """
 
+    _episodes: Optional[Sequence[EpisodeBase]]
+
+    def __init__(self, episodes: Optional[Sequence[EpisodeBase]] = None):
+        self._episodes = episodes
+
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        episodes: Sequence[Episode],
-        transition_picker: TransitionPickerProtocol,
+        dataset: ReplayBuffer,
     ) -> float:
         total_values = []
+        episodes = self._episodes if self._episodes else dataset.episodes
         for episode in episodes:
-            for batch in make_batches(episode, WINDOW_SIZE, transition_picker):
+            for batch in make_batches(episode, WINDOW_SIZE, dataset.transition_picker):
                 # estimate action-value in initial states
                 actions = algo.predict([batch.observations[0]])
                 values = algo.predict_value([batch.observations[0]], actions)
@@ -240,21 +259,23 @@ class SoftOPCEvaluator(EvaluatorProtocol):
 
     """
     _return_threshold: float
+    _episodes: Optional[Sequence[EpisodeBase]]
 
-    def __init__(self, return_threshold: float):
+    def __init__(self, return_threshold: float, episodes: Optional[Sequence[EpisodeBase]] = None):
         self._return_threshold = return_threshold
+        self._episodes = episodes
 
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        episodes: Sequence[Episode],
-        transition_picker: TransitionPickerProtocol,
+        dataset: ReplayBuffer,
     ) -> float:
         success_values = []
         all_values = []
+        episodes = self._episodes if self._episodes else dataset.episodes
         for episode in episodes:
             is_success = episode.compute_return() >= self._return_threshold
-            for batch in make_batches(episode, WINDOW_SIZE, transition_picker):
+            for batch in make_batches(episode, WINDOW_SIZE, dataset.transition_picker):
                 values = algo.predict_value(batch.observations, batch.actions)
                 values = cast(np.ndarray, values)
                 all_values += values.reshape(-1).tolist()
@@ -276,16 +297,20 @@ class ContinuousActionDiffEvaluator(EvaluatorProtocol):
         \mathbb{E}_{s_t, a_t \sim D} [(a_t - \pi_\phi (s_t))^2]
 
     """
+    _episodes: Optional[Sequence[EpisodeBase]]
+
+    def __init__(self, episodes: Optional[Sequence[EpisodeBase]] = None):
+        self._episodes = episodes
 
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        episodes: Sequence[Episode],
-        transition_picker: TransitionPickerProtocol,
+        dataset: ReplayBuffer,
     ) -> float:
         total_diffs = []
+        episodes = self._episodes if self._episodes else dataset.episodes
         for episode in episodes:
-            for batch in make_batches(episode, WINDOW_SIZE, transition_picker):
+            for batch in make_batches(episode, WINDOW_SIZE, dataset.transition_picker):
                 actions = algo.predict(batch.observations)
                 diff = ((batch.actions - actions) ** 2).sum(axis=1).tolist()
                 total_diffs += diff
@@ -306,16 +331,20 @@ class DiscreteActionMatchEvaluator(EvaluatorProtocol):
             \{a_t = \text{argmax}_a Q_\theta (s_t, a)\}
 
     """
+    _episodes: Optional[Sequence[EpisodeBase]]
+
+    def __init__(self, episodes: Optional[Sequence[EpisodeBase]] = None):
+        self._episodes = episodes
 
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        episodes: Sequence[Episode],
-        transition_picker: TransitionPickerProtocol,
+        dataset: ReplayBuffer,
     ) -> float:
         total_matches = []
+        episodes = self._episodes if self._episodes else dataset.episodes
         for episode in episodes:
-            for batch in make_batches(episode, WINDOW_SIZE, transition_picker):
+            for batch in make_batches(episode, WINDOW_SIZE, dataset.transition_picker):
                 actions = algo.predict(batch.observations)
                 match = (batch.actions.reshape(-1) == actions).tolist()
                 total_matches += match
@@ -340,20 +369,22 @@ class CompareContinuousActionDiffEvaluator(EvaluatorProtocol):
 
     """
     _base_algo: QLearningAlgoProtocol
+    _episodes: Optional[Sequence[EpisodeBase]]
 
-    def __init__(self, base_algo: QLearningAlgoProtocol):
+    def __init__(self, base_algo: QLearningAlgoProtocol, episodes: Optional[Sequence[EpisodeBase]] = None):
         self._base_algo = base_algo
+        self._episodes = episodes
 
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        episodes: Sequence[Episode],
-        transition_picker: TransitionPickerProtocol,
+        dataset: ReplayBuffer,
     ) -> float:
         total_diffs = []
+        episodes = self._episodes if self._episodes else dataset.episodes
         for episode in episodes:
             # TODO: handle different n_frames
-            for batch in make_batches(episode, WINDOW_SIZE, transition_picker):
+            for batch in make_batches(episode, WINDOW_SIZE, dataset.transition_picker):
                 base_actions = self._base_algo.predict(batch.observations)
                 actions = algo.predict(batch.observations)
                 diff = ((actions - base_actions) ** 2).sum(axis=1).tolist()
@@ -380,22 +411,42 @@ class CompareDiscreteActionMatchEvaluator(EvaluatorProtocol):
 
     """
     _base_algo: QLearningAlgoProtocol
+    _episodes: Optional[Sequence[EpisodeBase]]
 
-    def __init__(self, base_algo: QLearningAlgoProtocol):
+    def __init__(self, base_algo: QLearningAlgoProtocol, episodes: Optional[Sequence[EpisodeBase]] = None):
         self._base_algo = base_algo
+        self._episodes = episodes
 
-    def __call__(
-        self,
-        algo: QLearningAlgoProtocol,
-        episodes: Sequence[Episode],
-        transition_picker: TransitionPickerProtocol,
-    ) -> float:
+    def __call__(self, algo: QLearningAlgoProtocol, dataset: ReplayBuffer) -> float:
         total_matches = []
+        episodes = self._episodes if self._episodes else dataset.episodes
         for episode in episodes:
             # TODO: handle different n_frames
-            for batch in make_batches(episode, WINDOW_SIZE, transition_picker):
+            for batch in make_batches(episode, WINDOW_SIZE, dataset.transition_picker):
                 base_actions = self._base_algo.predict(batch.observations)
                 actions = algo.predict(batch.observations)
                 match = (base_actions == actions).tolist()
                 total_matches += match
         return float(np.mean(total_matches))
+
+
+class EnvironmentEvaluator(EvaluatorProtocol):
+    _env: gym.Env
+    _n_trials: int
+    _epsilon: float
+    _render: bool
+
+    def __init__(self, env: gym.Env, n_trials: int = 10, epsilon: float = 0.0, render: bool = False):
+        self._env = env
+        self._n_trials = n_trials
+        self._epsilon = epsilon
+        self._render = render
+
+    def __call__(self, algo: QLearningAlgoProtocol, dataset: ReplayBuffer) -> float:
+        return evaluate_qlearning_with_environment(
+            algo=algo,
+            env=self._env,
+            n_trials=self._n_trials,
+            epsilon=self._epsilon,
+            render=self._render,
+        )

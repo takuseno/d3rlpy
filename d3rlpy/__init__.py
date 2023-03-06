@@ -3,17 +3,9 @@ import random
 import numpy as np
 import torch
 
-from . import datasets
+from . import datasets, algos, dataset, envs, metrics, models, ope, preprocessing, wrappers
 from ._version import __version__
-from .algos import *
 from .base import load_learnable
-from .dataset import *
-from .envs import *
-from .metrics import *
-from .models import *
-from .ope import *
-from .preprocessing import *
-from .wrappers import *
 
 
 def seed(n: int) -> None:
