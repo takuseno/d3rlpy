@@ -13,7 +13,6 @@ Contribution examples:
 ```
 $ git clone git@github.com:takuseno/d3rlpy
 $ cd d3rlpy
-$ pip install Cython numpy # if not installed
 $ pip install -e .
 ```
 
@@ -27,11 +26,10 @@ $ ./scripts/test
 ```
 
 ### coding style
-This repository is styled with [black](https://github.com/psf/black) formatter
-(partially styled with [yapf](https://github.com/google/yapf)).
+This repository is styled with [black](https://github.com/psf/black) formatter.
 Also, [isort](https://github.com/PyCQA/isort) is used to format package imports.
 ```
-$ pip install black yapf # formatters
+$ pip install black # formatters
 $ ./scripts/format
 ```
 
@@ -39,6 +37,6 @@ $ ./scripts/format
 This repository is fully type-annotated and checked by [mypy](https://github.com/python/mypy).
 Also, [pylint](https://github.com/PyCQA/pylint) checks code consistency.
 ```
-$ pip install mypy pylint # linters
+$ pip install mypy pylint==2.13.5 # linters
 $ ./scripts/lint
 ```

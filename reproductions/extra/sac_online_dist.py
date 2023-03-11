@@ -1,15 +1,17 @@
 import argparse
-import d3rlpy
+
 import gym
 import pybullet_envs
+
+import d3rlpy
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='Hopper-v2')
-    parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--gpu', type=int)
-    parser.add_argument('--q-func', type=str, required=True)
+    parser.add_argument("--env", type=str, default="Hopper-v2")
+    parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--gpu", type=int)
+    parser.add_argument("--q-func", type=str, required=True)
     args = parser.parse_args()
 
     env = gym.make(args.env)
@@ -22,9 +24,9 @@ def main():
 
     optim = d3rlpy.models.optimizers.AdamFactory(eps=1e-2 / 256)
 
-    sac = d3rlpy.algos.SAC(critic_optim_factory=optim,
-                           q_func_factory=args.q_func,
-                           use_gpu=args.gpu)
+    sac = d3rlpy.algos.SAC(
+        critic_optim_factory=optim, q_func_factory=args.q_func, use_gpu=args.gpu
+    )
 
     buffer = d3rlpy.online.buffers.ReplayBuffer(1000000, env=env)
 
@@ -37,8 +39,9 @@ def main():
         update_start_step=1000,
         random_steps=10000,
         save_interval=10,
-        experiment_name=f"SAC_online_{args.q_func}_{args.env}_{args.seed}")
+        experiment_name=f"SAC_online_{args.q_func}_{args.env}_{args.seed}",
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

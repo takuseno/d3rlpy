@@ -1,15 +1,17 @@
 import argparse
-import d3rlpy
+
 import gym
 import pybullet_envs
+
+import d3rlpy
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='Hopper-v2')
-    parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--gpu', type=int)
-    parser.add_argument('--n-steps', type=int, required=True)
+    parser.add_argument("--env", type=str, default="Hopper-v2")
+    parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--gpu", type=int)
+    parser.add_argument("--n-steps", type=int, required=True)
     args = parser.parse_args()
 
     env = gym.make(args.env)
@@ -34,8 +36,9 @@ def main():
         update_start_step=1000,
         random_steps=10000,
         save_interval=10,
-        experiment_name=f"SAC_online_n_{args.n_steps}_{args.env}_{args.seed}")
+        experiment_name=f"SAC_online_n_{args.n_steps}_{args.env}_{args.seed}",
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
