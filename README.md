@@ -33,6 +33,8 @@ actions = sac.predict(x)
 - Documentation: https://d3rlpy.readthedocs.io
 - Paper: https://arxiv.org/abs/2111.03788
 
+:warning: Next generation of d3rlpy is under development in [nightly](https://github.com/takuseno/d3rlpy/tree/nightly) branch. It's not fully supporting all of features in the stable versions and there is no documentation yet. However, you're interested, you can sneak to see what's there.
+
 ## key features
 
 ### :zap: Most Practical RL Library Ever
