@@ -36,3 +36,7 @@ jobs:
           name: ${{ matrix.os }}_${{ matrix.python-version}}.whl
           path: dist/d3rlpy-*.whl
           retention-days: 5
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
