@@ -20,7 +20,6 @@ __all__ = ["FQEBaseImpl", "FQEImpl", "DiscreteFQEImpl"]
 
 
 class FQEBaseImpl(QLearningAlgoImplBase):
-
     _gamma: float
     _q_func: EnsembleQFunction
     _targ_q_func: EnsembleQFunction
@@ -91,13 +90,11 @@ class FQEBaseImpl(QLearningAlgoImplBase):
 
 
 class FQEImpl(ContinuousQFunctionMixin, FQEBaseImpl):
-
     _q_func: EnsembleContinuousQFunction
     _targ_q_func: EnsembleContinuousQFunction
 
 
 class DiscreteFQEImpl(DiscreteQFunctionMixin, FQEBaseImpl):
-
     _q_func: EnsembleDiscreteQFunction
     _targ_q_func: EnsembleDiscreteQFunction
 

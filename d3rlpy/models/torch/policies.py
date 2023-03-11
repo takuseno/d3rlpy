@@ -56,7 +56,6 @@ class Policy(nn.Module, metaclass=ABCMeta):  # type: ignore
 
 
 class DeterministicPolicy(Policy):
-
     _encoder: Encoder
     _fc: nn.Linear
 
@@ -91,7 +90,6 @@ class DeterministicPolicy(Policy):
 
 
 class DeterministicResidualPolicy(Policy):
-
     _encoder: EncoderWithAction
     _scale: float
     _fc: nn.Linear
@@ -136,7 +134,6 @@ class DeterministicResidualPolicy(Policy):
 
 
 class NormalPolicy(Policy):
-
     _encoder: Encoder
     _action_size: int
     _min_logstd: float
@@ -302,7 +299,6 @@ class NonSquashedNormalPolicy(NormalPolicy):
 
 
 class CategoricalPolicy(Policy):
-
     _encoder: Encoder
     _fc: nn.Linear
 

@@ -93,7 +93,6 @@ class SACImpl(DDPGBaseImpl):
 
 
 class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
-
     _policy: CategoricalPolicy
     _q_func: EnsembleDiscreteQFunction
     _targ_q_func: EnsembleDiscreteQFunction

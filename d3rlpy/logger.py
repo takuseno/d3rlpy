@@ -33,7 +33,6 @@ LOG: structlog.BoundLogger = structlog.get_logger(__name__)
 
 
 class D3RLPyLogger:
-
     _experiment_name: str
     _logdir: str
     _save_metrics: bool
@@ -117,7 +116,6 @@ class D3RLPyLogger:
     def commit(self, epoch: int, step: int) -> Dict[str, float]:
         metrics = {}
         for name, buffer in self._metrics_buffer.items():
-
             metric = sum(buffer) / len(buffer)
 
             if self._save_metrics:

@@ -21,7 +21,6 @@ __all__ = ["BCImpl", "DiscreteBCImpl"]
 
 
 class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
-
     _learning_rate: float
     _imitator: Imitator
     _optim: Optimizer
@@ -71,7 +70,6 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
 
 class BCImpl(BCBaseImpl):
-
     _policy_type: str
     _imitator: Union[DeterministicRegressor, ProbablisticRegressor]
 
@@ -123,7 +121,6 @@ class BCImpl(BCBaseImpl):
 
 
 class DiscreteBCImpl(BCBaseImpl):
-
     _beta: float
     _imitator: DiscreteImitator
 

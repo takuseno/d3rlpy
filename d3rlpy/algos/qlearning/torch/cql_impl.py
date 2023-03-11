@@ -20,7 +20,6 @@ __all__ = ["CQLImpl", "DiscreteCQLImpl"]
 
 
 class CQLImpl(SACImpl):
-
     _alpha_threshold: float
     _conservative_weight: float
     _n_action_samples: int

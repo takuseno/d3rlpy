@@ -14,7 +14,6 @@ __all__ = ["CRRImpl"]
 
 
 class CRRImpl(DDPGBaseImpl):
-
     _beta: float
     _n_action_samples: int
     _advantage_type: str

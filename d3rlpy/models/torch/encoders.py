@@ -25,6 +25,7 @@ class Encoder(metaclass=ABCMeta):
         pass
 
     @property
+    @abstractmethod
     def observation_shape(self) -> Sequence[int]:
         pass
 
@@ -33,8 +34,9 @@ class Encoder(metaclass=ABCMeta):
         pass
 
     @property
+    @abstractmethod
     def last_layer(self) -> nn.Linear:
-        raise NotImplementedError
+        pass
 
 
 class EncoderWithAction(metaclass=ABCMeta):
@@ -47,10 +49,12 @@ class EncoderWithAction(metaclass=ABCMeta):
         pass
 
     @property
+    @abstractmethod
     def action_size(self) -> int:
         pass
 
     @property
+    @abstractmethod
     def observation_shape(self) -> Sequence[int]:
         pass
 
@@ -59,12 +63,12 @@ class EncoderWithAction(metaclass=ABCMeta):
         pass
 
     @property
+    @abstractmethod
     def last_layer(self) -> nn.Linear:
-        raise NotImplementedError
+        pass
 
 
 class _PixelEncoder(nn.Module):  # type: ignore
-
     _observation_shape: Sequence[int]
     _feature_size: int
     _use_batch_norm: bool
@@ -172,7 +176,6 @@ class PixelEncoder(_PixelEncoder, Encoder):
 
 
 class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
-
     _action_size: int
     _discrete_action: bool
 
@@ -226,7 +229,6 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
 
 
 class _VectorEncoder(nn.Module):  # type: ignore
-
     _observation_shape: Sequence[int]
     _use_batch_norm: bool
     _dropout_rate: Optional[float]
@@ -306,7 +308,6 @@ class VectorEncoder(_VectorEncoder, Encoder):
 
 
 class VectorEncoderWithAction(_VectorEncoder, EncoderWithAction):
-
     _action_size: int
     _discrete_action: bool
 

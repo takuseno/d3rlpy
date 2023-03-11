@@ -21,7 +21,6 @@ __all__ = ["BCQImpl", "DiscreteBCQImpl"]
 
 
 class BCQImpl(DDPGBaseImpl):
-
     _lam: float
     _n_action_samples: int
     _action_flexibility: float
@@ -153,7 +152,6 @@ class BCQImpl(DDPGBaseImpl):
 
 
 class DiscreteBCQImpl(DoubleDQNImpl):
-
     _action_flexibility: float
     _beta: float
     _imitator: DiscreteImitator

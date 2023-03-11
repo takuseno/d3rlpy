@@ -10,7 +10,6 @@ __all__ = ["TD3Impl"]
 
 
 class TD3Impl(DDPGImpl):
-
     _target_smoothing_sigma: float
     _target_smoothing_clip: float
 

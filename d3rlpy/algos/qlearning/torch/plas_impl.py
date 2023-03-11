@@ -17,7 +17,6 @@ __all__ = ["PLASImpl", "PLASWithPerturbationImpl"]
 
 
 class PLASImpl(DDPGBaseImpl):
-
     _lam: float
     _beta: float
     _policy: DeterministicPolicy
@@ -92,7 +91,6 @@ class PLASImpl(DDPGBaseImpl):
 
 
 class PLASWithPerturbationImpl(PLASImpl):
-
     _perturbation: DeterministicResidualPolicy
     _targ_perturbation: DeterministicResidualPolicy
 

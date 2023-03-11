@@ -85,7 +85,6 @@ class FQEConfig(LearnableConfig):
 
 
 class _FQEBase(QLearningAlgoBase):
-
     _algo: Optional[QLearningAlgoBase]
     _config: FQEConfig
     _impl: Optional[FQEBaseImpl]

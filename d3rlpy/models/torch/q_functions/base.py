@@ -23,6 +23,7 @@ class QFunction(metaclass=ABCMeta):
         pass
 
     @property
+    @abstractmethod
     def action_size(self) -> int:
         pass
 
@@ -42,6 +43,7 @@ class DiscreteQFunction(QFunction):
         return self.forward(x)
 
     @property
+    @abstractmethod
     def encoder(self) -> Encoder:
         pass
 
@@ -61,5 +63,6 @@ class ContinuousQFunction(QFunction):
         return self.forward(x, action)
 
     @property
+    @abstractmethod
     def encoder(self) -> EncoderWithAction:
         pass

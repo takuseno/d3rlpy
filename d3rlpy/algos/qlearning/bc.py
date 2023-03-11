@@ -70,7 +70,6 @@ class BCConfig(LearnableConfig):
 
 
 class BC(_BCBase):
-
     _config: BCConfig
     _impl: Optional[BCImpl]
 

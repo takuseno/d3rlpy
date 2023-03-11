@@ -107,7 +107,6 @@ class TransformerConfig(LearnableConfig):
 
 
 class TransformerAlgoBase(LearnableBase):
-
     _config: TransformerConfig
     _impl: Optional[TransformerAlgoImplBase]
 
@@ -221,7 +220,6 @@ class TransformerAlgoBase(LearnableBase):
         n_epochs = n_steps // n_steps_per_epoch
         total_step = 0
         for epoch in range(1, n_epochs + 1):
-
             # dict to add incremental mean losses to epoch
             epoch_loss = defaultdict(list)
 

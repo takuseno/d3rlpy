@@ -306,9 +306,9 @@ class Monitor(gym.Wrapper):  # type: ignore
         self._directory = directory
 
         if video_callable:
-            self._video_callable = video_callable  # type: ignore
+            self._video_callable = video_callable
         else:
-            self._video_callable = lambda ep: ep % 10 == 0  # type: ignore
+            self._video_callable = lambda ep: ep % 10 == 0
 
         self._frame_rate = frame_rate
         self._record_rate = record_rate
@@ -323,7 +323,7 @@ class Monitor(gym.Wrapper):  # type: ignore
     ) -> Tuple[np.ndarray, float, bool, Dict[str, Any]]:
         obs, reward, done, info = super().step(action)
 
-        if self._video_callable(self._episode):  # type: ignore
+        if self._video_callable(self._episode):
             # store rendering
             frame = cv2.cvtColor(super().render("rgb_array"), cv2.COLOR_BGR2RGB)
             self._buffer.append(frame)

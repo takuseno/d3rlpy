@@ -13,7 +13,6 @@ __all__ = ["DQNImpl", "DoubleDQNImpl"]
 
 
 class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
-
     _gamma: float
     _q_func: EnsembleDiscreteQFunction
     _targ_q_func: EnsembleDiscreteQFunction

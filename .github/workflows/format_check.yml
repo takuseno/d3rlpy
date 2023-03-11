@@ -23,7 +23,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install black==22.3.0 mypy==0.942 pylint==2.13.5 yapf isort
+          pip install black mypy pylint==2.13.5 yapf isort
           pip install -e .
       - name: Check format
         run: |

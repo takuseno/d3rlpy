@@ -12,7 +12,6 @@ __all__ = ["TD3PlusBCImpl"]
 
 
 class TD3PlusBCImpl(TD3Impl):
-
     _alpha: float
 
     def __init__(

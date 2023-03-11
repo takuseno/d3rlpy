@@ -5,7 +5,6 @@ __all__ = ["Parameter"]
 
 
 class Parameter(nn.Module):  # type: ignore
-
     _parameter: nn.Parameter
 
     def __init__(self, data: torch.Tensor):

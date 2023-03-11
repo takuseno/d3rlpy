@@ -302,7 +302,6 @@ def train_api(f: TCallable) -> TCallable:
 
 
 class View(nn.Module):  # type: ignore
-
     _shape: Sequence[int]
 
     def __init__(self, shape: Sequence[int]):
