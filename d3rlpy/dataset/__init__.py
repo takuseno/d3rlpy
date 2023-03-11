@@ -1,4 +1,5 @@
 from .buffers import *
+from .compat import *
 from .components import *
 from .episode_generator import *
 from .io import *
