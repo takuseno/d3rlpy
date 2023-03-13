@@ -26,10 +26,11 @@ class FIFOQueue(Generic[T]):
     _index: int
 
     def __init__(
-        self, maxlen: int, drop_callback: Optional[Callable[[T], None]] = None
+        self, maxlen: int, drop_callback: Optional[Callable[[T], None]] = None, rewrite_callback: Optional[Callable[[T], None]] = None,
     ):
         self._maxlen = maxlen
         self._drop_callback = drop_callback
+        self._clear_callback = rewrite_callback
         self._buffer = [None for _ in range(maxlen)]
         self._cursor = 0
         self._size = 0
