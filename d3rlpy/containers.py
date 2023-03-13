@@ -38,9 +38,14 @@ class FIFOQueue(Generic[T]):
     def append(self, item: T) -> None:
         # call drop callback if necessary
         cur_item = self._buffer[self._cursor]
+        next_item = self._buffer[(self._cursor + 1) % self._maxlen]
+        
         if cur_item and self._drop_callback:
             self._drop_callback(cur_item)
 
+        if cur_item and next_item and self._clear_callback:
+            self._clear_callback(cur_item)
+            
         self._buffer[self._cursor] = item
 
         # increment cursor
