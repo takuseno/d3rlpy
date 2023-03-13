@@ -1032,6 +1032,17 @@ cdef class Transition:
         self._thisptr.get().prev_transition = <TransitionPtr> nullptr
         self._thisptr.get().next_transition = <TransitionPtr> nullptr
 
+    def del_prev_transition(self):
+        """ Deletes previous transition.
+
+        """
+        if self._prev_transition is not None:
+            self._thisptr.get().prev_transition = <TransitionPtr> nullptr
+            self._prev_transition = None
+
+
+def clear_prev(transition):
+    transition.del_prev_transition()
 
 def trace_back_and_clear(transition):
     """ Traces transitions and clear all links.
