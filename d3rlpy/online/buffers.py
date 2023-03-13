@@ -11,6 +11,7 @@ from ..dataset import (
     Transition,
     TransitionMiniBatch,
     trace_back_and_clear,
+    clear_prev,
 )
 from .utility import get_action_size_from_env
 
@@ -32,7 +33,7 @@ class _Buffer(metaclass=ABCMeta):
             if transition.next_transition is None:
                 trace_back_and_clear(transition)
 
-        self._transitions = FIFOQueue(maxlen, drop_callback)
+        self._transitions = FIFOQueue(maxlen, drop_callback, clear_prev)
 
         # extract shape information
         if env:
