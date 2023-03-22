@@ -371,3 +371,12 @@ class DiscreteCQL(DoubleDQN):
             reward_scaler=self._reward_scaler,
         )
         self._impl.build()
+
+    def _update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+        update_res = self._impl.update(batch)
+        loss = update_res[0]
+        cql_reg = update_res[1]
+        if self._grad_step % self._target_update_interval == 0:
+            self._impl.update_target()
+        return {"loss": loss, "cql_reg": cql_reg}
