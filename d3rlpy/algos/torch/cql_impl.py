@@ -301,7 +301,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         return (logsumexp - data_values).mean()
 
     @train_api
-    @torch_api(scaler_targets=["obs_t", "obs_tpn"])
+    @torch_api()
     def update(self, batch: TorchMiniBatch) -> np.ndarray:
         assert self._optim is not None
 
