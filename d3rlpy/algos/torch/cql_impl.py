@@ -19,7 +19,6 @@ from .sac_impl import SACImpl
 
 
 class CQLImpl(SACImpl):
-
     _alpha_learning_rate: float
     _alpha_optim_factory: OptimizerFactory
     _initial_alpha: float
@@ -285,7 +284,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         conservative_loss = self._compute_conservative_loss(
             batch.observations, batch.actions.long()
         )
-        return loss + self._alpha * conservative_loss
+        return loss + self._alpha * conservative_loss, conservative_loss
 
     def _compute_conservative_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
@@ -300,3 +299,22 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         data_values = (self._q_func(obs_t) * one_hot).sum(dim=1, keepdim=True)
 
         return (logsumexp - data_values).mean()
+
+    @train_api
+    @torch_api()
+    def update(self, batch: TorchMiniBatch) -> np.ndarray:
+        assert self._optim is not None
+
+        self._optim.zero_grad()
+
+        q_tpn = self.compute_target(batch)
+
+        loss, cql_loss = self.compute_loss(batch, q_tpn)
+
+        loss.backward()
+        self._optim.step()
+
+        res = np.array(
+            [loss.cpu().detach().numpy(), cql_loss.cpu().detach().numpy()]
+        )
+        return res
