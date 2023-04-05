@@ -366,6 +366,8 @@ class LearnableBase:
         ] = None,
         shuffle: bool = True,
         callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
+        epoch_callback: Optional[
+            Callable[["LearnableBase", int, int], None]] = None,
     ) -> List[Tuple[int, Dict[str, float]]]:
         """Trains with the given dataset.
 
@@ -398,6 +400,8 @@ class LearnableBase:
             shuffle: flag to shuffle transitions on each epoch.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
+            epoch_callback: callable function that takes 
+                ``(algo, epoch, total_step)``, which is called every epoch.
 
         Returns:
             list of result tuples (epoch, metrics) per epoch.
@@ -421,6 +425,7 @@ class LearnableBase:
                 scorers,
                 shuffle,
                 callback,
+                epoch_callback,
             )
         )
         return results
@@ -445,6 +450,8 @@ class LearnableBase:
         ] = None,
         shuffle: bool = True,
         callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
+        epoch_callback: Optional[
+            Callable[["LearnableBase", int, int], None]] = None
     ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
         """Iterate over epochs steps to train with the given dataset. At each
              iteration algo methods and properties can be changed or queried.
@@ -480,7 +487,9 @@ class LearnableBase:
             shuffle: flag to shuffle transitions on each epoch.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
-
+            epoch_callback: callable function that takes 
+                ``(algo, epoch, total_step)``, which is called every epoch.
+                
         Returns:
             iterator yielding current epoch and metrics dict.
 
@@ -654,6 +663,9 @@ class LearnableBase:
                 if callback:
                     callback(self, epoch, total_step)
 
+            if epoch_callback:
+                    epoch_callback(self, epoch, total_step)
+            
             # save loss to loss history dict
             self._loss_history["epoch"].append(epoch)
             self._loss_history["step"].append(total_step)
