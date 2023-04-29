@@ -16,11 +16,11 @@ def test_channel_first():
     wrapper = ChannelFirst(env)
 
     # check reset
-    observation = wrapper.reset()
+    observation, _ = wrapper.reset()
     assert observation.shape == (channel, width, height)
 
     # check step
-    observation, _, _, _ = wrapper.step(wrapper.action_space.sample())
+    observation, _, _, _, _ = wrapper.step(wrapper.action_space.sample())
     assert observation.shape == (channel, width, height)
 
     # check with algorithm
@@ -37,11 +37,11 @@ def test_channel_first_with_2_dim_obs():
     wrapper = ChannelFirst(env)
 
     # check reset
-    observation = wrapper.reset()
+    observation, _ = wrapper.reset()
     assert observation.shape == (1, width, height)
 
     # check step
-    observation, _, _, _ = wrapper.step(wrapper.action_space.sample())
+    observation, _, _, _, _ = wrapper.step(wrapper.action_space.sample())
     assert observation.shape == (1, width, height)
 
     # check with algorithm
@@ -58,9 +58,9 @@ def test_atari(is_eval):
     assert env.observation_space.shape == (1, 84, 84)
 
     # check reset
-    observation = env.reset()
+    observation, _ = env.reset()
     assert observation.shape == (1, 84, 84)
 
     # check step
-    observation, reward, done, info = env.step(env.action_space.sample())
+    observation, _, _, _, _ = env.step(env.action_space.sample())
     assert observation.shape == (1, 84, 84)

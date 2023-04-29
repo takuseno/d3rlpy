@@ -10,8 +10,8 @@ from ...dummy_env import DummyAtari
 
 
 def test_fit_online_cartpole_with_dqn():
-    env = gym.make("CartPole-v0")
-    eval_env = gym.make("CartPole-v0")
+    env = gym.make("CartPole-v1")
+    eval_env = gym.make("CartPole-v1")
 
     algo = DQNConfig().create()
 
@@ -30,8 +30,6 @@ def test_fit_online_cartpole_with_dqn():
 
 
 def test_fit_online_atari_with_dqn():
-    import d4rl_atari
-
     env = ChannelFirst(DummyAtari())
     eval_env = ChannelFirst(DummyAtari())
 
@@ -54,8 +52,8 @@ def test_fit_online_atari_with_dqn():
 
 
 def test_fit_online_pendulum_with_sac():
-    env = gym.make("Pendulum-v0")
-    eval_env = gym.make("Pendulum-v0")
+    env = gym.make("Pendulum-v1")
+    eval_env = gym.make("Pendulum-v1")
 
     algo = SACConfig().create()
 
@@ -72,7 +70,7 @@ def test_fit_online_pendulum_with_sac():
 
 @pytest.mark.parametrize("deterministic", [False, True])
 def test_collect_pendulum_with_sac(deterministic):
-    env = gym.make("Pendulum-v0")
+    env = gym.make("Pendulum-v1")
 
     algo = SACConfig().create()
 
@@ -82,8 +80,6 @@ def test_collect_pendulum_with_sac(deterministic):
 
 
 def test_collect_atari_with_dqn():
-    import d4rl_atari
-
     env = ChannelFirst(DummyAtari())
 
     algo = DQNConfig().create()
@@ -94,29 +90,3 @@ def test_collect_atari_with_dqn():
 
     assert algo.impl.observation_shape == (1, 84, 84)
     assert buffer.transition_count > 90 and buffer.transition_count < 100
-
-
-@pytest.mark.parametrize("timelimit_aware", [False, True])
-def test_timelimit_aware(timelimit_aware):
-    env = gym.make("Pendulum-v0")
-
-    algo = SACConfig().create()
-
-    buffer = ReplayBuffer(InfiniteBuffer())
-
-    algo.fit_online(
-        env,
-        buffer,
-        n_steps=500,
-        logdir="test_data",
-        timelimit_aware=timelimit_aware,
-    )
-
-    terminal_count = 0
-    for episode in buffer.episodes:
-        terminal_count += int(episode.terminated)
-
-    if timelimit_aware:
-        assert terminal_count == 0
-    else:
-        assert terminal_count > 0

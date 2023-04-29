@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import gym
 import numpy as np
@@ -34,7 +34,7 @@ class RewardScaler(DynamicConfig):
         """
         raise NotImplementedError
 
-    def fit_with_env(self, env: gym.Env) -> None:
+    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
         """Gets scaling parameters from environment.
 
         Note:

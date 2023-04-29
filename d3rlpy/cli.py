@@ -255,13 +255,13 @@ def export(
     algo.save_policy(out, as_onnx=format == "onnx")
 
 
-def _exec_to_create_env(code: str) -> gym.Env:
+def _exec_to_create_env(code: str) -> gym.Env[Any, Any]:
     print(f"Executing '{code}'")
     variables: Dict[str, Any] = {}
     exec(code, globals(), variables)
     if "env" not in variables:
         raise RuntimeError("env must be defined in env_header.")
-    return variables["env"]
+    return variables["env"]  # type: ignore
 
 
 @cli.command(short_help="Record episodes with the saved model.")
@@ -296,7 +296,7 @@ def record(
     algo = load_learnable(model_path)
 
     # wrap environment with Monitor
-    env: gym.Env
+    env: gym.Env[Any, Any]
     if env_id is not None:
         env = gym.make(env_id)
     elif env_header is not None:
@@ -353,7 +353,7 @@ def play(
     algo = load_learnable(model_path)
 
     # wrap environment with Monitor
-    env: gym.Env
+    env: gym.Env[Any, Any]
     if env_id is not None:
         env = gym.make(env_id)
     elif env_header is not None:

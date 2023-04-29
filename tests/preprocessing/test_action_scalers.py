@@ -75,7 +75,7 @@ def test_min_max_action_scaler_with_episode(
 
 
 def test_min_max_action_scaler_with_env():
-    env = gym.make("Pendulum-v0")
+    env = gym.make("Pendulum-v1")
 
     scaler = MinMaxActionScaler()
     scaler.fit_with_env(env)

@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
 
 import gym
 import numpy as np
@@ -11,12 +11,15 @@ except ImportError:
     cv2 = None
 
 from gym.spaces import Box
-from gym.wrappers import TransformReward
+from gym.wrappers.transform_reward import TransformReward
 
 __all__ = ["ChannelFirst", "AtariPreprocessing", "Atari", "Monitor"]
 
+_ObsType = TypeVar("_ObsType")
+_ActType = TypeVar("_ActType")
 
-class ChannelFirst(gym.Wrapper):  # type: ignore
+
+class ChannelFirst(gym.Wrapper[_ObsType, _ActType]):
     """Channel-first wrapper for image observation environments.
 
     d3rlpy expects channel-first images since it's built with PyTorch.
@@ -29,12 +32,13 @@ class ChannelFirst(gym.Wrapper):  # type: ignore
 
     observation_space: Box
 
-    def __init__(self, env: gym.Env):
+    def __init__(self, env: gym.Env[_ObsType, _ActType]):
         super().__init__(env)
         shape = self.observation_space.shape
         low = self.observation_space.low
         high = self.observation_space.high
         dtype = self.observation_space.dtype
+        assert dtype is not None
 
         if len(shape) == 3:
             self.observation_space = Box(
@@ -54,30 +58,30 @@ class ChannelFirst(gym.Wrapper):  # type: ignore
             raise ValueError("image observation is only allowed.")
 
     def step(
-        self, action: Union[int, np.ndarray]
-    ) -> Tuple[np.ndarray, float, bool, Dict[str, Any]]:
-        observation, reward, terminal, info = self.env.step(action)
+        self, action: _ActType
+    ) -> Tuple[_ObsType, float, bool, bool, Dict[str, Any]]:
+        observation, reward, terminal, truncated, info = self.env.step(action)
         # make channel first observation
         if observation.ndim == 3:
             observation_T = np.transpose(observation, [2, 0, 1])
         else:
             observation_T = np.reshape(observation, (1, *observation.shape))
         assert observation_T.shape == self.observation_space.shape
-        return observation_T, reward, terminal, info
+        return observation_T, reward, terminal, truncated, info
 
-    def reset(self, **kwargs: Any) -> np.ndarray:
-        observation = self.env.reset(**kwargs)
+    def reset(self, **kwargs: Any) -> Tuple[_ObsType, Dict[str, Any]]:
+        observation, info = self.env.reset(**kwargs)
         # make channel first observation
         if observation.ndim == 3:
             observation_T = np.transpose(observation, [2, 0, 1])
         else:
             observation_T = np.reshape(observation, (1, *observation.shape))
         assert observation_T.shape == self.observation_space.shape
-        return observation_T
+        return observation_T, info
 
 
 # https://github.com/openai/gym/blob/0.17.3/gym/wrappers/atari_preprocessing.py
-class AtariPreprocessing(gym.Wrapper):  # type: ignore
+class AtariPreprocessing(gym.Wrapper[np.ndarray, int]):
     r"""Atari 2600 preprocessings.
     This class follows the guidelines in
     Machado et al. (2018), "Revisiting the Arcade Learning Environment:
@@ -114,7 +118,7 @@ class AtariPreprocessing(gym.Wrapper):  # type: ignore
 
     def __init__(
         self,
-        env: gym.Env,
+        env: gym.Env[np.ndarray, int],
         noop_max: int = 30,
         frame_skip: int = 4,
         screen_size: int = 84,
@@ -138,7 +142,7 @@ class AtariPreprocessing(gym.Wrapper):  # type: ignore
                 " be done by the wrapper"
             )
         self.noop_max = noop_max
-        assert env.unwrapped.get_action_meanings()[0] == "NOOP"
+        assert env.unwrapped.get_action_meanings()[0] == "NOOP"  # type: ignore
 
         self.frame_skip = frame_skip
         self.screen_size = screen_size
@@ -148,18 +152,20 @@ class AtariPreprocessing(gym.Wrapper):  # type: ignore
         self.scale_obs = scale_obs
 
         # buffer of most recent two observations for max pooling
+        shape = env.observation_space.shape
+        assert shape is not None
         if grayscale_obs:
             self.obs_buffer = [
-                np.empty(env.observation_space.shape[:2], dtype=np.uint8),
-                np.empty(env.observation_space.shape[:2], dtype=np.uint8),
+                np.empty(shape[:2], dtype=np.uint8),
+                np.empty(shape[:2], dtype=np.uint8),
             ]
         else:
             self.obs_buffer = [
-                np.empty(env.observation_space.shape, dtype=np.uint8),
-                np.empty(env.observation_space.shape, dtype=np.uint8),
+                np.empty(shape, dtype=np.uint8),
+                np.empty(shape, dtype=np.uint8),
             ]
 
-        self.ale = env.unwrapped.ale
+        self.ale = env.unwrapped.ale  # type: ignore
         self.lives = 0
         self.game_over = True
 
@@ -175,11 +181,11 @@ class AtariPreprocessing(gym.Wrapper):  # type: ignore
 
     def step(
         self, action: int
-    ) -> Tuple[np.ndarray, float, float, Dict[str, Any]]:
+    ) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         R = 0.0
 
         for t in range(self.frame_skip):
-            _, reward, done, info = self.env.step(action)
+            _, reward, done, truncated, info = self.env.step(action)
             R += reward
             self.game_over = done
 
@@ -188,7 +194,7 @@ class AtariPreprocessing(gym.Wrapper):  # type: ignore
                 done = done or new_lives < self.lives
                 self.lives = new_lives
 
-            if done:
+            if done or truncated:
                 break
             if t == self.frame_skip - 2:
                 if self.grayscale_obs:
@@ -201,15 +207,15 @@ class AtariPreprocessing(gym.Wrapper):  # type: ignore
                 else:
                     self.ale.getScreenRGB2(self.obs_buffer[0])
 
-        return self._get_obs(), R, done, info
+        return self._get_obs(), R, done, truncated, info
 
-    def reset(self, **kwargs: Any) -> np.ndarray:
+    def reset(self, **kwargs: Any) -> Tuple[np.ndarray, Dict[str, Any]]:
         # this condition is not included in the original code
         if self.game_over:
-            self.env.reset(**kwargs)
+            _, info = self.env.reset(**kwargs)
         else:
             # NoopReset
-            self.env.step(0)
+            _, _, _, _, info = self.env.step(0)
 
         noops = (
             self.env.unwrapped.np_random.randint(1, self.noop_max + 1)
@@ -217,9 +223,9 @@ class AtariPreprocessing(gym.Wrapper):  # type: ignore
             else 0
         )
         for _ in range(noops):
-            _, _, done, _ = self.env.step(0)
-            if done:
-                self.env.reset(**kwargs)
+            _, _, done, truncated, info = self.env.step(0)
+            if done or truncated:
+                _, info = self.env.reset(**kwargs)
 
         self.lives = self.ale.lives()
         if self.grayscale_obs:
@@ -227,7 +233,7 @@ class AtariPreprocessing(gym.Wrapper):  # type: ignore
         else:
             self.ale.getScreenRGB2(self.obs_buffer[0])
         self.obs_buffer[1].fill(0)
-        return self._get_obs()
+        return self._get_obs(), info
 
     def _get_obs(self) -> np.ndarray:
         if self.frame_skip > 1:  # more efficient in-place pooling
@@ -250,7 +256,7 @@ class AtariPreprocessing(gym.Wrapper):  # type: ignore
         return obs
 
 
-class Atari(gym.Wrapper):  # type: ignore
+class Atari(gym.Wrapper[np.ndarray, int]):
     """Atari 2600 wrapper for experiments.
 
     Args:
@@ -259,14 +265,14 @@ class Atari(gym.Wrapper):  # type: ignore
 
     """
 
-    def __init__(self, env: gym.Env, is_eval: bool = False):
+    def __init__(self, env: gym.Env[np.ndarray, int], is_eval: bool = False):
         env = AtariPreprocessing(env, terminal_on_life_loss=not is_eval)
         if not is_eval:
-            env = TransformReward(env, lambda r: np.clip(r, -1.0, 1.0))
+            env = TransformReward(env, lambda r: float(np.clip(r, -1.0, 1.0)))
         super().__init__(ChannelFirst(env))
 
 
-class Monitor(gym.Wrapper):  # type: ignore
+class Monitor(gym.Wrapper[_ObsType, _ActType]):
     """gym.wrappers.Monitor-style Monitor wrapper.
 
     Args:
@@ -287,11 +293,11 @@ class Monitor(gym.Wrapper):  # type: ignore
     _episode: int
     _episode_return: float
     _episode_step: int
-    _buffer: np.ndarray
+    _buffer: List[np.ndarray]
 
     def __init__(
         self,
-        env: gym.Env,
+        env: gym.Env[_ObsType, _ActType],
         directory: str,
         video_callable: Optional[Callable[[int], bool]] = None,
         force: bool = False,
@@ -319,9 +325,9 @@ class Monitor(gym.Wrapper):  # type: ignore
         self._buffer = []
 
     def step(
-        self, action: Union[np.ndarray, int]
-    ) -> Tuple[np.ndarray, float, bool, Dict[str, Any]]:
-        obs, reward, done, info = super().step(action)
+        self, action: _ActType
+    ) -> Tuple[_ObsType, float, bool, bool, Dict[str, Any]]:
+        obs, reward, done, truncated, info = super().step(action)
 
         if self._video_callable(self._episode):
             # store rendering
@@ -333,9 +339,9 @@ class Monitor(gym.Wrapper):  # type: ignore
                 self._save_video()
                 self._save_stats()
 
-        return obs, reward, done, info
+        return obs, reward, done, truncated, info
 
-    def reset(self, **kwargs: Any) -> np.ndarray:
+    def reset(self, **kwargs: Any) -> Tuple[_ObsType, Dict[str, Any]]:
         self._episode += 1
         self._episode_return = 0.0
         self._episode_step = 0

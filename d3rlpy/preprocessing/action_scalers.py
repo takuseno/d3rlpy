@@ -30,7 +30,7 @@ class ActionScaler(DynamicConfig):
         """
         raise NotImplementedError
 
-    def fit_with_env(self, env: gym.Env) -> None:
+    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
         """Gets scaling parameters from environment.
 
         Args:
@@ -172,7 +172,7 @@ class MinMaxActionScaler(ActionScaler):
         self.minimum = minimum.reshape((1,) + minimum.shape)
         self.maximum = maximum.reshape((1,) + maximum.shape)
 
-    def fit_with_env(self, env: gym.Env) -> None:
+    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
         if self.minimum is not None and self.maximum is not None:
             return
 

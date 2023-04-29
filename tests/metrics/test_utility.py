@@ -43,12 +43,12 @@ def test_evaluate_on_environment(
             observation = observations[self.episode - 1, self.t]
             reward = np.mean(observation) + np.mean(action)
             done = self.t == episode_length
-            return observation, reward, done, {}
+            return observation, reward, done, False, {}
 
         def reset(self):
             self.t = 0
             self.episode += 1
-            return observations[self.episode - 1, 0]
+            return observations[self.episode - 1, 0], {}
 
     # projection matrix for deterministic action
     feature_size = reduce(mul, observation_shape)

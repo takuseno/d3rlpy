@@ -20,8 +20,8 @@ class DummyAtari(gym.Env):
     def step(self, action):
         observation = self.observation_space.sample()
         reward = np.random.random()
-        return observation, reward, self.t % 80 == 0, {}
+        return observation, reward, False, self.t % 80 == 0, {}
 
     def reset(self):
         self.t = 1
-        return self.observation_space.sample()
+        return self.observation_space.sample(), {}

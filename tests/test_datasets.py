@@ -20,6 +20,6 @@ def test_get_pendulum(dataset_type):
 def test_get_dataset(env_name):
     _, env = get_dataset(env_name)
     if env_name == "cartpole-random":
-        assert env.unwrapped.spec.id == "CartPole-v0"
+        assert env.unwrapped.spec.id == "CartPole-v1"
     elif env_name == "pendulum-random":
-        assert env.unwrapped.spec.id == "Pendulum-v0"
+        assert env.unwrapped.spec.id == "Pendulum-v1"

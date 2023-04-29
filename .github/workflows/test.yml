@@ -33,9 +33,7 @@ jobs:
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          pip install numpy pytest-cov gym==0.17.2 flask onnxruntime stable-baselines3
-          pip install git+https://github.com/takuseno/d4rl-atari
-          pip install git+https://github.com/takuseno/d4rl-pybullet
+          pip install numpy pytest-cov flask onnxruntime stable-baselines3
           pip install -e .
       - name: Unit tests
         run: |

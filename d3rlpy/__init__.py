@@ -12,7 +12,6 @@ from . import (
     models,
     ope,
     preprocessing,
-    wrappers,
 )
 from ._version import __version__
 from .base import load_learnable

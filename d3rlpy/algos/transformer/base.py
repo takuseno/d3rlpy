@@ -1,7 +1,7 @@
 import dataclasses
 from abc import abstractmethod
 from collections import defaultdict, deque
-from typing import Callable, Deque, Dict, Optional, Union
+from typing import Any, Callable, Deque, Dict, Optional, Union
 
 import gym
 import numpy as np
@@ -140,7 +140,7 @@ class TransformerAlgoBase(LearnableBase):
         verbose: bool = True,
         show_progress: bool = True,
         tensorboard_dir: Optional[str] = None,
-        eval_env: Optional[gym.Env] = None,
+        eval_env: Optional[gym.Env[Any, Any]] = None,
         eval_target_return: Optional[float] = None,
         save_interval: int = 1,
         callback: Optional[Callable[["LearnableBase", int, int], None]] = None,

@@ -1,3 +1,5 @@
+from typing import Any
+
 import gym
 import numpy as np
 
@@ -11,7 +13,7 @@ __all__ = [
 
 def evaluate_qlearning_with_environment(
     algo: QLearningAlgoProtocol,
-    env: gym.Env,
+    env: gym.Env[Any, Any],
     n_trials: int = 10,
     epsilon: float = 0.0,
     render: bool = False,
@@ -45,7 +47,7 @@ def evaluate_qlearning_with_environment(
     """
     episode_rewards = []
     for _ in range(n_trials):
-        observation = env.reset()
+        observation, _ = env.reset()
         episode_reward = 0.0
 
         while True:
@@ -55,13 +57,13 @@ def evaluate_qlearning_with_environment(
             else:
                 action = algo.predict(np.expand_dims(observation, axis=0))[0]
 
-            observation, reward, done, _ = env.step(action)
+            observation, reward, done, truncated, _ = env.step(action)
             episode_reward += reward
 
             if render:
                 env.render()
 
-            if done:
+            if done or truncated:
                 break
         episode_rewards.append(episode_reward)
     return float(np.mean(episode_rewards))
@@ -69,7 +71,7 @@ def evaluate_qlearning_with_environment(
 
 def evaluate_transformer_with_environment(
     algo: StatefulTransformerAlgoProtocol,
-    env: gym.Env,
+    env: gym.Env[Any, Any],
     n_trials: int = 10,
     render: bool = False,
 ) -> float:
@@ -102,20 +104,20 @@ def evaluate_transformer_with_environment(
     episode_rewards = []
     for _ in range(n_trials):
         algo.reset()
-        observation, reward = env.reset(), 0.0
+        observation, reward = env.reset()[0], 0.0
         episode_reward = 0.0
 
         while True:
             # take action
             action = algo.predict(observation, reward)
 
-            observation, reward, done, _ = env.step(action)
+            observation, reward, done, truncated, _ = env.step(action)
             episode_reward += reward
 
             if render:
                 env.render()
 
-            if done:
+            if done or truncated:
                 break
         episode_rewards.append(episode_reward)
     return float(np.mean(episode_rewards))

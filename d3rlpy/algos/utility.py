@@ -1,4 +1,7 @@
+from typing import Any
+
 import gym
+from gym.spaces import Box, Discrete
 
 from ..base import LearnableBase
 from ..constants import (
@@ -27,12 +30,14 @@ def assert_action_space_with_dataset(
         ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
 
 
-def assert_action_space_with_env(algo: LearnableBase, env: gym.Env) -> None:
-    if isinstance(env.action_space, gym.spaces.Box):
+def assert_action_space_with_env(
+    algo: LearnableBase, env: gym.Env[Any, Any]
+) -> None:
+    if isinstance(env.action_space, Box):
         assert (
             algo.get_action_type() == ActionSpace.CONTINUOUS
         ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
-    elif isinstance(env.action_space, gym.spaces.discrete.Discrete):
+    elif isinstance(env.action_space, Discrete):
         assert (
             algo.get_action_type() == ActionSpace.DISCRETE
         ), DISCRETE_ACTION_SPACE_MISMATCH_ERROR
@@ -69,7 +74,7 @@ def build_scalers_with_dataset(
         algo.config.reward_scaler.fit(dataset.episodes)
 
 
-def build_scalers_with_env(algo: LearnableBase, env: gym.Env) -> None:
+def build_scalers_with_env(algo: LearnableBase, env: gym.Env[Any, Any]) -> None:
     # initialize observation scaler
     if algo.observation_scaler:
         LOG.debug(

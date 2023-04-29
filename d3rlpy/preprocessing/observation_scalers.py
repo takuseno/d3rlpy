@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import gym
 import numpy as np
@@ -32,7 +32,7 @@ class ObservationScaler(DynamicConfig):
         """
         raise NotImplementedError
 
-    def fit_with_env(self, env: gym.Env) -> None:
+    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
         """Gets scaling parameters from environment.
 
         Args:
@@ -90,7 +90,7 @@ class PixelObservationScaler(ObservationScaler):
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
         pass
 
-    def fit_with_env(self, env: gym.Env) -> None:
+    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
         pass
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
@@ -176,7 +176,7 @@ class MinMaxObservationScaler(ObservationScaler):
         self.minimum = minimum.reshape((1,) + minimum.shape)
         self.maximum = maximum.reshape((1,) + maximum.shape)
 
-    def fit_with_env(self, env: gym.Env) -> None:
+    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
         if self.minimum is not None and self.maximum is not None:
             return
 
@@ -289,7 +289,7 @@ class StandardObservationScaler(ObservationScaler):
         self.mean = mean.reshape((1,) + mean.shape)
         self.std = std.reshape((1,) + std.shape)
 
-    def fit_with_env(self, env: gym.Env) -> None:
+    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
         if self.mean is not None and self.std is not None:
             return
         raise NotImplementedError(

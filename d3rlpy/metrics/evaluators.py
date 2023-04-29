@@ -1,4 +1,4 @@
-from typing import Iterator, Optional, Sequence, cast
+from typing import Any, Iterator, Optional, Sequence, cast
 
 import gym
 import numpy as np
@@ -468,14 +468,14 @@ class CompareDiscreteActionMatchEvaluator(EvaluatorProtocol):
 
 
 class EnvironmentEvaluator(EvaluatorProtocol):
-    _env: gym.Env
+    _env: gym.Env[Any, Any]
     _n_trials: int
     _epsilon: float
     _render: bool
 
     def __init__(
         self,
-        env: gym.Env,
+        env: gym.Env[Any, Any],
         n_trials: int = 10,
         epsilon: float = 0.0,
         render: bool = False,

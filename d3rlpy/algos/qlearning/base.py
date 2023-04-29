@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections import defaultdict
-from typing import Callable, Dict, Generator, List, Optional, Tuple, cast
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, cast
 
 import gym
 import numpy as np
@@ -557,7 +557,7 @@ class QLearningAlgoBase(LearnableBase):
 
     def fit_online(
         self,
-        env: gym.Env,
+        env: gym.Env[Any, Any],
         buffer: Optional[ReplayBuffer] = None,
         explorer: Optional[Explorer] = None,
         n_steps: int = 1000000,
@@ -565,7 +565,7 @@ class QLearningAlgoBase(LearnableBase):
         update_interval: int = 1,
         update_start_step: int = 0,
         random_steps: int = 0,
-        eval_env: Optional[gym.Env] = None,
+        eval_env: Optional[gym.Env[Any, Any]] = None,
         eval_epsilon: float = 0.0,
         save_metrics: bool = True,
         save_interval: int = 1,
@@ -575,7 +575,6 @@ class QLearningAlgoBase(LearnableBase):
         verbose: bool = True,
         show_progress: bool = True,
         tensorboard_dir: Optional[str] = None,
-        timelimit_aware: bool = True,
         callback: Optional[
             Callable[["QLearningAlgoBase", int, int], None]
         ] = None,
@@ -606,9 +605,6 @@ class QLearningAlgoBase(LearnableBase):
             tensorboard_dir: directory to save logged information in
                 tensorboard (additional to the csv data).  if ``None``, the
                 directory will not be created.
-            timelimit_aware: flag to turn ``terminal`` flag ``False`` when
-                ``TimeLimit.truncated`` flag is ``True``, which is designed to
-                incorporate with ``gym.wrappers.TimeLimit``.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called at the end of epochs.
 
@@ -651,7 +647,7 @@ class QLearningAlgoBase(LearnableBase):
         xrange = trange if show_progress else range
 
         # start training loop
-        observation = env.reset()
+        observation, _ = env.reset()
         rollout_return = 0.0
         for total_step in xrange(1, n_steps + 1):
             with logger.measure_time("step"):
@@ -669,15 +665,16 @@ class QLearningAlgoBase(LearnableBase):
 
                 # step environment
                 with logger.measure_time("environment_step"):
-                    next_observation, reward, terminal, info = env.step(action)
+                    (
+                        next_observation,
+                        reward,
+                        terminal,
+                        truncated,
+                        _,
+                    ) = env.step(action)
                     rollout_return += reward
 
-                # special case for TimeLimit wrapper
-                if timelimit_aware and "TimeLimit.truncated" in info:
-                    clip_episode = True
-                    terminal = False
-                else:
-                    clip_episode = terminal
+                clip_episode = terminal or truncated
 
                 # store observation
                 buffer.append(observation, action, reward)
@@ -685,7 +682,7 @@ class QLearningAlgoBase(LearnableBase):
                 # reset if terminated
                 if clip_episode:
                     buffer.clip_episode(terminal)
-                    observation = env.reset()
+                    observation, _ = env.reset()
                     logger.add_metric("rollout_return", rollout_return)
                     rollout_return = 0.0
                 else:
@@ -739,13 +736,12 @@ class QLearningAlgoBase(LearnableBase):
 
     def collect(
         self,
-        env: gym.Env,
+        env: gym.Env[Any, Any],
         buffer: Optional[ReplayBuffer] = None,
         explorer: Optional[Explorer] = None,
         deterministic: bool = False,
         n_steps: int = 1000000,
         show_progress: bool = True,
-        timelimit_aware: bool = True,
     ) -> ReplayBuffer:
         """Collects data via interaction with environment.
 
@@ -758,9 +754,6 @@ class QLearningAlgoBase(LearnableBase):
             deterministic: flag to collect data with the greedy policy.
             n_steps: the number of total steps to train.
             show_progress: flag to show progress bar for iterations.
-            timelimit_aware: flag to turn ``terminal`` flag ``False`` when
-                ``TimeLimit.truncated`` flag is ``True``, which is designed to
-                incorporate with ``gym.wrappers.TimeLimit``.
 
         Returns:
             replay buffer with the collected data.
@@ -788,7 +781,7 @@ class QLearningAlgoBase(LearnableBase):
         xrange = trange if show_progress else range
 
         # start training loop
-        observation = env.reset()
+        observation, _ = env.reset()
         for total_step in xrange(1, n_steps + 1):
             # sample exploration action
             if deterministic:
@@ -803,14 +796,9 @@ class QLearningAlgoBase(LearnableBase):
                     )[0]
 
             # step environment
-            next_observation, reward, terminal, info = env.step(action)
+            next_observation, reward, terminal, truncated, _ = env.step(action)
 
-            # special case for TimeLimit wrapper
-            if timelimit_aware and "TimeLimit.truncated" in info:
-                clip_episode = True
-                terminal = False
-            else:
-                clip_episode = terminal
+            clip_episode = terminal or truncated
 
             # store observation
             buffer.append(observation, action, reward)
@@ -818,7 +806,7 @@ class QLearningAlgoBase(LearnableBase):
             # reset if terminated
             if clip_episode:
                 buffer.clip_episode(terminal)
-                observation = env.reset()
+                observation, _ = env.reset()
             else:
                 observation = next_observation
 

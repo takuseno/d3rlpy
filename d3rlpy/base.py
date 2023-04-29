@@ -2,11 +2,11 @@ import dataclasses
 import io
 import pickle
 from abc import ABCMeta, abstractmethod
-from typing import BinaryIO, Optional, Type, TypeVar, Union, cast
+from typing import Any, BinaryIO, Optional, Type, TypeVar, Union
 
 import gym
 import torch
-from gym.spaces import Discrete
+from gym.spaces import Box, Discrete
 
 from ._version import __version__
 from .constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -271,18 +271,25 @@ class LearnableBase(metaclass=ABCMeta):
         observation_shape = dataset.sample_transition().observation_shape
         self.create_impl(observation_shape, dataset_info.action_size)
 
-    def build_with_env(self, env: gym.Env) -> None:
+    def build_with_env(self, env: gym.Env[Any, Any]) -> None:
         """Instantiate implementation object with OpenAI Gym object.
 
         Args:
             env: gym-like environment.
 
         """
+        assert isinstance(
+            env.observation_space, Box
+        ), f"Unsupported observation space: {type(env.observation_space)}"
         observation_shape = env.observation_space.shape
         if isinstance(env.action_space, Discrete):
-            action_size = cast(int, env.action_space.n)
+            action_size = env.action_space.n
+        elif isinstance(env.action_space, Box):
+            action_size = env.action_space.shape[0]
         else:
-            action_size = cast(int, env.action_space.shape[0])
+            raise ValueError(
+                f"Unsupported action space: {type(env.action_space)}"
+            )
         self.create_impl(observation_shape, action_size)
 
     def get_action_type(self) -> ActionSpace:

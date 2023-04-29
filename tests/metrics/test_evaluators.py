@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
 
-from d3rlpy.dataset import BasicTransitionPicker, Episode, TransitionMiniBatch
+from d3rlpy.dataset import (
+    BasicTransitionPicker,
+    Episode,
+    InfiniteBuffer,
+    ReplayBuffer,
+    TransitionMiniBatch,
+)
 from d3rlpy.metrics.evaluators import (
     AverageValueEstimationEvaluator,
     CompareContinuousActionDiffEvaluator,
@@ -23,6 +29,10 @@ def _convert_episode_to_batch(episode):
         for index in range(episode.transition_count)
     ]
     return TransitionMiniBatch.from_transitions(transitions)
+
+
+def _create_replay_buffer(episodes):
+    return ReplayBuffer(InfiniteBuffer(), episodes=episodes)
 
 
 # dummy algorithm with deterministic outputs
@@ -116,7 +126,7 @@ def test_td_error_scorer(
         )
         ref_errors += ref_error
 
-    score = TDErrorEvaluator()(algo, episodes, BasicTransitionPicker())
+    score = TDErrorEvaluator()(algo, _create_replay_buffer(episodes))
     assert np.allclose(score, np.mean(ref_errors))
 
 
@@ -176,7 +186,7 @@ def test_discounted_sum_of_advantage_scorer(
         ref_sums += ref_sum
 
     score = DiscountedSumOfAdvantageEvaluator()(
-        algo, episodes, BasicTransitionPicker()
+        algo, _create_replay_buffer(episodes)
     )
     assert np.allclose(score, np.mean(ref_sums))
 
@@ -213,7 +223,7 @@ def test_average_value_estimation_scorer(
         total_values += values.tolist()
 
     score = AverageValueEstimationEvaluator()(
-        algo, episodes, BasicTransitionPicker()
+        algo, _create_replay_buffer(episodes)
     )
     assert np.allclose(score, np.mean(total_values))
 
@@ -250,7 +260,7 @@ def test_initial_state_value_estimation_scorer(
         total_values.append(values)
 
     score = InitialStateValueEstimationEvaluator()(
-        algo, episodes, BasicTransitionPicker()
+        algo, _create_replay_buffer(episodes)
     )
     assert np.allclose(score, np.mean(total_values))
 
@@ -290,7 +300,7 @@ def test_soft_opc_scorer(
         all_values += values.tolist()
 
     scorer = SoftOPCEvaluator(threshold)
-    score = scorer(algo, episodes, BasicTransitionPicker())
+    score = scorer(algo, _create_replay_buffer(episodes))
     assert np.allclose(score, np.mean(success_values) - np.mean(all_values))
 
 
@@ -325,7 +335,7 @@ def test_continuous_action_diff_scorer(
         diff = ((batch.actions - policy_actions) ** 2).sum(axis=1).tolist()
         total_diffs += diff
     score = ContinuousActionDiffEvaluator()(
-        algo, episodes, BasicTransitionPicker()
+        algo, _create_replay_buffer(episodes)
     )
     assert np.allclose(score, np.mean(total_diffs))
 
@@ -361,7 +371,7 @@ def test_discrete_action_match_scorer(
         match = (batch.actions.reshape(-1) == policy_actions).tolist()
         total_matches += match
     score = DiscreteActionMatchEvaluator()(
-        algo, episodes, BasicTransitionPicker()
+        algo, _create_replay_buffer(episodes)
     )
     assert np.allclose(score, np.mean(total_matches))
 
@@ -400,7 +410,7 @@ def test_compare_continuous_action_diff(
         total_diffs += diff
 
     score = CompareContinuousActionDiffEvaluator(base_algo)(
-        algo, episodes, BasicTransitionPicker()
+        algo, _create_replay_buffer(episodes)
     )
     assert np.allclose(score, np.mean(total_diffs))
 
@@ -439,6 +449,6 @@ def test_compare_discrete_action_diff(
         total_matches += match
 
     score = CompareDiscreteActionMatchEvaluator(base_algo)(
-        algo, episodes, BasicTransitionPicker()
+        algo, _create_replay_buffer(episodes)
     )
     assert np.allclose(score, np.mean(total_matches))

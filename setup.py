@@ -36,11 +36,10 @@ if __name__ == "__main__":
         ],
         install_requires=[
             "torch",
-            "scikit-learn",
             "tensorboardX",
             "tqdm",
             "h5py",
-            "gym",
+            "gym>=0.26.0",
             "click",
             "typing-extensions",
             "scipy",
