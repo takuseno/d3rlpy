@@ -33,7 +33,7 @@ jobs:
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          pip install Cython numpy pytest-cov onnxruntime
+          pip install Cython numpy pytest-cov onnxruntime onnx
           pip install -e .
       - name: Unit tests
         run: |

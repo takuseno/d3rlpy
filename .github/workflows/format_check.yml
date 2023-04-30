@@ -22,10 +22,9 @@ jobs:
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          pip install Cython
-          pip install -r requirements.txt
-          pip install black mypy pylint==2.13.5 isort
+          pip install Cython numpy
           pip install -e .
+          pip install black mypy pylint==2.13.5 isort
       - name: Check format
         run: |
           ./scripts/format
