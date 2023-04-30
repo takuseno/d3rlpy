@@ -95,7 +95,7 @@ def test_min_max_observation_scaler_with_env():
     scaler = MinMaxObservationScaler()
     scaler.fit_with_env(env)
 
-    x = torch.tensor(env.reset().reshape((1,) + env.observation_space.shape))
+    x = torch.tensor(env.reset()[0].reshape((1,) + env.observation_space.shape))
     y = scaler.transform(x)
 
     assert torch.all(x / 255.0 == y)
