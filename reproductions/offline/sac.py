@@ -1,11 +1,9 @@
 import argparse
 
-from sklearn.model_selection import train_test_split
-
 import d3rlpy
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="hopper-medium-v0")
     parser.add_argument("--seed", type=int, default=1)
@@ -16,28 +14,21 @@ def main():
 
     # fix seed
     d3rlpy.seed(args.seed)
-    env.seed(args.seed)
+    d3rlpy.envs.seed_env(env, args.seed)
 
-    _, test_episodes = train_test_split(dataset, test_size=0.2)
-
-    sac = d3rlpy.algos.SAC(
+    sac = d3rlpy.algos.SACConfig(
         actor_learning_rate=3e-4,
         critic_learning_rate=3e-4,
         temp_learning_rate=3e-4,
         batch_size=256,
-        use_gpu=args.gpu,
-    )
+    ).create(device=args.gpu)
 
     sac.fit(
-        dataset.episodes,
-        eval_episodes=test_episodes,
+        dataset,
         n_steps=500000,
         n_steps_per_epoch=1000,
         save_interval=10,
-        scorers={
-            "environment": d3rlpy.metrics.evaluate_on_environment(env),
-            "value_scale": d3rlpy.metrics.average_value_estimation_scorer,
-        },
+        evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
         experiment_name=f"SAC_{args.dataset}_{args.seed}",
     )
 

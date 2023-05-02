@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Optional
+from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -99,10 +99,7 @@ class TD3Config(LearnableConfig):
         return "td3"
 
 
-class TD3(QLearningAlgoBase):
-    _config: TD3Config
-    _impl: Optional[TD3Impl]
-
+class TD3(QLearningAlgoBase[TD3Impl, TD3Config]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

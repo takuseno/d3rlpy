@@ -1,12 +1,13 @@
 import dataclasses
 from abc import abstractmethod
 from collections import defaultdict, deque
-from typing import Any, Callable, Deque, Dict, Optional, Union
+from typing import Any, Callable, Deque, Dict, Generic, Optional, TypeVar, Union
 
 import gym
 import numpy as np
 import torch
 from tqdm.auto import tqdm
+from typing_extensions import Self
 
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -39,8 +40,17 @@ class TransformerAlgoImplBase(ImplBase):
         ...
 
 
-class StatefulTransformerWrapper:
-    _algo: "TransformerAlgoBase"
+@dataclasses.dataclass()
+class TransformerConfig(LearnableConfig):
+    context_size: int = 20
+
+
+TTransformerImpl = TypeVar("TTransformerImpl", bound=TransformerAlgoImplBase)
+TTransformerConfig = TypeVar("TTransformerConfig", bound=TransformerConfig)
+
+
+class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
+    _algo: "TransformerAlgoBase[TTransformerImpl, TTransformerConfig]"
     _target_return: float
     _return_rest: float
     _observations: Deque[Observation]
@@ -50,7 +60,11 @@ class StatefulTransformerWrapper:
     _timesteps: Deque[int]
     _timestep: int
 
-    def __init__(self, algo: "TransformerAlgoBase", target_return: float):
+    def __init__(
+        self,
+        algo: "TransformerAlgoBase[TTransformerImpl, TTransformerConfig]",
+        target_return: float,
+    ):
         assert algo.impl, "algo must be built."
         self._algo = algo
         self._target_return = target_return
@@ -92,6 +106,12 @@ class StatefulTransformerWrapper:
         self._timestep = 0
         self._return_rest = self._target_return
 
+    @property
+    def algo(
+        self,
+    ) -> "TransformerAlgoBase[TTransformerImpl, TTransformerConfig]":
+        return self._algo
+
     def _get_pad_action(self) -> Union[int, np.ndarray]:
         assert self._algo.impl
         if self._algo.get_action_type() == ActionSpace.CONTINUOUS:
@@ -101,15 +121,10 @@ class StatefulTransformerWrapper:
         return pad_action
 
 
-@dataclasses.dataclass()
-class TransformerConfig(LearnableConfig):
-    context_size: int = 20
-
-
-class TransformerAlgoBase(LearnableBase):
-    _config: TransformerConfig
-    _impl: Optional[TransformerAlgoImplBase]
-
+class TransformerAlgoBase(
+    Generic[TTransformerImpl, TTransformerConfig],
+    LearnableBase[TTransformerImpl, TTransformerConfig],
+):
     def predict(self, inpt: TransformerInput) -> np.ndarray:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         with torch.no_grad():
@@ -143,7 +158,7 @@ class TransformerAlgoBase(LearnableBase):
         eval_env: Optional[gym.Env[Any, Any]] = None,
         eval_target_return: Optional[float] = None,
         save_interval: int = 1,
-        callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
+        callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> None:
         """Iterate over epochs steps to train with the given dataset. At each
              iteration algo methods and properties can be changed or queried.
@@ -263,7 +278,7 @@ class TransformerAlgoBase(LearnableBase):
             if eval_env:
                 assert eval_target_return is not None
                 eval_score = evaluate_transformer_with_environment(
-                    algo=StatefulTransformerWrapper(self, eval_target_return),
+                    algo=self.as_stateful_wrapper(eval_target_return),
                     env=eval_env,
                 )
                 logger.add_metric("environment", eval_score)
@@ -311,6 +326,16 @@ class TransformerAlgoBase(LearnableBase):
         """
         raise NotImplementedError
 
-    @property
-    def config(self) -> TransformerConfig:
-        return self._config
+    def as_stateful_wrapper(
+        self, target_return: float
+    ) -> StatefulTransformerWrapper[TTransformerImpl, TTransformerConfig]:
+        """Returns a wrapped Transformer algorithm for stateful decision making.
+
+        Args:
+            target_return: target environment return.
+
+        Returns:
+            StatefulTransformerWrapper object.
+
+        """
+        return StatefulTransformerWrapper(self, target_return)

@@ -5,7 +5,7 @@ import gym
 import d3rlpy
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", type=str, default="Hopper-v2")
     parser.add_argument("--seed", type=int, default=1)
@@ -17,20 +17,19 @@ def main():
 
     # fix seed
     d3rlpy.seed(args.seed)
-    env.seed(args.seed)
-    eval_env.seed(args.seed)
+    d3rlpy.envs.seed_env(env, args.seed)
+    d3rlpy.envs.seed_env(eval_env, args.seed)
 
     # setup algorithm
-    sac = d3rlpy.algos.SAC(
+    sac = d3rlpy.algos.SACConfig(
         batch_size=256,
         actor_learning_rate=3e-4,
         critic_learning_rate=3e-4,
         temp_learning_rate=3e-4,
-        use_gpu=args.gpu,
-    )
+    ).create(device=args.gpu)
 
     # replay buffer for experience replay
-    buffer = d3rlpy.online.buffers.ReplayBuffer(maxlen=1000000, env=env)
+    buffer = d3rlpy.dataset.create_fifo_replay_buffer(limit=1000000)
 
     # start training
     sac.fit_online(

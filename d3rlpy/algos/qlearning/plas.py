@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Optional
+from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -102,10 +102,7 @@ class PLASConfig(LearnableConfig):
         return "plas"
 
 
-class PLAS(QLearningAlgoBase):
-    _config: PLASConfig
-    _impl: Optional[PLASImpl]
-
+class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -237,7 +234,6 @@ class PLASWithPerturbationConfig(PLASConfig):
 
 class PLASWithPerturbation(PLAS):
     _config: PLASWithPerturbationConfig
-    _impl: Optional[PLASWithPerturbationImpl]
 
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int

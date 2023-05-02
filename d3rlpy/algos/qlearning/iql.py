@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Optional
+from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -106,10 +106,7 @@ class IQLConfig(LearnableConfig):
         return "iql"
 
 
-class IQL(QLearningAlgoBase):
-    _config: IQLConfig
-    _impl: Optional[IQLImpl]
-
+class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

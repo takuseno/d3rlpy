@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Optional
+from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -163,10 +163,7 @@ class BCQConfig(LearnableConfig):
         return "bcq"
 
 
-class BCQ(QLearningAlgoBase):
-    _config: BCQConfig
-    _impl: Optional[BCQImpl]
-
+class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -326,10 +323,7 @@ class DiscreteBCQConfig(LearnableConfig):
         return "discrete_bcq"
 
 
-class DiscreteBCQ(QLearningAlgoBase):
-    _config: DiscreteBCQConfig
-    _impl: Optional[DiscreteBCQImpl]
-
+class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

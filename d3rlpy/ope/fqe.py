@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 import numpy as np
 
-from ..algos.qlearning import QLearningAlgoBase
+from ..algos.qlearning import QLearningAlgoBase, QLearningAlgoImplBase
 from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import (
     ALGO_NOT_GIVEN_ERROR,
@@ -84,14 +84,14 @@ class FQEConfig(LearnableConfig):
         return "fqe"
 
 
-class _FQEBase(QLearningAlgoBase):
-    _algo: Optional[QLearningAlgoBase]
+class _FQEBase(QLearningAlgoBase[FQEBaseImpl, FQEConfig]):
+    _algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig]
     _config: FQEConfig
     _impl: Optional[FQEBaseImpl]
 
     def __init__(
         self,
-        algo: QLearningAlgoBase,
+        algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
         config: FQEConfig,
         device: DeviceArg = False,
         impl: Optional[FQEBaseImpl] = None,
@@ -123,6 +123,10 @@ class _FQEBase(QLearningAlgoBase):
             self._impl.update_target()
         return {"loss": loss}
 
+    @property
+    def algo(self) -> QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig]:
+        return self._algo
+
 
 class FQE(_FQEBase):
     r"""Fitted Q Evaluation.
@@ -151,8 +155,6 @@ class FQE(_FQEBase):
         impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
 
     """
-
-    _impl: Optional[FQEImpl]
 
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
@@ -210,8 +212,6 @@ class DiscreteFQE(_FQEBase):
             algorithm implementation.
 
     """
-
-    _impl: Optional[DiscreteFQEImpl]
 
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int

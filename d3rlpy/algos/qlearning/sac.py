@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Dict, Optional
+from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -115,10 +115,7 @@ class SACConfig(LearnableConfig):
         return "sac"
 
 
-class SAC(QLearningAlgoBase):
-    _config: SACConfig
-    _impl: Optional[SACImpl]
-
+class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -269,10 +266,7 @@ class DiscreteSACConfig(LearnableConfig):
         return "discrete_sac"
 
 
-class DiscreteSAC(QLearningAlgoBase):
-    _config: DiscreteSACConfig
-    _impl: Optional[DiscreteSACImpl]
-
+class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

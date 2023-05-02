@@ -1,11 +1,9 @@
 import argparse
 
-from sklearn.model_selection import train_test_split
-
 import d3rlpy
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="hopper-medium-v0")
     parser.add_argument("--seed", type=int, default=1)
@@ -16,9 +14,7 @@ def main():
 
     # fix seed
     d3rlpy.seed(args.seed)
-    env.seed(args.seed)
-
-    _, test_episodes = train_test_split(dataset, test_size=0.2)
+    d3rlpy.envs.seed_env(env, args.seed)
 
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([256, 256, 256])
 
@@ -27,7 +23,7 @@ def main():
     else:
         conservative_weight = 5.0
 
-    cql = d3rlpy.algos.CQL(
+    cql = d3rlpy.algos.CQLConfig(
         actor_learning_rate=1e-4,
         critic_learning_rate=3e-4,
         temp_learning_rate=1e-4,
@@ -37,19 +33,14 @@ def main():
         n_action_samples=10,
         alpha_learning_rate=0.0,
         conservative_weight=conservative_weight,
-        use_gpu=args.gpu,
-    )
+    ).create(device=args.gpu)
 
     cql.fit(
-        dataset.episodes,
-        eval_episodes=test_episodes,
+        dataset,
         n_steps=500000,
         n_steps_per_epoch=1000,
         save_interval=10,
-        scorers={
-            "environment": d3rlpy.metrics.evaluate_on_environment(env),
-            "value_scale": d3rlpy.metrics.average_value_estimation_scorer,
-        },
+        evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
         experiment_name=f"CQL_{args.dataset}_{args.seed}",
     )
 

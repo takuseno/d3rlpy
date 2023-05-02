@@ -1,11 +1,9 @@
 import argparse
 
-from sklearn.model_selection import train_test_split
-
 import d3rlpy
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="hopper-medium-v0")
     parser.add_argument("--seed", type=int, default=1)
@@ -16,14 +14,12 @@ def main():
 
     # fix seed
     d3rlpy.seed(args.seed)
-    env.seed(args.seed)
-
-    _, test_episodes = train_test_split(dataset, test_size=0.2)
+    d3rlpy.envs.seed_env(env, args.seed)
 
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([256, 256, 256, 256])
     optim = d3rlpy.models.optimizers.AdamFactory(weight_decay=1e-4)
 
-    awac = d3rlpy.algos.AWAC(
+    awac = d3rlpy.algos.AWACConfig(
         actor_learning_rate=3e-4,
         actor_encoder_factory=encoder,
         actor_optim_factory=optim,
@@ -31,19 +27,14 @@ def main():
         critic_encoder_factory=encoder,
         batch_size=1024,
         lam=1.0,
-        use_gpu=args.gpu,
-    )
+    ).create(args.gpu)
 
     awac.fit(
-        dataset.episodes,
-        eval_episodes=test_episodes,
+        dataset,
         n_steps=500000,
         n_steps_per_epoch=1000,
         save_interval=10,
-        scorers={
-            "environment": d3rlpy.metrics.evaluate_on_environment(env),
-            "value_scale": d3rlpy.metrics.average_value_estimation_scorer,
-        },
+        evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
         experiment_name=f"AWAC_{args.dataset}_{args.seed}",
     )
 

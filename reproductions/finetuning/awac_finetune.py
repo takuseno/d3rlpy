@@ -1,12 +1,11 @@
 import argparse
 
 import gym
-from sklearn.model_selection import train_test_split
 
 import d3rlpy
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="antmaze-umaze-v0")
     parser.add_argument("--seed", type=int, default=1)
@@ -17,16 +16,14 @@ def main():
 
     # fix seed
     d3rlpy.seed(args.seed)
-    env.seed(args.seed)
-
-    _, test_episodes = train_test_split(dataset, test_size=0.2)
+    d3rlpy.envs.seed_env(env, args.seed)
 
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([256, 256, 256, 256])
     optim = d3rlpy.models.optimizers.AdamFactory(weight_decay=1e-4)
     # for antmaze datasets
     reward_scaler = d3rlpy.preprocessing.ConstantShiftRewardScaler(shift=-1)
 
-    awac = d3rlpy.algos.AWAC(
+    awac = d3rlpy.algos.AWACConfig(
         actor_learning_rate=3e-4,
         actor_encoder_factory=encoder,
         actor_optim_factory=optim,
@@ -34,27 +31,25 @@ def main():
         batch_size=1024,
         lam=1.0,
         reward_scaler=reward_scaler,
-        use_gpu=args.gpu,
-    )
+    ).create(device=args.gpu)
 
     awac.fit(
-        dataset.episodes,
-        eval_episodes=test_episodes,
+        dataset,
         n_steps=25000,
         n_steps_per_epoch=5000,
         save_interval=10,
-        scorers={
-            "environment": d3rlpy.metrics.evaluate_on_environment(env),
-            "value_scale": d3rlpy.metrics.average_value_estimation_scorer,
-        },
+        evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
         experiment_name=f"AWAC_pretraining_{args.dataset}_{args.seed}",
     )
 
+    # prepare FIFO buffer filled with dataset episodes
+    buffer = d3rlpy.dataset.create_fifo_replay_buffer(1000000)
+    for episode in dataset.episodes:
+        buffer.append_episode(episode)
+
     # finetuning
-    buffer = d3rlpy.online.buffers.ReplayBuffer(
-        maxlen=1000000, episodes=dataset.episodes
-    )
     eval_env = gym.make(env.unwrapped.spec.id)
+    d3rlpy.envs.seed_env(eval_env, args.seed)
     awac.fit_online(
         env,
         buffer=buffer,

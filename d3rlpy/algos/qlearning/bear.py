@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Dict, Optional
+from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -154,10 +154,7 @@ class BEARConfig(LearnableConfig):
         return "bear"
 
 
-class BEAR(QLearningAlgoBase):
-    _config: BEARConfig
-    _impl: Optional[BEARImpl]
-
+class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

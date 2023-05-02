@@ -16,7 +16,7 @@ __all__ = ["assert_action_space_with_dataset", "assert_action_space_with_env"]
 
 
 def assert_action_space_with_dataset(
-    algo: LearnableBase, dataset_info: DatasetInfo
+    algo: LearnableBase[Any, Any], dataset_info: DatasetInfo
 ) -> None:
     if algo.get_action_type() == ActionSpace.BOTH:
         pass
@@ -31,7 +31,7 @@ def assert_action_space_with_dataset(
 
 
 def assert_action_space_with_env(
-    algo: LearnableBase, env: gym.Env[Any, Any]
+    algo: LearnableBase[Any, Any], env: gym.Env[Any, Any]
 ) -> None:
     if isinstance(env.action_space, Box):
         assert (
@@ -47,7 +47,7 @@ def assert_action_space_with_env(
 
 
 def build_scalers_with_dataset(
-    algo: LearnableBase, dataset: ReplayBuffer
+    algo: LearnableBase[Any, Any], dataset: ReplayBuffer
 ) -> None:
     # initialize observation scaler
     if algo.config.observation_scaler:
@@ -74,7 +74,9 @@ def build_scalers_with_dataset(
         algo.config.reward_scaler.fit(dataset.episodes)
 
 
-def build_scalers_with_env(algo: LearnableBase, env: gym.Env[Any, Any]) -> None:
+def build_scalers_with_env(
+    algo: LearnableBase[Any, Any], env: gym.Env[Any, Any]
+) -> None:
     # initialize observation scaler
     if algo.observation_scaler:
         LOG.debug(

@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Optional
+from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -130,10 +130,7 @@ class CRRConfig(LearnableConfig):
         return "crr"
 
 
-class CRR(QLearningAlgoBase):
-    _config: CRRConfig
-    _impl: Optional[CRRImpl]
-
+class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

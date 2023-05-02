@@ -19,7 +19,7 @@ from .dataset import (
     create_infinite_replay_buffer,
     load_v1,
 )
-from .envs import ChannelFirst
+from .envs import ChannelFirst, FrameStack
 
 __all__ = [
     "DATA_DIRECTORY",
@@ -151,6 +151,7 @@ def get_pendulum(
 
 def get_atari(
     env_name: str,
+    num_stack: Optional[int] = None,
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
 ) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, int]]:
@@ -170,6 +171,7 @@ def get_atari(
 
     Args:
         env_name: environment id of d4rl-atari dataset.
+        num_stack: the number of frames to stack (only applied to env).
         transition_picker: TransitionPickerProtocol object.
         trajectory_slicer: TrajectorySlicerProtocol object.
 
@@ -180,13 +182,18 @@ def get_atari(
     try:
         import d4rl_atari  # type: ignore
 
-        env = ChannelFirst(gym.make(env_name))
-        episode_generator = EpisodeGenerator(**env.get_dataset())
+        env = gym.make(env_name)
+        raw_dataset = env.get_dataset()  # type: ignore
+        episode_generator = EpisodeGenerator(**raw_dataset)
         dataset = create_infinite_replay_buffer(
             episode_generator,
             transition_picker=transition_picker,
             trajectory_slicer=trajectory_slicer,
         )
+        if num_stack:
+            env = FrameStack(env, num_stack=num_stack)
+        else:
+            env = ChannelFirst(env)
         return dataset, env
     except ImportError as e:
         raise ImportError(
@@ -199,6 +206,7 @@ def get_atari_transitions(
     game_name: str,
     fraction: float = 0.01,
     index: int = 0,
+    num_stack: Optional[int] = None,
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
 ) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, int]]:
@@ -223,6 +231,7 @@ def get_atari_transitions(
         game_name: Atari 2600 game name in lower_snake_case.
         fraction: fraction of sampled transitions.
         index: index to specify which trial to load.
+        num_stack: the number of frames to stack (only applied to env).
         transition_picker: TransitionPickerProtocol object.
         trajectory_slicer: TrajectorySlicerProtocol object.
 
@@ -280,7 +289,12 @@ def get_atari_transitions(
             trajectory_slicer=trajectory_slicer,
         )
 
-        return dataset, ChannelFirst(env)
+        if num_stack:
+            env = FrameStack(env, num_stack=num_stack)
+        else:
+            env = ChannelFirst(env)
+
+        return dataset, env
     except ImportError as e:
         raise ImportError(
             "d4rl-atari is not installed.\n"

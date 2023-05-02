@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Optional
+from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -64,10 +64,7 @@ class DQNConfig(LearnableConfig):
         return "dqn"
 
 
-class DQN(QLearningAlgoBase):
-    _config: DQNConfig
-    _impl: Optional[DQNImpl]
-
+class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -160,9 +157,6 @@ class DoubleDQNConfig(DQNConfig):
 
 
 class DoubleDQN(DQN):
-    _config: DoubleDQNConfig
-    _impl: Optional[DoubleDQNImpl]
-
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

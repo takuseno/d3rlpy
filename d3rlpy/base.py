@@ -2,11 +2,12 @@ import dataclasses
 import io
 import pickle
 from abc import ABCMeta, abstractmethod
-from typing import Any, BinaryIO, Optional, Type, TypeVar, Union
+from typing import Any, BinaryIO, Generic, Optional, Type, TypeVar, Union
 
 import gym
 import torch
 from gym.spaces import Box, Discrete
+from typing_extensions import Self
 
 from ._version import __version__
 from .constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -32,12 +33,15 @@ __all__ = [
     "LearnableBase",
     "LearnableConfig",
     "LearnableConfigWithShape",
+    "TImpl_co",
+    "TConfig_co",
     "register_learnable",
 ]
 
 
-TLearnable = TypeVar("TLearnable", bound="LearnableBase")
 DeviceArg = Optional[Union[bool, int, str]]
+TImpl_co = TypeVar("TImpl_co", bound="ImplBase", covariant=True)
+TConfig_co = TypeVar("TConfig_co", bound="LearnableConfig", covariant=True)
 
 
 class ImplBase(metaclass=ABCMeta):
@@ -85,7 +89,9 @@ class LearnableConfig(DynamicConfig):
     action_scaler: Optional[ActionScaler] = make_action_scaler_field()
     reward_scaler: Optional[RewardScaler] = make_reward_scaler_field()
 
-    def create(self, device: DeviceArg = False) -> "LearnableBase":
+    def create(
+        self, device: DeviceArg = False
+    ) -> "LearnableBase[ImplBase, LearnableConfig]":
         raise NotImplementedError
 
 
@@ -100,13 +106,17 @@ class LearnableConfigWithShape(DynamicConfig):
     action_size: int
     config: LearnableConfig = make_learnable_field()
 
-    def create(self, device: DeviceArg = False) -> "LearnableBase":
+    def create(
+        self, device: DeviceArg = False
+    ) -> "LearnableBase[ImplBase, LearnableConfig]":
         algo = self.config.create(device)
         algo.create_impl(self.observation_shape, self.action_size)
         return algo
 
 
-def save_config(algo: "LearnableBase", logger: D3RLPyLogger) -> None:
+def save_config(
+    algo: "LearnableBase[ImplBase, LearnableConfig]", logger: D3RLPyLogger
+) -> None:
     assert algo.impl
     config = LearnableConfigWithShape(
         observation_shape=algo.impl.observation_shape,
@@ -135,7 +145,9 @@ def _process_device(value: DeviceArg) -> str:
     raise ValueError("This argument must be bool, int or str.")
 
 
-def dump_learnable(algo: "LearnableBase", fname: str) -> None:
+def dump_learnable(
+    algo: "LearnableBase[ImplBase, LearnableConfig]", fname: str
+) -> None:
     assert algo.impl
     with open(fname, "wb") as f:
         torch_bytes = io.BytesIO()
@@ -153,7 +165,9 @@ def dump_learnable(algo: "LearnableBase", fname: str) -> None:
         pickle.dump(obj, f)
 
 
-def load_learnable(fname: str, device: DeviceArg = None) -> "LearnableBase":
+def load_learnable(
+    fname: str, device: DeviceArg = None
+) -> "LearnableBase[ImplBase, LearnableConfig]":
     with open(fname, "rb") as f:
         obj = pickle.load(f)
         if obj["version"] != __version__:
@@ -169,17 +183,17 @@ def load_learnable(fname: str, device: DeviceArg = None) -> "LearnableBase":
     return algo
 
 
-class LearnableBase(metaclass=ABCMeta):
-    _config: LearnableConfig
+class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
+    _config: TConfig_co
     _device: str
-    _impl: Optional[ImplBase]
+    _impl: Optional[TImpl_co]
     _grad_step: int
 
     def __init__(
         self,
-        config: LearnableConfig,
+        config: TConfig_co,
         device: DeviceArg,
-        impl: Optional[ImplBase] = None,
+        impl: Optional[TImpl_co] = None,
     ):
         self._config = config
         self._device = _process_device(device)
@@ -235,8 +249,8 @@ class LearnableBase(metaclass=ABCMeta):
 
     @classmethod
     def from_json(
-        cls: Type[TLearnable], fname: str, device: DeviceArg = False
-    ) -> TLearnable:
+        cls: Type[Self], fname: str, device: DeviceArg = False
+    ) -> Self:
         config = LearnableConfigWithShape.deserialize_from_file(fname)
         return config.create(device)  # type: ignore
 
@@ -302,7 +316,7 @@ class LearnableBase(metaclass=ABCMeta):
         raise NotImplementedError
 
     @property
-    def config(self) -> LearnableConfig:
+    def config(self) -> TConfig_co:
         return self._config
 
     @property
@@ -356,7 +370,7 @@ class LearnableBase(metaclass=ABCMeta):
         return self._config.reward_scaler
 
     @property
-    def impl(self) -> Optional[ImplBase]:
+    def impl(self) -> Optional[TImpl_co]:
         """Implementation object.
 
         Returns:

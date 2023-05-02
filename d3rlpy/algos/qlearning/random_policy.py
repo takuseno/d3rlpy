@@ -35,7 +35,7 @@ class RandomPolicyConfig(LearnableConfig):
     distribution: str = "uniform"
     normal_std: float = 1.0
 
-    def create(self, device: DeviceArg = False) -> "RandomPolicy":
+    def create(self, device: DeviceArg = False) -> "RandomPolicy":  # type: ignore
         return RandomPolicy(self)
 
     @staticmethod
@@ -43,8 +43,7 @@ class RandomPolicyConfig(LearnableConfig):
         return "random_policy"
 
 
-class RandomPolicy(QLearningAlgoBase):
-    _config: RandomPolicyConfig
+class RandomPolicy(QLearningAlgoBase[None, RandomPolicyConfig]):  # type: ignore
     _action_size: int
 
     def __init__(self, config: RandomPolicyConfig):
@@ -100,7 +99,7 @@ class DiscreteRandomPolicyConfig(LearnableConfig):
 
     """
 
-    def create(self, device: DeviceArg = False) -> "DiscreteRandomPolicy":
+    def create(self, device: DeviceArg = False) -> "DiscreteRandomPolicy":  # type: ignore
         return DiscreteRandomPolicy(self)
 
     @staticmethod
@@ -108,8 +107,7 @@ class DiscreteRandomPolicyConfig(LearnableConfig):
         return "discrete_random_policy"
 
 
-class DiscreteRandomPolicy(QLearningAlgoBase):
-    _config: DiscreteRandomPolicyConfig
+class DiscreteRandomPolicy(QLearningAlgoBase[None, DiscreteRandomPolicyConfig]):  # type: ignore
     _action_size: int
 
     def __init__(self, config: DiscreteRandomPolicyConfig):

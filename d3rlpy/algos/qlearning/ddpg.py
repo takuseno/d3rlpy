@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Optional
+from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -91,10 +91,7 @@ class DDPGConfig(LearnableConfig):
         return "ddpg"
 
 
-class DDPG(QLearningAlgoBase):
-    _config: DDPGConfig
-    _impl: Optional[DDPGImpl]
-
+class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

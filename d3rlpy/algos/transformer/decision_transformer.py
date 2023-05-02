@@ -45,10 +45,9 @@ class DecisionTransformerConfig(TransformerConfig):
         return "decision_transformer"
 
 
-class DecisionTransformer(TransformerAlgoBase):
-    _config: DecisionTransformerConfig
-    _impl: DecisionTransformerImpl
-
+class DecisionTransformer(
+    TransformerAlgoBase[DecisionTransformerImpl, DecisionTransformerConfig]
+):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Dict, Optional
+from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -131,10 +131,7 @@ class CQLConfig(LearnableConfig):
         return "cql"
 
 
-class CQL(QLearningAlgoBase):
-    _config: CQLConfig
-    _impl: Optional[CQLImpl]
-
+class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -283,10 +280,7 @@ class DiscreteCQLConfig(LearnableConfig):
         return "discrete_cql"
 
 
-class DiscreteCQL(QLearningAlgoBase):
-    _config: DiscreteCQLConfig
-    _impl: Optional[DiscreteCQLImpl]
-
+class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

@@ -3,7 +3,7 @@ import argparse
 import d3rlpy
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--game", type=str, default="breakout")
     parser.add_argument("--seed", type=int, default=1)
@@ -17,37 +17,34 @@ def main():
         args.game,
         fraction=0.01,
         index=1 if args.game == "asterix" else 0,
+        num_stack=4,
+        transition_picker=d3rlpy.dataset.FrameStackTransitionPicker(n_frames=4),
     )
 
-    env.seed(args.seed)
+    d3rlpy.envs.seed_env(env, args.seed)
 
-    bcq = d3rlpy.algos.DiscreteBCQ(
+    bcq = d3rlpy.algos.DiscreteBCQConfig(
         learning_rate=5e-5,
         optim_factory=d3rlpy.models.optimizers.AdamFactory(eps=1e-2 / 32),
         batch_size=32,
         q_func_factory=d3rlpy.models.q_functions.QRQFunctionFactory(
             n_quantiles=200
         ),
-        scaler="pixel",
-        n_frames=4,
+        observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
         target_update_interval=2000,
         reward_scaler=d3rlpy.preprocessing.ClipRewardScaler(-1.0, 1.0),
         action_flexibility=0.3,
         beta=0.01,
-        use_gpu=args.gpu,
-    )
+    ).create(device=args.gpu)
 
-    env_scorer = d3rlpy.metrics.evaluate_on_environment(env, epsilon=0.001)
+    env_scorer = d3rlpy.metrics.EnvironmentEvaluator(env, epsilon=0.001)
 
     bcq.fit(
         dataset,
-        eval_episodes=[None],  # dummy
         n_steps=50000000 // 4,
         n_steps_per_epoch=125000,
         save_interval=10,
-        scorers={
-            "environment": env_scorer,
-        },
+        evaluators={"environment": env_scorer},
         experiment_name=f"DiscreteBCQ_{args.game}_{args.seed}",
     )
 

@@ -1,13 +1,13 @@
+# pylint: disable=protected-access
 import argparse
 
 import gym
-from sklearn.model_selection import train_test_split
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 import d3rlpy
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="antmaze-umaze-v0")
     parser.add_argument("--seed", type=int, default=1)
@@ -18,14 +18,12 @@ def main():
 
     # fix seed
     d3rlpy.seed(args.seed)
-    env.seed(args.seed)
-
-    _, test_episodes = train_test_split(dataset, test_size=0.2)
+    d3rlpy.envs.seed_env(env, args.seed)
 
     # for antmaze datasets
     reward_scaler = d3rlpy.preprocessing.ConstantShiftRewardScaler(shift=-1)
 
-    iql = d3rlpy.algos.IQL(
+    iql = d3rlpy.algos.IQLConfig(
         actor_learning_rate=3e-4,
         critic_learning_rate=3e-4,
         batch_size=256,
@@ -33,40 +31,39 @@ def main():
         max_weight=100.0,
         expectile=0.9,  # hyperparameter for antmaze
         reward_scaler=reward_scaler,
-        use_gpu=args.gpu,
-    )
+    ).create(device=args.gpu)
 
     # workaround for learning scheduler
-    iql.create_impl(dataset.get_observation_shape(), dataset.get_action_size())
+    iql.build_with_dataset(dataset)
+    assert iql.impl
     scheduler = CosineAnnealingLR(iql.impl._actor_optim, 1000000)
 
-    def callback(algo, epoch, total_step):
+    def callback(algo: d3rlpy.algos.IQL, epoch: int, total_step: int) -> None:
         scheduler.step()
 
     # pretraining
     iql.fit(
-        dataset.episodes,
-        eval_episodes=test_episodes,
+        dataset,
         n_steps=1000000,
         n_steps_per_epoch=100000,
         save_interval=10,
         callback=callback,
-        scorers={
-            "environment": d3rlpy.metrics.evaluate_on_environment(env),
-            "value_scale": d3rlpy.metrics.average_value_estimation_scorer,
-        },
+        evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
         experiment_name=f"IQL_pretraining_{args.dataset}_{args.seed}",
     )
 
     # reset learning rate
     for g in iql.impl._actor_optim.param_groups:
-        g["lr"] = iql._actor_learning_rate
+        g["lr"] = iql.config.actor_learning_rate
+
+    # prepare FIFO buffer filled with dataset episodes
+    buffer = d3rlpy.dataset.create_fifo_replay_buffer(1000000)
+    for episode in dataset.episodes:
+        buffer.append_episode(episode)
 
     # finetuning
-    buffer = d3rlpy.online.buffers.ReplayBuffer(
-        maxlen=1000000, episodes=dataset.episodes
-    )
     eval_env = gym.make(env.unwrapped.spec.id)
+    d3rlpy.envs.seed_env(eval_env, args.seed)
     iql.fit_online(
         env,
         buffer=buffer,

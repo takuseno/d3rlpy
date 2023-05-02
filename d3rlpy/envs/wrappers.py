@@ -1,6 +1,7 @@
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+from collections import deque
+from typing import Any, Callable, Deque, Dict, List, Optional, Tuple, TypeVar
 
 import gym
 import numpy as np
@@ -13,7 +14,13 @@ except ImportError:
 from gym.spaces import Box
 from gym.wrappers.transform_reward import TransformReward
 
-__all__ = ["ChannelFirst", "AtariPreprocessing", "Atari", "Monitor"]
+__all__ = [
+    "ChannelFirst",
+    "FrameStack",
+    "AtariPreprocessing",
+    "Atari",
+    "Monitor",
+]
 
 _ObsType = TypeVar("_ObsType")
 _ActType = TypeVar("_ActType")
@@ -78,6 +85,60 @@ class ChannelFirst(gym.Wrapper[_ObsType, _ActType]):
             observation_T = np.reshape(observation, (1, *observation.shape))
         assert observation_T.shape == self.observation_space.shape
         return observation_T, info
+
+
+class FrameStack(gym.Wrapper[np.ndarray, _ActType]):
+    """Observation wrapper that stacks the observations in a rolling manner.
+
+    This wrapper is implemented based on gym.wrappers.FrameStack. The
+    difference is that this wrapper returns stacked frames as numpy array.
+
+    Args:
+        env (gym.Env): gym environment.
+        num_stack (int): the number of frames to stack.
+
+    """
+
+    _num_stack: int
+    _frames: Deque[np.ndarray]
+
+    def __init__(self, env: gym.Env[np.ndarray, _ActType], num_stack: int):
+        super().__init__(env)
+        self._num_stack = num_stack
+        self._frames = deque(maxlen=num_stack)
+
+        low = np.repeat(
+            self.observation_space.low[np.newaxis, ...],  # type: ignore
+            num_stack,
+            axis=0,
+        )
+        high = np.repeat(
+            self.observation_space.high[np.newaxis, ...],  # type: ignore
+            num_stack,
+            axis=0,
+        )
+        self.observation_space = Box(
+            low=low,
+            high=high,
+            dtype=self.observation_space.dtype,  # type: ignore
+        )
+
+    def observation(self, observation: Any) -> np.ndarray:
+        return np.array(self._frames, dtype=self._frames[-1].dtype)
+
+    def step(
+        self, action: _ActType
+    ) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
+        observation, reward, terminated, truncated, info = self.env.step(action)
+        self._frames.append(observation)
+        return self.observation(None), reward, terminated, truncated, info
+
+    def reset(self, **kwargs: Any) -> Tuple[np.ndarray, Dict[str, Any]]:
+        obs, info = self.env.reset(**kwargs)
+        for _ in range(self._num_stack - 1):
+            self._frames.append(np.zeros_like(obs))
+        self._frames.append(obs)
+        return self.observation(None), info
 
 
 # https://github.com/openai/gym/blob/0.17.3/gym/wrappers/atari_preprocessing.py
@@ -218,7 +279,7 @@ class AtariPreprocessing(gym.Wrapper[np.ndarray, int]):
             _, _, _, _, info = self.env.step(0)
 
         noops = (
-            self.env.unwrapped.np_random.randint(1, self.noop_max + 1)
+            self.env.unwrapped.np_random.integers(1, self.noop_max + 1)
             if self.noop_max > 0
             else 0
         )
@@ -261,15 +322,25 @@ class Atari(gym.Wrapper[np.ndarray, int]):
 
     Args:
         env (gym.Env): gym environment.
+        num_stack (int): the number of frames to stack.
         is_eval (bool): flag to enter evaluation mode.
 
     """
 
-    def __init__(self, env: gym.Env[np.ndarray, int], is_eval: bool = False):
+    def __init__(
+        self,
+        env: gym.Env[np.ndarray, int],
+        num_stack: Optional[int] = None,
+        is_eval: bool = False,
+    ):
         env = AtariPreprocessing(env, terminal_on_life_loss=not is_eval)
         if not is_eval:
             env = TransformReward(env, lambda r: float(np.clip(r, -1.0, 1.0)))
-        super().__init__(ChannelFirst(env))
+        if num_stack:
+            env = FrameStack(env, num_stack)
+        else:
+            env = ChannelFirst(env)
+        super().__init__(env)
 
 
 class Monitor(gym.Wrapper[_ObsType, _ActType]):

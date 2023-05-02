@@ -1,7 +1,5 @@
 import argparse
 
-from sklearn.model_selection import train_test_split
-
 import d3rlpy
 
 ACTION_FLEXIBILITY = {
@@ -20,7 +18,7 @@ ACTION_FLEXIBILITY = {
 }
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="hopper-medium-v0")
     parser.add_argument("--seed", type=int, default=1)
@@ -31,9 +29,7 @@ def main():
 
     # fix seed
     d3rlpy.seed(args.seed)
-    env.seed(args.seed)
-
-    _, test_episodes = train_test_split(dataset, test_size=0.2)
+    d3rlpy.envs.seed_env(env, args.seed)
 
     if "medium-replay" in env.unwrapped.spec.id.lower():
         vae_encoder = d3rlpy.models.encoders.VectorEncoderFactory([128, 128])
@@ -41,7 +37,7 @@ def main():
         vae_encoder = d3rlpy.models.encoders.VectorEncoderFactory([750, 750])
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([400, 300])
 
-    plas = d3rlpy.algos.PLASWithPerturbation(
+    plas = d3rlpy.algos.PLASWithPerturbationConfig(
         actor_learning_rate=1e-4,
         actor_encoder_factory=encoder,
         critic_learning_rate=1e-3,
@@ -52,19 +48,14 @@ def main():
         lam=1.0,
         warmup_steps=500000,
         action_flexibility=ACTION_FLEXIBILITY[args.dataset],
-        use_gpu=args.gpu,
-    )
+    ).create(device=args.gpu)
 
     plas.fit(
-        dataset.episodes,
-        eval_episodes=test_episodes,
+        dataset,
         n_steps=1000000,  # RL starts at 500000 step
         n_steps_per_epoch=1000,
         save_interval=10,
-        scorers={
-            "environment": d3rlpy.metrics.evaluate_on_environment(env),
-            "value_scale": d3rlpy.metrics.average_value_estimation_scorer,
-        },
+        evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
         experiment_name=f"PLASWithPerturbation_{args.dataset}_{args.seed}",
     )
 

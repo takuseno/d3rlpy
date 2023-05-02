@@ -1,17 +1,28 @@
 from abc import abstractmethod
 from collections import defaultdict
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Generic,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    cast,
+)
 
 import gym
 import numpy as np
 import torch
 from tqdm.auto import tqdm, trange
+from typing_extensions import Self
 
-from ...base import ImplBase, LearnableBase, save_config
+from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import (
     DatasetInfo,
-    Episode,
     Observation,
     ReplayBuffer,
     TransitionMiniBatch,
@@ -41,7 +52,12 @@ from ..utility import (
 )
 from .explorers import Explorer
 
-__all__ = ["QLearningAlgoImplBase", "QLearningAlgoBase"]
+__all__ = [
+    "QLearningAlgoImplBase",
+    "QLearningAlgoBase",
+    "TQLearningImpl",
+    "TQLearningConfig",
+]
 
 
 class QLearningAlgoImplBase(ImplBase):
@@ -128,9 +144,14 @@ class QLearningAlgoImplBase(ImplBase):
         reset_optimizer_states(self)
 
 
-class QLearningAlgoBase(LearnableBase):
-    _impl: Optional[QLearningAlgoImplBase]
+TQLearningImpl = TypeVar("TQLearningImpl", bound=QLearningAlgoImplBase)
+TQLearningConfig = TypeVar("TQLearningConfig", bound=LearnableConfig)
 
+
+class QLearningAlgoBase(
+    Generic[TQLearningImpl, TQLearningConfig],
+    LearnableBase[TQLearningImpl, TQLearningConfig],
+):
     def save_policy(self, fname: str) -> None:
         """Save the greedy-policy computational graph as TorchScript or ONNX.
 
@@ -349,10 +370,9 @@ class QLearningAlgoBase(LearnableBase):
         verbose: bool = True,
         show_progress: bool = True,
         tensorboard_dir: Optional[str] = None,
-        eval_episodes: Optional[List[Episode]] = None,
         save_interval: int = 1,
         evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
-        callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
+        callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> List[Tuple[int, Dict[str, float]]]:
         """Trains with the given dataset.
 
@@ -378,9 +398,8 @@ class QLearningAlgoBase(LearnableBase):
             tensorboard_dir: directory to save logged information in
                 tensorboard (additional to the csv data).  if ``None``, the
                 directory will not be created.
-            eval_episodes: list of episodes to test.
             save_interval: interval to save parameters.
-            evaluators: list of evaluators used with `eval_episodes`.
+            evaluators: list of evaluators.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
 
@@ -400,7 +419,6 @@ class QLearningAlgoBase(LearnableBase):
                 verbose,
                 show_progress,
                 tensorboard_dir,
-                eval_episodes,
                 save_interval,
                 evaluators,
                 callback,
@@ -420,10 +438,9 @@ class QLearningAlgoBase(LearnableBase):
         verbose: bool = True,
         show_progress: bool = True,
         tensorboard_dir: Optional[str] = None,
-        eval_episodes: Optional[List[Episode]] = None,
         save_interval: int = 1,
         evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
-        callback: Optional[Callable[["LearnableBase", int, int], None]] = None,
+        callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
         """Iterate over epochs steps to train with the given dataset. At each
              iteration algo methods and properties can be changed or queried.
@@ -452,9 +469,8 @@ class QLearningAlgoBase(LearnableBase):
             tensorboard_dir: directory to save logged information in
                 tensorboard (additional to the csv data).  if ``None``, the
                 directory will not be created.
-            eval_episodes: list of episodes to test.
             save_interval: interval to save parameters.
-            evaluators: list of evaluators used with `eval_episodes`.
+            evaluators: list of evaluators.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
 
@@ -575,9 +591,7 @@ class QLearningAlgoBase(LearnableBase):
         verbose: bool = True,
         show_progress: bool = True,
         tensorboard_dir: Optional[str] = None,
-        callback: Optional[
-            Callable[["QLearningAlgoBase", int, int], None]
-        ] = None,
+        callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> None:
         """Start training loop of online deep reinforcement learning.
 
@@ -849,7 +863,9 @@ class QLearningAlgoBase(LearnableBase):
         """
         raise NotImplementedError
 
-    def copy_policy_from(self, algo: "QLearningAlgoBase") -> None:
+    def copy_policy_from(
+        self, algo: "QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig]"
+    ) -> None:
         """Copies policy parameters from the given algorithm.
 
         .. code-block:: python
@@ -871,7 +887,9 @@ class QLearningAlgoBase(LearnableBase):
         assert isinstance(algo.impl, QLearningAlgoImplBase)
         self._impl.copy_policy_from(algo.impl)
 
-    def copy_policy_optim_from(self, algo: "QLearningAlgoBase") -> None:
+    def copy_policy_optim_from(
+        self, algo: "QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig]"
+    ) -> None:
         """Copies policy optimizer states from the given algorithm.
 
         .. code-block:: python
@@ -893,7 +911,9 @@ class QLearningAlgoBase(LearnableBase):
         assert isinstance(algo.impl, QLearningAlgoImplBase)
         self._impl.copy_policy_optim_from(algo.impl)
 
-    def copy_q_function_from(self, algo: "QLearningAlgoBase") -> None:
+    def copy_q_function_from(
+        self, algo: "QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig]"
+    ) -> None:
         """Copies Q-function parameters from the given algorithm.
 
         .. code-block:: python
@@ -915,7 +935,9 @@ class QLearningAlgoBase(LearnableBase):
         assert isinstance(algo.impl, QLearningAlgoImplBase)
         self._impl.copy_q_function_from(algo.impl)
 
-    def copy_q_function_optim_from(self, algo: "QLearningAlgoBase") -> None:
+    def copy_q_function_optim_from(
+        self, algo: "QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig]"
+    ) -> None:
         """Copies Q-function optimizer states from the given algorithm.
 
         .. code-block:: python

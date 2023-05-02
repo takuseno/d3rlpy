@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Optional
+from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
@@ -93,10 +93,7 @@ class AWACConfig(LearnableConfig):
         return "awac"
 
 
-class AWAC(QLearningAlgoBase):
-    _config: AWACConfig
-    _impl: Optional[AWACImpl]
-
+class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

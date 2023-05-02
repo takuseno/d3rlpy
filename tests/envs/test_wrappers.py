@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from d3rlpy.algos import DQNConfig
-from d3rlpy.envs.wrappers import Atari, ChannelFirst
+from d3rlpy.envs.wrappers import Atari, ChannelFirst, FrameStack
 
 from ..dummy_env import DummyAtari
 
@@ -43,6 +43,28 @@ def test_channel_first_with_2_dim_obs():
     # check step
     observation, _, _, _, _ = wrapper.step(wrapper.action_space.sample())
     assert observation.shape == (1, width, height)
+
+    # check with algorithm
+    dqn = DQNConfig().create()
+    dqn.build_with_env(wrapper)
+    dqn.predict(np.expand_dims(observation, axis=0))
+
+
+@pytest.mark.parametrize("num_stack", [4])
+def test_frame_stack(num_stack):
+    env = DummyAtari(squeeze=True)
+
+    width, height = env.observation_space.shape
+
+    wrapper = FrameStack(env, num_stack=num_stack)
+
+    # check reset
+    observation, _ = wrapper.reset()
+    assert observation.shape == (num_stack, width, height)
+
+    # check step
+    observation, _, _, _, _ = wrapper.step(wrapper.action_space.sample())
+    assert observation.shape == (num_stack, width, height)
 
     # check with algorithm
     dqn = DQNConfig().create()
