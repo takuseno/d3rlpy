@@ -199,7 +199,7 @@ class _ActiveEpisode(EpisodeBase):
 
     @property
     def transition_count(self) -> int:
-        return self.size() - 1
+        return self.size() if self.terminated else self.size() - 1
 
 
 class ExperienceWriter:
@@ -307,12 +307,18 @@ class ExperienceWriter:
     def clip_episode(self, terminated: bool) -> None:
         if self._active_episode.transition_count == 0:
             return
+
+        # shrink heap memory
+        self._active_episode.shrink(terminated)
+
+        # append terminal state if necessary
         if terminated:
             self._buffer.append(
                 self._active_episode,
-                self._active_episode.transition_count,
+                self._active_episode.transition_count - 1,
             )
-        self._active_episode.shrink(terminated)
+
+        # prepare next active episode
         self._active_episode = _ActiveEpisode(
             self._preprocessor,
             cache_size=self._cache_size,

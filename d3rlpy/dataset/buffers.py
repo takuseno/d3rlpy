@@ -20,6 +20,9 @@ class BufferProtocol(Protocol):
     def transition_count(self) -> int:
         raise NotImplementedError
 
+    def __getitem__(self, index: int) -> Tuple[EpisodeBase, int]:
+        raise NotImplementedError
+
 
 class InfiniteBuffer(BufferProtocol):
     _transitions: List[Tuple[EpisodeBase, int]]
@@ -39,12 +42,15 @@ class InfiniteBuffer(BufferProtocol):
     def episodes(self) -> Sequence[EpisodeBase]:
         return self._episodes
 
-    def __len__(self) -> int:
-        return len(self._transitions)
-
     @property
     def transition_count(self) -> int:
         return len(self._transitions)
+
+    def __len__(self) -> int:
+        return len(self._transitions)
+
+    def __getitem__(self, index: int) -> Tuple[EpisodeBase, int]:
+        return self._transitions[index]
 
 
 class FIFOBuffer(BufferProtocol):
@@ -70,9 +76,12 @@ class FIFOBuffer(BufferProtocol):
     def episodes(self) -> Sequence[EpisodeBase]:
         return self._episodes
 
-    def __len__(self) -> int:
-        return len(self._transitions)
-
     @property
     def transition_count(self) -> int:
         return len(self._transitions)
+
+    def __len__(self) -> int:
+        return len(self._transitions)
+
+    def __getitem__(self, index: int) -> Tuple[EpisodeBase, int]:
+        return self._transitions[index]

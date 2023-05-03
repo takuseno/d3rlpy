@@ -114,9 +114,8 @@ class ReplayBuffer:
         self._writer.clip_episode(terminated)
 
     def sample_transition(self) -> Transition:
-        episode_index = np.random.randint(len(self.episodes))
-        episode = self.episodes[episode_index]
-        transition_index = np.random.randint(episode.transition_count)
+        index = np.random.randint(self._buffer.transition_count)
+        episode, transition_index = self._buffer[index]
         return self._transition_picker(episode, transition_index)
 
     def sample_transition_batch(self, batch_size: int) -> TransitionMiniBatch:
@@ -125,9 +124,8 @@ class ReplayBuffer:
         )
 
     def sample_trajectory(self, length: int) -> PartialTrajectory:
-        episode_index = np.random.randint(len(self.episodes))
-        episode = self.episodes[episode_index]
-        transition_index = np.random.randint(episode.size())
+        index = np.random.randint(self._buffer.transition_count)
+        episode, transition_index = self._buffer[index]
         return self._trajectory_slicer(episode, transition_index, length)
 
     def sample_trajectory_batch(
