@@ -16,12 +16,14 @@ def test_infinite_buffer(observation_shape, action_size, length, terminated):
         episode = create_episode(
             observation_shape, action_size, length, terminated=terminated
         )
-        buffer.append(episode)
-        assert len(buffer) == i + 1
+        for j in range(episode.transition_count):
+            buffer.append(episode, j)
+
         if terminated:
-            assert buffer.transition_count == (i + 1) * length
+            assert buffer.transition_count == (i + 1) * (length)
         else:
             assert buffer.transition_count == (i + 1) * (length - 1)
+        assert len(buffer.episodes) == i + 1
 
 
 @pytest.mark.parametrize("observation_shape", [(4,)])
@@ -36,16 +38,18 @@ def test_fifo_buffer(observation_shape, action_size, length, limit, terminated):
         episode = create_episode(
             observation_shape, action_size, length, terminated=terminated
         )
-        buffer.append(episode)
+        for j in range(episode.transition_count):
+            buffer.append(episode, j)
+
         if i >= 5:
-            assert len(buffer) == 5
+            assert buffer.transition_count == limit
             if terminated:
-                assert buffer.transition_count == limit
+                assert len(buffer.episodes) == 5
             else:
-                assert buffer.transition_count == limit - 5
+                assert len(buffer.episodes) == 6
         else:
-            assert len(buffer) == i + 1
             if terminated:
                 assert buffer.transition_count == (i + 1) * length
             else:
                 assert buffer.transition_count == (i + 1) * (length - 1)
+            assert len(buffer.episodes) == i + 1

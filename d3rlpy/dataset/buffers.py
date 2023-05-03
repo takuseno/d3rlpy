@@ -1,4 +1,5 @@
-from typing import List, Sequence
+from collections import deque
+from typing import Deque, List, Sequence, Tuple
 
 from typing_extensions import Protocol
 
@@ -8,7 +9,7 @@ __all__ = ["BufferProtocol", "InfiniteBuffer", "FIFOBuffer"]
 
 
 class BufferProtocol(Protocol):
-    def append(self, episode: EpisodeBase) -> None:
+    def append(self, episode: EpisodeBase, index: int) -> None:
         raise NotImplementedError
 
     @property
@@ -21,53 +22,57 @@ class BufferProtocol(Protocol):
 
 
 class InfiniteBuffer(BufferProtocol):
+    _transitions: List[Tuple[EpisodeBase, int]]
     _episodes: List[EpisodeBase]
-    _transition_count: int
 
     def __init__(self) -> None:
+        self._transitions = []
         self._episodes = []
         self._transition_count = 0
 
-    def append(self, episode: EpisodeBase) -> None:
-        self._episodes.append(episode)
-        self._transition_count += episode.transition_count
+    def append(self, episode: EpisodeBase, index: int) -> None:
+        self._transitions.append((episode, index))
+        if not self._episodes or episode is not self._episodes[-1]:
+            self._episodes.append(episode)
 
     @property
     def episodes(self) -> Sequence[EpisodeBase]:
         return self._episodes
 
     def __len__(self) -> int:
-        return len(self._episodes)
+        return len(self._transitions)
 
     @property
     def transition_count(self) -> int:
-        return self._transition_count
+        return len(self._transitions)
 
 
 class FIFOBuffer(BufferProtocol):
+    _transitions: Deque[Tuple[EpisodeBase, int]]
     _episodes: List[EpisodeBase]
     _limit: int
-    _transition_count: int
 
     def __init__(self, limit: int):
         self._limit = limit
+        self._transitions = deque(maxlen=limit)
         self._episodes = []
-        self._transition_count = 0
 
-    def append(self, episode: EpisodeBase) -> None:
-        self._transition_count += episode.transition_count
-        self._episodes.append(episode)
-        if self._transition_count > self._limit:
-            dropped_episode = self._episodes.pop(0)
-            self._transition_count -= dropped_episode.transition_count
+    def append(self, episode: EpisodeBase, index: int) -> None:
+        if len(self._transitions) == self._limit:
+            # check if dropped transition is the last transition
+            if self._transitions[0][0] is not self._transitions[1][0]:
+                self._episodes.pop(0)
+        self._transitions.append((episode, index))
+        if not self._episodes or episode is not self._episodes[-1]:
+            self._episodes.append(episode)
 
     @property
     def episodes(self) -> Sequence[EpisodeBase]:
         return self._episodes
 
     def __len__(self) -> int:
-        return len(self._episodes)
+        return len(self._transitions)
 
     @property
     def transition_count(self) -> int:
-        return self._transition_count
+        return len(self._transitions)

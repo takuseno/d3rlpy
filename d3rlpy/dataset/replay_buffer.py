@@ -107,7 +107,8 @@ class ReplayBuffer:
         self._writer.write(observation, action, reward)
 
     def append_episode(self, episode: EpisodeBase) -> None:
-        self._buffer.append(episode)
+        for i in range(episode.transition_count):
+            self._buffer.append(episode, i)
 
     def clip_episode(self, terminated: bool) -> None:
         self._writer.clip_episode(terminated)

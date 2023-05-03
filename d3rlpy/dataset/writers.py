@@ -56,6 +56,8 @@ class _ActiveEpisode(EpisodeBase):
     _observations: Sequence[np.ndarray]
     _actions: np.ndarray
     _rewards: np.ndarray
+    _terminated: bool
+    _frozen: bool
 
     def __init__(
         self,
@@ -82,9 +84,11 @@ class _ActiveEpisode(EpisodeBase):
             (cache_size, *reward_signature.shape[0]),
             dtype=reward_signature.dtype[0],
         )
+        self._terminated = False
         self._observation_signature = observation_signature
         self._action_signature = action_signature
         self._reward_signature = reward_signature
+        self._frozen = True
 
     def append(
         self,
@@ -92,6 +96,7 @@ class _ActiveEpisode(EpisodeBase):
         action: Union[int, np.ndarray],
         reward: Union[float, np.ndarray],
     ) -> None:
+        assert self._frozen, "This episode is already shrinked."
         assert (
             self._cursor < self._cache_size
         ), "episode length exceeds cache_size."
@@ -129,6 +134,17 @@ class _ActiveEpisode(EpisodeBase):
             terminated=terminated,
         )
 
+    def shrink(self, terminated: bool) -> None:
+        episode = self.to_episode(terminated)
+        if isinstance(episode.observations, np.ndarray):
+            self._observations = [episode.observations]
+        else:
+            self._observations = episode.observations
+        self._actions = episode.actions
+        self._rewards = episode.rewards
+        self._terminated = terminated
+        self._frozen = True
+
     def size(self) -> int:
         return self._cursor
 
@@ -149,7 +165,7 @@ class _ActiveEpisode(EpisodeBase):
 
     @property
     def terminated(self) -> bool:
-        return False
+        return self._terminated
 
     @property
     def observation_signature(self) -> Signature:
@@ -282,11 +298,21 @@ class ExperienceWriter:
         reward: Union[float, np.ndarray],
     ) -> None:
         self._active_episode.append(observation, action, reward)
+        if self._active_episode.transition_count > 0:
+            self._buffer.append(
+                episode=self._active_episode,
+                index=self._active_episode.transition_count - 1,
+            )
 
     def clip_episode(self, terminated: bool) -> None:
         if self._active_episode.transition_count == 0:
             return
-        episode = self._active_episode.to_episode(terminated)
+        if terminated:
+            self._buffer.append(
+                self._active_episode,
+                self._active_episode.transition_count,
+            )
+        self._active_episode.shrink(terminated)
         self._active_episode = _ActiveEpisode(
             self._preprocessor,
             cache_size=self._cache_size,
@@ -294,4 +320,3 @@ class ExperienceWriter:
             action_signature=self._action_signature,
             reward_signature=self._reward_signature,
         )
-        self._buffer.append(episode)
