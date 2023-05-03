@@ -78,7 +78,7 @@ def fit_tester(algo, observation_shape, action_size):
     for i in range(n_episodes):
         terminals[(i + 1) * episode_length - 1] = 1.0
     dataset = create_infinite_replay_buffer(
-        EpisodeGenerator(observations, actions, rewards, terminals)
+        EpisodeGenerator(observations, actions, rewards, terminals)()
     )
 
     # check fit

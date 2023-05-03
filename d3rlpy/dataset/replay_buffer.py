@@ -1,9 +1,16 @@
-from typing import BinaryIO, List, Optional, Sequence, Type, Union
+from typing import Any, BinaryIO, List, Optional, Sequence, Type, Union
 
+import gym
 import numpy as np
 
 from .buffers import BufferProtocol, FIFOBuffer, InfiniteBuffer
-from .components import Episode, EpisodeBase, PartialTrajectory, Transition
+from .components import (
+    Episode,
+    EpisodeBase,
+    PartialTrajectory,
+    Signature,
+    Transition,
+)
 from .episode_generator import EpisodeGeneratorProtocol
 from .io import dump, load
 from .mini_batch import TrajectoryMiniBatch, TransitionMiniBatch
@@ -37,6 +44,11 @@ class ReplayBuffer:
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
         episodes: Optional[Sequence[EpisodeBase]] = None,
+        env: Optional[gym.Env[np.ndarray, Any]] = None,
+        observation_signature: Optional[Signature] = None,
+        action_signature: Optional[Signature] = None,
+        reward_signature: Optional[Signature] = None,
+        cache_size: int = 10000,
     ):
         if transition_picker is None:
             transition_picker = BasicTransitionPicker()
@@ -45,8 +57,40 @@ class ReplayBuffer:
         if writer_preprocessor is None:
             writer_preprocessor = BasicWriterPreprocess()
 
+        if not (
+            observation_signature and action_signature and reward_signature
+        ):
+            if episodes:
+                observation_signature = episodes[0].observation_signature
+                action_signature = episodes[0].action_signature
+                reward_signature = episodes[0].reward_signature
+            elif env:
+                observation_signature = Signature(
+                    dtype=[env.observation_space.dtype],
+                    shape=[env.observation_space.shape],  # type: ignore
+                )
+                action_signature = Signature(
+                    dtype=[env.action_space.dtype],
+                    shape=[env.action_space.shape],  # type: ignore
+                )
+                reward_signature = Signature(
+                    dtype=[np.dtype(np.float32)],
+                    shape=[[1]],
+                )
+            else:
+                raise ValueError(
+                    "Either episodes or env must be provided for signatures"
+                )
+
         self._buffer = buffer
-        self._writer = ExperienceWriter(buffer, writer_preprocessor)
+        self._writer = ExperienceWriter(
+            buffer,
+            writer_preprocessor,
+            observation_signature=observation_signature,
+            action_signature=action_signature,
+            reward_signature=reward_signature,
+            cache_size=cache_size,
+        )
         self._transition_picker = transition_picker
         self._trajectory_slicer = trajectory_slicer
 
@@ -156,34 +200,36 @@ class ReplayBuffer:
 
 def create_fifo_replay_buffer(
     limit: int,
-    episode_generator: Optional[EpisodeGeneratorProtocol] = None,
+    episodes: Optional[Sequence[EpisodeBase]] = None,
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
+    env: Optional[gym.Env[np.ndarray, Any]] = None,
 ) -> ReplayBuffer:
     buffer = FIFOBuffer(limit)
-    episodes = episode_generator() if episode_generator else []
     return ReplayBuffer(
         buffer,
         episodes=episodes,
         transition_picker=transition_picker,
         trajectory_slicer=trajectory_slicer,
         writer_preprocessor=writer_preprocessor,
+        env=env,
     )
 
 
 def create_infinite_replay_buffer(
-    episode_generator: Optional[EpisodeGeneratorProtocol] = None,
+    episodes: Optional[Sequence[EpisodeBase]] = None,
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
+    env: Optional[gym.Env[np.ndarray, Any]] = None,
 ) -> ReplayBuffer:
     buffer = InfiniteBuffer()
-    episodes = episode_generator() if episode_generator else []
     return ReplayBuffer(
         buffer,
         episodes=episodes,
         transition_picker=transition_picker,
         trajectory_slicer=trajectory_slicer,
         writer_preprocessor=writer_preprocessor,
+        env=env,
     )

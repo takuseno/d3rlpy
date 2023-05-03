@@ -282,7 +282,9 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         """
         dataset_info = DatasetInfo.from_episodes(dataset.episodes)
-        observation_shape = dataset.sample_transition().observation_shape
+        observation_shape = (
+            dataset.sample_transition().observation_signature.shape[0]
+        )
         self.create_impl(observation_shape, dataset_info.action_size)
 
     def build_with_env(self, env: gym.Env[Any, Any]) -> None:

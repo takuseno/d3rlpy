@@ -15,6 +15,8 @@ __all__ = [
     "stack_observations",
     "get_shape_from_observation",
     "get_shape_from_observation_sequence",
+    "get_dtype_from_observation",
+    "get_dtype_from_observation_sequence",
     "check_dtype",
     "check_non_1d_array",
     "cast_recursively",
@@ -137,6 +139,28 @@ def get_shape_from_observation_sequence(
         return observations.shape[1:]  # type: ignore
     elif isinstance(observations, (list, tuple)):
         return [obs.shape[1:] for obs in observations]
+    else:
+        raise ValueError(f"invalid observation type: {type(observations)}")
+
+
+def get_dtype_from_observation(
+    observation: Observation,
+) -> Union[np.dtype, Sequence[np.dtype]]:
+    if isinstance(observation, np.ndarray):
+        return observation.dtype
+    elif isinstance(observation, (list, tuple)):
+        return [obs.dtype for obs in observation]
+    else:
+        raise ValueError(f"invalid observation type: {type(observation)}")
+
+
+def get_dtype_from_observation_sequence(
+    observations: ObservationSequence,
+) -> Union[np.dtype, Sequence[np.dtype]]:
+    if isinstance(observations, np.ndarray):
+        return observations.dtype
+    elif isinstance(observations, (list, tuple)):
+        return [obs.dtype for obs in observations]
     else:
         raise ValueError(f"invalid observation type: {type(observations)}")
 

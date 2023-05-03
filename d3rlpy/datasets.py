@@ -186,7 +186,7 @@ def get_atari(
         raw_dataset = env.get_dataset()  # type: ignore
         episode_generator = EpisodeGenerator(**raw_dataset)
         dataset = create_infinite_replay_buffer(
-            episode_generator,
+            episodes=episode_generator(),
             transition_picker=transition_picker,
             trajectory_slicer=trajectory_slicer,
         )
@@ -352,7 +352,7 @@ def get_d4rl(
             episode_terminals=np.array(episode_terminals, dtype=np.float32),
         )
         dataset = create_infinite_replay_buffer(
-            episode_generator,
+            episodes=episode_generator(),
             transition_picker=transition_picker,
             trajectory_slicer=trajectory_slicer,
         )

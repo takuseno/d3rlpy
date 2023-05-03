@@ -10,6 +10,8 @@ from d3rlpy.dataset import (
     check_non_1d_array,
     create_zero_observation,
     detect_action_space,
+    get_dtype_from_observation,
+    get_dtype_from_observation_sequence,
     get_shape_from_observation,
     get_shape_from_observation_sequence,
     retrieve_observation,
@@ -189,6 +191,31 @@ def test_get_shape_from_observation_sequence(observation_shape, length):
         tuple(get_shape_from_observation_sequence(observations))
         == observation_shape
     )
+
+
+@pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,)), (3, 84, 84)])
+@pytest.mark.parametrize("dtype", [np.float32, np.float16])
+def test_get_dtype_from_observation(observation_shape, dtype):
+    observation = create_observation(observation_shape, dtype=dtype)
+    dtypes = get_dtype_from_observation(observation)
+    if isinstance(dtypes, np.dtype):
+        assert dtypes == dtype
+    else:
+        for t in dtypes:
+            assert t == dtype
+
+
+@pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,)), (3, 84, 84)])
+@pytest.mark.parametrize("length", [100])
+@pytest.mark.parametrize("dtype", [np.float32, np.float16])
+def test_get_dtype_from_observation_sequence(observation_shape, length, dtype):
+    observations = create_observations(observation_shape, length, dtype=dtype)
+    dtypes = get_dtype_from_observation_sequence(observations)
+    if isinstance(dtypes, np.dtype):
+        assert dtypes == dtype
+    else:
+        for t in dtypes:
+            assert t == dtype
 
 
 @pytest.mark.parametrize("shape", [(4,), ((4,), (8,)), (3, 84, 84)])

@@ -222,7 +222,9 @@ class TransformerAlgoBase(
         if self._impl is None:
             LOG.debug("Building models...")
             action_size = dataset_info.action_size
-            observation_shape = dataset.sample_transition().observation_shape
+            observation_shape = (
+                dataset.sample_transition().observation_signature.shape[0]
+            )
             self.create_impl(observation_shape, action_size)
             LOG.debug("Models have been built.")
         else:

@@ -29,7 +29,7 @@ def main() -> None:
     ).create(device=args.gpu)
 
     # replay buffer for experience replay
-    buffer = d3rlpy.dataset.create_fifo_replay_buffer(limit=1000000)
+    buffer = d3rlpy.dataset.create_fifo_replay_buffer(limit=1000000, env=env)
 
     # start training
     sac.fit_online(

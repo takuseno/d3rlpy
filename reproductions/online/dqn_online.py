@@ -35,6 +35,7 @@ def main() -> None:
         limit=1000000,
         transition_picker=d3rlpy.dataset.FrameStackTransitionPicker(n_frames=4),
         writer_preprocessor=d3rlpy.dataset.LastFrameWriterPreprocess(),
+        env=env,
     )
 
     # epilon-greedy explorer

@@ -503,7 +503,9 @@ class QLearningAlgoBase(
         if self._impl is None:
             LOG.debug("Building models...")
             action_size = dataset_info.action_size
-            observation_shape = dataset.sample_transition().observation_shape
+            observation_shape = (
+                dataset.sample_transition().observation_signature.shape[0]
+            )
             self.create_impl(observation_shape, action_size)
             LOG.debug("Models have been built.")
         else:
@@ -775,7 +777,7 @@ class QLearningAlgoBase(
         """
         # create default replay buffer
         if buffer is None:
-            buffer = create_fifo_replay_buffer(1000000)
+            buffer = create_fifo_replay_buffer(1000000, env=env)
 
         # check action-space
         assert_action_space_with_env(self, env)

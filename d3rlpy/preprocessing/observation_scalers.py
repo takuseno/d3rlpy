@@ -160,8 +160,8 @@ class MinMaxObservationScaler(ObservationScaler):
         if self.minimum is not None and self.maximum is not None:
             return
 
-        maximum = np.zeros(episodes[0].observation_shape)
-        minimum = np.zeros(episodes[0].observation_shape)
+        maximum = np.zeros(episodes[0].observation_signature.shape[0])
+        minimum = np.zeros(episodes[0].observation_signature.shape[0])
         for i, episode in enumerate(episodes):
             observations = np.asarray(episode.observations)
             max_observation = np.max(observations, axis=0)
@@ -271,7 +271,7 @@ class StandardObservationScaler(ObservationScaler):
             return
 
         # compute mean
-        total_sum = np.zeros(episodes[0].observation_shape)
+        total_sum = np.zeros(episodes[0].observation_signature.shape[0])
         total_count = 0
         for episode in episodes:
             total_sum += np.sum(episode.observations, axis=0)
@@ -279,7 +279,7 @@ class StandardObservationScaler(ObservationScaler):
         mean = total_sum / total_count
 
         # compute stdandard deviation
-        total_sqsum = np.zeros(episodes[0].observation_shape)
+        total_sqsum = np.zeros(episodes[0].observation_signature.shape[0])
         expanded_mean = mean.reshape((1,) + mean.shape)
         for episode in episodes:
             observations = np.asarray(episode.observations)

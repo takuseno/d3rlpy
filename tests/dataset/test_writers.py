@@ -6,9 +6,10 @@ from d3rlpy.dataset import (
     ExperienceWriter,
     InfiniteBuffer,
     LastFrameWriterPreprocess,
+    Signature,
 )
 
-from ..testing_utils import create_observation
+from ..testing_utils import create_episode, create_observation
 
 
 @pytest.mark.parametrize("observation_shape", [(4,)])
@@ -59,8 +60,15 @@ def test_last_frame_writer_process(observation_shape):
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("terminated", [True, False])
 def test_episode_writer(observation_shape, action_size, length, terminated):
+    episode = create_episode(observation_shape, action_size, length)
     buffer = InfiniteBuffer()
-    writer = ExperienceWriter(buffer, BasicWriterPreprocess())
+    writer = ExperienceWriter(
+        buffer,
+        BasicWriterPreprocess(),
+        observation_signature=episode.observation_signature,
+        action_signature=episode.action_signature,
+        reward_signature=episode.reward_signature,
+    )
 
     for _ in range(length):
         writer.write(
@@ -75,4 +83,9 @@ def test_episode_writer(observation_shape, action_size, length, terminated):
     else:
         assert buffer.transition_count == length - 1
     episode = buffer.episodes[0]
-    assert tuple(episode.observation_shape) == observation_shape
+    if isinstance(observation_shape[0], tuple):
+        assert tuple(episode.observation_signature.shape) == observation_shape
+    else:
+        assert (
+            tuple(episode.observation_signature.shape[0]) == observation_shape
+        )

@@ -21,7 +21,13 @@ from ..testing_utils import create_episode, create_observation
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("terminated", [False, True])
 def test_replay_buffer(observation_shape, action_size, length, terminated):
-    replay_buffer = ReplayBuffer(InfiniteBuffer())
+    episode = create_episode(observation_shape, action_size, length)
+    replay_buffer = ReplayBuffer(
+        InfiniteBuffer(),
+        observation_signature=episode.observation_signature,
+        action_signature=episode.action_signature,
+        reward_signature=episode.reward_signature,
+    )
 
     for _ in range(length):
         replay_buffer.append(
@@ -87,12 +93,22 @@ def test_replay_buffer_sample(
     assert len(batch) == batch_size
 
 
+@pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("limit", [100])
-def test_create_fifo_replay_buffer(limit):
-    replay_buffer = create_fifo_replay_buffer(limit)
+def test_create_fifo_replay_buffer(
+    observation_shape, action_size, length, limit
+):
+    episode = create_episode(observation_shape, action_size, length)
+    replay_buffer = create_fifo_replay_buffer(limit, episodes=[episode])
     assert isinstance(replay_buffer.buffer, FIFOBuffer)
 
 
-def test_create_infinite_replay_buffer():
-    replay_buffer = create_infinite_replay_buffer()
+@pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("length", [100])
+def test_create_infinite_replay_buffer(observation_shape, action_size, length):
+    episode = create_episode(observation_shape, action_size, length)
+    replay_buffer = create_infinite_replay_buffer(episodes=[episode])
     assert isinstance(replay_buffer.buffer, InfiniteBuffer)

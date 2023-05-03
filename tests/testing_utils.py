@@ -8,21 +8,26 @@ from d3rlpy.preprocessing import (
 )
 
 
-def create_observation(observation_shape):
+def create_observation(observation_shape, dtype=np.float32):
     if isinstance(observation_shape[0], (list, tuple)):
-        observation = [np.random.random(shape) for shape in observation_shape]
+        observation = [
+            np.random.random(shape).astype(dtype) for shape in observation_shape
+        ]
     else:
-        observation = np.random.random(observation_shape)
+        observation = np.random.random(observation_shape).astype(dtype)
     return observation
 
 
-def create_observations(observation_shape, length):
+def create_observations(observation_shape, length, dtype=np.float32):
     if isinstance(observation_shape[0], (list, tuple)):
         observations = [
-            np.random.random((length,) + shape) for shape in observation_shape
+            np.random.random((length,) + shape).astype(dtype)
+            for shape in observation_shape
         ]
     else:
-        observations = np.random.random((length,) + observation_shape)
+        observations = np.random.random((length,) + observation_shape).astype(
+            dtype
+        )
     return observations
 
 

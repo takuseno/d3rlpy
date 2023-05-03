@@ -5,20 +5,35 @@ import numpy as np
 from typing_extensions import Protocol
 
 from ..constants import ActionSpace
-from .types import Observation, ObservationSequence, Shape
+from .types import Observation, ObservationSequence
 from .utils import (
     detect_action_space,
+    get_dtype_from_observation,
+    get_dtype_from_observation_sequence,
     get_shape_from_observation,
     get_shape_from_observation_sequence,
 )
 
 __all__ = [
+    "Signature",
     "Transition",
     "PartialTrajectory",
     "EpisodeBase",
     "Episode",
     "DatasetInfo",
 ]
+
+
+@dataclasses.dataclass(frozen=True)
+class Signature:
+    dtype: Sequence[np.dtype]
+    shape: Sequence[Sequence[int]]
+
+    def sample(self) -> Sequence[np.ndarray]:
+        return [
+            np.random.random(shape).astype(dtype)
+            for shape, dtype in zip(self.shape, self.dtype)
+        ]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -31,16 +46,27 @@ class Transition:
     interval: int
 
     @property
-    def observation_shape(self) -> Shape:
-        return get_shape_from_observation(self.observation)
+    def observation_signature(self) -> Signature:
+        shape = get_shape_from_observation(self.observation)
+        dtype = get_dtype_from_observation(self.observation)
+        if isinstance(self.observation, np.ndarray):
+            shape = [shape]  # type: ignore
+            dtype = [dtype]
+        return Signature(dtype=dtype, shape=shape)  # type: ignore
 
     @property
-    def action_shape(self) -> Sequence[int]:
-        return self.action.shape  # type: ignore
+    def action_signature(self) -> Signature:
+        return Signature(
+            dtype=[self.action.dtype],
+            shape=[self.action.shape],
+        )
 
     @property
-    def reward_shape(self) -> Sequence[int]:
-        return self.reward.shape  # type: ignore
+    def reward_signature(self) -> Signature:
+        return Signature(
+            dtype=[self.reward.dtype],
+            shape=[self.reward.shape],
+        )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -55,16 +81,27 @@ class PartialTrajectory:
     length: int
 
     @property
-    def observation_shape(self) -> Shape:
-        return get_shape_from_observation_sequence(self.observations)
+    def observation_signature(self) -> Signature:
+        shape = get_shape_from_observation_sequence(self.observations)
+        dtype = get_dtype_from_observation_sequence(self.observations)
+        if isinstance(self.observations, np.ndarray):
+            shape = [shape]  # type: ignore
+            dtype = [dtype]
+        return Signature(dtype=dtype, shape=shape)  # type: ignore
 
     @property
-    def action_shape(self) -> Sequence[int]:
-        return self.actions.shape[1:]  # type: ignore
+    def action_signature(self) -> Signature:
+        return Signature(
+            dtype=[self.actions.dtype],
+            shape=[self.actions.shape[1:]],
+        )
 
     @property
-    def reward_shape(self) -> Sequence[int]:
-        return self.rewards.shape[1:]  # type: ignore
+    def reward_signature(self) -> Signature:
+        return Signature(
+            dtype=[self.rewards.dtype],
+            shape=[self.rewards.shape[1:]],
+        )
 
     def __len__(self) -> int:
         return self.length
@@ -88,15 +125,15 @@ class EpisodeBase(Protocol):
         raise NotImplementedError
 
     @property
-    def observation_shape(self) -> Shape:
+    def observation_signature(self) -> Signature:
         raise NotImplementedError
 
     @property
-    def action_shape(self) -> Sequence[int]:
+    def action_signature(self) -> Signature:
         raise NotImplementedError
 
     @property
-    def reward_shape(self) -> Sequence[int]:
+    def reward_signature(self) -> Signature:
         raise NotImplementedError
 
     def size(self) -> int:
@@ -128,16 +165,27 @@ class Episode:
     terminated: bool
 
     @property
-    def observation_shape(self) -> Shape:
-        return get_shape_from_observation_sequence(self.observations)
+    def observation_signature(self) -> Signature:
+        shape = get_shape_from_observation_sequence(self.observations)
+        dtype = get_dtype_from_observation_sequence(self.observations)
+        if isinstance(self.observations, np.ndarray):
+            shape = [shape]  # type: ignore
+            dtype = [dtype]
+        return Signature(dtype=dtype, shape=shape)  # type: ignore
 
     @property
-    def action_shape(self) -> Sequence[int]:
-        return self.actions.shape[1:]  # type: ignore
+    def action_signature(self) -> Signature:
+        return Signature(
+            dtype=[self.actions.dtype],
+            shape=[self.actions.shape[1:]],
+        )
 
     @property
-    def reward_shape(self) -> Sequence[int]:
-        return self.rewards.shape[1:]  # type: ignore
+    def reward_signature(self) -> Signature:
+        return Signature(
+            dtype=[self.rewards.dtype],
+            shape=[self.rewards.shape[1:]],
+        )
 
     def size(self) -> int:
         return int(self.actions.shape[0])
@@ -172,23 +220,26 @@ class Episode:
 
 @dataclasses.dataclass(frozen=True)
 class DatasetInfo:
-    observation_shape: Shape
+    observation_signature: Signature
+    action_signature: Signature
+    reward_signature: Signature
     action_space: ActionSpace
     action_size: int
 
     @classmethod
     def from_episodes(cls, episodes: Sequence[EpisodeBase]) -> "DatasetInfo":
-        observation_shape = episodes[0].observation_shape
         action_space = detect_action_space(episodes[0].actions)
         if action_space == ActionSpace.CONTINUOUS:
-            action_size = episodes[0].action_shape[0]
+            action_size = episodes[0].action_signature.shape[0][0]
         else:
             max_action = 0
             for episode in episodes:
                 max_action = max(int(np.max(episode.actions)), max_action)
             action_size = max_action + 1  # index should start from 0
         return DatasetInfo(
-            observation_shape=observation_shape,
+            observation_signature=episodes[0].observation_signature,
+            action_signature=episodes[0].action_signature,
+            reward_signature=episodes[0].reward_signature,
             action_space=action_space,
             action_size=action_size,
         )

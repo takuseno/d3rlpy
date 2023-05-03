@@ -15,7 +15,7 @@ def test_fit_online_cartpole_with_dqn():
 
     algo = DQNConfig().create()
 
-    buffer = ReplayBuffer(InfiniteBuffer())
+    buffer = ReplayBuffer(InfiniteBuffer(), env=env)
 
     explorer = LinearDecayEpsilonGreedy()
 
@@ -35,7 +35,7 @@ def test_fit_online_atari_with_dqn():
 
     algo = DQNConfig().create()
 
-    buffer = ReplayBuffer(InfiniteBuffer())
+    buffer = ReplayBuffer(InfiniteBuffer(), env=env)
 
     explorer = LinearDecayEpsilonGreedy()
 
@@ -57,7 +57,7 @@ def test_fit_online_pendulum_with_sac():
 
     algo = SACConfig().create()
 
-    buffer = ReplayBuffer(InfiniteBuffer())
+    buffer = ReplayBuffer(InfiniteBuffer(), env=env)
 
     algo.fit_online(
         env,

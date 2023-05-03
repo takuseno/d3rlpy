@@ -156,8 +156,8 @@ class MinMaxActionScaler(ActionScaler):
         if self.minimum is not None and self.maximum is not None:
             return
 
-        minimum = np.zeros(episodes[0].action_shape)
-        maximum = np.zeros(episodes[0].action_shape)
+        minimum = np.zeros(episodes[0].action_signature.shape[0])
+        maximum = np.zeros(episodes[0].action_signature.shape[0])
         for i, episode in enumerate(episodes):
             actions = np.asarray(episode.actions)
             min_action = np.min(actions, axis=0)

@@ -20,7 +20,7 @@ def test_basic_transition_picker(observation_shape, action_size, length):
     transition = picker(episode, 0)
     if isinstance(observation_shape[0], tuple):
         for i, shape in enumerate(observation_shape):
-            assert transition.observation_shape[i] == shape
+            assert transition.observation_signature.shape[i] == shape
             assert np.all(
                 transition.observation[i] == episode.observations[i][0]
             )
@@ -28,7 +28,7 @@ def test_basic_transition_picker(observation_shape, action_size, length):
                 transition.next_observation[i] == episode.observations[i][1]
             )
     else:
-        assert transition.observation_shape == observation_shape
+        assert transition.observation_signature.shape[0] == observation_shape
         assert np.all(transition.observation == episode.observations[0])
         assert np.all(transition.next_observation == episode.observations[1])
     assert np.all(transition.action == episode.actions[0])
@@ -41,14 +41,14 @@ def test_basic_transition_picker(observation_shape, action_size, length):
     if isinstance(observation_shape[0], tuple):
         for i, shape in enumerate(observation_shape):
             dummy_observation = np.zeros(shape)
-            assert transition.observation_shape[i] == shape
+            assert transition.observation_signature.shape[i] == shape
             assert np.all(
                 transition.observation[i] == episode.observations[i][-1]
             )
             assert np.all(transition.next_observation[i] == dummy_observation)
     else:
         dummy_observation = np.zeros(observation_shape)
-        assert transition.observation_shape == observation_shape
+        assert transition.observation_signature.shape[0] == observation_shape
         assert np.all(transition.observation == episode.observations[-1])
         assert np.all(transition.next_observation == dummy_observation)
     assert np.all(transition.action == episode.actions[-1])
@@ -76,7 +76,9 @@ def test_frame_stack_transition_picker(
     # check stacked frames
     for i in range(n_frames):
         transition = picker(episode, i)
-        assert transition.observation_shape == ref_observation_shape
+        assert (
+            transition.observation_signature.shape[0] == ref_observation_shape
+        )
         for j in range(n_frames):
             obs = transition.observation[j * n_channels : (j + 1) * n_channels]
             if j >= n_frames - i - 1:
