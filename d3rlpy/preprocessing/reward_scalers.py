@@ -82,6 +82,16 @@ class RewardScaler(DynamicConfig):
         """
         raise NotImplementedError
 
+    @property
+    def built(self) -> bool:
+        """Returns a flag to represent if scaler is already built.
+
+        Returns:
+            the flag will be True if scaler is already built.
+
+        """
+        raise NotImplementedError
+
 
 @dataclasses.dataclass()
 class MultiplyRewardScaler(RewardScaler):
@@ -119,6 +129,10 @@ class MultiplyRewardScaler(RewardScaler):
     @staticmethod
     def get_type() -> str:
         return "multiply"
+
+    @property
+    def built(self) -> bool:
+        return True
 
 
 @dataclasses.dataclass()
@@ -160,6 +174,10 @@ class ClipRewardScaler(RewardScaler):
     def get_type() -> str:
         return "clip"
 
+    @property
+    def built(self) -> bool:
+        return True
+
 
 @dataclasses.dataclass()
 class MinMaxRewardScaler(RewardScaler):
@@ -198,8 +216,7 @@ class MinMaxRewardScaler(RewardScaler):
     multiplier: float = 1.0
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self.minimum is not None and self.maximum is not None:
-            return
+        assert not self.built
 
         rewards = [episode.rewards for episode in episodes]
 
@@ -207,23 +224,30 @@ class MinMaxRewardScaler(RewardScaler):
         self.maximum = float(np.max(rewards))
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self.minimum is not None and self.maximum is not None
+        assert self.built
+        assert self.maximum is not None and self.minimum is not None
         base = self.maximum - self.minimum
         return self.multiplier * (reward - self.minimum) / base
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self.minimum is not None and self.maximum is not None
+        assert self.built
+        assert self.maximum is not None and self.minimum is not None
         base = self.maximum - self.minimum
         return reward * base / self.multiplier + self.minimum
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        assert self.minimum is not None and self.maximum is not None
+        assert self.built
+        assert self.maximum is not None and self.minimum is not None
         base = self.maximum - self.minimum
         return self.multiplier * (reward - self.minimum) / base
 
     @staticmethod
     def get_type() -> str:
         return "min_max"
+
+    @property
+    def built(self) -> bool:
+        return self.minimum is not None and self.maximum is not None
 
 
 @dataclasses.dataclass()
@@ -265,8 +289,7 @@ class StandardRewardScaler(RewardScaler):
     multiplier: float = 1.0
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self.mean is not None and self.std is not None:
-            return
+        assert not self.built
 
         rewards = [episode.rewards for episode in episodes]
 
@@ -274,15 +297,18 @@ class StandardRewardScaler(RewardScaler):
         self.std = float(np.std(rewards))
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
+        assert self.built
         assert self.mean is not None and self.std is not None
         nonzero_std = self.std + self.eps
         return self.multiplier * (reward - self.mean) / nonzero_std
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
+        assert self.built
         assert self.mean is not None and self.std is not None
         return reward * (self.std + self.eps) / self.multiplier + self.mean
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+        assert self.built
         assert self.mean is not None and self.std is not None
         nonzero_std = self.std + self.eps
         return self.multiplier * (reward - self.mean) / nonzero_std
@@ -290,6 +316,10 @@ class StandardRewardScaler(RewardScaler):
     @staticmethod
     def get_type() -> str:
         return "standard"
+
+    @property
+    def built(self) -> bool:
+        return self.mean is not None and self.std is not None
 
 
 @dataclasses.dataclass()
@@ -333,8 +363,7 @@ class ReturnBasedRewardScaler(RewardScaler):
     multiplier: float = 1.0
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self.return_max is not None and self.return_min is not None:
-            return
+        assert not self.built
 
         # accumulate all rewards
         returns = []
@@ -345,20 +374,27 @@ class ReturnBasedRewardScaler(RewardScaler):
         self.return_min = float(np.min(returns))
 
     def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self.return_max is not None and self.return_min is not None
+        assert self.built
+        assert self.return_min is not None and self.return_max is not None
         return self.multiplier * reward / (self.return_max - self.return_min)
 
     def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self.return_max is not None and self.return_min is not None
+        assert self.built
+        assert self.return_min is not None and self.return_max is not None
         return reward * (self.return_max + self.return_min) / self.multiplier
 
     def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        assert self.return_max is not None and self.return_min is not None
+        assert self.built
+        assert self.return_min is not None and self.return_max is not None
         return self.multiplier * reward / (self.return_max - self.return_min)
 
     @staticmethod
     def get_type() -> str:
         return "return"
+
+    @property
+    def built(self) -> bool:
+        return self.return_max is not None and self.return_min is not None
 
 
 @dataclasses.dataclass()
@@ -405,6 +441,10 @@ class ConstantShiftRewardScaler(RewardScaler):
     @staticmethod
     def get_type() -> str:
         return "shift"
+
+    @property
+    def built(self) -> bool:
+        return True
 
 
 (

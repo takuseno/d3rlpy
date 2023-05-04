@@ -16,6 +16,7 @@ def test_min_max_action_scaler(action_size, batch_size):
     min = actions.min(axis=0)
 
     scaler = MinMaxActionScaler(maximum=max, minimum=min)
+    assert scaler.built
 
     # check range
     y = scaler.transform(torch.tensor(actions))
@@ -64,7 +65,9 @@ def test_min_max_action_scaler_with_episode(
     min = actions.min(axis=0)
 
     scaler = MinMaxActionScaler()
+    assert not scaler.built
     scaler.fit(episodes)
+    assert scaler.built
 
     x = torch.rand((batch_size, action_size))
 
@@ -78,7 +81,9 @@ def test_min_max_action_scaler_with_env():
     env = gym.make("Pendulum-v1")
 
     scaler = MinMaxActionScaler()
+    assert not scaler.built
     scaler.fit_with_env(env)
+    assert scaler.built
 
     assert np.all(scaler.minimum == env.action_space.low)
     assert np.all(scaler.maximum == env.action_space.high)

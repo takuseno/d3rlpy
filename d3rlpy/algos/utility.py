@@ -50,35 +50,35 @@ def build_scalers_with_dataset(
     algo: LearnableBase[Any, Any], dataset: ReplayBuffer
 ) -> None:
     # initialize observation scaler
-    if algo.config.observation_scaler:
+    if algo.observation_scaler and not algo.observation_scaler.built:
         LOG.debug(
             "Fitting observation scaler...",
-            observation_scaler=algo.config.observation_scaler.get_type(),
+            observation_scaler=algo.observation_scaler.get_type(),
         )
-        algo.config.observation_scaler.fit(dataset.episodes)
+        algo.observation_scaler.fit(dataset.episodes)
 
     # initialize action scaler
-    if algo.config.action_scaler:
+    if algo.action_scaler and not algo.action_scaler.built:
         LOG.debug(
             "Fitting action scaler...",
-            action_scaler=algo.config.action_scaler.get_type(),
+            action_scaler=algo.action_scaler.get_type(),
         )
-        algo.config.action_scaler.fit(dataset.episodes)
+        algo.action_scaler.fit(dataset.episodes)
 
     # initialize reward scaler
-    if algo.config.reward_scaler:
+    if algo.reward_scaler and not algo.reward_scaler.built:
         LOG.debug(
             "Fitting reward scaler...",
-            reward_scaler=algo.config.reward_scaler.get_type(),
+            reward_scaler=algo.reward_scaler.get_type(),
         )
-        algo.config.reward_scaler.fit(dataset.episodes)
+        algo.reward_scaler.fit(dataset.episodes)
 
 
 def build_scalers_with_env(
     algo: LearnableBase[Any, Any], env: gym.Env[Any, Any]
 ) -> None:
     # initialize observation scaler
-    if algo.observation_scaler:
+    if algo.observation_scaler and not algo.observation_scaler.built:
         LOG.debug(
             "Fitting observation scaler...",
             observation_scaler=algo.observation_scaler.get_type(),
@@ -86,7 +86,7 @@ def build_scalers_with_env(
         algo.observation_scaler.fit_with_env(env)
 
     # initialize action scaler
-    if algo.action_scaler:
+    if algo.action_scaler and not algo.action_scaler.built:
         LOG.debug(
             "Fitting action scaler...",
             action_scler=algo.action_scaler.get_type(),

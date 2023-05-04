@@ -24,6 +24,7 @@ def test_pixel_observation_scaler(observation_shape):
 
     assert scaler.get_type() == "pixel"
     assert torch.all(scaler.reverse_transform(y) == x)
+    assert scaler.built
 
     # check serialization and deserialization
     PixelObservationScaler.deserialize(scaler.serialize())
@@ -38,6 +39,7 @@ def test_min_max_observation_scaler(observation_shape, batch_size):
     max = observations.max(axis=0)
     min = observations.min(axis=0)
     scaler = MinMaxObservationScaler(maximum=max, minimum=min)
+    assert scaler.built
 
     # check range
     y = scaler.transform(torch.tensor(observations))
@@ -79,7 +81,9 @@ def test_min_max_observation_scaler_with_episode(observation_shape, batch_size):
     min = observations.min(axis=0)
 
     scaler = MinMaxObservationScaler()
+    assert not scaler.built
     scaler.fit(episodes)
+    assert scaler.built
 
     x = torch.rand((batch_size,) + observation_shape)
 
@@ -93,7 +97,9 @@ def test_min_max_observation_scaler_with_env():
     env = DummyAtari()
 
     scaler = MinMaxObservationScaler()
+    assert not scaler.built
     scaler.fit_with_env(env)
+    assert scaler.built
 
     x = torch.tensor(env.reset()[0].reshape((1,) + env.observation_space.shape))
     y = scaler.transform(x)
@@ -112,6 +118,7 @@ def test_standard_observation_scaler(observation_shape, batch_size, eps):
     std = observations.std(axis=0)
 
     scaler = StandardObservationScaler(mean=mean, std=std, eps=eps)
+    assert scaler.built
 
     x = torch.rand((batch_size,) + observation_shape)
 
@@ -154,7 +161,9 @@ def test_standard_observation_scaler_with_episode(
     std = observations.std(axis=0)
 
     scaler = StandardObservationScaler(eps=eps)
+    assert not scaler.built
     scaler.fit(episodes)
+    assert scaler.built
 
     x = torch.rand((batch_size,) + observation_shape)
 

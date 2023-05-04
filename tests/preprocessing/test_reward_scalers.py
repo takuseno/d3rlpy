@@ -20,6 +20,7 @@ def test_multiply_reward_scaler(batch_size, multiplier):
     rewards = np.random.random(batch_size).astype("f4") * 2 - 1
 
     scaler = MultiplyRewardScaler(multiplier)
+    assert scaler.built
 
     # check trnsform
     y = scaler.transform(torch.tensor(rewards))
@@ -48,6 +49,7 @@ def test_clip_reward_scaler(batch_size, low, high, multiplier):
     rewards = np.random.random(batch_size).astype("f4") * 2 - 1
 
     scaler = ClipRewardScaler(low, high, multiplier)
+    assert scaler.built
 
     # check range
     y = scaler.transform(torch.tensor(rewards))
@@ -82,6 +84,7 @@ def test_min_max_reward_scaler(batch_size, multiplier):
     scaler = MinMaxRewardScaler(
         minimum=minimum, maximum=maximum, multiplier=multiplier
     )
+    assert scaler.built
 
     # check range
     y = scaler.transform(torch.tensor(rewards))
@@ -136,7 +139,9 @@ def test_min_max_reward_scaler_with_episode(
     minimum = rewards_without_first.min()
 
     scaler = MinMaxRewardScaler()
+    assert not scaler.built
     scaler.fit(episodes)
+    assert scaler.built
 
     x = torch.rand(batch_size)
     y = scaler.transform(x)
@@ -156,6 +161,7 @@ def test_standard_reward_scaler(batch_size, eps, multiplier):
     scaler = StandardRewardScaler(
         mean=mean, std=std, eps=eps, multiplier=multiplier
     )
+    assert scaler.built
 
     # check values
     y = scaler.transform(torch.tensor(rewards))
@@ -209,7 +215,9 @@ def test_standard_reward_scaler_with_episode(
     std = np.std(rewards_without_first)
 
     scaler = StandardRewardScaler(eps=eps)
+    assert not scaler.built
     scaler.fit(episodes)
+    assert scaler.built
 
     x = torch.rand(batch_size)
     y = scaler.transform(x)
@@ -243,7 +251,9 @@ def test_return_based_reward_scaler_with_episode(
         returns.append(episode.compute_return())
 
     scaler = ReturnBasedRewardScaler()
+    assert not scaler.built
     scaler.fit(episodes)
+    assert scaler.built
 
     x = torch.rand(batch_size)
     y = scaler.transform(x)
@@ -263,6 +273,7 @@ def test_constant_shift_reward_scaler(batch_size, shift):
     rewards = np.random.random(batch_size).astype("f4") * 2 - 1
 
     scaler = ConstantShiftRewardScaler(shift)
+    assert scaler.built
 
     # check trnsform
     y = scaler.transform(torch.tensor(rewards))

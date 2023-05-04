@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import gym
 import numpy as np
@@ -75,24 +75,12 @@ class ActionScaler(DynamicConfig):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def get_type() -> str:
-        """Returns action scaler type.
+    @property
+    def built(self) -> bool:
+        """Returns a flag to represent if scaler is already built.
 
         Returns:
-            action scaler type.
-
-        """
-        raise NotImplementedError
-
-    def get_params(self, deep: bool = False) -> Dict[str, Any]:
-        """Returns action scaler params.
-
-        Args:
-            deep: flag to deepcopy parameters.
-
-        Returns:
-            action scaler parameters.
+            the flag will be True if scaler is already built.
 
         """
         raise NotImplementedError
@@ -153,9 +141,7 @@ class MinMaxActionScaler(ActionScaler):
             self.maximum = np.asarray(self.maximum)
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self.minimum is not None and self.maximum is not None:
-            return
-
+        assert not self.built
         minimum = np.zeros(episodes[0].action_signature.shape[0])
         maximum = np.zeros(episodes[0].action_signature.shape[0])
         for i, episode in enumerate(episodes):
@@ -173,9 +159,7 @@ class MinMaxActionScaler(ActionScaler):
         self.maximum = maximum.reshape((1,) + maximum.shape)
 
     def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
-        if self.minimum is not None and self.maximum is not None:
-            return
-
+        assert not self.built
         assert isinstance(env.action_space, gym.spaces.Box)
         shape = env.action_space.shape
         low = np.asarray(env.action_space.low)
@@ -184,7 +168,7 @@ class MinMaxActionScaler(ActionScaler):
         self.maximum = high.reshape((1,) + shape)
 
     def transform(self, action: torch.Tensor) -> torch.Tensor:
-        assert self.minimum is not None and self.maximum is not None
+        assert self.built
         minimum = torch.tensor(
             self.minimum, dtype=torch.float32, device=action.device
         )
@@ -195,7 +179,7 @@ class MinMaxActionScaler(ActionScaler):
         return ((action - minimum) / (maximum - minimum)) * 2.0 - 1.0
 
     def reverse_transform(self, action: torch.Tensor) -> torch.Tensor:
-        assert self.minimum is not None and self.maximum is not None
+        assert self.built
         minimum = torch.tensor(
             self.minimum, dtype=torch.float32, device=action.device
         )
@@ -206,7 +190,8 @@ class MinMaxActionScaler(ActionScaler):
         return ((maximum - minimum) * ((action + 1.0) / 2.0)) + minimum
 
     def reverse_transform_numpy(self, action: np.ndarray) -> np.ndarray:
-        assert self.minimum is not None and self.maximum is not None
+        assert self.built
+        assert self.maximum is not None and self.minimum is not None
         minimum, maximum = self.minimum, self.maximum
         # transform action from [-1.0, 1.0]
         return ((maximum - minimum) * ((action + 1.0) / 2.0)) + minimum
@@ -214,6 +199,10 @@ class MinMaxActionScaler(ActionScaler):
     @staticmethod
     def get_type() -> str:
         return "min_max"
+
+    @property
+    def built(self) -> bool:
+        return self.minimum is not None and self.maximum is not None
 
 
 (

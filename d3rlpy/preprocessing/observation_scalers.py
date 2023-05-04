@@ -65,6 +65,16 @@ class ObservationScaler(DynamicConfig):
         """
         raise NotImplementedError
 
+    @property
+    def built(self) -> bool:
+        """Returns a flag to represent if scaler is already built.
+
+        Returns:
+            the flag will be True if scaler is already built.
+
+        """
+        raise NotImplementedError
+
 
 class PixelObservationScaler(ObservationScaler):
     """Pixel normalization preprocessing.
@@ -102,6 +112,10 @@ class PixelObservationScaler(ObservationScaler):
     @staticmethod
     def get_type() -> str:
         return "pixel"
+
+    @property
+    def built(self) -> bool:
+        return True
 
 
 @dataclasses.dataclass()
@@ -157,9 +171,7 @@ class MinMaxObservationScaler(ObservationScaler):
             self.maximum = np.asarray(self.maximum)
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self.minimum is not None and self.maximum is not None:
-            return
-
+        assert not self.built
         maximum = np.zeros(episodes[0].observation_signature.shape[0])
         minimum = np.zeros(episodes[0].observation_signature.shape[0])
         for i, episode in enumerate(episodes):
@@ -177,9 +189,7 @@ class MinMaxObservationScaler(ObservationScaler):
         self.maximum = maximum.reshape((1,) + maximum.shape)
 
     def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
-        if self.minimum is not None and self.maximum is not None:
-            return
-
+        assert not self.built
         assert isinstance(env.observation_space, gym.spaces.Box)
         shape = env.observation_space.shape
         low = np.asarray(env.observation_space.low)
@@ -188,7 +198,7 @@ class MinMaxObservationScaler(ObservationScaler):
         self.maximum = high.reshape((1,) + shape)
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        assert self.minimum is not None and self.maximum is not None
+        assert self.built
         minimum = torch.tensor(
             self.minimum, dtype=torch.float32, device=x.device
         )
@@ -198,7 +208,7 @@ class MinMaxObservationScaler(ObservationScaler):
         return (x - minimum) / (maximum - minimum)
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
-        assert self.minimum is not None and self.maximum is not None
+        assert self.built
         minimum = torch.tensor(
             self.minimum, dtype=torch.float32, device=x.device
         )
@@ -210,6 +220,10 @@ class MinMaxObservationScaler(ObservationScaler):
     @staticmethod
     def get_type() -> str:
         return "min_max"
+
+    @property
+    def built(self) -> bool:
+        return self.minimum is not None and self.maximum is not None
 
 
 @dataclasses.dataclass()
@@ -267,9 +281,7 @@ class StandardObservationScaler(ObservationScaler):
             self.std = np.asarray(self.std)
 
     def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        if self.mean is not None and self.std is not None:
-            return
-
+        assert not self.built
         # compute mean
         total_sum = np.zeros(episodes[0].observation_signature.shape[0])
         total_count = 0
@@ -290,20 +302,18 @@ class StandardObservationScaler(ObservationScaler):
         self.std = std.reshape((1,) + std.shape)
 
     def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
-        if self.mean is not None and self.std is not None:
-            return
         raise NotImplementedError(
             "standard scaler does not support fit_with_env."
         )
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        assert self.mean is not None and self.std is not None
+        assert self.built
         mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
         std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
         return (x - mean) / (std + self.eps)
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
-        assert self.mean is not None and self.std is not None
+        assert self.built
         mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
         std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
         return ((std + self.eps) * x) + mean
@@ -311,6 +321,10 @@ class StandardObservationScaler(ObservationScaler):
     @staticmethod
     def get_type() -> str:
         return "standard"
+
+    @property
+    def built(self) -> bool:
+        return self.mean is not None and self.std is not None
 
 
 (
