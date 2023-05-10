@@ -35,7 +35,7 @@ __all__ = [
 ]
 
 
-BLACK_LIST = [
+IGNORE_LIST = [
     "policy",
     "q_function",
     "policy_optim",
@@ -44,7 +44,7 @@ BLACK_LIST = [
 
 
 def _get_attributes(obj: Any) -> List[str]:
-    return [key for key in dir(obj) if key not in BLACK_LIST]
+    return [key for key in dir(obj) if key not in IGNORE_LIST]
 
 
 def soft_sync(targ_model: nn.Module, model: nn.Module, tau: float) -> None:
