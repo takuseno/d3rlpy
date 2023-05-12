@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import numpy as np
 import pytest
 import torch
@@ -13,7 +15,7 @@ from ..dummy_env import DummyAtari
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84)])
-def test_pixel_observation_scaler(observation_shape):
+def test_pixel_observation_scaler(observation_shape: Sequence[int]) -> None:
     scaler = PixelObservationScaler()
 
     x = torch.randint(high=255, size=observation_shape)
@@ -32,8 +34,10 @@ def test_pixel_observation_scaler(observation_shape):
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("batch_size", [32])
-def test_min_max_observation_scaler(observation_shape, batch_size):
-    shape = (batch_size,) + observation_shape
+def test_min_max_observation_scaler(
+    observation_shape: Sequence[int], batch_size: int
+) -> None:
+    shape = (batch_size, *observation_shape)
     observations = np.random.random(shape).astype("f4")
 
     max = observations.max(axis=0)
@@ -46,7 +50,7 @@ def test_min_max_observation_scaler(observation_shape, batch_size):
     assert np.all(y.numpy() >= 0.0)
     assert np.all(y.numpy() <= 1.0)
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = scaler.transform(x)
     ref_y = (x.numpy() - min.reshape((1, -1))) / (max - min).reshape((1, -1))
     assert np.allclose(y.numpy(), ref_y)
@@ -62,8 +66,10 @@ def test_min_max_observation_scaler(observation_shape, batch_size):
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("batch_size", [32])
-def test_min_max_observation_scaler_with_episode(observation_shape, batch_size):
-    shape = (batch_size,) + observation_shape
+def test_min_max_observation_scaler_with_episode(
+    observation_shape: Sequence[int], batch_size: int
+) -> None:
+    shape = (batch_size, observation_shape)
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1))
     rewards = np.random.random(batch_size)
@@ -85,7 +91,7 @@ def test_min_max_observation_scaler_with_episode(observation_shape, batch_size):
     scaler.fit(episodes)
     assert scaler.built
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
 
     y = scaler.transform(x)
     ref_y = (x.numpy() - min.reshape((1, -1))) / (max - min).reshape((1, -1))
@@ -93,7 +99,7 @@ def test_min_max_observation_scaler_with_episode(observation_shape, batch_size):
     assert np.allclose(y.numpy(), ref_y)
 
 
-def test_min_max_observation_scaler_with_env():
+def test_min_max_observation_scaler_with_env() -> None:
     env = DummyAtari()
 
     scaler = MinMaxObservationScaler()
@@ -110,8 +116,10 @@ def test_min_max_observation_scaler_with_env():
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("eps", [0.3])
-def test_standard_observation_scaler(observation_shape, batch_size, eps):
-    shape = (batch_size,) + observation_shape
+def test_standard_observation_scaler(
+    observation_shape: Sequence[int], batch_size: int, eps: float
+) -> None:
+    shape = (batch_size, *observation_shape)
     observations = np.random.random(shape).astype("f4")
 
     mean = observations.mean(axis=0)
@@ -120,7 +128,7 @@ def test_standard_observation_scaler(observation_shape, batch_size, eps):
     scaler = StandardObservationScaler(mean=mean, std=std, eps=eps)
     assert scaler.built
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
 
     y = scaler.transform(x)
 
@@ -141,9 +149,9 @@ def test_standard_observation_scaler(observation_shape, batch_size, eps):
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("eps", [32])
 def test_standard_observation_scaler_with_episode(
-    observation_shape, batch_size, eps
-):
-    shape = (batch_size,) + observation_shape
+    observation_shape: Sequence[int], batch_size: int, eps: float
+) -> None:
+    shape = (batch_size, *observation_shape)
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1)).astype("f4")
     rewards = np.random.random(batch_size).astype("f4")
@@ -165,7 +173,7 @@ def test_standard_observation_scaler_with_episode(
     scaler.fit(episodes)
     assert scaler.built
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
 
     y = scaler.transform(x)
 

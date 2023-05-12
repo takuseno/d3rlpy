@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import gym
 import numpy as np
 import pytest
@@ -9,7 +11,7 @@ from d3rlpy.preprocessing import MinMaxActionScaler
 
 @pytest.mark.parametrize("action_size", [10])
 @pytest.mark.parametrize("batch_size", [32])
-def test_min_max_action_scaler(action_size, batch_size):
+def test_min_max_action_scaler(action_size: int, batch_size: int) -> None:
     actions = np.random.random((batch_size, action_size)).astype("f4")
 
     max = actions.max(axis=0)
@@ -45,9 +47,11 @@ def test_min_max_action_scaler(action_size, batch_size):
 @pytest.mark.parametrize("action_size", [10])
 @pytest.mark.parametrize("batch_size", [32])
 def test_min_max_action_scaler_with_episode(
-    observation_shape, action_size, batch_size
-):
-    shape = (batch_size,) + observation_shape
+    observation_shape: Sequence[int],
+    action_size: int,
+    batch_size: int,
+) -> None:
+    shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size)).astype("f4")
     rewards = np.random.random(batch_size)
@@ -77,7 +81,7 @@ def test_min_max_action_scaler_with_episode(
     assert np.allclose(y.numpy(), ref_y * 2.0 - 1.0)
 
 
-def test_min_max_action_scaler_with_env():
+def test_min_max_action_scaler_with_env() -> None:
     env = gym.make("Pendulum-v1")
 
     scaler = MinMaxActionScaler()

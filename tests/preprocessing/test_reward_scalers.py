@@ -1,4 +1,5 @@
-import gym
+from typing import Sequence
+
 import numpy as np
 import pytest
 import torch
@@ -16,7 +17,7 @@ from d3rlpy.preprocessing import (
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("multiplier", [10.0])
-def test_multiply_reward_scaler(batch_size, multiplier):
+def test_multiply_reward_scaler(batch_size: int, multiplier: float) -> None:
     rewards = np.random.random(batch_size).astype("f4") * 2 - 1
 
     scaler = MultiplyRewardScaler(multiplier)
@@ -45,7 +46,9 @@ def test_multiply_reward_scaler(batch_size, multiplier):
 @pytest.mark.parametrize("low", [-0.1])
 @pytest.mark.parametrize("high", [0.1])
 @pytest.mark.parametrize("multiplier", [10.0])
-def test_clip_reward_scaler(batch_size, low, high, multiplier):
+def test_clip_reward_scaler(
+    batch_size: int, low: float, high: float, multiplier: float
+) -> None:
     rewards = np.random.random(batch_size).astype("f4") * 2 - 1
 
     scaler = ClipRewardScaler(low, high, multiplier)
@@ -75,7 +78,7 @@ def test_clip_reward_scaler(batch_size, low, high, multiplier):
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("multiplier", [10.0])
-def test_min_max_reward_scaler(batch_size, multiplier):
+def test_min_max_reward_scaler(batch_size: int, multiplier: float) -> None:
     rewards = 10.0 * np.random.random(batch_size).astype("f4")
 
     maximum = float(rewards.max())
@@ -114,9 +117,9 @@ def test_min_max_reward_scaler(batch_size, multiplier):
 @pytest.mark.parametrize("action_size", [10])
 @pytest.mark.parametrize("batch_size", [32])
 def test_min_max_reward_scaler_with_episode(
-    observation_shape, action_size, batch_size
-):
-    shape = (batch_size,) + observation_shape
+    observation_shape: Sequence[int], action_size: int, batch_size: int
+) -> None:
+    shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size))
     rewards = np.random.random(batch_size)
@@ -133,10 +136,9 @@ def test_min_max_reward_scaler_with_episode(
     rewards_without_first = []
     for episode in episodes:
         rewards_without_first += episode.rewards[1:].tolist()
-    rewards_without_first = np.array(rewards_without_first)
 
-    maximum = rewards_without_first.max()
-    minimum = rewards_without_first.min()
+    maximum = np.max(rewards_without_first)
+    minimum = np.min(rewards_without_first)
 
     scaler = MinMaxRewardScaler()
     assert not scaler.built
@@ -152,7 +154,9 @@ def test_min_max_reward_scaler_with_episode(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("eps", [0.3])
 @pytest.mark.parametrize("multiplier", [10.0])
-def test_standard_reward_scaler(batch_size, eps, multiplier):
+def test_standard_reward_scaler(
+    batch_size: int, eps: float, multiplier: float
+) -> None:
     rewards = 10.0 * np.random.random(batch_size).astype("f4")
 
     mean = float(np.mean(rewards))
@@ -190,9 +194,12 @@ def test_standard_reward_scaler(batch_size, eps, multiplier):
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("eps", [0.3])
 def test_standard_reward_scaler_with_episode(
-    observation_shape, action_size, batch_size, eps
-):
-    shape = (batch_size,) + observation_shape
+    observation_shape: Sequence[int],
+    action_size: int,
+    batch_size: int,
+    eps: float,
+) -> None:
+    shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size))
     rewards = np.random.random(batch_size).astype("f4")
@@ -229,9 +236,9 @@ def test_standard_reward_scaler_with_episode(
 @pytest.mark.parametrize("action_size", [10])
 @pytest.mark.parametrize("batch_size", [32])
 def test_return_based_reward_scaler_with_episode(
-    observation_shape, action_size, batch_size
-):
-    shape = (batch_size,) + observation_shape
+    observation_shape: Sequence[int], action_size: int, batch_size: int
+) -> None:
+    shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size))
     rewards = np.random.random(batch_size).astype("f4")
@@ -269,7 +276,7 @@ def test_return_based_reward_scaler_with_episode(
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("shift", [-1])
-def test_constant_shift_reward_scaler(batch_size, shift):
+def test_constant_shift_reward_scaler(batch_size: int, shift: float) -> None:
     rewards = np.random.random(batch_size).astype("f4") * 2 - 1
 
     scaler = ConstantShiftRewardScaler(shift)
