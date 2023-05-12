@@ -1,7 +1,7 @@
 from d3rlpy.itertools import first_flag, last_flag
 
 
-def test_last_flag():
+def test_last_flag() -> None:
     x = [1, 2, 3, 4, 5]
     i = 0
     for is_last, value in last_flag(x):
@@ -13,7 +13,7 @@ def test_last_flag():
         i += 1
 
 
-def test_first_flag():
+def test_first_flag() -> None:
     x = [1, 2, 3, 4, 5]
     i = 0
     for is_first, value in first_flag(x):

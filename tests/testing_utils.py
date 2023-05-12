@@ -1,14 +1,28 @@
+from typing import Optional, Sequence, Tuple, cast
+
 import numpy as np
 
-from d3rlpy.dataset import Episode, PartialTrajectory, Transition
+from d3rlpy.dataset import (
+    Episode,
+    Observation,
+    ObservationSequence,
+    PartialTrajectory,
+    Shape,
+    Transition,
+)
 from d3rlpy.preprocessing import (
+    ActionScaler,
     MinMaxActionScaler,
     MinMaxObservationScaler,
     MinMaxRewardScaler,
+    ObservationScaler,
+    RewardScaler,
 )
 
 
-def create_observation(observation_shape, dtype=np.float32):
+def create_observation(
+    observation_shape: Shape, dtype: np.dtype = np.float32
+) -> Observation:
     if isinstance(observation_shape[0], (list, tuple)):
         observation = [
             np.random.random(shape).astype(dtype) for shape in observation_shape
@@ -18,26 +32,28 @@ def create_observation(observation_shape, dtype=np.float32):
     return observation
 
 
-def create_observations(observation_shape, length, dtype=np.float32):
+def create_observations(
+    observation_shape: Shape, length: int, dtype: np.dtype = np.float32
+) -> ObservationSequence:
     if isinstance(observation_shape[0], (list, tuple)):
         observations = [
-            np.random.random((length,) + shape).astype(dtype)
-            for shape in observation_shape
+            np.random.random((length, *shape)).astype(dtype)
+            for shape in cast(Sequence[Sequence[int]], observation_shape)
         ]
     else:
-        observations = np.random.random((length,) + observation_shape).astype(
+        observations = np.random.random((length, *observation_shape)).astype(
             dtype
         )
     return observations
 
 
 def create_episode(
-    observation_shape,
-    action_size,
-    length,
-    discrete_action=False,
-    terminated=False,
-):
+    observation_shape: Shape,
+    action_size: int,
+    length: int,
+    discrete_action: bool = False,
+    terminated: bool = False,
+) -> Episode:
     observations = create_observations(observation_shape, length)
 
     if discrete_action:
@@ -54,8 +70,11 @@ def create_episode(
 
 
 def create_transition(
-    observation_shape, action_size, discrete_action=False, terminated=False
-):
+    observation_shape: Shape,
+    action_size: int,
+    discrete_action: bool = False,
+    terminated: bool = False,
+) -> Transition:
     if isinstance(observation_shape[0], (list, tuple)):
         observation = [np.random.random(shape) for shape in observation_shape]
         next_observation = [
@@ -81,8 +100,11 @@ def create_transition(
 
 
 def create_partial_trajectory(
-    observation_shape, action_size, length, discrete_action=False
-):
+    observation_shape: Shape,
+    action_size: int,
+    length: int,
+    discrete_action: bool = False,
+) -> PartialTrajectory:
     observations = create_observations(observation_shape, length)
 
     if discrete_action:
@@ -104,7 +126,11 @@ def create_partial_trajectory(
     )
 
 
-def create_scaler_tuple(name):
+def create_scaler_tuple(
+    name: str,
+) -> Tuple[
+    Optional[ObservationScaler], Optional[ActionScaler], Optional[RewardScaler]
+]:
     if name is None:
         return None, None, None
     return MinMaxObservationScaler(), MinMaxActionScaler(), MinMaxRewardScaler()

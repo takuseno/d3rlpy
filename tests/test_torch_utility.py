@@ -1,4 +1,5 @@
 import copy
+from typing import Any, Dict, Sequence
 from unittest.mock import Mock
 
 import numpy as np
@@ -6,6 +7,7 @@ import pytest
 import torch
 
 from d3rlpy.dataset import TrajectoryMiniBatch, Transition, TransitionMiniBatch
+from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from d3rlpy.torch_utility import (
     Swish,
     TorchMiniBatch,
@@ -32,7 +34,7 @@ from .testing_utils import create_partial_trajectory
 @pytest.mark.parametrize("tau", [0.05])
 @pytest.mark.parametrize("input_size", [32])
 @pytest.mark.parametrize("output_size", [32])
-def test_soft_sync(tau, input_size, output_size):
+def test_soft_sync(tau: float, input_size: int, output_size: int) -> None:
     module = torch.nn.Linear(input_size, output_size)
     targ_module = torch.nn.Linear(input_size, output_size)
     original = copy.deepcopy(targ_module)
@@ -48,7 +50,7 @@ def test_soft_sync(tau, input_size, output_size):
 
 @pytest.mark.parametrize("input_size", [32])
 @pytest.mark.parametrize("output_size", [32])
-def test_hard_sync(input_size, output_size):
+def test_hard_sync(input_size: int, output_size: int) -> None:
     module = torch.nn.Linear(input_size, output_size)
     targ_module = torch.nn.Linear(input_size, output_size)
 
@@ -60,7 +62,7 @@ def test_hard_sync(input_size, output_size):
 
 @pytest.mark.parametrize("input_size", [32])
 @pytest.mark.parametrize("output_size", [1])
-def test_sync_optimizer_state(input_size, output_size):
+def test_sync_optimizer_state(input_size: int, output_size: int) -> None:
     module = torch.nn.Linear(input_size, output_size)
 
     # lr=1e-3
@@ -90,11 +92,11 @@ def test_sync_optimizer_state(input_size, output_size):
                 assert torch.allclose(v, state[i][k])
 
 
-def test_map_location_with_cpu():
+def test_map_location_with_cpu() -> None:
     assert map_location("cpu:0") == "cpu"
 
 
-def test_map_location_with_cuda():
+def test_map_location_with_cuda() -> None:
     fn = map_location("cuda:0")
     dummy = Mock()
     dummy.cuda = Mock()
@@ -105,28 +107,28 @@ def test_map_location_with_cuda():
 
 
 class DummyImpl:
-    def __init__(self):
+    def __init__(self) -> None:
         self._fc1 = torch.nn.Linear(100, 100)
         self._fc2 = torch.nn.Linear(100, 100)
         self._optim = torch.optim.Adam(self._fc1.parameters())
         self._device = "cpu:0"
 
     @train_api
-    def train_api_func(self):
+    def train_api_func(self) -> None:
         assert self._fc1.training
         assert self._fc2.training
 
     @eval_api
-    def eval_api_func(self):
+    def eval_api_func(self) -> None:
         assert not self._fc1.training
         assert not self._fc2.training
 
     @property
-    def device(self):
+    def device(self) -> str:
         return self._device
 
 
-def check_if_same_dict(a, b):
+def check_if_same_dict(a: Dict[str, Any], b: Dict[str, Any]) -> None:
     for k, v in a.items():
         if isinstance(v, torch.Tensor):
             assert (b[k] == v).all()
@@ -134,7 +136,7 @@ def check_if_same_dict(a, b):
             assert b[k] == v
 
 
-def test_get_state_dict():
+def test_get_state_dict() -> None:
     impl = DummyImpl()
 
     state_dict = get_state_dict(impl)
@@ -144,7 +146,7 @@ def test_get_state_dict():
     check_if_same_dict(state_dict["_optim"], impl._optim.state_dict())
 
 
-def test_set_state_dict():
+def test_set_state_dict() -> None:
     impl1 = DummyImpl()
     impl2 = DummyImpl()
 
@@ -165,7 +167,7 @@ def test_set_state_dict():
     assert (impl1._fc2.bias == impl2._fc2.bias).all()
 
 
-def test_reset_optimizer_states():
+def test_reset_optimizer_states() -> None:
     impl = DummyImpl()
 
     # instantiate optimizer state
@@ -184,7 +186,7 @@ def test_reset_optimizer_states():
     assert not reset_state
 
 
-def test_eval_mode():
+def test_eval_mode() -> None:
     impl = DummyImpl()
     impl._fc1.train()
     impl._fc2.train()
@@ -195,7 +197,7 @@ def test_eval_mode():
     assert not impl._fc2.training
 
 
-def test_train_mode():
+def test_train_mode() -> None:
     impl = DummyImpl()
     impl._fc1.eval()
     impl._fc2.eval()
@@ -207,16 +209,16 @@ def test_train_mode():
 
 
 @pytest.mark.skip(reason="no way to test this")
-def test_to_cuda():
+def test_to_cuda() -> None:
     pass
 
 
 @pytest.mark.skip(reason="no way to test this")
-def test_to_cpu():
+def test_to_cpu() -> None:
     pass
 
 
-def test_freeze():
+def test_freeze() -> None:
     impl = DummyImpl()
 
     freeze(impl)
@@ -227,7 +229,7 @@ def test_freeze():
         assert not p.requires_grad
 
 
-def test_unfreeze():
+def test_unfreeze() -> None:
     impl = DummyImpl()
 
     freeze(impl)
@@ -239,6 +241,21 @@ def test_unfreeze():
         assert p.requires_grad
 
 
+class DummyObservationScaler(ObservationScaler):
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        return x + 0.1
+
+
+class DummyActionScaler(ActionScaler):
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        return x + 0.2
+
+
+class DummyRewardScaler(RewardScaler):
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        return x + 0.2
+
+
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
@@ -246,14 +263,14 @@ def test_unfreeze():
 @pytest.mark.parametrize("use_action_scaler", [False, True])
 @pytest.mark.parametrize("use_reward_scaler", [False, True])
 def test_torch_mini_batch(
-    batch_size,
-    observation_shape,
-    action_size,
-    use_observation_scaler,
-    use_action_scaler,
-    use_reward_scaler,
-):
-    obs_shape = (batch_size,) + observation_shape
+    batch_size: int,
+    observation_shape: Sequence[int],
+    action_size: int,
+    use_observation_scaler: bool,
+    use_action_scaler: bool,
+    use_reward_scaler: bool,
+) -> None:
+    obs_shape = (batch_size, *observation_shape)
     transitions = []
     for _ in range(batch_size):
         transition = Transition(
@@ -267,31 +284,16 @@ def test_torch_mini_batch(
         transitions.append(transition)
 
     if use_observation_scaler:
-
-        class DummyObservationScaler:
-            def transform(self, x):
-                return x + 0.1
-
         observation_scaler = DummyObservationScaler()
     else:
         observation_scaler = None
 
     if use_action_scaler:
-
-        class DummyActionScaler:
-            def transform(self, x):
-                return x + 0.2
-
         action_scaler = DummyActionScaler()
     else:
         action_scaler = None
 
     if use_reward_scaler:
-
-        class DummyRewardScaler:
-            def transform(self, x):
-                return x + 0.2
-
         reward_scaler = DummyRewardScaler()
     else:
         reward_scaler = None
@@ -306,6 +308,8 @@ def test_torch_mini_batch(
         reward_scaler=reward_scaler,
     )
 
+    assert isinstance(batch.observations, np.ndarray)
+    assert isinstance(batch.next_observations, np.ndarray)
     if use_observation_scaler:
         assert np.all(
             torch_batch.observations.numpy() == batch.observations + 0.1
@@ -342,14 +346,14 @@ def test_torch_mini_batch(
 @pytest.mark.parametrize("use_action_scaler", [False, True])
 @pytest.mark.parametrize("use_reward_scaler", [False, True])
 def test_torch_trajectory_mini_batch(
-    batch_size,
-    length,
-    observation_shape,
-    action_size,
-    use_observation_scaler,
-    use_action_scaler,
-    use_reward_scaler,
-):
+    batch_size: int,
+    length: int,
+    observation_shape: Sequence[int],
+    action_size: int,
+    use_observation_scaler: bool,
+    use_action_scaler: bool,
+    use_reward_scaler: bool,
+) -> None:
     trajectories = []
     for _ in range(batch_size):
         trajectory = create_partial_trajectory(
@@ -358,31 +362,16 @@ def test_torch_trajectory_mini_batch(
         trajectories.append(trajectory)
 
     if use_observation_scaler:
-
-        class DummyObservationScaler:
-            def transform(self, x):
-                return x + 0.1
-
         observation_scaler = DummyObservationScaler()
     else:
         observation_scaler = None
 
     if use_action_scaler:
-
-        class DummyActionScaler:
-            def transform(self, x):
-                return x + 0.2
-
         action_scaler = DummyActionScaler()
     else:
         action_scaler = None
 
     if use_reward_scaler:
-
-        class DummyRewardScaler:
-            def transform(self, x):
-                return x + 0.2
-
         reward_scaler = DummyRewardScaler()
     else:
         reward_scaler = None
@@ -397,6 +386,7 @@ def test_torch_trajectory_mini_batch(
         reward_scaler=reward_scaler,
     )
 
+    assert isinstance(batch.observations, np.ndarray)
     if use_observation_scaler:
         assert np.all(
             torch_batch.observations.numpy() == batch.observations + 0.1
@@ -421,7 +411,7 @@ def test_torch_trajectory_mini_batch(
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
 
 
-def test_train_api():
+def test_train_api() -> None:
     impl = DummyImpl()
     impl._fc1.eval()
     impl._fc2.eval()
@@ -429,7 +419,7 @@ def test_train_api():
     impl.train_api_func()
 
 
-def test_eval_api():
+def test_eval_api() -> None:
     impl = DummyImpl()
     impl._fc1.train()
     impl._fc2.train()
@@ -439,14 +429,14 @@ def test_eval_api():
 
 @pytest.mark.parametrize("in_shape", [(1, 2, 3)])
 @pytest.mark.parametrize("out_shape", [(1, 6)])
-def test_view(in_shape, out_shape):
+def test_view(in_shape: Sequence[int], out_shape: Sequence[int]) -> None:
     x = torch.rand(in_shape)
     view = View(out_shape)
     assert view(x).shape == out_shape
 
 
 @pytest.mark.parametrize("in_shape", [(1, 2, 3)])
-def test_swish(in_shape):
+def test_swish(in_shape: Sequence[int]) -> None:
     x = torch.rand(in_shape)
     swish = Swish()
     y = swish(x)

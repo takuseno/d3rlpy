@@ -4,12 +4,12 @@ from d3rlpy.datasets import get_cartpole, get_dataset, get_pendulum
 
 
 @pytest.mark.parametrize("dataset_type", ["replay", "random"])
-def test_get_cartpole(dataset_type):
+def test_get_cartpole(dataset_type: str) -> None:
     get_cartpole(dataset_type=dataset_type)
 
 
 @pytest.mark.parametrize("dataset_type", ["replay", "random"])
-def test_get_pendulum(dataset_type):
+def test_get_pendulum(dataset_type: str) -> None:
     get_pendulum(dataset_type=dataset_type)
 
 
@@ -17,7 +17,7 @@ def test_get_pendulum(dataset_type):
     "env_name",
     ["cartpole-random", "pendulum-random"],
 )
-def test_get_dataset(env_name):
+def test_get_dataset(env_name: str) -> None:
     _, env = get_dataset(env_name)
     if env_name == "cartpole-random":
         assert env.unwrapped.spec.id == "CartPole-v1"
