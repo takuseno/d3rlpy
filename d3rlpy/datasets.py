@@ -13,6 +13,7 @@ from .dataset import (
     Episode,
     EpisodeGenerator,
     InfiniteBuffer,
+    MDPDataset,
     ReplayBuffer,
     TrajectorySlicerProtocol,
     TransitionPickerProtocol,
@@ -342,17 +343,13 @@ def get_d4rl(
         rewards = raw_dataset["rewards"]
         terminals = raw_dataset["terminals"]
         timeouts = raw_dataset["timeouts"]
-        episode_terminals = np.logical_or(terminals, timeouts)
 
-        episode_generator = EpisodeGenerator(
-            observations=np.array(observations, dtype=np.float32),
-            actions=np.array(actions, dtype=np.float32),
-            rewards=np.array(rewards, dtype=np.float32),
-            terminals=np.array(terminals, dtype=np.float32),
-            episode_terminals=np.array(episode_terminals, dtype=np.float32),
-        )
-        dataset = create_infinite_replay_buffer(
-            episodes=episode_generator(),
+        dataset = MDPDataset(
+            observations=observations,
+            actions=actions,
+            rewards=rewards,
+            terminals=terminals,
+            timeouts=timeouts,
             transition_picker=transition_picker,
             trajectory_slicer=trajectory_slicer,
         )

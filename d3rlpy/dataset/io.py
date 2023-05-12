@@ -1,6 +1,7 @@
 from typing import BinaryIO, Sequence, Type, cast
 
 import h5py
+import numpy as np
 
 from .components import Episode, EpisodeBase
 from .episode_generator import EpisodeGenerator
@@ -69,12 +70,17 @@ def load_v1(f: BinaryIO) -> Sequence[Episode]:
         else:
             episode_terminals = None
 
+    if episode_terminals is None:
+        timeouts = None
+    else:
+        timeouts = np.logical_and(np.logical_not(terminals), episode_terminals)
+
     episode_generator = EpisodeGenerator(
         observations=observations,
         actions=actions,
         rewards=rewards,
         terminals=terminals,
-        episode_terminals=episode_terminals,
+        timeouts=timeouts,
     )
 
     return episode_generator()

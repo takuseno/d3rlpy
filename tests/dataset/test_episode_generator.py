@@ -15,21 +15,23 @@ def test_episode_generator(observation_shape, action_size, length, terminal):
     actions = np.random.random((length, action_size))
     rewards = np.random.random((length, 1))
     terminals = np.zeros(length)
-    episode_terminals = np.zeros(length)
+    timeouts = np.zeros(length)
     for i in range(length // 100):
         if terminal:
             terminals[(i + 1) * 100 - 1] = 1.0
-        episode_terminals[(i + 1) * 100 - 1] = 1.0
+        else:
+            timeouts[(i + 1) * 100 - 1] = 1.0
 
     episode_generator = EpisodeGenerator(
         observations=observations,
         actions=actions,
         rewards=rewards,
         terminals=terminals,
-        episode_terminals=episode_terminals,
+        timeouts=timeouts,
     )
 
     episodes = episode_generator()
+    assert len(episodes) == length // 100
 
     for episode in episodes:
         assert len(episode) == 100

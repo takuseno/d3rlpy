@@ -20,7 +20,7 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
     _actions: np.ndarray
     _rewards: np.ndarray
     _terminals: np.ndarray
-    _episode_terminals: np.ndarray
+    _timeouts: np.ndarray
 
     def __init__(
         self,
@@ -28,7 +28,7 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
         actions: np.ndarray,
         rewards: np.ndarray,
         terminals: np.ndarray,
-        episode_terminals: Optional[np.ndarray] = None,
+        timeouts: Optional[np.ndarray] = None,
     ):
         if actions.ndim == 1:
             actions = np.reshape(actions, [-1, 1])
@@ -39,20 +39,24 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
         if terminals.ndim > 1:
             terminals = np.reshape(terminals, [-1])
 
-        if episode_terminals is None:
-            episode_terminals = terminals
+        if timeouts is None:
+            timeouts = np.zeros_like(terminals)
+
+        assert (
+            np.sum(np.logical_and(terminals, timeouts)) == 0
+        ), "terminals and timeouts never become True at the same time"
 
         self._observations = observations
         self._actions = actions
         self._rewards = rewards
         self._terminals = terminals
-        self._episode_terminals = episode_terminals
+        self._timeouts = timeouts
 
     def __call__(self) -> Sequence[Episode]:
         start = 0
         episodes = []
-        for i, terminal in enumerate(self._episode_terminals):
-            if terminal:
+        for i in range(self._terminals.shape[0]):
+            if self._terminals[i] or self._timeouts[i]:
                 end = i + 1
                 episode = Episode(
                     observations=slice_observations(

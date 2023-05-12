@@ -5,6 +5,8 @@ import numpy as np
 from .buffers import InfiniteBuffer
 from .episode_generator import EpisodeGenerator
 from .replay_buffer import ReplayBuffer
+from .trajectory_slicers import TrajectorySlicerProtocol
+from .transition_pickers import TransitionPickerProtocol
 from .types import ObservationSequence
 
 __all__ = ["MDPDataset"]
@@ -17,14 +19,21 @@ class MDPDataset(ReplayBuffer):
         actions: np.ndarray,
         rewards: np.ndarray,
         terminals: np.ndarray,
-        episode_terminals: Optional[np.ndarray] = None,
+        timeouts: Optional[np.ndarray] = None,
+        transition_picker: Optional[TransitionPickerProtocol] = None,
+        trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     ):
         episode_generator = EpisodeGenerator(
             observations=observations,
             actions=actions,
             rewards=rewards,
             terminals=terminals,
-            episode_terminals=episode_terminals,
+            timeouts=timeouts,
         )
         buffer = InfiniteBuffer()
-        super().__init__(buffer, episodes=episode_generator())
+        super().__init__(
+            buffer,
+            episodes=episode_generator(),
+            transition_picker=transition_picker,
+            trajectory_slicer=trajectory_slicer,
+        )
