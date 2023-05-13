@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import numpy as np
 import pytest
 
@@ -10,7 +12,12 @@ from ..testing_utils import create_observation
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("num_episodes", [10])
-def test_replay_buffer(observation_shape, action_size, length, num_episodes):
+def test_replay_buffer(
+    observation_shape: Sequence[int],
+    action_size: int,
+    length: int,
+    num_episodes: int,
+) -> None:
     observations = []
     actions = []
     rewards = []

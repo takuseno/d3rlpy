@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
 
-from d3rlpy.dataset import BasicTransitionPicker, FrameStackTransitionPicker
+from d3rlpy.dataset import (
+    BasicTransitionPicker,
+    FrameStackTransitionPicker,
+    Shape,
+)
 
 from ..testing_utils import create_episode
 
@@ -9,7 +13,9 @@ from ..testing_utils import create_episode
 @pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("length", [100])
-def test_basic_transition_picker(observation_shape, action_size, length):
+def test_basic_transition_picker(
+    observation_shape: Shape, action_size: int, length: int
+) -> None:
     episode = create_episode(
         observation_shape, action_size, length, terminated=True
     )
@@ -62,8 +68,8 @@ def test_basic_transition_picker(observation_shape, action_size, length):
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("n_frames", [4])
 def test_frame_stack_transition_picker(
-    observation_shape, action_size, length, n_frames
-):
+    observation_shape: Shape, action_size: int, length: int, n_frames: int
+) -> None:
     episode = create_episode(
         observation_shape, action_size, length, terminated=True
     )
@@ -71,6 +77,7 @@ def test_frame_stack_transition_picker(
     picker = FrameStackTransitionPicker(n_frames)
 
     n_channels = observation_shape[0]
+    assert isinstance(n_channels, int)
     ref_observation_shape = (n_frames * n_channels, *observation_shape[1:])
 
     # check stacked frames

@@ -1,6 +1,7 @@
+import numpy as np
 import pytest
 
-from d3rlpy.dataset import TrajectoryMiniBatch, TransitionMiniBatch
+from d3rlpy.dataset import Shape, TrajectoryMiniBatch, TransitionMiniBatch
 
 from ..testing_utils import create_partial_trajectory, create_transition
 
@@ -8,7 +9,9 @@ from ..testing_utils import create_partial_trajectory, create_transition
 @pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
-def test_transition_mini_batch(observation_shape, action_size, batch_size):
+def test_transition_mini_batch(
+    observation_shape: Shape, action_size: int, batch_size: int
+) -> None:
     transitions = []
     for _ in range(batch_size):
         transition = create_transition(observation_shape, action_size)
@@ -18,9 +21,12 @@ def test_transition_mini_batch(observation_shape, action_size, batch_size):
 
     if isinstance(observation_shape[0], tuple):
         for i, shape in enumerate(observation_shape):
+            assert isinstance(shape, tuple)
             assert batch.observations[i].shape == (batch_size, *shape)
             assert batch.next_observations[i].shape == (batch_size, *shape)
     else:
+        assert isinstance(batch.observations, np.ndarray)
+        assert isinstance(batch.next_observations, np.ndarray)
         assert batch.observations.shape == (batch_size, *observation_shape)
         assert batch.next_observations.shape == (batch_size, *observation_shape)
     assert batch.actions.shape == (batch_size, action_size)
@@ -34,8 +40,11 @@ def test_transition_mini_batch(observation_shape, action_size, batch_size):
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("length", [100])
 def test_trajectory_mini_batch(
-    observation_shape, action_size, batch_size, length
-):
+    observation_shape: Shape,
+    action_size: int,
+    batch_size: int,
+    length: int,
+) -> None:
     trajectories = []
     for _ in range(batch_size):
         traj = create_partial_trajectory(observation_shape, action_size, length)
@@ -45,8 +54,10 @@ def test_trajectory_mini_batch(
 
     if isinstance(observation_shape[0], tuple):
         for i, shape in enumerate(observation_shape):
+            assert isinstance(shape, tuple)
             assert batch.observations[i].shape == (batch_size, length, *shape)
     else:
+        assert isinstance(batch.observations, np.ndarray)
         assert batch.observations.shape == (
             batch_size,
             length,

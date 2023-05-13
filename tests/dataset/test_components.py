@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import numpy as np
 import pytest
 
@@ -13,7 +15,7 @@ from d3rlpy.dataset import (
 
 @pytest.mark.parametrize("shape", [(100,)])
 @pytest.mark.parametrize("dtype", [np.float32])
-def test_signature(shape, dtype):
+def test_signature(shape: Sequence[int], dtype: np.dtype) -> None:
     signature = Signature(dtype=[dtype], shape=[shape])
     data = signature.sample()
     assert data[0].shape == shape
@@ -22,7 +24,7 @@ def test_signature(shape, dtype):
 
 @pytest.mark.parametrize("observation_size", [4])
 @pytest.mark.parametrize("action_size", [2])
-def test_transition(observation_size, action_size):
+def test_transition(observation_size: int, action_size: int) -> None:
     transition = Transition(
         observation=np.random.random(observation_size).astype(np.float32),
         action=np.random.random(action_size).astype(np.float32),
@@ -42,7 +44,9 @@ def test_transition(observation_size, action_size):
 @pytest.mark.parametrize("data_size", [100])
 @pytest.mark.parametrize("observation_size", [4])
 @pytest.mark.parametrize("action_size", [2])
-def test_partial_trajectory(data_size, observation_size, action_size):
+def test_partial_trajectory(
+    data_size: int, observation_size: int, action_size: int
+) -> None:
     trajectory = PartialTrajectory(
         observations=np.random.random((data_size, observation_size)),
         actions=np.random.random((data_size, action_size)),
@@ -63,7 +67,9 @@ def test_partial_trajectory(data_size, observation_size, action_size):
 @pytest.mark.parametrize("observation_size", [4])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("terminated", [False, True])
-def test_episode(data_size, observation_size, action_size, terminated):
+def test_episode(
+    data_size: int, observation_size: int, action_size: int, terminated: bool
+) -> None:
     episode = Episode(
         observations=np.random.random((data_size, observation_size)),
         actions=np.random.random((data_size, action_size)),
@@ -91,7 +97,9 @@ def test_episode(data_size, observation_size, action_size, terminated):
 @pytest.mark.parametrize("data_size", [100])
 @pytest.mark.parametrize("observation_size", [4])
 @pytest.mark.parametrize("action_size", [2])
-def test_dataset_info(data_size, observation_size, action_size):
+def test_dataset_info(
+    data_size: int, observation_size: int, action_size: int
+) -> None:
     # continuous action space
     episode = Episode(
         observations=np.random.random((data_size, observation_size)),

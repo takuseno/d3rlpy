@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from d3rlpy.dataset import BasicTrajectorySlicer
+from d3rlpy.dataset import BasicTrajectorySlicer, Shape
 
 from ..testing_utils import create_episode
 
@@ -12,8 +12,12 @@ from ..testing_utils import create_episode
 @pytest.mark.parametrize("size", [10])
 @pytest.mark.parametrize("terminated", [True, False])
 def test_basic_trajectory_slicer(
-    observation_shape, action_size, length, size, terminated
-):
+    observation_shape: Shape,
+    action_size: int,
+    length: int,
+    size: int,
+    terminated: bool,
+) -> None:
     episode = create_episode(
         observation_shape, action_size, length, terminated=terminated
     )
@@ -27,8 +31,10 @@ def test_basic_trajectory_slicer(
         # check shape
         if isinstance(observation_shape[0], tuple):
             for j, shape in enumerate(observation_shape):
+                assert isinstance(shape, tuple)
                 assert traj.observations[j].shape == (size, *shape)
         else:
+            assert isinstance(traj.observations, np.ndarray)
             assert traj.observations.shape == (size, *observation_shape)
         assert traj.actions.shape == (size, action_size)
         assert traj.rewards.shape == (size, 1)

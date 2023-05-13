@@ -1,12 +1,15 @@
+from typing import Sequence
+
 import numpy as np
 import pytest
 
 from d3rlpy.dataset import (
     BasicWriterPreprocess,
+    EpisodeBase,
     ExperienceWriter,
     InfiniteBuffer,
     LastFrameWriterPreprocess,
-    Signature,
+    Shape,
 )
 
 from ..testing_utils import create_episode, create_observation
@@ -14,7 +17,9 @@ from ..testing_utils import create_episode, create_observation
 
 @pytest.mark.parametrize("observation_shape", [(4,)])
 @pytest.mark.parametrize("action_size", [2])
-def test_basic_writer_preprocess(observation_shape, action_size):
+def test_basic_writer_preprocess(
+    observation_shape: Sequence[int], action_size: int
+) -> None:
     observation = create_observation(observation_shape)
     action = np.random.random(action_size)
     reward = np.random.random()
@@ -41,7 +46,7 @@ def test_basic_writer_preprocess(observation_shape, action_size):
         ((2, 4), (4, 84, 84)),
     ],
 )
-def test_last_frame_writer_process(observation_shape):
+def test_last_frame_writer_process(observation_shape: Shape) -> None:
     observation = create_observation(observation_shape)
 
     preprocessor = LastFrameWriterPreprocess()
@@ -59,8 +64,12 @@ def test_last_frame_writer_process(observation_shape):
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("terminated", [True, False])
-def test_episode_writer(observation_shape, action_size, length, terminated):
-    episode = create_episode(observation_shape, action_size, length)
+def test_episode_writer(
+    observation_shape: Shape, action_size: int, length: int, terminated: bool
+) -> None:
+    episode: EpisodeBase = create_episode(
+        observation_shape, action_size, length
+    )
     buffer = InfiniteBuffer()
     writer = ExperienceWriter(
         buffer,

@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import pytest
 
 from d3rlpy.dataset import FIFOBuffer, InfiniteBuffer
@@ -9,7 +11,12 @@ from ..testing_utils import create_episode
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("terminated", [False, True])
-def test_infinite_buffer(observation_shape, action_size, length, terminated):
+def test_infinite_buffer(
+    observation_shape: Sequence[int],
+    action_size: int,
+    length: int,
+    terminated: bool,
+) -> None:
     buffer = InfiniteBuffer()
 
     for i in range(10):
@@ -31,7 +38,13 @@ def test_infinite_buffer(observation_shape, action_size, length, terminated):
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("limit", [500])
 @pytest.mark.parametrize("terminated", [False, True])
-def test_fifo_buffer(observation_shape, action_size, length, limit, terminated):
+def test_fifo_buffer(
+    observation_shape: Sequence[int],
+    action_size: int,
+    length: int,
+    limit: int,
+    terminated: bool,
+) -> None:
     buffer = FIFOBuffer(limit)
 
     for i in range(10):

@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import numpy as np
 import pytest
@@ -9,6 +10,7 @@ from d3rlpy.dataset import (
     FIFOBuffer,
     InfiniteBuffer,
     ReplayBuffer,
+    Shape,
     create_fifo_replay_buffer,
     create_infinite_replay_buffer,
 )
@@ -20,7 +22,9 @@ from ..testing_utils import create_episode, create_observation
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("terminated", [False, True])
-def test_replay_buffer(observation_shape, action_size, length, terminated):
+def test_replay_buffer(
+    observation_shape: Shape, action_size: int, length: int, terminated: bool
+) -> None:
     episode = create_episode(observation_shape, action_size, length)
     replay_buffer = ReplayBuffer(
         InfiniteBuffer(),
@@ -46,7 +50,9 @@ def test_replay_buffer(observation_shape, action_size, length, terminated):
 @pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("length", [100])
-def test_replay_buffer_dump_load(observation_shape, action_size, length):
+def test_replay_buffer_dump_load(
+    observation_shape: Shape, action_size: int, length: int
+) -> None:
     episode = create_episode(observation_shape, action_size, length)
     replay_buffer = ReplayBuffer(InfiniteBuffer(), episodes=[episode])
 
@@ -68,14 +74,14 @@ def test_replay_buffer_dump_load(observation_shape, action_size, length):
 @pytest.mark.parametrize("picker", [None, BasicTransitionPicker()])
 @pytest.mark.parametrize("slicer", [None, BasicTrajectorySlicer()])
 def test_replay_buffer_sample(
-    observation_shape,
-    action_size,
-    length,
-    partial_length,
-    batch_size,
-    picker,
-    slicer,
-):
+    observation_shape: Shape,
+    action_size: int,
+    length: int,
+    partial_length: int,
+    batch_size: int,
+    picker: Optional[BasicTransitionPicker],
+    slicer: Optional[BasicTrajectorySlicer],
+) -> None:
     episode = create_episode(observation_shape, action_size, length)
     replay_buffer = ReplayBuffer(
         InfiniteBuffer(),
@@ -89,8 +95,10 @@ def test_replay_buffer_sample(
     assert len(batch) == batch_size
 
     # check trajectory sampling
-    batch = replay_buffer.sample_trajectory_batch(batch_size, partial_length)
-    assert len(batch) == batch_size
+    traj_batch = replay_buffer.sample_trajectory_batch(
+        batch_size, partial_length
+    )
+    assert len(traj_batch) == batch_size
 
 
 @pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
@@ -98,8 +106,11 @@ def test_replay_buffer_sample(
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("limit", [100])
 def test_create_fifo_replay_buffer(
-    observation_shape, action_size, length, limit
-):
+    observation_shape: Shape,
+    action_size: int,
+    length: int,
+    limit: int,
+) -> None:
     episode = create_episode(observation_shape, action_size, length)
     replay_buffer = create_fifo_replay_buffer(limit, episodes=[episode])
     assert isinstance(replay_buffer.buffer, FIFOBuffer)
@@ -108,7 +119,9 @@ def test_create_fifo_replay_buffer(
 @pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("length", [100])
-def test_create_infinite_replay_buffer(observation_shape, action_size, length):
+def test_create_infinite_replay_buffer(
+    observation_shape: Shape, action_size: int, length: int
+) -> None:
     episode = create_episode(observation_shape, action_size, length)
     replay_buffer = create_infinite_replay_buffer(episodes=[episode])
     assert isinstance(replay_buffer.buffer, InfiniteBuffer)

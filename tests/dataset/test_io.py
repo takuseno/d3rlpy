@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pytest
 
-from d3rlpy.dataset import Episode, dump, load
+from d3rlpy.dataset import Episode, Shape, dump, load
 
 from ..testing_utils import create_episode
 
@@ -11,7 +11,9 @@ from ..testing_utils import create_episode
 @pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("length", [100])
-def test_dump_and_load(observation_shape, action_size, length):
+def test_dump_and_load(
+    observation_shape: Shape, action_size: int, length: int
+) -> None:
     episode = create_episode(observation_shape, action_size, length)
 
     path = os.path.join("test_data", "data.h5")
