@@ -8,9 +8,10 @@ from d3rlpy.envs.wrappers import Atari, ChannelFirst, FrameStack
 from ..dummy_env import DummyAtari
 
 
-def test_channel_first():
+def test_channel_first() -> None:
     env = DummyAtari(grayscale=False)
 
+    assert env.observation_space.shape
     width, height, channel = env.observation_space.shape
 
     wrapper = ChannelFirst(env)
@@ -29,9 +30,10 @@ def test_channel_first():
     dqn.predict(np.expand_dims(observation, axis=0))
 
 
-def test_channel_first_with_2_dim_obs():
+def test_channel_first_with_2_dim_obs() -> None:
     env = DummyAtari(squeeze=True)
 
+    assert env.observation_space.shape
     width, height = env.observation_space.shape
 
     wrapper = ChannelFirst(env)
@@ -51,9 +53,10 @@ def test_channel_first_with_2_dim_obs():
 
 
 @pytest.mark.parametrize("num_stack", [4])
-def test_frame_stack(num_stack):
+def test_frame_stack(num_stack: int) -> None:
     env = DummyAtari(squeeze=True)
 
+    assert env.observation_space.shape
     width, height = env.observation_space.shape
 
     wrapper = FrameStack(env, num_stack=num_stack)
@@ -73,8 +76,8 @@ def test_frame_stack(num_stack):
 
 
 @pytest.mark.skip(reason="This needs actual Atari 2600 environments.")
-@pytest.mark.parametrize("is_eval", [100])
-def test_atari(is_eval):
+@pytest.mark.parametrize("is_eval", [True])
+def test_atari(is_eval: bool) -> None:
     env = Atari(gym.make("BreakoutNoFrameskip-v4"), is_eval)
 
     assert env.observation_space.shape == (1, 84, 84)
