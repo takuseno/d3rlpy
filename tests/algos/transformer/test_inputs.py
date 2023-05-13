@@ -1,13 +1,32 @@
+from typing import Sequence
+
 import numpy as np
 import pytest
+import torch
 
 from d3rlpy.algos.transformer.inputs import (
     TorchTransformerInput,
     TransformerInput,
 )
 from d3rlpy.dataset import batch_pad_array, batch_pad_observations
+from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
 
 from ...testing_utils import create_episode
+
+
+class DummyObservationScaler(ObservationScaler):
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        return x + 0.1
+
+
+class DummyActionScaler(ActionScaler):
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        return x + 0.2
+
+
+class DummyRewardScaler(RewardScaler):
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        return x + 0.2
 
 
 @pytest.mark.parametrize("length", [10])
@@ -18,14 +37,14 @@ from ...testing_utils import create_episode
 @pytest.mark.parametrize("use_action_scaler", [False, True])
 @pytest.mark.parametrize("use_reward_scaler", [False, True])
 def test_torch_transformer_input(
-    length,
-    context_size,
-    observation_shape,
-    action_size,
-    use_observation_scaler,
-    use_action_scaler,
-    use_reward_scaler,
-):
+    length: int,
+    context_size: int,
+    observation_shape: Sequence[int],
+    action_size: int,
+    use_observation_scaler: bool,
+    use_action_scaler: bool,
+    use_reward_scaler: bool,
+) -> None:
     episode = create_episode(observation_shape, action_size, length)
 
     inpt = TransformerInput(
@@ -49,31 +68,16 @@ def test_torch_transformer_input(
         ref_rewards = episode.rewards[-context_size:]
 
     if use_observation_scaler:
-
-        class DummyObservationScaler:
-            def transform(self, x):
-                return x + 0.1
-
         observation_scaler = DummyObservationScaler()
     else:
         observation_scaler = None
 
     if use_action_scaler:
-
-        class DummyActionScaler:
-            def transform(self, x):
-                return x + 0.2
-
         action_scaler = DummyActionScaler()
     else:
         action_scaler = None
 
     if use_reward_scaler:
-
-        class DummyRewardScaler:
-            def transform(self, x):
-                return x + 0.2
-
         reward_scaler = DummyRewardScaler()
     else:
         reward_scaler = None
@@ -100,6 +104,7 @@ def test_torch_transformer_input(
     assert torch_inpt.length == context_size
 
     if observation_scaler:
+        assert isinstance(ref_observations, np.ndarray)
         assert np.allclose(
             torch_inpt.observations.numpy()[0], ref_observations + 0.1
         )
