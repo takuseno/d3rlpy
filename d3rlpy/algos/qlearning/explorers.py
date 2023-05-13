@@ -143,9 +143,7 @@ class NormalNoise(Explorer):
 
         """
         action = algo.predict(x)
-        # FIXME: Scalar noise works better for some reason.
-        #        But this is different from paper.
-        noise = np.random.normal(self._mean, self._std)
+        noise = np.random.normal(self._mean, self._std, size=action.shape)
 
         if isinstance(algo.action_scaler, MinMaxActionScaler):
             # scale noise

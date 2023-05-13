@@ -1,7 +1,13 @@
+from typing import Optional, Sequence
+
 import pytest
 
 from d3rlpy.algos.qlearning.bcq import BCQConfig, DiscreteBCQConfig
-from d3rlpy.models import MeanQFunctionFactory, QRQFunctionFactory
+from d3rlpy.models import (
+    MeanQFunctionFactory,
+    QFunctionFactory,
+    QRQFunctionFactory,
+)
 
 from ...testing_utils import create_scaler_tuple
 from .algo_test import algo_tester
@@ -13,10 +19,10 @@ from .algo_test import algo_tester
 )
 @pytest.mark.parametrize("scalers", [None, "min_max"])
 def test_bcq(
-    observation_shape,
-    q_func_factory,
-    scalers,
-):
+    observation_shape: Sequence[int],
+    q_func_factory: QFunctionFactory,
+    scalers: Optional[str],
+) -> None:
     observation_scaler, action_scaler, reward_scaler = create_scaler_tuple(
         scalers
     )
@@ -29,7 +35,7 @@ def test_bcq(
     )
     bcq = config.create()
     algo_tester(
-        bcq,
+        bcq,  # type: ignore
         observation_shape,
         deterministic_best_action=False,
         test_policy_copy=False,
@@ -43,11 +49,11 @@ def test_bcq(
 )
 @pytest.mark.parametrize("scalers", [None, "min_max"])
 def test_discrete_bcq(
-    observation_shape,
-    n_critics,
-    q_func_factory,
-    scalers,
-):
+    observation_shape: Sequence[int],
+    n_critics: int,
+    q_func_factory: QFunctionFactory,
+    scalers: Optional[str],
+) -> None:
     observation_scaler, _, reward_scaler = create_scaler_tuple(scalers)
     config = DiscreteBCQConfig(
         n_critics=n_critics,
@@ -57,7 +63,7 @@ def test_discrete_bcq(
     )
     bcq = config.create()
     algo_tester(
-        bcq,
+        bcq,  # type: ignore
         observation_shape,
         test_policy_copy=False,
         test_policy_optim_copy=False,

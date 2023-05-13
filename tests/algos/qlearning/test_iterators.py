@@ -9,7 +9,7 @@ from d3rlpy.envs import ChannelFirst
 from ...dummy_env import DummyAtari
 
 
-def test_fit_online_cartpole_with_dqn():
+def test_fit_online_cartpole_with_dqn() -> None:
     env = gym.make("CartPole-v1")
     eval_env = gym.make("CartPole-v1")
 
@@ -29,7 +29,7 @@ def test_fit_online_cartpole_with_dqn():
     )
 
 
-def test_fit_online_atari_with_dqn():
+def test_fit_online_atari_with_dqn() -> None:
     env = ChannelFirst(DummyAtari())
     eval_env = ChannelFirst(DummyAtari())
 
@@ -48,10 +48,11 @@ def test_fit_online_atari_with_dqn():
         logdir="test_data",
     )
 
+    assert algo.impl
     assert algo.impl.observation_shape == (1, 84, 84)
 
 
-def test_fit_online_pendulum_with_sac():
+def test_fit_online_pendulum_with_sac() -> None:
     env = gym.make("Pendulum-v1")
     eval_env = gym.make("Pendulum-v1")
 
@@ -69,7 +70,7 @@ def test_fit_online_pendulum_with_sac():
 
 
 @pytest.mark.parametrize("deterministic", [False, True])
-def test_collect_pendulum_with_sac(deterministic):
+def test_collect_pendulum_with_sac(deterministic: bool) -> None:
     env = gym.make("Pendulum-v1")
 
     algo = SACConfig().create()
@@ -79,7 +80,7 @@ def test_collect_pendulum_with_sac(deterministic):
     assert buffer.transition_count > 490 and buffer.transition_count < 500
 
 
-def test_collect_atari_with_dqn():
+def test_collect_atari_with_dqn() -> None:
     env = ChannelFirst(DummyAtari())
 
     algo = DQNConfig().create()
@@ -88,5 +89,6 @@ def test_collect_atari_with_dqn():
 
     buffer = algo.collect(env, explorer=explorer, n_steps=100)
 
+    assert algo.impl
     assert algo.impl.observation_shape == (1, 84, 84)
     assert buffer.transition_count > 90 and buffer.transition_count < 100

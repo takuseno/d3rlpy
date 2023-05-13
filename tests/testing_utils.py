@@ -127,7 +127,7 @@ def create_partial_trajectory(
 
 
 def create_scaler_tuple(
-    name: str,
+    name: Optional[str],
 ) -> Tuple[
     Optional[ObservationScaler], Optional[ActionScaler], Optional[RewardScaler]
 ]:

@@ -1,10 +1,13 @@
 import os
+from typing import Sequence, cast
 from unittest.mock import Mock
 
 import numpy as np
 import onnxruntime as ort
 import torch
 
+from d3rlpy.algos import QLearningAlgoBase, QLearningAlgoImplBase
+from d3rlpy.base import LearnableConfig
 from d3rlpy.constants import ActionSpace
 from d3rlpy.dataset import (
     EpisodeGenerator,
@@ -16,17 +19,17 @@ from tests.base_test import from_json_tester, load_learnable_tester
 
 
 def algo_tester(
-    algo,
-    observation_shape,
-    action_size=2,
-    deterministic_best_action=True,
-    test_predict_value=True,
-    test_policy_copy=True,
-    test_q_function_copy=True,
-    test_policy_optim_copy=True,
-    test_q_function_optim_copy=True,
-    test_from_json=True,
-):
+    algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+    observation_shape: Sequence[int],
+    action_size: int = 2,
+    deterministic_best_action: bool = True,
+    test_predict_value: bool = True,
+    test_policy_copy: bool = True,
+    test_q_function_copy: bool = True,
+    test_policy_optim_copy: bool = True,
+    test_q_function_optim_copy: bool = True,
+    test_from_json: bool = True,
+) -> None:
     fit_tester(algo, observation_shape, action_size)
     if test_from_json:
         from_json_tester(algo, observation_shape, action_size)
@@ -52,9 +55,13 @@ def algo_tester(
         q_function_copy_tester(algo, observation_shape, action_size)
 
 
-def fit_tester(algo, observation_shape, action_size):
+def fit_tester(
+    algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+    observation_shape: Sequence[int],
+    action_size: int,
+) -> None:
     update_backup = algo.update
-    algo.update = Mock(return_value={"loss": np.random.random()})
+    algo.update = Mock(return_value={"loss": np.random.random()})  # type: ignore
 
     n_episodes = 4
     episode_length = 25
@@ -63,7 +70,7 @@ def fit_tester(algo, observation_shape, action_size):
     n_steps_per_epoch = 5
     n_epochs = n_steps // n_steps_per_epoch
     data_size = n_episodes * episode_length
-    shape = (data_size,) + observation_shape
+    shape = (data_size, *observation_shape)
 
     if len(observation_shape) == 3:
         observations = np.random.randint(256, size=shape, dtype=np.uint8)
@@ -121,10 +128,14 @@ def fit_tester(algo, observation_shape, action_size):
     assert epoch == n_epochs
 
     # set backed up methods
-    algo.update = update_backup
+    algo.update = update_backup  # type: ignore
 
 
-def predict_tester(algo, observation_shape, action_size):
+def predict_tester(
+    algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+    observation_shape: Sequence[int],
+    action_size: int,
+) -> None:
     algo.create_impl(observation_shape, action_size)
     x = np.random.random((100, *observation_shape))
     y = algo.predict(x)
@@ -134,7 +145,11 @@ def predict_tester(algo, observation_shape, action_size):
         assert y.shape == (100, action_size)
 
 
-def sample_action_tester(algo, observation_shape, action_size):
+def sample_action_tester(
+    algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+    observation_shape: Sequence[int],
+    action_size: int,
+) -> None:
     algo.create_impl(observation_shape, action_size)
     x = np.random.random((100, *observation_shape))
     y = algo.sample_action(x)
@@ -144,9 +159,16 @@ def sample_action_tester(algo, observation_shape, action_size):
         assert y.shape == (100, action_size)
 
 
-def policy_copy_tester(algo, observation_shape, action_size):
+def policy_copy_tester(
+    algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+    observation_shape: Sequence[int],
+    action_size: int,
+) -> None:
     algo.create_impl(observation_shape, action_size)
-    algo2 = algo.config.create()
+    algo2 = cast(
+        QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+        algo.config.create(),
+    )
     algo2.create_impl(observation_shape, action_size)
     x = np.random.random((100, *observation_shape))
 
@@ -160,9 +182,16 @@ def policy_copy_tester(algo, observation_shape, action_size):
     assert np.all(action1 == action2)
 
 
-def q_function_copy_tester(algo, observation_shape, action_size):
+def q_function_copy_tester(
+    algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+    observation_shape: Sequence[int],
+    action_size: int,
+) -> None:
     algo.create_impl(observation_shape, action_size)
-    algo2 = algo.config.create()
+    algo2 = cast(
+        QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+        algo.config.create(),
+    )
     algo2.create_impl(observation_shape, action_size)
     x = np.random.random((100, *observation_shape))
     if algo.get_action_type() == ActionSpace.DISCRETE:
@@ -180,7 +209,11 @@ def q_function_copy_tester(algo, observation_shape, action_size):
     assert np.all(value1 == value2)
 
 
-def predict_value_tester(algo, observation_shape, action_size):
+def predict_value_tester(
+    algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+    observation_shape: Sequence[int],
+    action_size: int,
+) -> None:
     algo.create_impl(observation_shape, action_size)
     x = np.random.random((100, *observation_shape))
     if algo.get_action_type() == ActionSpace.DISCRETE:
@@ -191,19 +224,23 @@ def predict_value_tester(algo, observation_shape, action_size):
     assert value.shape == (100,)
 
 
-def save_and_load_tester(algo, observation_shape, action_size):
+def save_and_load_tester(
+    algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+    observation_shape: Sequence[int],
+    action_size: int,
+) -> None:
     algo.create_impl(observation_shape, action_size)
     algo.save_model(os.path.join("test_data", "model.pt"))
     algo.load_model(os.path.join("test_data", "model.pt"))
 
 
 def update_tester(
-    algo,
-    observation_shape,
-    action_size,
-    test_policy_optim_copy=True,
-    test_q_function_optim_copy=True,
-):
+    algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+    observation_shape: Sequence[int],
+    action_size: int,
+    test_policy_optim_copy: bool = True,
+    test_q_function_optim_copy: bool = True,
+) -> None:
     # make mini-batch
     transitions = []
     for i in range(algo.config.batch_size):
@@ -250,23 +287,34 @@ def update_tester(
     assert len(loss.items()) > 0
 
     if test_q_function_optim_copy:
-        algo2 = algo.config.create()
+        algo2 = cast(
+            QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+            algo.config.create(),
+        )
         algo2.create_impl(observation_shape, action_size)
+        assert algo2.impl
         assert not algo2.impl.q_function_optim.state
         algo2.copy_q_function_optim_from(algo)
         assert algo2.impl.q_function_optim.state
 
     if test_policy_optim_copy:
-        algo2 = algo.config.create()
+        algo2 = cast(
+            QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+            algo.config.create(),
+        )
         algo2.create_impl(observation_shape, action_size)
+        assert algo2.impl
         assert not algo2.impl.policy_optim.state
         algo2.copy_policy_optim_from(algo)
         assert algo2.impl.policy_optim.state
 
 
 def save_policy_tester(
-    algo, deterministic_best_action, observation_shape, action_size
-):
+    algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
+    deterministic_best_action: bool,
+    observation_shape: Sequence[int],
+    action_size: int,
+) -> None:
     algo.create_impl(observation_shape, action_size)
 
     # check save_policy as TorchScript

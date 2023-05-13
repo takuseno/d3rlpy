@@ -1,3 +1,5 @@
+from typing import Optional, Sequence
+
 import pytest
 
 from d3rlpy.algos.qlearning.bc import BCConfig, DiscreteBCConfig
@@ -9,7 +11,9 @@ from .algo_test import algo_tester
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("policy_type", ["deterministic", "stochastic"])
 @pytest.mark.parametrize("scalers", [None, "min_max"])
-def test_bc(observation_shape, policy_type, scalers):
+def test_bc(
+    observation_shape: Sequence[int], policy_type: str, scalers: Optional[str]
+) -> None:
     observation_scaler, action_scaler, _ = create_scaler_tuple(scalers)
     config = BCConfig(
         observation_scaler=observation_scaler,
@@ -18,7 +22,7 @@ def test_bc(observation_shape, policy_type, scalers):
     )
     bc = config.create()
     algo_tester(
-        bc,
+        bc,  # type: ignore
         observation_shape,
         test_predict_value=False,
         test_policy_copy=False,
@@ -30,12 +34,14 @@ def test_bc(observation_shape, policy_type, scalers):
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("scaler", [None, "min_max"])
-def test_discrete_bc(observation_shape, scaler):
+def test_discrete_bc(
+    observation_shape: Sequence[int], scaler: Optional[str]
+) -> None:
     observation_scaler, _, _ = create_scaler_tuple(scaler)
     config = DiscreteBCConfig(observation_scaler=observation_scaler)
     bc = config.create()
     algo_tester(
-        bc,
+        bc,  # type: ignore
         observation_shape,
         test_policy_copy=False,
         test_predict_value=False,
