@@ -35,7 +35,7 @@ if __name__ == "__main__":
             "Operating System :: MacOS :: MacOS X",
         ],
         install_requires=[
-            "torch",
+            "torch>=1.13.1",
             "tensorboardX",
             "tqdm",
             "h5py",
