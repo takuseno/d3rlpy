@@ -69,7 +69,7 @@ def test_min_max_observation_scaler(
 def test_min_max_observation_scaler_with_episode(
     observation_shape: Sequence[int], batch_size: int
 ) -> None:
-    shape = (batch_size, observation_shape)
+    shape = (batch_size, *observation_shape)
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1))
     rewards = np.random.random(batch_size)

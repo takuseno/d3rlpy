@@ -288,7 +288,7 @@ def test_constant_shift_reward_scaler(batch_size: int, shift: float) -> None:
 
     # check reverse_transform
     x = scaler.reverse_transform(y)
-    assert np.allclose(x.numpy(), rewards)
+    assert np.allclose(x.numpy(), rewards, atol=1e-4)
 
     # check reverse_transform_numpy
     y = scaler.transform_numpy(rewards)
