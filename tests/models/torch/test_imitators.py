@@ -2,7 +2,6 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from d3rlpy.models.encoders import DefaultEncoderFactory
 from d3rlpy.models.torch.imitators import (
     ConditionalVAE,
     DeterministicRegressor,
@@ -10,7 +9,11 @@ from d3rlpy.models.torch.imitators import (
     ProbablisticRegressor,
 )
 
-from .model_test import DummyEncoder, check_parameter_updates
+from .model_test import (
+    DummyEncoder,
+    DummyEncoderWithAction,
+    check_parameter_updates,
+)
 
 
 @pytest.mark.parametrize("feature_size", [100])
@@ -20,10 +23,15 @@ from .model_test import DummyEncoder, check_parameter_updates
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("n", [100])
 def test_conditional_vae(
-    feature_size, action_size, latent_size, beta, batch_size, n
-):
-    encoder_encoder = DummyEncoder(feature_size, action_size, True)
-    decoder_encoder = DummyEncoder(feature_size, latent_size, True)
+    feature_size: int,
+    action_size: int,
+    latent_size: int,
+    beta: float,
+    batch_size: int,
+    n: int,
+) -> None:
+    encoder_encoder = DummyEncoderWithAction(feature_size, action_size)
+    decoder_encoder = DummyEncoderWithAction(feature_size, latent_size)
     vae = ConditionalVAE(encoder_encoder, decoder_encoder, beta)
 
     # check output shape
@@ -64,7 +72,9 @@ def test_conditional_vae(
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("beta", [1e-2])
 @pytest.mark.parametrize("batch_size", [32])
-def test_discrete_imitator(feature_size, action_size, beta, batch_size):
+def test_discrete_imitator(
+    feature_size: int, action_size: int, beta: float, batch_size: int
+) -> None:
     encoder = DummyEncoder(feature_size)
     imitator = DiscreteImitator(encoder, action_size, beta)
 
@@ -87,7 +97,9 @@ def test_discrete_imitator(feature_size, action_size, beta, batch_size):
 @pytest.mark.parametrize("feature_size", [100])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
-def test_deterministic_regressor(feature_size, action_size, batch_size):
+def test_deterministic_regressor(
+    feature_size: int, action_size: int, batch_size: int
+) -> None:
     encoder = DummyEncoder(feature_size)
     imitator = DeterministicRegressor(encoder, action_size)
 
@@ -107,7 +119,9 @@ def test_deterministic_regressor(feature_size, action_size, batch_size):
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("n", [10])
-def test_probablistic_regressor(feature_size, action_size, batch_size, n):
+def test_probablistic_regressor(
+    feature_size: int, action_size: int, batch_size: int, n: int
+) -> None:
     encoder = DummyEncoder(feature_size)
     imitator = ProbablisticRegressor(
         encoder, action_size, min_logstd=-20, max_logstd=2

@@ -3,7 +3,11 @@ import torch
 
 from d3rlpy.models.torch import ContinuousIQNQFunction, DiscreteIQNQFunction
 
-from ..model_test import DummyEncoder, check_parameter_updates
+from ..model_test import (
+    DummyEncoder,
+    DummyEncoderWithAction,
+    check_parameter_updates,
+)
 
 
 @pytest.mark.parametrize("feature_size", [100])
@@ -12,16 +16,14 @@ from ..model_test import DummyEncoder, check_parameter_updates
 @pytest.mark.parametrize("n_greedy_quantiles", [32])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("embed_size", [64])
-@pytest.mark.parametrize("gamma", [0.99])
 def test_discrete_iqn_q_function(
-    feature_size,
-    action_size,
-    n_quantiles,
-    n_greedy_quantiles,
-    batch_size,
-    embed_size,
-    gamma,
-):
+    feature_size: int,
+    action_size: int,
+    n_quantiles: int,
+    n_greedy_quantiles: int,
+    batch_size: int,
+    embed_size: int,
+) -> None:
     encoder = DummyEncoder(feature_size)
     q_func = DiscreteIQNQFunction(
         encoder, action_size, n_quantiles, n_greedy_quantiles, embed_size
@@ -72,17 +74,15 @@ def test_discrete_iqn_q_function(
 @pytest.mark.parametrize("n_greedy_quantiles", [32])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("embed_size", [64])
-@pytest.mark.parametrize("gamma", [0.99])
 def test_continuous_iqn_q_function(
-    feature_size,
-    action_size,
-    n_quantiles,
-    n_greedy_quantiles,
-    batch_size,
-    embed_size,
-    gamma,
-):
-    encoder = DummyEncoder(feature_size, action_size)
+    feature_size: int,
+    action_size: int,
+    n_quantiles: int,
+    n_greedy_quantiles: int,
+    batch_size: int,
+    embed_size: int,
+) -> None:
+    encoder = DummyEncoderWithAction(feature_size, action_size)
     q_func = ContinuousIQNQFunction(
         encoder, n_quantiles, n_greedy_quantiles, embed_size
     )
@@ -106,7 +106,7 @@ def test_continuous_iqn_q_function(
 
     # TODO: check quantile huber loss
     obs_t = torch.rand(batch_size, feature_size)
-    act_t = torch.randint(action_size, size=(batch_size,))
+    act_t = torch.rand(batch_size, action_size)
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
     ter_tp1 = torch.randint(2, size=(batch_size, 1))

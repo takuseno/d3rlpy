@@ -1,3 +1,5 @@
+from typing import List, Optional, Sequence, Tuple
+
 import pytest
 import torch
 
@@ -19,14 +21,14 @@ from .model_test import check_parameter_updates
 @pytest.mark.parametrize("dropout_rate", [None, 0.2])
 @pytest.mark.parametrize("activation", [torch.relu])
 def test_pixel_encoder(
-    shapes,
-    filters,
-    feature_size,
-    batch_size,
-    use_batch_norm,
-    dropout_rate,
-    activation,
-):
+    shapes: Tuple[Sequence[int], int],
+    filters: List[List[int]],
+    feature_size: int,
+    batch_size: int,
+    use_batch_norm: bool,
+    dropout_rate: Optional[float],
+    activation: torch.nn.Module,
+) -> None:
     observation_shape, linear_input_size = shapes
 
     encoder = PixelEncoder(
@@ -37,7 +39,7 @@ def test_pixel_encoder(
         dropout_rate=dropout_rate,
         activation=activation,
     )
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = encoder(x)
 
     # check output shape
@@ -66,16 +68,16 @@ def test_pixel_encoder(
 @pytest.mark.parametrize("discrete_action", [False, True])
 @pytest.mark.parametrize("activation", [torch.relu])
 def test_pixel_encoder_with_action(
-    shapes,
-    action_size,
-    filters,
-    feature_size,
-    batch_size,
-    use_batch_norm,
-    dropout_rate,
-    discrete_action,
-    activation,
-):
+    shapes: Tuple[Sequence[int], int],
+    action_size: int,
+    filters: List[List[int]],
+    feature_size: int,
+    batch_size: int,
+    use_batch_norm: bool,
+    dropout_rate: Optional[float],
+    discrete_action: bool,
+    activation: torch.nn.Module,
+) -> None:
     observation_shape, linear_input_size = shapes
 
     encoder = PixelEncoderWithAction(
@@ -88,7 +90,7 @@ def test_pixel_encoder_with_action(
         discrete_action=discrete_action,
         activation=activation,
     )
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     if discrete_action:
         action = torch.randint(0, action_size, size=(batch_size, 1))
     else:
@@ -119,14 +121,14 @@ def test_pixel_encoder_with_action(
 @pytest.mark.parametrize("use_dense", [False, True])
 @pytest.mark.parametrize("activation", [torch.relu])
 def test_vector_encoder(
-    observation_shape,
-    hidden_units,
-    batch_size,
-    use_batch_norm,
-    dropout_rate,
-    use_dense,
-    activation,
-):
+    observation_shape: Sequence[int],
+    hidden_units: Sequence[int],
+    batch_size: int,
+    use_batch_norm: bool,
+    dropout_rate: Optional[float],
+    use_dense: bool,
+    activation: torch.nn.Module,
+) -> None:
     encoder = VectorEncoder(
         observation_shape=observation_shape,
         hidden_units=hidden_units,
@@ -136,7 +138,7 @@ def test_vector_encoder(
         activation=activation,
     )
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = encoder(x)
 
     # check output shape
@@ -165,16 +167,16 @@ def test_vector_encoder(
 @pytest.mark.parametrize("discrete_action", [False, True])
 @pytest.mark.parametrize("activation", [torch.relu])
 def test_vector_encoder_with_action(
-    observation_shape,
-    action_size,
-    hidden_units,
-    batch_size,
-    use_batch_norm,
-    dropout_rate,
-    use_dense,
-    discrete_action,
-    activation,
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    hidden_units: Sequence[int],
+    batch_size: int,
+    use_batch_norm: bool,
+    dropout_rate: Optional[float],
+    use_dense: bool,
+    discrete_action: bool,
+    activation: torch.nn.Module,
+) -> None:
     encoder = VectorEncoderWithAction(
         observation_shape=observation_shape,
         action_size=action_size,
@@ -186,7 +188,7 @@ def test_vector_encoder_with_action(
         activation=activation,
     )
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     if discrete_action:
         action = torch.randint(0, action_size, size=(batch_size, 1))
     else:

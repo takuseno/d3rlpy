@@ -13,13 +13,19 @@ from d3rlpy.models.torch.policies import (
     SquashedNormalPolicy,
 )
 
-from .model_test import DummyEncoder, check_parameter_updates
+from .model_test import (
+    DummyEncoder,
+    DummyEncoderWithAction,
+    check_parameter_updates,
+)
 
 
 @pytest.mark.parametrize("feature_size", [100])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
-def test_deterministic_policy(feature_size, action_size, batch_size):
+def test_deterministic_policy(
+    feature_size: int, action_size: int, batch_size: int
+) -> None:
     encoder = DummyEncoder(feature_size)
     policy = DeterministicPolicy(encoder, action_size)
 
@@ -41,9 +47,9 @@ def test_deterministic_policy(feature_size, action_size, batch_size):
 @pytest.mark.parametrize("scale", [0.05])
 @pytest.mark.parametrize("batch_size", [32])
 def test_deterministic_residual_policy(
-    feature_size, action_size, scale, batch_size
-):
-    encoder = DummyEncoder(feature_size, action_size)
+    feature_size: int, action_size: int, scale: float, batch_size: int
+) -> None:
+    encoder = DummyEncoderWithAction(feature_size, action_size)
     policy = DeterministicResidualPolicy(encoder, scale)
 
     # check output shape
@@ -72,14 +78,14 @@ def test_deterministic_residual_policy(
 @pytest.mark.parametrize("use_std_parameter", [True, False])
 @pytest.mark.parametrize("n", [10])
 def test_squashed_normal_policy(
-    feature_size,
-    action_size,
-    batch_size,
-    min_logstd,
-    max_logstd,
-    use_std_parameter,
-    n,
-):
+    feature_size: int,
+    action_size: int,
+    batch_size: int,
+    min_logstd: float,
+    max_logstd: float,
+    use_std_parameter: bool,
+    n: int,
+) -> None:
     encoder = DummyEncoder(feature_size)
     policy = SquashedNormalPolicy(
         encoder, action_size, min_logstd, max_logstd, use_std_parameter
@@ -121,14 +127,14 @@ def test_squashed_normal_policy(
 @pytest.mark.parametrize("use_std_parameter", [True, False])
 @pytest.mark.parametrize("n", [10])
 def test_non_squashed_normal_policy(
-    feature_size,
-    action_size,
-    batch_size,
-    min_logstd,
-    max_logstd,
-    use_std_parameter,
-    n,
-):
+    feature_size: int,
+    action_size: int,
+    batch_size: int,
+    min_logstd: float,
+    max_logstd: float,
+    use_std_parameter: bool,
+    n: int,
+) -> None:
     encoder = DummyEncoder(feature_size)
     policy = NonSquashedNormalPolicy(
         encoder, action_size, min_logstd, max_logstd, use_std_parameter
@@ -166,7 +172,9 @@ def test_non_squashed_normal_policy(
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("n", [10])
-def test_categorical_policy(feature_size, action_size, batch_size, n):
+def test_categorical_policy(
+    feature_size: int, action_size: int, batch_size: int, n: int
+) -> None:
     encoder = DummyEncoder(feature_size)
     policy = CategoricalPolicy(encoder, action_size)
 

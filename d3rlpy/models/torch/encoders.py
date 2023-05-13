@@ -33,11 +33,6 @@ class Encoder(metaclass=ABCMeta):
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
-    @property
-    @abstractmethod
-    def last_layer(self) -> nn.Linear:
-        pass
-
 
 class EncoderWithAction(metaclass=ABCMeta):
     @abstractmethod
@@ -60,11 +55,6 @@ class EncoderWithAction(metaclass=ABCMeta):
 
     @abstractmethod
     def __call__(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
-        pass
-
-    @property
-    @abstractmethod
-    def last_layer(self) -> nn.Linear:
         pass
 
 
@@ -156,10 +146,6 @@ class _PixelEncoder(nn.Module):  # type: ignore
     @property
     def observation_shape(self) -> Sequence[int]:
         return self._observation_shape
-
-    @property
-    def last_layer(self) -> nn.Linear:
-        return self._fc
 
 
 class PixelEncoder(_PixelEncoder, Encoder):
@@ -291,10 +277,6 @@ class _VectorEncoder(nn.Module):  # type: ignore
     @property
     def observation_shape(self) -> Sequence[int]:
         return self._observation_shape
-
-    @property
-    def last_layer(self) -> nn.Linear:
-        return self._fcs[-1]
 
 
 class VectorEncoder(_VectorEncoder, Encoder):

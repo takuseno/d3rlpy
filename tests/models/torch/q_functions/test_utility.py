@@ -14,7 +14,9 @@ from ..model_test import ref_quantile_huber_loss
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("keepdims", [True, False])
-def test_pick_value_by_action(batch_size, action_size, keepdims):
+def test_pick_value_by_action(
+    batch_size: int, action_size: int, keepdims: bool
+) -> None:
     values = torch.rand(batch_size, action_size)
     action = torch.randint(action_size, size=(batch_size,))
 
@@ -36,8 +38,11 @@ def test_pick_value_by_action(batch_size, action_size, keepdims):
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("keepdims", [True, False])
 def test_pick_quantile_value_by_action(
-    batch_size, action_size, n_quantiles, keepdims
-):
+    batch_size: int,
+    action_size: int,
+    n_quantiles: int,
+    keepdims: bool,
+) -> None:
     values = torch.rand(batch_size, action_size, n_quantiles)
     action = torch.randint(action_size, size=(batch_size,))
 
@@ -56,7 +61,7 @@ def test_pick_quantile_value_by_action(
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("n_quantiles", [200])
-def test_compute_quantile_huber_loss(batch_size, n_quantiles):
+def test_compute_quantile_huber_loss(batch_size: int, n_quantiles: int) -> None:
     y = np.random.random((batch_size, n_quantiles, 1))
     target = np.random.random((batch_size, 1, n_quantiles))
     taus = np.random.random((1, 1, n_quantiles))

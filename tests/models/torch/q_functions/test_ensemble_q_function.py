@@ -1,3 +1,5 @@
+from typing import List
+
 import pytest
 import torch
 
@@ -5,10 +7,12 @@ from d3rlpy.models.torch import (
     ContinuousFQFQFunction,
     ContinuousIQNQFunction,
     ContinuousMeanQFunction,
+    ContinuousQFunction,
     ContinuousQRQFunction,
     DiscreteFQFQFunction,
     DiscreteIQNQFunction,
     DiscreteMeanQFunction,
+    DiscreteQFunction,
     DiscreteQRQFunction,
     EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
@@ -18,13 +22,19 @@ from d3rlpy.models.torch.q_functions.ensemble_q_function import (
     _reduce_quantile_ensemble,
 )
 
-from ..model_test import DummyEncoder, check_parameter_updates
+from ..model_test import (
+    DummyEncoder,
+    DummyEncoderWithAction,
+    check_parameter_updates,
+)
 
 
 @pytest.mark.parametrize("n_ensembles", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("reduction", ["min", "max", "mean", "none"])
-def test_reduce_ensemble(n_ensembles, batch_size, reduction):
+def test_reduce_ensemble(
+    n_ensembles: int, batch_size: int, reduction: str
+) -> None:
     y = torch.rand(n_ensembles, batch_size, 1)
     ret = _reduce_ensemble(y, reduction)
     if reduction == "min":
@@ -46,8 +56,11 @@ def test_reduce_ensemble(n_ensembles, batch_size, reduction):
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("reduction", ["min", "max"])
 def test_reduce_quantile_ensemble(
-    n_ensembles, n_quantiles, batch_size, reduction
-):
+    n_ensembles: int,
+    n_quantiles: int,
+    batch_size: int,
+    reduction: str,
+) -> None:
     y = torch.rand(n_ensembles, batch_size, n_quantiles)
     ret = _reduce_quantile_ensemble(y, reduction)
     mean = y.mean(dim=2)
@@ -70,16 +83,16 @@ def test_reduce_quantile_ensemble(
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("embed_size", [64])
 def test_ensemble_discrete_q_function(
-    feature_size,
-    action_size,
-    batch_size,
-    gamma,
-    ensemble_size,
-    q_func_factory,
-    n_quantiles,
-    embed_size,
-):
-    q_funcs = []
+    feature_size: int,
+    action_size: int,
+    batch_size: int,
+    gamma: float,
+    ensemble_size: int,
+    q_func_factory: str,
+    n_quantiles: int,
+    embed_size: int,
+) -> None:
+    q_funcs: List[DiscreteQFunction] = []
     for _ in range(ensemble_size):
         encoder = DummyEncoder(feature_size)
         if q_func_factory == "mean":
@@ -164,18 +177,18 @@ def test_ensemble_discrete_q_function(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn", "fqf"])
 @pytest.mark.parametrize("embed_size", [64])
 def test_ensemble_continuous_q_function(
-    feature_size,
-    action_size,
-    batch_size,
-    gamma,
-    ensemble_size,
-    q_func_factory,
-    n_quantiles,
-    embed_size,
-):
-    q_funcs = []
+    feature_size: int,
+    action_size: int,
+    batch_size: int,
+    gamma: float,
+    ensemble_size: int,
+    q_func_factory: str,
+    n_quantiles: int,
+    embed_size: int,
+) -> None:
+    q_funcs: List[ContinuousQFunction] = []
     for _ in range(ensemble_size):
-        encoder = DummyEncoder(feature_size, action_size, concat=True)
+        encoder = DummyEncoderWithAction(feature_size, action_size)
         if q_func_factory == "mean":
             q_func = ContinuousMeanQFunction(encoder)
         elif q_func_factory == "qr":

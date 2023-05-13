@@ -22,8 +22,13 @@ from .model_test import DummyEncoder, check_parameter_updates
 @pytest.mark.parametrize("dropout", [0.1])
 @pytest.mark.parametrize("batch_size", [32])
 def test_causal_self_attention(
-    in_size, out_size, num_heads, context_size, dropout, batch_size
-):
+    in_size: int,
+    out_size: int,
+    num_heads: int,
+    context_size: int,
+    dropout: float,
+    batch_size: int,
+) -> None:
     model = CausalSelfAttention(
         in_size=in_size,
         out_size=out_size,
@@ -48,7 +53,13 @@ def test_causal_self_attention(
 @pytest.mark.parametrize("context_size", [10])
 @pytest.mark.parametrize("dropout", [0.1])
 @pytest.mark.parametrize("batch_size", [32])
-def test_mlp(in_size, out_size, context_size, dropout, batch_size):
+def test_mlp(
+    in_size: int,
+    out_size: int,
+    context_size: int,
+    dropout: float,
+    batch_size: int,
+) -> None:
     model = MLP(
         in_size=in_size,
         out_size=out_size,
@@ -72,7 +83,14 @@ def test_mlp(in_size, out_size, context_size, dropout, batch_size):
 @pytest.mark.parametrize("context_size", [10])
 @pytest.mark.parametrize("dropout", [0.1])
 @pytest.mark.parametrize("batch_size", [32])
-def test_block(in_size, out_size, num_heads, context_size, dropout, batch_size):
+def test_block(
+    in_size: int,
+    out_size: int,
+    num_heads: int,
+    context_size: int,
+    dropout: float,
+    batch_size: int,
+) -> None:
     model = Block(
         in_size=in_size,
         out_size=out_size,
@@ -98,8 +116,11 @@ def test_block(in_size, out_size, num_heads, context_size, dropout, batch_size):
 @pytest.mark.parametrize("context_size", [10])
 @pytest.mark.parametrize("batch_size", [32])
 def test_simple_position_encoding(
-    max_timestep, embed_dim, context_size, batch_size
-):
+    max_timestep: int,
+    embed_dim: int,
+    context_size: int,
+    batch_size: int,
+) -> None:
     model = SimplePositionEncoding(embed_dim, max_timestep)
 
     x = torch.randint(low=0, high=max_timestep, size=(batch_size, context_size))
@@ -117,8 +138,11 @@ def test_simple_position_encoding(
 @pytest.mark.parametrize("context_size", [10])
 @pytest.mark.parametrize("batch_size", [32])
 def test_global_position_encoding(
-    max_timestep, embed_dim, context_size, batch_size
-):
+    max_timestep: int,
+    embed_dim: int,
+    context_size: int,
+    batch_size: int,
+) -> None:
     model = GlobalPositionEncoding(embed_dim, max_timestep, context_size)
 
     x = torch.randint(
@@ -137,8 +161,13 @@ def test_global_position_encoding(
 @pytest.mark.parametrize("dropout", [0.1])
 @pytest.mark.parametrize("batch_size", [32])
 def test_gpt2(
-    hidden_size, num_heads, num_layers, context_size, dropout, batch_size
-):
+    hidden_size: int,
+    num_heads: int,
+    num_layers: int,
+    context_size: int,
+    dropout: float,
+    batch_size: int,
+) -> None:
     model = GPT2(
         hidden_size=hidden_size,
         num_heads=num_heads,
@@ -169,15 +198,15 @@ def test_gpt2(
 @pytest.mark.parametrize("dropout", [0.1])
 @pytest.mark.parametrize("batch_size", [32])
 def test_continuous_decision_transformer(
-    hidden_size,
-    action_size,
-    num_heads,
-    num_layers,
-    max_timestep,
-    context_size,
-    dropout,
-    batch_size,
-):
+    hidden_size: int,
+    action_size: int,
+    num_heads: int,
+    num_layers: int,
+    max_timestep: int,
+    context_size: int,
+    dropout: float,
+    batch_size: int,
+) -> None:
     encoder = DummyEncoder(hidden_size)
 
     model = ContinuousDecisionTransformer(
@@ -214,16 +243,16 @@ def test_continuous_decision_transformer(
 @pytest.mark.parametrize("context_size", [10])
 @pytest.mark.parametrize("dropout", [0.1])
 @pytest.mark.parametrize("batch_size", [32])
-def test_continuous_decision_transformer(
-    hidden_size,
-    action_size,
-    num_heads,
-    num_layers,
-    max_timestep,
-    context_size,
-    dropout,
-    batch_size,
-):
+def test_discrete_decision_transformer(
+    hidden_size: int,
+    action_size: int,
+    num_heads: int,
+    num_layers: int,
+    max_timestep: int,
+    context_size: int,
+    dropout: float,
+    batch_size: int,
+) -> None:
     encoder = DummyEncoder(hidden_size)
 
     model = DiscreteDecisionTransformer(

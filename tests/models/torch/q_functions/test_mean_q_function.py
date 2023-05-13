@@ -4,10 +4,17 @@ import torch
 
 from d3rlpy.models.torch import ContinuousMeanQFunction, DiscreteMeanQFunction
 
-from ..model_test import DummyEncoder, check_parameter_updates, ref_huber_loss
+from ..model_test import (
+    DummyEncoder,
+    DummyEncoderWithAction,
+    check_parameter_updates,
+    ref_huber_loss,
+)
 
 
-def filter_by_action(value, action, action_size):
+def filter_by_action(
+    value: np.ndarray, action: np.ndarray, action_size: int
+) -> np.ndarray:
     act_one_hot = np.identity(action_size)[np.reshape(action, (-1,))]
     return (value * act_one_hot).sum(axis=1)
 
@@ -16,7 +23,9 @@ def filter_by_action(value, action, action_size):
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("gamma", [0.99])
-def test_discrete_mean_q_function(feature_size, action_size, batch_size, gamma):
+def test_discrete_mean_q_function(
+    feature_size: int, action_size: int, batch_size: int, gamma: float
+) -> None:
     encoder = DummyEncoder(feature_size)
     q_func = DiscreteMeanQFunction(encoder, action_size)
 
@@ -65,9 +74,12 @@ def test_discrete_mean_q_function(feature_size, action_size, batch_size, gamma):
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("gamma", [0.99])
 def test_continuous_mean_q_function(
-    feature_size, action_size, batch_size, gamma
-):
-    encoder = DummyEncoder(feature_size, action_size, concat=True)
+    feature_size: int,
+    action_size: int,
+    batch_size: int,
+    gamma: float,
+) -> None:
+    encoder = DummyEncoderWithAction(feature_size, action_size)
     q_func = ContinuousMeanQFunction(encoder)
 
     # check output shape

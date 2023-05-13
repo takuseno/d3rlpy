@@ -10,6 +10,7 @@ from d3rlpy.models.torch.q_functions.utility import (
 
 from ..model_test import (
     DummyEncoder,
+    DummyEncoderWithAction,
     check_parameter_updates,
     ref_quantile_huber_loss,
 )
@@ -21,8 +22,12 @@ from ..model_test import (
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("gamma", [0.99])
 def test_discrete_qr_q_function(
-    feature_size, action_size, n_quantiles, batch_size, gamma
-):
+    feature_size: int,
+    action_size: int,
+    n_quantiles: int,
+    batch_size: int,
+    gamma: float,
+) -> None:
     encoder = DummyEncoder(feature_size)
     q_func = DiscreteQRQFunction(encoder, action_size, n_quantiles)
 
@@ -84,9 +89,13 @@ def test_discrete_qr_q_function(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("gamma", [0.99])
 def test_continuous_qr_q_function(
-    feature_size, action_size, n_quantiles, batch_size, gamma
-):
-    encoder = DummyEncoder(feature_size, action_size, concat=True)
+    feature_size: int,
+    action_size: int,
+    n_quantiles: int,
+    batch_size: int,
+    gamma: float,
+) -> None:
+    encoder = DummyEncoderWithAction(feature_size, action_size)
     q_func = ContinuousQRQFunction(encoder, n_quantiles)
 
     # check output shape

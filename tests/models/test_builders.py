@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import numpy as np
 import pytest
 import torch
@@ -19,7 +21,7 @@ from d3rlpy.models.builders import (
     create_squashed_normal_policy,
     create_value_function,
 )
-from d3rlpy.models.encoders import DefaultEncoderFactory
+from d3rlpy.models.encoders import DefaultEncoderFactory, EncoderFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory
 from d3rlpy.models.torch import (
     EnsembleContinuousQFunction,
@@ -31,7 +33,6 @@ from d3rlpy.models.torch.imitators import (
     DiscreteImitator,
     ProbablisticRegressor,
 )
-from d3rlpy.models.torch.parameters import Parameter
 from d3rlpy.models.torch.policies import (
     CategoricalPolicy,
     DeterministicPolicy,
@@ -51,15 +52,18 @@ from d3rlpy.models.torch.v_functions import ValueFunction
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 def test_create_deterministic_policy(
-    observation_shape, action_size, batch_size, encoder_factory
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    batch_size: int,
+    encoder_factory: EncoderFactory,
+) -> None:
     policy = create_deterministic_policy(
         observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(policy, DeterministicPolicy)
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = policy(x)
     assert y.shape == (batch_size, action_size)
 
@@ -70,15 +74,19 @@ def test_create_deterministic_policy(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 def test_create_deterministic_residual_policy(
-    observation_shape, action_size, scale, batch_size, encoder_factory
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    scale: float,
+    batch_size: int,
+    encoder_factory: EncoderFactory,
+) -> None:
     policy = create_deterministic_residual_policy(
         observation_shape, action_size, scale, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(policy, DeterministicResidualPolicy)
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     action = torch.rand(batch_size, action_size)
     y = policy(x, action)
     assert y.shape == (batch_size, action_size)
@@ -89,15 +97,18 @@ def test_create_deterministic_residual_policy(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 def test_create_squashed_normal_policy(
-    observation_shape, action_size, batch_size, encoder_factory
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    batch_size: int,
+    encoder_factory: EncoderFactory,
+) -> None:
     policy = create_squashed_normal_policy(
         observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(policy, SquashedNormalPolicy)
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = policy(x)
     assert y.shape == (batch_size, action_size)
 
@@ -107,15 +118,18 @@ def test_create_squashed_normal_policy(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 def test_create_non_squashed_normal_policy(
-    observation_shape, action_size, batch_size, encoder_factory
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    batch_size: int,
+    encoder_factory: EncoderFactory,
+) -> None:
     policy = create_non_squashed_normal_policy(
         observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(policy, NonSquashedNormalPolicy)
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = policy(x)
     assert y.shape == (batch_size, action_size)
 
@@ -125,15 +139,18 @@ def test_create_non_squashed_normal_policy(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 def test_create_categorical_policy(
-    observation_shape, action_size, batch_size, encoder_factory
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    batch_size: int,
+    encoder_factory: EncoderFactory,
+) -> None:
     policy = create_categorical_policy(
         observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(policy, CategoricalPolicy)
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = policy(x)
     assert y.shape == (batch_size,)
 
@@ -145,13 +162,13 @@ def test_create_categorical_policy(
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize("share_encoder", [False, True])
 def test_create_discrete_q_function(
-    observation_shape,
-    action_size,
-    batch_size,
-    n_ensembles,
-    encoder_factory,
-    share_encoder,
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    batch_size: int,
+    n_ensembles: int,
+    encoder_factory: EncoderFactory,
+    share_encoder: bool,
+) -> None:
     q_func_factory = MeanQFunctionFactory(share_encoder=share_encoder)
 
     q_func = create_discrete_q_function(
@@ -173,7 +190,7 @@ def test_create_discrete_q_function(
         else:
             assert encoder is not q_func.encoder
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = q_func(x)
     assert y.shape == (batch_size, action_size)
 
@@ -185,13 +202,13 @@ def test_create_discrete_q_function(
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize("share_encoder", [False, True])
 def test_create_continuous_q_function(
-    observation_shape,
-    action_size,
-    batch_size,
-    n_ensembles,
-    encoder_factory,
-    share_encoder,
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    batch_size: int,
+    n_ensembles: int,
+    encoder_factory: EncoderFactory,
+    share_encoder: bool,
+) -> None:
     q_func_factory = MeanQFunctionFactory(share_encoder=share_encoder)
 
     q_func = create_continuous_q_function(
@@ -213,7 +230,7 @@ def test_create_continuous_q_function(
         else:
             assert encoder is not q_func.encoder
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     action = torch.rand(batch_size, action_size)
     y = q_func(x, action)
     assert y.shape == (batch_size, 1)
@@ -226,13 +243,13 @@ def test_create_continuous_q_function(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 def test_create_conditional_vae(
-    observation_shape,
-    action_size,
-    latent_size,
-    beta,
-    batch_size,
-    encoder_factory,
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    latent_size: int,
+    beta: float,
+    batch_size: int,
+    encoder_factory: EncoderFactory,
+) -> None:
     vae = create_conditional_vae(
         observation_shape,
         action_size,
@@ -244,7 +261,7 @@ def test_create_conditional_vae(
 
     assert isinstance(vae, ConditionalVAE)
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     action = torch.rand(batch_size, action_size)
     y = vae(x, action)
     assert y.shape == (batch_size, action_size)
@@ -256,15 +273,19 @@ def test_create_conditional_vae(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 def test_create_discrete_imitator(
-    observation_shape, action_size, beta, batch_size, encoder_factory
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    beta: float,
+    batch_size: int,
+    encoder_factory: EncoderFactory,
+) -> None:
     imitator = create_discrete_imitator(
         observation_shape, action_size, beta, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(imitator, DiscreteImitator)
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = imitator(x)
     assert y.shape == (batch_size, action_size)
 
@@ -274,15 +295,18 @@ def test_create_discrete_imitator(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 def test_create_deterministic_regressor(
-    observation_shape, action_size, batch_size, encoder_factory
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    batch_size: int,
+    encoder_factory: EncoderFactory,
+) -> None:
     imitator = create_deterministic_regressor(
         observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(imitator, DeterministicRegressor)
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = imitator(x)
     assert y.shape == (batch_size, action_size)
 
@@ -292,15 +316,18 @@ def test_create_deterministic_regressor(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 def test_create_probablistic_regressor(
-    observation_shape, action_size, batch_size, encoder_factory
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    batch_size: int,
+    encoder_factory: EncoderFactory,
+) -> None:
     imitator = create_probablistic_regressor(
         observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(imitator, ProbablisticRegressor)
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = imitator(x)
     assert y.shape == (batch_size, action_size)
 
@@ -308,20 +335,24 @@ def test_create_probablistic_regressor(
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize("batch_size", [32])
-def test_create_value_function(observation_shape, encoder_factory, batch_size):
+def test_create_value_function(
+    observation_shape: Sequence[int],
+    encoder_factory: EncoderFactory,
+    batch_size: int,
+) -> None:
     v_func = create_value_function(
         observation_shape, encoder_factory, device="cpu:0"
     )
 
     assert isinstance(v_func, ValueFunction)
 
-    x = torch.rand((batch_size,) + observation_shape)
+    x = torch.rand((batch_size, *observation_shape))
     y = v_func(x)
     assert y.shape == (batch_size, 1)
 
 
 @pytest.mark.parametrize("shape", [(100,)])
-def test_create_parameter(shape):
+def test_create_parameter(shape: Sequence[int]) -> None:
     x = np.random.random()
     parameter = create_parameter(shape, x, device="cpu:0")
 
@@ -341,18 +372,18 @@ def test_create_parameter(shape):
 @pytest.mark.parametrize("position_encoding_type", ["simple"])
 @pytest.mark.parametrize("batch_size", [32])
 def test_create_continuous_decision_transformer(
-    observation_shape,
-    encoder_factory,
-    action_size,
-    num_heads,
-    max_timestep,
-    num_layers,
-    context_size,
-    dropout,
-    activation_type,
-    position_encoding_type,
-    batch_size,
-):
+    observation_shape: Sequence[int],
+    encoder_factory: EncoderFactory,
+    action_size: int,
+    num_heads: int,
+    max_timestep: int,
+    num_layers: int,
+    context_size: int,
+    dropout: float,
+    activation_type: str,
+    position_encoding_type: str,
+    batch_size: int,
+) -> None:
     transformer = create_continuous_decision_transformer(
         observation_shape=observation_shape,
         action_size=action_size,
@@ -392,18 +423,18 @@ def test_create_continuous_decision_transformer(
 @pytest.mark.parametrize("position_encoding_type", ["simple"])
 @pytest.mark.parametrize("batch_size", [32])
 def test_create_discrete_decision_transformer(
-    observation_shape,
-    encoder_factory,
-    action_size,
-    num_heads,
-    max_timestep,
-    num_layers,
-    context_size,
-    dropout,
-    activation_type,
-    position_encoding_type,
-    batch_size,
-):
+    observation_shape: Sequence[int],
+    encoder_factory: EncoderFactory,
+    action_size: int,
+    num_heads: int,
+    max_timestep: int,
+    num_layers: int,
+    context_size: int,
+    dropout: float,
+    activation_type: str,
+    position_encoding_type: str,
+    batch_size: int,
+) -> None:
     transformer = create_discrete_decision_transformer(
         observation_shape=observation_shape,
         action_size=action_size,

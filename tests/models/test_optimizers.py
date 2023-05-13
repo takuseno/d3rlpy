@@ -12,7 +12,7 @@ from d3rlpy.models.optimizers import (
 
 @pytest.mark.parametrize("lr", [1e-4])
 @pytest.mark.parametrize("module", [torch.nn.Linear(2, 3)])
-def test_sgd_factory(lr, module):
+def test_sgd_factory(lr: float, module: torch.nn.Module) -> None:
     factory = SGDFactory()
 
     optim = factory.create(module.parameters(), lr)
@@ -26,7 +26,7 @@ def test_sgd_factory(lr, module):
 
 @pytest.mark.parametrize("lr", [1e-4])
 @pytest.mark.parametrize("module", [torch.nn.Linear(2, 3)])
-def test_adam_factory(lr, module):
+def test_adam_factory(lr: float, module: torch.nn.Module) -> None:
     factory = AdamFactory()
 
     optim = factory.create(module.parameters(), lr)
@@ -40,7 +40,7 @@ def test_adam_factory(lr, module):
 
 @pytest.mark.parametrize("lr", [1e-4])
 @pytest.mark.parametrize("module", [torch.nn.Linear(2, 3)])
-def test_adam_w_factory(lr, module):
+def test_adam_w_factory(lr: float, module: torch.nn.Module) -> None:
     factory = AdamWFactory()
 
     optim = factory.create(module.parameters(), lr)
@@ -54,7 +54,7 @@ def test_adam_w_factory(lr, module):
 
 @pytest.mark.parametrize("lr", [1e-4])
 @pytest.mark.parametrize("module", [torch.nn.Linear(2, 3)])
-def test_rmsprop_factory(lr, module):
+def test_rmsprop_factory(lr: float, module: torch.nn.Module) -> None:
     factory = RMSpropFactory()
 
     optim = factory.create(module.parameters(), lr)

@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import pytest
 
 from d3rlpy.models.encoders import (
@@ -17,7 +19,11 @@ from d3rlpy.models.torch.encoders import (
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("discrete_action", [False, True])
-def test_pixel_encoder_factory(observation_shape, action_size, discrete_action):
+def test_pixel_encoder_factory(
+    observation_shape: Sequence[int],
+    action_size: int,
+    discrete_action: bool,
+) -> None:
     factory = PixelEncoderFactory()
 
     # test state encoder
@@ -41,8 +47,10 @@ def test_pixel_encoder_factory(observation_shape, action_size, discrete_action):
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("discrete_action", [False, True])
 def test_vector_encoder_factory(
-    observation_shape, action_size, discrete_action
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    discrete_action: bool,
+) -> None:
     factory = VectorEncoderFactory()
 
     # test state encoder
@@ -68,8 +76,10 @@ def test_vector_encoder_factory(
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("discrete_action", [False, True])
 def test_default_encoder_factory(
-    observation_shape, action_size, discrete_action
-):
+    observation_shape: Sequence[int],
+    action_size: int,
+    discrete_action: bool,
+) -> None:
     factory = DefaultEncoderFactory()
 
     # test state encoder
@@ -80,14 +90,15 @@ def test_default_encoder_factory(
         assert isinstance(encoder, VectorEncoder)
 
     # test state-action encoder
-    encoder = factory.create_with_action(
+    encoder_with_action = factory.create_with_action(
         observation_shape, action_size, discrete_action
     )
     if len(observation_shape) == 3:
-        assert isinstance(encoder, PixelEncoderWithAction)
+        assert isinstance(encoder_with_action, PixelEncoderWithAction)
+        assert encoder_with_action._discrete_action == discrete_action
     else:
-        assert isinstance(encoder, VectorEncoderWithAction)
-    assert encoder._discrete_action == discrete_action
+        assert isinstance(encoder_with_action, VectorEncoderWithAction)
+        assert encoder_with_action._discrete_action == discrete_action
 
     assert factory.get_type() == "default"
 
@@ -98,7 +109,11 @@ def test_default_encoder_factory(
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("discrete_action", [False, True])
-def test_dense_encoder_factory(observation_shape, action_size, discrete_action):
+def test_dense_encoder_factory(
+    observation_shape: Sequence[int],
+    action_size: int,
+    discrete_action: bool,
+) -> None:
     factory = DenseEncoderFactory()
 
     # test state encoder

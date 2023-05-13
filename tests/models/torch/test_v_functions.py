@@ -9,7 +9,7 @@ from .model_test import DummyEncoder, check_parameter_updates
 
 @pytest.mark.parametrize("feature_size", [100])
 @pytest.mark.parametrize("batch_size", [32])
-def test_value_function(feature_size, batch_size):
+def test_value_function(feature_size: int, batch_size: int) -> None:
     encoder = DummyEncoder(feature_size)
     v_func = ValueFunction(encoder)
 

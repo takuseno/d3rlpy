@@ -14,7 +14,9 @@ from d3rlpy.models.torch.distributions import (
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("n", [100])
-def test_gaussian_distribution(action_size, batch_size, n):
+def test_gaussian_distribution(
+    action_size: int, batch_size: int, n: int
+) -> None:
     mean = torch.rand(batch_size, action_size)
     std = torch.rand(batch_size, action_size).exp()
     dist = GaussianDistribution(torch.tanh(mean), std, raw_loc=mean)
@@ -48,7 +50,7 @@ def test_gaussian_distribution(action_size, batch_size, n):
     assert torch.all(dist.std == std)
 
 
-def _ref_squashed_log_prob(dist, y):
+def _ref_squashed_log_prob(dist: Normal, y: torch.Tensor) -> torch.Tensor:
     clipped_y = y.clamp(-0.999999, 0.999999)
     raw_y = torch.atanh(clipped_y)
     jacob = 2 * (math.log(2) - raw_y - F.softplus(-2 * raw_y))
@@ -58,7 +60,9 @@ def _ref_squashed_log_prob(dist, y):
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("n", [10])
-def test_squashed_gaussian_distribution(action_size, batch_size, n):
+def test_squashed_gaussian_distribution(
+    action_size: int, batch_size: int, n: int
+) -> None:
     mean = torch.rand(batch_size, action_size)
     std = torch.rand(batch_size, action_size).exp()
     dist = SquashedGaussianDistribution(mean, std)
