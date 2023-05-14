@@ -20,9 +20,10 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
     ) -> PartialTrajectory:
         end = end_index + 1
         start = max(end - size, 0)
+        actual_size = end - start
 
         # prepare terminal flags
-        terminals = np.zeros((end - start, 1), dtype=np.float32)
+        terminals = np.zeros((actual_size, 1), dtype=np.float32)
         if episode.terminated and end_index == episode.size() - 1:
             terminals[-1][0] = 1.0
 
@@ -30,14 +31,15 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
         observations = slice_observations(episode.observations, start, end)
         actions = episode.actions[start:end]
         rewards = episode.rewards[start:end]
-        returns_to_go = np.cumsum(rewards, axis=0).reshape((end - start, 1))
+        all_returns_to_go = np.cumsum(episode.rewards[start:], axis=0)
+        returns_to_go = all_returns_to_go[:actual_size].reshape((-1, 1))
 
         # prepare metadata
         timesteps = np.arange(start, end)
         masks = np.ones(end - start, dtype=np.float32)
 
         # compute backward padding size
-        pad_size = size - (end - start)
+        pad_size = size - actual_size
 
         if pad_size == 0:
             return PartialTrajectory(

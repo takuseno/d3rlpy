@@ -21,6 +21,9 @@ def test_basic_trajectory_slicer(
     episode = create_episode(
         observation_shape, action_size, length, terminated=terminated
     )
+    returns_to_go = np.reshape(
+        np.cumsum(np.reshape(episode.rewards, [-1])), [-1, 1]
+    )
 
     slicer = BasicTrajectorySlicer()
 
@@ -64,6 +67,8 @@ def test_basic_trajectory_slicer(
         assert np.all(traj.actions[:pad_size] == 0.0)
         assert np.all(traj.rewards[pad_size:] == episode.rewards[start:end])
         assert np.all(traj.rewards[:pad_size] == 0.0)
+        assert np.all(traj.returns_to_go[pad_size:] == returns_to_go[start:end])
+        assert np.all(traj.returns_to_go[:pad_size] == 0.0)
         assert np.all(traj.terminals == 0.0)
         assert np.all(traj.timesteps[pad_size:] == np.arange(start, end))
         assert np.all(traj.timesteps[:pad_size] == 0.0)
