@@ -46,7 +46,7 @@ def assert_action_space_with_env(
         raise ValueError(f"The action-space is not supported: {action_space}")
 
 
-def build_scalers_with_dataset(
+def build_scalers_with_transition_picker(
     algo: LearnableBase[Any, Any], dataset: ReplayBuffer
 ) -> None:
     # initialize observation scaler
@@ -55,7 +55,9 @@ def build_scalers_with_dataset(
             "Fitting observation scaler...",
             observation_scaler=algo.observation_scaler.get_type(),
         )
-        algo.observation_scaler.fit(dataset.episodes)
+        algo.observation_scaler.fit_with_transition_picker(
+            dataset.episodes, dataset.transition_picker
+        )
 
     # initialize action scaler
     if algo.action_scaler and not algo.action_scaler.built:
@@ -63,7 +65,9 @@ def build_scalers_with_dataset(
             "Fitting action scaler...",
             action_scaler=algo.action_scaler.get_type(),
         )
-        algo.action_scaler.fit(dataset.episodes)
+        algo.action_scaler.fit_with_transition_picker(
+            dataset.episodes, dataset.transition_picker
+        )
 
     # initialize reward scaler
     if algo.reward_scaler and not algo.reward_scaler.built:
@@ -71,7 +75,43 @@ def build_scalers_with_dataset(
             "Fitting reward scaler...",
             reward_scaler=algo.reward_scaler.get_type(),
         )
-        algo.reward_scaler.fit(dataset.episodes)
+        algo.reward_scaler.fit_with_transition_picker(
+            dataset.episodes, dataset.transition_picker
+        )
+
+
+def build_scalers_with_trajectory_slicer(
+    algo: LearnableBase[Any, Any], dataset: ReplayBuffer
+) -> None:
+    # initialize observation scaler
+    if algo.observation_scaler and not algo.observation_scaler.built:
+        LOG.debug(
+            "Fitting observation scaler...",
+            observation_scaler=algo.observation_scaler.get_type(),
+        )
+        algo.observation_scaler.fit_with_trajectory_slicer(
+            dataset.episodes, dataset.trajectory_slicer
+        )
+
+    # initialize action scaler
+    if algo.action_scaler and not algo.action_scaler.built:
+        LOG.debug(
+            "Fitting action scaler...",
+            action_scaler=algo.action_scaler.get_type(),
+        )
+        algo.action_scaler.fit_with_trajectory_slicer(
+            dataset.episodes, dataset.trajectory_slicer
+        )
+
+    # initialize reward scaler
+    if algo.reward_scaler and not algo.reward_scaler.built:
+        LOG.debug(
+            "Fitting reward scaler...",
+            reward_scaler=algo.reward_scaler.get_type(),
+        )
+        algo.reward_scaler.fit_with_trajectory_slicer(
+            dataset.episodes, dataset.trajectory_slicer
+        )
 
 
 def build_scalers_with_env(

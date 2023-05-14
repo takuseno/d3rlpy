@@ -2,31 +2,19 @@ from typing import Sequence
 
 import numpy as np
 import pytest
-import torch
 
 from d3rlpy.algos.transformer.inputs import (
     TorchTransformerInput,
     TransformerInput,
 )
 from d3rlpy.dataset import batch_pad_array, batch_pad_observations
-from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
 
+from ...dummy_scalers import (
+    DummyActionScaler,
+    DummyObservationScaler,
+    DummyRewardScaler,
+)
 from ...testing_utils import create_episode
-
-
-class DummyObservationScaler(ObservationScaler):
-    def transform(self, x: torch.Tensor) -> torch.Tensor:
-        return x + 0.1
-
-
-class DummyActionScaler(ActionScaler):
-    def transform(self, x: torch.Tensor) -> torch.Tensor:
-        return x + 0.2
-
-
-class DummyRewardScaler(RewardScaler):
-    def transform(self, x: torch.Tensor) -> torch.Tensor:
-        return x + 0.2
 
 
 @pytest.mark.parametrize("length", [10])
@@ -117,9 +105,9 @@ def test_torch_transformer_input(
         assert np.allclose(torch_inpt.actions.numpy()[0], ref_actions)
 
     if reward_scaler:
-        assert np.allclose(torch_inpt.rewards.numpy()[0], ref_rewards + 0.2)
+        assert np.allclose(torch_inpt.rewards.numpy()[0], ref_rewards + 0.3)
         assert np.allclose(
-            torch_inpt.returns_to_go.numpy()[0], ref_rewards + 0.2
+            torch_inpt.returns_to_go.numpy()[0], ref_rewards + 0.3
         )
     else:
         assert np.allclose(torch_inpt.rewards.numpy()[0], ref_rewards)

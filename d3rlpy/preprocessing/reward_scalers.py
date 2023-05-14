@@ -5,11 +5,13 @@ import gym
 import numpy as np
 import torch
 
-from ..dataset import EpisodeBase
-from ..serializable_config import (
-    DynamicConfig,
-    generate_optional_config_generation,
+from ..dataset import (
+    EpisodeBase,
+    TrajectorySlicerProtocol,
+    TransitionPickerProtocol,
 )
+from ..serializable_config import generate_optional_config_generation
+from .base import Scaler
 
 __all__ = [
     "RewardScaler",
@@ -24,73 +26,9 @@ __all__ = [
 ]
 
 
-class RewardScaler(DynamicConfig):
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        """Estimates scaling parameters from dataset.
-
-        Args:
-            episodes: list of episodes.
-
-        """
-        raise NotImplementedError
-
+class RewardScaler(Scaler):
     def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
-        """Gets scaling parameters from environment.
-
-        Note:
-            ``RewardScaler`` does not support fitting with environment.
-
-        Args:
-            env: gym environment.
-
-        """
-        raise NotImplementedError("Please initialize with dataset.")
-
-    def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        """Returns processed rewards.
-
-        Args:
-            reward: reward.
-
-        Returns:
-            processed reward.
-
-        """
-        raise NotImplementedError
-
-    def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        """Returns reversely processed rewards.
-
-        Args:
-            reward: reward.
-
-        Returns:
-            reversely processed reward.
-
-        """
-        raise NotImplementedError
-
-    def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        """Returns transformed rewards in numpy array.
-
-        Args:
-            reward: reward.
-
-        Returns:
-            transformed reward.
-
-        """
-        raise NotImplementedError
-
-    @property
-    def built(self) -> bool:
-        """Returns a flag to represent if scaler is already built.
-
-        Returns:
-            the flag will be True if scaler is already built.
-
-        """
-        raise NotImplementedError
+        pass
 
 
 @dataclasses.dataclass()
@@ -114,17 +52,31 @@ class MultiplyRewardScaler(RewardScaler):
     """
     multiplier: float = 1.0
 
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
+    def fit_with_transition_picker(
+        self,
+        episodes: Sequence[EpisodeBase],
+        transition_picker: TransitionPickerProtocol,
+    ) -> None:
         pass
 
-    def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return self.multiplier * reward
+    def fit_with_trajectory_slicer(
+        self,
+        episodes: Sequence[EpisodeBase],
+        trajectory_slicer: TrajectorySlicerProtocol,
+    ) -> None:
+        pass
 
-    def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return reward / self.multiplier
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        return self.multiplier * x
 
-    def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        return self.multiplier * reward
+    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
+        return x / self.multiplier
+
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        return self.multiplier * x
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        return x / self.multiplier
 
     @staticmethod
     def get_type() -> str:
@@ -158,17 +110,31 @@ class ClipRewardScaler(RewardScaler):
     high: Optional[float] = None
     multiplier: float = 1.0
 
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
+    def fit_with_transition_picker(
+        self,
+        episodes: Sequence[EpisodeBase],
+        transition_picker: TransitionPickerProtocol,
+    ) -> None:
         pass
 
-    def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return self.multiplier * reward.clamp(self.low, self.high)
+    def fit_with_trajectory_slicer(
+        self,
+        episodes: Sequence[EpisodeBase],
+        trajectory_slicer: TrajectorySlicerProtocol,
+    ) -> None:
+        pass
 
-    def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return reward / self.multiplier
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        return self.multiplier * x.clamp(self.low, self.high)
 
-    def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        return self.multiplier * np.clip(reward, self.low, self.high)
+    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
+        return x / self.multiplier
+
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        return self.multiplier * np.clip(x, self.low, self.high)
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        return x / self.multiplier
 
     @staticmethod
     def get_type() -> str:
@@ -215,31 +181,58 @@ class MinMaxRewardScaler(RewardScaler):
     maximum: Optional[float] = None
     multiplier: float = 1.0
 
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
+    def fit_with_transition_picker(
+        self,
+        episodes: Sequence[EpisodeBase],
+        transition_picker: TransitionPickerProtocol,
+    ) -> None:
         assert not self.built
-
-        rewards = [episode.rewards for episode in episodes]
-
+        rewards = []
+        for episode in episodes:
+            for i in range(episode.transition_count):
+                transition = transition_picker(episode, i)
+                rewards.append(transition.reward)
         self.minimum = float(np.min(rewards))
         self.maximum = float(np.max(rewards))
 
-    def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self.built
-        assert self.maximum is not None and self.minimum is not None
-        base = self.maximum - self.minimum
-        return self.multiplier * (reward - self.minimum) / base
+    def fit_with_trajectory_slicer(
+        self,
+        episodes: Sequence[EpisodeBase],
+        trajectory_slicer: TrajectorySlicerProtocol,
+    ) -> None:
+        assert not self.built
+        rewards = [
+            trajectory_slicer(
+                episode, episode.size() - 1, episode.size()
+            ).rewards
+            for episode in episodes
+        ]
+        self.minimum = float(np.min(rewards))
+        self.maximum = float(np.max(rewards))
 
-    def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
         assert self.maximum is not None and self.minimum is not None
         base = self.maximum - self.minimum
-        return reward * base / self.multiplier + self.minimum
+        return self.multiplier * (x - self.minimum) / base
 
-    def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
         assert self.maximum is not None and self.minimum is not None
         base = self.maximum - self.minimum
-        return self.multiplier * (reward - self.minimum) / base
+        return x * base / self.multiplier + self.minimum
+
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self.built
+        assert self.maximum is not None and self.minimum is not None
+        base = self.maximum - self.minimum
+        return self.multiplier * (x - self.minimum) / base
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self.built
+        assert self.maximum is not None and self.minimum is not None
+        base = self.maximum - self.minimum
+        return x * base / self.multiplier + self.minimum
 
     @staticmethod
     def get_type() -> str:
@@ -288,30 +281,56 @@ class StandardRewardScaler(RewardScaler):
     eps: float = 1e-3
     multiplier: float = 1.0
 
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
+    def fit_with_transition_picker(
+        self,
+        episodes: Sequence[EpisodeBase],
+        transition_picker: TransitionPickerProtocol,
+    ) -> None:
         assert not self.built
-
-        rewards = [episode.rewards for episode in episodes]
-
+        rewards = []
+        for episode in episodes:
+            for i in range(episode.transition_count):
+                transition = transition_picker(episode, i)
+                rewards.append(transition.reward)
         self.mean = float(np.mean(rewards))
         self.std = float(np.std(rewards))
 
-    def transform(self, reward: torch.Tensor) -> torch.Tensor:
+    def fit_with_trajectory_slicer(
+        self,
+        episodes: Sequence[EpisodeBase],
+        trajectory_slicer: TrajectorySlicerProtocol,
+    ) -> None:
+        assert not self.built
+        rewards = [
+            trajectory_slicer(
+                episode, episode.size() - 1, episode.size()
+            ).rewards
+            for episode in episodes
+        ]
+        self.mean = float(np.mean(rewards))
+        self.std = float(np.std(rewards))
+
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
         assert self.mean is not None and self.std is not None
         nonzero_std = self.std + self.eps
-        return self.multiplier * (reward - self.mean) / nonzero_std
+        return self.multiplier * (x - self.mean) / nonzero_std
 
-    def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
+    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
         assert self.mean is not None and self.std is not None
-        return reward * (self.std + self.eps) / self.multiplier + self.mean
+        return x * (self.std + self.eps) / self.multiplier + self.mean
 
-    def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
         assert self.built
         assert self.mean is not None and self.std is not None
         nonzero_std = self.std + self.eps
-        return self.multiplier * (reward - self.mean) / nonzero_std
+        return self.multiplier * (x - self.mean) / nonzero_std
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self.built
+        assert self.mean is not None and self.std is not None
+        return x * (self.std + self.eps) / self.multiplier + self.mean
 
     @staticmethod
     def get_type() -> str:
@@ -362,31 +381,56 @@ class ReturnBasedRewardScaler(RewardScaler):
     return_min: Optional[float] = None
     multiplier: float = 1.0
 
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
+    def fit_with_transition_picker(
+        self,
+        episodes: Sequence[EpisodeBase],
+        transition_picker: TransitionPickerProtocol,
+    ) -> None:
         assert not self.built
-
-        # accumulate all rewards
         returns = []
         for episode in episodes:
-            returns.append(episode.compute_return())
-
+            rewards = []
+            for i in range(episode.transition_count):
+                transition = transition_picker(episode, i)
+                rewards.append(transition.reward)
+            returns.append(float(np.sum(rewards)))
         self.return_max = float(np.max(returns))
         self.return_min = float(np.min(returns))
 
-    def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        assert self.built
-        assert self.return_min is not None and self.return_max is not None
-        return self.multiplier * reward / (self.return_max - self.return_min)
+    def fit_with_trajectory_slicer(
+        self,
+        episodes: Sequence[EpisodeBase],
+        trajectory_slicer: TrajectorySlicerProtocol,
+    ) -> None:
+        assert not self.built
+        returns = []
+        for episode in episodes:
+            traj = trajectory_slicer(
+                episode, episode.size() - 1, episode.size()
+            )
+            returns.append(float(np.sum(traj.rewards)))
+        self.return_max = float(np.max(returns))
+        self.return_min = float(np.min(returns))
 
-    def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
         assert self.return_min is not None and self.return_max is not None
-        return reward * (self.return_max + self.return_min) / self.multiplier
+        return self.multiplier * x / (self.return_max - self.return_min)
 
-    def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
+    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
         assert self.return_min is not None and self.return_max is not None
-        return self.multiplier * reward / (self.return_max - self.return_min)
+        return x * (self.return_max - self.return_min) / self.multiplier
+
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self.built
+        assert self.return_min is not None and self.return_max is not None
+        return self.multiplier * x / (self.return_max - self.return_min)
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self.built
+        assert self.return_min is not None and self.return_max is not None
+        return x * (self.return_max - self.return_min) / self.multiplier
 
     @staticmethod
     def get_type() -> str:
@@ -426,17 +470,31 @@ class ConstantShiftRewardScaler(RewardScaler):
     """
     shift: float
 
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
+    def fit_with_transition_picker(
+        self,
+        episodes: Sequence[EpisodeBase],
+        transition_picker: TransitionPickerProtocol,
+    ) -> None:
         pass
 
-    def transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return self.shift + reward
+    def fit_with_trajectory_slicer(
+        self,
+        episodes: Sequence[EpisodeBase],
+        trajectory_slicer: TrajectorySlicerProtocol,
+    ) -> None:
+        pass
 
-    def reverse_transform(self, reward: torch.Tensor) -> torch.Tensor:
-        return reward - self.shift
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
+        return self.shift + x
 
-    def transform_numpy(self, reward: np.ndarray) -> np.ndarray:
-        return self.shift + reward
+    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
+        return x - self.shift
+
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        return self.shift + x
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        return x - self.shift
 
     @staticmethod
     def get_type() -> str:
@@ -450,7 +508,9 @@ class ConstantShiftRewardScaler(RewardScaler):
 (
     register_reward_scaler,
     make_reward_scaler_field,
-) = generate_optional_config_generation(RewardScaler)
+) = generate_optional_config_generation(
+    RewardScaler  # type: ignore
+)
 
 
 register_reward_scaler(MultiplyRewardScaler)

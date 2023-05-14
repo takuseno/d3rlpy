@@ -7,7 +7,6 @@ import pytest
 import torch
 
 from d3rlpy.dataset import TrajectoryMiniBatch, Transition, TransitionMiniBatch
-from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from d3rlpy.torch_utility import (
     Swish,
     TorchMiniBatch,
@@ -28,6 +27,11 @@ from d3rlpy.torch_utility import (
     unfreeze,
 )
 
+from .dummy_scalers import (
+    DummyActionScaler,
+    DummyObservationScaler,
+    DummyRewardScaler,
+)
 from .testing_utils import create_partial_trajectory
 
 
@@ -241,21 +245,6 @@ def test_unfreeze() -> None:
         assert p.requires_grad
 
 
-class DummyObservationScaler(ObservationScaler):
-    def transform(self, x: torch.Tensor) -> torch.Tensor:
-        return x + 0.1
-
-
-class DummyActionScaler(ActionScaler):
-    def transform(self, x: torch.Tensor) -> torch.Tensor:
-        return x + 0.2
-
-
-class DummyRewardScaler(RewardScaler):
-    def transform(self, x: torch.Tensor) -> torch.Tensor:
-        return x + 0.2
-
-
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
@@ -330,7 +319,7 @@ def test_torch_mini_batch(
         assert np.all(torch_batch.actions.numpy() == batch.actions)
 
     if use_reward_scaler:
-        assert np.all(torch_batch.rewards.numpy() == batch.rewards + 0.2)
+        assert np.all(torch_batch.rewards.numpy() == batch.rewards + 0.3)
     else:
         assert np.all(torch_batch.rewards.numpy() == batch.rewards)
 
@@ -400,9 +389,9 @@ def test_torch_trajectory_mini_batch(
         assert np.all(torch_batch.actions.numpy() == batch.actions)
 
     if use_reward_scaler:
-        assert np.all(torch_batch.rewards.numpy() == batch.rewards + 0.2)
+        assert np.all(torch_batch.rewards.numpy() == batch.rewards + 0.3)
         assert np.all(
-            torch_batch.returns_to_go.numpy() == batch.returns_to_go + 0.2
+            torch_batch.returns_to_go.numpy() == batch.returns_to_go + 0.3
         )
     else:
         assert np.all(torch_batch.rewards.numpy() == batch.rewards)

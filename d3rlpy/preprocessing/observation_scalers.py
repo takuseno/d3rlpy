@@ -5,12 +5,16 @@ import gym
 import numpy as np
 import torch
 
-from ..dataset import EpisodeBase
+from ..dataset import (
+    EpisodeBase,
+    TrajectorySlicerProtocol,
+    TransitionPickerProtocol,
+)
 from ..serializable_config import (
-    DynamicConfig,
     generate_optional_config_generation,
     make_optional_numpy_field,
 )
+from .base import Scaler
 
 __all__ = [
     "ObservationScaler",
@@ -22,58 +26,8 @@ __all__ = [
 ]
 
 
-class ObservationScaler(DynamicConfig):
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        """Estimates scaling parameters from dataset.
-
-        Args:
-            episodes: list of episodes.
-
-        """
-        raise NotImplementedError
-
-    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
-        """Gets scaling parameters from environment.
-
-        Args:
-            env: gym environment.
-
-        """
-        raise NotImplementedError
-
-    def transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns processed observations.
-
-        Args:
-            x: observation.
-
-        Returns:
-            processed observation.
-
-        """
-        raise NotImplementedError
-
-    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns reversely transformed observations.
-
-        Args:
-            x: observation.
-
-        Returns:
-            reversely transformed observation.
-
-        """
-        raise NotImplementedError
-
-    @property
-    def built(self) -> bool:
-        """Returns a flag to represent if scaler is already built.
-
-        Returns:
-            the flag will be True if scaler is already built.
-
-        """
-        raise NotImplementedError
+class ObservationScaler(Scaler):
+    pass
 
 
 class PixelObservationScaler(ObservationScaler):
@@ -97,7 +51,18 @@ class PixelObservationScaler(ObservationScaler):
 
     """
 
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
+    def fit_with_transition_picker(
+        self,
+        episodes: Sequence[EpisodeBase],
+        transition_picker: TransitionPickerProtocol,
+    ) -> None:
+        pass
+
+    def fit_with_trajectory_slicer(
+        self,
+        episodes: Sequence[EpisodeBase],
+        trajectory_slicer: TrajectorySlicerProtocol,
+    ) -> None:
         pass
 
     def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
@@ -108,6 +73,12 @@ class PixelObservationScaler(ObservationScaler):
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         return (x * 255.0).long()
+
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        return x / 255.0
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        return x * 255.0
 
     @staticmethod
     def get_type() -> str:
@@ -170,12 +141,40 @@ class MinMaxObservationScaler(ObservationScaler):
         if self.maximum is not None:
             self.maximum = np.asarray(self.maximum)
 
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
+    def fit_with_transition_picker(
+        self,
+        episodes: Sequence[EpisodeBase],
+        transition_picker: TransitionPickerProtocol,
+    ) -> None:
         assert not self.built
         maximum = np.zeros(episodes[0].observation_signature.shape[0])
         minimum = np.zeros(episodes[0].observation_signature.shape[0])
         for i, episode in enumerate(episodes):
-            observations = np.asarray(episode.observations)
+            for j in range(episode.transition_count):
+                transition = transition_picker(episode, j)
+                observation = np.asarray(transition.observation)
+                if i == 0 and j == 0:
+                    minimum = observation
+                    maximum = observation
+                else:
+                    minimum = np.minimum(minimum, observation)
+                    maximum = np.maximum(maximum, observation)
+        self.minimum = minimum.reshape((1,) + minimum.shape)
+        self.maximum = maximum.reshape((1,) + maximum.shape)
+
+    def fit_with_trajectory_slicer(
+        self,
+        episodes: Sequence[EpisodeBase],
+        trajectory_slicer: TrajectorySlicerProtocol,
+    ) -> None:
+        assert not self.built
+        maximum = np.zeros(episodes[0].observation_signature.shape[0])
+        minimum = np.zeros(episodes[0].observation_signature.shape[0])
+        for i, episode in enumerate(episodes):
+            traj = trajectory_slicer(
+                episode, episode.size() - 1, episode.size()
+            )
+            observations = np.asarray(traj.observations)
             max_observation = np.max(observations, axis=0)
             min_observation = np.min(observations, axis=0)
             if i == 0:
@@ -184,7 +183,6 @@ class MinMaxObservationScaler(ObservationScaler):
             else:
                 minimum = np.minimum(minimum, min_observation)
                 maximum = np.maximum(maximum, max_observation)
-
         self.minimum = minimum.reshape((1,) + minimum.shape)
         self.maximum = maximum.reshape((1,) + maximum.shape)
 
@@ -194,8 +192,8 @@ class MinMaxObservationScaler(ObservationScaler):
         shape = env.observation_space.shape
         low = np.asarray(env.observation_space.low)
         high = np.asarray(env.observation_space.high)
-        self.minimum = low.reshape((1,) + shape)
-        self.maximum = high.reshape((1,) + shape)
+        self.minimum = low.reshape((1, *shape))
+        self.maximum = high.reshape((1, *shape))
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
@@ -216,6 +214,16 @@ class MinMaxObservationScaler(ObservationScaler):
             self.maximum, dtype=torch.float32, device=x.device
         )
         return ((maximum - minimum) * x) + minimum
+
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self.built
+        assert self.minimum is not None and self.maximum is not None
+        return (x - self.minimum) / (self.maximum - self.minimum)
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self.built
+        assert self.minimum is not None and self.maximum is not None
+        return ((self.maximum - self.minimum) * x) + self.minimum
 
     @staticmethod
     def get_type() -> str:
@@ -280,13 +288,47 @@ class StandardObservationScaler(ObservationScaler):
         if self.std is not None:
             self.std = np.asarray(self.std)
 
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
+    def fit_with_transition_picker(
+        self,
+        episodes: Sequence[EpisodeBase],
+        transition_picker: TransitionPickerProtocol,
+    ) -> None:
         assert not self.built
         # compute mean
         total_sum = np.zeros(episodes[0].observation_signature.shape[0])
         total_count = 0
         for episode in episodes:
-            total_sum += np.sum(episode.observations, axis=0)
+            for i in range(episode.transition_count):
+                transition = transition_picker(episode, i)
+                total_sum += transition.observation
+            total_count += episode.transition_count
+        mean = total_sum / total_count
+
+        # compute stdandard deviation
+        total_sqsum = np.zeros(episodes[0].observation_signature.shape[0])
+        for episode in episodes:
+            for i in range(episode.transition_count):
+                transition = transition_picker(episode, i)
+                total_sqsum += (transition.observation - mean) ** 2
+        std = np.sqrt(total_sqsum / total_count)
+
+        self.mean = mean.reshape((1,) + mean.shape)
+        self.std = std.reshape((1,) + std.shape)
+
+    def fit_with_trajectory_slicer(
+        self,
+        episodes: Sequence[EpisodeBase],
+        trajectory_slicer: TrajectorySlicerProtocol,
+    ) -> None:
+        assert not self.built
+        # compute mean
+        total_sum = np.zeros(episodes[0].observation_signature.shape[0])
+        total_count = 0
+        for episode in episodes:
+            traj = trajectory_slicer(
+                episode, episode.size() - 1, episode.size()
+            )
+            total_sum += np.sum(traj.observations, axis=0)
             total_count += episode.size()
         mean = total_sum / total_count
 
@@ -294,7 +336,10 @@ class StandardObservationScaler(ObservationScaler):
         total_sqsum = np.zeros(episodes[0].observation_signature.shape[0])
         expanded_mean = mean.reshape((1,) + mean.shape)
         for episode in episodes:
-            observations = np.asarray(episode.observations)
+            traj = trajectory_slicer(
+                episode, episode.size() - 1, episode.size()
+            )
+            observations = np.asarray(traj.observations)
             total_sqsum += np.sum((observations - expanded_mean) ** 2, axis=0)
         std = np.sqrt(total_sqsum / total_count)
 
@@ -318,6 +363,16 @@ class StandardObservationScaler(ObservationScaler):
         std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
         return ((std + self.eps) * x) + mean
 
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self.built
+        assert self.mean is not None and self.std is not None
+        return (x - self.mean) / (self.std + self.eps)
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self.built
+        assert self.mean is not None and self.std is not None
+        return ((self.std + self.eps) * x) + self.mean
+
     @staticmethod
     def get_type() -> str:
         return "standard"
@@ -330,7 +385,10 @@ class StandardObservationScaler(ObservationScaler):
 (
     register_observation_scaler,
     make_observation_scaler_field,
-) = generate_optional_config_generation(ObservationScaler)
+) = generate_optional_config_generation(
+    ObservationScaler  # type: ignore
+)
+
 
 register_observation_scaler(PixelObservationScaler)
 register_observation_scaler(MinMaxObservationScaler)

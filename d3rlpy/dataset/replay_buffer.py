@@ -50,12 +50,9 @@ class ReplayBuffer:
         reward_signature: Optional[Signature] = None,
         cache_size: int = 10000,
     ):
-        if transition_picker is None:
-            transition_picker = BasicTransitionPicker()
-        if trajectory_slicer is None:
-            trajectory_slicer = BasicTrajectorySlicer()
-        if writer_preprocessor is None:
-            writer_preprocessor = BasicWriterPreprocess()
+        transition_picker = transition_picker or BasicTransitionPicker()
+        trajectory_slicer = trajectory_slicer or BasicTrajectorySlicer()
+        writer_preprocessor = writer_preprocessor or BasicWriterPreprocess()
 
         if not (
             observation_signature and action_signature and reward_signature
@@ -193,7 +190,7 @@ class ReplayBuffer:
         return self._transition_picker
 
     @property
-    def trajectory_slcier(self) -> TrajectorySlicerProtocol:
+    def trajectory_slicer(self) -> TrajectorySlicerProtocol:
         return self._trajectory_slicer
 
 

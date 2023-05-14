@@ -5,12 +5,16 @@ import gym
 import numpy as np
 import torch
 
-from ..dataset import EpisodeBase
+from ..dataset import (
+    EpisodeBase,
+    TrajectorySlicerProtocol,
+    TransitionPickerProtocol,
+)
 from ..serializable_config import (
-    DynamicConfig,
     generate_optional_config_generation,
     make_optional_numpy_field,
 )
+from .base import Scaler
 
 __all__ = [
     "ActionScaler",
@@ -20,70 +24,8 @@ __all__ = [
 ]
 
 
-class ActionScaler(DynamicConfig):
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
-        """Estimates scaling parameters from dataset.
-
-        Args:
-            episodes: a list of episode objects.
-
-        """
-        raise NotImplementedError
-
-    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
-        """Gets scaling parameters from environment.
-
-        Args:
-            env: gym environment.
-
-        """
-        raise NotImplementedError
-
-    def transform(self, action: torch.Tensor) -> torch.Tensor:
-        """Returns processed action.
-
-        Args:
-            action: action vector.
-
-        Returns:
-            processed action.
-
-        """
-        raise NotImplementedError
-
-    def reverse_transform(self, action: torch.Tensor) -> torch.Tensor:
-        """Returns reversely transformed action.
-
-        Args:
-            action: action vector.
-
-        Returns:
-            reversely transformed action.
-
-        """
-        raise NotImplementedError
-
-    def reverse_transform_numpy(self, action: np.ndarray) -> np.ndarray:
-        """Returns reversely transformed action in numpy array.
-
-        Args:
-            action: action vector.
-
-        Returns:
-            reversely transformed action.
-
-        """
-        raise NotImplementedError
-
-    @property
-    def built(self) -> bool:
-        """Returns a flag to represent if scaler is already built.
-
-        Returns:
-            the flag will be True if scaler is already built.
-
-        """
-        raise NotImplementedError
+class ActionScaler(Scaler):
+    pass
 
 
 @dataclasses.dataclass()
@@ -140,12 +82,39 @@ class MinMaxActionScaler(ActionScaler):
         if self.maximum is not None:
             self.maximum = np.asarray(self.maximum)
 
-    def fit(self, episodes: Sequence[EpisodeBase]) -> None:
+    def fit_with_transition_picker(
+        self,
+        episodes: Sequence[EpisodeBase],
+        transition_picker: TransitionPickerProtocol,
+    ) -> None:
         assert not self.built
         minimum = np.zeros(episodes[0].action_signature.shape[0])
         maximum = np.zeros(episodes[0].action_signature.shape[0])
         for i, episode in enumerate(episodes):
-            actions = np.asarray(episode.actions)
+            for j in range(episode.transition_count):
+                transition = transition_picker(episode, j)
+                if i == 0 and j == 0:
+                    minimum = transition.action
+                    maximum = transition.action
+                else:
+                    minimum = np.minimum(minimum, transition.action)
+                    maximum = np.maximum(maximum, transition.action)
+        self.minimum = minimum.reshape((1,) + minimum.shape)
+        self.maximum = maximum.reshape((1,) + maximum.shape)
+
+    def fit_with_trajectory_slicer(
+        self,
+        episodes: Sequence[EpisodeBase],
+        trajectory_slicer: TrajectorySlicerProtocol,
+    ) -> None:
+        assert not self.built
+        minimum = np.zeros(episodes[0].action_signature.shape[0])
+        maximum = np.zeros(episodes[0].action_signature.shape[0])
+        for i, episode in enumerate(episodes):
+            traj = trajectory_slicer(
+                episode, episode.size() - 1, episode.size()
+            )
+            actions = np.asarray(traj.actions)
             min_action = np.min(actions, axis=0)
             max_action = np.max(actions, axis=0)
             if i == 0:
@@ -164,37 +133,45 @@ class MinMaxActionScaler(ActionScaler):
         shape = env.action_space.shape
         low = np.asarray(env.action_space.low)
         high = np.asarray(env.action_space.high)
-        self.minimum = low.reshape((1,) + shape)
-        self.maximum = high.reshape((1,) + shape)
+        assert shape
+        self.minimum = low.reshape((1, *shape))
+        self.maximum = high.reshape((1, *shape))
 
-    def transform(self, action: torch.Tensor) -> torch.Tensor:
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
         minimum = torch.tensor(
-            self.minimum, dtype=torch.float32, device=action.device
+            self.minimum, dtype=torch.float32, device=x.device
         )
         maximum = torch.tensor(
-            self.maximum, dtype=torch.float32, device=action.device
+            self.maximum, dtype=torch.float32, device=x.device
         )
         # transform action into [-1.0, 1.0]
-        return ((action - minimum) / (maximum - minimum)) * 2.0 - 1.0
+        return ((x - minimum) / (maximum - minimum)) * 2.0 - 1.0
 
-    def reverse_transform(self, action: torch.Tensor) -> torch.Tensor:
+    def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
         minimum = torch.tensor(
-            self.minimum, dtype=torch.float32, device=action.device
+            self.minimum, dtype=torch.float32, device=x.device
         )
         maximum = torch.tensor(
-            self.maximum, dtype=torch.float32, device=action.device
+            self.maximum, dtype=torch.float32, device=x.device
         )
         # transform action from [-1.0, 1.0]
-        return ((maximum - minimum) * ((action + 1.0) / 2.0)) + minimum
+        return ((maximum - minimum) * ((x + 1.0) / 2.0)) + minimum
 
-    def reverse_transform_numpy(self, action: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+        assert self.built
+        assert self.maximum is not None and self.minimum is not None
+        minimum, maximum = self.minimum, self.maximum
+        # transform action into [-1.0, 1.0]
+        return ((x - minimum) / (maximum - minimum)) * 2.0 - 1.0
+
+    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
         assert self.built
         assert self.maximum is not None and self.minimum is not None
         minimum, maximum = self.minimum, self.maximum
         # transform action from [-1.0, 1.0]
-        return ((maximum - minimum) * ((action + 1.0) / 2.0)) + minimum
+        return ((maximum - minimum) * ((x + 1.0) / 2.0)) + minimum
 
     @staticmethod
     def get_type() -> str:
@@ -208,7 +185,9 @@ class MinMaxActionScaler(ActionScaler):
 (
     register_action_scaler,
     make_action_scaler_field,
-) = generate_optional_config_generation(ActionScaler)
+) = generate_optional_config_generation(
+    ActionScaler  # type: ignore
+)
 
 
 register_action_scaler(MinMaxActionScaler)

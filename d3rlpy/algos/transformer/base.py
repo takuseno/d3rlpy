@@ -22,7 +22,7 @@ from ...metrics import evaluate_transformer_with_environment
 from ...torch_utility import TorchTrajectoryMiniBatch
 from ..utility import (
     assert_action_space_with_dataset,
-    build_scalers_with_dataset,
+    build_scalers_with_trajectory_slicer,
 )
 from .inputs import TorchTransformerInput, TransformerInput
 
@@ -204,7 +204,7 @@ class TransformerAlgoBase(
         assert_action_space_with_dataset(self, dataset_info)
 
         # initialize scalers
-        build_scalers_with_dataset(self, dataset)
+        build_scalers_with_trajectory_slicer(self, dataset)
 
         # setup logger
         if experiment_name is None:

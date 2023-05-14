@@ -4,7 +4,11 @@ import numpy as np
 import pytest
 import torch
 
-from d3rlpy.dataset import EpisodeGenerator
+from d3rlpy.dataset import (
+    BasicTrajectorySlicer,
+    BasicTransitionPicker,
+    EpisodeGenerator,
+)
 from d3rlpy.preprocessing import (
     ClipRewardScaler,
     ConstantShiftRewardScaler,
@@ -22,6 +26,7 @@ def test_multiply_reward_scaler(batch_size: int, multiplier: float) -> None:
 
     scaler = MultiplyRewardScaler(multiplier)
     assert scaler.built
+    assert scaler.get_type() == "multiply"
 
     # check trnsform
     y = scaler.transform(torch.tensor(rewards))
@@ -31,11 +36,12 @@ def test_multiply_reward_scaler(batch_size: int, multiplier: float) -> None:
     x = scaler.reverse_transform(y)
     assert np.allclose(x.numpy(), rewards)
 
-    # check reverse_transform_numpy
+    # check transform_numpy
     y = scaler.transform_numpy(rewards)
     assert np.allclose(y, rewards * multiplier)
 
-    assert scaler.get_type() == "multiply"
+    # check reverse_transform_numpy
+    assert np.allclose(scaler.reverse_transform_numpy(y), rewards)
 
     # check serialization and deserialization
     new_scaler = MultiplyRewardScaler.deserialize(scaler.serialize())
@@ -53,6 +59,7 @@ def test_clip_reward_scaler(
 
     scaler = ClipRewardScaler(low, high, multiplier)
     assert scaler.built
+    assert scaler.get_type() == "clip"
 
     # check range
     y = scaler.transform(torch.tensor(rewards))
@@ -63,11 +70,14 @@ def test_clip_reward_scaler(
     x = scaler.reverse_transform(y)
     assert np.allclose(x.numpy(), np.clip(rewards, low, high))
 
-    # check reverse_transform_numpy
+    # check transform_numpy
     y = scaler.transform_numpy(rewards)
     assert np.all(y == multiplier * np.clip(rewards, low, high))
 
-    assert scaler.get_type() == "clip"
+    # check reverse_transform_numpy
+    assert np.allclose(
+        scaler.reverse_transform_numpy(y), np.clip(rewards, low, high)
+    )
 
     # check serialization and deserialization
     new_scaler = ClipRewardScaler.deserialize(scaler.serialize())
@@ -88,6 +98,7 @@ def test_min_max_reward_scaler(batch_size: int, multiplier: float) -> None:
         minimum=minimum, maximum=maximum, multiplier=multiplier
     )
     assert scaler.built
+    assert scaler.get_type() == "min_max"
 
     # check range
     y = scaler.transform(torch.tensor(rewards))
@@ -96,16 +107,18 @@ def test_min_max_reward_scaler(batch_size: int, multiplier: float) -> None:
 
     # check reference value
     ref_y = multiplier * (rewards - minimum) / (maximum - minimum)
-    assert np.allclose(y.numpy(), ref_y)
+    assert np.allclose(y.numpy(), ref_y, atol=1e-4)
 
     # check reverse_transform
     ref_x = ref_y * (maximum - minimum) / multiplier + minimum
-    assert np.allclose(scaler.reverse_transform(y).numpy(), ref_x)
+    assert np.allclose(scaler.reverse_transform(y).numpy(), ref_x, atol=1e-4)
+
+    # check transform_numpy
+    y = scaler.transform_numpy(rewards)
+    assert np.allclose(y, ref_y, atol=1e-4)
 
     # check reverse_transform_numpy
-    assert np.allclose(scaler.transform_numpy(rewards), ref_y)
-
-    assert scaler.get_type() == "min_max"
+    assert np.allclose(scaler.reverse_transform_numpy(y), rewards, atol=1e-4)
 
     # check serialization and deserialization
     new_scaler = MinMaxRewardScaler.deserialize(scaler.serialize())
@@ -116,7 +129,7 @@ def test_min_max_reward_scaler(batch_size: int, multiplier: float) -> None:
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [10])
 @pytest.mark.parametrize("batch_size", [32])
-def test_min_max_reward_scaler_with_episode(
+def test_min_max_reward_scaler_with_transition_picker(
     observation_shape: Sequence[int], action_size: int, batch_size: int
 ) -> None:
     shape = (batch_size, *observation_shape)
@@ -133,22 +146,48 @@ def test_min_max_reward_scaler_with_episode(
         terminals=terminals,
     )()
 
-    rewards_without_first = []
-    for episode in episodes:
-        rewards_without_first += episode.rewards[1:].tolist()
-
-    maximum = np.max(rewards_without_first)
-    minimum = np.min(rewards_without_first)
+    maximum = np.max(rewards)
+    minimum = np.min(rewards)
 
     scaler = MinMaxRewardScaler()
     assert not scaler.built
-    scaler.fit(episodes)
+    scaler.fit_with_transition_picker(episodes, BasicTransitionPicker())
     assert scaler.built
+    assert scaler.minimum is not None and scaler.maximum is not None
+    assert scaler.minimum == minimum
+    assert scaler.maximum == maximum
 
-    x = torch.rand(batch_size)
-    y = scaler.transform(x)
-    ref_y = (x.numpy() - minimum) / (maximum - minimum)
-    assert np.allclose(y.numpy(), ref_y, atol=1e-4)
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [10])
+@pytest.mark.parametrize("batch_size", [32])
+def test_min_max_reward_scaler_with_trajectory_slicer(
+    observation_shape: Sequence[int], action_size: int, batch_size: int
+) -> None:
+    shape = (batch_size, *observation_shape)
+    observations = np.random.random(shape)
+    actions = np.random.random((batch_size, action_size))
+    rewards = np.random.random(batch_size)
+    terminals = np.zeros(batch_size)
+    terminals[-1] = 1.0
+
+    episodes = EpisodeGenerator(
+        observations=observations,
+        actions=actions,
+        rewards=rewards,
+        terminals=terminals,
+    )()
+
+    maximum = np.max(rewards)
+    minimum = np.min(rewards)
+
+    scaler = MinMaxRewardScaler()
+    assert not scaler.built
+    scaler.fit_with_trajectory_slicer(episodes, BasicTrajectorySlicer())
+    assert scaler.built
+    assert scaler.minimum is not None and scaler.maximum is not None
+    assert scaler.minimum == minimum
+    assert scaler.maximum == maximum
 
 
 @pytest.mark.parametrize("batch_size", [32])
@@ -166,6 +205,7 @@ def test_standard_reward_scaler(
         mean=mean, std=std, eps=eps, multiplier=multiplier
     )
     assert scaler.built
+    assert scaler.get_type() == "standard"
 
     # check values
     y = scaler.transform(torch.tensor(rewards))
@@ -176,11 +216,12 @@ def test_standard_reward_scaler(
     x = scaler.reverse_transform(y)
     assert np.allclose(x.numpy(), rewards, atol=1e-3)
 
-    # check reverse_transform_numpy
+    # check transform_numpy
     y = scaler.transform_numpy(rewards)
     assert np.allclose(y, ref_y, atol=1e-4)
 
-    assert scaler.get_type() == "standard"
+    # check reverse_transform_numpy
+    assert np.allclose(scaler.reverse_transform_numpy(y), rewards, atol=1e-4)
 
     # check serialization and deserialization
     new_scaler = StandardRewardScaler.deserialize(scaler.serialize())
@@ -193,7 +234,7 @@ def test_standard_reward_scaler(
 @pytest.mark.parametrize("action_size", [10])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("eps", [0.3])
-def test_standard_reward_scaler_with_episode(
+def test_standard_reward_scaler_with_transition_picker(
     observation_shape: Sequence[int],
     action_size: int,
     batch_size: int,
@@ -223,19 +264,95 @@ def test_standard_reward_scaler_with_episode(
 
     scaler = StandardRewardScaler(eps=eps)
     assert not scaler.built
-    scaler.fit(episodes)
+    scaler.fit_with_transition_picker(episodes, BasicTransitionPicker())
     assert scaler.built
-
-    x = torch.rand(batch_size)
-    y = scaler.transform(x)
-    ref_y = (x.numpy() - mean) / (std + eps)
-    assert np.allclose(y, ref_y, atol=1e-4)
+    assert scaler.mean is not None and scaler.std is not None
+    assert np.allclose(scaler.mean, mean)
+    assert np.allclose(scaler.std, std)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [10])
 @pytest.mark.parametrize("batch_size", [32])
-def test_return_based_reward_scaler_with_episode(
+@pytest.mark.parametrize("eps", [0.3])
+def test_standard_reward_scaler_with_trajectory_slicer(
+    observation_shape: Sequence[int],
+    action_size: int,
+    batch_size: int,
+    eps: float,
+) -> None:
+    shape = (batch_size, *observation_shape)
+    observations = np.random.random(shape)
+    actions = np.random.random((batch_size, action_size))
+    rewards = np.random.random(batch_size).astype("f4")
+    terminals = np.zeros(batch_size)
+    terminals[-1] = 1.0
+
+    episodes = EpisodeGenerator(
+        observations=observations,
+        actions=actions,
+        rewards=rewards,
+        terminals=terminals,
+    )()
+
+    rewards_without_first = []
+    for episode in episodes:
+        rewards_without_first += episode.rewards.tolist()
+    rewards_without_first = np.array(rewards_without_first)
+
+    mean = np.mean(rewards_without_first)
+    std = np.std(rewards_without_first)
+
+    scaler = StandardRewardScaler(eps=eps)
+    assert not scaler.built
+    scaler.fit_with_trajectory_slicer(episodes, BasicTrajectorySlicer())
+    assert scaler.built
+    assert scaler.mean is not None and scaler.std is not None
+    assert np.allclose(scaler.mean, mean)
+    assert np.allclose(scaler.std, std)
+
+
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("multiplier", [10.0])
+def test_return_based_reward_scaler(batch_size: int, multiplier: float) -> None:
+    rewards = 10.0 * np.random.random(batch_size).astype("f4")
+    returns1 = np.sum(rewards[: batch_size // 2])
+    returns2 = np.sum(rewards[batch_size // 2 :])
+
+    maximum = float(np.maximum(returns1, returns2))
+    minimum = float(np.minimum(returns1, returns2))
+
+    scaler = ReturnBasedRewardScaler(
+        return_min=minimum, return_max=maximum, multiplier=multiplier
+    )
+    assert scaler.built
+    assert scaler.get_type() == "return"
+
+    # check transform
+    y = scaler.transform(torch.tensor(rewards))
+    ref_y = multiplier * (rewards / (maximum - minimum))
+    assert np.allclose(y.numpy(), ref_y, atol=1e-4)
+
+    # check reverse_transform
+    assert np.allclose(scaler.reverse_transform(y).numpy(), rewards, atol=1e-4)
+
+    # check transform_numpy
+    y = scaler.transform_numpy(rewards)
+    assert np.allclose(y, ref_y, atol=1e-4)
+
+    # check reverse_transform_numpy
+    assert np.allclose(scaler.reverse_transform_numpy(y), rewards, atol=1e-4)
+
+    # check serialization and deserialization
+    new_scaler = ReturnBasedRewardScaler.deserialize(scaler.serialize())
+    assert new_scaler.return_min == scaler.return_min
+    assert new_scaler.return_max == scaler.return_max
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [10])
+@pytest.mark.parametrize("batch_size", [32])
+def test_return_based_reward_scaler_with_transition_picker(
     observation_shape: Sequence[int], action_size: int, batch_size: int
 ) -> None:
     shape = (batch_size, *observation_shape)
@@ -259,19 +376,45 @@ def test_return_based_reward_scaler_with_episode(
 
     scaler = ReturnBasedRewardScaler()
     assert not scaler.built
-    scaler.fit(episodes)
+    scaler.fit_with_transition_picker(episodes, BasicTransitionPicker())
     assert scaler.built
+    assert scaler.return_min is not None and scaler.return_max is not None
+    assert scaler.return_min == np.min(returns)
+    assert scaler.return_max == np.max(returns)
 
-    x = torch.rand(batch_size)
-    y = scaler.transform(x)
-    ref_y = x.numpy() / (max(returns) - min(returns))
-    assert np.allclose(y, ref_y, atol=1e-4)
 
-    # check serialization and deserialization
-    new_scaler = ReturnBasedRewardScaler.deserialize(scaler.serialize())
-    assert new_scaler.return_max == scaler.return_max
-    assert new_scaler.return_min == scaler.return_min
-    assert new_scaler.multiplier == scaler.multiplier
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [10])
+@pytest.mark.parametrize("batch_size", [32])
+def test_return_based_reward_scaler_with_trajectory_slicer(
+    observation_shape: Sequence[int], action_size: int, batch_size: int
+) -> None:
+    shape = (batch_size, *observation_shape)
+    observations = np.random.random(shape)
+    actions = np.random.random((batch_size, action_size))
+    rewards = np.random.random(batch_size).astype("f4")
+    terminals = np.zeros(batch_size)
+    terminals[batch_size // 2] = 1.0
+    terminals[-1] = 1.0
+
+    episodes = EpisodeGenerator(
+        observations=observations,
+        actions=actions,
+        rewards=rewards,
+        terminals=terminals,
+    )()
+
+    returns = []
+    for episode in episodes:
+        returns.append(episode.compute_return())
+
+    scaler = ReturnBasedRewardScaler()
+    assert not scaler.built
+    scaler.fit_with_trajectory_slicer(episodes, BasicTrajectorySlicer())
+    assert scaler.built
+    assert scaler.return_min is not None and scaler.return_max is not None
+    assert scaler.return_min == np.min(returns)
+    assert scaler.return_max == np.max(returns)
 
 
 @pytest.mark.parametrize("batch_size", [32])
@@ -281,6 +424,7 @@ def test_constant_shift_reward_scaler(batch_size: int, shift: float) -> None:
 
     scaler = ConstantShiftRewardScaler(shift)
     assert scaler.built
+    assert scaler.get_type() == "shift"
 
     # check trnsform
     y = scaler.transform(torch.tensor(rewards))
@@ -290,11 +434,12 @@ def test_constant_shift_reward_scaler(batch_size: int, shift: float) -> None:
     x = scaler.reverse_transform(y)
     assert np.allclose(x.numpy(), rewards, atol=1e-4)
 
-    # check reverse_transform_numpy
+    # check transform_numpy
     y = scaler.transform_numpy(rewards)
     assert np.allclose(y, rewards + shift, atol=1e-4)
 
-    assert scaler.get_type() == "shift"
+    # check reverse_transform_numpy
+    assert np.allclose(scaler.reverse_transform_numpy(y), rewards, atol=1e-4)
 
     # check serialization and deserialization
     new_scaler = ConstantShiftRewardScaler.deserialize(scaler.serialize())

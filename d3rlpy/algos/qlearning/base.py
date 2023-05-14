@@ -47,8 +47,8 @@ from ...torch_utility import (
 from ..utility import (
     assert_action_space_with_dataset,
     assert_action_space_with_env,
-    build_scalers_with_dataset,
     build_scalers_with_env,
+    build_scalers_with_transition_picker,
 )
 from .explorers import Explorer
 
@@ -485,7 +485,7 @@ class QLearningAlgoBase(
         assert_action_space_with_dataset(self, dataset_info)
 
         # initialize scalers
-        build_scalers_with_dataset(self, dataset)
+        build_scalers_with_transition_picker(self, dataset)
 
         # setup logger
         if experiment_name is None:
