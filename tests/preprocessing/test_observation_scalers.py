@@ -106,8 +106,8 @@ def test_min_max_observation_scaler_with_transition_picker(
     scaler.fit_with_transition_picker(episodes, BasicTransitionPicker())
     assert scaler.built
     assert scaler.minimum is not None and scaler.maximum is not None
-    assert np.allclose(scaler.minimum[0], minimum)
-    assert np.allclose(scaler.maximum[0], maximum)
+    assert np.allclose(scaler.minimum, minimum)
+    assert np.allclose(scaler.maximum, maximum)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -137,8 +137,8 @@ def test_min_max_observation_scaler_with_trajectory_slicer(
     scaler.fit_with_trajectory_slicer(episodes, BasicTrajectorySlicer())
     assert scaler.built
     assert scaler.minimum is not None and scaler.maximum is not None
-    assert np.allclose(scaler.minimum[0], minimum)
-    assert np.allclose(scaler.maximum[0], maximum)
+    assert np.allclose(scaler.minimum, minimum)
+    assert np.allclose(scaler.maximum, maximum)
 
 
 def test_min_max_observation_scaler_with_env() -> None:
@@ -221,8 +221,8 @@ def test_standard_observation_scaler_with_transition_picker(
     scaler.fit_with_transition_picker(episodes, BasicTransitionPicker())
     assert scaler.built
     assert scaler.mean is not None and scaler.std is not None
-    assert np.allclose(scaler.mean[0], mean)
-    assert np.allclose(scaler.std[0], std)
+    assert np.allclose(scaler.mean, mean)
+    assert np.allclose(scaler.std, std)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -253,5 +253,5 @@ def test_standard_observation_scaler_with_trajectory_slicer(
     scaler.fit_with_trajectory_slicer(episodes, BasicTrajectorySlicer())
     assert scaler.built
     assert scaler.mean is not None and scaler.std is not None
-    assert np.allclose(scaler.mean[0], mean)
-    assert np.allclose(scaler.std[0], std)
+    assert np.allclose(scaler.mean, mean)
+    assert np.allclose(scaler.std, std)

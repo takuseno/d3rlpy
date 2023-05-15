@@ -14,7 +14,7 @@ from ..serializable_config import (
     generate_optional_config_generation,
     make_optional_numpy_field,
 )
-from .base import Scaler
+from .base import Scaler, add_leading_dims, add_leading_dims_numpy
 
 __all__ = [
     "ActionScaler",
@@ -99,8 +99,8 @@ class MinMaxActionScaler(ActionScaler):
                 else:
                     minimum = np.minimum(minimum, transition.action)
                     maximum = np.maximum(maximum, transition.action)
-        self.minimum = minimum.reshape((1,) + minimum.shape)
-        self.maximum = maximum.reshape((1,) + maximum.shape)
+        self.minimum = minimum
+        self.maximum = maximum
 
     def fit_with_trajectory_slicer(
         self,
@@ -123,38 +123,39 @@ class MinMaxActionScaler(ActionScaler):
             else:
                 minimum = np.minimum(minimum, min_action)
                 maximum = np.maximum(maximum, max_action)
-
-        self.minimum = minimum.reshape((1,) + minimum.shape)
-        self.maximum = maximum.reshape((1,) + maximum.shape)
+        self.minimum = minimum
+        self.maximum = maximum
 
     def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
         assert not self.built
         assert isinstance(env.action_space, gym.spaces.Box)
-        shape = env.action_space.shape
         low = np.asarray(env.action_space.low)
         high = np.asarray(env.action_space.high)
-        assert shape
-        self.minimum = low.reshape((1, *shape))
-        self.maximum = high.reshape((1, *shape))
+        self.minimum = low
+        self.maximum = high
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        minimum = torch.tensor(
-            self.minimum, dtype=torch.float32, device=x.device
+        minimum = add_leading_dims(
+            torch.tensor(self.minimum, dtype=torch.float32, device=x.device),
+            target=x,
         )
-        maximum = torch.tensor(
-            self.maximum, dtype=torch.float32, device=x.device
+        maximum = add_leading_dims(
+            torch.tensor(self.maximum, dtype=torch.float32, device=x.device),
+            target=x,
         )
         # transform action into [-1.0, 1.0]
         return ((x - minimum) / (maximum - minimum)) * 2.0 - 1.0
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        minimum = torch.tensor(
-            self.minimum, dtype=torch.float32, device=x.device
+        minimum = add_leading_dims(
+            torch.tensor(self.minimum, dtype=torch.float32, device=x.device),
+            target=x,
         )
-        maximum = torch.tensor(
-            self.maximum, dtype=torch.float32, device=x.device
+        maximum = add_leading_dims(
+            torch.tensor(self.maximum, dtype=torch.float32, device=x.device),
+            target=x,
         )
         # transform action from [-1.0, 1.0]
         return ((maximum - minimum) * ((x + 1.0) / 2.0)) + minimum
@@ -162,14 +163,16 @@ class MinMaxActionScaler(ActionScaler):
     def transform_numpy(self, x: np.ndarray) -> np.ndarray:
         assert self.built
         assert self.maximum is not None and self.minimum is not None
-        minimum, maximum = self.minimum, self.maximum
+        minimum = add_leading_dims_numpy(self.minimum, target=x)
+        maximum = add_leading_dims_numpy(self.maximum, target=x)
         # transform action into [-1.0, 1.0]
         return ((x - minimum) / (maximum - minimum)) * 2.0 - 1.0
 
     def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
         assert self.built
         assert self.maximum is not None and self.minimum is not None
-        minimum, maximum = self.minimum, self.maximum
+        minimum = add_leading_dims_numpy(self.minimum, target=x)
+        maximum = add_leading_dims_numpy(self.maximum, target=x)
         # transform action from [-1.0, 1.0]
         return ((maximum - minimum) * ((x + 1.0) / 2.0)) + minimum
 

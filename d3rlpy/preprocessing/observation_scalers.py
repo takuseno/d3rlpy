@@ -14,7 +14,7 @@ from ..serializable_config import (
     generate_optional_config_generation,
     make_optional_numpy_field,
 )
-from .base import Scaler
+from .base import Scaler, add_leading_dims, add_leading_dims_numpy
 
 __all__ = [
     "ObservationScaler",
@@ -159,8 +159,8 @@ class MinMaxObservationScaler(ObservationScaler):
                 else:
                     minimum = np.minimum(minimum, observation)
                     maximum = np.maximum(maximum, observation)
-        self.minimum = minimum.reshape((1,) + minimum.shape)
-        self.maximum = maximum.reshape((1,) + maximum.shape)
+        self.minimum = minimum
+        self.maximum = maximum
 
     def fit_with_trajectory_slicer(
         self,
@@ -183,47 +183,54 @@ class MinMaxObservationScaler(ObservationScaler):
             else:
                 minimum = np.minimum(minimum, min_observation)
                 maximum = np.maximum(maximum, max_observation)
-        self.minimum = minimum.reshape((1,) + minimum.shape)
-        self.maximum = maximum.reshape((1,) + maximum.shape)
+        self.minimum = minimum
+        self.maximum = maximum
 
     def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
         assert not self.built
         assert isinstance(env.observation_space, gym.spaces.Box)
-        shape = env.observation_space.shape
         low = np.asarray(env.observation_space.low)
         high = np.asarray(env.observation_space.high)
-        self.minimum = low.reshape((1, *shape))
-        self.maximum = high.reshape((1, *shape))
+        self.minimum = low
+        self.maximum = high
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        minimum = torch.tensor(
-            self.minimum, dtype=torch.float32, device=x.device
+        minimum = add_leading_dims(
+            torch.tensor(self.minimum, dtype=torch.float32, device=x.device),
+            target=x,
         )
-        maximum = torch.tensor(
-            self.maximum, dtype=torch.float32, device=x.device
+        maximum = add_leading_dims(
+            torch.tensor(self.maximum, dtype=torch.float32, device=x.device),
+            target=x,
         )
         return (x - minimum) / (maximum - minimum) * 2.0 - 1.0
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        minimum = torch.tensor(
-            self.minimum, dtype=torch.float32, device=x.device
+        minimum = add_leading_dims(
+            torch.tensor(self.minimum, dtype=torch.float32, device=x.device),
+            target=x,
         )
-        maximum = torch.tensor(
-            self.maximum, dtype=torch.float32, device=x.device
+        maximum = add_leading_dims(
+            torch.tensor(self.maximum, dtype=torch.float32, device=x.device),
+            target=x,
         )
         return ((maximum - minimum) * (x + 1.0) / 2.0) + minimum
 
     def transform_numpy(self, x: np.ndarray) -> np.ndarray:
         assert self.built
         assert self.minimum is not None and self.maximum is not None
-        return (x - self.minimum) / (self.maximum - self.minimum) * 2.0 - 1.0
+        minimum = add_leading_dims_numpy(self.minimum, target=x)
+        maximum = add_leading_dims_numpy(self.maximum, target=x)
+        return (x - minimum) / (maximum - minimum) * 2.0 - 1.0
 
     def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
         assert self.built
         assert self.minimum is not None and self.maximum is not None
-        return ((self.maximum - self.minimum) * (x + 1.0) / 2.0) + self.minimum
+        minimum = add_leading_dims_numpy(self.minimum, target=x)
+        maximum = add_leading_dims_numpy(self.maximum, target=x)
+        return ((maximum - minimum) * (x + 1.0) / 2.0) + minimum
 
     @staticmethod
     def get_type() -> str:
@@ -312,8 +319,8 @@ class StandardObservationScaler(ObservationScaler):
                 total_sqsum += (transition.observation - mean) ** 2
         std = np.sqrt(total_sqsum / total_count)
 
-        self.mean = mean.reshape((1,) + mean.shape)
-        self.std = std.reshape((1,) + std.shape)
+        self.mean = mean
+        self.std = std
 
     def fit_with_trajectory_slicer(
         self,
@@ -343,8 +350,8 @@ class StandardObservationScaler(ObservationScaler):
             total_sqsum += np.sum((observations - expanded_mean) ** 2, axis=0)
         std = np.sqrt(total_sqsum / total_count)
 
-        self.mean = mean.reshape((1,) + mean.shape)
-        self.std = std.reshape((1,) + std.shape)
+        self.mean = mean
+        self.std = std
 
     def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
         raise NotImplementedError(
@@ -353,25 +360,41 @@ class StandardObservationScaler(ObservationScaler):
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
-        std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
+        mean = add_leading_dims(
+            torch.tensor(self.mean, dtype=torch.float32, device=x.device),
+            target=x,
+        )
+        std = add_leading_dims(
+            torch.tensor(self.std, dtype=torch.float32, device=x.device),
+            target=x,
+        )
         return (x - mean) / (std + self.eps)
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        mean = torch.tensor(self.mean, dtype=torch.float32, device=x.device)
-        std = torch.tensor(self.std, dtype=torch.float32, device=x.device)
+        mean = add_leading_dims(
+            torch.tensor(self.mean, dtype=torch.float32, device=x.device),
+            target=x,
+        )
+        std = add_leading_dims(
+            torch.tensor(self.std, dtype=torch.float32, device=x.device),
+            target=x,
+        )
         return ((std + self.eps) * x) + mean
 
     def transform_numpy(self, x: np.ndarray) -> np.ndarray:
         assert self.built
         assert self.mean is not None and self.std is not None
-        return (x - self.mean) / (self.std + self.eps)
+        mean = add_leading_dims_numpy(self.mean, target=x)
+        std = add_leading_dims_numpy(self.std, target=x)
+        return (x - mean) / (std + self.eps)
 
     def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
         assert self.built
         assert self.mean is not None and self.std is not None
-        return ((self.std + self.eps) * x) + self.mean
+        mean = add_leading_dims_numpy(self.mean, target=x)
+        std = add_leading_dims_numpy(self.std, target=x)
+        return ((std + self.eps) * x) + mean
 
     @staticmethod
     def get_type() -> str:

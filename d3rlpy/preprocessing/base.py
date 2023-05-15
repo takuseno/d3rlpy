@@ -12,7 +12,7 @@ from ..dataset import (
 )
 from ..serializable_config import DynamicConfig
 
-__all__ = ["Scaler"]
+__all__ = ["Scaler", "add_leading_dims", "add_leading_dims_numpy"]
 
 
 class Scaler(DynamicConfig, metaclass=ABCMeta):
@@ -118,3 +118,17 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
 
         """
         raise NotImplementedError
+
+
+def add_leading_dims(x: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    assert x.ndim <= target.ndim
+    dim_diff = target.ndim - x.ndim
+    assert x.shape == target.shape[dim_diff:]
+    return torch.reshape(x, [1] * dim_diff + list(x.shape))
+
+
+def add_leading_dims_numpy(x: np.ndarray, target: np.ndarray) -> np.ndarray:
+    assert x.ndim <= target.ndim
+    dim_diff = target.ndim - x.ndim
+    assert x.shape == target.shape[dim_diff:]
+    return np.reshape(x, [1] * dim_diff + list(x.shape))
