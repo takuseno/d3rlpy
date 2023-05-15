@@ -4,4 +4,4 @@
 mypy d3rlpy reproductions tests
 
 # code-format check
-pylint d3rlpy reproductions
+pylint d3rlpy reproductions tests

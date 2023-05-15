@@ -243,7 +243,7 @@ def update_tester(
 ) -> None:
     # make mini-batch
     transitions = []
-    for i in range(algo.config.batch_size):
+    for _ in range(algo.config.batch_size):
         if len(observation_shape) == 3:
             observation = np.random.randint(
                 256, size=observation_shape, dtype=np.uint8

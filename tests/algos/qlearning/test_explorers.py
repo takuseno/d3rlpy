@@ -47,7 +47,7 @@ def test_constant_epsilon_greedy(
         action = np.random.randint(action_size, size=(1,))
         if action != explorer.sample(algo, ref_x, 0):
             break
-        elif i == 9:
+        if i == 9:
             assert False
 
 
@@ -82,7 +82,7 @@ def test_linear_decay_epsilon_greedy(
         action = np.random.randint(action_size)
         if action != explorer.sample(algo, ref_x, 0):
             break
-        elif i == 9:
+        if i == 9:
             assert False
 
 

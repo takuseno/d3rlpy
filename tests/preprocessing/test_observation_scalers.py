@@ -44,9 +44,9 @@ def test_min_max_observation_scaler(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape).astype("f4")
 
-    max = observations.max(axis=0)
-    min = observations.min(axis=0)
-    scaler = MinMaxObservationScaler(maximum=max, minimum=min)
+    maximum = observations.max(axis=0)
+    minimum = observations.min(axis=0)
+    scaler = MinMaxObservationScaler(maximum=maximum, minimum=minimum)
     assert scaler.built
     assert scaler.get_type() == "min_max"
 
@@ -58,7 +58,9 @@ def test_min_max_observation_scaler(
     # check transform
     x = torch.rand((batch_size, *observation_shape))
     y = scaler.transform(x)
-    ref_y = (x.numpy() - min.reshape((1, -1))) / (max - min).reshape((1, -1))
+    ref_y = (x.numpy() - minimum.reshape((1, -1))) / (
+        maximum - minimum
+    ).reshape((1, -1))
     assert np.allclose(y.numpy(), ref_y * 2.0 - 1.0, atol=1e-6)
 
     # check reverse_transform

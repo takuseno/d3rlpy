@@ -18,10 +18,10 @@ from d3rlpy.preprocessing import MinMaxActionScaler
 def test_min_max_action_scaler(action_size: int, batch_size: int) -> None:
     actions = np.random.random((batch_size, action_size)).astype("f4")
 
-    max = actions.max(axis=0)
-    min = actions.min(axis=0)
+    maximum = actions.max(axis=0)
+    minimum = actions.min(axis=0)
 
-    scaler = MinMaxActionScaler(maximum=max, minimum=min)
+    scaler = MinMaxActionScaler(maximum=maximum, minimum=minimum)
     assert scaler.built
     assert scaler.get_type() == "min_max"
 
@@ -33,7 +33,9 @@ def test_min_max_action_scaler(action_size: int, batch_size: int) -> None:
     # check transorm
     x = torch.rand((batch_size, action_size))
     y = scaler.transform(x)
-    ref_y = (x.numpy() - min.reshape((1, -1))) / (max - min).reshape((1, -1))
+    ref_y = (x.numpy() - minimum.reshape((1, -1))) / (
+        maximum - minimum
+    ).reshape((1, -1))
     assert np.allclose(y.numpy(), ref_y * 2.0 - 1.0)
 
     # check reverse_transorm

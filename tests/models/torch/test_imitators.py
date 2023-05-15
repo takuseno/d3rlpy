@@ -133,6 +133,7 @@ def test_probablistic_regressor(
 
     action = torch.rand(batch_size, action_size)
     loss = imitator.compute_error(x, action)
+    assert loss.ndim == 0
 
     y = imitator.sample_n(x, n)
     assert y.shape == (batch_size, n, action_size)

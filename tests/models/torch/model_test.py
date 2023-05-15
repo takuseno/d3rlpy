@@ -1,5 +1,5 @@
 import copy
-from typing import Any, Optional, Sequence
+from typing import Any, Sequence
 
 import numpy as np
 import torch
@@ -12,7 +12,7 @@ def check_parameter_updates(
     model: torch.nn.Module, inputs: Any = None, output: Any = None
 ) -> None:
     model.train()
-    params_before = copy.deepcopy([p for p in model.parameters()])
+    params_before = copy.deepcopy(list(model.parameters()))
     optim = SGD(model.parameters(), lr=10.0)
     if output is None:
         if hasattr(model, "compute_error"):
@@ -30,7 +30,7 @@ def check_parameter_updates(
     for before, after in zip(params_before, model.parameters()):
         assert not torch.allclose(
             before, after
-        ), "tensor with shape of {} is not updated.".format(after.shape)
+        ), f"tensor with shape of {after.shape} is not updated."
 
 
 def ref_huber_loss(a: np.ndarray, b: np.ndarray) -> float:
@@ -50,7 +50,7 @@ def ref_quantile_huber_loss(
     huber_diff = np.zeros_like(abs_diff)
     huber_diff[abs_diff < 1.0] = 0.5 * l2_diff[abs_diff < 1.0]
     huber_diff[abs_diff >= 1.0] = abs_diff[abs_diff >= 1.0] - 0.5
-    huber_diff = huber_diff.reshape(-1, n_quantiles, n_quantiles)
+    huber_diff = huber_diff.reshape((-1, n_quantiles, n_quantiles))
     delta = np.array((b - a) < 0.0, dtype=np.float32)
     element_wise_loss = np.abs(taus - delta) * huber_diff
     return element_wise_loss.sum(axis=2).mean(axis=1)

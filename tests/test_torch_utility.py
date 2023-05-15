@@ -112,24 +112,20 @@ def test_map_location_with_cuda() -> None:
 
 class DummyImpl:
     def __init__(self) -> None:
-        self._fc1 = torch.nn.Linear(100, 100)
-        self._fc2 = torch.nn.Linear(100, 100)
-        self._optim = torch.optim.Adam(self._fc1.parameters())
-        self._device = "cpu:0"
+        self.fc1 = torch.nn.Linear(100, 100)
+        self.fc2 = torch.nn.Linear(100, 100)
+        self.optim = torch.optim.Adam(self.fc1.parameters())
+        self.device = "cpu:0"
 
     @train_api
     def train_api_func(self) -> None:
-        assert self._fc1.training
-        assert self._fc2.training
+        assert self.fc1.training
+        assert self.fc2.training
 
     @eval_api
     def eval_api_func(self) -> None:
-        assert not self._fc1.training
-        assert not self._fc2.training
-
-    @property
-    def device(self) -> str:
-        return self._device
+        assert not self.fc1.training
+        assert not self.fc2.training
 
 
 def check_if_same_dict(a: Dict[str, Any], b: Dict[str, Any]) -> None:
@@ -145,71 +141,71 @@ def test_get_state_dict() -> None:
 
     state_dict = get_state_dict(impl)
 
-    check_if_same_dict(state_dict["_fc1"], impl._fc1.state_dict())
-    check_if_same_dict(state_dict["_fc2"], impl._fc2.state_dict())
-    check_if_same_dict(state_dict["_optim"], impl._optim.state_dict())
+    check_if_same_dict(state_dict["fc1"], impl.fc1.state_dict())
+    check_if_same_dict(state_dict["fc2"], impl.fc2.state_dict())
+    check_if_same_dict(state_dict["optim"], impl.optim.state_dict())
 
 
 def test_set_state_dict() -> None:
     impl1 = DummyImpl()
     impl2 = DummyImpl()
 
-    impl1._optim.step()
+    impl1.optim.step()
 
-    assert not (impl1._fc1.weight == impl2._fc1.weight).all()
-    assert not (impl1._fc1.bias == impl2._fc1.bias).all()
-    assert not (impl1._fc2.weight == impl2._fc2.weight).all()
-    assert not (impl1._fc2.bias == impl2._fc2.bias).all()
+    assert not (impl1.fc1.weight == impl2.fc1.weight).all()
+    assert not (impl1.fc1.bias == impl2.fc1.bias).all()
+    assert not (impl1.fc2.weight == impl2.fc2.weight).all()
+    assert not (impl1.fc2.bias == impl2.fc2.bias).all()
 
     chkpt = get_state_dict(impl1)
 
     set_state_dict(impl2, chkpt)
 
-    assert (impl1._fc1.weight == impl2._fc1.weight).all()
-    assert (impl1._fc1.bias == impl2._fc1.bias).all()
-    assert (impl1._fc2.weight == impl2._fc2.weight).all()
-    assert (impl1._fc2.bias == impl2._fc2.bias).all()
+    assert (impl1.fc1.weight == impl2.fc1.weight).all()
+    assert (impl1.fc1.bias == impl2.fc1.bias).all()
+    assert (impl1.fc2.weight == impl2.fc2.weight).all()
+    assert (impl1.fc2.bias == impl2.fc2.bias).all()
 
 
 def test_reset_optimizer_states() -> None:
     impl = DummyImpl()
 
     # instantiate optimizer state
-    y = impl._fc1(torch.rand(100)).sum()
+    y = impl.fc1(torch.rand(100)).sum()
     y.backward()
-    impl._optim.step()
+    impl.optim.step()
 
     # check if state is not empty
-    state = copy.deepcopy(impl._optim.state)
+    state = copy.deepcopy(impl.optim.state)
     assert state
 
     reset_optimizer_states(impl)
 
     # check if state is empty
-    reset_state = impl._optim.state
+    reset_state = impl.optim.state
     assert not reset_state
 
 
 def test_eval_mode() -> None:
     impl = DummyImpl()
-    impl._fc1.train()
-    impl._fc2.train()
+    impl.fc1.train()
+    impl.fc2.train()
 
     set_eval_mode(impl)
 
-    assert not impl._fc1.training
-    assert not impl._fc2.training
+    assert not impl.fc1.training
+    assert not impl.fc2.training
 
 
 def test_train_mode() -> None:
     impl = DummyImpl()
-    impl._fc1.eval()
-    impl._fc2.eval()
+    impl.fc1.eval()
+    impl.fc2.eval()
 
     set_train_mode(impl)
 
-    assert impl._fc1.training
-    assert impl._fc2.training
+    assert impl.fc1.training
+    assert impl.fc2.training
 
 
 @pytest.mark.skip(reason="no way to test this")
@@ -227,9 +223,9 @@ def test_freeze() -> None:
 
     freeze(impl)
 
-    for p in impl._fc1.parameters():
+    for p in impl.fc1.parameters():
         assert not p.requires_grad
-    for p in impl._fc2.parameters():
+    for p in impl.fc2.parameters():
         assert not p.requires_grad
 
 
@@ -239,9 +235,9 @@ def test_unfreeze() -> None:
     freeze(impl)
     unfreeze(impl)
 
-    for p in impl._fc1.parameters():
+    for p in impl.fc1.parameters():
         assert p.requires_grad
-    for p in impl._fc2.parameters():
+    for p in impl.fc2.parameters():
         assert p.requires_grad
 
 
@@ -402,16 +398,16 @@ def test_torch_trajectory_mini_batch(
 
 def test_train_api() -> None:
     impl = DummyImpl()
-    impl._fc1.eval()
-    impl._fc2.eval()
+    impl.fc1.eval()
+    impl.fc2.eval()
 
     impl.train_api_func()
 
 
 def test_eval_api() -> None:
     impl = DummyImpl()
-    impl._fc1.train()
-    impl._fc2.train()
+    impl.fc1.train()
+    impl.fc2.train()
 
     impl.eval_api_func()
 

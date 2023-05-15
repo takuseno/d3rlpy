@@ -51,6 +51,7 @@ class DummyEnv(gym.Env[np.ndarray, np.ndarray]):
         observation_shape: Sequence[int],
         episode_length: int,
     ):
+        self.t = 0
         self.episode = 0
         self.episode_length = episode_length
         self.observations = observations
