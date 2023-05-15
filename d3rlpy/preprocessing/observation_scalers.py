@@ -203,7 +203,7 @@ class MinMaxObservationScaler(ObservationScaler):
         maximum = torch.tensor(
             self.maximum, dtype=torch.float32, device=x.device
         )
-        return (x - minimum) / (maximum - minimum)
+        return (x - minimum) / (maximum - minimum) * 2.0 - 1.0
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
@@ -213,17 +213,17 @@ class MinMaxObservationScaler(ObservationScaler):
         maximum = torch.tensor(
             self.maximum, dtype=torch.float32, device=x.device
         )
-        return ((maximum - minimum) * x) + minimum
+        return ((maximum - minimum) * (x + 1.0) / 2.0) + minimum
 
     def transform_numpy(self, x: np.ndarray) -> np.ndarray:
         assert self.built
         assert self.minimum is not None and self.maximum is not None
-        return (x - self.minimum) / (self.maximum - self.minimum)
+        return (x - self.minimum) / (self.maximum - self.minimum) * 2.0 - 1.0
 
     def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
         assert self.built
         assert self.minimum is not None and self.maximum is not None
-        return ((self.maximum - self.minimum) * x) + self.minimum
+        return ((self.maximum - self.minimum) * (x + 1.0) / 2.0) + self.minimum
 
     @staticmethod
     def get_type() -> str:

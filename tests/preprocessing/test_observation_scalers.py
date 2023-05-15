@@ -52,24 +52,24 @@ def test_min_max_observation_scaler(
 
     # check range
     y = scaler.transform(torch.tensor(observations))
-    assert np.all(y.numpy() >= 0.0)
+    assert np.all(y.numpy() >= -1.0)
     assert np.all(y.numpy() <= 1.0)
 
     # check transform
     x = torch.rand((batch_size, *observation_shape))
     y = scaler.transform(x)
     ref_y = (x.numpy() - min.reshape((1, -1))) / (max - min).reshape((1, -1))
-    assert np.allclose(y.numpy(), ref_y)
+    assert np.allclose(y.numpy(), ref_y * 2.0 - 1.0, atol=1e-6)
 
     # check reverse_transform
-    assert torch.allclose(scaler.reverse_transform(y), x)
+    assert torch.allclose(scaler.reverse_transform(y), x, atol=1e-6)
 
     # check transform_numpy
     y = scaler.transform_numpy(x.numpy())
-    assert np.allclose(y, ref_y)
+    assert np.allclose(y, ref_y * 2.0 - 1.0, atol=1e-6)
 
     # check reverse_transform_numpy
-    assert np.allclose(scaler.reverse_transform_numpy(y), x.numpy())
+    assert np.allclose(scaler.reverse_transform_numpy(y), x.numpy(), atol=1e-6)
 
     # check serialization and deserialization
     new_scaler = MinMaxObservationScaler.deserialize(scaler.serialize())
@@ -150,7 +150,7 @@ def test_min_max_observation_scaler_with_env() -> None:
     x = torch.tensor(env.reset()[0].reshape((1,) + env.observation_space.shape))
     y = scaler.transform(x)
 
-    assert torch.all(x / 255.0 == y)
+    assert torch.all(x / 255.0 * 2.0 - 1.0 == y)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
