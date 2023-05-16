@@ -18,7 +18,7 @@ import d3rlpy
 dataset, env = d3rlpy.datasets.get_dataset("hopper-medium-v0")
 
 # prepare algorithm
-sac = d3rlpy.algos.SAC()
+sac = d3rlpy.algos.SACConfig().create()
 
 # train offline
 sac.fit(dataset, n_steps=1000000)
@@ -92,6 +92,7 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 | [Policy in Latent Action Space (PLAS)](https://arxiv.org/abs/2011.07213) | :no_entry: | :white_check_mark: | :white_check_mark: |
 | [TD3+BC](https://arxiv.org/abs/2106.06860) | :no_entry: | :white_check_mark: | :white_check_mark: |
 | [Implicit Q-Learning (IQL)](https://arxiv.org/abs/2110.06169) | :no_entry: | :white_check_mark: | :white_check_mark: |
+| [Decision Transformer](https://arxiv.org/abs/2106.01345) | :no_entry: | :white_check_mark: | :white_check_mark: |
 
 ## supported Q functions
 - [x] standard Q function
@@ -114,17 +115,14 @@ import d3rlpy
 dataset, env = d3rlpy.datasets.get_d4rl('hopper-medium-v0')
 
 # prepare algorithm
-cql = d3rlpy.algos.CQL(use_gpu=True)
+cql = d3rlpy.algos.CQLConfig().create(device='cuda:0')
 
 # train
 cql.fit(
     dataset,
     eval_episodes=dataset,
-    n_epochs=100,
-    scorers={
-        'environment': d3rlpy.metrics.evaluate_on_environment(env),
-        'td_error': d3rlpy.metrics.td_error_scorer,
-    },
+    n_steps=100000,
+    evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
 )
 ```
 
@@ -135,31 +133,26 @@ See more datasets at [d4rl](https://github.com/rail-berkeley/d4rl).
 
 ```py
 import d3rlpy
-from sklearn.model_selection import train_test_split
 
-# prepare dataset
-dataset, env = d3rlpy.datasets.get_atari('breakout-expert-v0')
-
-# split dataset
-train_episodes, test_episodes = train_test_split(dataset, test_size=0.1)
+# prepare dataset (1% dataset)
+dataset, env = d3rlpy.datasets.get_atari_transitions(
+    'breakout',
+    fraction=0.01,
+    num_stack=4,
+    transition_picker=d3rlpy.dataset.FrameStackTransitionPicker(n_frames=4),
+)
 
 # prepare algorithm
-cql = d3rlpy.algos.DiscreteCQL(
-    n_frames=4,
-    q_func_factory='qr',
-    scaler='pixel',
-    use_gpu=True,
-)
+cql = d3rlpy.algos.DiscreteCQLConfig(
+    observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
+    reward_scaler=d3rlpy.preprocessing.ClipRewardScaler(-1.0, 1.0),
+).create(device='cuda:0')
 
 # start training
 cql.fit(
-    train_episodes,
-    eval_episodes=test_episodes,
-    n_epochs=100,
-    scorers={
-        'environment': d3rlpy.metrics.evaluate_on_environment(env),
-        'td_error': d3rlpy.metrics.td_error_scorer,
-    },
+    dataset,
+    n_steps=1000000,
+    evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env, epsilon=0.001)},
 )
 ```
 
@@ -176,10 +169,10 @@ env = gym.make('Hopper-v3')
 eval_env = gym.make('Hopper-v3')
 
 # prepare algorithm
-sac = d3rlpy.algos.SAC(use_gpu=True)
+sac = d3rlpy.algos.SACConfig().create(device='cuda:0')
 
 # prepare replay buffer
-buffer = d3rlpy.online.buffers.ReplayBuffer(maxlen=1000000, env=env)
+buffer = d3rlpy.dataset.create_fifo_replay_buffer(limit=1000000, env=env)
 
 # start training
 sac.fit_online(env, buffer, n_steps=1000000, eval_env=eval_env)
