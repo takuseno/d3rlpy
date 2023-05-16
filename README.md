@@ -33,6 +33,8 @@ actions = sac.predict(x)
 - Documentation: https://d3rlpy.readthedocs.io
 - Paper: https://arxiv.org/abs/2111.03788
 
+:warning: Next generation of d3rlpy is under development in [nightly](https://github.com/takuseno/d3rlpy/tree/nightly) branch. It's not fully supporting all of features in the stable versions and there is no documentation yet. However, if you're interested, you can sneak to see what's there.
+
 ## key features
 
 ### :zap: Most Practical RL Library Ever
@@ -95,10 +97,6 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 - [x] standard Q function
 - [x] [Quantile Regression](https://arxiv.org/abs/1710.10044)
 - [x] [Implicit Quantile Network](https://arxiv.org/abs/1806.06923)
-
-## experimental features
-- Q-functions
-  - [Fully parametrized Quantile Function](https://arxiv.org/abs/1911.02140) (experimental)
 
 ## benchmark results
 d3rlpy is benchmarked to ensure the implementation quality.
@@ -174,8 +172,8 @@ import d3rlpy
 import gym
 
 # prepare environment
-env = gym.make('HopperBulletEnv-v0')
-eval_env = gym.make('HopperBulletEnv-v0')
+env = gym.make('Hopper-v3')
+eval_env = gym.make('Hopper-v3')
 
 # prepare algorithm
 sac = d3rlpy.algos.SAC(use_gpu=True)
@@ -210,9 +208,7 @@ The release planning can be checked at [milestones](https://github.com/takuseno/
 ## family projects
 | Project | Description |
 |:-:|:-|
-| [d4rl-pybullet](https://github.com/takuseno/d4rl-pybullet) | An offline RL datasets of PyBullet tasks |
 | [d4rl-atari](https://github.com/takuseno/d4rl-atari) | A d4rl-style library of Google's Atari 2600 datasets |
-| [MINERVA](https://github.com/takuseno/minerva) | An out-of-the-box GUI tool for offline RL |
 
 ## roadmap
 The roadmap to the future release is available in [ROADMAP.md](ROADMAP.md).
@@ -220,12 +216,15 @@ The roadmap to the future release is available in [ROADMAP.md](ROADMAP.md).
 ## citation
 The paper is available [here](https://arxiv.org/abs/2111.03788).
 ```
-@InProceedings{seno2021d3rlpy,
-  author = {Takuma Seno, Michita Imai},
-  title = {d3rlpy: An Offline Deep Reinforcement Library},
-  booktitle = {NeurIPS 2021 Offline Reinforcement Learning Workshop},
-  month = {December},
-  year = {2021}
+@article{d3rlpy,
+  author  = {Takuma Seno and Michita Imai},
+  title   = {d3rlpy: An Offline Deep Reinforcement Learning Library},
+  journal = {Journal of Machine Learning Research},
+  year    = {2022},
+  volume  = {23},
+  number  = {315},
+  pages   = {1--20},
+  url     = {http://jmlr.org/papers/v23/22-0017.html}
 }
 ```
 

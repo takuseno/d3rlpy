@@ -68,7 +68,7 @@ If this value for a certain policy is bigger than others, the learned Q-function
    dqn.load_model("d3rlpy_logs/DQN_20220624191141/model_100000.pt")
 
    # setup FQE algorithm
-   fqe = d3rlpy.ope.DiscreteFQE()
+   fqe = d3rlpy.ope.DiscreteFQE(algo=dqn)
 
    # start FQE training
    fqe.fit(

@@ -4,20 +4,22 @@ authors:
 - family-names: "Seno"
   given-names: "Takuma"
 title: "d3rlpy: An offline deep reinforcement learning library"
-version: 0.91
-date-released: 2020-08-01
+version: 1.1.1
+date-released: 2022-11-26
 url: "https://github.com/takuseno/d3rlpy"
 preferred-citation:
-  type: conference-paper
+  type: article
   authors:
   - family-names: "Seno"
     given-names: "Takuma"
   - family-names: "Imai"
     given-names: "Michita"
-  journal: "NeurIPS 2021 Offline Reinforcement Learning Workshop"
-  conference:
-    name: "NeurIPS 2021 Offline Reinforcement Learning Workshop"
-  collection-title: "35th Conference on Neural Information Processing Systems, Offline Reinforcement Learning Workshop, 2021"
-  month: 12
+  journal: "Journal of Machine Learning Research"
+  month: 11
   title: "d3rlpy: An Offline Deep Reinforcement Learning Library"
-  year: 2021
+  year: 2022
+  url: http://jmlr.org/papers/v23/22-0017.html
+  volume: 23
+  issue: 315
+  start: 1
+  end: 20
