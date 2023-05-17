@@ -139,7 +139,6 @@ dataset, env = d3rlpy.datasets.get_atari_transitions(
     'breakout',
     fraction=0.01,
     num_stack=4,
-    transition_picker=d3rlpy.dataset.FrameStackTransitionPicker(n_frames=4),
 )
 
 # prepare algorithm

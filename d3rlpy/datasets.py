@@ -12,6 +12,7 @@ import numpy as np
 from .dataset import (
     Episode,
     EpisodeGenerator,
+    FrameStackTransitionPicker,
     InfiniteBuffer,
     MDPDataset,
     ReplayBuffer,
@@ -153,8 +154,6 @@ def get_pendulum(
 def get_atari(
     env_name: str,
     num_stack: Optional[int] = None,
-    transition_picker: Optional[TransitionPickerProtocol] = None,
-    trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
 ) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, int]]:
     """Returns atari dataset and envrironment.
 
@@ -173,8 +172,6 @@ def get_atari(
     Args:
         env_name: environment id of d4rl-atari dataset.
         num_stack: the number of frames to stack (only applied to env).
-        transition_picker: TransitionPickerProtocol object.
-        trajectory_slicer: TrajectorySlicerProtocol object.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
@@ -188,8 +185,8 @@ def get_atari(
         episode_generator = EpisodeGenerator(**raw_dataset)
         dataset = create_infinite_replay_buffer(
             episodes=episode_generator(),
-            transition_picker=transition_picker,
-            trajectory_slicer=trajectory_slicer,
+            transition_picker=FrameStackTransitionPicker(num_stack or 1),
+            trajectory_slicer=None,
         )
         if num_stack:
             env = FrameStack(env, num_stack=num_stack)
@@ -208,8 +205,6 @@ def get_atari_transitions(
     fraction: float = 0.01,
     index: int = 0,
     num_stack: Optional[int] = None,
-    transition_picker: Optional[TransitionPickerProtocol] = None,
-    trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
 ) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, int]]:
     """Returns atari dataset as a list of Transition objects and envrironment.
 
@@ -233,8 +228,6 @@ def get_atari_transitions(
         fraction: fraction of sampled transitions.
         index: index to specify which trial to load.
         num_stack: the number of frames to stack (only applied to env).
-        transition_picker: TransitionPickerProtocol object.
-        trajectory_slicer: TrajectorySlicerProtocol object.
 
     Returns:
         tuple of a list of :class:`d3rlpy.dataset.Transition` and gym
@@ -286,8 +279,7 @@ def get_atari_transitions(
         dataset = ReplayBuffer(
             InfiniteBuffer(),
             episodes=copied_episodes,
-            transition_picker=transition_picker,
-            trajectory_slicer=trajectory_slicer,
+            transition_picker=FrameStackTransitionPicker(num_stack or 1),
         )
 
         if num_stack:
@@ -505,12 +497,6 @@ def get_dataset(
         )
     elif re.match(r"hopper|halfcheetah|walker|ant", env_name):
         return get_d4rl(
-            env_name,
-            transition_picker=transition_picker,
-            trajectory_slicer=trajectory_slicer,
-        )
-    elif re.match(re.compile("|".join(ATARI_GAMES)), env_name):
-        return get_atari(
             env_name,
             transition_picker=transition_picker,
             trajectory_slicer=trajectory_slicer,

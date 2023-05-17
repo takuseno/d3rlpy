@@ -17,7 +17,6 @@ def main() -> None:
         fraction=0.01,
         index=1 if args.game == "asterix" else 0,
         num_stack=4,
-        transition_picker=d3rlpy.dataset.FrameStackTransitionPicker(n_frames=4),
     )
 
     d3rlpy.envs.seed_env(env, args.seed)
