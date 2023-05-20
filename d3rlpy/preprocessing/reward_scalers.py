@@ -40,11 +40,11 @@ class MultiplyRewardScaler(RewardScaler):
     .. code-block:: python
 
         from d3rlpy.preprocessing import MultiplyRewardScaler
+        from d3rlpy.algos import CQLConfig
 
         # multiply rewards by 10
         reward_scaler = MultiplyRewardScaler(10.0)
-
-        cql = CQL(reward_scaler=reward_scaler)
+        cql = CQLConfig(reward_scaler=reward_scaler).create()
 
     Args:
         multiplier (float): constant multiplication value.
@@ -94,15 +94,15 @@ class ClipRewardScaler(RewardScaler):
     .. code-block:: python
 
         from d3rlpy.preprocessing import ClipRewardScaler
+        from d3rlpy.algos import CQLConfig
 
         # clip rewards within [-1.0, 1.0]
         reward_scaler = ClipRewardScaler(low=-1.0, high=1.0)
-
-        cql = CQL(reward_scaler=reward_scaler)
+        cql = CQLConfig(reward_scaler=reward_scaler).create()
 
     Args:
-        low (float): minimum value to clip.
-        high (float): maximum value to clip.
+        low (Optional[float]): minimum value to clip.
+        high (Optional[float]): maximum value to clip.
         multiplier (float): constant multiplication value.
 
     """
@@ -149,27 +149,23 @@ class ClipRewardScaler(RewardScaler):
 class MinMaxRewardScaler(RewardScaler):
     r"""Min-Max reward normalization preprocessing.
 
+    Rewards will be normalized in range ``[0.0, 1.0]``.
+
     .. math::
 
         r' = (r - \min(r)) / (\max(r) - \min(r))
 
     .. code-block:: python
 
-        from d3rlpy.algos import CQL
-
-        cql = CQL(reward_scaler="min_max")
-
-    You can also initialize with :class:`d3rlpy.dataset.MDPDataset` object or
-    manually.
-
-    .. code-block:: python
-
         from d3rlpy.preprocessing import MinMaxRewardScaler
+        from d3rlpy.algos import CQLConfig
+
+        # normalize based on datasets
+        cql = CQLConfig(reward_scaler=MinMaxRewardScaler()).create()
 
         # initialize manually
-        scaler = MinMaxRewardScaler(minimum=0.0, maximum=10.0)
-
-        cql = CQL(scaler=scaler)
+        reward_scaler = MinMaxRewardScaler(minimum=0.0, maximum=10.0)
+        cql = CQLConfig(reward_scaler=reward_scaler).create()
 
     Args:
         minimum (float): minimum value.
@@ -253,21 +249,15 @@ class StandardRewardScaler(RewardScaler):
 
     .. code-block:: python
 
-        from d3rlpy.algos import CQL
-
-        cql = CQL(reward_scaler="standard")
-
-    You can also initialize with :class:`d3rlpy.dataset.MDPDataset` object or
-    manually.
-
-    .. code-block:: python
-
         from d3rlpy.preprocessing import StandardRewardScaler
+        from d3rlpy.algos import CQLConfig
+
+        # normalize based on datasets
+        cql = CQLConfig(reward_scaler=StandardRewardScaler()).create()
 
         # initialize manually
-        scaler = StandardRewardScaler(mean=0.0, std=1.0)
-
-        cql = CQL(scaler=scaler)
+        reward_scaler = StandardRewardScaler(mean=0.0, std=1.0)
+        cql = CQLConfig(reward_scaler=reward_scaler).create()
 
     Args:
         mean (float): mean value.
@@ -351,21 +341,18 @@ class ReturnBasedRewardScaler(RewardScaler):
 
     .. code-block:: python
 
-        from d3rlpy.algos import CQL
-
-        cql = CQL(reward_scaler="return")
-
-    You can also initialize with :class:`d3rlpy.dataset.MDPDataset` object or
-    manually.
-
-    .. code-block:: python
-
         from d3rlpy.preprocessing import ReturnBasedRewardScaler
+        from d3rlpy.algos import CQLConfig
+
+        # normalize based on datasets
+        cql = CQLConfig(reward_scaler=ReturnBasedRewardScaler()).create()
 
         # initialize manually
-        scaler = ReturnBasedRewardScaler(return_max=100.0, return_min=1.0)
-
-        cql = CQL(scaler=scaler)
+        reward_scaler = ReturnBasedRewardScaler(
+            return_max=100.0,
+            return_min=1.0,
+        )
+        cql = CQLConfig(reward_scaler=reward_scaler).create()
 
     References:
         * `Kostrikov et al., Offline Reinforcement Learning with Implicit
@@ -454,11 +441,10 @@ class ConstantShiftRewardScaler(RewardScaler):
     .. code-block:: python
 
         from d3rlpy.preprocessing import ConstantShiftRewardScaler
+        from d3rlpy.algos import CQLConfig
 
-        # initialize manually
-        scaler = ConstantShiftRewardScaler(shift=-1.0)
-
-        cql = CQL(reward_scaler=scaler)
+        reward_scaler = ConstantShiftRewardScaler(shift=-1.0)
+        cql = CQLConfig(reward_scaler=reward_scaler).create()
 
     References:
         * `Kostrikov et al., Offline Reinforcement Learning with Implicit

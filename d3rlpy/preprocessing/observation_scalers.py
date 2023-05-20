@@ -39,15 +39,10 @@ class PixelObservationScaler(ObservationScaler):
 
     .. code-block:: python
 
-        from d3rlpy.dataset import MDPDataset
-        from d3rlpy.algos import CQL
+        from d3rlpy.preprocessing import PixelObservationScaler
+        from d3rlpy.algos import CQLConfig
 
-        dataset = MDPDataset(observations, actions, rewards, terminals)
-
-        # initialize algorithm with PixelScaler
-        cql = CQL(scaler='pixel')
-
-        cql.fit(dataset.episodes)
+        cql = CQLConfig(observation_scaler=PixelObservationScaler()).create()
 
     """
 
@@ -93,39 +88,28 @@ class PixelObservationScaler(ObservationScaler):
 class MinMaxObservationScaler(ObservationScaler):
     r"""Min-Max normalization preprocessing.
 
+    Observations will be normalized in range ``[-1.0, 1.0]``.
+
     .. math::
 
-        x' = (x - \min{x}) / (\max{x} - \min{x})
+        x' = (x - \min{x}) / (\max{x} - \min{x}) * 2 - 1
 
     .. code-block:: python
 
-        from d3rlpy.dataset import MDPDataset
-        from d3rlpy.algos import CQL
+        from d3rlpy.preprocessing import MinMaxObservationScaler
+        from d3rlpy.algos import CQLConfig
 
-        dataset = MDPDataset(observations, actions, rewards, terminals)
+        # normalize based on datasets or environments
+        cql = CQLConfig(observation_scaler=MinMaxObservationScaler()).create()
 
-        # initialize algorithm with MinMaxScaler
-        cql = CQL(scaler='min_max')
-
-        # scaler is initialized from the given transitions
-        transitions = []
-        for episode in dataset.episodes:
-            transitions += episode.transitions
-        cql.fit(transitions)
-
-    You can also initialize with :class:`d3rlpy.dataset.MDPDataset` object or
-    manually.
-
-    .. code-block:: python
-
-        from d3rlpy.preprocessing import MinMaxScaler
-
-        # initialize manually
+        # manually initialize
         minimum = observations.min(axis=0)
         maximum = observations.max(axis=0)
-        scaler = MinMaxScaler(minimum=minimum, maximum=maximum)
-
-        cql = CQL(scaler=scaler)
+        observation_scaler = MinMaxObservationScaler(
+            minimum=minimum,
+            maximum=maximum,
+        )
+        cql = CQLConfig(observation_scaler=observation_scaler).create()
 
     Args:
         minimum (numpy.ndarray): minimum values at each entry.
@@ -251,33 +235,17 @@ class StandardObservationScaler(ObservationScaler):
 
     .. code-block:: python
 
-        from d3rlpy.dataset import MDPDataset
-        from d3rlpy.algos import CQL
+        from d3rlpy.preprocessing import StandardObservationScaler
+        from d3rlpy.algos import CQLConfig
 
-        dataset = MDPDataset(observations, actions, rewards, terminals)
+        # normalize based on datasets
+        cql = CQLConfig(observation_scaler=StandardObservationScaler()).create()
 
-        # initialize algorithm with StandardScaler
-        cql = CQL(scaler='standard')
-
-        # scaler is initialized from the given episodes
-        transitions = []
-        for episode in dataset.episodes:
-            transitions += episode.transitions
-        cql.fit(transitions)
-
-    You can initialize with :class:`d3rlpy.dataset.MDPDataset` object or
-    manually.
-
-    .. code-block:: python
-
-        from d3rlpy.preprocessing import StandardScaler
-
-        # initialize manually
+        # manually initialize
         mean = observations.mean(axis=0)
         std = observations.std(axis=0)
-        scaler = StandardScaler(mean=mean, std=std)
-
-        cql = CQL(scaler=scaler)
+        observation_scaler = StandardObservationScaler(mean=mean, std=std)
+        cql = CQLConfig(observation_scaler=observation_scaler).create()
 
     Args:
         mean (numpy.ndarray): mean values at each entry.

@@ -12,16 +12,17 @@ in the model exported by `save_policy` method.
 
 .. code-block:: python
 
-    from d3rlpy.algos import CQL
-    from d3rlpy.dataset import MDPDataset
+    from d3rlpy.datasets import get_pendulum
+    from d3rlpy.algos import CQLConfig
+    from d3rlpy.preprocesing import StandardObservationScaler
 
-    dataset = MDPDataset(...)
+    dataset, _ = get_pendulum()
 
     # choose from ['pixel', 'min_max', 'standard'] or None
-    cql = CQL(observation_scaler='standard')
+    cql = CQLConfig(observation_scaler=StandardObservationScaler()).create()
 
-    # observation scaler is fitted from the given episodes
-    cql.fit(dataset.episodes)
+    # observation scaler is fitted from the given dataset
+    cql.fit(dataset, n_steps=100000)
 
     # preprocesing is included in TorchScript
     cql.save_policy('policy.pt')
@@ -38,7 +39,7 @@ You can also initialize observation scalers by yourself.
 
     observation_scaler = StandardObservationScaler(mean=..., std=...)
 
-    cql = CQL(observation_scaler=observation_scaler)
+    cql = CQLConfig(observation_scaler=observation_scaler).create()
 
 .. autosummary::
    :toctree: generated/
@@ -58,16 +59,16 @@ implement normalization in the environment side.
 
 .. code-block:: python
 
-    from d3rlpy.algos import CQL
-    from d3rlpy.dataset import MDPDataset
+    from d3rlpy.datasets import get_pendulum
+    from d3rlpy.algos import CQLConfig
+    from d3rlpy.preprocessing import MinMaxActionScaler
 
-    dataset = MDPDataset(...)
+    dataset, _ = get_pendulum()
 
-    # 'min_max' or None
-    cql = CQL(action_scaler='min_max')
+    cql = CQLConfig(action_scaler=MinMaxActionScaler()).create()
 
     # action scaler is fitted from the given episodes
-    cql.fit(dataset.episodes)
+    cql.fit(dataset, n_steps=100000)
 
     # postprocessing is included in TorchScript
     cql.save_policy('policy.pt')
@@ -84,7 +85,7 @@ You can also initialize scalers by yourself.
 
     action_scaler = MinMaxActionScaler(minimum=..., maximum=...)
 
-    cql = CQL(action_scaler=action_scaler)
+    cql = CQLConfig(action_scaler=action_scaler).create()
 
 .. autosummary::
    :toctree: generated/
@@ -103,16 +104,16 @@ Afterwards you can use it with online training.
 
 .. code-block:: python
 
-    from d3rlpy.algos import CQL
-    from d3rlpy.dataset import MDPDataset
+    from d3rlpy.datasets import get_pendulum
+    from d3rlpy.algos import CQLConfig
+    from d3rlpy.preprocessing import StandardRewardScaler
 
-    dataset = MDPDataset(...)
+    dataset, _ = get_pendulum()
 
-    # 'min_max', 'standard' or None
-    cql = CQL(reward_scaler='standard')
+    cql = CQLConfig(reward_scaler=StandardRewardScaler()).create()
 
     # reward scaler is fitted from the given episodes
-    cql.fit(dataset.episodes)
+    cql.fit(dataset)
 
     # reward scaler is also available at finetuning.
     cql.fit_online(env)
@@ -125,11 +126,7 @@ You can also initialize scalers by yourself.
 
     reward_scaler = MinMaxRewardScaler(minimum=..., maximum=...)
 
-    cql = CQL(reward_scaler=reward_scaler)
-
-    # ClipRewardScaler and MultiplyRewardScaler must be initialized manually
-    reward_scaler = ClipRewardScaler(-1.0, 1.0)
-    cql = CQL(reward_scaler=reward_scaler)
+    cql = CQLConfig(reward_scaler=reward_scaler).create()
 
 .. autosummary::
    :toctree: generated/
