@@ -23,6 +23,7 @@ from .preprocessing import (
 )
 from .serializable_config import DynamicConfig, generate_config_registration
 from .torch_utility import get_state_dict, map_location, set_state_dict
+from .docs_utils import DEVICE_ARG_DOC
 
 __all__ = [
     "DeviceArg",
@@ -92,6 +93,15 @@ class LearnableConfig(DynamicConfig):
     def create(
         self, device: DeviceArg = False
     ) -> "LearnableBase[ImplBase, LearnableConfig]":
+        f"""Returns algorithm object.
+
+        Args:
+            {DEVICE_ARG_DOC}
+
+        Returns:
+            algorithm object.
+
+        """
         raise NotImplementedError
 
 
@@ -251,6 +261,22 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
     def from_json(
         cls: Type[Self], fname: str, device: DeviceArg = False
     ) -> Self:
+        f"""Construct algorithm from params.json file.
+
+        .. code-block:: python
+
+            from d3rlpy.algos import CQL
+
+            cql = CQL.from_json("<path-to-json>", device='cuda:0')
+
+        Args:
+            fname: path to params.json
+            {DEVICE_ARG_DOC}
+
+        Returns:
+            algorithm object.
+
+        """
         config = LearnableConfigWithShape.deserialize_from_file(fname)
         return config.create(device)  # type: ignore
 
@@ -275,7 +301,7 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
         pass
 
     def build_with_dataset(self, dataset: ReplayBuffer) -> None:
-        """Instantiate implementation object with MDPDataset object.
+        """Instantiate implementation object with ReplayBuffer object.
 
         Args:
             dataset: dataset.
@@ -319,6 +345,12 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
     @property
     def config(self) -> TConfig_co:
+        """Config.
+
+        Returns:
+            LearnableConfig: config.
+
+        """
         return self._config
 
     @property

@@ -36,6 +36,9 @@ class NFQConfig(LearnableConfig):
           <https://link.springer.com/chapter/10.1007/11564096_32>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory.
@@ -46,10 +49,6 @@ class NFQConfig(LearnableConfig):
         batch_size (int): mini-batch size.
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler):
-            reward preprocessor.
     """
     learning_rate: float = 6.25e-5
     optim_factory: OptimizerFactory = make_optimizer_field()

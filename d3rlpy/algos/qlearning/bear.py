@@ -65,6 +65,10 @@ class BEARConfig(LearnableConfig):
           Error Reduction. <https://arxiv.org/abs/1906.00949>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         imitator_learning_rate (float): learning rate for behavior policy
@@ -111,10 +115,6 @@ class BEARConfig(LearnableConfig):
             policy training.
         warmup_steps (int): the number of steps to warmup the policy
             function.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     actor_learning_rate: float = 1e-4
     critic_learning_rate: float = 3e-4

@@ -51,6 +51,10 @@ class TD3Config(LearnableConfig):
           Actor-Critic Methods. <https://arxiv.org/abs/1802.09477>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         actor_learning_rate (float): learning rate for a policy function.
         critic_learning_rate (float): learning rate for Q functions.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
@@ -71,10 +75,6 @@ class TD3Config(LearnableConfig):
         target_smoothing_clip (float): clipping range for target noise.
         update_actor_interval (int): interval to update policy function
             described as `delayed policy update` in the paper.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4

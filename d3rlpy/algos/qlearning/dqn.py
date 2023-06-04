@@ -32,6 +32,9 @@ class DQNConfig(LearnableConfig):
           learning. <https://www.nature.com/articles/nature14236>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory.
@@ -43,9 +46,6 @@ class DQNConfig(LearnableConfig):
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         target_update_interval (int): interval to update the target network.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     batch_size: int = 32
     learning_rate: float = 6.25e-5
@@ -124,6 +124,9 @@ class DoubleDQNConfig(DQNConfig):
           <https://arxiv.org/abs/1509.06461>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory.
@@ -136,8 +139,6 @@ class DoubleDQNConfig(DQNConfig):
         n_critics (int): the number of Q functions.
         target_update_interval (int): interval to synchronize the target
             network.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
     """
     batch_size: int = 32
     learning_rate: float = 6.25e-5

@@ -66,6 +66,10 @@ class CQLConfig(LearnableConfig):
           Learning. <https://arxiv.org/abs/2006.04779>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         temp_learning_rate (float):
@@ -96,10 +100,6 @@ class CQLConfig(LearnableConfig):
         n_action_samples (int): the number of sampled actions to compute
             :math:`\log{\sum_a \exp{Q(s, a)}}`.
         soft_q_backup (bool): flag to use SAC-style backup.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     actor_learning_rate: float = 1e-4
     critic_learning_rate: float = 3e-4
@@ -245,6 +245,9 @@ class DiscreteCQLConfig(LearnableConfig):
           Learning. <https://arxiv.org/abs/2006.04779>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory.
@@ -258,9 +261,6 @@ class DiscreteCQLConfig(LearnableConfig):
         target_update_interval (int): interval to synchronize the target
             network.
         alpha (float): the :math:`\alpha` value above.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     learning_rate: float = 6.25e-5
     optim_factory: OptimizerFactory = make_optimizer_field()

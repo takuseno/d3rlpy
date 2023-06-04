@@ -58,6 +58,10 @@ class IQLConfig(LearnableConfig):
           Q-Learning. <https://arxiv.org/abs/2110.06169>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
@@ -78,10 +82,6 @@ class IQLConfig(LearnableConfig):
         weight_temp (float): inverse temperature value represented as
             :math:`\beta`.
         max_weight (float): the maximum advantage weight value to clip.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4

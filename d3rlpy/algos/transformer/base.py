@@ -50,6 +50,35 @@ TTransformerConfig = TypeVar("TTransformerConfig", bound=TransformerConfig)
 
 
 class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
+    r"""A stateful wrapper for inference of Transformer-based algorithms.
+
+    This wrapper class provides a similar interface of Q-learning-based
+    algoritms, which is especially useful when you evaluate Transformer-based
+    algorithms such as Decision Transformer.
+
+    .. code-block:: python
+
+        from d3rlpy.algos import DecisionTransformerConfig
+        from d3rlpy.algos import StatefulTransformerWrapper
+
+        dt = DecisionTransformerConfig().create()
+        dt.create_impl(<observation_shape>, <action_size>)
+        # initialize wrapper with a target return of 1000
+        wrapper = StatefulTransformerWrapper(dt, target_return=1000)
+        # shortcut is also available
+        wrapper = dt.as_stateful_wrapper(target_return=1000)
+
+        # predict next action to achieve the return of 1000 in the end
+        action = wrapper.predict(<observation>, <reward>)
+
+        # clear stateful information
+        wrapper.reset()
+
+    Args:
+        algo (TransformerAlgoBase): Transformer-based algorithm.
+        target_return (float): target return to achieve.
+
+    """
     _algo: "TransformerAlgoBase[TTransformerImpl, TTransformerConfig]"
     _target_return: float
     _return_rest: float
@@ -79,6 +108,16 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         self._timestep = 0
 
     def predict(self, x: Observation, reward: float) -> Union[np.ndarray, int]:
+        r"""Returns action.
+
+        Args:
+            x: observation.
+            reward: last reward.
+
+        Returns:
+            action.
+
+        """
         self._observations.append(x)
         self._rewards.append(reward)
         self._returns_to_go.append(self._return_rest - reward)
@@ -97,6 +136,8 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         return action
 
     def reset(self) -> None:
+        """Clears stateful information.
+        """
         self._observations.clear()
         self._actions.clear()
         self._rewards.clear()
@@ -126,6 +167,18 @@ class TransformerAlgoBase(
     LearnableBase[TTransformerImpl, TTransformerConfig],
 ):
     def predict(self, inpt: TransformerInput) -> np.ndarray:
+        """Returns action.
+
+        This is for internal use. For evaluation, use
+        ``StatefulTransformerWrapper`` instead.
+
+        Args:
+            inpt: sequence input.
+
+        Returns:
+            action.
+
+        """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         with torch.no_grad():
             torch_inpt = TorchTransformerInput.from_numpy(
@@ -192,9 +245,6 @@ class TransformerAlgoBase(
             save_interval: interval to save parameters.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
-
-        Returns:
-            iterator yielding current epoch and metrics dict.
 
         """
         dataset_info = DatasetInfo.from_episodes(dataset.episodes)

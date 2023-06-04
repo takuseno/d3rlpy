@@ -99,6 +99,10 @@ class BCQConfig(LearnableConfig):
           Exploration. <https://arxiv.org/abs/1812.02900>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         imitator_learning_rate (float): learning rate for Conditional VAE.
@@ -129,10 +133,6 @@ class BCQConfig(LearnableConfig):
         rl_start_step (int): step to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
         beta (float): KL reguralization term for Conditional VAE.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     actor_learning_rate: float = 1e-3
     critic_learning_rate: float = 1e-3
@@ -286,6 +286,9 @@ class DiscreteBCQConfig(LearnableConfig):
           Algorithms. <https://arxiv.org/abs/1910.01708>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         learning_rate (float): learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             optimizer factory.
@@ -300,9 +303,6 @@ class DiscreteBCQConfig(LearnableConfig):
             :math:`\tau`.
         beta (float): reguralization term for imitation function.
         target_update_interval (int): interval to update the target network.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     learning_rate: float = 6.25e-5
     optim_factory: OptimizerFactory = make_optimizer_field()

@@ -45,6 +45,10 @@ class AWACConfig(LearnableConfig):
           Datasets. <https://arxiv.org/abs/2006.09359>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
@@ -65,10 +69,7 @@ class AWACConfig(LearnableConfig):
             :math:`A^\pi(s_t, a_t)`.
         n_critics (int): the number of Q functions for ensemble.
         update_actor_interval (int): interval to update policy function.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
+
     """
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4

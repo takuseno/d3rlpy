@@ -51,6 +51,10 @@ class DDPGConfig(LearnableConfig):
           learning. <https://arxiv.org/abs/1509.02971>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q function.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
@@ -67,10 +71,6 @@ class DDPGConfig(LearnableConfig):
         gamma (float): discount factor.
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     batch_size: int = 256
     actor_learning_rate: float = 3e-4

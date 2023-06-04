@@ -45,6 +45,10 @@ class PLASConfig(LearnableConfig):
           learning. <https://arxiv.org/abs/2011.07213>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         imitator_learning_rate (float): learning rate for Conditional VAE.
@@ -70,10 +74,6 @@ class PLASConfig(LearnableConfig):
         lam (float): weight factor for critic ensemble.
         warmup_steps (int): the number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     actor_learning_rate: float = 1e-4
     critic_learning_rate: float = 1e-3
@@ -191,6 +191,10 @@ class PLASWithPerturbationConfig(PLASConfig):
           learning. <https://arxiv.org/abs/2011.07213>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         imitator_learning_rate (float): learning rate for Conditional VAE.
@@ -217,10 +221,6 @@ class PLASWithPerturbationConfig(PLASConfig):
         action_flexibility (float): output scale of perturbation layer.
         warmup_steps (int): the number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     action_flexibility: float = 0.05
 

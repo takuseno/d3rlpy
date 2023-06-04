@@ -67,6 +67,10 @@ class SACConfig(LearnableConfig):
           <https://arxiv.org/abs/1812.05905>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         temp_learning_rate (float): learning rate for temperature parameter.
@@ -87,10 +91,6 @@ class SACConfig(LearnableConfig):
         tau (float): target network synchronization coefficiency.
         n_critics (int): the number of Q functions for ensemble.
         initial_temperature (float): initial temperature value.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4
@@ -220,6 +220,9 @@ class DiscreteSACConfig(LearnableConfig):
           <https://arxiv.org/abs/1910.07207>`_
 
     Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
         actor_learning_rate (float): learning rate for policy function.
         critic_learning_rate (float): learning rate for Q functions.
         temp_learning_rate (float): learning rate for temperature parameter.
@@ -239,9 +242,6 @@ class DiscreteSACConfig(LearnableConfig):
         gamma (float): discount factor.
         n_critics (int): the number of Q functions for ensemble.
         initial_temperature (float): initial temperature value.
-        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
     """
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4

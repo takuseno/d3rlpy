@@ -22,6 +22,40 @@ __all__ = ["DecisionTransformerConfig", "DecisionTransformer"]
 
 @dataclasses.dataclass()
 class DecisionTransformerConfig(TransformerConfig):
+    """Config of Decision Transformer.
+
+    Decision Transformer solves decision-making problems as a sequence modeling
+    problem.
+
+    References:
+        * `Chen at el., Decision Transformer: Reinforcement Learning via
+            Sequence Modeling. <https://arxiv.org/abs/2106.01345>`_
+
+    Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
+        context_size (int): prior sequence length.
+        batch_size (int): mini-batch size.
+        learning_rate (float): learning rate.
+        encoder_factory (d3rlpy.models.encoders.EncoderFactory):
+            encoder factory.
+        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            optimizer factory.
+        num_heads (int): number of attention heads.
+        max_timestep (int): maximum environmental timestep.
+        num_layers (int): number of attention blocks.
+        attn_dropout (float): dropout probability for attentions.
+        resid_dropout (float): dropout probability for residual connection.
+        embed_dropout (float): dropout probability for embeddings.
+        activation_type (str): type of activation function.
+        position_encoding_type (str): type of positional encoding
+            (``simple`` or ``global``).
+        warmup_steps (int): warmup steps for learning rate scheduler.
+        clip_grad_norm (float): norm of gradient clipping.
+
+    """
     batch_size: int = 64
     learning_rate: float = 1e-4
     encoder_factory: EncoderFactory = make_encoder_field()
