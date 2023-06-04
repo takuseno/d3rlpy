@@ -23,7 +23,6 @@ from .preprocessing import (
 )
 from .serializable_config import DynamicConfig, generate_config_registration
 from .torch_utility import get_state_dict, map_location, set_state_dict
-from .docs_utils import DEVICE_ARG_DOC
 
 __all__ = [
     "DeviceArg",
@@ -93,10 +92,13 @@ class LearnableConfig(DynamicConfig):
     def create(
         self, device: DeviceArg = False
     ) -> "LearnableBase[ImplBase, LearnableConfig]":
-        f"""Returns algorithm object.
+        r"""Returns algorithm object.
 
         Args:
-            {DEVICE_ARG_DOC}
+            device (Union[int, str, bool]): device option. If the value is
+                boolean and True, ``cuda:0`` will be used. If the value is
+                integer, ``cuda:<device>`` will be used. If the value is string
+                in torch device style, the specified device will be used.
 
         Returns:
             algorithm object.
@@ -261,7 +263,7 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
     def from_json(
         cls: Type[Self], fname: str, device: DeviceArg = False
     ) -> Self:
-        f"""Construct algorithm from params.json file.
+        r"""Construct algorithm from params.json file.
 
         .. code-block:: python
 
@@ -271,7 +273,10 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Args:
             fname: path to params.json
-            {DEVICE_ARG_DOC}
+            device (Union[int, str, bool]): device option. If the value is
+                boolean and True, ``cuda:0`` will be used. If the value is
+                integer, ``cuda:<device>`` will be used. If the value is string
+                in torch device style, the specified device will be used.
 
         Returns:
             algorithm object.

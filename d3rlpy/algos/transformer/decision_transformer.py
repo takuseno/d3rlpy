@@ -56,6 +56,7 @@ class DecisionTransformerConfig(TransformerConfig):
         clip_grad_norm (float): norm of gradient clipping.
 
     """
+
     batch_size: int = 64
     learning_rate: float = 1e-4
     encoder_factory: EncoderFactory = make_encoder_field()

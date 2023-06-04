@@ -136,8 +136,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         return action
 
     def reset(self) -> None:
-        """Clears stateful information.
-        """
+        """Clears stateful information."""
         self._observations.clear()
         self._actions.clear()
         self._rewards.clear()
