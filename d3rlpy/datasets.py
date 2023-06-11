@@ -8,6 +8,7 @@ from urllib import request
 
 import gym
 import numpy as np
+from gym.wrappers.time_limit import TimeLimit
 
 from .dataset import (
     Episode,
@@ -349,7 +350,7 @@ def get_d4rl(
         # wrapped by NormalizedBoxEnv that is incompatible with newer Gym
         unwrapped_env: gym.Env[Any, Any] = env.env.env.env.wrapped_env  # type: ignore
 
-        return dataset, unwrapped_env
+        return dataset, TimeLimit(unwrapped_env, max_episode_steps=1000)
     except ImportError as e:
         raise ImportError(
             "d4rl is not installed.\n"

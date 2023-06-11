@@ -133,6 +133,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         self._actions[-1] = action
         self._actions.append(self._get_pad_action())
         self._timestep += 1
+        self._return_rest -= reward
         return action
 
     def reset(self) -> None:

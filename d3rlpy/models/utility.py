@@ -12,4 +12,6 @@ def create_activation(activation_type: str) -> nn.Module:
         return nn.Tanh()
     elif activation_type == "swish":
         return Swish()
+    elif activation_type == "none":
+        return nn.Identity()
     raise ValueError("invalid activation_type.")

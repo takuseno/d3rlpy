@@ -267,6 +267,7 @@ class TorchTrajectoryMiniBatch:
             actions = action_scaler.transform(actions)
         if reward_scaler:
             rewards = reward_scaler.transform(rewards)
+            # NOTE: some operations might be incompatible with returns
             returns_to_go = reward_scaler.transform(returns_to_go)
 
         return TorchTrajectoryMiniBatch(
