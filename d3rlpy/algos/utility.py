@@ -10,7 +10,7 @@ from ..constants import (
     ActionSpace,
 )
 from ..dataset import DatasetInfo, ReplayBuffer
-from ..logger import LOG
+from ..logging import LOG
 
 __all__ = ["assert_action_space_with_dataset", "assert_action_space_with_env"]
 

@@ -30,7 +30,12 @@ from ...dataset import (
     create_fifo_replay_buffer,
     is_tuple_shape,
 )
-from ...logger import LOG, D3RLPyLogger
+from ...logging import (
+    LOG,
+    D3RLPyLogger,
+    FileAdapterFactory,
+    LoggerAdapterFactory,
+)
 from ...metrics import EvaluatorProtocol, evaluate_qlearning_with_environment
 from ...models.torch import EnsembleQFunction, Policy
 from ...torch_utility import (
@@ -363,13 +368,10 @@ class QLearningAlgoBase(
         dataset: ReplayBuffer,
         n_steps: int,
         n_steps_per_epoch: int = 10000,
-        save_metrics: bool = True,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
-        logdir: str = "d3rlpy_logs",
-        verbose: bool = True,
+        logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
-        tensorboard_dir: Optional[str] = None,
         save_interval: int = 1,
         evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
@@ -385,19 +387,12 @@ class QLearningAlgoBase(
             n_steps: the number of steps to train.
             n_steps_per_epoch: the number of steps per epoch. This value will
                 be ignored when ``n_steps`` is ``None``.
-            save_metrics: flag to record metrics in files. If False,
-                the log directory is not created and the model parameters are
-                not saved during training.
             experiment_name: experiment name for logging. If not passed,
                 the directory name will be `{class name}_{timestamp}`.
             with_timestamp: flag to add timestamp string to the last of
                 directory name.
-            logdir: root directory name to save logs.
-            verbose: flag to show logged information on stdout.
+            logger_adapter: LoggerAdapterFactory object.
             show_progress: flag to show progress bar for iterations.
-            tensorboard_dir: directory to save logged information in
-                tensorboard (additional to the csv data).  if ``None``, the
-                directory will not be created.
             save_interval: interval to save parameters.
             evaluators: list of evaluators.
             callback: callable function that takes ``(algo, epoch, total_step)``
@@ -412,13 +407,10 @@ class QLearningAlgoBase(
                 dataset,
                 n_steps,
                 n_steps_per_epoch,
-                save_metrics,
                 experiment_name,
                 with_timestamp,
-                logdir,
-                verbose,
+                logger_adapter,
                 show_progress,
-                tensorboard_dir,
                 save_interval,
                 evaluators,
                 callback,
@@ -431,13 +423,10 @@ class QLearningAlgoBase(
         dataset: ReplayBuffer,
         n_steps: int,
         n_steps_per_epoch: int = 10000,
-        save_metrics: bool = True,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
-        logdir: str = "d3rlpy_logs",
-        verbose: bool = True,
+        logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
-        tensorboard_dir: Optional[str] = None,
         save_interval: int = 1,
         evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
@@ -456,19 +445,12 @@ class QLearningAlgoBase(
             n_steps: the number of steps to train.
             n_steps_per_epoch: the number of steps per epoch. This value will
                 be ignored when ``n_steps`` is ``None``.
-            save_metrics: flag to record metrics in files. If False,
-                the log directory is not created and the model parameters are
-                not saved during training.
             experiment_name: experiment name for logging. If not passed,
                 the directory name will be `{class name}_{timestamp}`.
             with_timestamp: flag to add timestamp string to the last of
                 directory name.
-            logdir: root directory name to save logs.
-            verbose: flag to show logged information on stdout.
+            logger_adapter: LoggerAdapterFactory object.
             show_progress: flag to show progress bar for iterations.
-            tensorboard_dir: directory to save logged information in
-                tensorboard (additional to the csv data).  if ``None``, the
-                directory will not be created.
             save_interval: interval to save parameters.
             evaluators: list of evaluators.
             callback: callable function that takes ``(algo, epoch, total_step)``
@@ -491,11 +473,8 @@ class QLearningAlgoBase(
         if experiment_name is None:
             experiment_name = self.__class__.__name__
         logger = D3RLPyLogger(
-            experiment_name,
-            save_metrics=save_metrics,
-            root_dir=logdir,
-            verbose=verbose,
-            tensorboard_dir=tensorboard_dir,
+            adapter_factory=logger_adapter,
+            experiment_name=experiment_name,
             with_timestamp=with_timestamp,
         )
 
@@ -585,14 +564,11 @@ class QLearningAlgoBase(
         random_steps: int = 0,
         eval_env: Optional[gym.Env[Any, Any]] = None,
         eval_epsilon: float = 0.0,
-        save_metrics: bool = True,
         save_interval: int = 1,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
-        logdir: str = "d3rlpy_logs",
-        verbose: bool = True,
+        logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
-        tensorboard_dir: Optional[str] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> None:
         """Start training loop of online deep reinforcement learning.
@@ -608,19 +584,13 @@ class QLearningAlgoBase(
             random_steps: the steps for the initial random explortion.
             eval_env: gym-like environment. If None, evaluation is skipped.
             eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
-            save_metrics: flag to record metrics. If False, the log
-                directory is not created and the model parameters are not saved.
             save_interval: the number of epochs before saving models.
             experiment_name: experiment name for logging. If not passed,
                 the directory name will be ``{class name}_online_{timestamp}``.
             with_timestamp: flag to add timestamp string to the last of
                 directory name.
-            logdir: root directory name to save logs.
-            verbose: flag to show logged information on stdout.
+            logger_adapter: LoggerAdapterFactory object.
             show_progress: flag to show progress bar for iterations.
-            tensorboard_dir: directory to save logged information in
-                tensorboard (additional to the csv data).  if ``None``, the
-                directory will not be created.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called at the end of epochs.
 
@@ -637,11 +607,8 @@ class QLearningAlgoBase(
         if experiment_name is None:
             experiment_name = self.__class__.__name__ + "_online"
         logger = D3RLPyLogger(
-            experiment_name,
-            save_metrics=save_metrics,
-            root_dir=logdir,
-            verbose=verbose,
-            tensorboard_dir=tensorboard_dir,
+            adapter_factory=logger_adapter,
+            experiment_name=experiment_name,
             with_timestamp=with_timestamp,
         )
 

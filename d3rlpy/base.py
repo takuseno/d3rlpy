@@ -12,7 +12,7 @@ from typing_extensions import Self
 from ._version import __version__
 from .constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from .dataset import DatasetInfo, ReplayBuffer, Shape
-from .logger import LOG, D3RLPyLogger
+from .logging import LOG, D3RLPyLogger
 from .preprocessing import (
     ActionScaler,
     ObservationScaler,

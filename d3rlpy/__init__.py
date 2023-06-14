@@ -8,6 +8,7 @@ from . import (
     dataset,
     datasets,
     envs,
+    logging,
     metrics,
     models,
     ope,

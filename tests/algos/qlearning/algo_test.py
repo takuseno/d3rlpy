@@ -15,6 +15,7 @@ from d3rlpy.dataset import (
     TransitionMiniBatch,
     create_infinite_replay_buffer,
 )
+from d3rlpy.logging import NoopAdapterFactory
 from tests.base_test import from_json_tester, load_learnable_tester
 
 
@@ -93,8 +94,7 @@ def fit_tester(
         dataset,
         n_steps=n_steps,
         n_steps_per_epoch=n_steps_per_epoch,
-        logdir="test_data",
-        verbose=False,
+        logger_adapter=NoopAdapterFactory(),
         show_progress=False,
     )
 
@@ -116,8 +116,7 @@ def fit_tester(
         dataset,
         n_steps=n_steps,
         n_steps_per_epoch=n_steps_per_epoch,
-        logdir="test_data",
-        verbose=False,
+        logger_adapter=NoopAdapterFactory(),
         show_progress=False,
     )
 

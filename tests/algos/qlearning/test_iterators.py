@@ -5,6 +5,7 @@ from d3rlpy.algos.qlearning import DQNConfig, SACConfig
 from d3rlpy.algos.qlearning.explorers import LinearDecayEpsilonGreedy
 from d3rlpy.dataset import InfiniteBuffer, ReplayBuffer
 from d3rlpy.envs import ChannelFirst
+from d3rlpy.logging import NoopAdapterFactory
 
 from ...dummy_env import DummyAtari
 
@@ -25,7 +26,7 @@ def test_fit_online_cartpole_with_dqn() -> None:
         explorer,
         n_steps=100,
         eval_env=eval_env,
-        logdir="test_data",
+        logger_adapter=NoopAdapterFactory(),
     )
 
 
@@ -45,7 +46,7 @@ def test_fit_online_atari_with_dqn() -> None:
         explorer,
         n_steps=100,
         eval_env=eval_env,
-        logdir="test_data",
+        logger_adapter=NoopAdapterFactory(),
     )
 
     assert algo.impl
@@ -65,7 +66,7 @@ def test_fit_online_pendulum_with_sac() -> None:
         buffer,
         n_steps=500,
         eval_env=eval_env,
-        logdir="test_data",
+        logger_adapter=NoopAdapterFactory(),
     )
 
 

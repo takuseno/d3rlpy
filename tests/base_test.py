@@ -10,7 +10,8 @@ from d3rlpy.base import (
     load_learnable,
     save_config,
 )
-from d3rlpy.logger import D3RLPyLogger
+from d3rlpy.logging import D3RLPyLogger, FileAdapterFactory
+from d3rlpy.logging.file_adapter import FileAdapter
 
 
 def _check_reconst_algo(
@@ -50,11 +51,14 @@ def from_json_tester(
 ) -> None:
     algo.create_impl(observation_shape, action_size)
     # save params.json
-    logger = D3RLPyLogger("test", root_dir="test_data", verbose=False)
+    adapter_factory = FileAdapterFactory("test_data")
+    logger = D3RLPyLogger(adapter_factory, experiment_name="test")
     # save parameters to test_data/test/params.json
     save_config(algo, logger)
     # load params.json
-    json_path = os.path.join(logger.logdir, "params.json")
+    adapter = logger.adapter
+    assert isinstance(adapter, FileAdapter)
+    json_path = os.path.join(adapter.logdir, "params.json")
     new_algo = algo.__class__.from_json(json_path)
 
     _check_reconst_algo(algo, new_algo)

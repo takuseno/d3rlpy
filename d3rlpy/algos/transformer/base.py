@@ -17,7 +17,12 @@ from ...dataset import (
     ReplayBuffer,
     TrajectoryMiniBatch,
 )
-from ...logger import LOG, D3RLPyLogger
+from ...logging import (
+    LOG,
+    D3RLPyLogger,
+    FileAdapterFactory,
+    LoggerAdapterFactory,
+)
 from ...metrics import evaluate_transformer_with_environment
 from ...torch_utility import TorchTrajectoryMiniBatch
 from ..utility import (
@@ -201,13 +206,10 @@ class TransformerAlgoBase(
         dataset: ReplayBuffer,
         n_steps: int,
         n_steps_per_epoch: int = 10000,
-        save_metrics: bool = True,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
-        logdir: str = "d3rlpy_logs",
-        verbose: bool = True,
+        logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
-        tensorboard_dir: Optional[str] = None,
         eval_env: Optional[gym.Env[Any, Any]] = None,
         eval_target_return: Optional[float] = None,
         save_interval: int = 1,
@@ -227,19 +229,12 @@ class TransformerAlgoBase(
             n_steps: the number of steps to train.
             n_steps_per_epoch: the number of steps per epoch. This value will
                 be ignored when ``n_steps`` is ``None``.
-            save_metrics: flag to record metrics in files. If False,
-                the log directory is not created and the model parameters are
-                not saved during training.
             experiment_name: experiment name for logging. If not passed,
                 the directory name will be `{class name}_{timestamp}`.
             with_timestamp: flag to add timestamp string to the last of
                 directory name.
-            logdir: root directory name to save logs.
-            verbose: flag to show logged information on stdout.
+            logger_adapter: LoggerAdapterFactory object.
             show_progress: flag to show progress bar for iterations.
-            tensorboard_dir: directory to save logged information in
-                tensorboard (additional to the csv data).  if ``None``, the
-                directory will not be created.
             eval_env: evaluation environment.
             eval_target_return: evaluation return target.
             save_interval: interval to save parameters.
@@ -260,11 +255,8 @@ class TransformerAlgoBase(
         if experiment_name is None:
             experiment_name = self.__class__.__name__
         logger = D3RLPyLogger(
-            experiment_name,
-            save_metrics=save_metrics,
-            root_dir=logdir,
-            verbose=verbose,
-            tensorboard_dir=tensorboard_dir,
+            adapter_factory=logger_adapter,
+            experiment_name=experiment_name,
             with_timestamp=with_timestamp,
         )
 
