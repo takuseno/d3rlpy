@@ -13,6 +13,23 @@ __all__ = ["MDPDataset"]
 
 
 class MDPDataset(ReplayBuffer):
+    r"""Backward-compability class of MDPDataset.
+
+    Args:
+        observations (ObservationSequence): observations.
+        actions (np.ndarray): actions.
+        rewards (np.ndarray): rewards.
+        terminals (np.ndarray): environmental terminal flags.
+        timeouts (np.ndarray): timeouts.
+        transition_picker (Optional[TransitionPickerProtocol]):
+            transition picker implementation for Q-learning-based algorithms.
+            If ``None`` is given, ``BasicTransitionPicker`` is used by default.
+        trajectory_slicer (Optional[TrajectorySlicerProtocol]):
+            trajectory slicer implementation for Transformer-based algorithms.
+            If ``None`` is given, ``BasicTrajectorySlicer`` is used by default.
+
+    """
+
     def __init__(
         self,
         observations: ObservationSequence,

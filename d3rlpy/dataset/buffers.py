@@ -10,14 +10,33 @@ __all__ = ["BufferProtocol", "InfiniteBuffer", "FIFOBuffer"]
 
 class BufferProtocol(Protocol):
     def append(self, episode: EpisodeBase, index: int) -> None:
+        r"""Adds transition to buffer.
+
+        Args:
+            episode: Episode object.
+            index: transition index.
+
+        """
         raise NotImplementedError
 
     @property
     def episodes(self) -> Sequence[EpisodeBase]:
+        r"""Returns list of episodes.
+
+        Returns:
+            a list of saved episodes.
+
+        """
         raise NotImplementedError
 
     @property
     def transition_count(self) -> int:
+        r"""Returns the number of transitions.
+
+        Returns:
+            the number of transitions.
+
+        """
         raise NotImplementedError
 
     def __getitem__(self, index: int) -> Tuple[EpisodeBase, int]:
@@ -25,6 +44,7 @@ class BufferProtocol(Protocol):
 
 
 class InfiniteBuffer(BufferProtocol):
+    r"""Buffer with unlimited capacity."""
     _transitions: List[Tuple[EpisodeBase, int]]
     _episodes: List[EpisodeBase]
 
@@ -54,6 +74,12 @@ class InfiniteBuffer(BufferProtocol):
 
 
 class FIFOBuffer(BufferProtocol):
+    r"""FIFO buffer.
+
+    Args:
+        limit (int): buffer capacity.
+
+    """
     _transitions: Deque[Tuple[EpisodeBase, int]]
     _episodes: List[EpisodeBase]
     _limit: int
