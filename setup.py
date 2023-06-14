@@ -36,7 +36,6 @@ if __name__ == "__main__":
         ],
         install_requires=[
             "torch>=1.13.1",
-            "tensorboardX",
             "tqdm",
             "h5py",
             "gym>=0.26.0",

@@ -2,7 +2,6 @@ import os
 from typing import Any, Dict
 
 import numpy as np
-from tensorboardX import SummaryWriter
 
 from .logger import LoggerAdapter, LoggerAdapterFactory, SaveProtocol
 
@@ -11,11 +10,15 @@ __all__ = ["TensorboardAdapter", "TensorboardAdapterFactory"]
 
 class TensorboardAdapter(LoggerAdapter):
     _experiment_name: str
-    _writer: SummaryWriter
     _params: Dict[str, Any]
     _metrics: Dict[str, float]
 
     def __init__(self, root_dir: str, experiment_name: str):
+        try:
+            from tensorboardX import SummaryWriter
+        except ImportError as e:
+            raise ImportError("Please install tensorboardX") from e
+
         self._experiment_name = experiment_name
         logdir = os.path.join(root_dir, "runs", experiment_name)
         print(logdir)
@@ -32,7 +35,7 @@ class TensorboardAdapter(LoggerAdapter):
     def write_metric(
         self, epoch: int, step: int, name: str, value: float
     ) -> None:
-        # self._writer.add_scalar(f"metrics/{name}", value, epoch)
+        self._writer.add_scalar(f"metrics/{name}", value, epoch)
         self._metrics[name] = value
 
     def after_write_metric(self, epoch: int, step: int) -> None:
