@@ -31,7 +31,8 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
         observations = slice_observations(episode.observations, start, end)
         actions = episode.actions[start:end]
         rewards = episode.rewards[start:end]
-        all_returns_to_go = np.cumsum(episode.rewards[start:], axis=0)
+        ret = np.sum(episode.rewards[start:])
+        all_returns_to_go = ret - np.cumsum(episode.rewards[start:], axis=0)
         returns_to_go = all_returns_to_go[:actual_size].reshape((-1, 1))
 
         # prepare metadata

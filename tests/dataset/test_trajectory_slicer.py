@@ -22,7 +22,8 @@ def test_basic_trajectory_slicer(
         observation_shape, action_size, length, terminated=terminated
     )
     returns_to_go = np.reshape(
-        np.cumsum(np.reshape(episode.rewards, [-1])), [-1, 1]
+        np.sum(episode.rewards) - np.cumsum(np.reshape(episode.rewards, [-1])),
+        [-1, 1],
     )
 
     slicer = BasicTrajectorySlicer()

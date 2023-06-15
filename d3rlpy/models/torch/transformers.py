@@ -263,6 +263,7 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         self._position_encoding = position_encoding
         self._action_embed = nn.Linear(action_size, encoder.get_feature_size())
         self._rtg_embed = nn.Linear(1, encoder.get_feature_size())
+        self._embed_ln = nn.LayerNorm(encoder.get_feature_size())
         self._gpt2 = GPT2(
             hidden_size=encoder.get_feature_size(),
             num_heads=num_heads,
@@ -302,7 +303,7 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         # (B, 3, T, N) -> (B, T, 3, N) -> (B, T * 3, N)
         h = h.transpose(1, 2).reshape(batch_size, 3 * context_size, -1)
 
-        h = self._gpt2(h)
+        h = self._gpt2(self._embed_ln(h))
 
         # (B, T * 3, N) -> (B, T, 3, N) -> (B, 3, T, N)
         h = h.view(batch_size, context_size, 3, -1).transpose(1, 2)

@@ -69,4 +69,4 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         )
         # (B, T, A) -> (B, T)
         loss = ((action - batch.actions) ** 2).sum(dim=-1)
-        return (loss * batch.masks).mean()
+        return (loss * batch.masks).sum() / batch.masks.sum()
