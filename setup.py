@@ -2,8 +2,6 @@ import os
 
 from setuptools import find_packages, setup
 
-os.environ["CFLAGS"] = "-std=c++11"
-
 # get __version__ variable
 here = os.path.abspath(os.path.dirname(__file__))
 exec(open(os.path.join(here, "d3rlpy", "_version.py")).read())
@@ -41,7 +39,6 @@ if __name__ == "__main__":
             "gym>=0.26.0",
             "click",
             "typing-extensions",
-            "scipy",
             "structlog",
             "colorama",
             "dataclasses-json",

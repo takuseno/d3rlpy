@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple
 import click
 import gym
 import numpy as np
-from scipy.ndimage.filters import uniform_filter1d
 
 from . import algos
 from ._version import __version__
@@ -49,6 +48,16 @@ def get_plt() -> "matplotlib.pyplot":
     except ImportError:
         pass
     return plt
+
+
+def _compute_moving_average(values: np.ndarray, window: int) -> np.ndarray:
+    assert values.ndim == 1
+    results: List[float] = []
+    # average over past data
+    for i in range(values.shape[0]):
+        start = max(0, i - window)
+        results.append(float(np.mean(values[start : i + 1])))
+    return np.array(results)
 
 
 @click.group()
@@ -102,7 +111,7 @@ def plot(
         data = np.loadtxt(p, delimiter=",")
 
         # filter to smooth data
-        y_data = uniform_filter1d(data[:, 2], size=window)
+        y_data = _compute_moving_average(data[:, 2], window)
 
         # create label
         if label:
