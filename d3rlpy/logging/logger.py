@@ -1,7 +1,8 @@
 import time
+from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, Dict, Iterator, List
+from typing import Any, DefaultDict, Dict, Iterator, List
 
 import structlog
 from typing_extensions import Protocol
@@ -47,7 +48,7 @@ class LoggerAdapterFactory(Protocol):
 class D3RLPyLogger:
     _adapter: LoggerAdapter
     _experiment_name: str
-    _metrics_buffer: Dict[str, List[float]]
+    _metrics_buffer: DefaultDict[str, List[float]]
 
     def __init__(
         self,
@@ -61,15 +62,13 @@ class D3RLPyLogger:
         else:
             self._experiment_name = experiment_name
         self._adapter = adapter_factory.create(self._experiment_name)
-        self._metrics_buffer = {}
+        self._metrics_buffer = defaultdict(list)
 
     def add_params(self, params: Dict[str, Any]) -> None:
         self._adapter.write_params(params)
         LOG.info("Parameters", params=params)
 
     def add_metric(self, name: str, value: float) -> None:
-        if name not in self._metrics_buffer:
-            self._metrics_buffer[name] = []
         self._metrics_buffer[name].append(value)
 
     def commit(self, epoch: int, step: int) -> Dict[str, float]:
@@ -91,7 +90,7 @@ class D3RLPyLogger:
         self._adapter.after_write_metric(epoch, step)
 
         # initialize metrics buffer
-        self._metrics_buffer = {}
+        self._metrics_buffer.clear()
         return metrics
 
     def save_model(self, epoch: int, algo: SaveProtocol) -> None:
