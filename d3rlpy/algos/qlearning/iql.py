@@ -42,7 +42,7 @@ class IQLConfig(LearnableConfig):
 
     .. math::
 
-        L_Q(\theta) = \mathbb{E}_{(s, a, r, a') \sim D}
+        L_Q(\theta) = \mathbb{E}_{(s, a, r, s') \sim D}
             [(r + \gamma V_\psi(s') - Q_\theta(s, a))^2]
 
     Finally, the policy function is trained by using advantage weighted
