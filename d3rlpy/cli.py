@@ -9,7 +9,6 @@ import click
 import gym
 import numpy as np
 
-from . import algos
 from ._version import __version__
 from .algos import (
     QLearningAlgoBase,
@@ -212,56 +211,22 @@ def plot_all(
         plt.show()
 
 
-def _get_params_json_path(path: str) -> str:
-    dirname = os.path.dirname(path)
-    if not os.path.exists(os.path.join(dirname, "params.json")):
-        raise RuntimeError(
-            "params.json is not found in %s. Please specify"
-            "the path to params.json by --params-json."
-        )
-    return os.path.join(dirname, "params.json")
-
-
-@cli.command(short_help="Export saved model as inference model format.")
-@click.argument("path")
-@click.option(
-    "--format",
-    default="onnx",
-    show_default=True,
-    help="model format (torchscript, onnx).",
+@cli.command(
+    short_help="Export saved model as inference model format (ONNX or TorchScript)."
 )
-@click.option(
-    "--params-json", default=None, help="explicitly specify params.json."
-)
-@click.option("--out", default=None, help="output path.")
-def export(
-    path: str, format: str, params_json: Optional[str], out: Optional[str]
-) -> None:
-    # check format
-    if format not in ["onnx", "torchscript"]:
-        raise ValueError("Please specify onnx or torchscript.")
-
-    # find params.json
-    if params_json is None:
-        params_json = _get_params_json_path(path)
-
-    # load params
-    with open(params_json, "r") as f:
-        params = json.loads(f.read())
-
+@click.argument("model_path")
+@click.argument("output_path")
+def export(model_path: str, output_path: str) -> None:
     # load saved model
-    print(f"Loading {path}...")
-    algo = getattr(algos, params["algorithm"]).from_json(params_json)
-    algo.load_model(path)
-
-    if out is None:
-        ext = "onnx" if format == "onnx" else "torchscript"
-        export_name = os.path.splitext(os.path.basename(path))[0]
-        out = os.path.join(os.path.dirname(path), export_name + "." + ext)
+    print(f"Loading {model_path}...")
+    algo = load_learnable(model_path)
+    assert isinstance(
+        algo, QLearningAlgoBase
+    ), "Currently, only Q-learning algorithms are supported."
 
     # export inference model
-    print(f"Exporting to {out}...")
-    algo.save_policy(out, as_onnx=format == "onnx")
+    print(f"Exporting to {output_path}...")
+    algo.save_policy(output_path)
 
 
 def _exec_to_create_env(code: str) -> gym.Env[Any, Any]:
