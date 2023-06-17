@@ -65,6 +65,8 @@ class MinMaxActionScaler(ActionScaler):
             self.minimum = np.asarray(self.minimum)
         if self.maximum is not None:
             self.maximum = np.asarray(self.maximum)
+        self._torch_minimum: Optional[torch.Tensor] = None
+        self._torch_maximum: Optional[torch.Tensor] = None
 
     def fit_with_transition_picker(
         self,
@@ -120,27 +122,25 @@ class MinMaxActionScaler(ActionScaler):
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        minimum = add_leading_dims(
-            torch.tensor(self.minimum, dtype=torch.float32, device=x.device),
-            target=x,
+        if self._torch_minimum is None or self._torch_maximum is None:
+            self._set_torch_value(x.device)
+        assert (
+            self._torch_minimum is not None and self._torch_maximum is not None
         )
-        maximum = add_leading_dims(
-            torch.tensor(self.maximum, dtype=torch.float32, device=x.device),
-            target=x,
-        )
+        minimum = add_leading_dims(self._torch_minimum, target=x)
+        maximum = add_leading_dims(self._torch_maximum, target=x)
         # transform action into [-1.0, 1.0]
         return ((x - minimum) / (maximum - minimum)) * 2.0 - 1.0
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        minimum = add_leading_dims(
-            torch.tensor(self.minimum, dtype=torch.float32, device=x.device),
-            target=x,
+        if self._torch_minimum is None or self._torch_maximum is None:
+            self._set_torch_value(x.device)
+        assert (
+            self._torch_minimum is not None and self._torch_maximum is not None
         )
-        maximum = add_leading_dims(
-            torch.tensor(self.maximum, dtype=torch.float32, device=x.device),
-            target=x,
-        )
+        minimum = add_leading_dims(self._torch_minimum, target=x)
+        maximum = add_leading_dims(self._torch_maximum, target=x)
         # transform action from [-1.0, 1.0]
         return ((maximum - minimum) * ((x + 1.0) / 2.0)) + minimum
 
@@ -159,6 +159,14 @@ class MinMaxActionScaler(ActionScaler):
         maximum = add_leading_dims_numpy(self.maximum, target=x)
         # transform action from [-1.0, 1.0]
         return ((maximum - minimum) * ((x + 1.0) / 2.0)) + minimum
+
+    def _set_torch_value(self, device: torch.device) -> None:
+        self._torch_minimum = torch.tensor(
+            self.minimum, dtype=torch.float32, device=device
+        )
+        self._torch_maximum = torch.tensor(
+            self.maximum, dtype=torch.float32, device=device
+        )
 
     @staticmethod
     def get_type() -> str:

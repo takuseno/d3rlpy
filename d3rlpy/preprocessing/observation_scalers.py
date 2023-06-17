@@ -124,6 +124,8 @@ class MinMaxObservationScaler(ObservationScaler):
             self.minimum = np.asarray(self.minimum)
         if self.maximum is not None:
             self.maximum = np.asarray(self.maximum)
+        self._torch_minimum: Optional[torch.Tensor] = None
+        self._torch_maximum: Optional[torch.Tensor] = None
 
     def fit_with_transition_picker(
         self,
@@ -180,26 +182,24 @@ class MinMaxObservationScaler(ObservationScaler):
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        minimum = add_leading_dims(
-            torch.tensor(self.minimum, dtype=torch.float32, device=x.device),
-            target=x,
+        if self._torch_maximum is None or self._torch_minimum is None:
+            self._set_torch_value(x.device)
+        assert (
+            self._torch_minimum is not None and self._torch_maximum is not None
         )
-        maximum = add_leading_dims(
-            torch.tensor(self.maximum, dtype=torch.float32, device=x.device),
-            target=x,
-        )
+        minimum = add_leading_dims(self._torch_minimum, target=x)
+        maximum = add_leading_dims(self._torch_maximum, target=x)
         return (x - minimum) / (maximum - minimum) * 2.0 - 1.0
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        minimum = add_leading_dims(
-            torch.tensor(self.minimum, dtype=torch.float32, device=x.device),
-            target=x,
+        if self._torch_maximum is None or self._torch_minimum is None:
+            self._set_torch_value(x.device)
+        assert (
+            self._torch_minimum is not None and self._torch_maximum is not None
         )
-        maximum = add_leading_dims(
-            torch.tensor(self.maximum, dtype=torch.float32, device=x.device),
-            target=x,
-        )
+        minimum = add_leading_dims(self._torch_minimum, target=x)
+        maximum = add_leading_dims(self._torch_maximum, target=x)
         return ((maximum - minimum) * (x + 1.0) / 2.0) + minimum
 
     def transform_numpy(self, x: np.ndarray) -> np.ndarray:
@@ -215,6 +215,14 @@ class MinMaxObservationScaler(ObservationScaler):
         minimum = add_leading_dims_numpy(self.minimum, target=x)
         maximum = add_leading_dims_numpy(self.maximum, target=x)
         return ((maximum - minimum) * (x + 1.0) / 2.0) + minimum
+
+    def _set_torch_value(self, device: torch.device) -> None:
+        self._torch_minimum = torch.tensor(
+            self.minimum, dtype=torch.float32, device=device
+        )
+        self._torch_maximum = torch.tensor(
+            self.maximum, dtype=torch.float32, device=device
+        )
 
     @staticmethod
     def get_type() -> str:
@@ -262,6 +270,8 @@ class StandardObservationScaler(ObservationScaler):
             self.mean = np.asarray(self.mean)
         if self.std is not None:
             self.std = np.asarray(self.std)
+        self._torch_mean: Optional[torch.Tensor] = None
+        self._torch_std: Optional[torch.Tensor] = None
 
     def fit_with_transition_picker(
         self,
@@ -328,26 +338,20 @@ class StandardObservationScaler(ObservationScaler):
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        mean = add_leading_dims(
-            torch.tensor(self.mean, dtype=torch.float32, device=x.device),
-            target=x,
-        )
-        std = add_leading_dims(
-            torch.tensor(self.std, dtype=torch.float32, device=x.device),
-            target=x,
-        )
+        if self._torch_mean is None or self._torch_std is None:
+            self._set_torch_value(x.device)
+        assert self._torch_mean is not None and self._torch_std is not None
+        mean = add_leading_dims(self._torch_mean, target=x)
+        std = add_leading_dims(self._torch_std, target=x)
         return (x - mean) / (std + self.eps)
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
-        mean = add_leading_dims(
-            torch.tensor(self.mean, dtype=torch.float32, device=x.device),
-            target=x,
-        )
-        std = add_leading_dims(
-            torch.tensor(self.std, dtype=torch.float32, device=x.device),
-            target=x,
-        )
+        if self._torch_mean is None or self._torch_std is None:
+            self._set_torch_value(x.device)
+        assert self._torch_mean is not None and self._torch_std is not None
+        mean = add_leading_dims(self._torch_mean, target=x)
+        std = add_leading_dims(self._torch_std, target=x)
         return ((std + self.eps) * x) + mean
 
     def transform_numpy(self, x: np.ndarray) -> np.ndarray:
@@ -363,6 +367,14 @@ class StandardObservationScaler(ObservationScaler):
         mean = add_leading_dims_numpy(self.mean, target=x)
         std = add_leading_dims_numpy(self.std, target=x)
         return ((std + self.eps) * x) + mean
+
+    def _set_torch_value(self, device: torch.device) -> None:
+        self._torch_mean = torch.tensor(
+            self.mean, dtype=torch.float32, device=device
+        )
+        self._torch_std = torch.tensor(
+            self.std, dtype=torch.float32, device=device
+        )
 
     @staticmethod
     def get_type() -> str:
