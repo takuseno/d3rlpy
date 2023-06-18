@@ -4,6 +4,7 @@ import pytest
 from d3rlpy.dataset import (
     BasicTransitionPicker,
     FrameStackTransitionPicker,
+    MultiStepTransitionPicker,
     Shape,
 )
 
@@ -110,4 +111,69 @@ def test_frame_stack_transition_picker(
     # check terminal state
     transition = picker(episode, length - 1)
     assert np.all(transition.next_observation == 0.0)
+    assert transition.terminal == 1.0
+
+
+@pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("length", [100])
+@pytest.mark.parametrize("n_steps", [1, 3])
+@pytest.mark.parametrize("gamma", [0.99])
+def test_multi_step_transition_picker(
+    observation_shape: Shape,
+    action_size: int,
+    length: int,
+    n_steps: int,
+    gamma: float,
+) -> None:
+    episode = create_episode(
+        observation_shape, action_size, length, terminated=True
+    )
+
+    picker = MultiStepTransitionPicker(n_steps=n_steps, gamma=gamma)
+
+    # check transition
+    transition = picker(episode, 0)
+    if isinstance(observation_shape[0], tuple):
+        for i, shape in enumerate(observation_shape):
+            assert transition.observation_signature.shape[i] == shape
+            assert np.all(
+                transition.observation[i] == episode.observations[i][0]
+            )
+            assert np.all(
+                transition.next_observation[i]
+                == episode.observations[i][n_steps]
+            )
+    else:
+        assert transition.observation_signature.shape[0] == observation_shape
+        assert np.all(transition.observation == episode.observations[0])
+        assert np.all(
+            transition.next_observation == episode.observations[n_steps]
+        )
+    gammas = gamma ** np.arange(n_steps)
+    ref_reward = np.sum(gammas * np.reshape(episode.rewards[:n_steps], [-1]))
+    assert np.all(transition.action == episode.actions[0])
+    assert np.all(transition.reward == np.reshape(ref_reward, [1]))
+    assert transition.interval == n_steps
+    assert transition.terminal == 0
+
+    # check terminal transition
+    transition = picker(episode, length - n_steps)
+    if isinstance(observation_shape[0], tuple):
+        for i, shape in enumerate(observation_shape):
+            dummy_observation = np.zeros(shape)
+            assert transition.observation_signature.shape[i] == shape
+            assert np.all(
+                transition.observation[i] == episode.observations[i][-n_steps]
+            )
+            assert np.all(transition.next_observation[i] == dummy_observation)
+    else:
+        dummy_observation = np.zeros(observation_shape)
+        assert transition.observation_signature.shape[0] == observation_shape
+        assert np.all(transition.observation == episode.observations[-n_steps])
+        assert np.all(transition.next_observation == dummy_observation)
+    assert np.all(transition.action == episode.actions[-n_steps])
+    ref_reward = np.sum(gammas * np.reshape(episode.rewards[-n_steps:], [-1]))
+    assert np.all(transition.reward == np.reshape(ref_reward, [1]))
+    assert transition.interval == n_steps
     assert transition.terminal == 1.0
