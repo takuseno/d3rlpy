@@ -1,6 +1,5 @@
 import argparse
-
-import gym
+import copy
 
 import d3rlpy
 
@@ -48,7 +47,7 @@ def main() -> None:
         buffer.append_episode(episode)
 
     # finetuning
-    eval_env = gym.make(env.unwrapped.spec.id)
+    eval_env = copy.deepcopy(env)
     d3rlpy.envs.seed_env(eval_env, args.seed)
     awac.fit_online(
         env,

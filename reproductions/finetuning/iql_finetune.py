@@ -1,7 +1,7 @@
 # pylint: disable=protected-access
 import argparse
+import copy
 
-import gym
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 import d3rlpy
@@ -62,7 +62,7 @@ def main() -> None:
         buffer.append_episode(episode)
 
     # finetuning
-    eval_env = gym.make(env.unwrapped.spec.id)
+    eval_env = copy.deepcopy(env)
     d3rlpy.envs.seed_env(eval_env, args.seed)
     iql.fit_online(
         env,

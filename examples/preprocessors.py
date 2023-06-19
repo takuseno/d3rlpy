@@ -4,14 +4,11 @@ import gym
 
 import d3rlpy
 
-GAMMA = 0.99
-
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", type=str, default="Pendulum-v1")
     parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--n-steps", type=int, default=1)
     parser.add_argument("--gpu", action="store_true")
     args = parser.parse_args()
 
@@ -26,24 +23,21 @@ def main() -> None:
     # setup algorithm
     sac = d3rlpy.algos.SACConfig(
         batch_size=256,
-        gamma=GAMMA,
         actor_learning_rate=3e-4,
         critic_learning_rate=3e-4,
         temp_learning_rate=3e-4,
+        # normalizes observations within [-1, 1] range
+        observation_scaler=d3rlpy.preprocessing.MinMaxObservationScaler(),
+        # normalizes actions within [-1, 1] range
         action_scaler=d3rlpy.preprocessing.MinMaxActionScaler(),
+        # multiply rewards by 0.1
+        reward_scaler=d3rlpy.preprocessing.MultiplyRewardScaler(0.1),
     ).create(device=args.gpu)
-
-    # multi-step transition sampling
-    transition_picker = d3rlpy.dataset.MultiStepTransitionPicker(
-        n_steps=args.n_steps,
-        gamma=GAMMA,
-    )
 
     # replay buffer for experience replay
     buffer = d3rlpy.dataset.create_fifo_replay_buffer(
         limit=100000,
         env=env,
-        transition_picker=transition_picker,
     )
 
     # start training
