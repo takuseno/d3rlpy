@@ -33,7 +33,6 @@ class EncoderFactory(DynamicConfig):
 
         Returns:
             an enocder object.
-
         """
         raise NotImplementedError
 
@@ -53,7 +52,6 @@ class EncoderFactory(DynamicConfig):
 
         Returns:
             an enocder object.
-
         """
         raise NotImplementedError
 
@@ -72,7 +70,6 @@ class PixelEncoderFactory(EncoderFactory):
         activation (str): activation function name.
         use_batch_norm (bool): flag to insert batch normalization layers.
         dropout_rate (float): dropout probability.
-
     """
 
     filters: List[List[int]] = field(
@@ -130,7 +127,6 @@ class VectorEncoderFactory(EncoderFactory):
         use_batch_norm (bool): flag to insert batch normalization layers.
         use_dense (bool): flag to use DenseNet architecture.
         dropout_rate (float): dropout probability.
-
     """
 
     hidden_units: List[int] = field(default_factory=lambda: [256, 256])
@@ -183,7 +179,6 @@ class DefaultEncoderFactory(EncoderFactory):
         activation (str): activation function name.
         use_batch_norm (bool): flag to insert batch normalization layers.
         dropout_rate (float): dropout probability.
-
     """
 
     activation: str = "relu"
@@ -258,7 +253,6 @@ class DenseEncoderFactory(EncoderFactory):
         activation (str): activation function name.
         use_batch_norm (bool): flag to insert batch normalization layers.
         dropout_rate (float): dropout probability.
-
     """
 
     activation: str = "relu"

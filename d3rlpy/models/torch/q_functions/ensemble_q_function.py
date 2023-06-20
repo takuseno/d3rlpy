@@ -199,6 +199,7 @@ def compute_max_with_n_actions_and_indices(
     lam: float,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Returns weighted target value from sampled actions.
+
     This calculation is proposed in BCQ paper for the first time.
     `x` should be shaped with `(batch, dim_obs)`.
     `actions` should be shaped with `(batch, N, dim_action)`.

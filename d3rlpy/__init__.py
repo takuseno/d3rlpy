@@ -23,7 +23,6 @@ def seed(n: int) -> None:
 
     Args:
         n (int): seed value.
-
     """
     random.seed(n)
     np.random.seed(n)

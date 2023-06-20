@@ -43,7 +43,6 @@ def evaluate_qlearning_with_environment(
 
     Returns:
         average score.
-
     """
     episode_rewards = []
     for _ in range(n_trials):
@@ -99,7 +98,6 @@ def evaluate_transformer_with_environment(
 
     Returns:
         average score.
-
     """
     episode_rewards = []
     for _ in range(n_trials):

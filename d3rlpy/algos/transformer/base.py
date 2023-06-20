@@ -82,7 +82,6 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
     Args:
         algo (TransformerAlgoBase): Transformer-based algorithm.
         target_return (float): target return to achieve.
-
     """
     _algo: "TransformerAlgoBase[TTransformerImpl, TTransformerConfig]"
     _target_return: float
@@ -121,7 +120,6 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
 
         Returns:
             action.
-
         """
         self._observations.append(x)
         self._rewards.append(reward)
@@ -182,7 +180,6 @@ class TransformerAlgoBase(
 
         Returns:
             action.
-
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         with torch.no_grad():
@@ -216,7 +213,7 @@ class TransformerAlgoBase(
         callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> None:
         """Iterate over epochs steps to train with the given dataset. At each
-             iteration algo methods and properties can be changed or queried.
+        iteration algo methods and properties can be changed or queried.
 
         .. code-block:: python
 
@@ -240,7 +237,6 @@ class TransformerAlgoBase(
             save_interval: interval to save parameters.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
-
         """
         dataset_info = DatasetInfo.from_episodes(dataset.episodes)
         LOG.info("dataset info", dataset_info=dataset_info)
@@ -344,7 +340,6 @@ class TransformerAlgoBase(
 
         Returns:
             dictionary of metrics.
-
         """
         torch_batch = TorchTrajectoryMiniBatch.from_batch(
             batch=batch,
@@ -366,7 +361,6 @@ class TransformerAlgoBase(
 
         Returns:
             dictionary of metrics.
-
         """
         raise NotImplementedError
 
@@ -380,6 +374,5 @@ class TransformerAlgoBase(
 
         Returns:
             StatefulTransformerWrapper object.
-
         """
         return StatefulTransformerWrapper(self, target_return)

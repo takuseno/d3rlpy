@@ -41,7 +41,6 @@ class QFunctionFactory(DynamicConfig):
 
         Returns:
             discrete Q function object.
-
         """
         raise NotImplementedError
 
@@ -56,7 +55,6 @@ class QFunctionFactory(DynamicConfig):
 
         Returns:
             continuous Q function object.
-
         """
         raise NotImplementedError
 
@@ -66,7 +64,6 @@ class QFunctionFactory(DynamicConfig):
 
         Returns:
             Q function type.
-
         """
         raise NotImplementedError
 
@@ -85,7 +82,6 @@ class MeanQFunctionFactory(QFunctionFactory):
 
     Args:
         share_encoder (bool): flag to share encoder over multiple Q functions.
-
     """
 
     def create_discrete(
@@ -117,7 +113,6 @@ class QRQFunctionFactory(QFunctionFactory):
     Args:
         share_encoder (bool): flag to share encoder over multiple Q functions.
         n_quantiles: the number of quantiles.
-
     """
 
     n_quantiles: int = 32
@@ -151,7 +146,6 @@ class IQNQFunctionFactory(QFunctionFactory):
         n_quantiles: the number of quantiles.
         n_greedy_quantiles: the number of quantiles for inference.
         embed_size: the embedding size.
-
     """
 
     n_quantiles: int = 64
@@ -201,7 +195,6 @@ class FQFQFunctionFactory(QFunctionFactory):
         n_quantiles: the number of quantiles.
         embed_size: the embedding size.
         entropy_coeff: the coefficiency of entropy penalty term.
-
     """
 
     n_quantiles: int = 32

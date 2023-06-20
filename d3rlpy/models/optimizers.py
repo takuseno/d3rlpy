@@ -22,7 +22,6 @@ class OptimizerFactory(DynamicConfig):
     """A factory class that creates an optimizer object in a lazy way.
 
     The optimizers in algorithms can be configured through this factory class.
-
     """
 
     def create(self, params: Iterable[nn.Parameter], lr: float) -> Optimizer:
@@ -34,7 +33,6 @@ class OptimizerFactory(DynamicConfig):
 
         Returns:
             torch.optim.Optimizer: an optimizer object.
-
         """
         raise NotImplementedError
 
@@ -54,7 +52,6 @@ class SGDFactory(OptimizerFactory):
         dampening: dampening for momentum.
         weight_decay: weight decay (L2 penalty).
         nesterov: flag to enable Nesterov momentum.
-
     """
 
     momentum: float = 0.0
@@ -93,7 +90,6 @@ class AdamFactory(OptimizerFactory):
         eps: term added to the denominator to improve numerical stability.
         weight_decay: weight decay (L2 penalty).
         amsgrad: flag to use the AMSGrad variant of this algorithm.
-
     """
 
     betas: Tuple[float, float] = (0.9, 0.999)
@@ -132,7 +128,6 @@ class AdamWFactory(OptimizerFactory):
         eps: term added to the denominator to improve numerical stability.
         weight_decay: weight decay (L2 penalty).
         amsgrad: flag to use the AMSGrad variant of this algorithm.
-
     """
 
     betas: Tuple[float, float] = (0.9, 0.999)
@@ -172,7 +167,6 @@ class RMSpropFactory(OptimizerFactory):
         momentum: momentum factor.
         centered: flag to compute the centered RMSProp, the gradient is
             normalized by an estimation of its variance.
-
     """
 
     alpha: float = 0.95

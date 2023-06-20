@@ -69,7 +69,6 @@ class AWACConfig(LearnableConfig):
             :math:`A^\pi(s_t, a_t)`.
         n_critics (int): the number of Q functions for ensemble.
         update_actor_interval (int): interval to update policy function.
-
     """
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4

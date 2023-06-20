@@ -24,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install Cython numpy matplotlib onnxruntime onnx pytest tensorboardX
           pip install -e .
-          pip install black mypy pylint==2.13.5 isort
+          pip install black mypy pylint==2.13.5 isort docformatter
       - name: Check format
         run: |
           ./scripts/format

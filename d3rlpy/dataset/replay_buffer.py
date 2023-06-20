@@ -81,7 +81,6 @@ class ReplayBuffer:
         cache_size (int): Size of cache to record active episode history used
             for online training. ``cache_size`` needs to be greater than the
             maximum possible episode length.
-
     """
     _buffer: BufferProtocol
     _transition_picker: TransitionPickerProtocol
@@ -159,7 +158,6 @@ class ReplayBuffer:
             observation: observation.
             action: action.
             reward: reward.
-
         """
         self._writer.write(observation, action, reward)
 
@@ -168,7 +166,6 @@ class ReplayBuffer:
 
         Args:
             episode: episode.
-
         """
         for i in range(episode.transition_count):
             self._buffer.append(episode, i)
@@ -179,7 +176,6 @@ class ReplayBuffer:
         Args:
             terminated: Flag to represent environmental termination. This flag
                 should be ``False`` if the episode is terminated by timeout.
-
         """
         self._writer.clip_episode(terminated)
 
@@ -188,7 +184,6 @@ class ReplayBuffer:
 
         Returns:
             transition.
-
         """
         index = np.random.randint(self._buffer.transition_count)
         episode, transition_index = self._buffer[index]
@@ -202,7 +197,6 @@ class ReplayBuffer:
 
         Returns:
             mini-batch.
-
         """
         return TransitionMiniBatch.from_transitions(
             [self.sample_transition() for _ in range(batch_size)]
@@ -216,7 +210,6 @@ class ReplayBuffer:
 
         Returns:
             partial trajectory.
-
         """
         index = np.random.randint(self._buffer.transition_count)
         episode, transition_index = self._buffer[index]
@@ -233,7 +226,6 @@ class ReplayBuffer:
 
         Returns:
             mini-batch.
-
         """
         return TrajectoryMiniBatch.from_partial_trajectories(
             [self.sample_trajectory(length) for _ in range(batch_size)]
@@ -249,7 +241,6 @@ class ReplayBuffer:
 
         Args:
             f: IO object to write to.
-
         """
         dump(self._buffer.episodes, f)
 
@@ -275,7 +266,6 @@ class ReplayBuffer:
 
         Returns:
             replay buffer.
-
         """
         return cls(
             buffer,
@@ -316,7 +306,6 @@ class ReplayBuffer:
 
         Returns:
             replay buffer.
-
         """
         return cls(
             buffer,
@@ -379,7 +368,6 @@ def create_fifo_replay_buffer(
 
     Returns:
         replay buffer object.
-
     """
     buffer = FIFOBuffer(limit)
     return ReplayBuffer(
@@ -419,7 +407,6 @@ def create_infinite_replay_buffer(
 
     Returns:
         replay buffer object.
-
     """
     buffer = InfiniteBuffer()
     return ReplayBuffer(

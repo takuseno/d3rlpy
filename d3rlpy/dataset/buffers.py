@@ -15,7 +15,6 @@ class BufferProtocol(Protocol):
         Args:
             episode: Episode object.
             index: transition index.
-
         """
         raise NotImplementedError
 
@@ -25,7 +24,6 @@ class BufferProtocol(Protocol):
 
         Returns:
             a list of saved episodes.
-
         """
         raise NotImplementedError
 
@@ -35,7 +33,6 @@ class BufferProtocol(Protocol):
 
         Returns:
             the number of transitions.
-
         """
         raise NotImplementedError
 
@@ -78,7 +75,6 @@ class FIFOBuffer(BufferProtocol):
 
     Args:
         limit (int): buffer capacity.
-
     """
     _transitions: Deque[Tuple[EpisodeBase, int]]
     _episodes: List[EpisodeBase]

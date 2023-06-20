@@ -27,7 +27,6 @@ class MDPDataset(ReplayBuffer):
         trajectory_slicer (Optional[TrajectorySlicerProtocol]):
             trajectory slicer implementation for Transformer-based algorithms.
             If ``None`` is given, ``BasicTrajectorySlicer`` is used by default.
-
     """
 
     def __init__(

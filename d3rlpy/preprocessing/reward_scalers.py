@@ -48,7 +48,6 @@ class MultiplyRewardScaler(RewardScaler):
 
     Args:
         multiplier (float): constant multiplication value.
-
     """
     multiplier: float = 1.0
 
@@ -104,7 +103,6 @@ class ClipRewardScaler(RewardScaler):
         low (Optional[float]): minimum value to clip.
         high (Optional[float]): maximum value to clip.
         multiplier (float): constant multiplication value.
-
     """
     low: Optional[float] = None
     high: Optional[float] = None
@@ -171,7 +169,6 @@ class MinMaxRewardScaler(RewardScaler):
         minimum (float): minimum value.
         maximum (float): maximum value.
         multiplier (float): constant multiplication value.
-
     """
     minimum: Optional[float] = None
     maximum: Optional[float] = None
@@ -264,7 +261,6 @@ class StandardRewardScaler(RewardScaler):
         std (float): standard deviation value.
         eps (float): constant value to avoid zero-division.
         multiplier (float): constant multiplication value
-
     """
     mean: Optional[float] = None
     std: Optional[float] = None
@@ -362,7 +358,6 @@ class ReturnBasedRewardScaler(RewardScaler):
         return_max (float): the maximum return value.
         return_min (float): standard deviation value.
         multiplier (float): constant multiplication value
-
     """
     return_max: Optional[float] = None
     return_min: Optional[float] = None
@@ -452,7 +447,6 @@ class ConstantShiftRewardScaler(RewardScaler):
 
     Args:
         shift (float): constant shift value
-
     """
     shift: float
 

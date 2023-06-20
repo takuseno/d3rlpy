@@ -30,7 +30,6 @@ class RandomPolicyConfig(LearnableConfig):
             ``['uniform', 'normal']``.
         normal_std (float): standard deviation of the normal distribution. This
             is only used when ``distribution='normal'``.
-
     """
     distribution: str = "uniform"
     normal_std: float = 1.0
@@ -96,7 +95,6 @@ class DiscreteRandomPolicyConfig(LearnableConfig):
 
     This is designed for data collection and lightweight interaction tests.
     ``fit`` and ``fit_online`` methods will raise exceptions.
-
     """
 
     def create(self, device: DeviceArg = False) -> "DiscreteRandomPolicy":  # type: ignore

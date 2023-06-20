@@ -43,7 +43,6 @@ class PixelObservationScaler(ObservationScaler):
         from d3rlpy.algos import CQLConfig
 
         cql = CQLConfig(observation_scaler=PixelObservationScaler()).create()
-
     """
 
     def fit_with_transition_picker(
@@ -114,7 +113,6 @@ class MinMaxObservationScaler(ObservationScaler):
     Args:
         minimum (numpy.ndarray): minimum values at each entry.
         maximum (numpy.ndarray): maximum values at each entry.
-
     """
     minimum: Optional[np.ndarray] = make_optional_numpy_field()
     maximum: Optional[np.ndarray] = make_optional_numpy_field()
@@ -259,7 +257,6 @@ class StandardObservationScaler(ObservationScaler):
         mean (numpy.ndarray): mean values at each entry.
         std (numpy.ndarray): standard deviation at each entry.
         eps (float): small constant value to avoid zero-division.
-
     """
     mean: Optional[np.ndarray] = make_optional_numpy_field()
     std: Optional[np.ndarray] = make_optional_numpy_field()

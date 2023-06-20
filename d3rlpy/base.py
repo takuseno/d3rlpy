@@ -102,7 +102,6 @@ class LearnableConfig(DynamicConfig):
 
         Returns:
             algorithm object.
-
         """
         raise NotImplementedError
 
@@ -143,7 +142,6 @@ def _process_device(value: DeviceArg) -> str:
 
     Returns:
         str: target device.
-
     """
     # isinstance cannot tell difference between bool and int
     if isinstance(value, bool):
@@ -224,7 +222,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Args:
             fname: destination file path.
-
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         dump_learnable(self, fname)
@@ -238,7 +235,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Args:
             fname: destination file path.
-
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         with open(fname, "wb") as f:
@@ -253,7 +249,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Args:
             fname: source file path.
-
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         with open(fname, "rb") as f:
@@ -280,7 +275,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             algorithm object.
-
         """
         config = LearnableConfigWithShape.deserialize_from_file(fname)
         return config.create(device)  # type: ignore
@@ -293,7 +287,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
         Args:
             observation_shape: observation shape.
             action_size: dimension of action-space.
-
         """
         if self._impl:
             LOG.warn("Parameters will be reinitialized.")
@@ -310,7 +303,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Args:
             dataset: dataset.
-
         """
         dataset_info = DatasetInfo.from_episodes(dataset.episodes)
         observation_shape = (
@@ -323,7 +315,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Args:
             env: gym-like environment.
-
         """
         assert isinstance(
             env.observation_space, Box
@@ -344,7 +335,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             action type.
-
         """
         raise NotImplementedError
 
@@ -354,7 +344,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             LearnableConfig: config.
-
         """
         return self._config
 
@@ -364,7 +353,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             int: batch size.
-
         """
         return self._config.batch_size
 
@@ -374,7 +362,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             float: discount factor.
-
         """
         return self._config.gamma
 
@@ -384,7 +371,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             Optional[ObservationScaler]: preprocessing observation scaler.
-
         """
         return self._config.observation_scaler
 
@@ -394,7 +380,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             Optional[ActionScaler]: preprocessing action scaler.
-
         """
         return self._config.action_scaler
 
@@ -404,7 +389,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             Optional[RewardScaler]: preprocessing reward scaler.
-
         """
         return self._config.reward_scaler
 
@@ -414,7 +398,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             Optional[ImplBase]: implementation object.
-
         """
         return self._impl
 
@@ -424,7 +407,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             Optional[Sequence[int]]: observation shape.
-
         """
         if self._impl:
             return self._impl.observation_shape
@@ -436,7 +418,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             Optional[int]: action size.
-
         """
         if self._impl:
             return self._impl.action_size
@@ -451,7 +432,6 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Returns:
             total gradient step counter.
-
         """
         return self._grad_step
 
@@ -464,6 +444,5 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
         Args:
             grad_step: total gradient step counter.
-
         """
         self._grad_step = grad_step

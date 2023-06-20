@@ -181,7 +181,8 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
 
 @dataclasses.dataclass()
 class PLASWithPerturbationConfig(PLASConfig):
-    r"""Config of Policy in Latent Action Space algorithm with perturbation layer.
+    r"""Config of Policy in Latent Action Space algorithm with perturbation
+    layer.
 
     PLAS with perturbation layer enables PLAS to output out-of-distribution
     action.

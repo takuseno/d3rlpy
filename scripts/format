@@ -3,11 +3,11 @@
 if [[ -z $CI ]]; then
   ISORT_ARG=""
   BLACK_ARG=""
-  YAPF_ARG="-i"
+  DOCFORMATTER_ARG="--in-place"
 else
   ISORT_ARG="--check --diff"
   BLACK_ARG="--check"
-  YAPF_ARG="-d"
+  DOCFORMATTER_ARG="--check --diff"
 fi
 
 # format package imports
@@ -15,3 +15,6 @@ isort -l 80 --profile black $ISORT_ARG d3rlpy tests setup.py reproductions examp
 
 # use black for the better type annotations
 black -l 80 $BLACK_ARG d3rlpy tests setup.py reproductions examples
+
+# format docstrings
+docformatter $DOCFORMATTER_ARG --black --wrap-summaries 80 --wrap-descriptions 80 -r d3rlpy

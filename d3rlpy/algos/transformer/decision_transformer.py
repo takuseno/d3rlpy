@@ -54,7 +54,6 @@ class DecisionTransformerConfig(TransformerConfig):
             (``simple`` or ``global``).
         warmup_steps (int): warmup steps for learning rate scheduler.
         clip_grad_norm (float): norm of gradient clipping.
-
     """
 
     batch_size: int = 64

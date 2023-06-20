@@ -71,7 +71,6 @@ class TDErrorEvaluator(EvaluatorProtocol):
         \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D}
             [(Q_\theta (s_t, a_t)
              - r_{t+1} - \gamma \max_a Q_\theta (s_{t+1}, a))^2]
-
     """
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -128,7 +127,6 @@ class DiscountedSumOfAdvantageEvaluator(EvaluatorProtocol):
     References:
         * `Murphy., A generalization error for Q-Learning.
           <http://www.jmlr.org/papers/volume6/murphy05a/murphy05a.pdf>`_
-
     """
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -183,7 +181,6 @@ class AverageValueEstimationEvaluator(EvaluatorProtocol):
     .. math::
 
         \mathbb{E}_{s_t \sim D} [ \max_a Q_\theta (s_t, a)]
-
     """
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -222,7 +219,6 @@ class InitialStateValueEstimationEvaluator(EvaluatorProtocol):
     References:
         * `Paine et al., Hyperparameter Selection for Offline Reinforcement
           Learning <https://arxiv.org/abs/2007.09055>`_
-
     """
 
     _episodes: Optional[Sequence[EpisodeBase]]
@@ -269,7 +265,6 @@ class SoftOPCEvaluator(EvaluatorProtocol):
 
     Args:
         return_threshold: threshold of success episodes.
-
     """
     _return_threshold: float
     _episodes: Optional[Sequence[EpisodeBase]]
@@ -314,7 +309,6 @@ class ContinuousActionDiffEvaluator(EvaluatorProtocol):
     .. math::
 
         \mathbb{E}_{s_t, a_t \sim D} [(a_t - \pi_\phi (s_t))^2]
-
     """
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -350,7 +344,6 @@ class DiscreteActionMatchEvaluator(EvaluatorProtocol):
 
         \frac{1}{N} \sum^N \parallel
             \{a_t = \text{argmax}_a Q_\theta (s_t, a)\}
-
     """
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -389,7 +382,6 @@ class CompareContinuousActionDiffEvaluator(EvaluatorProtocol):
 
     Args:
         base_algo: algorithm to comapre with.
-
     """
     _base_algo: QLearningAlgoProtocol
     _episodes: Optional[Sequence[EpisodeBase]]
@@ -437,7 +429,6 @@ class CompareDiscreteActionMatchEvaluator(EvaluatorProtocol):
 
     Args:
         base_algo: algorithm to comapre with.
-
     """
     _base_algo: QLearningAlgoProtocol
     _episodes: Optional[Sequence[EpisodeBase]]

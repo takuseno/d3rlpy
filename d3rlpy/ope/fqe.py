@@ -63,7 +63,6 @@ class FQEConfig(LearnableConfig):
         action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
         reward_scaler (d3rlpy.preprocessing.RewardScaler):
             reward preprocessor.
-
     """
     learning_rate: float = 1e-4
     optim_factory: OptimizerFactory = make_optimizer_field()
@@ -153,7 +152,6 @@ class FQE(_FQEBase):
         device (bool, int or str):
             flag to use GPU, device ID or PyTorch device identifier.
         impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
-
     """
 
     def inner_create_impl(
@@ -210,7 +208,6 @@ class DiscreteFQE(_FQEBase):
             flag to use GPU, device ID or PyTorch device identifier.
         impl (d3rlpy.metrics.ope.torch.DiscreteFQEImpl):
             algorithm implementation.
-
     """
 
     def inner_create_impl(

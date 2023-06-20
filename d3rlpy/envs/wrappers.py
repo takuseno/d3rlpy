@@ -34,7 +34,6 @@ class ChannelFirst(gym.Wrapper[_ObsType, _ActType]):
 
     Args:
         env (gym.Env): gym environment.
-
     """
 
     observation_space: Box
@@ -96,7 +95,6 @@ class FrameStack(gym.Wrapper[np.ndarray, _ActType]):
     Args:
         env (gym.Env): gym environment.
         num_stack (int): the number of frames to stack.
-
     """
 
     _num_stack: int
@@ -324,7 +322,6 @@ class Atari(gym.Wrapper[np.ndarray, int]):
         env (gym.Env): gym environment.
         num_stack (int): the number of frames to stack.
         is_eval (bool): flag to enter evaluation mode.
-
     """
 
     def __init__(
@@ -354,7 +351,6 @@ class Monitor(gym.Wrapper[_ObsType, _ActType]):
         force (bool): flag to allow existing directory.
         frame_rate (float): video frame rate.
         record_rate (int): images are record every ``record_rate`` frames.
-
     """
 
     _directory: str

@@ -65,7 +65,6 @@ def get_cartpole(
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
-
     """
     if dataset_type == "replay":
         url = CARTPOLE_URL
@@ -118,7 +117,6 @@ def get_pendulum(
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
-
     """
     if dataset_type == "replay":
         url = PENDULUM_URL
@@ -176,7 +174,6 @@ def get_atari(
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
-
     """
     try:
         import d4rl_atari  # type: ignore
@@ -233,7 +230,6 @@ def get_atari_transitions(
     Returns:
         tuple of a list of :class:`d3rlpy.dataset.Transition` and gym
         environment.
-
     """
     try:
         import d4rl_atari
@@ -323,7 +319,6 @@ def get_d4rl(
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
-
     """
     try:
         import d4rl  # type: ignore
@@ -464,7 +459,6 @@ def get_dataset(
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
-
     """
     if env_name == "cartpole-replay":
         return get_cartpole(

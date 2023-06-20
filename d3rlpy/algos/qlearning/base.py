@@ -182,7 +182,6 @@ class QLearningAlgoBase(
 
         Args:
             fname: destination file path.
-
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
@@ -254,7 +253,6 @@ class QLearningAlgoBase(
 
         Returns:
             greedy actions
-
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         assert check_non_1d_array(x), "Input must have batch dimension."
@@ -300,7 +298,6 @@ class QLearningAlgoBase(
 
         Returns:
             predicted action-values
-
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         assert check_non_1d_array(x), "Input must have batch dimension."
@@ -341,7 +338,6 @@ class QLearningAlgoBase(
 
         Returns:
             sampled actions.
-
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         assert check_non_1d_array(x), "Input must have batch dimension."
@@ -400,7 +396,6 @@ class QLearningAlgoBase(
 
         Returns:
             list of result tuples (epoch, metrics) per epoch.
-
         """
         results = list(
             self.fitter(
@@ -432,7 +427,7 @@ class QLearningAlgoBase(
         callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
         """Iterate over epochs steps to train with the given dataset. At each
-             iteration algo methods and properties can be changed or queried.
+        iteration algo methods and properties can be changed or queried.
 
         .. code-block:: python
 
@@ -458,7 +453,6 @@ class QLearningAlgoBase(
 
         Returns:
             iterator yielding current epoch and metrics dict.
-
         """
         dataset_info = DatasetInfo.from_episodes(dataset.episodes)
         LOG.info("dataset info", dataset_info=dataset_info)
@@ -593,7 +587,6 @@ class QLearningAlgoBase(
             show_progress: flag to show progress bar for iterations.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called at the end of epochs.
-
         """
 
         # create default replay buffer
@@ -740,7 +733,6 @@ class QLearningAlgoBase(
 
         Returns:
             replay buffer with the collected data.
-
         """
         # create default replay buffer
         if buffer is None:
@@ -806,7 +798,6 @@ class QLearningAlgoBase(
 
         Returns:
             dictionary of metrics.
-
         """
         torch_batch = TorchMiniBatch.from_batch(
             batch=batch,
@@ -828,7 +819,6 @@ class QLearningAlgoBase(
 
         Returns:
             dictionary of metrics.
-
         """
         raise NotImplementedError
 
@@ -850,7 +840,6 @@ class QLearningAlgoBase(
 
         Args:
             algo: algorithm object.
-
         """
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo.impl, QLearningAlgoImplBase)
@@ -874,7 +863,6 @@ class QLearningAlgoBase(
 
         Args:
             algo: algorithm object.
-
         """
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo.impl, QLearningAlgoImplBase)
@@ -898,7 +886,6 @@ class QLearningAlgoBase(
 
         Args:
             algo: algorithm object.
-
         """
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo.impl, QLearningAlgoImplBase)
@@ -922,7 +909,6 @@ class QLearningAlgoBase(
 
         Args:
             algo: algorithm object.
-
         """
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo.impl, QLearningAlgoImplBase)
@@ -933,7 +919,6 @@ class QLearningAlgoBase(
 
         This is especially useful when fine-tuning policies with setting inital
         optimizer states.
-
         """
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         self._impl.reset_optimizer_states()

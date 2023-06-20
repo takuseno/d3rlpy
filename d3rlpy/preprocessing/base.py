@@ -27,7 +27,6 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         Args:
             episodes: list of episodes.
             transition_picker: transition picker to process mini-batch.
-
         """
         raise NotImplementedError
 
@@ -42,7 +41,6 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         Args:
             episodes: list of episodes.
             trajectory_slicer: trajectory slicer to process mini-batch.
-
         """
         raise NotImplementedError
 
@@ -52,7 +50,6 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
 
         Args:
             env: gym environment.
-
         """
         raise NotImplementedError
 
@@ -65,7 +62,6 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
 
         Returns:
             processed output.
-
         """
         raise NotImplementedError
 
@@ -78,7 +74,6 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
 
         Returns:
             reversely transformed output.
-
         """
         raise NotImplementedError
 
@@ -91,7 +86,6 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
 
         Returns:
             processed output.
-
         """
         raise NotImplementedError
 
@@ -104,7 +98,6 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
 
         Returns:
             reversely transformed output.
-
         """
         raise NotImplementedError
 
@@ -115,7 +108,6 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
 
         Returns:
             the flag will be True if scaler is already built.
-
         """
         raise NotImplementedError
 

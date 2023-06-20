@@ -93,7 +93,6 @@ class LinearDecayEpsilonGreedy(Explorer):
 
         Returns:
             :math:`\\epsilon`-greedy action.
-
         """
         greedy_actions = algo.predict(x)
         random_actions = np.random.randint(algo.action_size, size=x.shape[0])
@@ -105,7 +104,6 @@ class LinearDecayEpsilonGreedy(Explorer):
 
         Returns:
             :math:`\\epsilon`.
-
         """
         if step >= self._duration:
             return self._end_epsilon
@@ -119,7 +117,6 @@ class NormalNoise(Explorer):
     Args:
         mean (float): mean.
         std (float): standard deviation.
-
     """
 
     _mean: float
@@ -140,7 +137,6 @@ class NormalNoise(Explorer):
 
         Returns:
             action with noise injection.
-
         """
         action = algo.predict(x)
         noise = np.random.normal(self._mean, self._std, size=action.shape)
