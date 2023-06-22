@@ -488,7 +488,8 @@ class LearnableBase:
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
             epoch_callback: callable function that takes 
-                ``(algo, epoch, total_step)``, which is called every epoch.
+                ``(algo, epoch, total_step)``, which is called at the end of 
+                every epoch.
                 
         Returns:
             iterator yielding current epoch and metrics dict.
