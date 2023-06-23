@@ -39,6 +39,7 @@ jobs:
       - name: Build Cython
         run: |
           pip install -U protobuf==3.20.1  # temporarily dependency fix
+          pip install numpy  # temporarily dependency fix
           pip install -e .
           python setup.py build_ext --inplace --define CYTHON_TRACE
       - name: Unit tests

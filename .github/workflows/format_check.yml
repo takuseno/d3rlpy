@@ -26,6 +26,7 @@ jobs:
           pip install Cython black==22.3.0 mypy==0.942 pylint==2.13.5 yapf isort
       - name: Build Cython
         run: |
+          pip install numpy  # temporarily dependency fix
           pip install -e .
       - name: Check format
         run: |
