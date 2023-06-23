@@ -26,10 +26,21 @@ __all__ = [
 
 @dataclasses.dataclass(frozen=True)
 class Signature:
+    r"""Signature of arrays.
+
+    Args:
+        dtype: List of numpy data types.
+        shape: List of array shapes.
+    """
     dtype: Sequence[np.dtype]
     shape: Sequence[Sequence[int]]
 
     def sample(self) -> Sequence[np.ndarray]:
+        r"""Returns sampled arrays.
+
+        Returns:
+            List of arrays based on dtypes and shapes.
+        """
         return [
             np.random.random(shape).astype(dtype)
             for shape, dtype in zip(self.shape, self.dtype)
@@ -38,6 +49,17 @@ class Signature:
 
 @dataclasses.dataclass(frozen=True)
 class Transition:
+    r"""Transition tuple.
+
+    Args:
+        observation: Observation.
+        action: Action
+        reward: Reward. This could be a multi-step discounted return.
+        next_observation: Observation at next timestep. This could be
+            observation at multi-step ahead.
+        terminal: Flag of environment termination.
+        interval: Timesteps between ``observation`` and ``next_observation``.
+    """
     observation: Observation  # (...)
     action: np.ndarray  # (...)
     reward: np.ndarray  # (1,)
@@ -47,6 +69,11 @@ class Transition:
 
     @property
     def observation_signature(self) -> Signature:
+        r"""Returns observation sigunature.
+
+        Returns:
+            Observation signature.
+        """
         shape = get_shape_from_observation(self.observation)
         dtype = get_dtype_from_observation(self.observation)
         if isinstance(self.observation, np.ndarray):
@@ -56,6 +83,11 @@ class Transition:
 
     @property
     def action_signature(self) -> Signature:
+        r"""Returns action signature.
+
+        Returns:
+            Action signature.
+        """
         return Signature(
             dtype=[self.action.dtype],
             shape=[self.action.shape],
@@ -63,6 +95,11 @@ class Transition:
 
     @property
     def reward_signature(self) -> Signature:
+        r"""Returns reward signature.
+
+        Returns:
+            Reward signature.
+        """
         return Signature(
             dtype=[self.reward.dtype],
             shape=[self.reward.shape],
@@ -71,6 +108,18 @@ class Transition:
 
 @dataclasses.dataclass(frozen=True)
 class PartialTrajectory:
+    r"""Partial trajectory.
+
+    Args:
+        observations: Sequence of observations.
+        actions: Sequence of actions.
+        rewards: Sequence of rewards.
+        returns_to_go: Sequence of remaining returns.
+        terminals: Sequence of terminal flags.
+        timesteps: Sequence of timesteps.
+        masks: Sequence of masks that represent padding.
+        length: Sequence length.
+    """
     observations: ObservationSequence  # (L, ...)
     actions: np.ndarray  # (L, ...)
     rewards: np.ndarray  # (L, 1)
@@ -82,6 +131,11 @@ class PartialTrajectory:
 
     @property
     def observation_signature(self) -> Signature:
+        r"""Returns observation sigunature.
+
+        Returns:
+            Observation signature.
+        """
         shape = get_shape_from_observation_sequence(self.observations)
         dtype = get_dtype_from_observation_sequence(self.observations)
         if isinstance(self.observations, np.ndarray):
@@ -91,6 +145,11 @@ class PartialTrajectory:
 
     @property
     def action_signature(self) -> Signature:
+        r"""Returns action signature.
+
+        Returns:
+            Action signature.
+        """
         return Signature(
             dtype=[self.actions.dtype],
             shape=[self.actions.shape[1:]],
@@ -98,6 +157,11 @@ class PartialTrajectory:
 
     @property
     def reward_signature(self) -> Signature:
+        r"""Returns reward signature.
+
+        Returns:
+            Reward signature.
+        """
         return Signature(
             dtype=[self.rewards.dtype],
             shape=[self.rewards.shape[1:]],
@@ -108,45 +172,113 @@ class PartialTrajectory:
 
 
 class EpisodeBase(Protocol):
+    r"""Episode interface.
+
+    ``Episode`` represens an entire episode.
+    """
+
     @property
     def observations(self) -> ObservationSequence:
+        r"""Returns sequence of observations.
+
+        Returns:
+            Sequence of observations.
+        """
         raise NotImplementedError
 
     @property
     def actions(self) -> np.ndarray:
+        r"""Returns sequence of actions.
+
+        Returns:
+            Sequence of actions.
+        """
         raise NotImplementedError
 
     @property
     def rewards(self) -> np.ndarray:
+        r"""Returns sequence of rewards.
+
+        Returns:
+            Sequence of rewards.
+        """
         raise NotImplementedError
 
     @property
     def terminated(self) -> bool:
+        r"""Returns environment terminal flag.
+
+        This flag becomes true when this episode is terminated. For timeout,
+        this flag stays false.
+
+        Returns:
+            Terminal flag.
+        """
         raise NotImplementedError
 
     @property
     def observation_signature(self) -> Signature:
+        r"""Returns observation signature.
+
+        Returns:
+            Observation signature.
+        """
         raise NotImplementedError
 
     @property
     def action_signature(self) -> Signature:
+        r"""Returns action signature.
+
+        Returns:
+            Action signature.
+        """
         raise NotImplementedError
 
     @property
     def reward_signature(self) -> Signature:
+        r"""Returns reward signature.
+
+        Returns:
+            Reward signature.
+        """
         raise NotImplementedError
 
     def size(self) -> int:
+        r"""Returns length of an episode.
+
+        Returns:
+            Episode length.
+        """
         raise NotImplementedError
 
     def compute_return(self) -> float:
+        r"""Computes total episode return.
+
+        Returns:
+            Total episode return.
+        """
         raise NotImplementedError
 
     def serialize(self) -> Dict[str, Any]:
+        r"""Returns serized episode data.
+
+        Returns:
+            Serialized episode data.
+        """
         raise NotImplementedError
 
     @classmethod
     def deserialize(cls, serializedData: Dict[str, Any]) -> "EpisodeBase":
+        r"""Constructs episode from serialized data.
+
+        This is an inverse operation of ``serialize`` method.
+
+        Args:
+            serializedData: Serialized episode data.
+
+        Returns:
+            Episode object.
+        """
         raise NotImplementedError
 
     def __len__(self) -> int:
@@ -154,11 +286,24 @@ class EpisodeBase(Protocol):
 
     @property
     def transition_count(self) -> int:
+        r"""Returns the number of transitions.
+
+        Returns:
+            Number of transitions.
+        """
         raise NotImplementedError
 
 
 @dataclasses.dataclass(frozen=True)
 class Episode:
+    r"""Standard episode implementation.
+
+    Args:
+        observations: Sequence of observations.
+        actions: Sequence of actions.
+        rewards: Sequence of rewards.
+        terminated: Flag of environment termination.
+    """
     observations: ObservationSequence
     actions: np.ndarray
     rewards: np.ndarray
@@ -220,6 +365,17 @@ class Episode:
 
 @dataclasses.dataclass(frozen=True)
 class DatasetInfo:
+    r"""Dataset information.
+
+    Args:
+        observation_signature: Observation signature.
+        action_signature: Action signature.
+        reward_signature: Reward signature.
+        action_space: Action space type.
+        action_size: Size of action-space. For continuous action-space,
+            this represents dimension of action vectors. For discrete
+            action-space, this represents the number of discrete actions.
+    """
     observation_signature: Signature
     action_signature: Signature
     reward_signature: Signature
@@ -228,6 +384,14 @@ class DatasetInfo:
 
     @classmethod
     def from_episodes(cls, episodes: Sequence[EpisodeBase]) -> "DatasetInfo":
+        r"""Constructs from sequence of episodes.
+
+        Args:
+            episodes: Sequence of episodes.
+
+        Returns:
+            DatasetInfo object.
+        """
         action_space = detect_action_space(episodes[0].actions)
         if action_space == ActionSpace.CONTINUOUS:
             action_size = episodes[0].action_signature.shape[0][0]

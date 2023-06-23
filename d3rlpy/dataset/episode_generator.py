@@ -11,11 +11,27 @@ __all__ = ["EpisodeGeneratorProtocol", "EpisodeGenerator"]
 
 
 class EpisodeGeneratorProtocol(Protocol):
+    r"""Episode generator interface."""
+
     def __call__(self) -> Sequence[EpisodeBase]:
-        ...
+        r"""Returns generated episodes.
+
+        Returns:
+            Sequence of episodes.
+        """
+        raise NotImplementedError
 
 
 class EpisodeGenerator(EpisodeGeneratorProtocol):
+    r"""Standard episode generator implementation.
+
+    Args:
+        observations: Sequence of observations.
+        actions: Sequence of actions.
+        rewards: Sequence of rewards.
+        terminals: Sequence of environment terminal flags.
+        timeouts: Sequence of timeout flags.
+    """
     _observations: ObservationSequence
     _actions: np.ndarray
     _rewards: np.ndarray

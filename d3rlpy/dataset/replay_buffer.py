@@ -58,18 +58,18 @@ class ReplayBuffer:
         )
 
     Args:
-        buffer (d3rlpy.dataset.BufferProtocol): buffer implementation.
+        buffer (d3rlpy.dataset.BufferProtocol): Buffer implementation.
         transition_picker (Optional[d3rlpy.dataset.TransitionPickerProtocol]):
-            transition picker implementation for Q-learning-based algorithms.
+            Transition picker implementation for Q-learning-based algorithms.
             If ``None`` is given, ``BasicTransitionPicker`` is used by default.
         trajectory_slicer (Optional[d3rlpy.dataset.TrajectorySlicerProtocol]):
-            trajectory slicer implementation for Transformer-based algorithms.
+            Trajectory slicer implementation for Transformer-based algorithms.
             If ``None`` is given, ``BasicTrajectorySlicer`` is used by default.
         writer_preprocessor (Optional[d3rlpy.dataset.WriterPreprocessProtocol]):
-            writer preprocessor implementation. If ``None`` is given,
+            Writer preprocessor implementation. If ``None`` is given,
             ``BasicWriterPreprocess`` is used by default.
         episodes (Optional[Sequence[d3rlpy.dataset.EpisodeBase]]):
-            list of episodes to initialize replay buffer.
+            List of episodes to initialize replay buffer.
         env (Optional[gym.Env]): Gym environment to extract shapes of
             observations and action.
         observation_signature (Optional[d3rlpy.dataset.Signature]):
@@ -155,9 +155,9 @@ class ReplayBuffer:
         r"""Appends observation, action and reward to buffer.
 
         Args:
-            observation: observation.
-            action: action.
-            reward: reward.
+            observation: Observation.
+            action: Action.
+            reward: Reward.
         """
         self._writer.write(observation, action, reward)
 
@@ -165,7 +165,7 @@ class ReplayBuffer:
         r"""Appends episode to buffer.
 
         Args:
-            episode: episode.
+            episode: Episode.
         """
         for i in range(episode.transition_count):
             self._buffer.append(episode, i)
@@ -183,7 +183,7 @@ class ReplayBuffer:
         r"""Samples a transition.
 
         Returns:
-            transition.
+            Transition.
         """
         index = np.random.randint(self._buffer.transition_count)
         episode, transition_index = self._buffer[index]
@@ -193,10 +193,10 @@ class ReplayBuffer:
         r"""Samples a mini-batch of transitions.
 
         Args:
-            batch_size: mini-batch size.
+            batch_size: Mini-batch size.
 
         Returns:
-            mini-batch.
+            Mini-batch.
         """
         return TransitionMiniBatch.from_transitions(
             [self.sample_transition() for _ in range(batch_size)]
@@ -206,10 +206,10 @@ class ReplayBuffer:
         r"""Samples a partial trajectory.
 
         Args:
-            length: length of partial trajectory.
+            length: Length of partial trajectory.
 
         Returns:
-            partial trajectory.
+            Partial trajectory.
         """
         index = np.random.randint(self._buffer.transition_count)
         episode, transition_index = self._buffer[index]
@@ -221,11 +221,11 @@ class ReplayBuffer:
         r"""Samples a mini-batch of partial trajectories.
 
         Args:
-            batch_size: mini-batch size.
-            length: length of partial trajectories.
+            batch_size: Mini-batch size.
+            length: Length of partial trajectories.
 
         Returns:
-            mini-batch.
+            Mini-batch.
         """
         return TrajectoryMiniBatch.from_partial_trajectories(
             [self.sample_trajectory(length) for _ in range(batch_size)]
@@ -256,16 +256,16 @@ class ReplayBuffer:
         """Builds ReplayBuffer from episode generator.
 
         Args:
-            episode_generator: episode generator implementation.
-            buffer: buffer implementation.
-            transition_picker: transition picker implementation for
+            episode_generator: Episode generator implementation.
+            buffer: Buffer implementation.
+            transition_picker: Transition picker implementation for
                 Q-learning-based algorithms.
-            trajectory_slicer: trajectory slicer implementation for
+            trajectory_slicer: Trajectory slicer implementation for
                 Transformer-based algorithms.
-            writer_preprocessor: writer preprocessor implementation.
+            writer_preprocessor: Writer preprocessor implementation.
 
         Returns:
-            replay buffer.
+            Replay buffer.
         """
         return cls(
             buffer,
@@ -296,16 +296,16 @@ class ReplayBuffer:
 
         Args:
             f: IO object to read from.
-            buffer: buffer implementation.
-            episode_cls: eisode class used to reconstruct data.
-            transition_picker: transition picker implementation for
+            buffer: Buffer implementation.
+            episode_cls: Eisode class used to reconstruct data.
+            transition_picker: Transition picker implementation for
                 Q-learning-based algorithms.
-            trajectory_slicer: trajectory slicer implementation for
+            trajectory_slicer: Trajectory slicer implementation for
                 Transformer-based algorithms.
-            writer_preprocessor: writer preprocessor implementation.
+            writer_preprocessor: Writer preprocessor implementation.
 
         Returns:
-            replay buffer.
+            Replay buffer.
         """
         return cls(
             buffer,
@@ -317,25 +317,55 @@ class ReplayBuffer:
 
     @property
     def episodes(self) -> Sequence[EpisodeBase]:
+        """Returns sequence of episodes.
+
+        Returns:
+            Sequence of episodes.
+        """
         return self._buffer.episodes
 
     def size(self) -> int:
+        """Returns number of episodes.
+
+        Returns:
+            Number of episodes.
+        """
         return len(self._buffer.episodes)
 
     @property
     def buffer(self) -> BufferProtocol:
+        """Returns buffer.
+
+        Returns:
+            Buffer.
+        """
         return self._buffer
 
     @property
     def transition_count(self) -> int:
+        """Returns number of transitions.
+
+        Returns:
+            Number of transitions.
+        """
         return self._buffer.transition_count
 
     @property
     def transition_picker(self) -> TransitionPickerProtocol:
+        """Returns transition picker.
+
+        Returns:
+            Transition picker.
+        """
         return self._transition_picker
 
     @property
     def trajectory_slicer(self) -> TrajectorySlicerProtocol:
+        """Returns trajectory slicer.
+
+        Returns:
+            Trajectory slicer.
+        """
         return self._trajectory_slicer
 
 
@@ -353,21 +383,21 @@ def create_fifo_replay_buffer(
     ``FIFOBuffer``.
 
     Args:
-        limit: maximum capacity of FIFO buffer.
-        episodes: list of episodes to initialize replay buffer.
+        limit: Maximum capacity of FIFO buffer.
+        episodes: List of episodes to initialize replay buffer.
         transition_picker:
-            transition picker implementation for Q-learning-based algorithms.
+            Transition picker implementation for Q-learning-based algorithms.
             If ``None`` is given, ``BasicTransitionPicker`` is used by default.
         trajectory_slicer:
-            trajectory slicer implementation for Transformer-based algorithms.
+            Trajectory slicer implementation for Transformer-based algorithms.
             If ``None`` is given, ``BasicTrajectorySlicer`` is used by default.
         writer_preprocessor:
-            writer preprocessor implementation. If ``None`` is given,
+            Writer preprocessor implementation. If ``None`` is given,
             ``BasicWriterPreprocess`` is used by default.
         env: Gym environment to extract shapes of observations and action.
 
     Returns:
-        replay buffer object.
+        Replay buffer.
     """
     buffer = FIFOBuffer(limit)
     return ReplayBuffer(
@@ -393,20 +423,20 @@ def create_infinite_replay_buffer(
     ``InfiniteBuffer``.
 
     Args:
-        episodes: list of episodes to initialize replay buffer.
+        episodes: List of episodes to initialize replay buffer.
         transition_picker:
-            transition picker implementation for Q-learning-based algorithms.
+            Transition picker implementation for Q-learning-based algorithms.
             If ``None`` is given, ``BasicTransitionPicker`` is used by default.
         trajectory_slicer:
-            trajectory slicer implementation for Transformer-based algorithms.
+            Trajectory slicer implementation for Transformer-based algorithms.
             If ``None`` is given, ``BasicTrajectorySlicer`` is used by default.
         writer_preprocessor:
-            writer preprocessor implementation. If ``None`` is given,
+            Writer preprocessor implementation. If ``None`` is given,
             ``BasicWriterPreprocess`` is used by default.
         env: Gym environment to extract shapes of observations and action.
 
     Returns:
-        replay buffer object.
+        Replay buffer.
     """
     buffer = InfiniteBuffer()
     return ReplayBuffer(

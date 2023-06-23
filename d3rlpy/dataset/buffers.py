@@ -14,7 +14,7 @@ class BufferProtocol(Protocol):
 
         Args:
             episode: Episode object.
-            index: transition index.
+            index: Transition index.
         """
         raise NotImplementedError
 
@@ -23,7 +23,7 @@ class BufferProtocol(Protocol):
         r"""Returns list of episodes.
 
         Returns:
-            a list of saved episodes.
+            List of saved episodes.
         """
         raise NotImplementedError
 
@@ -32,7 +32,7 @@ class BufferProtocol(Protocol):
         r"""Returns the number of transitions.
 
         Returns:
-            the number of transitions.
+            Number of transitions.
         """
         raise NotImplementedError
 

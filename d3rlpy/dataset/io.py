@@ -13,6 +13,12 @@ DATASET_VERSION = "2.0"
 
 
 def dump(episodes: Sequence[EpisodeBase], f: BinaryIO) -> None:
+    r"""Writes episode data to file-like object.
+
+    Args:
+        episodes: Sequence of episodes.
+        f: Binary file-like object.
+    """
     serializedData = [episode.serialize() for episode in episodes]
     keys = list(serializedData[0].keys())
     with h5py.File(f, "w") as h5:
@@ -31,6 +37,15 @@ def dump(episodes: Sequence[EpisodeBase], f: BinaryIO) -> None:
 
 
 def load(episode_cls: Type[EpisodeBase], f: BinaryIO) -> Sequence[EpisodeBase]:
+    r"""Constructs episodes from file-like object.
+
+    Args:
+        episode_cls: Episode class.
+        f: Binary file-like object.
+
+    Returns:
+        Sequence of episodes.
+    """
     episodes = []
     with h5py.File(f, "r") as h5:
         keys = cast(
@@ -59,6 +74,14 @@ def load(episode_cls: Type[EpisodeBase], f: BinaryIO) -> Sequence[EpisodeBase]:
 
 
 def load_v1(f: BinaryIO) -> Sequence[Episode]:
+    r"""Loads v1 dataset data.
+
+    Args:
+        f: Binary file-like object.
+
+    Returns:
+        Sequence of episodes.
+    """
     with h5py.File(f, "r") as h5:
         observations = h5["observations"][()]
         actions = h5["actions"][()]
