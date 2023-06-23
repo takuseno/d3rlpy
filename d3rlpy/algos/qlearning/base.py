@@ -371,6 +371,7 @@ class QLearningAlgoBase(
         save_interval: int = 1,
         evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
+        epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> List[Tuple[int, Dict[str, float]]]:
         """Trains with the given dataset.
 
@@ -393,6 +394,9 @@ class QLearningAlgoBase(
             evaluators: list of evaluators.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
+            epoch_callback: callable function that takes
+                ``(algo, epoch, total_step)``, which is called at the end of
+                every epoch.
 
         Returns:
             list of result tuples (epoch, metrics) per epoch.
@@ -409,6 +413,7 @@ class QLearningAlgoBase(
                 save_interval,
                 evaluators,
                 callback,
+                epoch_callback,
             )
         )
         return results
@@ -425,6 +430,7 @@ class QLearningAlgoBase(
         save_interval: int = 1,
         evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
+        epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
         """Iterate over epochs steps to train with the given dataset. At each
         iteration algo methods and properties can be changed or queried.
@@ -450,6 +456,9 @@ class QLearningAlgoBase(
             evaluators: list of evaluators.
             callback: callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
+            epoch_callback: callable function that takes
+                ``(algo, epoch, total_step)``, which is called at the end of
+                every epoch.
 
         Returns:
             iterator yielding current epoch and metrics dict.
@@ -529,6 +538,10 @@ class QLearningAlgoBase(
                 # call callback if given
                 if callback:
                     callback(self, epoch, total_step)
+
+            # call epoch_callback if given
+            if epoch_callback:
+                epoch_callback(self, epoch, total_step)
 
             if evaluators:
                 for name, evaluator in evaluators.items():
