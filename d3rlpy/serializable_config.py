@@ -101,7 +101,7 @@ def generate_config_registration(
         def make_field() -> TDynamicConfig:
             return dataclasses.field(
                 metadata=config(encoder=_encoder, decoder=_decoder),
-                default_factory=default_factory,  # type: ignore
+                default_factory=default_factory,
             )
 
     return register_config, make_field
