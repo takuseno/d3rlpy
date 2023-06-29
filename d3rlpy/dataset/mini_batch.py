@@ -18,6 +18,17 @@ __all__ = ["TransitionMiniBatch", "TrajectoryMiniBatch"]
 
 @dataclasses.dataclass(frozen=True)
 class TransitionMiniBatch:
+    r"""Mini-batch of transitions.
+
+    Args:
+        observations: Batched observations.
+        actions: Batched actions.
+        rewards: Batched rewards.
+        next_observations: Batched next observations.
+        terminals: Batched environment terminal flags.
+        intervals: Batched timesteps between observations and next
+            observations.
+    """
     observations: Union[np.ndarray, Sequence[np.ndarray]]  # (B, ...)
     actions: np.ndarray  # (B, ...)
     rewards: np.ndarray  # (B, 1)
@@ -43,6 +54,14 @@ class TransitionMiniBatch:
     def from_transitions(
         cls, transitions: Sequence[Transition]
     ) -> "TransitionMiniBatch":
+        r"""Constructs mini-batch from list of transitions.
+
+        Args:
+            transitions: List of transitions.
+
+        Returns:
+            Mini-batch.
+        """
         observations = stack_observations(
             [transition.observation for transition in transitions]
         )
@@ -74,14 +93,29 @@ class TransitionMiniBatch:
 
     @property
     def observation_shape(self) -> Shape:
+        r"""Returns observation shape.
+
+        Returns:
+            Observation shape.
+        """
         return get_shape_from_observation_sequence(self.observations)
 
     @property
     def action_shape(self) -> Sequence[int]:
+        r"""Returns action shape.
+
+        Returns:
+            Action shape.
+        """
         return self.actions.shape[1:]  # type: ignore
 
     @property
     def reward_shape(self) -> Sequence[int]:
+        r"""Returns reward shape.
+
+        Returns:
+            Reward shape.
+        """
         return self.rewards.shape[1:]  # type: ignore
 
     def __len__(self) -> int:
@@ -90,6 +124,18 @@ class TransitionMiniBatch:
 
 @dataclasses.dataclass(frozen=True)
 class TrajectoryMiniBatch:
+    r"""Mini-batch of trajectories.
+
+    Args:
+        observations: Batched sequence of observations.
+        actions: Batched sequence of actions.
+        rewards: Batched sequence of rewards.
+        returns_to_go: Batched sequence of returns-to-go.
+        terminals: Batched sequence of environment terminal flags.
+        timesteps: Batched sequence of environment timesteps.
+        masks: Batched masks that represent padding.
+        length: Length of trajectories.
+    """
     observations: Union[np.ndarray, Sequence[np.ndarray]]  # (B, L, ...)
     actions: np.ndarray  # (B, L, ...)
     rewards: np.ndarray  # (B, L, 1)
@@ -112,6 +158,14 @@ class TrajectoryMiniBatch:
     def from_partial_trajectories(
         cls, trajectories: Sequence[PartialTrajectory]
     ) -> "TrajectoryMiniBatch":
+        r"""Constructs mini-batch from list of trajectories.
+
+        Args:
+            trajectories: List of trajectories.
+
+        Returns:
+            Mini-batch of trajectories.
+        """
         observations = stack_observations(
             [traj.observations for traj in trajectories]
         )
@@ -136,14 +190,29 @@ class TrajectoryMiniBatch:
 
     @property
     def observation_shape(self) -> Shape:
+        r"""Returns observation shape.
+
+        Returns:
+            Observation shape.
+        """
         return get_shape_from_observation_sequence(self.observations)
 
     @property
     def action_shape(self) -> Sequence[int]:
+        r"""Returns action shape.
+
+        Returns:
+            Action shape.
+        """
         return self.actions.shape[1:]  # type: ignore
 
     @property
     def reward_shape(self) -> Sequence[int]:
+        r"""Returns reward shape.
+
+        Returns:
+            Reward shape.
+        """
         return self.rewards.shape[1:]  # type: ignore
 
     def __len__(self) -> int:

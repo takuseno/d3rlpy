@@ -11,10 +11,29 @@ class TrajectorySlicerProtocol(Protocol):
     def __call__(
         self, episode: EpisodeBase, end_index: int, size: int
     ) -> PartialTrajectory:
-        ...
+        r"""Slice trajectory.
+
+        This method returns a partial trajectory from ``t=end_index-size`` to
+        ``t=end_index``. If ``end_index-size`` is smaller than 0, those parts
+        will be padded by zeros.
+
+        Args:
+            episode: Episode.
+            end_index: Index at the end of the sliced trajectory.
+            size: Length of the sliced trajectory.
+
+        Returns:
+            Sliced trajectory.
+        """
+        raise NotImplementedError
 
 
 class BasicTrajectorySlicer(TrajectorySlicerProtocol):
+    r"""Standard trajectory slicer.
+
+    This class implements a basic trajectory slicing.
+    """
+
     def __call__(
         self, episode: EpisodeBase, end_index: int, size: int
     ) -> PartialTrajectory:

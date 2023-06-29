@@ -22,10 +22,25 @@ def _validate_index(episode: EpisodeBase, index: int) -> None:
 
 class TransitionPickerProtocol(Protocol):
     def __call__(self, episode: EpisodeBase, index: int) -> Transition:
-        ...
+        r"""Returns transition specified by ``index``.
+
+        Args:
+            episode: Episode.
+            index: Index at the target transition.
+
+        Returns:
+            Transition.
+
+        """
+        raise NotImplementedError
 
 
 class BasicTransitionPicker(TransitionPickerProtocol):
+    r"""Standard transition picker.
+
+    This class implements a basic transition picking.
+    """
+
     def __call__(self, episode: EpisodeBase, index: int) -> Transition:
         _validate_index(episode, index)
 
@@ -48,6 +63,29 @@ class BasicTransitionPicker(TransitionPickerProtocol):
 
 
 class FrameStackTransitionPicker(TransitionPickerProtocol):
+    r"""Frame-stacking transition picker.
+
+    This class implements the frame-stacking logic. The observations are
+    stacked with the last ``n_frames-1`` frames. When ``index`` specifies
+    timestep below ``n_frames``, those frames are padded by zeros.
+
+    .. code-block:: python
+
+        episode = Episode(
+            observations=np.random.random((100, 1, 84, 84)),
+            actions=np.random.random((100, 2)),
+            rewards=np.random.random((100, 1)),
+            terminated=False,
+        )
+
+        frame_stacking_picker = FrameStackTransitionPicker(n_frames=4)
+        transition = frame_stacking_picker(episode, 10)
+
+        transition.observation.shape == (4, 84, 84)
+
+    Args:
+        n_frames: Number of frames to stack.
+    """
     _n_frames: int
 
     def __init__(self, n_frames: int):
@@ -77,6 +115,16 @@ class FrameStackTransitionPicker(TransitionPickerProtocol):
 
 
 class MultiStepTransitionPicker(TransitionPickerProtocol):
+    r"""Multi-step transition picker.
+
+    This class implements transition picking for the multi-step TD error.
+    ``reward`` is computed as a multi-step discounted return.
+
+    Args:
+        n_steps: Delta timestep between ``observation`` and
+            ``net_observation``.
+        gamma: Discount factor to compute a multi-step return.
+    """
     _n_steps: int
     _gamma: float
 

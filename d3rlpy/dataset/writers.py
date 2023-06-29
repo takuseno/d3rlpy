@@ -18,16 +18,45 @@ __all__ = [
 
 class WriterPreprocessProtocol(Protocol):
     def process_observation(self, observation: Observation) -> Observation:
+        r"""Processes observation.
+
+        Args:
+            observation: Observation.
+
+        Returns:
+            Processed observation.
+        """
         raise NotImplementedError
 
     def process_action(self, action: np.ndarray) -> np.ndarray:
+        r"""Processes action.
+
+        Args:
+            action: Action.
+
+        Returns:
+            Processed action.
+        """
         raise NotImplementedError
 
     def process_reward(self, reward: np.ndarray) -> np.ndarray:
+        r"""Processes reward.
+
+        Args:
+            reward: Reward.
+
+        Returns:
+            Processed reward.
+        """
         raise NotImplementedError
 
 
 class BasicWriterPreprocess(WriterPreprocessProtocol):
+    """Stanard data writer.
+
+    This class implements identity preprocess.
+    """
+
     def process_observation(self, observation: Observation) -> Observation:
         return observation
 
@@ -39,6 +68,11 @@ class BasicWriterPreprocess(WriterPreprocessProtocol):
 
 
 class LastFrameWriterPreprocess(BasicWriterPreprocess):
+    """Data writer that writes the last channel of observation.
+
+    This class is designed to be used with ``FrameStackTransitionPicker``.
+    """
+
     def process_observation(self, observation: Observation) -> Observation:
         if isinstance(observation, (list, tuple)):
             return [np.expand_dims(obs[-1], axis=0) for obs in observation]
@@ -203,6 +237,18 @@ class _ActiveEpisode(EpisodeBase):
 
 
 class ExperienceWriter:
+    """Experience writer.
+
+    Args:
+        buffer: Buffer.
+        preprocessor: Writer preprocess.
+        observation_signature: Signature of unprocessed observation.
+        action_signature: Signature of unprocessed action.
+        reward_signature: Signature of unprocessed reward.
+        cache_size: Size of data in active episode. This needs to be larger
+            than the maximum length of episodes.
+    """
+
     _preprocessor: WriterPreprocessProtocol
     _buffer: BufferProtocol
     _cache_size: int
