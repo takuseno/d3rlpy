@@ -20,7 +20,7 @@ Before making your nice PR, please run the follwing commands to inspect code qua
 
 ### testing
 ```
-$ pip install pytest-cov onnxruntime stable-baselines3 # dependencies used in unit tests
+$ pip install pytest-cov onnxruntime onnx # dependencies used in unit tests
 $ ./scripts/test
 ```
 
