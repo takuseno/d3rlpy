@@ -59,29 +59,29 @@ class IQLConfig(LearnableConfig):
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
-        actor_learning_rate (float): learning rate for policy function.
-        critic_learning_rate (float): learning rate for Q functions.
+            Observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        actor_learning_rate (float): Learning rate for policy function.
+        critic_learning_rate (float): Learning rate for Q functions.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
+            Optimizer factory for the actor.
         critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
+            Optimizer factory for the critic.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the actor.
+            Encoder factory for the actor.
         critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the critic.
+            Encoder factory for the critic.
         value_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the value function.
-        batch_size (int): mini-batch size.
-        gamma (float): discount factor.
-        tau (float): target network synchronization coefficiency.
-        n_critics (int): the number of Q functions for ensemble.
-        expectile (float): the expectile value for value function training.
-        weight_temp (float): inverse temperature value represented as
+            Encoder factory for the value function.
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        tau (float): Target network synchronization coefficiency.
+        n_critics (int): Number of Q functions for ensemble.
+        expectile (float): Expectile value for value function training.
+        weight_temp (float): Inverse temperature value represented as
             :math:`\beta`.
-        max_weight (float): the maximum advantage weight value to clip.
+        max_weight (float): Maximum advantage weight value to clip.
     """
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4

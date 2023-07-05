@@ -15,6 +15,9 @@ __all__ = ["MDPDataset"]
 class MDPDataset(ReplayBuffer):
     r"""Backward-compability class of MDPDataset.
 
+    This is a wrapper class that has a backward-compatible constructor
+    interface.
+
     Args:
         observations (ObservationSequence): Observations.
         actions (np.ndarray): Actions.

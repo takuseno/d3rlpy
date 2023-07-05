@@ -46,29 +46,29 @@ class AWACConfig(LearnableConfig):
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
-        actor_learning_rate (float): learning rate for policy function.
-        critic_learning_rate (float): learning rate for Q functions.
+            Observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        actor_learning_rate (float): Learning rate for policy function.
+        critic_learning_rate (float): Learning rate for Q functions.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
+            Optimizer factory for the actor.
         critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
+            Optimizer factory for the critic.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the actor.
+            Encoder factory for the actor.
         critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the critic.
+            Encoder factory for the critic.
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
-        batch_size (int): mini-batch size.
-        gamma (float): discount factor.
-        tau (float): target network synchronization coefficiency.
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        tau (float): Target network synchronization coefficiency.
         lam (float): :math:`\lambda` for weight calculation.
-        n_action_samples (int): the number of sampled actions to calculate
+        n_action_samples (int): Number of sampled actions to calculate
             :math:`A^\pi(s_t, a_t)`.
-        n_critics (int): the number of Q functions for ensemble.
-        update_actor_interval (int): interval to update policy function.
+        n_critics (int): Number of Q functions for ensemble.
+        update_actor_interval (int): Interval to update policy function.
     """
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4

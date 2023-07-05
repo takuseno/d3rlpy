@@ -46,33 +46,33 @@ class PLASConfig(LearnableConfig):
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
-        actor_learning_rate (float): learning rate for policy function.
-        critic_learning_rate (float): learning rate for Q functions.
-        imitator_learning_rate (float): learning rate for Conditional VAE.
+            Observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        actor_learning_rate (float): Learning rate for policy function.
+        critic_learning_rate (float): Learning rate for Q functions.
+        imitator_learning_rate (float): Learning rate for Conditional VAE.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
+            Optimizer factory for the actor.
         critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
+            Optimizer factory for the critic.
         imitator_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the conditional VAE.
+            Optimizer factory for the conditional VAE.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the actor.
+            Encoder factory for the actor.
         critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the critic.
+            Encoder factory for the critic.
         imitator_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the conditional VAE.
+            Encoder factory for the conditional VAE.
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
-        batch_size (int): mini-batch size.
-        gamma (float): discount factor.
-        tau (float): target network synchronization coefficiency.
-        n_critics (int): the number of Q functions for ensemble.
-        update_actor_interval (int): interval to update policy function.
-        lam (float): weight factor for critic ensemble.
-        warmup_steps (int): the number of steps to warmup the VAE.
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        tau (float): Target network synchronization coefficiency.
+        n_critics (int): Number of Q functions for ensemble.
+        update_actor_interval (int): Interval to update policy function.
+        lam (float): Weight factor for critic ensemble.
+        warmup_steps (int): Number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
     """
     actor_learning_rate: float = 1e-4
@@ -193,34 +193,34 @@ class PLASWithPerturbationConfig(PLASConfig):
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
-        actor_learning_rate (float): learning rate for policy function.
-        critic_learning_rate (float): learning rate for Q functions.
-        imitator_learning_rate (float): learning rate for Conditional VAE.
+            Observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        actor_learning_rate (float): Learning rate for policy function.
+        critic_learning_rate (float): Learning rate for Q functions.
+        imitator_learning_rate (float): Learning rate for Conditional VAE.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
+            Optimizer factory for the actor.
         critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
+            Optimizer factory for the critic.
         imitator_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the conditional VAE.
+            Optimizer factory for the conditional VAE.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the actor.
+            Encoder factory for the actor.
         critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the critic.
+            Encoder factory for the critic.
         imitator_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the conditional VAE.
+            Encoder factory for the conditional VAE.
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
-        batch_size (int): mini-batch size.
-        gamma (float): discount factor.
-        tau (float): target network synchronization coefficiency.
-        n_critics (int): the number of Q functions for ensemble.
-        update_actor_interval (int): interval to update policy function.
-        lam (float): weight factor for critic ensemble.
-        action_flexibility (float): output scale of perturbation layer.
-        warmup_steps (int): the number of steps to warmup the VAE.
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        tau (float): Target network synchronization coefficiency.
+        n_critics (int): Number of Q functions for ensemble.
+        update_actor_interval (int): Interval to update policy function.
+        lam (float): Weight factor for critic ensemble.
+        action_flexibility (float): Output scale of perturbation layer.
+        warmup_steps (int): Number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
     """
     action_flexibility: float = 0.05

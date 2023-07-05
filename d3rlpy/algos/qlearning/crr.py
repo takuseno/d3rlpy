@@ -69,37 +69,37 @@ class CRRConfig(LearnableConfig):
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
-        actor_learning_rate (float): learning rate for policy function.
-        critic_learning_rate (float): learning rate for Q functions.
+            Observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        actor_learning_rate (float): Learning rate for policy function.
+        critic_learning_rate (float): Learning rate for Q functions.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
+            Optimizer factory for the actor.
         critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
+            Optimizer factory for the critic.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the actor.
+            Encoder factory for the actor.
         critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the critic.
+            Encoder factory for the critic.
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
-        batch_size (int): mini-batch size.
-        gamma (float): discount factor.
-        beta (float): temperature value defined as :math:`\beta` above.
-        n_action_samples (int): the number of sampled actions to calculate
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        beta (float): Temperature value defined as :math:`\beta` above.
+        n_action_samples (int): Number of sampled actions to calculate
             :math:`A(s, a)` and for CWP.
-        advantage_type (str): advantage function type. The available options
+        advantage_type (str): Advantage function type. The available options
             are ``['mean', 'max']``.
-        weight_type (str): filter function type. The available options
+        weight_type (str): Filter function type. The available options
             are ``['binary', 'exp']``.
-        max_weight (float): maximum weight for cross-entropy loss.
-        n_critics (int): the number of Q functions for ensemble.
-        target_update_type (str): target update type. The available options are
+        max_weight (float): Maximum weight for cross-entropy loss.
+        n_critics (int): Number of Q functions for ensemble.
+        target_update_type (str): Target update type. The available options are
             ``['hard', 'soft']``.
-        tau (float): target network synchronization coefficiency used with
+        tau (float): Target network synchronization coefficiency used with
             ``soft`` target update.
-        update_actor_interval (int): interval to update policy function used
+        update_actor_interval (int): Interval to update policy function used
             with ``hard`` target update.
     """
     actor_learning_rate: float = 3e-4

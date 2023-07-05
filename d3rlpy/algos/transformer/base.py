@@ -81,7 +81,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
 
     Args:
         algo (TransformerAlgoBase): Transformer-based algorithm.
-        target_return (float): target return to achieve.
+        target_return (float): Target return.
     """
     _algo: "TransformerAlgoBase[TTransformerImpl, TTransformerConfig]"
     _target_return: float
@@ -115,11 +115,11 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         r"""Returns action.
 
         Args:
-            x: observation.
-            reward: last reward.
+            x: Observation.
+            reward: Last reward.
 
         Returns:
-            action.
+            Action.
         """
         self._observations.append(x)
         self._rewards.append(reward)
@@ -176,10 +176,10 @@ class TransformerAlgoBase(
         ``StatefulTransformerWrapper`` instead.
 
         Args:
-            inpt: sequence input.
+            inpt: Sequence input.
 
         Returns:
-            action.
+            Action.
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         with torch.no_grad():
@@ -222,20 +222,20 @@ class TransformerAlgoBase(
                 algo.save_model(my_path)
 
         Args:
-            dataset: offline dataset to train.
-            n_steps: the number of steps to train.
-            n_steps_per_epoch: the number of steps per epoch. This value will
+            dataset: Offline dataset to train.
+            n_steps: Number of steps to train.
+            n_steps_per_epoch: Number of steps per epoch. This value will
                 be ignored when ``n_steps`` is ``None``.
-            experiment_name: experiment name for logging. If not passed,
+            experiment_name: Experiment name for logging. If not passed,
                 the directory name will be `{class name}_{timestamp}`.
-            with_timestamp: flag to add timestamp string to the last of
+            with_timestamp: Flag to add timestamp string to the last of
                 directory name.
             logger_adapter: LoggerAdapterFactory object.
-            show_progress: flag to show progress bar for iterations.
-            eval_env: evaluation environment.
-            eval_target_return: evaluation return target.
-            save_interval: interval to save parameters.
-            callback: callable function that takes ``(algo, epoch, total_step)``
+            show_progress: Flag to show progress bar for iterations.
+            eval_env: Evaluation environment.
+            eval_target_return: Evaluation return target.
+            save_interval: Interval to save parameters.
+            callback: Callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
         """
         dataset_info = DatasetInfo.from_episodes(dataset.episodes)
@@ -336,10 +336,10 @@ class TransformerAlgoBase(
         """Update parameters with mini-batch of data.
 
         Args:
-            batch: mini-batch data.
+            batch: Mini-batch data.
 
         Returns:
-            dictionary of metrics.
+            Dictionary of metrics.
         """
         torch_batch = TorchTrajectoryMiniBatch.from_batch(
             batch=batch,
@@ -360,7 +360,7 @@ class TransformerAlgoBase(
             batch: PyTorch mini-batch data.
 
         Returns:
-            dictionary of metrics.
+            Dictionary of metrics.
         """
         raise NotImplementedError
 
@@ -370,7 +370,7 @@ class TransformerAlgoBase(
         """Returns a wrapped Transformer algorithm for stateful decision making.
 
         Args:
-            target_return: target environment return.
+            target_return: Target environment return.
 
         Returns:
             StatefulTransformerWrapper object.

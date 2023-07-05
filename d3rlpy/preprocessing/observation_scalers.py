@@ -111,8 +111,8 @@ class MinMaxObservationScaler(ObservationScaler):
         cql = CQLConfig(observation_scaler=observation_scaler).create()
 
     Args:
-        minimum (numpy.ndarray): minimum values at each entry.
-        maximum (numpy.ndarray): maximum values at each entry.
+        minimum (numpy.ndarray): Minimum values at each entry.
+        maximum (numpy.ndarray): Maximum values at each entry.
     """
     minimum: Optional[np.ndarray] = make_optional_numpy_field()
     maximum: Optional[np.ndarray] = make_optional_numpy_field()
@@ -254,9 +254,9 @@ class StandardObservationScaler(ObservationScaler):
         cql = CQLConfig(observation_scaler=observation_scaler).create()
 
     Args:
-        mean (numpy.ndarray): mean values at each entry.
-        std (numpy.ndarray): standard deviation at each entry.
-        eps (float): small constant value to avoid zero-division.
+        mean (numpy.ndarray): Mean values at each entry.
+        std (numpy.ndarray): Standard deviation at each entry.
+        eps (float): Small constant value to avoid zero-division.
     """
     mean: Optional[np.ndarray] = make_optional_numpy_field()
     std: Optional[np.ndarray] = make_optional_numpy_field()

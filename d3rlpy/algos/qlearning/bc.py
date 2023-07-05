@@ -44,17 +44,17 @@ class BCConfig(LearnableConfig):
             [(a_t - \pi_\theta(s_t))^2]
 
     Args:
-        learning_rate (float): learing rate.
+        learning_rate (float): Learing rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory.
+            Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory.
-        batch_size (int): mini-batch size.
-        policy_type (str): the policy type. The available options are
+            Encoder factory.
+        batch_size (int): Mini-batch size.
+        policy_type (str): the policy type. Available options are
             ``['deterministic', 'stochastic']``.
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action scaler.
+            Observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
     """
     batch_size: int = 100
     learning_rate: float = 1e-3
@@ -128,15 +128,15 @@ class DiscreteBCConfig(LearnableConfig):
     where :math:`p(a|s_t)` is implemented as a one-hot vector.
 
     Args:
-        learning_rate (float): learing rate.
+        learning_rate (float): Learing rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory.
+            Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory.
-        batch_size (int): mini-batch size.
-        beta (float): reguralization factor.
+            Encoder factory.
+        batch_size (int): Mini-batch size.
+        beta (float): Reguralization factor.
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
+            Observation preprocessor.
     """
     batch_size: int = 100
     learning_rate: float = 1e-3

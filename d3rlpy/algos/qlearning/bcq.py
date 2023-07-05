@@ -100,37 +100,37 @@ class BCQConfig(LearnableConfig):
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
-        actor_learning_rate (float): learning rate for policy function.
-        critic_learning_rate (float): learning rate for Q functions.
-        imitator_learning_rate (float): learning rate for Conditional VAE.
+            Observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        actor_learning_rate (float): Learning rate for policy function.
+        critic_learning_rate (float): Learning rate for Q functions.
+        imitator_learning_rate (float): Learning rate for Conditional VAE.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
+            Optimizer factory for the actor.
         critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
+            Optimizer factory for the critic.
         imitator_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the conditional VAE.
+            Optimizer factory for the conditional VAE.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the actor.
+            Encoder factory for the actor.
         critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the critic.
+            Encoder factory for the critic.
         imitator_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the conditional VAE.
+            Encoder factory for the conditional VAE.
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
-        batch_size (int): mini-batch size.
-        gamma (float): discount factor.
-        tau (float): target network synchronization coefficiency.
-        n_critics (int): the number of Q functions for ensemble.
-        update_actor_interval (int): interval to update policy function.
-        lam (float): weight factor for critic ensemble.
-        n_action_samples (int): the number of action samples to estimate
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        tau (float): Target network synchronization coefficiency.
+        n_critics (int): Number of Q functions for ensemble.
+        update_actor_interval (int): Interval to update policy function.
+        lam (float): Weight factor for critic ensemble.
+        n_action_samples (int): Number of action samples to estimate
             action-values.
-        action_flexibility (float): output scale of perturbation function
+        action_flexibility (float): Output scale of perturbation function
             represented as :math:`\Phi`.
-        rl_start_step (int): step to start to update policy function and Q
+        rl_start_step (int): Steps to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
         beta (float): KL reguralization term for Conditional VAE.
     """
@@ -287,22 +287,22 @@ class DiscreteBCQConfig(LearnableConfig):
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
-        learning_rate (float): learning rate.
+            Observation preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        learning_rate (float): Learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory.
+            Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory or str):
-            encoder factory.
+            Encoder factory.
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory or str):
             Q function factory.
-        batch_size (int): mini-batch size.
-        gamma (float): discount factor.
-        n_critics (int): the number of Q functions for ensemble.
-        action_flexibility (float): probability threshold represented as
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        n_critics (int): Number of Q functions for ensemble.
+        action_flexibility (float): Probability threshold represented as
             :math:`\tau`.
-        beta (float): reguralization term for imitation function.
-        target_update_interval (int): interval to update the target network.
+        beta (float): Reguralization term for imitation function.
+        target_update_interval (int): Interval to update the target network.
     """
     learning_rate: float = 6.25e-5
     optim_factory: OptimizerFactory = make_optimizer_field()

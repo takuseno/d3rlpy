@@ -25,8 +25,8 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         """Estimates scaling parameters from dataset.
 
         Args:
-            episodes: list of episodes.
-            transition_picker: transition picker to process mini-batch.
+            episodes: List of episodes.
+            transition_picker: Transition picker to process mini-batch.
         """
         raise NotImplementedError
 
@@ -39,8 +39,8 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         """Estimates scaling parameters from dataset.
 
         Args:
-            episodes: list of episodes.
-            trajectory_slicer: trajectory slicer to process mini-batch.
+            episodes: List of episodes.
+            trajectory_slicer: Trajectory slicer to process mini-batch.
         """
         raise NotImplementedError
 
@@ -49,7 +49,7 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         """Gets scaling parameters from environment.
 
         Args:
-            env: gym environment.
+            env: Gym environment.
         """
         raise NotImplementedError
 
@@ -58,10 +58,10 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         """Returns processed output.
 
         Args:
-            x: input.
+            x: Input.
 
         Returns:
-            processed output.
+            Processed output.
         """
         raise NotImplementedError
 
@@ -73,7 +73,7 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
             x: input.
 
         Returns:
-            reversely transformed output.
+            Inversely transformed output.
         """
         raise NotImplementedError
 
@@ -82,10 +82,10 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         """Returns processed output in numpy.
 
         Args:
-            x: input.
+            x: Input.
 
         Returns:
-            processed output.
+            Processed output.
         """
         raise NotImplementedError
 
@@ -94,10 +94,10 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         """Returns reversely transformed output in numpy.
 
         Args:
-            x: input.
+            x: Input.
 
         Returns:
-            reversely transformed output.
+            Inversely transformed output.
         """
         raise NotImplementedError
 
@@ -107,7 +107,7 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         """Returns a flag to represent if scaler is already built.
 
         Returns:
-            the flag will be True if scaler is already built.
+            The flag will be True if scaler is already built.
         """
         raise NotImplementedError
 

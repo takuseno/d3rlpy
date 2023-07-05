@@ -33,19 +33,19 @@ class DQNConfig(LearnableConfig):
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
-        learning_rate (float): learning rate.
+            Observation preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        learning_rate (float): Learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory.
+            Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory.
+            Encoder factory.
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
-        batch_size (int): mini-batch size.
-        gamma (float): discount factor.
-        n_critics (int): the number of Q functions for ensemble.
-        target_update_interval (int): interval to update the target network.
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        n_critics (int): Number of Q functions for ensemble.
+        target_update_interval (int): Interval to update the target network.
     """
     batch_size: int = 32
     learning_rate: float = 6.25e-5
@@ -125,19 +125,19 @@ class DoubleDQNConfig(DQNConfig):
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
-        learning_rate (float): learning rate.
+            Observation preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        learning_rate (float): Learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory.
+            Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory.
+            Encoder factory.
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
-        batch_size (int): mini-batch size.
-        gamma (float): discount factor.
-        n_critics (int): the number of Q functions.
-        target_update_interval (int): interval to synchronize the target
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        n_critics (int): Number of Q functions.
+        target_update_interval (int): Interval to synchronize the target
             network.
     """
     batch_size: int = 32

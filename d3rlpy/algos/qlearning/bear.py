@@ -66,54 +66,54 @@ class BEARConfig(LearnableConfig):
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
-        actor_learning_rate (float): learning rate for policy function.
-        critic_learning_rate (float): learning rate for Q functions.
-        imitator_learning_rate (float): learning rate for behavior policy
+            Observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        actor_learning_rate (float): Learning rate for policy function.
+        critic_learning_rate (float): Learning rate for Q functions.
+        imitator_learning_rate (float): Learning rate for behavior policy
             function.
-        temp_learning_rate (float): learning rate for temperature parameter.
-        alpha_learning_rate (float): learning rate for :math:`\alpha`.
+        temp_learning_rate (float): Learning rate for temperature parameter.
+        alpha_learning_rate (float): Learning rate for :math:`\alpha`.
         actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the actor.
+            Optimizer factory for the actor.
         critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the critic.
+            Optimizer factory for the critic.
         imitator_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the behavior policy.
+            Optimizer factory for the behavior policy.
         temp_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for the temperature.
+            Optimizer factory for the temperature.
         alpha_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory for :math:`\alpha`.
+            Optimizer factory for :math:`\alpha`.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the actor.
+            Encoder factory for the actor.
         critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the critic.
+            Encoder factory for the critic.
         imitator_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory for the behavior policy.
+            Encoder factory for the behavior policy.
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
-        batch_size (int): mini-batch size.
-        gamma (float): discount factor.
-        tau (float): target network synchronization coefficiency.
-        n_critics (int): the number of Q functions for ensemble.
-        initial_temperature (float): initial temperature value.
-        initial_alpha (float): initial :math:`\alpha` value.
-        alpha_threshold (float): threshold value described as
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        tau (float): Target network synchronization coefficiency.
+        n_critics (int): Number of Q functions for ensemble.
+        initial_temperature (float): Initial temperature value.
+        initial_alpha (float): Initial :math:`\alpha` value.
+        alpha_threshold (float): Threshold value described as
             :math:`\epsilon`.
-        lam (float): weight for critic ensemble.
-        n_action_samples (int): the number of action samples to compute the
+        lam (float): Weight for critic ensemble.
+        n_action_samples (int): Number of action samples to compute the
             best action.
-        n_target_samples (int): the number of action samples to compute
+        n_target_samples (int): Number of action samples to compute
             BCQ-like target value.
-        n_mmd_action_samples (int): the number of action samples to compute MMD.
+        n_mmd_action_samples (int): Number of action samples to compute MMD.
         mmd_kernel (str): MMD kernel function. The available options are
             ``['gaussian', 'laplacian']``.
         mmd_sigma (float): :math:`\sigma` for gaussian kernel in MMD
             calculation.
-        vae_kl_weight (float): constant weight to scale KL term for behavior
+        vae_kl_weight (float): Constant weight to scale KL term for behavior
             policy training.
-        warmup_steps (int): the number of steps to warmup the policy
+        warmup_steps (int): Number of steps to warmup the policy
             function.
     """
     actor_learning_rate: float = 1e-4

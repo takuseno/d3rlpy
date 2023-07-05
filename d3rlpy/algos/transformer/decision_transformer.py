@@ -33,27 +33,27 @@ class DecisionTransformerConfig(TransformerConfig):
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler): reward preprocessor.
-        context_size (int): prior sequence length.
-        batch_size (int): mini-batch size.
-        learning_rate (float): learning rate.
+            Observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        context_size (int): Prior sequence length.
+        batch_size (int): Mini-batch size.
+        learning_rate (float): Learning rate.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory.
+            Encoder factory.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory.
-        num_heads (int): number of attention heads.
-        max_timestep (int): maximum environmental timestep.
-        num_layers (int): number of attention blocks.
-        attn_dropout (float): dropout probability for attentions.
-        resid_dropout (float): dropout probability for residual connection.
-        embed_dropout (float): dropout probability for embeddings.
-        activation_type (str): type of activation function.
-        position_encoding_type (str): type of positional encoding
+            Optimizer factory.
+        num_heads (int): Number of attention heads.
+        max_timestep (int): Maximum environmental timestep.
+        num_layers (int): Number of attention blocks.
+        attn_dropout (float): Dropout probability for attentions.
+        resid_dropout (float): Dropout probability for residual connection.
+        embed_dropout (float): Dropout probability for embeddings.
+        activation_type (str): Type of activation function.
+        position_encoding_type (str): Type of positional encoding
             (``simple`` or ``global``).
-        warmup_steps (int): warmup steps for learning rate scheduler.
-        clip_grad_norm (float): norm of gradient clipping.
+        warmup_steps (int): Warmup steps for learning rate scheduler.
+        clip_grad_norm (float): Norm of gradient clipping.
     """
 
     batch_size: int = 64

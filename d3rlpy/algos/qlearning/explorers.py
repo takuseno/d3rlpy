@@ -61,9 +61,9 @@ class LinearDecayEpsilonGreedy(Explorer):
     """:math:`\\epsilon`-greedy explorer with linear decay schedule.
 
     Args:
-        start_epsilon (float): the beginning :math:`\\epsilon`.
-        end_epsilon (float): the end :math:`\\epsilon`.
-        duration (int): the scheduling duration.
+        start_epsilon (float): Initial :math:`\\epsilon`.
+        end_epsilon (float): Final :math:`\\epsilon`.
+        duration (int): Scheduling duration.
 
     """
 
@@ -87,9 +87,9 @@ class LinearDecayEpsilonGreedy(Explorer):
         """Returns :math:`\\epsilon`-greedy action.
 
         Args:
-            algo: algorithm.
-            x: observation.
-            step: current environment step.
+            algo: Algorithm.
+            x: Observation.
+            step: Current environment step.
 
         Returns:
             :math:`\\epsilon`-greedy action.
@@ -115,8 +115,8 @@ class NormalNoise(Explorer):
     """Normal noise explorer.
 
     Args:
-        mean (float): mean.
-        std (float): standard deviation.
+        mean (float): Mean.
+        std (float): Standard deviation.
     """
 
     _mean: float
@@ -132,11 +132,11 @@ class NormalNoise(Explorer):
         """Returns action with noise injection.
 
         Args:
-            algo: algorithm.
-            x: observation.
+            algo: Algorithm.
+            x: Observation.
 
         Returns:
-            action with noise injection.
+            Action with noise injection.
         """
         action = algo.predict(x)
         noise = np.random.normal(self._mean, self._std, size=action.shape)

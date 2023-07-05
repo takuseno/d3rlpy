@@ -25,10 +25,10 @@ class RandomPolicyConfig(LearnableConfig):
     ``fit`` and ``fit_online`` methods will raise exceptions.
 
     Args:
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        distribution (str): random distribution. The available options are
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        distribution (str): Random distribution. Available options are
             ``['uniform', 'normal']``.
-        normal_std (float): standard deviation of the normal distribution. This
+        normal_std (float): Standard deviation of the normal distribution. This
             is only used when ``distribution='normal'``.
     """
     distribution: str = "uniform"

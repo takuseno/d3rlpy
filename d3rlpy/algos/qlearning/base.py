@@ -181,7 +181,7 @@ class QLearningAlgoBase(
             * https://onnx.ai (for ONNX)
 
         Args:
-            fname: destination file path.
+            fname: Destination file path.
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
@@ -249,10 +249,10 @@ class QLearningAlgoBase(
             # actions.shape == (100,) for discrete control
 
         Args:
-            x: observations
+            x: Observations
 
         Returns:
-            greedy actions
+            Greedy actions
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         assert check_non_1d_array(x), "Input must have batch dimension."
@@ -293,11 +293,11 @@ class QLearningAlgoBase(
             # values.shape == (100,)
 
         Args:
-            x: observations
-            action: actions
+            x: Observations
+            action: Actions
 
         Returns:
-            predicted action-values
+            Predicted action-values
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         assert check_non_1d_array(x), "Input must have batch dimension."
@@ -334,10 +334,10 @@ class QLearningAlgoBase(
         the policy is deterministic.
 
         Args:
-            x: observations.
+            x: Observations.
 
         Returns:
-            sampled actions.
+            Sampled actions.
         """
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         assert check_non_1d_array(x), "Input must have batch dimension."
@@ -381,25 +381,25 @@ class QLearningAlgoBase(
 
         Args:
             dataset: ReplayBuffer object.
-            n_steps: the number of steps to train.
-            n_steps_per_epoch: the number of steps per epoch. This value will
+            n_steps: Number of steps to train.
+            n_steps_per_epoch: Number of steps per epoch. This value will
                 be ignored when ``n_steps`` is ``None``.
-            experiment_name: experiment name for logging. If not passed,
+            experiment_name: Experiment name for logging. If not passed,
                 the directory name will be `{class name}_{timestamp}`.
-            with_timestamp: flag to add timestamp string to the last of
+            with_timestamp: Flag to add timestamp string to the last of
                 directory name.
             logger_adapter: LoggerAdapterFactory object.
-            show_progress: flag to show progress bar for iterations.
-            save_interval: interval to save parameters.
-            evaluators: list of evaluators.
-            callback: callable function that takes ``(algo, epoch, total_step)``
+            show_progress: Flag to show progress bar for iterations.
+            save_interval: Interval to save parameters.
+            evaluators: List of evaluators.
+            callback: Callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
-            epoch_callback: callable function that takes
+            epoch_callback: Callable function that takes
                 ``(algo, epoch, total_step)``, which is called at the end of
                 every epoch.
 
         Returns:
-            list of result tuples (epoch, metrics) per epoch.
+            List of result tuples (epoch, metrics) per epoch.
         """
         results = list(
             self.fitter(
@@ -442,26 +442,26 @@ class QLearningAlgoBase(
                 algo.save_model(my_path)
 
         Args:
-            dataset: offline dataset to train.
-            n_steps: the number of steps to train.
-            n_steps_per_epoch: the number of steps per epoch. This value will
+            dataset: Offline dataset to train.
+            n_steps: Number of steps to train.
+            n_steps_per_epoch: Number of steps per epoch. This value will
                 be ignored when ``n_steps`` is ``None``.
-            experiment_name: experiment name for logging. If not passed,
+            experiment_name: Experiment name for logging. If not passed,
                 the directory name will be `{class name}_{timestamp}`.
-            with_timestamp: flag to add timestamp string to the last of
+            with_timestamp: Flag to add timestamp string to the last of
                 directory name.
             logger_adapter: LoggerAdapterFactory object.
-            show_progress: flag to show progress bar for iterations.
-            save_interval: interval to save parameters.
-            evaluators: list of evaluators.
-            callback: callable function that takes ``(algo, epoch, total_step)``
+            show_progress: Flag to show progress bar for iterations.
+            save_interval: Interval to save parameters.
+            evaluators: List of evaluators.
+            callback: Callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
-            epoch_callback: callable function that takes
+            epoch_callback: Callable function that takes
                 ``(algo, epoch, total_step)``, which is called at the end of
                 every epoch.
 
         Returns:
-            iterator yielding current epoch and metrics dict.
+            Iterator yielding current epoch and metrics dict.
         """
         dataset_info = DatasetInfo.from_episodes(dataset.episodes)
         LOG.info("dataset info", dataset_info=dataset_info)
@@ -581,24 +581,24 @@ class QLearningAlgoBase(
         """Start training loop of online deep reinforcement learning.
 
         Args:
-            env: gym-like environment.
-            buffer : replay buffer.
-            explorer: action explorer.
-            n_steps: the number of total steps to train.
-            n_steps_per_epoch: the number of steps per epoch.
-            update_interval: the number of steps per update.
-            update_start_step: the steps before starting updates.
-            random_steps: the steps for the initial random explortion.
-            eval_env: gym-like environment. If None, evaluation is skipped.
+            env: Gym-like environment.
+            buffer : Replay buffer.
+            explorer: Action explorer.
+            n_steps: Number of total steps to train.
+            n_steps_per_epoch: Number of steps per epoch.
+            update_interval: Number of steps per update.
+            update_start_step: Steps before starting updates.
+            random_steps: Steps for the initial random explortion.
+            eval_env: Gym-like environment. If None, evaluation is skipped.
             eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
-            save_interval: the number of epochs before saving models.
-            experiment_name: experiment name for logging. If not passed,
+            save_interval: Number of epochs before saving models.
+            experiment_name: Experiment name for logging. If not passed,
                 the directory name will be ``{class name}_online_{timestamp}``.
-            with_timestamp: flag to add timestamp string to the last of
+            with_timestamp: Flag to add timestamp string to the last of
                 directory name.
             logger_adapter: LoggerAdapterFactory object.
-            show_progress: flag to show progress bar for iterations.
-            callback: callable function that takes ``(algo, epoch, total_step)``
+            show_progress: Flag to show progress bar for iterations.
+            callback: Callable function that takes ``(algo, epoch, total_step)``
                 , which is called at the end of epochs.
         """
 
@@ -737,15 +737,15 @@ class QLearningAlgoBase(
         If ``buffer`` is not given, ``ReplayBuffer`` will be internally created.
 
         Args:
-            env: gym-like environment.
-            buffer : replay buffer.
-            explorer: action explorer.
-            deterministic: flag to collect data with the greedy policy.
-            n_steps: the number of total steps to train.
-            show_progress: flag to show progress bar for iterations.
+            env: Fym-like environment.
+            buffer: Replay buffer.
+            explorer: Action explorer.
+            deterministic: Flag to collect data with the greedy policy.
+            n_steps: Number of total steps to train.
+            show_progress: Flag to show progress bar for iterations.
 
         Returns:
-            replay buffer with the collected data.
+            Replay buffer with the collected data.
         """
         # create default replay buffer
         if buffer is None:
@@ -807,10 +807,10 @@ class QLearningAlgoBase(
         """Update parameters with mini-batch of data.
 
         Args:
-            batch: mini-batch data.
+            batch: Mini-batch data.
 
         Returns:
-            dictionary of metrics.
+            Dictionary of metrics.
         """
         torch_batch = TorchMiniBatch.from_batch(
             batch=batch,
@@ -831,7 +831,7 @@ class QLearningAlgoBase(
             batch: PyTorch mini-batch data.
 
         Returns:
-            dictionary of metrics.
+            Dictionary of metrics.
         """
         raise NotImplementedError
 
@@ -852,7 +852,7 @@ class QLearningAlgoBase(
             sac.copy_policy_from(cql)
 
         Args:
-            algo: algorithm object.
+            algo: Algorithm object.
         """
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo.impl, QLearningAlgoImplBase)
@@ -875,7 +875,7 @@ class QLearningAlgoBase(
             sac.copy_policy_optim_from(cql)
 
         Args:
-            algo: algorithm object.
+            algo: Algorithm object.
         """
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo.impl, QLearningAlgoImplBase)
@@ -898,7 +898,7 @@ class QLearningAlgoBase(
             sac.copy_q_function_from(cql)
 
         Args:
-            algo: algorithm object.
+            algo: Algorithm object.
         """
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo.impl, QLearningAlgoImplBase)
@@ -921,7 +921,7 @@ class QLearningAlgoBase(
             sac.copy_policy_optim_from(cql)
 
         Args:
-            algo: algorithm object.
+            algo: Algorithm object.
         """
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo.impl, QLearningAlgoImplBase)

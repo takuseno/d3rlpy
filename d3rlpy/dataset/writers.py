@@ -343,6 +343,13 @@ class ExperienceWriter:
         action: Union[int, np.ndarray],
         reward: Union[float, np.ndarray],
     ) -> None:
+        r"""Writes state tuple to buffer.
+
+        Args:
+            observation: Observation.
+            action: Action.
+            reward: Reward.
+        """
         self._active_episode.append(observation, action, reward)
         if self._active_episode.transition_count > 0:
             self._buffer.append(
@@ -351,6 +358,11 @@ class ExperienceWriter:
             )
 
     def clip_episode(self, terminated: bool) -> None:
+        r"""Clips the current episode.
+
+        Args:
+            terminated: Flag to represent environment termination.
+        """
         if self._active_episode.transition_count == 0:
             return
 

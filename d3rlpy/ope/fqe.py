@@ -46,23 +46,22 @@ class FQEConfig(LearnableConfig):
 
     Args:
         algo (d3rlpy.algos.qlearning.base.QLearningAlgoBase):
-            algorithm to evaluate.
-        learning_rate (float): learning rate.
+            Algorithm to evaluate.
+        learning_rate (float): Learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
-            optimizer factory.
+            Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
-            encoder factory.
+            Encoder factory.
         q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
             Q function factory.
-        batch_size (int): mini-batch size.
-        gamma (float): discount factor.
-        n_critics (int): the number of Q functions for ensemble.
-        target_update_interval (int): interval to update the target network.
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        n_critics (int): Number of Q functions for ensemble.
+        target_update_interval (int): Interval to update the target network.
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
-            observation preprocessor.
-        action_scaler (d3rlpy.preprocessing.ActionScaler): action preprocessor.
-        reward_scaler (d3rlpy.preprocessing.RewardScaler):
-            reward preprocessor.
+            Observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
     """
     learning_rate: float = 1e-4
     optim_factory: OptimizerFactory = make_optimizer_field()
@@ -147,11 +146,11 @@ class FQE(_FQEBase):
           <https://arxiv.org/abs/1903.08738>`_
 
     Args:
-        algo (d3rlpy.algos.base.AlgoBase): algorithm to evaluate.
+        algo (d3rlpy.algos.base.AlgoBase): Algorithm to evaluate.
         config (d3rlpy.ope.FQEConfig): FQE config.
         device (bool, int or str):
-            flag to use GPU, device ID or PyTorch device identifier.
-        impl (d3rlpy.metrics.ope.torch.FQEImpl): algorithm implementation.
+            Flag to use GPU, device ID or PyTorch device identifier.
+        impl (d3rlpy.metrics.ope.torch.FQEImpl): Algorithm implementation.
     """
 
     def inner_create_impl(
@@ -202,12 +201,12 @@ class DiscreteFQE(_FQEBase):
 
     Args:
         algo (d3rlpy.algos.qlearning.base.QLearningAlgoBase):
-            algorithm to evaluate.
+            Algorithm to evaluate.
         config (d3rlpy.ope.FQEConfig): FQE config.
         device (bool, int or str):
-            flag to use GPU, device ID or PyTorch device identifier.
+            Flag to use GPU, device ID or PyTorch device identifier.
         impl (d3rlpy.metrics.ope.torch.DiscreteFQEImpl):
-            algorithm implementation.
+            Algorithm implementation.
     """
 
     def inner_create_impl(

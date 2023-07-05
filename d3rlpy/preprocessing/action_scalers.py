@@ -53,8 +53,8 @@ class MinMaxActionScaler(ActionScaler):
         cql = CQLConfig(action_scaler=action_scaler).create()
 
     Args:
-        minimum (numpy.ndarray): minimum values at each entry.
-        maximum (numpy.ndarray): maximum values at each entry.
+        minimum (numpy.ndarray): Minimum values at each entry.
+        maximum (numpy.ndarray): Maximum values at each entry.
     """
     minimum: Optional[np.ndarray] = make_optional_numpy_field()
     maximum: Optional[np.ndarray] = make_optional_numpy_field()
