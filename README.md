@@ -35,7 +35,7 @@ actions = sac.predict(x)
 
 :warning: Next generation of d3rlpy is under development in [nightly](https://github.com/takuseno/d3rlpy/tree/nightly) branch. It's not fully supporting all of features in the stable versions and there is no documentation yet. However, if you're interested, you can sneak to see what's there.
 
-## key features
+## Key features
 
 ### :zap: Most Practical RL Library Ever
 - **offline RL**: d3rlpy supports state-of-the-art offline RL algorithms. Offline RL is extremely powerful when the online interaction is not feasible during training (e.g. robotics, medical).
@@ -51,7 +51,7 @@ actions = sac.predict(x)
 - **many tweek options**: d3rlpy is also the first to support N-step TD backup and ensemble value functions in the all algorithms, which lead you to the place no one ever reached yet.
 
 
-## installation
+## Installation
 d3rlpy supports Linux, macOS and Windows.
 
 ### PyPI (recommended)
@@ -74,7 +74,7 @@ $ conda install -c conda-forge d3rlpy
 $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 ```
 
-## supported algorithms
+## Supported algorithms
 | algorithm | discrete control | continuous control | offline RL? |
 |:-|:-:|:-:|:-:|
 | Behavior Cloning (supervised learning) | :white_check_mark: | :white_check_mark: | |
@@ -94,17 +94,17 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 | [Implicit Q-Learning (IQL)](https://arxiv.org/abs/2110.06169) | :no_entry: | :white_check_mark: | :white_check_mark: |
 | [Decision Transformer](https://arxiv.org/abs/2106.01345) | :construction: | :white_check_mark: | :white_check_mark: |
 
-## supported Q functions
+## Supported Q functions
 - [x] standard Q function
 - [x] [Quantile Regression](https://arxiv.org/abs/1710.10044)
 - [x] [Implicit Quantile Network](https://arxiv.org/abs/1806.06923)
 
-## benchmark results
+## Benchmark results
 d3rlpy is benchmarked to ensure the implementation quality.
 The benchmark scripts are available [reproductions](https://github.com/takuseno/d3rlpy/tree/master/reproductions) directory.
 The benchmark results are available [d3rlpy-benchmarks](https://github.com/takuseno/d3rlpy-benchmarks) repository.
 
-## examples
+## Examples
 ### MuJoCo
 <p align="center"><img align="center" width="160px" src="assets/mujoco_hopper.gif"></p>
 
@@ -177,7 +177,7 @@ buffer = d3rlpy.dataset.create_fifo_replay_buffer(limit=1000000, env=env)
 sac.fit_online(env, buffer, n_steps=1000000, eval_env=eval_env)
 ```
 
-## tutorials
+## Tutorials
 Try cartpole examples on Google Colaboratory!
 
 - offline RL tutorial: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/takuseno/d3rlpy/blob/master/tutorials/cartpole.ipynb)
@@ -185,27 +185,27 @@ Try cartpole examples on Google Colaboratory!
 
 More tutorial documentations are available [here](https://d3rlpy.readthedocs.io/en/stable/tutorials/index.html).
 
-## contributions
+## Contributions
 Any kind of contribution to d3rlpy would be highly appreciated!
 Please check the [contribution guide](CONTRIBUTING.md).
 
 The release planning can be checked at [milestones](https://github.com/takuseno/d3rlpy/milestones).
 
-## community
+## Community
 | Channel | Link |
 |:-|:-|
 | Chat | [Gitter](https://gitter.im/d3rlpy/d3rlpy) |
 | Issues | [GitHub Issues](https://github.com/takuseno/d3rlpy/issues) |
 
-## family projects
+## Family projects
 | Project | Description |
 |:-:|:-|
 | [d4rl-atari](https://github.com/takuseno/d4rl-atari) | A d4rl-style library of Google's Atari 2600 datasets |
 
-## roadmap
+## Roadmap
 The roadmap to the future release is available in [ROADMAP.md](ROADMAP.md).
 
-## citation
+## Citation
 The paper is available [here](https://arxiv.org/abs/2111.03788).
 ```
 @article{d3rlpy,
@@ -220,7 +220,9 @@ The paper is available [here](https://arxiv.org/abs/2111.03788).
 }
 ```
 
-## acknowledgement
+## Acknowledgement
+This work started as a part of [Takuma Seno](https://github.com/takuseno)'s Ph.D project at Keio University in 2020.
+
 This work is supported by Information-technology Promotion Agency, Japan
 (IPA), Exploratory IT Human Resources Project (MITOU Program) in the fiscal
 year 2020.

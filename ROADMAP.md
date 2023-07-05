@@ -4,7 +4,7 @@ This list describes the planned features including breaking changes.
 - [x] Benchmark MuJoCo datasets
 - [x] Benchmark Atari 2600 datasets
 
-## Roadmap to v2.0.0
+## Roadmap to v2.x.x
 - [x] Change MDPDataset format to align with D4RL datasets
 - [x] Sophisticated config system using dataclasses
 - [x] Dump configuration and model parameters in a single file
