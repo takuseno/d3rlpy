@@ -94,7 +94,7 @@ def get_pendulum(dataset_type: str = "replay") -> Tuple[MDPDataset, gym.Env]:
     dataset = MDPDataset.load(data_path)
 
     # environment
-    env = gym.make("Pendulum-v0")
+    env = gym.make("Pendulum-v1")
 
     return dataset, env
 
