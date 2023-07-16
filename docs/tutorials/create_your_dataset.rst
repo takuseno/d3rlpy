@@ -1,6 +1,6 @@
-***********************
+*******************
 Create Your Dataset
-***********************
+*******************
 
 The data collection API is introduced in :doc:`data_collection`.
 In this tutorial, you can learn how to build your dataset from logged data
@@ -56,7 +56,7 @@ state.
 For example, if you're collecting data of a 4-legged robot walking forward,
 the walking task basically never ends as long as the robot keeps walking while
 the logged episode must stop somewhere.
-In this case, you can use ``episode_terminals`` to represent this timeout states.
+In this case, you can use ``timeouts`` to represent this timeout states.
 
 .. code-block:: python
 
@@ -64,12 +64,12 @@ In this case, you can use ``episode_terminals`` to represent this timeout states
   terminals = np.zeros(1000)
 
   # timeout states
-  episode_terminals = np.random.randint(2, size=1000)
+  timeouts = np.random.randint(2, size=1000)
 
   dataset = d3rlpy.dataset.MDPDataset(
       observations=observations,
       actions=actions,
       rewards=rewards,
       terminals=terminals,
-      episode_terminals=episode_terminals,
+      timeouts=timeouts,
   )

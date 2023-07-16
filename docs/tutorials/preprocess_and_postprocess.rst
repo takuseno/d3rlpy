@@ -10,7 +10,7 @@ Preprocess Observations
 -----------------------
 
 If your dataset includes unnormalized observations, you can normalize or
-standardize the observations by specifying ``observation_scaler`` argument with a string alias.
+standardize the observations by specifying ``observation_scaler`` argument.
 In this case, the statistics of the dataset will be computed at the beginning
 of offline training.
 
@@ -20,8 +20,10 @@ of offline training.
 
   dataset, _ = d3rlpy.datasets.get_dataset("pendulum-random")
 
-  # specify by string alias
-  sac = d3rlpy.algos.SAC(observation_scaler="standard")
+  # prepare scaler without initialization
+  observation_scaler = d3rlpy.preprocessing.StandardObservationScaler()
+
+  sac = d3rlpy.algos.SACConfig(observation_scaler=observation_scaler).create()
 
 Alternatively, you can manually instantiate preprocessing parameters.
 
@@ -32,8 +34,8 @@ Alternatively, you can manually instantiate preprocessing parameters.
   std = np.std(dataset.observations, axis=0, keepdims=True)
   observation_scaler = d3rlpy.preprocessing.StandardObservationScaler(mean=mean, std=std)
 
-  # specify by object
-  sac = d3rlpy.algos.SAC(observation_scaler=observation_scaler)
+  # set as observation_scaler
+  sac = d3rlpy.algos.SACConfig(observation_scaler=observation_scaler).create()
 
 
 Please check :doc:`../references/preprocessing` for the full list of available
@@ -50,8 +52,11 @@ normalizing datasets by yourself.
 
 .. code-block:: python
 
-  # specify by string alias
-  sac = d3rlpy.algos.SAC(action_scaler="min_max")
+  # prepare scaler without initialization
+  action_scaler = d3rlpy.preprocessing.MinMaxActionScaler()
+
+  # set as action scaler
+  sac = d3rlpy.algos.SACConfig(action_scaler=action_scaler).create()
 
   # setup manually
   minimum_action = np.min(dataset.actions, axis=0, keepdims=True)
@@ -61,8 +66,8 @@ normalizing datasets by yourself.
       maximum=maximum_action,
   )
 
-  # specify by object
-  sac = d3rlpy.algos.SAC(action_scaler=action_scaler)
+  # set as action scaler
+  sac = d3rlpy.algos.SACConfig(action_scaler=action_scaler).create()
 
 Please check :doc:`../references/preprocessing` for the full list of available
 action preprocessors.
@@ -76,16 +81,19 @@ it's confirmed that the reward scale affects training performance.
 
 .. code-block:: python
 
-  # specify by string alias
-  sac = d3rlpy.algos.SAC(reward_scaler="standard")
+  # prepare scaler without initialization
+  reward_scaler = d3rlpy.preprocessing.StandardRewardScaler()
+
+  # set as reward scaler
+  sac = d3rlpy.algos.SACConfig(reward_scaler=reward_scaler).create()
 
   # setup manuall
   mean = np.mean(dataset.rewards)
   std = np.std(dataset.rewards)
   reward_scaler = StandardRewardScaler(mean=mean, std=std)
 
-  # specify by object
-  sac = d3rlpy.algos.SAC(reward_scaler=reward_scaler)
+  # set as reward scaler
+  sac = d3rlpy.algos.SACConfig(reward_scaler=reward_scaler).create()
 
 
 Please check :doc:`../references/preprocessing` for the full list of available

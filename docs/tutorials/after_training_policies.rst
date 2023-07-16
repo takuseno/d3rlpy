@@ -16,7 +16,7 @@ Prepare Pretrained Policies
    dataset, env = d3rlpy.datasets.get_dataset('pendulum-random')
 
    # setup algorithm
-   cql = d3rlpy.algos.CQL()
+   cql = d3rlpy.algos.CQLConfig().create(device="cuda:0")
 
    # start offline training
    cql.fit(dataset, n_steps=100000)
@@ -27,13 +27,17 @@ Load Trained Policies
 
 .. code-block:: python
 
-   # choose one of two to setup algorithm
+   # Option 1: Load d3 file
+   cql = d3rlpy.load_learnable("d3rlpy_logs/CQL_xxx/model_1000.d3")
+
+
+   # Option 2: Load pt file
+
+   # save pt file
+   cql_old.save_model("model.pt")
 
    # setup algorithm manually
-   cql = d3rlpy.algos.CQL()
-   # or recreate the algorithm from the params.json
-   cql = d3rlpy.algos.CQL.from_json("d3rlpy_logs/CQL_xxx/params.json")
-
+   cql = d3rlpy.algos.CQLConfig().create()
 
    # choose one of three to build PyTorch models
 
@@ -44,9 +48,8 @@ Load Trained Policies
    # or manually set observation shape and action size
    cql.create_impl((3,), 1)
 
-
    # load pretrained model
-   cql.load_model("d3rlpy_logs/CQL_xxx/model_100000.pt")
+   cql.load_model("model.pt")
 
 
 Inference

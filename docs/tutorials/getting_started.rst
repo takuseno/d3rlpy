@@ -19,7 +19,7 @@ See more information at :doc:`/installation`.
 
 .. note::
 
-  ``d3rlpy`` supports Python 3.6+. Make sure which version you use.
+  ``d3rlpy`` supports Python 3.7+. Make sure which version you use.
 
 .. note::
 
@@ -37,9 +37,8 @@ See more documents at :doc:`../references/datasets`.
 
 .. code-block:: python
 
-  from d3rlpy.datasets import get_cartpole # CartPole-v0 dataset
-  from d3rlpy.datasets import get_pendulum # Pendulum-v0 dataset
-  from d3rlpy.datasets import get_pybullet # PyBullet task datasets
+  from d3rlpy.datasets import get_cartpole # CartPole-v1 dataset
+  from d3rlpy.datasets import get_pendulum # Pendulum-v1 dataset
   from d3rlpy.datasets import get_atari    # Atari 2600 task datasets
   from d3rlpy.datasets import get_d4rl     # D4RL datasets
 
@@ -48,15 +47,6 @@ Here, we use the CartPole dataset to instantly check training results.
 .. code-block:: python
 
   dataset, env = get_cartpole()
-
-You can split ``dataset`` into a training dataset and a test dataset just
-like supervised learning as follows.
-
-.. code-block:: python
-
-  from sklearn.model_selection import train_test_split
-
-  train_episodes, test_episodes = train_test_split(dataset, test_size=0.2)
 
 
 Setup Algorithm
@@ -68,10 +58,10 @@ Q-learnig algorithm proposed as the first deep reinforcement learning algorithm.
 
 .. code-block:: python
 
-  from d3rlpy.algos import DQN
+  from d3rlpy.algos import DQNConfig
 
-  # if you don't use GPU, set use_gpu=False instead.
-  dqn = DQN(use_gpu=True)
+  # if you don't use GPU, set device=None instead.
+  dqn = DQNConfig.create(device="cuda:0")
 
   # initialize neural networks with the given observation shape and action size.
   # this is not necessary when you directly call fit or fit_online method.
@@ -83,29 +73,28 @@ Setup Metrics
 -------------
 
 Collecting evaluation metrics is important to train algorithms properly.
-In d3rlpy, the metrics is computed through scikit-learn style scorer functions.
+d3rlpy provides ``Evaluator`` classes to compute evaluation metrics.
 
 .. code-block:: python
 
-  from d3rlpy.metrics.scorer import td_error_scorer
-  from d3rlpy.metrics.scorer import average_value_estimation_scorer
+  from d3rlpy.metrics import TDErrorEvaluator
 
-  # calculate metrics with test dataset
-  td_error = td_error_scorer(dqn, test_episodes)
+  # calculate metrics with training dataset
+  td_error_evaluator = TDErrorEvaluator(episodes=dataset.episodes)
 
 Since evaluating algorithms without access to environment is still difficult,
-the algorithm can be directly evaluated with ``evaluate_on_environment`` function
+the algorithm can be directly evaluated with ``EnvironmentEvaluator``
 if the environment is available to interact.
 
 .. code-block:: python
 
-  from d3rlpy.metrics.scorer import evaluate_on_environment
+  from d3rlpy.metrics import EnvironmentEvaluator
 
   # set environment in scorer function
-  evaluate_scorer = evaluate_on_environment(env)
+  env_evaluator = EnvironmentEvaluator(env)
 
   # evaluate algorithm on the environment
-  rewards = evaluate_scorer(dqn)
+  rewards = env_evaluator(dqn, dataset=None)
 
 See more metrics and configurations at :doc:`../references/metrics`.
 
@@ -113,49 +102,18 @@ See more metrics and configurations at :doc:`../references/metrics`.
 Start Training
 --------------
 
-Now, you have all to start data-driven training.
+Now, you have everything to start offline training.
 
 .. code-block:: python
 
-  dqn.fit(train_episodes,
-          eval_episodes=test_episodes,
-          n_epochs=10,
-          scorers={
-              'td_error': td_error_scorer,
-              'value_scale': average_value_estimation_scorer,
-              'environment': evaluate_scorer
-          })
-
-Then, you will see training progress in the console like below::
-
-  augmentation=[]
-  batch_size=32
-  bootstrap=False
-  dynamics=None
-  encoder_params={}
-  eps=0.00015
-  gamma=0.99
-  learning_rate=6.25e-05
-  n_augmentations=1
-  n_critics=1
-  n_frames=1
-  q_func_factory=mean
-  scaler=None
-  share_encoder=False
-  target_update_interval=8000.0
-  use_batch_norm=True
-  use_gpu=None
-  observation_shape=(4,)
-  action_size=2
-  100%|███████████████████████████████████| 2490/2490 [00:24<00:00, 100.63it/s]
-  epoch=0 step=2490 value_loss=0.190237
-  epoch=0 step=2490 td_error=1.483964
-  epoch=0 step=2490 value_scale=1.241220
-  epoch=0 step=2490 environment=157.400000
-  100%|███████████████████████████████████| 2490/2490 [00:24<00:00, 100.63it/s]
-  .
-  .
-  .
+  dqn.fit(
+      dataset,
+      n_steps=10000,
+      evaluators={
+          'td_error': td_error_evaluator,
+          'environment': env_evaluator,
+      },
+  )
 
 See more about logging at :doc:`../references/logging`.
 
@@ -178,17 +136,22 @@ d3rlpy provides several ways to save trained models.
 
 .. code-block:: python
 
-  # save full parameters
-  dqn.save_model('dqn.pt')
+   import d3rlpy
 
-  # load full parameters
-  dqn2 = DQN()
-  dqn2.build_with_dataset(dataset)
-  dqn2.load_model('dqn.pt')
+  # save full parameters and configurations in a single file.
+  dqn.save('dqn.d3')
+  # load full parameters and build algorithm
+  dqn2 = d3rlpy.load_learnable("dqn.d3")
+
+  # save full parameters only
+  dqn.save_model('dqn.pt')
+  # load full parameters with manual setup
+  dqn3 = DQN()
+  dqn3.build_with_dataset(dataset)
+  dqn3.load_model('dqn.pt')
 
   # save the greedy-policy as TorchScript
   dqn.save_policy('policy.pt')
-
   # save the greedy-policy as ONNX
   dqn.save_policy('policy.onnx')
 

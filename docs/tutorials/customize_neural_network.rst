@@ -64,7 +64,7 @@ Now, you can use your model with d3rlpy.
 .. code-block:: python
 
   # integrate your model into d3rlpy algorithm
-  dqn = d3rlpy.algos.DQN(encoder_factory=CustomEncoderFactory(64))
+  dqn = d3rlpy.algos.DQNConfig(encoder_factory=CustomEncoderFactory(64)).create()
 
 
 Support Q-function for Actor-Critic
@@ -118,7 +118,7 @@ Now, you can customize actor-critic algorithms.
 
   encoder_factory = CustomEncoderFactory(64)
 
-  sac = d3rlpy.algos.SAC(
+  sac = d3rlpy.algos.SACConfig(
       actor_encoder_factory=encoder_factory,
       critic_encoder_factory=encoder_factory,
-  )
+  ).create()

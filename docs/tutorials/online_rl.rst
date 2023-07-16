@@ -13,10 +13,10 @@ In this tutorial, let's use simple CartPole environment.
   import gym
 
   # for training
-  env = gym.make("CartPole-v0")
+  env = gym.make("CartPole-v1")
 
   # for evaluation
-  eval_env = gym.make("CartPole-v0")
+  eval_env = gym.make("CartPole-v1")
 
 Setup Algorithm
 ---------------
@@ -28,12 +28,11 @@ Just like offline RL training, you can setup an algorithm object.
   import d3rlpy
 
   # if you don't use GPU, set use_gpu=False instead.
-  dqn = d3rlpy.algos.DQN(
+  dqn = d3rlpy.algos.DQNConfig(
       batch_size=32,
       learning_rate=2.5e-4,
       target_update_interval=100,
-      use_gpu=True,
-  )
+  ).create(device="cuda:0")
 
   # initialize neural networks with the given environment object.
   # this is not necessary when you directly call fit or fit_online method.
@@ -49,11 +48,11 @@ an exploration strategy.
 .. code-block:: python
 
   # experience replay buffer
-  buffer = d3rlpy.online.buffers.ReplayBuffer(maxlen=100000, env=env)
+  buffer = d3rlpy.dataset.create_fifo_replay_buffer(limit=100000, env=env)
 
   # exploration strategy
   # in this tutorial, epsilon-greedy policy with static epsilon=0.3
-  explorer = d3rlpy.online.explorers.ConstantEpsilonGreedy(0.3)
+  explorer = d3rlpy.algos.ConstantEpsilonGreedy(0.3)
 
 
 Start Training
@@ -82,7 +81,7 @@ without setting an exploration strategy.
 
 .. code-block:: python
 
-  sac = d3rlpy.algos.DiscreteSAC()
+  sac = d3rlpy.algos.DiscreteSACConfig().create()
   sac.fit_online(
       env,
       buffer,

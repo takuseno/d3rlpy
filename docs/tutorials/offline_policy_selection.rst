@@ -28,16 +28,15 @@ In this tutorial, let's train DQN with the built-in CartPole-v0 dataset.
    dataset, env = d3rlpy.datasets.get_dataset("cartpole-replay")
 
    # setup algorithm
-   dqn = d3rlpy.algos.DQN()
+   dqn = d3rlpy.algos.DQNConfig().create()
 
    # start offline training
    dqn.fit(
       dataset,
-      eval_episodes=dataset.episodes,
       n_steps=100000,
       n_steps_per_epoch=10000,
       scorers={
-          "environment": d3rlpy.metrics.evaluate_on_environment(env),
+          "environment": d3rlpy.metrics.EnvironmentEvaluator(env),
       },
    )
 
@@ -63,22 +62,19 @@ If this value for a certain policy is bigger than others, the learned Q-function
    dataset, _ = d3rlpy.datasets.get_dataset("cartpole-replay")
 
    # load pretrained policy
-   dqn = d3rlpy.algos.DQN()
-   dqn.build_with_dataset(dataset)
-   dqn.load_model("d3rlpy_logs/DQN_20220624191141/model_100000.pt")
+   dqn = d3rlpy.load_learnable("d3rlpy_logs/DQN_20220624191141/model_100000.d3")
 
    # setup FQE algorithm
-   fqe = d3rlpy.ope.DiscreteFQE(algo=dqn)
+   fqe = d3rlpy.ope.DiscreteFQE(algo=dqn, config=d3rlpy.ope.DiscreteFQEConfig())
 
    # start FQE training
    fqe.fit(
       dataset,
-      eval_episodes=dataset.episodes,
       n_steps=10000,
       n_steps_per_epoch=1000,
       scorers={
-          "init_value": d3rlpy.metrics.initial_state_value_estimation_scorer,
-          "soft_opc": d3rlpy.metrics.soft_opc_scorer(180),  # set 180 for success return threshold here
+          "init_value": d3rlpy.metrics.InitialStateValueEstimationEvaluator(),
+          "soft_opc": d3rlpy.metrics.SoftOPCEvaluator(180),  # set 180 for success return threshold here
       },
    )
 
