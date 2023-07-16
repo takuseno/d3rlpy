@@ -30,7 +30,6 @@ class TransitionPickerProtocol(Protocol):
 
         Returns:
             Transition.
-
         """
         raise NotImplementedError
 

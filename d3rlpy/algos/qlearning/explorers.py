@@ -40,7 +40,6 @@ class ConstantEpsilonGreedy(Explorer):
 
     Args:
         epsilon (float): the constant :math:`\\epsilon`.
-
     """
 
     _epsilon: float
@@ -64,7 +63,6 @@ class LinearDecayEpsilonGreedy(Explorer):
         start_epsilon (float): Initial :math:`\\epsilon`.
         end_epsilon (float): Final :math:`\\epsilon`.
         duration (int): Scheduling duration.
-
     """
 
     _start_epsilon: float
