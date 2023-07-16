@@ -38,6 +38,15 @@ class EvaluatorProtocol(Protocol):
         algo: QLearningAlgoProtocol,
         dataset: ReplayBuffer,
     ) -> float:
+        """Computes metrics.
+
+        Args:
+            algo: Q-learning algorithm.
+            dataset: ReplayBuffer.
+
+        Returns:
+            Computed metrics.
+        """
         ...
 
 
@@ -71,6 +80,10 @@ class TDErrorEvaluator(EvaluatorProtocol):
         \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D}
             [(Q_\theta (s_t, a_t)
              - r_{t+1} - \gamma \max_a Q_\theta (s_{t+1}, a))^2]
+
+    Args:
+        episodes: Optional evaluation episodes. If it's not given, dataset
+            used in training will be used.
     """
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -127,6 +140,10 @@ class DiscountedSumOfAdvantageEvaluator(EvaluatorProtocol):
     References:
         * `Murphy., A generalization error for Q-Learning.
           <http://www.jmlr.org/papers/volume6/murphy05a/murphy05a.pdf>`_
+
+    Args:
+        episodes: Optional evaluation episodes. If it's not given, dataset
+            used in training will be used.
     """
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -181,6 +198,10 @@ class AverageValueEstimationEvaluator(EvaluatorProtocol):
     .. math::
 
         \mathbb{E}_{s_t \sim D} [ \max_a Q_\theta (s_t, a)]
+
+    Args:
+        episodes: Optional evaluation episodes. If it's not given, dataset
+            used in training will be used.
     """
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -219,6 +240,10 @@ class InitialStateValueEstimationEvaluator(EvaluatorProtocol):
     References:
         * `Paine et al., Hyperparameter Selection for Offline Reinforcement
           Learning <https://arxiv.org/abs/2007.09055>`_
+
+    Args:
+        episodes: Optional evaluation episodes. If it's not given, dataset
+            used in training will be used.
     """
 
     _episodes: Optional[Sequence[EpisodeBase]]
@@ -264,7 +289,9 @@ class SoftOPCEvaluator(EvaluatorProtocol):
           <https://arxiv.org/abs/1906.01624>`_
 
     Args:
-        return_threshold: threshold of success episodes.
+        return_threshold: Return threshold of success episodes.
+        episodes: Optional evaluation episodes. If it's not given, dataset
+            used in training will be used.
     """
     _return_threshold: float
     _episodes: Optional[Sequence[EpisodeBase]]
@@ -309,6 +336,10 @@ class ContinuousActionDiffEvaluator(EvaluatorProtocol):
     .. math::
 
         \mathbb{E}_{s_t, a_t \sim D} [(a_t - \pi_\phi (s_t))^2]
+
+    Args:
+        episodes: Optional evaluation episodes. If it's not given, dataset
+            used in training will be used.
     """
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -344,6 +375,10 @@ class DiscreteActionMatchEvaluator(EvaluatorProtocol):
 
         \frac{1}{N} \sum^N \parallel
             \{a_t = \text{argmax}_a Q_\theta (s_t, a)\}
+
+    Args:
+        episodes: Optional evaluation episodes. If it's not given, dataset
+            used in training will be used.
     """
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -381,7 +416,9 @@ class CompareContinuousActionDiffEvaluator(EvaluatorProtocol):
             [(\pi_{\phi_1}(s_t) - \pi_{\phi_2}(s_t))^2]
 
     Args:
-        base_algo: algorithm to comapre with.
+        base_algo: Target algorithm to comapre with.
+        episodes: Optional evaluation episodes. If it's not given, dataset
+            used in training will be used.
     """
     _base_algo: QLearningAlgoProtocol
     _episodes: Optional[Sequence[EpisodeBase]]
@@ -428,7 +465,9 @@ class CompareDiscreteActionMatchEvaluator(EvaluatorProtocol):
             = \text{argmax}_a Q_{\theta_2}(s_t, a)\}]
 
     Args:
-        base_algo: algorithm to comapre with.
+        base_algo: Target algorithm to comapre with.
+        episodes: Optional evaluation episodes. If it's not given, dataset
+            used in training will be used.
     """
     _base_algo: QLearningAlgoProtocol
     _episodes: Optional[Sequence[EpisodeBase]]
@@ -459,6 +498,25 @@ class CompareDiscreteActionMatchEvaluator(EvaluatorProtocol):
 
 
 class EnvironmentEvaluator(EvaluatorProtocol):
+    r"""Action matches between algorithms.
+
+    This metrics suggests how different the two algorithms are in discrete
+    action-space.
+    If the algorithm to compare with is near-optimal, the small action
+    difference would be better.
+
+    .. math::
+
+        \mathbb{E}_{s_t \sim D} [\parallel
+            \{\text{argmax}_a Q_{\theta_1}(s_t, a)
+            = \text{argmax}_a Q_{\theta_2}(s_t, a)\}]
+
+    Args:
+        env: Gym environment.
+        n_trials: Number of episodes to evaluate.
+        epsilon: Probability of random action.
+        render: Flag to turn on rendering.
+    """
     _env: gym.Env[Any, Any]
     _n_trials: int
     _epsilon: float
