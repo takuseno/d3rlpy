@@ -194,7 +194,6 @@ The release planning can be checked at [milestones](https://github.com/takuseno/
 ## Community
 | Channel | Link |
 |:-|:-|
-| Chat | [Gitter](https://gitter.im/d3rlpy/d3rlpy) |
 | Issues | [GitHub Issues](https://github.com/takuseno/d3rlpy/issues) |
 
 ## Family projects
