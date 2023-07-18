@@ -155,4 +155,4 @@ d3rlpy provides several ways to save trained models.
   # save the greedy-policy as ONNX
   dqn.save_policy('policy.onnx')
 
-See more information at :doc:`../references/save_and_load`.
+See more information at :doc:`after_training_policies`.
