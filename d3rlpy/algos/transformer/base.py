@@ -212,14 +212,7 @@ class TransformerAlgoBase(
         save_interval: int = 1,
         callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> None:
-        """Iterate over epochs steps to train with the given dataset. At each
-        iteration algo methods and properties can be changed or queried.
-
-        .. code-block:: python
-
-            for epoch, metrics in algo.fitter(episodes):
-                my_plot(metrics)
-                algo.save_model(my_path)
+        """Trains with given dataset.
 
         Args:
             dataset: Offline dataset to train.

@@ -373,7 +373,7 @@ class QLearningAlgoBase(
         callback: Optional[Callable[[Self, int, int], None]] = None,
         epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> List[Tuple[int, Dict[str, float]]]:
-        """Trains with the given dataset.
+        """Trains with given dataset.
 
         .. code-block:: python
 
