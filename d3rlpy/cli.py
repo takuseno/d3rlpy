@@ -1,4 +1,5 @@
 # pylint: disable=redefined-builtin,exec-used
+# type: ignore
 
 import glob
 import json

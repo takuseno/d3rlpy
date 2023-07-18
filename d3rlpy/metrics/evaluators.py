@@ -47,7 +47,7 @@ class EvaluatorProtocol(Protocol):
         Returns:
             Computed metrics.
         """
-        ...
+        raise NotImplementedError
 
 
 def make_batches(
