@@ -1,9 +1,8 @@
-***********************
-After Training Policies
-***********************
+***************************************
+After Training Policies (Save and Load)
+***************************************
 
 This page provides answers to frequently asked questions about how to use the trained policies with your environment.
-Check :doc:`../references/save_and_load` for more information.
 
 Prepare Pretrained Policies
 --------------------------
@@ -16,10 +15,10 @@ Prepare Pretrained Policies
    dataset, env = d3rlpy.datasets.get_dataset('pendulum-random')
 
    # setup algorithm
-   cql = d3rlpy.algos.CQLConfig().create(device="cuda:0")
+   cql_old = d3rlpy.algos.CQLConfig().create(device="cuda:0")
 
    # start offline training
-   cql.fit(dataset, n_steps=100000)
+   cql_old.fit(dataset, n_steps=100000)
 
 
 Load Trained Policies
@@ -28,14 +27,17 @@ Load Trained Policies
 .. code-block:: python
 
    # Option 1: Load d3 file
-   cql = d3rlpy.load_learnable("d3rlpy_logs/CQL_xxx/model_1000.d3")
+
+   # save d3 file
+   cql_old.save("model.d3")
+   # reconstruct full setup from a d3 file
+   cql = d3rlpy.load_learnable("model.d3")
 
 
    # Option 2: Load pt file
 
    # save pt file
    cql_old.save_model("model.pt")
-
    # setup algorithm manually
    cql = d3rlpy.algos.CQLConfig().create()
 

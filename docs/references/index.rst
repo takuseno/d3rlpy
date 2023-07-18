@@ -16,6 +16,5 @@ API Reference
    network_architectures
    metrics
    off_policy_evaluation
-   save_and_load
    logging
    online
