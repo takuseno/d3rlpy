@@ -25,7 +25,8 @@ class DiscreteQFunctionMixin:
     ) -> torch.Tensor:
         assert self._q_func is not None
         values = self._q_func(x, reduction="mean")
-        return values[torch.arange(0, x.size(0)), action].reshape(-1)
+        flat_action = action.reshape(-1)
+        return values[torch.arange(0, x.size(0)), flat_action].reshape(-1)
 
 
 class ContinuousQFunctionMixin:
