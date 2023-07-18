@@ -6,6 +6,15 @@ __all__ = ["CombineAdapter", "CombineAdapterFactory"]
 
 
 class CombineAdapter(LoggerAdapter):
+    r"""CombineAdapter class.
+
+    This class combines multiple LoggerAdapter to write metrics through
+    different adapters at the same time.
+
+    Args:
+        adapters (Sequence[LoggerAdapter]): List of LoggerAdapter.
+    """
+
     def __init__(self, adapters: Sequence[LoggerAdapter]):
         self._adapters = adapters
 
@@ -37,6 +46,14 @@ class CombineAdapter(LoggerAdapter):
 
 
 class CombineAdapterFactory(LoggerAdapterFactory):
+    r"""CombineAdapterFactory class.
+
+    This class instantiates ``CombineAdapter`` object.
+
+    Args:
+        adapter_factories (Sequence[LoggerAdapterFactory]):
+            List of LoggerAdapterFactory.
+    """
     _adapter_factories: Sequence[LoggerAdapterFactory]
 
     def __init__(self, adapter_factories: Sequence[LoggerAdapterFactory]):

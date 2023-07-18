@@ -9,6 +9,18 @@ __all__ = ["TensorboardAdapter", "TensorboardAdapterFactory"]
 
 
 class TensorboardAdapter(LoggerAdapter):
+    r"""TensorboardAdapter class.
+
+    This class saves metrics for Tensorboard visualization, powered by
+    tensorboardX.
+
+    Note that this class does not save models. If you want to save models
+    during training, consider ``FileAdapter`` as well.
+
+    Args:
+        root_dir (str): Top-level log directory.
+        experiment_name (str): Experiment name.
+    """
     _experiment_name: str
     _params: Dict[str, Any]
     _metrics: Dict[str, float]
@@ -54,6 +66,13 @@ class TensorboardAdapter(LoggerAdapter):
 
 
 class TensorboardAdapterFactory(LoggerAdapterFactory):
+    r"""TensorboardAdapterFactory class.
+
+    This class instantiates ``TensorboardAdapter`` object.
+
+    Args:
+        root_dir (str): Top-level log directory.
+    """
     _root_dir: str
 
     def __init__(self, root_dir: str = "tensorboard_logs"):

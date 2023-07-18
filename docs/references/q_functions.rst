@@ -1,7 +1,7 @@
 Q Functions
 ===========
 
-.. module:: d3rlpy.models.q_functions
+.. module:: d3rlpy.models
 
 d3rlpy provides various Q functions including state-of-the-arts, which are
 internally used in algorithm objects.
@@ -10,19 +10,17 @@ algorithm initialization.
 
 .. code-block:: python
 
-  from d3rlpy.algos import CQL
+  import d3rlpy
 
-  cql = CQL(q_func_factory='qr') # use Quantile Regression Q function
+  cql = d3rlpy.algos.CQLConfig(q_func_factory=d3rlpy.models.QRQFunctionFactory())
 
 Also you can change hyper parameters.
 
 .. code-block:: python
 
-   from d3rlpy.models.q_functions import QRQFunctionFactory
+   q_func = d3rlpy.models.QRQFunctionFactory(n_quantiles=32)
 
-   q_func = QRQFunctionFactory(n_quantiles=32)
-
-   cql = CQL(q_func_factory=q_func)
+   cql = d3rlpy.algos.CQLConfig(q_func_factory=q_func).create()
 
 The default Q function is ``mean`` approximator, which estimates expected scalar
 action-values.
@@ -44,7 +42,6 @@ the higher performance requires the more expensive computational costs.
    :toctree: generated/
    :nosignatures:
 
-   d3rlpy.models.q_functions.MeanQFunctionFactory
-   d3rlpy.models.q_functions.QRQFunctionFactory
-   d3rlpy.models.q_functions.IQNQFunctionFactory
-   d3rlpy.models.q_functions.FQFQFunctionFactory
+   d3rlpy.models.MeanQFunctionFactory
+   d3rlpy.models.QRQFunctionFactory
+   d3rlpy.models.IQNQFunctionFactory

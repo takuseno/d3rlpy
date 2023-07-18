@@ -6,6 +6,12 @@ __all__ = ["NoopAdapter", "NoopAdapterFactory"]
 
 
 class NoopAdapter(LoggerAdapter):
+    r"""NoopAdapter class.
+
+    This class does not save anything. This can be used especially when programs
+    are not allowed to write things to disks.
+    """
+
     def write_params(self, params: Dict[str, Any]) -> None:
         pass
 
@@ -28,5 +34,10 @@ class NoopAdapter(LoggerAdapter):
 
 
 class NoopAdapterFactory(LoggerAdapterFactory):
+    r"""NoopAdapterFactory class.
+
+    This class instantiates ``NoopAdapter`` object.
+    """
+
     def create(self, experiment_name: str) -> NoopAdapter:
         return NoopAdapter()

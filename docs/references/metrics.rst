@@ -3,45 +3,38 @@ Metrics
 
 .. module:: d3rlpy.metrics
 
-d3rlpy provides scoring functions without compromising scikit-learn
-compatibility.
-You can evaluate many metrics with test episodes during training.
+d3rlpy provides scoring functions for offline Q-learning-based training.
+You can also check :doc:`../references/logging` to understand how to write
+metrics to files.
 
 .. code-block:: python
 
-    from d3rlpy.datasets import get_cartpole
-    from d3rlpy.algos import DQN
-    from d3rlpy.metrics.scorer import td_error_scorer
-    from d3rlpy.metrics.scorer import average_value_estimation_scorer
-    from d3rlpy.metrics.scorer import evaluate_on_environment
-    from sklearn.model_selection import train_test_split
+    import d3rlpy
 
-    dataset, env = get_cartpole()
+    dataset, env = d3rlpy.datasets.get_cartpole()
+    # use partial episodes as test data
+    test_episodes = dataset.episodes[:10]
 
-    train_episodes, test_episodes = train_test_split(dataset)
+    dqn = d3rlpy.algos.DQNConfig().create()
 
-    dqn = DQN()
+    dqn.fit(
+        dataset,
+        n_steps=100000,
+        evaluators={
+            'td_error': d3rlpy.metrics.TDErrorEvaluator(test_episodes),
+            'value_scale': d3rlpy.metrics.AverageValueEstimationEvaluator(test_episodes),
+            'environment': d3rlpy.metrics.EnvironmentEvaluator(env),
+        },
+    )
 
-    dqn.fit(train_episodes,
-            eval_episodes=test_episodes,
-            scorers={
-                'td_error': td_error_scorer,
-                'value_scale': average_value_estimation_scorer,
-                'environment': evaluate_on_environment(env)
-            })
+You can also implement your own metrics.
 
-You can also use them with scikit-learn utilities.
 
 .. code-block:: python
 
-    from sklearn.model_selection import cross_validate
-
-    scores = cross_validate(dqn,
-                            dataset,
-                            scoring={
-                                'td_error': td_error_scorer,
-                                'environment': evaluate_on_environment(env)
-                            })
+    class CustomEvaluator(d3rlpy.metrics.EvaluatorProtocol):
+        def __call__(self, algo: d3rlpy.algos.QLearningAlgoBase, dataset: ReplayBuffer) -> float:
+            # do some evaluation
 
 
 .. autosummary::

@@ -1,7 +1,7 @@
 Network Architectures
 =====================
 
-.. module:: d3rlpy.models.encoders
+.. module:: d3rlpy.models
 
 In d3rlpy, the neural network architecture is automatically selected based on
 observation shape.
@@ -15,14 +15,16 @@ over this neural netowrk architectures.
 
 .. code-block:: python
 
-   from d3rlpy.algos import DQN
-   from d3rlpy.models.encoders import VectorEncoderFactory
+   import d3rlpy
 
    # encoder factory
-   encoder_factory = VectorEncoderFactory(hidden_units=[300, 400], activation='tanh')
+   encoder_factory = d3rlpy.models.VectorEncoderFactory(
+       hidden_units=[300, 400],
+       activation='tanh',
+   )
 
    # set EncoderFactory
-   dqn = DQN(encoder_factory=encoder_factory)
+   dqn = d3rlpy.algos.DQNConfig(encoder_factory=encoder_factory).create()
 
 You can also build your own encoder factory.
 
@@ -62,7 +64,9 @@ You can also build your own encoder factory.
        def get_params(self, deep=False):
            return {'feature_size': self.feature_size}
 
-   dqn = DQN(encoder_factory=CustomEncoderFactory(feature_size=64))
+   dqn = d3rlpy.algos.DQNConfig(
+      encoder_factory=CustomEncoderFactory(feature_size=64),
+   ).create()
 
 
 You can also define action-conditioned networks such as Q-functions for continuous
@@ -101,13 +105,14 @@ controls.
        def get_params(self, deep=False):
            return {'feature_size': self.feature_size}
 
-   from d3rlpy.algos import SAC
-
    factory = CustomEncoderFactory(feature_size=64)
 
-   sac = SAC(actor_encoder_factory=factory, critic_encoder_factory=factory)
+   sac = d3rlpy.algos.SACConfig(
+      actor_encoder_factory=factory,
+      critic_encoder_factory=factory,
+   ).create()
 
-If you want ``from_json`` method to load the algorithm configuration including
+If you want ``load_learnable`` method to load the algorithm configuration including
 your encoder configuration, you need to register your encoder factory.
 
 .. code-block:: python
@@ -117,21 +122,15 @@ your encoder configuration, you need to register your encoder factory.
    # register your own encoder factory
    register_encoder_factory(CustomEncoderFactory)
 
-   # load algorithm from json
-   dqn = DQN.from_json('<path-to-json>/params.json')
-
-Once you register your encoder factory, you can specify it via ``TYPE`` value.
-
-.. code-block:: python
-
-   dqn = DQN(encoder_factory='custom')
+   # load algorithm from d3
+   dqn = d3rlpy.load_learnable("model.d3")
 
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
-   d3rlpy.models.encoders.DefaultEncoderFactory
-   d3rlpy.models.encoders.PixelEncoderFactory
-   d3rlpy.models.encoders.VectorEncoderFactory
-   d3rlpy.models.encoders.DenseEncoderFactory
+   d3rlpy.models.DefaultEncoderFactory
+   d3rlpy.models.PixelEncoderFactory
+   d3rlpy.models.VectorEncoderFactory
+   d3rlpy.models.DenseEncoderFactory

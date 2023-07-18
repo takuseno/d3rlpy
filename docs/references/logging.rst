@@ -1,49 +1,107 @@
+.. _logging:
+
 Logging
 =======
 
-d3rlpy algorithms automatically save model parameters and metrics under
-`d3rlpy_logs` directory.
+.. module:: d3rlpy.logging
+
+d3rlpy provides a customizable interface for logging metrics, ``LoggerAdapter`` and ``LoggerAdapterFactory``.
 
 .. code-block:: python
 
-    from d3rlpy.datasets import get_cartpole
-    from d3rlpy.algos import DQN
+   import d3rlpy
 
-    dataset, env = get_cartpole()
+   dataset, env = d3rlpy.datasets.get_cartpole()
 
-    dqn = DQN()
+   dqn = d3rlpy.algos.DQNConfig().create()
 
-    # metrics and parameters are saved in `d3rlpy_logs/DQN_YYYYMMDDHHmmss`
-    dqn.fit(dataset.episodes)
+   dqn.fit(
+      dataset=dataset,
+      n_steps=100000,
+      # set FileAdapterFactory to save metrics as CSV files
+      logger_adapter=d3rlpy.logging.FileAdapterFactory(root_dir="d3rlpy_logs"),
+   )
 
-You can designate the directory.
-
-.. code-block:: python
-
-    # the directory will be `custom_logs/custom_YYYYMMDDHHmmss`
-    dqn.fit(dataset.episodes, logdir='custom_logs', experiment_name='custom')
-
-If you want to disable all loggings, you can pass `save_metrics=False`.
+``LoggerAdapterFactory`` is a parent interface that instantiates ``LoggerAdapter`` at the beginning of training.
+You can also use ``CombineAdapter`` to combine multiple ``LoggerAdapter`` in the same training.
 
 .. code-block:: python
 
-   dqn.fit(dataset.episodes, save_metrics=False)
+   # combine FileAdapterFactory and TensorboardAdapterFactory
+   logger_adapter = d3rlpy.logging.CombineAdapterFactory([
+      d3rlpy.logging.FileAdapterFactory(root_dir="d3rlpy_logs"),
+      d3rlpy.logging.TensorboardAdapterFactory(root_dir="tensorboard_logs"),
+   ])
 
-TensorBoard
------------
-
-The same information can be also automatically saved for tensorboard under the
-specified directory so that you can interactively visualize training metrics easily.
+   dqn.fit(dataset=dataset, n_steps=100000, logger_adapter=logger_adapter)
 
 
-.. code-block:: shell
+LoggerAdapter
+-------------
 
-    $ pip install tensorboard
-    $ tensorboard --logdir runs
+``LoggerAdapter`` is an inner interface of ``LoggerAdapterFactory``.
+You can implement your own ``LoggerAdapter`` for 3rd-party visualizers.
 
-This tensorboard logs can be enabled by passing `tensorboard_dir=/path/to/log_dir`.
 
 .. code-block:: python
 
-    # saving tensorboard data is disabled by default
-    dqn.fit(dataset.episodes, tensorboard_dir='runs')
+   import d3rlpy
+
+   class CustomAdapter(d3rlpy.logging.LoggerAdapter):
+       def write_params(self, params: Dict[str, Any]) -> None:
+           # save dictionary as json file
+           with open("params.json", "w") as f:
+               f.write(json.dumps(params, default=default_json_encoder, indent=2))
+
+       def before_write_metric(self, epoch: int, step: int) -> None:
+           pass
+
+       def write_metric(
+           self, epoch: int, step: int, name: str, value: float
+       ) -> None:
+           with open(f"{name}.csv", "a") as f:
+               print(f"{epoch},{step},{value}", file=f)
+
+       def after_write_metric(self, epoch: int, step: int) -> None:
+           pass
+
+       def save_model(self, epoch: int, algo: Any) -> None:
+           algo.save(f"model_{epoch}.d3")
+
+       def close(self) -> None:
+           pass
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   d3rlpy.logging.LoggerAdapter
+   d3rlpy.logging.FileAdapter
+   d3rlpy.logging.TensorboardAdapter
+   d3rlpy.logging.NoopAdapter
+   d3rlpy.logging.CombineAdapter
+
+LoggerAdapterFactory
+--------------------
+
+``LoggerAdapterFactory`` is an interface that instantiates ``LoggerAdapter`` at the beginning of training.
+You can implement your own ``LoggerAdapterFactory`` for 3rd-party visualizers.
+
+.. code-block:: python
+
+   import d3rlpy
+
+   class CustomAdapterFactory(d3rlpy.logging.LoggerAdapterFactory):
+       def create(self, experiment_name: str) -> d3rlpy.logging.FileAdapter:
+           return CustomAdapter()
+
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   d3rlpy.logging.LoggerAdapterFactory
+   d3rlpy.logging.FileAdapterFactory
+   d3rlpy.logging.TensorboardAdapterFactory
+   d3rlpy.logging.NoopAdapterFactory
+   d3rlpy.logging.CombineAdapterFactory

@@ -1,7 +1,7 @@
 Optimizers
 ==========
 
-.. module:: d3rlpy.models.optimizers
+.. module:: d3rlpy.models
 
 d3rlpy provides ``OptimizerFactory`` that gives you flexible control over
 optimizers.
@@ -10,33 +10,30 @@ initialize, which you can check more `here <https://pytorch.org/docs/stable/opti
 
 .. code-block:: python
 
+   import d3rlpy
    from torch.optim import Adam
-   from d3rlpy.algos import DQN
-   from d3rlpy.models.optimizers import OptimizerFactory
 
    # modify weight decay
-   optim_factory = OptimizerFactory(Adam, weight_decay=1e-4)
+   optim_factory = d3rlpy.models.OptimizerFactory(Adam, weight_decay=1e-4)
 
    # set OptimizerFactory
-   dqn = DQN(optim_factory=optim_factory)
+   dqn = d3rlpy.algos.DQNConfig(optim_factory=optim_factory).create()
 
 There are also convenient alises.
 
 .. code-block:: python
 
-   from d3rlpy.models.optimizers import AdamFactory
-
    # alias for Adam optimizer
-   optim_factory = AdamFactory(weight_decay=1e-4)
+   optim_factory = d3rlpy.models.AdamFactory(weight_decay=1e-4)
 
-   dqn = DQN(optim_factory=optim_factory)
+   dqn = d3rlpy.algos.DQNConfig(optim_factory=optim_factory).create()
 
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
-   d3rlpy.models.optimizers.OptimizerFactory
-   d3rlpy.models.optimizers.SGDFactory
-   d3rlpy.models.optimizers.AdamFactory
-   d3rlpy.models.optimizers.RMSpropFactory
+   d3rlpy.models.OptimizerFactory
+   d3rlpy.models.SGDFactory
+   d3rlpy.models.AdamFactory
+   d3rlpy.models.RMSpropFactory

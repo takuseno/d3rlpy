@@ -21,9 +21,17 @@ def default_json_encoder(obj: Any) -> Any:
 
 
 class FileAdapter(LoggerAdapter):
+    r"""FileAdapter class.
+
+    This class saves metrics as CSV files, hyperparameters as json file and
+    models as d3 files.
+
+    Args:
+        logdir (str): Log directory.
+    """
     _logdir: str
 
-    def __init__(self, logdir: str = "d3rlpy_logs"):
+    def __init__(self, logdir: str):
         self._logdir = logdir
         if not os.path.exists(self._logdir):
             os.makedirs(self._logdir)
@@ -66,6 +74,14 @@ class FileAdapter(LoggerAdapter):
 
 
 class FileAdapterFactory(LoggerAdapterFactory):
+    r"""FileAdapterFactory class.
+
+    This class instantiates ``FileAdapter`` object.
+    Log directory will be created at ``<root_dir>/<experiment_name>``.
+
+    Args:
+        root_dir (str): Top-level log directory.
+    """
     _root_dir: str
 
     def __init__(self, root_dir: str = "d3rlpy_logs"):

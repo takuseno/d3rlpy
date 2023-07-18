@@ -19,30 +19,69 @@ class SaveProtocol(Protocol):
 
 
 class LoggerAdapter(Protocol):
+    r"""Interface of LoggerAdapter."""
+
     def write_params(self, params: Dict[str, Any]) -> None:
-        ...
+        r"""Writes hyperparameters.
+
+        Args:
+            params: Dictionary of hyperparameters.
+        """
 
     def before_write_metric(self, epoch: int, step: int) -> None:
-        ...
+        r"""Callback executed before write_metric method.
+
+        Args:
+            epoch: Epoch.
+            step: Training step.
+        """
 
     def write_metric(
         self, epoch: int, step: int, name: str, value: float
     ) -> None:
-        ...
+        r"""Writes metric.
+
+        Args:
+            epoch: Epoch.
+            step: Training step.
+            name: Metric name.
+            value: Metric value.
+        """
 
     def after_write_metric(self, epoch: int, step: int) -> None:
-        ...
+        r"""Callback executed after write_metric method.
+
+        Args:
+            epoch: Epoch.
+            step: Training step.
+        """
 
     def save_model(self, epoch: int, algo: SaveProtocol) -> None:
-        ...
+        r"""Saves models.
+
+        Args:
+            epoch: Epoch.
+            algo: Algorithm that provides ``save`` method.
+        """
 
     def close(self) -> None:
-        ...
+        r"""Closes this LoggerAdapter."""
 
 
 class LoggerAdapterFactory(Protocol):
+    r"""Interface of LoggerAdapterFactory."""
+
     def create(self, experiment_name: str) -> LoggerAdapter:
-        ...
+        r"""Creates LoggerAdapter.
+
+        This method instantiates ``LoggerAdapter`` with a given
+        ``experiment_name``.
+        This method is usually called at the beginning of training.
+
+        Args:
+            experiment_name: Experiment name.
+        """
+        raise NotImplementedError
 
 
 class D3RLPyLogger:

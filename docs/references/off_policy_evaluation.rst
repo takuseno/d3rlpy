@@ -8,32 +8,26 @@ performance only with offline datasets.
 
 .. code-block:: python
 
-   from d3rlpy.algos import CQL
-   from d3rlpy.datasets import get_pybullet
+   import d3rlpy
 
    # prepare the trained algorithm
-   cql = CQL.from_json('<path-to-json>/params.json')
-   cql.load_model('<path-to-model>/model.pt')
+   cql = d3rlpy.load_learnable("model.d3")
 
    # dataset to evaluate with
-   dataset, env = get_pybullet('hopper-bullet-mixed-v0')
-
-   from d3rlpy.ope import FQE
+   dataset, env = d3rlpy.datasets.get_pendulum()
 
    # off-policy evaluation algorithm
-   fqe = FQE(algo=cql)
-
-   # metrics to evaluate with
-   from d3rlpy.metrics.scorer import initial_state_value_estimation_scorer
-   from d3rlpy.metrics.scorer import soft_opc_scorer
+   fqe = d3rlpy.ope.FQE(algo=cql, config=d3rlpy.ope.FQEConfig())
 
    # train estimators to evaluate the trained policy
-   fqe.fit(dataset.episodes,
-           eval_episodes=dataset.episodes,
-           scorers={
-              'init_value': initial_state_value_estimation_scorer,
-              'soft_opc': soft_opc_scorer(return_threshold=600)
-           })
+   fqe.fit(
+      dataset,
+      n_steps=100000,
+      scorers={
+         'init_value': d3rlpy.metrics.InitialStateValueEstimationEvaluator(),
+         'soft_opc': d3rlpy.metrics.SoftOPCEvaluator(return_threshold=-300),
+      },
+   )
 
 The evaluation during fitting is evaluating the trained policy.
 
