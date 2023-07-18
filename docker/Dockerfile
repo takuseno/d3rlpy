@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:1.9.0-cuda11.1-cudnn8-devel
+FROM pytorch/pytorch:1.13.1-cuda11.6-cudnn8-devel
 
 # this needs to avoid time zone question
 ENV DEBIAN_FRONTEND=noninteractive
@@ -28,7 +28,6 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
       libpcre3-dev && \
     pip install --no-cache-dir \
       Cython \
-      git+https://github.com/takuseno/d4rl-pybullet \
       git+https://github.com/takuseno/d4rl-atari && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /tmp/* && \
