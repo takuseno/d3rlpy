@@ -44,32 +44,17 @@ You can also use them with scikit-learn utilities.
                             })
 
 
-Algorithms
-----------
-
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
-   d3rlpy.metrics.scorer.td_error_scorer
-   d3rlpy.metrics.scorer.discounted_sum_of_advantage_scorer
-   d3rlpy.metrics.scorer.average_value_estimation_scorer
-   d3rlpy.metrics.scorer.value_estimation_std_scorer
-   d3rlpy.metrics.scorer.initial_state_value_estimation_scorer
-   d3rlpy.metrics.scorer.soft_opc_scorer
-   d3rlpy.metrics.scorer.continuous_action_diff_scorer
-   d3rlpy.metrics.scorer.discrete_action_match_scorer
-   d3rlpy.metrics.scorer.evaluate_on_environment
-   d3rlpy.metrics.comparer.compare_continuous_action_diff
-   d3rlpy.metrics.comparer.compare_discrete_action_match
-
-Dynamics
---------
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   d3rlpy.metrics.scorer.dynamics_observation_prediction_error_scorer
-   d3rlpy.metrics.scorer.dynamics_reward_prediction_error_scorer
-   d3rlpy.metrics.scorer.dynamics_prediction_variance_scorer
+   d3rlpy.metrics.TDErrorEvaluator
+   d3rlpy.metrics.DiscountedSumOfAdvantageEvaluator
+   d3rlpy.metrics.AverageValueEstimationEvaluator
+   d3rlpy.metrics.InitialStateValueEstimationEvaluator
+   d3rlpy.metrics.SoftOPCEvaluator
+   d3rlpy.metrics.ContinuousActionDiffEvaluator
+   d3rlpy.metrics.DiscreteActionMatchEvaluator
+   d3rlpy.metrics.EnvironmentEvaluator
+   d3rlpy.metrics.CompareContinuousActionDiffEvaluator
+   d3rlpy.metrics.CompareDiscreteActionMatchEvaluator

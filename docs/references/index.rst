@@ -19,4 +19,3 @@ API Reference
    save_and_load
    logging
    online
-   sb3

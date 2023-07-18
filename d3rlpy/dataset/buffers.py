@@ -9,6 +9,8 @@ __all__ = ["BufferProtocol", "InfiniteBuffer", "FIFOBuffer"]
 
 
 class BufferProtocol(Protocol):
+    r"""Interface of Buffer."""
+
     def append(self, episode: EpisodeBase, index: int) -> None:
         r"""Adds transition to buffer.
 

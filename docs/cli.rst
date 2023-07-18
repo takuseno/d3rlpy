@@ -54,25 +54,13 @@ example::
 export
 ------
 
-Export the saved model to the inference format, ``onnx`` and ``torchscript``::
+Export the saved model to the inference format, ONNX (``.onnx``) and TorchScript (``.pt``)::
 
-  $ d3rlpy export <path>
-
-.. list-table:: options
-   :header-rows: 1
-
-   * - option
-     - description
-   * - ``--format``
-     - model format (torchscript, onnx).
-   * - ``--params-json``
-     - explicitly specify params.json.
-   * - ``--out``
-     - output path.
+  $ d3rlpy export <model_path> <out_path>
 
 example::
 
-  $ d3rlpy export d3rlpy_logs/CQL_20201224224314/model_100.pt
+  $ d3rlpy export d3rlpy_logs/CQL_20201224224314/model_100.d3 policy.onnx
 
 
 record
@@ -90,27 +78,27 @@ Record evaluation episodes as videos with the saved model::
    * - ``--env-id``
      - Gym environment id.
    * - ``--env-header``
-     - arbitrary Python code to define environment to evaluate.
+     - Arbitrary Python code to define environment to evaluate.
    * - ``--out``
-     - output directory.
-   * - ``--params-json``
-     - explicitly specify params.json
+     - Output directory.
    * - ``--n-episodes``
-     - the number of episodes to record.
+     - The number of episodes to record.
    * - ``--frame-rate``
-     - video frame rate.
+     - Video frame rate.
    * - ``--record-rate``
-     - images are recored every ``record-rate`` frames.
+     - Images are recored every ``record-rate`` frames.
    * - ``--epsilon``
      - :math:`\epsilon`-greedy evaluation.
+   * - ``--target-return``
+     - The target environment return for Decision Transformer algorithms.
 
 example::
 
   # record simple environment
-  $ d3rlpy record d3rlpy_logs/CQL_20201224224314/model_100.pt --env-id HopperBulletEnv-v0
+  $ d3rlpy record d3rlpy_logs/CQL_20201224224314/model_100.d3 --env-id HopperBulletEnv-v0
 
   # record wrapped environment
-  $ d3rlpy record d3rlpy_logs/Discrete_CQL_20201224224314/model_100.pt \
+  $ d3rlpy record d3rlpy_logs/Discrete_CQL_20201224224314/model_100.d3 \
       --env-header 'import gym; from d3rlpy.envs import Atari; env = Atari(gym.make("BreakoutNoFrameskip-v4"), is_eval=True)'
 
 play
@@ -128,17 +116,17 @@ Run evaluation episodes with rendering::
    * - ``--env-id``
      - Gym environment id.
    * - ``--env-header``
-     - arbitrary Python code to define environment to evaluate.
-   * - ``--params-json``
-     - explicitly specify params.json
+     - Arbitrary Python code to define environment to evaluate.
    * - ``--n-episodes``
-     - the number of episodes to run.
+     - The number of episodes to run.
+   * - ``--target-return``
+     - The target environment return for Decision Transformer algorithms.
 
 example::
 
   # record simple environment
-  $ d3rlpy play d3rlpy_logs/CQL_20201224224314/model_100.pt --env-id HopperBulletEnv-v0
+  $ d3rlpy play d3rlpy_logs/CQL_20201224224314/model_100.d3 --env-id HopperBulletEnv-v0
 
   # record wrapped environment
-  $ d3rlpy play d3rlpy_logs/Discrete_CQL_20201224224314/model_100.pt \
+  $ d3rlpy play d3rlpy_logs/Discrete_CQL_20201224224314/model_100.d3 \
       --env-header 'import gym; from d3rlpy.envs import Atari; env = Atari(gym.make("BreakoutNoFrameskip-v4"), is_eval=True)'

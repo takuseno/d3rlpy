@@ -18,7 +18,7 @@ Here is a simple example in d3rlpy.
 
   # set environment seed
   env = gym.make('Hopper-v2')
-  env.seed(313)
+  d3rlpy.envs.seed_env(env, 313)
 
 Learning from image observation
 -------------------------------
@@ -29,7 +29,7 @@ image observations.
 
 .. code-block:: python
 
-  from d3rlpy.dataset import MDPDataset
+  import d3rlpy
 
   # observation MUST be uint8 array, and the channel-first images
   observations = np.random.randint(256, size=(100000, 1, 84, 84), dtype=np.uint8)
@@ -37,13 +37,18 @@ image observations.
   rewards = np.random.random(100000)
   terminals = np.random.randint(2, size=100000)
 
-  dataset = MDPDataset(observations, actions, rewards, terminals)
+  dataset = d3rlpy.dataset.MDPDataset(
+      observations=observations,
+      actions=actions,
+      rewards=rewards,
+      terminals=terminals,
+      # stack last 4 frames (stacked shape is [4, 84, 84])
+      transition_picker=d3rlpy.dataset.FrameStackTransitionPicker(n_frames=4),
+  )
 
-
-  from d3rlpy.algos import DQN
-
-  dqn = DQN(observation_scaler='pixel', # you MUST set pixel scaler
-            n_frames=4) # you CAN set the number of frames to stack
+  dqn = DQNConfig(
+      observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),  # pixels are devided by 255
+  ).create()
 
 Improve performance beyond the original paper
 ---------------------------------------------
@@ -55,21 +60,31 @@ always dependent on the tasks.
 
 .. code-block:: python
 
-  from d3rlpy.models.encoders import DefaultEncoderFactory
-  from d3rlpy.models.q_functions import QRQFunctionFactory
-  from d3rlpy.algos import DQN, SAC
+  import d3rlpy
 
   # use batch normalization
   # this seems to improve performance with discrete action-spaces
-  encoder = DefaultEncoderFactory(use_batch_norm=True)
-
-  dqn = DQN(encoder_factory=encoder,
-            n_critics=5,  # Q function ensemble size
-            n_steps=5, # N-step TD backup
-            q_func_factory='qr') # use distributional Q function
+  encoder = d3rlpy.models.DefaultEncoderFactory(use_batch_norm=True)
+  # use distributional Q function leading to robust improvement
+  q_func = d3rlpy.models.QRQFunctionFactory()
+  dqn = d3rlpy.algos.DQNConfig(
+      encoder_factory=encoder,
+      q_func_factory=q_func,
+  ).create()
 
   # use dropout
-  # this will dramatically improve performance
-  encoder = DefaultEncoderFactory(dropout_rate=0.2)
+  # this could dramatically improve performance
+  encoder = d3rlpy.models.DefaultEncoderFactory(dropout_rate=0.2)
+  sac = d3rlpy.algos.SACConfig(actor_encoder_factory=encoder).create()
 
-  sac = SAC(actor_encoder_factory=encoder)
+  # multi-step transition sampling
+  transition_picker = d3rlpy.dataset.MultiStepTransitionPicker(
+      n_steps=3,
+      gamma=0.99,
+  )
+  # replay buffer for experience replay
+  buffer = d3rlpy.dataset.create_fifo_replay_buffer(
+      limit=100000,
+      env=env,
+      transition_picker=transition_picker,
+  )

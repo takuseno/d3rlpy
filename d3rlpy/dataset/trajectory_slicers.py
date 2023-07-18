@@ -8,6 +8,8 @@ __all__ = ["TrajectorySlicerProtocol", "BasicTrajectorySlicer"]
 
 
 class TrajectorySlicerProtocol(Protocol):
+    r"""Interface of TrajectorySlicer."""
+
     def __call__(
         self, episode: EpisodeBase, end_index: int, size: int
     ) -> PartialTrajectory:

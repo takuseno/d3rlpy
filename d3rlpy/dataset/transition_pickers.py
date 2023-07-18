@@ -21,6 +21,8 @@ def _validate_index(episode: EpisodeBase, index: int) -> None:
 
 
 class TransitionPickerProtocol(Protocol):
+    r"""Interface of TransitionPicker."""
+
     def __call__(self, episode: EpisodeBase, index: int) -> Transition:
         r"""Returns transition specified by ``index``.
 

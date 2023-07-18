@@ -29,7 +29,7 @@ class DecisionTransformerConfig(TransformerConfig):
 
     References:
         * `Chen at el., Decision Transformer: Reinforcement Learning via
-            Sequence Modeling. <https://arxiv.org/abs/2106.01345>`_
+          Sequence Modeling. <https://arxiv.org/abs/2106.01345>`_
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):

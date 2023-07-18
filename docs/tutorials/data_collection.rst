@@ -62,7 +62,7 @@ This procedure corresponds to ``medium`` datasets in D4RL.
   dqn.collect(env, buffer, n_steps=100000)
 
   # save ReplayBuffer
-  with open("trained_policy_dataset.d3", "wb") as f:
+  with open("trained_policy_dataset.h5", "wb") as f:
     buffer.dump(f)
 
 Data Collection while Training Policy

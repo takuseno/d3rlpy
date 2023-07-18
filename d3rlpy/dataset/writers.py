@@ -17,6 +17,8 @@ __all__ = [
 
 
 class WriterPreprocessProtocol(Protocol):
+    r"""Interface of WriterPreprocess."""
+
     def process_observation(self, observation: Observation) -> Observation:
         r"""Processes observation.
 

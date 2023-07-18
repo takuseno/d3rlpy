@@ -42,5 +42,4 @@ You can also install via GitHub repository::
 
   $ git clone https://github.com/takuseno/d3rlpy
   $ cd d3rlpy
-  $ pip install Cython numpy # if you have not installed them.
   $ pip install -e .
