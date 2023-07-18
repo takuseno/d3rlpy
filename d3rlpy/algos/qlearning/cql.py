@@ -309,10 +309,10 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
 
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update(batch)
+        loss, conservative_loss = self._impl.update(batch)
         if self._grad_step % self._config.target_update_interval == 0:
             self._impl.update_target()
-        return {"loss": loss}
+        return {"loss": loss, "conservative_loss": conservative_loss}
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE
