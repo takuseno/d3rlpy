@@ -18,7 +18,7 @@ import d3rlpy
 dataset, env = d3rlpy.datasets.get_dataset("hopper-medium-v0")
 
 # prepare algorithm
-sac = d3rlpy.algos.SACConfig().create()
+sac = d3rlpy.algos.SACConfig().create(device="cuda:0")
 
 # train offline
 sac.fit(dataset, n_steps=1000000)
@@ -33,14 +33,11 @@ actions = sac.predict(x)
 - Documentation: https://d3rlpy.readthedocs.io
 - Paper: https://arxiv.org/abs/2111.03788
 
-:warning: Next generation of d3rlpy is under development in [nightly](https://github.com/takuseno/d3rlpy/tree/nightly) branch. It's not fully supporting all of features in the stable versions and there is no documentation yet. However, if you're interested, you can sneak to see what's there.
-
 ## Key features
 
 ### :zap: Most Practical RL Library Ever
 - **offline RL**: d3rlpy supports state-of-the-art offline RL algorithms. Offline RL is extremely powerful when the online interaction is not feasible during training (e.g. robotics, medical).
 - **online RL**: d3rlpy also supports conventional state-of-the-art online training algorithms without any compromising, which means that you can solve any kinds of RL problems only with `d3rlpy`.
-- **advanced engineering**: d3rlpy is designed to implement the faster and efficient training algorithms. For example, you can train Atari environments with x4 less memory space and as fast as the fastest RL library.
 
 ### :beginner: User-friendly API
 - **zero-knowledge of DL library**: d3rlpy provides many state-of-the-art algorithms through intuitive APIs. You can become a RL engineer even without knowing how to use deep learning libraries.
@@ -48,7 +45,6 @@ actions = sac.predict(x)
 
 ### :rocket: Beyond State-of-the-art
 - **distributional Q function**: d3rlpy is the first library that supports distributional Q functions in the all algorithms. The distributional Q function is known as the very powerful method to achieve the state-of-the-performance.
-- **many tweek options**: d3rlpy is also the first to support N-step TD backup and ensemble value functions in the all algorithms, which lead you to the place no one ever reached yet.
 
 
 ## Installation
@@ -120,7 +116,6 @@ cql = d3rlpy.algos.CQLConfig().create(device='cuda:0')
 # train
 cql.fit(
     dataset,
-    eval_episodes=dataset,
     n_steps=100000,
     evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
 )
@@ -188,8 +183,6 @@ More tutorial documentations are available [here](https://d3rlpy.readthedocs.io/
 ## Contributions
 Any kind of contribution to d3rlpy would be highly appreciated!
 Please check the [contribution guide](CONTRIBUTING.md).
-
-The release planning can be checked at [milestones](https://github.com/takuseno/d3rlpy/milestones).
 
 ## Community
 | Channel | Link |
