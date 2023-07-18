@@ -279,7 +279,6 @@ class _VectorEncoder(nn.Module):  # type: ignore
                 h = torch.cat([h, x], dim=1)
             h = fc(h)
             if not is_last or not self._exclude_last_activation:
-                print("activation!")
                 h = self._activation(h)
             if self._use_batch_norm:
                 h = self._bns[i](h)
