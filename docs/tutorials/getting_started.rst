@@ -61,7 +61,7 @@ Q-learnig algorithm proposed as the first deep reinforcement learning algorithm.
   from d3rlpy.algos import DQNConfig
 
   # if you don't use GPU, set device=None instead.
-  dqn = DQNConfig.create(device="cuda:0")
+  dqn = DQNConfig().create(device="cuda:0")
 
   # initialize neural networks with the given observation shape and action size.
   # this is not necessary when you directly call fit or fit_online method.
