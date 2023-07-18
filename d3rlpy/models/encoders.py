@@ -63,13 +63,15 @@ class PixelEncoderFactory(EncoderFactory):
     This is the default encoder factory for image observation.
 
     Args:
-        filters (list): list of tuples consisting with
+        filters (list): List of tuples consisting with
             ``(filter_size, kernel_size, stride)``. If None,
             ``Nature DQN``-based architecture is used.
-        feature_size (int): the last linear layer size.
-        activation (str): activation function name.
-        use_batch_norm (bool): flag to insert batch normalization layers.
-        dropout_rate (float): dropout probability.
+        feature_size (int): Last linear layer size.
+        activation (str): Activation function name.
+        use_batch_norm (bool): Flag to insert batch normalization layers.
+        dropout_rate (float): Dropout probability.
+        exclude_last_activation (bool): Flag to exclude activation function at
+            the last layer.
     """
 
     filters: List[List[int]] = field(
@@ -79,6 +81,7 @@ class PixelEncoderFactory(EncoderFactory):
     activation: str = "relu"
     use_batch_norm: bool = False
     dropout_rate: Optional[float] = None
+    exclude_last_activation: bool = False
 
     def create(self, observation_shape: Shape) -> PixelEncoder:
         assert len(observation_shape) == 3
@@ -89,6 +92,7 @@ class PixelEncoderFactory(EncoderFactory):
             use_batch_norm=self.use_batch_norm,
             dropout_rate=self.dropout_rate,
             activation=create_activation(self.activation),
+            exclude_last_activation=self.exclude_last_activation,
         )
 
     def create_with_action(
@@ -107,6 +111,7 @@ class PixelEncoderFactory(EncoderFactory):
             dropout_rate=self.dropout_rate,
             discrete_action=discrete_action,
             activation=create_activation(self.activation),
+            exclude_last_activation=self.exclude_last_activation,
         )
 
     @staticmethod
@@ -121,12 +126,14 @@ class VectorEncoderFactory(EncoderFactory):
     This is the default encoder factory for vector observation.
 
     Args:
-        hidden_units (list): list of hidden unit sizes. If ``None``, the
+        hidden_units (list): List of hidden unit sizes. If ``None``, the
             standard architecture with ``[256, 256]`` is used.
         activation (str): activation function name.
-        use_batch_norm (bool): flag to insert batch normalization layers.
-        use_dense (bool): flag to use DenseNet architecture.
-        dropout_rate (float): dropout probability.
+        use_batch_norm (bool): Flag to insert batch normalization layers.
+        use_dense (bool): Flag to use DenseNet architecture.
+        dropout_rate (float): Dropout probability.
+        exclude_last_activation (bool): Flag to exclude activation function at
+            the last layer.
     """
 
     hidden_units: List[int] = field(default_factory=lambda: [256, 256])
@@ -134,6 +141,7 @@ class VectorEncoderFactory(EncoderFactory):
     use_batch_norm: bool = False
     dropout_rate: Optional[float] = None
     use_dense: bool = False
+    exclude_last_activation: bool = False
 
     def create(self, observation_shape: Shape) -> VectorEncoder:
         assert len(observation_shape) == 1
@@ -144,6 +152,7 @@ class VectorEncoderFactory(EncoderFactory):
             dropout_rate=self.dropout_rate,
             use_dense=self.use_dense,
             activation=create_activation(self.activation),
+            exclude_last_activation=self.exclude_last_activation,
         )
 
     def create_with_action(
@@ -162,6 +171,7 @@ class VectorEncoderFactory(EncoderFactory):
             use_dense=self.use_dense,
             discrete_action=discrete_action,
             activation=create_activation(self.activation),
+            exclude_last_activation=self.exclude_last_activation,
         )
 
     @staticmethod

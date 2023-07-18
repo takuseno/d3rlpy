@@ -30,7 +30,8 @@ def main() -> None:
         learning_rate=1e-4,
         optim_factory=d3rlpy.models.AdamWFactory(weight_decay=1e-4),
         encoder_factory=d3rlpy.models.VectorEncoderFactory(
-            [128], activation="none"
+            [128],
+            exclude_last_activation=True,
         ),
         observation_scaler=d3rlpy.preprocessing.StandardObservationScaler(),
         reward_scaler=d3rlpy.preprocessing.MultiplyRewardScaler(0.001),

@@ -5,6 +5,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from ...itertools import last_flag
+
 __all__ = [
     "Encoder",
     "EncoderWithAction",
@@ -69,6 +71,7 @@ class _PixelEncoder(nn.Module):  # type: ignore
     _fc: nn.Linear
     _fc_bn: nn.BatchNorm1d
     _dropouts: nn.ModuleList
+    _exclude_last_activation: bool
 
     def __init__(
         self,
@@ -78,6 +81,7 @@ class _PixelEncoder(nn.Module):  # type: ignore
         use_batch_norm: bool = False,
         dropout_rate: Optional[float] = False,
         activation: nn.Module = nn.ReLU(),
+        exclude_last_activation: bool = False,
     ):
         super().__init__()
 
@@ -92,6 +96,7 @@ class _PixelEncoder(nn.Module):  # type: ignore
         self._dropout_rate = dropout_rate
         self._activation = activation
         self._feature_size = feature_size
+        self._exclude_last_activation = exclude_last_activation
 
         # convolutional layers
         in_channels = [observation_shape[0]] + [f[0] for f in filters[:-1]]
@@ -152,7 +157,9 @@ class PixelEncoder(_PixelEncoder, Encoder):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self._conv_encode(x)
 
-        h = self._activation(self._fc(h.view(h.shape[0], -1)))
+        h = self._fc(h.view(h.shape[0], -1))
+        if not self._exclude_last_activation:
+            h = self._activation(h)
         if self._use_batch_norm:
             h = self._fc_bn(h)
         if self._dropout_rate is not None:
@@ -175,6 +182,7 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
         dropout_rate: Optional[float] = None,
         discrete_action: bool = False,
         activation: nn.Module = nn.ReLU(),
+        exclude_last_activation: bool = False,
     ):
         self._action_size = action_size
         self._discrete_action = discrete_action
@@ -185,6 +193,7 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
             use_batch_norm=use_batch_norm,
             dropout_rate=dropout_rate,
             activation=activation,
+            exclude_last_activation=exclude_last_activation,
         )
 
     def _get_linear_input_size(self) -> int:
@@ -200,8 +209,9 @@ class PixelEncoderWithAction(_PixelEncoder, EncoderWithAction):
             ).float()
 
         # cocat feature and action
-        h = torch.cat([h.view(h.shape[0], -1), action], dim=1)
-        h = self._activation(self._fc(h))
+        h = self._fc(torch.cat([h.view(h.shape[0], -1), action], dim=1))
+        if not self._exclude_last_activation:
+            h = self._activation(h)
         if self._use_batch_norm:
             h = self._fc_bn(h)
         if self._dropout_rate is not None:
@@ -224,6 +234,7 @@ class _VectorEncoder(nn.Module):  # type: ignore
     _fcs: nn.ModuleList
     _bns: nn.ModuleList
     _dropouts: nn.ModuleList
+    _exclude_last_activation: bool
 
     def __init__(
         self,
@@ -233,6 +244,7 @@ class _VectorEncoder(nn.Module):  # type: ignore
         dropout_rate: Optional[float] = None,
         use_dense: bool = False,
         activation: nn.Module = nn.ReLU(),
+        exclude_last_activation: bool = False,
     ):
         super().__init__()
         self._observation_shape = observation_shape
@@ -245,6 +257,7 @@ class _VectorEncoder(nn.Module):  # type: ignore
         self._feature_size = hidden_units[-1]
         self._activation = activation
         self._use_dense = use_dense
+        self._exclude_last_activation = exclude_last_activation
 
         in_units = [observation_shape[0]] + list(hidden_units[:-1])
         self._fcs = nn.ModuleList()
@@ -261,10 +274,13 @@ class _VectorEncoder(nn.Module):  # type: ignore
 
     def _fc_encode(self, x: torch.Tensor) -> torch.Tensor:
         h = x
-        for i, fc in enumerate(self._fcs):
+        for is_last, (i, fc) in last_flag(enumerate(self._fcs)):
             if self._use_dense and i > 0:
                 h = torch.cat([h, x], dim=1)
-            h = self._activation(fc(h))
+            h = fc(h)
+            if not is_last or not self._exclude_last_activation:
+                print("activation!")
+                h = self._activation(h)
             if self._use_batch_norm:
                 h = self._bns[i](h)
             if self._dropout_rate is not None:
@@ -303,6 +319,7 @@ class VectorEncoderWithAction(_VectorEncoder, EncoderWithAction):
         use_dense: bool = False,
         discrete_action: bool = False,
         activation: nn.Module = nn.ReLU(),
+        exclude_last_activation: bool = False,
     ):
         self._action_size = action_size
         self._discrete_action = discrete_action
@@ -314,6 +331,7 @@ class VectorEncoderWithAction(_VectorEncoder, EncoderWithAction):
             use_dense=use_dense,
             dropout_rate=dropout_rate,
             activation=activation,
+            exclude_last_activation=exclude_last_activation,
         )
         self._observation_shape = observation_shape
 
