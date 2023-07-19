@@ -60,10 +60,9 @@ $ pip install d3rlpy
 ```
 ### Anaconda
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/d3rlpy/badges/version.svg)](https://anaconda.org/conda-forge/d3rlpy)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/d3rlpy/badges/platforms.svg)](https://anaconda.org/conda-forge/d3rlpy)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/d3rlpy/badges/downloads.svg)](https://anaconda.org/conda-forge/d3rlpy)
 ```
-$ conda install -c conda-forge d3rlpy
+$ conda install conda-forge/noarch::d3rlpy
 ```
 
 ### Docker
