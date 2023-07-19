@@ -9,7 +9,7 @@ from .episode_generator import EpisodeGenerator
 __all__ = ["dump", "load", "load_v1", "DATASET_VERSION"]
 
 
-DATASET_VERSION = "2.0"
+DATASET_VERSION = "2.1"
 
 
 def dump(episodes: Sequence[EpisodeBase], f: BinaryIO) -> None:
@@ -19,19 +19,19 @@ def dump(episodes: Sequence[EpisodeBase], f: BinaryIO) -> None:
         episodes: Sequence of episodes.
         f: Binary file-like object.
     """
-    serializedData = [episode.serialize() for episode in episodes]
-    keys = list(serializedData[0].keys())
     with h5py.File(f, "w") as h5:
+        keys = list(episodes[0].serialize().keys())
         h5.create_dataset("columns", data=keys)
-        h5.create_dataset("total_size", data=len(episodes))
-        for key in keys:
-            if isinstance(serializedData[0][key], (list, tuple)):
-                for i in range(len(serializedData[0][key])):
-                    data = [d[key][i] for d in serializedData]
-                    h5.create_dataset(f"{key}_{i}", data=data)
-            else:
-                data = [d[key] for d in serializedData]
-                h5.create_dataset(key, data=data)
+        h5.create_dataset("num_episodes", data=len(episodes))
+        for i, episode in enumerate(episodes):
+            serializedData = episode.serialize()
+            for key in keys:
+                if isinstance(serializedData[key], (list, tuple)):
+                    for j in range(len(serializedData[key])):
+                        elm = serializedData[key][j]
+                        h5.create_dataset(f"{key}_{i}_{j}", data=elm)
+                else:
+                    h5.create_dataset(f"{key}_{i}", data=serializedData[key])
         h5.create_dataset("version", data=DATASET_VERSION)
         h5.flush()
 
@@ -48,22 +48,27 @@ def load(episode_cls: Type[EpisodeBase], f: BinaryIO) -> Sequence[EpisodeBase]:
     """
     episodes = []
     with h5py.File(f, "r") as h5:
+        version = cast(str, h5["version"][()])
+        if version == "2.0":
+            raise ValueError("version=2.0 has been obsolete.")
         keys = cast(
-            Sequence[str], map(lambda s: s.decode("utf-8"), h5["columns"][()])
+            Sequence[str],
+            list(map(lambda s: s.decode("utf-8"), h5["columns"][()])),
         )
-        total_size = cast(int, h5["total_size"][()])
-        for i in range(total_size):
+        num_episodes = cast(int, h5["num_episodes"][()])
+        for i in range(num_episodes):
             data = {}
             for key in keys:
-                if key in h5:
-                    data[key] = h5[key][()][i]
+                path = f"{key}_{i}"
+                if path in h5:
+                    data[key] = h5[path][()]
                 else:
                     j = 0
                     tuple_data = []
                     while True:
-                        tuple_key = f"{key}_{j}"
-                        if tuple_key in h5:
-                            tuple_data.append(h5[tuple_key][()][i])
+                        tuple_path = f"{key}_{i}_{j}"
+                        if tuple_path in h5:
+                            tuple_data.append(h5[tuple_path][()])
                         else:
                             break
                         j += 1

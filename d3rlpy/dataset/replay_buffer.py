@@ -236,7 +236,7 @@ class ReplayBuffer:
 
         .. code-block:: python
 
-            with open('dataset.h5', 'wb') as f:
+            with open('dataset.h5', 'w+b') as f:
                 replay_buffer.dump(f)
 
         Args:

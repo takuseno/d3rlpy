@@ -38,11 +38,11 @@ reinforcement learning datasets without any efforts.
     dataset = d3rlpy.dataset.MDPDataset(observations, actions, rewards, terminals)
 
     # save as HDF5
-    with open("dataset.h5", "wb") as f:
+    with open("dataset.h5", "w+b") as f:
         dataset.dump(f)
 
     # load from HDF5
-    with open("dataset.h5", "wb") as f:
+    with open("dataset.h5", "rb") as f:
         new_dataset = d3rlpy.dataset.ReplayBuffer.load(f, d3rlpy.dataset.InfiniteBuffer())
 
 

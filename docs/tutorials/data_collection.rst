@@ -39,7 +39,7 @@ This procedure corresponds to ``random`` datasets in D4RL.
   random_policy.collect(env, buffer, n_steps=100000)
 
   # save ReplayBuffer
-  with open("random_policy_dataset.h5", "wb") as f:
+  with open("random_policy_dataset.h5", "w+b") as f:
       buffer.dump(f)
 
 Data Collection with Trained Policy
@@ -62,7 +62,7 @@ This procedure corresponds to ``medium`` datasets in D4RL.
   dqn.collect(env, buffer, n_steps=100000)
 
   # save ReplayBuffer
-  with open("trained_policy_dataset.h5", "wb") as f:
+  with open("trained_policy_dataset.h5", "w+b") as f:
     buffer.dump(f)
 
 Data Collection while Training Policy
@@ -87,5 +87,5 @@ This procedure corresponds to ``replay`` datasets in D4RL.
   dqn.fit_online(env, buffer, explorer, n_steps=100000)
 
   # save ReplayBuffer
-  with open("replay_dataset.h5", "wb") as f:
+  with open("replay_dataset.h5", "w+b") as f:
     buffer.dump(f)
