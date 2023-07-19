@@ -30,8 +30,11 @@ Alternatively, you can manually instantiate preprocessing parameters.
 .. code-block:: python
 
   # setup manually
-  mean = np.mean(dataset.observations, axis=0, keepdims=True)
-  std = np.std(dataset.observations, axis=0, keepdims=True)
+  observations = []
+  for episode in dataset.episodes:
+      observations += episode.observations.tolist()
+  mean = np.mean(observations, axis=0)
+  std = np.std(observations, axis=0)
   observation_scaler = d3rlpy.preprocessing.StandardObservationScaler(mean=mean, std=std)
 
   # set as observation_scaler
@@ -59,8 +62,11 @@ normalizing datasets by yourself.
   sac = d3rlpy.algos.SACConfig(action_scaler=action_scaler).create()
 
   # setup manually
-  minimum_action = np.min(dataset.actions, axis=0, keepdims=True)
-  maximum_action = np.max(dataset.actions, axis=0, keepdims=True)
+  actions = []
+  for episode in dataset.episodes:
+      actions += episode.actions.tolist()
+  minimum_action = np.min(actions, axis=0)
+  maximum_action = np.max(actions, axis=0)
   action_scaler = d3rlpy.preprocessing.MinMaxActionScaler(
       minimum=minimum_action,
       maximum=maximum_action,
@@ -88,8 +94,11 @@ it's confirmed that the reward scale affects training performance.
   sac = d3rlpy.algos.SACConfig(reward_scaler=reward_scaler).create()
 
   # setup manuall
-  mean = np.mean(dataset.rewards)
-  std = np.std(dataset.rewards)
+  rewards = []
+  for episode in dataset.episodes:
+      rewards += episode.rewards.tolist()
+  mean = np.mean(rewards)
+  std = np.std(rewards)
   reward_scaler = StandardRewardScaler(mean=mean, std=std)
 
   # set as reward scaler
