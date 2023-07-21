@@ -1,7 +1,5 @@
-import json
-import os
 from collections import deque
-from typing import Any, Callable, Deque, Dict, List, Optional, Tuple, TypeVar
+from typing import Any, Deque, Dict, Optional, Tuple, TypeVar
 
 import gym
 import numpy as np
@@ -19,7 +17,6 @@ __all__ = [
     "FrameStack",
     "AtariPreprocessing",
     "Atari",
-    "Monitor",
 ]
 
 _ObsType = TypeVar("_ObsType")
@@ -338,100 +335,3 @@ class Atari(gym.Wrapper[np.ndarray, int]):
         else:
             env = ChannelFirst(env)
         super().__init__(env)
-
-
-class Monitor(gym.Wrapper[_ObsType, _ActType]):
-    """gym.wrappers.Monitor-style Monitor wrapper.
-
-    Args:
-        env (gym.Env): gym environment.
-        directory (str): directory to save.
-        video_callable (callable): callable function that takes episode counter
-            to control record frequency.
-        force (bool): flag to allow existing directory.
-        frame_rate (float): video frame rate.
-        record_rate (int): images are record every ``record_rate`` frames.
-    """
-
-    _directory: str
-    _video_callable: Callable[[int], bool]
-    _frame_rate: float
-    _record_rate: int
-    _episode: int
-    _episode_return: float
-    _episode_step: int
-    _buffer: List[np.ndarray]
-
-    def __init__(
-        self,
-        env: gym.Env[_ObsType, _ActType],
-        directory: str,
-        video_callable: Optional[Callable[[int], bool]] = None,
-        force: bool = False,
-        frame_rate: float = 30.0,
-        record_rate: int = 1,
-    ):
-        super().__init__(env)
-        # prepare directory
-        if os.path.exists(directory) and not force:
-            raise ValueError(f"{directory} already exists.")
-        os.makedirs(directory, exist_ok=True)
-        self._directory = directory
-
-        if video_callable:
-            self._video_callable = video_callable
-        else:
-            self._video_callable = lambda ep: ep % 10 == 0
-
-        self._frame_rate = frame_rate
-        self._record_rate = record_rate
-
-        self._episode = 0
-        self._episode_return = 0.0
-        self._episode_step = 0
-        self._buffer = []
-
-    def step(
-        self, action: _ActType
-    ) -> Tuple[_ObsType, float, bool, bool, Dict[str, Any]]:
-        obs, reward, done, truncated, info = super().step(action)
-
-        if self._video_callable(self._episode):
-            # store rendering
-            frame = cv2.cvtColor(super().render("rgb_array"), cv2.COLOR_BGR2RGB)
-            self._buffer.append(frame)
-            self._episode_step += 1
-            self._episode_return += reward
-            if done:
-                self._save_video()
-                self._save_stats()
-
-        return obs, reward, done, truncated, info
-
-    def reset(self, **kwargs: Any) -> Tuple[_ObsType, Dict[str, Any]]:
-        self._episode += 1
-        self._episode_return = 0.0
-        self._episode_step = 0
-        self._buffer = []
-        return super().reset(**kwargs)
-
-    def _save_video(self) -> None:
-        height, width = self._buffer[0].shape[:2]
-        path = os.path.join(self._directory, f"video{self._episode}.avi")
-        fmt = cv2.VideoWriter_fourcc(*"MJPG")
-        writer = cv2.VideoWriter(path, fmt, self._frame_rate, (width, height))
-        print(f"Saving a recorded video to {path}...")
-        for i, frame in enumerate(self._buffer):
-            if i % self._record_rate == 0:
-                writer.write(frame)
-        writer.release()
-
-    def _save_stats(self) -> None:
-        path = os.path.join(self._directory, f"stats{self._episode}.json")
-        stats = {
-            "episode_step": self._episode_step,
-            "return": self._episode_return,
-        }
-        with open(path, "w") as f:
-            json_str = json.dumps(stats, indent=2)
-            f.write(json_str)

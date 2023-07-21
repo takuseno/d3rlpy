@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple
 import click
 import gym
 import numpy as np
+from gym.wrappers import RecordVideo
 
 from ._version import __version__
 from .algos import (
@@ -17,7 +18,6 @@ from .algos import (
     TransformerAlgoBase,
 )
 from .base import load_learnable
-from .envs import Monitor
 from .metrics.utility import (
     evaluate_qlearning_with_environment,
     evaluate_transformer_with_environment,
@@ -249,8 +249,6 @@ def _exec_to_create_env(code: str) -> gym.Env[Any, Any]:
 @click.option(
     "--n-episodes", default=3, help="the number of episodes to record."
 )
-@click.option("--frame-rate", default=60, help="video frame rate.")
-@click.option("--record-rate", default=1, help="record frame rate.")
 @click.option(
     "--target-return",
     default=None,
@@ -262,8 +260,6 @@ def record(
     env_header: Optional[str],
     out: str,
     n_episodes: int,
-    frame_rate: float,
-    record_rate: int,
     target_return: Optional[float],
 ) -> None:
     # load saved model
@@ -273,32 +269,27 @@ def record(
     # wrap environment with Monitor
     env: gym.Env[Any, Any]
     if env_id is not None:
-        env = gym.make(env_id)
+        env = gym.make(env_id, render_mode="rgb_array")
     elif env_header is not None:
         env = _exec_to_create_env(env_header)
     else:
         raise ValueError("env_id or env_header must be provided.")
 
-    wrapped_env = Monitor(
+    wrapped_env = RecordVideo(
         env,
         out,
-        video_callable=lambda ep: ep % 1 == 0,
-        frame_rate=float(frame_rate),
-        record_rate=int(record_rate),
+        episode_trigger=lambda ep: True,
     )
 
     # run episodes
     if isinstance(algo, QLearningAlgoBase):
-        evaluate_qlearning_with_environment(
-            algo, wrapped_env, n_episodes, render=True
-        )
+        evaluate_qlearning_with_environment(algo, wrapped_env, n_episodes)
     elif isinstance(algo, TransformerAlgoBase):
         assert target_return is not None, "--target-return must be specified."
         evaluate_transformer_with_environment(
             StatefulTransformerWrapper(algo, float(target_return)),
             wrapped_env,
             n_episodes,
-            render=True,
         )
     else:
         raise ValueError("invalid algo type.")
@@ -330,7 +321,7 @@ def play(
     # wrap environment with Monitor
     env: gym.Env[Any, Any]
     if env_id is not None:
-        env = gym.make(env_id)
+        env = gym.make(env_id, render_mode="human")
     elif env_header is not None:
         env = _exec_to_create_env(env_header)
     else:
@@ -338,14 +329,14 @@ def play(
 
     # run episodes
     if isinstance(algo, QLearningAlgoBase):
-        evaluate_qlearning_with_environment(algo, env, n_episodes, render=True)
+        score = evaluate_qlearning_with_environment(algo, env, n_episodes)
     elif isinstance(algo, TransformerAlgoBase):
         assert target_return is not None, "--target-return must be specified."
-        evaluate_transformer_with_environment(
+        score = evaluate_transformer_with_environment(
             StatefulTransformerWrapper(algo, float(target_return)),
             env,
             n_episodes,
-            render=True,
         )
     else:
         raise ValueError("invalid algo type.")
+    print(f"Score: {score}")

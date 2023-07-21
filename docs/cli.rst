@@ -83,10 +83,6 @@ Record evaluation episodes as videos with the saved model::
      - Output directory.
    * - ``--n-episodes``
      - The number of episodes to record.
-   * - ``--frame-rate``
-     - Video frame rate.
-   * - ``--record-rate``
-     - Images are recored every ``record-rate`` frames.
    * - ``--epsilon``
      - :math:`\epsilon`-greedy evaluation.
    * - ``--target-return``
@@ -99,7 +95,7 @@ example::
 
   # record wrapped environment
   $ d3rlpy record d3rlpy_logs/Discrete_CQL_20201224224314/model_100.d3 \
-      --env-header 'import gym; from d3rlpy.envs import Atari; env = Atari(gym.make("BreakoutNoFrameskip-v4"), is_eval=True)'
+      --env-header 'import gym; from d3rlpy.envs import Atari; env = Atari(gym.make("BreakoutNoFrameskip-v4", render_mode="rgb_array"), is_eval=True)'
 
 play
 ----
@@ -129,4 +125,4 @@ example::
 
   # record wrapped environment
   $ d3rlpy play d3rlpy_logs/Discrete_CQL_20201224224314/model_100.d3 \
-      --env-header 'import gym; from d3rlpy.envs import Atari; env = Atari(gym.make("BreakoutNoFrameskip-v4"), is_eval=True)'
+      --env-header 'import gym; from d3rlpy.envs import Atari; env = Atari(gym.make("BreakoutNoFrameskip-v4", render_mode="human"), is_eval=True)'

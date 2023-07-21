@@ -16,7 +16,6 @@ def evaluate_qlearning_with_environment(
     env: gym.Env[Any, Any],
     n_trials: int = 10,
     epsilon: float = 0.0,
-    render: bool = False,
 ) -> float:
     """Returns average environment score.
 
@@ -39,7 +38,6 @@ def evaluate_qlearning_with_environment(
         env: gym-styled environment.
         n_trials: the number of trials.
         epsilon: noise factor for epsilon-greedy policy.
-        render: flag to render environment.
 
     Returns:
         average score.
@@ -59,9 +57,6 @@ def evaluate_qlearning_with_environment(
             observation, reward, done, truncated, _ = env.step(action)
             episode_reward += reward
 
-            if render:
-                env.render()
-
             if done or truncated:
                 break
         episode_rewards.append(episode_reward)
@@ -72,7 +67,6 @@ def evaluate_transformer_with_environment(
     algo: StatefulTransformerAlgoProtocol,
     env: gym.Env[Any, Any],
     n_trials: int = 10,
-    render: bool = False,
 ) -> float:
     """Returns average environment score.
 
@@ -94,7 +88,6 @@ def evaluate_transformer_with_environment(
         alg: algorithm object.
         env: gym-styled environment.
         n_trials: the number of trials.
-        render: flag to render environment.
 
     Returns:
         average score.
@@ -111,9 +104,6 @@ def evaluate_transformer_with_environment(
 
             observation, reward, done, truncated, _ = env.step(action)
             episode_reward += reward
-
-            if render:
-                env.render()
 
             if done or truncated:
                 break

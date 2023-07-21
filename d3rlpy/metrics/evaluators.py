@@ -516,24 +516,20 @@ class EnvironmentEvaluator(EvaluatorProtocol):
         env: Gym environment.
         n_trials: Number of episodes to evaluate.
         epsilon: Probability of random action.
-        render: Flag to turn on rendering.
     """
     _env: gym.Env[Any, Any]
     _n_trials: int
     _epsilon: float
-    _render: bool
 
     def __init__(
         self,
         env: gym.Env[Any, Any],
         n_trials: int = 10,
         epsilon: float = 0.0,
-        render: bool = False,
     ):
         self._env = env
         self._n_trials = n_trials
         self._epsilon = epsilon
-        self._render = render
 
     def __call__(
         self, algo: QLearningAlgoProtocol, dataset: ReplayBuffer
@@ -543,5 +539,4 @@ class EnvironmentEvaluator(EvaluatorProtocol):
             env=self._env,
             n_trials=self._n_trials,
             epsilon=self._epsilon,
-            render=self._render,
         )
