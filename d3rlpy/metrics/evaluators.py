@@ -263,8 +263,9 @@ class InitialStateValueEstimationEvaluator(EvaluatorProtocol):
                 episode, WINDOW_SIZE, dataset.transition_picker
             ):
                 # estimate action-value in initial states
-                actions = algo.predict([batch.observations[0]])
-                values = algo.predict_value([batch.observations[0]], actions)
+                first_obs = np.expand_dims(batch.observations[0], axis=0)
+                actions = algo.predict(first_obs)
+                values = algo.predict_value(first_obs, actions)
                 total_values.append(values[0])
         return float(np.mean(total_values))
 

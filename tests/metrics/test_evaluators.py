@@ -3,6 +3,7 @@ from typing import Callable, List, Optional, Sequence
 import numpy as np
 import pytest
 
+from d3rlpy.algos import DQNConfig, SACConfig
 from d3rlpy.dataset import (
     BasicTransitionPicker,
     Episode,
@@ -28,6 +29,8 @@ from d3rlpy.preprocessing import (
     ObservationScaler,
     RewardScaler,
 )
+
+from ..testing_utils import create_episode
 
 
 def _convert_episode_to_batch(episode: Episode) -> TransitionMiniBatch:
@@ -153,6 +156,39 @@ def test_td_error_scorer(
     assert np.allclose(score, np.mean(ref_errors))
 
 
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("episode_length", [10])
+def test_td_error_scorer_with_algos(
+    observation_shape: Sequence[int],
+    action_size: int,
+    episode_length: int,
+) -> None:
+    # test with DQN
+    discrete_episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=True,
+    )
+    discrete_replay_buffer = _create_replay_buffer([discrete_episode])
+    dqn = DQNConfig().create()
+    dqn.build_with_dataset(discrete_replay_buffer)
+    TDErrorEvaluator()(dqn, discrete_replay_buffer)
+
+    # test with SAC
+    episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=False,
+    )
+    replay_buffer = _create_replay_buffer([episode])
+    sac = SACConfig().create()
+    sac.build_with_dataset(replay_buffer)
+    TDErrorEvaluator()(sac, replay_buffer)
+
+
 def ref_discounted_sum_of_advantage_score(
     predict_value: Callable[[Observation, np.ndarray], np.ndarray],
     observations: Observation,
@@ -224,6 +260,39 @@ def test_discounted_sum_of_advantage_scorer(
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("episode_length", [10])
+def test_discounted_sum_of_advantage_with_algos(
+    observation_shape: Sequence[int],
+    action_size: int,
+    episode_length: int,
+) -> None:
+    # test with DQN
+    discrete_episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=True,
+    )
+    discrete_replay_buffer = _create_replay_buffer([discrete_episode])
+    dqn = DQNConfig().create()
+    dqn.build_with_dataset(discrete_replay_buffer)
+    DiscountedSumOfAdvantageEvaluator()(dqn, discrete_replay_buffer)
+
+    # test with SAC
+    episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=False,
+    )
+    replay_buffer = _create_replay_buffer([episode])
+    sac = SACConfig().create()
+    sac.build_with_dataset(replay_buffer)
+    DiscountedSumOfAdvantageEvaluator()(sac, replay_buffer)
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_episodes", [100])
 @pytest.mark.parametrize("episode_length", [10])
 def test_average_value_estimation_scorer(
@@ -264,6 +333,39 @@ def test_average_value_estimation_scorer(
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("episode_length", [10])
+def test_average_value_estimation_with_algos(
+    observation_shape: Sequence[int],
+    action_size: int,
+    episode_length: int,
+) -> None:
+    # test with DQN
+    discrete_episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=True,
+    )
+    discrete_replay_buffer = _create_replay_buffer([discrete_episode])
+    dqn = DQNConfig().create()
+    dqn.build_with_dataset(discrete_replay_buffer)
+    AverageValueEstimationEvaluator()(dqn, discrete_replay_buffer)
+
+    # test with SAC
+    episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=False,
+    )
+    replay_buffer = _create_replay_buffer([episode])
+    sac = SACConfig().create()
+    sac.build_with_dataset(replay_buffer)
+    AverageValueEstimationEvaluator()(sac, replay_buffer)
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_episodes", [100])
 @pytest.mark.parametrize("episode_length", [10])
 def test_initial_state_value_estimation_scorer(
@@ -300,6 +402,39 @@ def test_initial_state_value_estimation_scorer(
         algo, _create_replay_buffer(episodes)
     )
     assert np.allclose(score, np.mean(total_values))
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("episode_length", [10])
+def test_initial_state_value_estimation_with_algos(
+    observation_shape: Sequence[int],
+    action_size: int,
+    episode_length: int,
+) -> None:
+    # test with DQN
+    discrete_episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=True,
+    )
+    discrete_replay_buffer = _create_replay_buffer([discrete_episode])
+    dqn = DQNConfig().create()
+    dqn.build_with_dataset(discrete_replay_buffer)
+    InitialStateValueEstimationEvaluator()(dqn, discrete_replay_buffer)
+
+    # test with SAC
+    episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=False,
+    )
+    replay_buffer = _create_replay_buffer([episode])
+    sac = SACConfig().create()
+    sac.build_with_dataset(replay_buffer)
+    InitialStateValueEstimationEvaluator()(sac, replay_buffer)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -347,6 +482,41 @@ def test_soft_opc_scorer(
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("episode_length", [10])
+@pytest.mark.parametrize("threshold", [5.0])
+def test_soft_opc_wtth_algos(
+    observation_shape: Sequence[int],
+    action_size: int,
+    episode_length: int,
+    threshold: float,
+) -> None:
+    # test with DQN
+    discrete_episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=True,
+    )
+    discrete_replay_buffer = _create_replay_buffer([discrete_episode])
+    dqn = DQNConfig().create()
+    dqn.build_with_dataset(discrete_replay_buffer)
+    SoftOPCEvaluator(threshold)(dqn, discrete_replay_buffer)
+
+    # test with SAC
+    episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=False,
+    )
+    replay_buffer = _create_replay_buffer([episode])
+    sac = SACConfig().create()
+    sac.build_with_dataset(replay_buffer)
+    SoftOPCEvaluator(threshold)(sac, replay_buffer)
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_episodes", [100])
 @pytest.mark.parametrize("episode_length", [10])
 def test_continuous_action_diff_scorer(
@@ -386,6 +556,27 @@ def test_continuous_action_diff_scorer(
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("episode_length", [10])
+def test_continuous_action_diff_with_algos(
+    observation_shape: Sequence[int],
+    action_size: int,
+    episode_length: int,
+) -> None:
+    # test with SAC
+    episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=False,
+    )
+    replay_buffer = _create_replay_buffer([episode])
+    sac = SACConfig().create()
+    sac.build_with_dataset(replay_buffer)
+    ContinuousActionDiffEvaluator()(sac, replay_buffer)
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_episodes", [100])
 @pytest.mark.parametrize("episode_length", [10])
 def test_discrete_action_match_scorer(
@@ -421,6 +612,27 @@ def test_discrete_action_match_scorer(
         algo, _create_replay_buffer(episodes)
     )
     assert np.allclose(score, np.mean(total_matches))
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("episode_length", [10])
+def test_discrete_action_match_with_algos(
+    observation_shape: Sequence[int],
+    action_size: int,
+    episode_length: int,
+) -> None:
+    # test with DQN
+    discrete_episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=True,
+    )
+    discrete_replay_buffer = _create_replay_buffer([discrete_episode])
+    dqn = DQNConfig().create()
+    dqn.build_with_dataset(discrete_replay_buffer)
+    DiscreteActionMatchEvaluator()(dqn, discrete_replay_buffer)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
@@ -467,6 +679,29 @@ def test_compare_continuous_action_diff(
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("episode_length", [10])
+def test_compare_continuous_action_diff_with_algos(
+    observation_shape: Sequence[int],
+    action_size: int,
+    episode_length: int,
+) -> None:
+    # test with SAC
+    episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=False,
+    )
+    replay_buffer = _create_replay_buffer([episode])
+    sac1 = SACConfig().create()
+    sac1.build_with_dataset(replay_buffer)
+    sac2 = SACConfig().create()
+    sac2.build_with_dataset(replay_buffer)
+    CompareContinuousActionDiffEvaluator(sac1)(sac2, replay_buffer)
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_episodes", [100])
 @pytest.mark.parametrize("episode_length", [10])
 def test_compare_discrete_action_diff(
@@ -505,3 +740,26 @@ def test_compare_discrete_action_diff(
         algo, _create_replay_buffer(episodes)
     )
     assert np.allclose(score, np.mean(total_matches))
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("episode_length", [10])
+def test_compare_discrete_action_diff_with_algos(
+    observation_shape: Sequence[int],
+    action_size: int,
+    episode_length: int,
+) -> None:
+    # test with DQN
+    discrete_episode = create_episode(
+        observation_shape,
+        action_size,
+        length=episode_length,
+        discrete_action=True,
+    )
+    discrete_replay_buffer = _create_replay_buffer([discrete_episode])
+    dqn1 = DQNConfig().create()
+    dqn1.build_with_dataset(discrete_replay_buffer)
+    dqn2 = DQNConfig().create()
+    dqn2.build_with_dataset(discrete_replay_buffer)
+    CompareDiscreteActionMatchEvaluator(dqn1)(dqn2, discrete_replay_buffer)
