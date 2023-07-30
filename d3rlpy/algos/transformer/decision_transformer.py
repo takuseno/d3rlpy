@@ -113,7 +113,7 @@ class DecisionTransformer(
         self._impl = DecisionTransformerImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            transformer=compiled_transformer,  # type: ignore
+            transformer=compiled_transformer,
             optim=optim,
             scheduler=scheduler,
             clip_grad_norm=self._config.clip_grad_norm,
