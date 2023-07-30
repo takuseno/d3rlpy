@@ -1,7 +1,8 @@
 from typing import Any
 
-import gym
 from gym.spaces import Box, Discrete
+from gymnasium.spaces import Box as GymnasiumBox
+from gymnasium.spaces import Discrete as GymnasiumDiscrete
 
 from ..base import LearnableBase
 from ..constants import (
@@ -10,6 +11,7 @@ from ..constants import (
     ActionSpace,
 )
 from ..dataset import DatasetInfo, ReplayBuffer
+from ..envs import GymEnv
 from ..logging import LOG
 
 __all__ = ["assert_action_space_with_dataset", "assert_action_space_with_env"]
@@ -31,13 +33,13 @@ def assert_action_space_with_dataset(
 
 
 def assert_action_space_with_env(
-    algo: LearnableBase[Any, Any], env: gym.Env[Any, Any]
+    algo: LearnableBase[Any, Any], env: GymEnv
 ) -> None:
-    if isinstance(env.action_space, Box):
+    if isinstance(env.action_space, (Box, GymnasiumBox)):
         assert (
             algo.get_action_type() == ActionSpace.CONTINUOUS
         ), CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR
-    elif isinstance(env.action_space, Discrete):
+    elif isinstance(env.action_space, (Discrete, GymnasiumDiscrete)):
         assert (
             algo.get_action_type() == ActionSpace.DISCRETE
         ), DISCRETE_ACTION_SPACE_MISMATCH_ERROR
@@ -115,7 +117,8 @@ def build_scalers_with_trajectory_slicer(
 
 
 def build_scalers_with_env(
-    algo: LearnableBase[Any, Any], env: gym.Env[Any, Any]
+    algo: LearnableBase[Any, Any],
+    env: GymEnv,
 ) -> None:
     # initialize observation scaler
     if algo.observation_scaler and not algo.observation_scaler.built:

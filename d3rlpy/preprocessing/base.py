@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, Sequence
+from typing import Sequence
 
-import gym
 import numpy as np
 import torch
 
@@ -10,6 +9,7 @@ from ..dataset import (
     TrajectorySlicerProtocol,
     TransitionPickerProtocol,
 )
+from ..envs import GymEnv
 from ..serializable_config import DynamicConfig
 
 __all__ = ["Scaler", "add_leading_dims", "add_leading_dims_numpy"]
@@ -45,7 +45,7 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
+    def fit_with_env(self, env: GymEnv) -> None:
         """Gets scaling parameters from environment.
 
         Args:

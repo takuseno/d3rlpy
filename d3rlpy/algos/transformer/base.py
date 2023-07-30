@@ -1,9 +1,8 @@
 import dataclasses
 from abc import abstractmethod
 from collections import defaultdict, deque
-from typing import Any, Callable, Deque, Dict, Generic, Optional, TypeVar, Union
+from typing import Callable, Deque, Dict, Generic, Optional, TypeVar, Union
 
-import gym
 import numpy as np
 import torch
 from tqdm.auto import tqdm
@@ -17,6 +16,7 @@ from ...dataset import (
     ReplayBuffer,
     TrajectoryMiniBatch,
 )
+from ...envs import GymEnv
 from ...logging import (
     LOG,
     D3RLPyLogger,
@@ -207,7 +207,7 @@ class TransformerAlgoBase(
         with_timestamp: bool = True,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
-        eval_env: Optional[gym.Env[Any, Any]] = None,
+        eval_env: Optional[GymEnv] = None,
         eval_target_return: Optional[float] = None,
         save_interval: int = 1,
         callback: Optional[Callable[[Self, int, int], None]] = None,

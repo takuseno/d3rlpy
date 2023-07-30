@@ -1,7 +1,6 @@
 import dataclasses
-from typing import Any, Optional, Sequence
+from typing import Optional, Sequence
 
-import gym
 import numpy as np
 import torch
 
@@ -10,6 +9,7 @@ from ..dataset import (
     TrajectorySlicerProtocol,
     TransitionPickerProtocol,
 )
+from ..envs import GymEnv
 from ..serializable_config import generate_optional_config_generation
 from .base import Scaler
 
@@ -27,7 +27,7 @@ __all__ = [
 
 
 class RewardScaler(Scaler):
-    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
+    def fit_with_env(self, env: GymEnv) -> None:
         pass
 
 

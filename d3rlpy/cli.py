@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple
 
 import click
 import gym
+import gymnasium
 import numpy as np
 from gym.wrappers import RecordVideo
 
@@ -74,16 +75,16 @@ def stats(path: str) -> None:
 @cli.command(short_help="Plot saved metrics (requires matplotlib).")
 @click.argument("path", nargs=-1)
 @click.option(
-    "--window", default=1, show_default=True, help="moving average window."
+    "--window", default=1, show_default=True, help="Moving average window."
 )
-@click.option("--show-steps", is_flag=True, help="use iterations on x-axis.")
-@click.option("--show-max", is_flag=True, help="show maximum value.")
-@click.option("--label", multiple=True, help="label in legend.")
-@click.option("--xlim", nargs=2, type=float, help="limit on x-axis (tuple).")
-@click.option("--ylim", nargs=2, type=float, help="limit on y-axis (tuple).")
-@click.option("--title", help="title of the plot.")
-@click.option("--ylabel", default="value", help="label on y-axis.")
-@click.option("--save", help="flag to save the plot as an image.")
+@click.option("--show-steps", is_flag=True, help="Use iterations on x-axis.")
+@click.option("--show-max", is_flag=True, help="Show maximum value.")
+@click.option("--label", multiple=True, help="Label in legend.")
+@click.option("--xlim", nargs=2, type=float, help="Limit on x-axis (tuple).")
+@click.option("--ylim", nargs=2, type=float, help="Limit on y-axis (tuple).")
+@click.option("--title", help="Title of the plot.")
+@click.option("--ylabel", default="value", help="Label on y-axis.")
+@click.option("--save", help="Flag to save the plot as an image.")
 def plot(
     path: List[str],
     window: int,
@@ -164,8 +165,8 @@ def plot(
 
 @cli.command(short_help="Plot saved metrics in a grid (requires matplotlib).")
 @click.argument("path")
-@click.option("--title", help="title of the plot.")
-@click.option("--save", help="flag to save the plot as an image.")
+@click.option("--title", help="Tittle of the plot.")
+@click.option("--save", help="Flag to save the plot as an image.")
 def plot_all(
     path: str,
     title: Optional[str],
@@ -243,17 +244,16 @@ def _exec_to_create_env(code: str) -> gym.Env[Any, Any]:
 @click.argument("model_path")
 @click.option("--env-id", default=None, help="Gym environment id.")
 @click.option(
-    "--env-header", default=None, help="one-liner to create environment."
+    "--env-header", default=None, help="One-liner to create environment."
 )
-@click.option("--out", default="videos", help="output directory path.")
-@click.option(
-    "--n-episodes", default=3, help="the number of episodes to record."
-)
+@click.option("--out", default="videos", help="Output directory path.")
+@click.option("--n-episodes", default=3, help="Number of episodes to record.")
 @click.option(
     "--target-return",
     default=None,
-    help="the target return for Decision Transformer variants.",
+    help="Target return for Decision Transformer variants.",
 )
+@click.option("--use-gymnasium", is_flag=True, help="Flag to use Gymnasium.")
 def record(
     model_path: str,
     env_id: Optional[str],
@@ -261,6 +261,7 @@ def record(
     out: str,
     n_episodes: int,
     target_return: Optional[float],
+    use_gymnasium: bool,
 ) -> None:
     # load saved model
     print(f"Loading {model_path}...")
@@ -269,7 +270,10 @@ def record(
     # wrap environment with Monitor
     env: gym.Env[Any, Any]
     if env_id is not None:
-        env = gym.make(env_id, render_mode="rgb_array")
+        if use_gymnasium:
+            env = gymnasium.make(env_id, render_mode="rgb_array")
+        else:
+            env = gym.make(env_id, render_mode="rgb_array")
     elif env_header is not None:
         env = _exec_to_create_env(env_header)
     else:
@@ -299,20 +303,22 @@ def record(
 @click.argument("model_path")
 @click.option("--env-id", default=None, help="Gym environment id.")
 @click.option(
-    "--env-header", default=None, help="one-liner to create environment."
+    "--env-header", default=None, help="One-liner to create environment."
 )
-@click.option("--n-episodes", default=3, help="the number of episodes to run.")
+@click.option("--n-episodes", default=3, help="Number of episodes to run.")
 @click.option(
     "--target-return",
     default=None,
-    help="the target return for Decision Transformer variants.",
+    help="Target return for Decision Transformer variants.",
 )
+@click.option("--use-gymnasium", is_flag=True, help="Flag to use Gymnasium.")
 def play(
     model_path: str,
     env_id: Optional[str],
     env_header: Optional[str],
     n_episodes: int,
     target_return: Optional[float],
+    use_gymnasium: bool,
 ) -> None:
     # load saved model
     print(f"Loading {model_path}...")
@@ -321,7 +327,10 @@ def play(
     # wrap environment with Monitor
     env: gym.Env[Any, Any]
     if env_id is not None:
-        env = gym.make(env_id, render_mode="human")
+        if use_gymnasium:
+            env = gymnasium.make(env_id, render_mode="human")
+        else:
+            env = gym.make(env_id, render_mode="human")
     elif env_header is not None:
         env = _exec_to_create_env(env_header)
     else:

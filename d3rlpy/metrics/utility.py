@@ -1,8 +1,6 @@
-from typing import Any
-
-import gym
 import numpy as np
 
+from ..envs import GymEnv
 from ..interface import QLearningAlgoProtocol, StatefulTransformerAlgoProtocol
 
 __all__ = [
@@ -13,7 +11,7 @@ __all__ = [
 
 def evaluate_qlearning_with_environment(
     algo: QLearningAlgoProtocol,
-    env: gym.Env[Any, Any],
+    env: GymEnv,
     n_trials: int = 10,
     epsilon: float = 0.0,
 ) -> float:
@@ -55,7 +53,7 @@ def evaluate_qlearning_with_environment(
                 action = algo.predict(np.expand_dims(observation, axis=0))[0]
 
             observation, reward, done, truncated, _ = env.step(action)
-            episode_reward += reward
+            episode_reward += float(reward)
 
             if done or truncated:
                 break
@@ -65,7 +63,7 @@ def evaluate_qlearning_with_environment(
 
 def evaluate_transformer_with_environment(
     algo: StatefulTransformerAlgoProtocol,
-    env: gym.Env[Any, Any],
+    env: GymEnv,
     n_trials: int = 10,
 ) -> float:
     """Returns average environment score.
@@ -102,7 +100,8 @@ def evaluate_transformer_with_environment(
             # take action
             action = algo.predict(observation, reward)
 
-            observation, reward, done, truncated, _ = env.step(action)
+            observation, _reward, done, truncated, _ = env.step(action)
+            reward = float(_reward)
             episode_reward += reward
 
             if done or truncated:

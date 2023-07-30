@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from collections import defaultdict
 from typing import (
-    Any,
     Callable,
     Dict,
     Generator,
@@ -13,7 +12,6 @@ from typing import (
     cast,
 )
 
-import gym
 import numpy as np
 import torch
 from tqdm.auto import tqdm, trange
@@ -30,6 +28,7 @@ from ...dataset import (
     create_fifo_replay_buffer,
     is_tuple_shape,
 )
+from ...envs import GymEnv
 from ...logging import (
     LOG,
     D3RLPyLogger,
@@ -561,7 +560,7 @@ class QLearningAlgoBase(
 
     def fit_online(
         self,
-        env: gym.Env[Any, Any],
+        env: GymEnv,
         buffer: Optional[ReplayBuffer] = None,
         explorer: Optional[Explorer] = None,
         n_steps: int = 1000000,
@@ -569,7 +568,7 @@ class QLearningAlgoBase(
         update_interval: int = 1,
         update_start_step: int = 0,
         random_steps: int = 0,
-        eval_env: Optional[gym.Env[Any, Any]] = None,
+        eval_env: Optional[GymEnv] = None,
         eval_epsilon: float = 0.0,
         save_interval: int = 1,
         experiment_name: Optional[str] = None,
@@ -661,12 +660,12 @@ class QLearningAlgoBase(
                         truncated,
                         _,
                     ) = env.step(action)
-                    rollout_return += reward
+                    rollout_return += float(reward)
 
                 clip_episode = terminal or truncated
 
                 # store observation
-                buffer.append(observation, action, reward)
+                buffer.append(observation, action, float(reward))
 
                 # reset if terminated
                 if clip_episode:
@@ -725,7 +724,7 @@ class QLearningAlgoBase(
 
     def collect(
         self,
-        env: gym.Env[Any, Any],
+        env: GymEnv,
         buffer: Optional[ReplayBuffer] = None,
         explorer: Optional[Explorer] = None,
         deterministic: bool = False,

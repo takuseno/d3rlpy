@@ -1,8 +1,8 @@
-from typing import Any, BinaryIO, List, Optional, Sequence, Type, Union
+from typing import BinaryIO, List, Optional, Sequence, Type, Union
 
-import gym
 import numpy as np
 
+from ..envs import GymEnv
 from .buffers import BufferProtocol, FIFOBuffer, InfiniteBuffer
 from .components import (
     Episode,
@@ -70,7 +70,7 @@ class ReplayBuffer:
             ``BasicWriterPreprocess`` is used by default.
         episodes (Optional[Sequence[d3rlpy.dataset.EpisodeBase]]):
             List of episodes to initialize replay buffer.
-        env (Optional[gym.Env]): Gym environment to extract shapes of
+        env (Optional[GymEnv]): Gym environment to extract shapes of
             observations and action.
         observation_signature (Optional[d3rlpy.dataset.Signature]):
             Signature of observation.
@@ -95,7 +95,7 @@ class ReplayBuffer:
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
         episodes: Optional[Sequence[EpisodeBase]] = None,
-        env: Optional[gym.Env[np.ndarray, Any]] = None,
+        env: Optional[GymEnv] = None,
         observation_signature: Optional[Signature] = None,
         action_signature: Optional[Signature] = None,
         reward_signature: Optional[Signature] = None,
@@ -375,7 +375,7 @@ def create_fifo_replay_buffer(
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
-    env: Optional[gym.Env[np.ndarray, Any]] = None,
+    env: Optional[GymEnv] = None,
 ) -> ReplayBuffer:
     """Builds FIFO replay buffer.
 
@@ -415,7 +415,7 @@ def create_infinite_replay_buffer(
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
-    env: Optional[gym.Env[np.ndarray, Any]] = None,
+    env: Optional[GymEnv] = None,
 ) -> ReplayBuffer:
     """Builds infinite replay buffer.
 

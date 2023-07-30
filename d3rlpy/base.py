@@ -2,16 +2,18 @@ import dataclasses
 import io
 import pickle
 from abc import ABCMeta, abstractmethod
-from typing import Any, BinaryIO, Generic, Optional, Type, TypeVar, Union
+from typing import BinaryIO, Generic, Optional, Type, TypeVar, Union
 
-import gym
 import torch
 from gym.spaces import Box, Discrete
+from gymnasium.spaces import Box as GymnasiumBox
+from gymnasium.spaces import Discrete as GymnasiumDiscrete
 from typing_extensions import Self
 
 from ._version import __version__
 from .constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from .dataset import DatasetInfo, ReplayBuffer, Shape
+from .envs import GymEnv
 from .logging import LOG, D3RLPyLogger
 from .preprocessing import (
     ActionScaler,
@@ -310,25 +312,25 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
         )
         self.create_impl(observation_shape, dataset_info.action_size)
 
-    def build_with_env(self, env: gym.Env[Any, Any]) -> None:
+    def build_with_env(self, env: GymEnv) -> None:
         """Instantiate implementation object with OpenAI Gym object.
 
         Args:
             env: gym-like environment.
         """
         assert isinstance(
-            env.observation_space, Box
+            env.observation_space, (Box, GymnasiumBox)
         ), f"Unsupported observation space: {type(env.observation_space)}"
         observation_shape = env.observation_space.shape
-        if isinstance(env.action_space, Discrete):
+        if isinstance(env.action_space, (Discrete, GymnasiumDiscrete)):
             action_size = env.action_space.n
-        elif isinstance(env.action_space, Box):
+        elif isinstance(env.action_space, (Box, GymnasiumBox)):
             action_size = env.action_space.shape[0]
         else:
             raise ValueError(
                 f"Unsupported action space: {type(env.action_space)}"
             )
-        self.create_impl(observation_shape, action_size)
+        self.create_impl(observation_shape, int(action_size))
 
     def get_action_type(self) -> ActionSpace:
         """Returns action type (continuous or discrete).

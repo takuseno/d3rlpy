@@ -1,15 +1,17 @@
 import dataclasses
-from typing import Any, Optional, Sequence
+from typing import Optional, Sequence
 
-import gym
 import numpy as np
 import torch
+from gym.spaces import Box
+from gymnasium.spaces import Box as GymnasiumBox
 
 from ..dataset import (
     EpisodeBase,
     TrajectorySlicerProtocol,
     TransitionPickerProtocol,
 )
+from ..envs import GymEnv
 from ..serializable_config import (
     generate_optional_config_generation,
     make_optional_numpy_field,
@@ -111,9 +113,9 @@ class MinMaxActionScaler(ActionScaler):
         self.minimum = minimum
         self.maximum = maximum
 
-    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
+    def fit_with_env(self, env: GymEnv) -> None:
         assert not self.built
-        assert isinstance(env.action_space, gym.spaces.Box)
+        assert isinstance(env.action_space, (Box, GymnasiumBox))
         low = np.asarray(env.action_space.low)
         high = np.asarray(env.action_space.high)
         self.minimum = low

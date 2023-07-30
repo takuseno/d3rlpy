@@ -1,15 +1,17 @@
 import dataclasses
-from typing import Any, Optional, Sequence
+from typing import Optional, Sequence
 
-import gym
 import numpy as np
 import torch
+from gym.spaces import Box
+from gymnasium.spaces import Box as GymnasiumBox
 
 from ..dataset import (
     EpisodeBase,
     TrajectorySlicerProtocol,
     TransitionPickerProtocol,
 )
+from ..envs import GymEnv
 from ..serializable_config import (
     generate_optional_config_generation,
     make_optional_numpy_field,
@@ -59,7 +61,7 @@ class PixelObservationScaler(ObservationScaler):
     ) -> None:
         pass
 
-    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
+    def fit_with_env(self, env: GymEnv) -> None:
         pass
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
@@ -170,9 +172,9 @@ class MinMaxObservationScaler(ObservationScaler):
         self.minimum = minimum
         self.maximum = maximum
 
-    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
+    def fit_with_env(self, env: GymEnv) -> None:
         assert not self.built
-        assert isinstance(env.observation_space, gym.spaces.Box)
+        assert isinstance(env.observation_space, (Box, GymnasiumBox))
         low = np.asarray(env.observation_space.low)
         high = np.asarray(env.observation_space.high)
         self.minimum = low
@@ -328,7 +330,7 @@ class StandardObservationScaler(ObservationScaler):
         self.mean = mean
         self.std = std
 
-    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
+    def fit_with_env(self, env: GymEnv) -> None:
         raise NotImplementedError(
             "standard scaler does not support fit_with_env."
         )

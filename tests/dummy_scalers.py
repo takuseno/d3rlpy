@@ -1,6 +1,5 @@
-from typing import Any, Sequence
+from typing import Sequence
 
-import gym
 import numpy as np
 import torch
 
@@ -9,6 +8,7 @@ from d3rlpy.dataset import (
     TrajectorySlicerProtocol,
     TransitionPickerProtocol,
 )
+from d3rlpy.envs import GymEnv
 from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
 
 
@@ -27,7 +27,7 @@ class DummyObservationScaler(ObservationScaler):
     ) -> None:
         pass
 
-    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
+    def fit_with_env(self, env: GymEnv) -> None:
         pass
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
@@ -62,7 +62,7 @@ class DummyActionScaler(ActionScaler):
     ) -> None:
         pass
 
-    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
+    def fit_with_env(self, env: GymEnv) -> None:
         pass
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
@@ -97,7 +97,7 @@ class DummyRewardScaler(RewardScaler):
     ) -> None:
         pass
 
-    def fit_with_env(self, env: gym.Env[Any, Any]) -> None:
+    def fit_with_env(self, env: GymEnv) -> None:
         pass
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
