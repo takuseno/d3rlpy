@@ -126,3 +126,17 @@ example::
   # record wrapped environment
   $ d3rlpy play d3rlpy_logs/Discrete_CQL_20201224224314/model_100.d3 \
       --env-header 'import gym; from d3rlpy.envs import Atari; env = Atari(gym.make("BreakoutNoFrameskip-v4", render_mode="human"), is_eval=True)'
+
+
+install
+-------
+
+Install additional packages::
+
+  $ d3rlpy install <name>
+
+example::
+
+  # Install D4RL package
+  $ d3rlpy install d4rl
+

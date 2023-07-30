@@ -200,8 +200,7 @@ def get_atari(
         return dataset, env
     except ImportError as e:
         raise ImportError(
-            "d4rl-atari is not installed.\n"
-            "pip install git+https://github.com/takuseno/d4rl-atari"
+            "d4rl-atari is not installed.\n" "$ d3rlpy install d4rl_atari"
         ) from e
 
 
@@ -300,8 +299,7 @@ def get_atari_transitions(
         return dataset, env
     except ImportError as e:
         raise ImportError(
-            "d4rl-atari is not installed.\n"
-            "pip install git+https://github.com/takuseno/d4rl-atari"
+            "d4rl-atari is not installed.\n" "$ d3rlpy install d4rl_atari"
         ) from e
 
 
@@ -364,8 +362,7 @@ def get_d4rl(
         return dataset, TimeLimit(unwrapped_env, max_episode_steps=1000)
     except ImportError as e:
         raise ImportError(
-            "d4rl is not installed.\n"
-            "pip install git+https://github.com/rail-berkeley/d4rl"
+            "d4rl is not installed.\n" "$ d3rlpy install d4rl"
         ) from e
 
 

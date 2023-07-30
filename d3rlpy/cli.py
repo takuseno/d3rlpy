@@ -4,6 +4,7 @@
 import glob
 import json
 import os
+import subprocess
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple
 
 import click
@@ -349,3 +350,26 @@ def play(
     else:
         raise ValueError("invalid algo type.")
     print(f"Score: {score}")
+
+
+@cli.command(short_help="Install additional packages.")
+@click.argument("name")
+def install(name: str) -> None:
+    if name == "d4rl_atari":
+        subprocess.run(
+            ["pip3", "install", "git+https://github.com/takuseno/d4rl-atari"],
+            check=True,
+        )
+    elif name == "d4rl":
+        subprocess.run(
+            [
+                "pip3",
+                "install",
+                "git+https://github.com/Farama-Foundation/D4RL",
+            ],
+            check=True,
+        )
+        subprocess.run(["pip3", "install", "-U", "gym"], check=True)
+        subprocess.run(["pip3", "uninstall", "-y", "pybullet"], check=True)
+    else:
+        raise ValueError(f"Unsupported command: {name}")
