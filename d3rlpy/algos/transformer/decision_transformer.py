@@ -54,6 +54,7 @@ class DecisionTransformerConfig(TransformerConfig):
             (``simple`` or ``global``).
         warmup_steps (int): Warmup steps for learning rate scheduler.
         clip_grad_norm (float): Norm of gradient clipping.
+        compile (bool): (experimental) Flag to enable JIT compilation.
     """
 
     batch_size: int = 64
@@ -70,6 +71,7 @@ class DecisionTransformerConfig(TransformerConfig):
     position_encoding_type: str = "simple"
     warmup_steps: int = 10000
     clip_grad_norm: float = 0.25
+    compile: bool = False
 
     def create(self, device: DeviceArg = False) -> "DecisionTransformer":
         return DecisionTransformer(self, device)
@@ -108,12 +110,13 @@ class DecisionTransformer(
         )
 
         # JIT compile
-        compiled_transformer = torch.compile(transformer, fullgraph=True)
+        if self._config.compile:
+            transformer = torch.compile(transformer, fullgraph=True)
 
         self._impl = DecisionTransformerImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            transformer=compiled_transformer,
+            transformer=transformer,
             optim=optim,
             scheduler=scheduler,
             clip_grad_norm=self._config.clip_grad_norm,
