@@ -33,7 +33,7 @@ if __name__ == "__main__":
             "Operating System :: MacOS :: MacOS X",
         ],
         install_requires=[
-            "torch>=1.13.1",
+            "torch>=2.0.0",
             "tqdm",
             "h5py",
             "gym>=0.26.0",
@@ -45,7 +45,7 @@ if __name__ == "__main__":
             "gymnasium",
         ],
         packages=find_packages(exclude=["tests*"]),
-        python_requires=">=3.7.0",
+        python_requires=">=3.8.0",
         zip_safe=True,
         entry_points={"console_scripts": ["d3rlpy=d3rlpy.cli:cli"]},
     )

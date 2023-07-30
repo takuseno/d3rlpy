@@ -107,10 +107,13 @@ class DecisionTransformer(
             optim, lambda steps: min((steps + 1) / self._config.warmup_steps, 1)
         )
 
+        # JIT compile
+        compiled_transformer = torch.compile(transformer, fullgraph=True)
+
         self._impl = DecisionTransformerImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            transformer=transformer,
+            transformer=compiled_transformer,  # type: ignore
             optim=optim,
             scheduler=scheduler,
             clip_grad_norm=self._config.clip_grad_norm,
