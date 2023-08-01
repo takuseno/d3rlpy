@@ -124,10 +124,10 @@ Once the training is done, your algorithm is ready to make decisions.
   observation = env.reset()
 
   # return actions based on the greedy-policy
-  action = dqn.predict([observation])[0]
+  action = dqn.predict(np.expand_dims(observation, axis=0))
 
   # estimate action-values
-  value = dqn.predict_value([observation], [action])[0]
+  value = dqn.predict_value(np.expand_dims(observation, axis=0), action)
 
 Save and Load
 -------------
@@ -138,21 +138,21 @@ d3rlpy provides several ways to save trained models.
 
    import d3rlpy
 
-  # save full parameters and configurations in a single file.
-  dqn.save('dqn.d3')
-  # load full parameters and build algorithm
-  dqn2 = d3rlpy.load_learnable("dqn.d3")
+   # save full parameters and configurations in a single file.
+   dqn.save('dqn.d3')
+   # load full parameters and build algorithm
+   dqn2 = d3rlpy.load_learnable("dqn.d3")
 
-  # save full parameters only
-  dqn.save_model('dqn.pt')
-  # load full parameters with manual setup
-  dqn3 = DQN()
-  dqn3.build_with_dataset(dataset)
-  dqn3.load_model('dqn.pt')
+   # save full parameters only
+   dqn.save_model('dqn.pt')
+   # load full parameters with manual setup
+   dqn3 = DQN()
+   dqn3.build_with_dataset(dataset)
+   dqn3.load_model('dqn.pt')
 
-  # save the greedy-policy as TorchScript
-  dqn.save_policy('policy.pt')
-  # save the greedy-policy as ONNX
-  dqn.save_policy('policy.onnx')
+   # save the greedy-policy as TorchScript
+   dqn.save_policy('policy.pt')
+   # save the greedy-policy as ONNX
+   dqn.save_policy('policy.onnx')
 
 See more information at :doc:`after_training_policies`.
