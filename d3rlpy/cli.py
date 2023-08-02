@@ -355,7 +355,13 @@ def play(
 @cli.command(short_help="Install additional packages.")
 @click.argument("name")
 def install(name: str) -> None:
-    if name == "d4rl_atari":
+    if name == "atari":
+        subprocess.run(
+            ["pip3", "install", "-U", "gym[atari,accept-rom-license]"],
+            check=True,
+        )
+    elif name == "d4rl_atari":
+        subprocess.run(["d3rlpy", "install", "atari"], check=True)
         subprocess.run(
             ["pip3", "install", "git+https://github.com/takuseno/d4rl-atari"],
             check=True,
