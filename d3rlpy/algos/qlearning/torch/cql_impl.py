@@ -76,9 +76,9 @@ class CQLImpl(SACImpl):
             batch.observations, batch.actions, batch.next_observations
         )
         return loss + conservative_loss, conservative_loss
-    
+
     @train_api
-    def update_critic(self, batch: TorchMiniBatch) -> float:
+    def update_critic(self, batch: TorchMiniBatch) -> np.array:
         self._critic_optim.zero_grad()
 
         q_tpn = self.compute_target(batch)
@@ -88,9 +88,9 @@ class CQLImpl(SACImpl):
         loss.backward()
         self._critic_optim.step()
 
-        res = np.array(
-            [loss.cpu().detach().numpy(), cql_loss.cpu().detach().numpy()]
-            )
+        critic_loss = float(loss.cpu().detach().numpy())
+        cql_loss = float(cql_loss.cpu().detach().numpy())
+        res = np.array([critic_loss, cql_loss])
         return res
 
     @train_api
