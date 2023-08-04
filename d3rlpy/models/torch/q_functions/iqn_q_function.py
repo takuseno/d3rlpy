@@ -61,6 +61,7 @@ class DiscreteIQNQFunction(DiscreteQFunction, nn.Module):  # type: ignore
     def __init__(
         self,
         encoder: Encoder,
+        hidden_size: int,
         action_size: int,
         n_quantiles: int,
         n_greedy_quantiles: int,
@@ -69,11 +70,11 @@ class DiscreteIQNQFunction(DiscreteQFunction, nn.Module):  # type: ignore
         super().__init__()
         self._encoder = encoder
         self._action_size = action_size
-        self._fc = nn.Linear(encoder.get_feature_size(), self._action_size)
+        self._fc = nn.Linear(hidden_size, self._action_size)
         self._n_quantiles = n_quantiles
         self._n_greedy_quantiles = n_greedy_quantiles
         self._embed_size = embed_size
-        self._embed = nn.Linear(embed_size, encoder.get_feature_size())
+        self._embed = nn.Linear(embed_size, hidden_size)
 
     def _make_taus(self, h: torch.Tensor) -> torch.Tensor:
         if self.training:
@@ -156,18 +157,20 @@ class ContinuousIQNQFunction(ContinuousQFunction, nn.Module):  # type: ignore
     def __init__(
         self,
         encoder: EncoderWithAction,
+        hidden_size: int,
+        action_size: int,
         n_quantiles: int,
         n_greedy_quantiles: int,
         embed_size: int,
     ):
         super().__init__()
         self._encoder = encoder
-        self._action_size = encoder.action_size
-        self._fc = nn.Linear(encoder.get_feature_size(), 1)
+        self._action_size = action_size
+        self._fc = nn.Linear(hidden_size, 1)
         self._n_quantiles = n_quantiles
         self._n_greedy_quantiles = n_greedy_quantiles
         self._embed_size = embed_size
-        self._embed = nn.Linear(embed_size, encoder.get_feature_size())
+        self._embed = nn.Linear(embed_size, hidden_size)
 
     def _make_taus(self, h: torch.Tensor) -> torch.Tensor:
         if self.training:

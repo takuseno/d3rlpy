@@ -14,7 +14,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...models.torch import DiscreteImitator, PixelEncoder
+from ...models.torch import DiscreteImitator, PixelEncoder, compute_output_size
 from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
@@ -338,8 +338,16 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
 
         # share convolutional layers if observation is pixel
         if isinstance(q_func.q_funcs[0].encoder, PixelEncoder):
+            hidden_size = compute_output_size(
+                [observation_shape],
+                q_func.q_funcs[0].encoder,
+                device=self._device,
+            )
             imitator = DiscreteImitator(
-                q_func.q_funcs[0].encoder, action_size, self._config.beta
+                encoder=q_func.q_funcs[0].encoder,
+                hidden_size=hidden_size,
+                action_size=action_size,
+                beta=self._config.beta,
             )
             imitator.to(self._device)
         else:

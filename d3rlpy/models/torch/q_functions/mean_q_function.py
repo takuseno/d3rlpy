@@ -16,11 +16,11 @@ class DiscreteMeanQFunction(DiscreteQFunction, nn.Module):  # type: ignore
     _encoder: Encoder
     _fc: nn.Linear
 
-    def __init__(self, encoder: Encoder, action_size: int):
+    def __init__(self, encoder: Encoder, hidden_size: int, action_size: int):
         super().__init__()
         self._action_size = action_size
         self._encoder = encoder
-        self._fc = nn.Linear(encoder.get_feature_size(), action_size)
+        self._fc = nn.Linear(hidden_size, action_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return cast(torch.Tensor, self._fc(self._encoder(x)))
@@ -64,11 +64,13 @@ class ContinuousMeanQFunction(ContinuousQFunction, nn.Module):  # type: ignore
     _action_size: int
     _fc: nn.Linear
 
-    def __init__(self, encoder: EncoderWithAction):
+    def __init__(
+        self, encoder: EncoderWithAction, hidden_size: int, action_size: int
+    ):
         super().__init__()
         self._encoder = encoder
-        self._action_size = encoder.action_size
-        self._fc = nn.Linear(encoder.get_feature_size(), 1)
+        self._action_size = action_size
+        self._fc = nn.Linear(hidden_size, 1)
 
     def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         return cast(torch.Tensor, self._fc(self._encoder(x, action)))

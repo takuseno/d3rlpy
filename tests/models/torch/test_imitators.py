@@ -32,7 +32,14 @@ def test_conditional_vae(
 ) -> None:
     encoder_encoder = DummyEncoderWithAction(feature_size, action_size)
     decoder_encoder = DummyEncoderWithAction(feature_size, latent_size)
-    vae = ConditionalVAE(encoder_encoder, decoder_encoder, beta)
+    vae = ConditionalVAE(
+        encoder_encoder=encoder_encoder,
+        decoder_encoder=decoder_encoder,
+        hidden_size=feature_size,
+        latent_size=latent_size,
+        action_size=action_size,
+        beta=beta,
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -76,7 +83,12 @@ def test_discrete_imitator(
     feature_size: int, action_size: int, beta: float, batch_size: int
 ) -> None:
     encoder = DummyEncoder(feature_size)
-    imitator = DiscreteImitator(encoder, action_size, beta)
+    imitator = DiscreteImitator(
+        encoder=encoder,
+        hidden_size=feature_size,
+        action_size=action_size,
+        beta=beta,
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -101,7 +113,11 @@ def test_deterministic_regressor(
     feature_size: int, action_size: int, batch_size: int
 ) -> None:
     encoder = DummyEncoder(feature_size)
-    imitator = DeterministicRegressor(encoder, action_size)
+    imitator = DeterministicRegressor(
+        encoder=encoder,
+        hidden_size=feature_size,
+        action_size=action_size,
+    )
 
     x = torch.rand(batch_size, feature_size)
     y = imitator(x)
@@ -124,7 +140,11 @@ def test_probablistic_regressor(
 ) -> None:
     encoder = DummyEncoder(feature_size)
     imitator = ProbablisticRegressor(
-        encoder, action_size, min_logstd=-20, max_logstd=2
+        encoder=encoder,
+        hidden_size=feature_size,
+        action_size=action_size,
+        min_logstd=-20,
+        max_logstd=2,
     )
 
     x = torch.rand(batch_size, feature_size)

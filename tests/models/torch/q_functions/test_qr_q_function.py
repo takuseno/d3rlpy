@@ -30,7 +30,9 @@ def test_discrete_qr_q_function(
     gamma: float,
 ) -> None:
     encoder = DummyEncoder(feature_size)
-    q_func = DiscreteQRQFunction(encoder, action_size, n_quantiles)
+    q_func = DiscreteQRQFunction(
+        encoder, feature_size, action_size, n_quantiles
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -97,7 +99,9 @@ def test_continuous_qr_q_function(
     gamma: float,
 ) -> None:
     encoder = DummyEncoderWithAction(feature_size, action_size)
-    q_func = ContinuousQRQFunction(encoder, n_quantiles)
+    q_func = ContinuousQRQFunction(
+        encoder, feature_size, action_size, n_quantiles
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)

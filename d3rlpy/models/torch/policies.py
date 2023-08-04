@@ -59,10 +59,10 @@ class DeterministicPolicy(Policy):
     _encoder: Encoder
     _fc: nn.Linear
 
-    def __init__(self, encoder: Encoder, action_size: int):
+    def __init__(self, encoder: Encoder, hidden_size: int, action_size: int):
         super().__init__()
         self._encoder = encoder
-        self._fc = nn.Linear(encoder.get_feature_size(), action_size)
+        self._fc = nn.Linear(hidden_size, action_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self._encoder(x)
@@ -94,11 +94,17 @@ class DeterministicResidualPolicy(Policy):
     _scale: float
     _fc: nn.Linear
 
-    def __init__(self, encoder: EncoderWithAction, scale: float):
+    def __init__(
+        self,
+        encoder: EncoderWithAction,
+        hidden_size: int,
+        action_size: int,
+        scale: float,
+    ):
         super().__init__()
         self._scale = scale
         self._encoder = encoder
-        self._fc = nn.Linear(encoder.get_feature_size(), encoder.action_size)
+        self._fc = nn.Linear(hidden_size, action_size)
 
     def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         h = self._encoder(x, action)
@@ -145,6 +151,7 @@ class NormalPolicy(Policy):
     def __init__(
         self,
         encoder: Encoder,
+        hidden_size: int,
         action_size: int,
         min_logstd: float,
         max_logstd: float,
@@ -158,12 +165,12 @@ class NormalPolicy(Policy):
         self._max_logstd = max_logstd
         self._use_std_parameter = use_std_parameter
         self._squash_distribution = squash_distribution
-        self._mu = nn.Linear(encoder.get_feature_size(), action_size)
+        self._mu = nn.Linear(hidden_size, action_size)
         if use_std_parameter:
             initial_logstd = torch.zeros(1, action_size, dtype=torch.float32)
             self._logstd = nn.Parameter(initial_logstd)
         else:
-            self._logstd = nn.Linear(encoder.get_feature_size(), action_size)
+            self._logstd = nn.Linear(hidden_size, action_size)
 
     def _compute_logstd(self, h: torch.Tensor) -> torch.Tensor:
         if self._use_std_parameter:
@@ -264,6 +271,7 @@ class SquashedNormalPolicy(NormalPolicy):
     def __init__(
         self,
         encoder: Encoder,
+        hidden_size: int,
         action_size: int,
         min_logstd: float,
         max_logstd: float,
@@ -271,6 +279,7 @@ class SquashedNormalPolicy(NormalPolicy):
     ):
         super().__init__(
             encoder=encoder,
+            hidden_size=hidden_size,
             action_size=action_size,
             min_logstd=min_logstd,
             max_logstd=max_logstd,
@@ -283,6 +292,7 @@ class NonSquashedNormalPolicy(NormalPolicy):
     def __init__(
         self,
         encoder: Encoder,
+        hidden_size: int,
         action_size: int,
         min_logstd: float,
         max_logstd: float,
@@ -290,6 +300,7 @@ class NonSquashedNormalPolicy(NormalPolicy):
     ):
         super().__init__(
             encoder=encoder,
+            hidden_size=hidden_size,
             action_size=action_size,
             min_logstd=min_logstd,
             max_logstd=max_logstd,
@@ -302,10 +313,10 @@ class CategoricalPolicy(Policy):
     _encoder: Encoder
     _fc: nn.Linear
 
-    def __init__(self, encoder: Encoder, action_size: int):
+    def __init__(self, encoder: Encoder, hidden_size: int, action_size: int):
         super().__init__()
         self._encoder = encoder
-        self._fc = nn.Linear(encoder.get_feature_size(), action_size)
+        self._fc = nn.Linear(hidden_size, action_size)
 
     def dist(self, x: torch.Tensor) -> Categorical:
         h = self._encoder(x)

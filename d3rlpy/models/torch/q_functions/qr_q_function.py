@@ -27,14 +27,18 @@ class DiscreteQRQFunction(DiscreteQFunction, nn.Module):  # type: ignore
     _n_quantiles: int
     _fc: nn.Linear
 
-    def __init__(self, encoder: Encoder, action_size: int, n_quantiles: int):
+    def __init__(
+        self,
+        encoder: Encoder,
+        hidden_size: int,
+        action_size: int,
+        n_quantiles: int,
+    ):
         super().__init__()
         self._encoder = encoder
         self._action_size = action_size
         self._n_quantiles = n_quantiles
-        self._fc = nn.Linear(
-            encoder.get_feature_size(), action_size * n_quantiles
-        )
+        self._fc = nn.Linear(hidden_size, action_size * n_quantiles)
 
     def _compute_quantiles(
         self, h: torch.Tensor, taus: torch.Tensor
@@ -102,12 +106,18 @@ class ContinuousQRQFunction(ContinuousQFunction, nn.Module):  # type: ignore
     _n_quantiles: int
     _fc: nn.Linear
 
-    def __init__(self, encoder: EncoderWithAction, n_quantiles: int):
+    def __init__(
+        self,
+        encoder: EncoderWithAction,
+        hidden_size: int,
+        action_size: int,
+        n_quantiles: int,
+    ):
         super().__init__()
         self._encoder = encoder
-        self._action_size = encoder.action_size
+        self._action_size = action_size
         self._n_quantiles = n_quantiles
-        self._fc = nn.Linear(encoder.get_feature_size(), n_quantiles)
+        self._fc = nn.Linear(hidden_size, n_quantiles)
 
     def _compute_quantiles(
         self, h: torch.Tensor, taus: torch.Tensor

@@ -27,7 +27,11 @@ def test_deterministic_policy(
     feature_size: int, action_size: int, batch_size: int
 ) -> None:
     encoder = DummyEncoder(feature_size)
-    policy = DeterministicPolicy(encoder, action_size)
+    policy = DeterministicPolicy(
+        encoder=encoder,
+        hidden_size=feature_size,
+        action_size=action_size,
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -50,7 +54,12 @@ def test_deterministic_residual_policy(
     feature_size: int, action_size: int, scale: float, batch_size: int
 ) -> None:
     encoder = DummyEncoderWithAction(feature_size, action_size)
-    policy = DeterministicResidualPolicy(encoder, scale)
+    policy = DeterministicResidualPolicy(
+        encoder=encoder,
+        hidden_size=feature_size,
+        action_size=action_size,
+        scale=scale,
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -88,7 +97,12 @@ def test_squashed_normal_policy(
 ) -> None:
     encoder = DummyEncoder(feature_size)
     policy = SquashedNormalPolicy(
-        encoder, action_size, min_logstd, max_logstd, use_std_parameter
+        encoder=encoder,
+        hidden_size=feature_size,
+        action_size=action_size,
+        min_logstd=min_logstd,
+        max_logstd=max_logstd,
+        use_std_parameter=use_std_parameter,
     )
 
     # check output shape
@@ -137,7 +151,12 @@ def test_non_squashed_normal_policy(
 ) -> None:
     encoder = DummyEncoder(feature_size)
     policy = NonSquashedNormalPolicy(
-        encoder, action_size, min_logstd, max_logstd, use_std_parameter
+        encoder=encoder,
+        hidden_size=feature_size,
+        action_size=action_size,
+        min_logstd=min_logstd,
+        max_logstd=max_logstd,
+        use_std_parameter=use_std_parameter,
     )
 
     # check output shape
@@ -176,7 +195,11 @@ def test_categorical_policy(
     feature_size: int, action_size: int, batch_size: int, n: int
 ) -> None:
     encoder = DummyEncoder(feature_size)
-    policy = CategoricalPolicy(encoder, action_size)
+    policy = CategoricalPolicy(
+        encoder=encoder,
+        hidden_size=feature_size,
+        action_size=action_size,
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)

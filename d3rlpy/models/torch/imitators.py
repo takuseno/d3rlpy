@@ -35,6 +35,9 @@ class ConditionalVAE(nn.Module):  # type: ignore
         self,
         encoder_encoder: EncoderWithAction,
         decoder_encoder: EncoderWithAction,
+        hidden_size: int,
+        latent_size: int,
+        action_size: int,
         beta: float,
         min_logstd: float = -20.0,
         max_logstd: float = 2.0,
@@ -46,20 +49,14 @@ class ConditionalVAE(nn.Module):  # type: ignore
         self._min_logstd = min_logstd
         self._max_logstd = max_logstd
 
-        self._action_size = encoder_encoder.action_size
-        self._latent_size = decoder_encoder.action_size
+        self._action_size = action_size
+        self._latent_size = latent_size
 
         # encoder
-        self._mu = nn.Linear(
-            encoder_encoder.get_feature_size(), self._latent_size
-        )
-        self._logstd = nn.Linear(
-            encoder_encoder.get_feature_size(), self._latent_size
-        )
+        self._mu = nn.Linear(hidden_size, self._latent_size)
+        self._logstd = nn.Linear(hidden_size, self._latent_size)
         # decoder
-        self._fc = nn.Linear(
-            decoder_encoder.get_feature_size(), self._action_size
-        )
+        self._fc = nn.Linear(hidden_size, self._action_size)
 
     def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         dist = self.encode(x, action)
@@ -151,11 +148,13 @@ class DiscreteImitator(Imitator):
     _beta: float
     _fc: nn.Linear
 
-    def __init__(self, encoder: Encoder, action_size: int, beta: float):
+    def __init__(
+        self, encoder: Encoder, hidden_size: int, action_size: int, beta: float
+    ):
         super().__init__()
         self._encoder = encoder
         self._beta = beta
-        self._fc = nn.Linear(encoder.get_feature_size(), action_size)
+        self._fc = nn.Linear(hidden_size, action_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.compute_log_probs_with_logits(x)[0]
@@ -184,10 +183,10 @@ class DeterministicRegressor(Imitator):
     _encoder: Encoder
     _fc: nn.Linear
 
-    def __init__(self, encoder: Encoder, action_size: int):
+    def __init__(self, encoder: Encoder, hidden_size: int, action_size: int):
         super().__init__()
         self._encoder = encoder
-        self._fc = nn.Linear(encoder.get_feature_size(), action_size)
+        self._fc = nn.Linear(hidden_size, action_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self._encoder(x)
@@ -214,6 +213,7 @@ class ProbablisticRegressor(Imitator):
     def __init__(
         self,
         encoder: Encoder,
+        hidden_size: int,
         action_size: int,
         min_logstd: float,
         max_logstd: float,
@@ -222,8 +222,8 @@ class ProbablisticRegressor(Imitator):
         self._min_logstd = min_logstd
         self._max_logstd = max_logstd
         self._encoder = encoder
-        self._mu = nn.Linear(encoder.get_feature_size(), action_size)
-        self._logstd = nn.Linear(encoder.get_feature_size(), action_size)
+        self._mu = nn.Linear(hidden_size, action_size)
+        self._logstd = nn.Linear(hidden_size, action_size)
 
     def dist(self, x: torch.Tensor) -> Normal:
         h = self._encoder(x)

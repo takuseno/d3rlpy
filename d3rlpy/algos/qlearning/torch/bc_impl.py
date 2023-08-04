@@ -13,6 +13,7 @@ from ....models.torch import (
     Policy,
     ProbablisticRegressor,
     SquashedNormalPolicy,
+    compute_output_size,
 )
 from ....torch_utility import TorchMiniBatch, hard_sync, train_api
 from ..base import QLearningAlgoImplBase
@@ -94,14 +95,27 @@ class BCImpl(BCBaseImpl):
     @property
     def policy(self) -> Policy:
         policy: Policy
+        hidden_size = compute_output_size(
+            [self._observation_shape, (self._action_size,)],
+            self._imitator.encoder,
+            device=self._device,
+        )
         if self._policy_type == "deterministic":
+            hidden_size = compute_output_size(
+                [self._observation_shape, (self._action_size,)],
+                self._imitator.encoder,
+                device=self._device,
+            )
             policy = DeterministicPolicy(
-                self._imitator.encoder, self._action_size
+                encoder=self._imitator.encoder,
+                hidden_size=hidden_size,
+                action_size=self._action_size,
             )
         elif self._policy_type == "stochastic":
             return SquashedNormalPolicy(
-                self._imitator.encoder,
-                self._action_size,
+                encoder=self._imitator.encoder,
+                hidden_size=hidden_size,
+                action_size=self._action_size,
                 min_logstd=-4.0,
                 max_logstd=15.0,
                 use_std_parameter=False,

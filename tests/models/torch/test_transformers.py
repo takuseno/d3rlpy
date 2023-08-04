@@ -211,6 +211,7 @@ def test_continuous_decision_transformer(
 
     model = ContinuousDecisionTransformer(
         encoder=encoder,
+        feature_size=hidden_size,
         position_encoding=SimplePositionEncoding(hidden_size, max_timestep),
         action_size=action_size,
         num_heads=num_heads,
@@ -257,6 +258,7 @@ def test_discrete_decision_transformer(
 
     model = DiscreteDecisionTransformer(
         encoder=encoder,
+        feature_size=hidden_size,
         position_encoding=SimplePositionEncoding(hidden_size, max_timestep),
         action_size=action_size,
         num_heads=num_heads,

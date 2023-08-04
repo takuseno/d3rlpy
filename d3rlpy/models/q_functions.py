@@ -2,12 +2,10 @@ import dataclasses
 
 from ..serializable_config import DynamicConfig, generate_config_registration
 from .torch import (
-    ContinuousFQFQFunction,
     ContinuousIQNQFunction,
     ContinuousMeanQFunction,
     ContinuousQFunction,
     ContinuousQRQFunction,
-    DiscreteFQFQFunction,
     DiscreteIQNQFunction,
     DiscreteMeanQFunction,
     DiscreteQFunction,
@@ -30,14 +28,15 @@ class QFunctionFactory(DynamicConfig):
     share_encoder: bool = False
 
     def create_discrete(
-        self, encoder: Encoder, action_size: int
+        self, encoder: Encoder, hidden_size: int, action_size: int
     ) -> DiscreteQFunction:
         """Returns PyTorch's Q function module.
 
         Args:
-            encoder: an encoder module that processes the observation to
+            encoder: Encoder that processes the observation to
                 obtain feature representations.
-            action_size: dimension of discrete action-space.
+            hidden_size: Dimension of encoder output.
+            action_size: Dimension of discrete action-space.
 
         Returns:
             discrete Q function object.
@@ -45,13 +44,15 @@ class QFunctionFactory(DynamicConfig):
         raise NotImplementedError
 
     def create_continuous(
-        self, encoder: EncoderWithAction
+        self, encoder: EncoderWithAction, hidden_size: int, action_size: int
     ) -> ContinuousQFunction:
         """Returns PyTorch's Q function module.
 
         Args:
-            encoder: an encoder module that processes the observation and
+            encoder: Encoder module that processes the observation and
                 action to obtain feature representations.
+            hidden_size: Dimension of encoder output.
+            action_size: Dimension of continuous actions.
 
         Returns:
             continuous Q function object.
@@ -87,15 +88,18 @@ class MeanQFunctionFactory(QFunctionFactory):
     def create_discrete(
         self,
         encoder: Encoder,
+        hidden_size: int,
         action_size: int,
     ) -> DiscreteMeanQFunction:
-        return DiscreteMeanQFunction(encoder, action_size)
+        return DiscreteMeanQFunction(encoder, hidden_size, action_size)
 
     def create_continuous(
         self,
         encoder: EncoderWithAction,
+        hidden_size: int,
+        action_size: int,
     ) -> ContinuousMeanQFunction:
-        return ContinuousMeanQFunction(encoder)
+        return ContinuousMeanQFunction(encoder, hidden_size, action_size)
 
     @staticmethod
     def get_type() -> str:
@@ -118,15 +122,27 @@ class QRQFunctionFactory(QFunctionFactory):
     n_quantiles: int = 32
 
     def create_discrete(
-        self, encoder: Encoder, action_size: int
+        self, encoder: Encoder, hidden_size: int, action_size: int
     ) -> DiscreteQRQFunction:
-        return DiscreteQRQFunction(encoder, action_size, self.n_quantiles)
+        return DiscreteQRQFunction(
+            encoder=encoder,
+            hidden_size=hidden_size,
+            action_size=action_size,
+            n_quantiles=self.n_quantiles,
+        )
 
     def create_continuous(
         self,
         encoder: EncoderWithAction,
+        hidden_size: int,
+        action_size: int,
     ) -> ContinuousQRQFunction:
-        return ContinuousQRQFunction(encoder, self.n_quantiles)
+        return ContinuousQRQFunction(
+            encoder=encoder,
+            hidden_size=hidden_size,
+            action_size=action_size,
+            n_quantiles=self.n_quantiles,
+        )
 
     @staticmethod
     def get_type() -> str:
@@ -155,10 +171,12 @@ class IQNQFunctionFactory(QFunctionFactory):
     def create_discrete(
         self,
         encoder: Encoder,
+        hidden_size: int,
         action_size: int,
     ) -> DiscreteIQNQFunction:
         return DiscreteIQNQFunction(
             encoder=encoder,
+            hidden_size=hidden_size,
             action_size=action_size,
             n_quantiles=self.n_quantiles,
             n_greedy_quantiles=self.n_greedy_quantiles,
@@ -166,11 +184,12 @@ class IQNQFunctionFactory(QFunctionFactory):
         )
 
     def create_continuous(
-        self,
-        encoder: EncoderWithAction,
+        self, encoder: EncoderWithAction, hidden_size: int, action_size: int
     ) -> ContinuousIQNQFunction:
         return ContinuousIQNQFunction(
             encoder=encoder,
+            hidden_size=hidden_size,
+            action_size=action_size,
             n_quantiles=self.n_quantiles,
             n_greedy_quantiles=self.n_greedy_quantiles,
             embed_size=self.embed_size,
@@ -181,55 +200,6 @@ class IQNQFunctionFactory(QFunctionFactory):
         return "iqn"
 
 
-@dataclasses.dataclass()
-class FQFQFunctionFactory(QFunctionFactory):
-    """Fully parameterized Quantile Function Q function factory.
-
-    References:
-        * `Yang et al., Fully parameterized quantile function for
-          distributional reinforcement learning.
-          <https://arxiv.org/abs/1911.02140>`_
-
-    Args:
-        share_encoder (bool): flag to share encoder over multiple Q functions.
-        n_quantiles: the number of quantiles.
-        embed_size: the embedding size.
-        entropy_coeff: the coefficiency of entropy penalty term.
-    """
-
-    n_quantiles: int = 32
-    embed_size: int = 64
-    entropy_coeff: float = 0.0
-
-    def create_discrete(
-        self,
-        encoder: Encoder,
-        action_size: int,
-    ) -> DiscreteFQFQFunction:
-        return DiscreteFQFQFunction(
-            encoder=encoder,
-            action_size=action_size,
-            n_quantiles=self.n_quantiles,
-            embed_size=self.embed_size,
-            entropy_coeff=self.entropy_coeff,
-        )
-
-    def create_continuous(
-        self,
-        encoder: EncoderWithAction,
-    ) -> ContinuousFQFQFunction:
-        return ContinuousFQFQFunction(
-            encoder=encoder,
-            n_quantiles=self.n_quantiles,
-            embed_size=self.embed_size,
-            entropy_coeff=self.entropy_coeff,
-        )
-
-    @staticmethod
-    def get_type() -> str:
-        return "fqf"
-
-
 register_q_func_factory, make_q_func_field = generate_config_registration(
     QFunctionFactory, lambda: MeanQFunctionFactory()
 )
@@ -238,4 +208,3 @@ register_q_func_factory, make_q_func_field = generate_config_registration(
 register_q_func_factory(MeanQFunctionFactory)
 register_q_func_factory(QRQFunctionFactory)
 register_q_func_factory(IQNQFunctionFactory)
-register_q_func_factory(FQFQFunctionFactory)

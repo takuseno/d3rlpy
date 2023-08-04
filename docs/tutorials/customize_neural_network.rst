@@ -10,8 +10,6 @@ Prepare PyTorch Model
 ---------------------
 
 If you're familiar with PyTorch, this step should be easy for you.
-Please note that your model must have ``get_feature_size`` method to tell the
-feature size to the final layer.
 
 .. code-block:: python
 
@@ -31,9 +29,6 @@ feature size to the final layer.
           h = torch.relu(self.fc2(h))
           return h
 
-      # THIS IS IMPORTANT!
-      def get_feature_size(self):
-          return self.feature_size
 
 Setup EncoderFactory
 --------------------
@@ -89,9 +84,6 @@ you need to prepare an action-conditioned model.
             h = torch.relu(self.fc1(h))
             h = torch.relu(self.fc2(h))
             return h
-
-        def get_feature_size(self):
-            return self.feature_size
 
 Finally, you can update your ``CustomEncoderFactory`` as follows.
 

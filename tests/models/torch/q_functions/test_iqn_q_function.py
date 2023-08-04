@@ -26,7 +26,12 @@ def test_discrete_iqn_q_function(
 ) -> None:
     encoder = DummyEncoder(feature_size)
     q_func = DiscreteIQNQFunction(
-        encoder, action_size, n_quantiles, n_greedy_quantiles, embed_size
+        encoder,
+        feature_size,
+        action_size,
+        n_quantiles,
+        n_greedy_quantiles,
+        embed_size,
     )
 
     # check output shape
@@ -84,7 +89,12 @@ def test_continuous_iqn_q_function(
 ) -> None:
     encoder = DummyEncoderWithAction(feature_size, action_size)
     q_func = ContinuousIQNQFunction(
-        encoder, n_quantiles, n_greedy_quantiles, embed_size
+        encoder,
+        feature_size,
+        action_size,
+        n_quantiles,
+        n_greedy_quantiles,
+        embed_size,
     )
 
     # check output shape

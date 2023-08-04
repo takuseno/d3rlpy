@@ -13,10 +13,10 @@ class ValueFunction(nn.Module):  # type: ignore
     _encoder: Encoder
     _fc: nn.Linear
 
-    def __init__(self, encoder: Encoder):
+    def __init__(self, encoder: Encoder, hidden_size: int):
         super().__init__()
         self._encoder = encoder
-        self._fc = nn.Linear(encoder.get_feature_size(), 1)
+        self._fc = nn.Linear(hidden_size, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self._encoder(x)

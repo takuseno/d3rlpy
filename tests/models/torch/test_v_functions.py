@@ -11,7 +11,7 @@ from .model_test import DummyEncoder, check_parameter_updates
 @pytest.mark.parametrize("batch_size", [32])
 def test_value_function(feature_size: int, batch_size: int) -> None:
     encoder = DummyEncoder(feature_size)
-    v_func = ValueFunction(encoder)
+    v_func = ValueFunction(encoder, feature_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)

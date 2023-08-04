@@ -18,7 +18,6 @@ __all__ = [
     "PixelEncoderFactory",
     "VectorEncoderFactory",
     "DefaultEncoderFactory",
-    "DenseEncoderFactory",
     "register_encoder_factory",
     "make_encoder_field",
 ]
@@ -130,7 +129,6 @@ class VectorEncoderFactory(EncoderFactory):
             standard architecture with ``[256, 256]`` is used.
         activation (str): activation function name.
         use_batch_norm (bool): Flag to insert batch normalization layers.
-        use_dense (bool): Flag to use DenseNet architecture.
         dropout_rate (float): Dropout probability.
         exclude_last_activation (bool): Flag to exclude activation function at
             the last layer.
@@ -140,7 +138,6 @@ class VectorEncoderFactory(EncoderFactory):
     activation: str = "relu"
     use_batch_norm: bool = False
     dropout_rate: Optional[float] = None
-    use_dense: bool = False
     exclude_last_activation: bool = False
 
     def create(self, observation_shape: Shape) -> VectorEncoder:
@@ -150,7 +147,6 @@ class VectorEncoderFactory(EncoderFactory):
             hidden_units=self.hidden_units,
             use_batch_norm=self.use_batch_norm,
             dropout_rate=self.dropout_rate,
-            use_dense=self.use_dense,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
         )
@@ -168,7 +164,6 @@ class VectorEncoderFactory(EncoderFactory):
             hidden_units=self.hidden_units,
             use_batch_norm=self.use_batch_norm,
             dropout_rate=self.dropout_rate,
-            use_dense=self.use_dense,
             discrete_action=discrete_action,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
@@ -239,72 +234,6 @@ class DefaultEncoderFactory(EncoderFactory):
         return "default"
 
 
-@dataclass()
-class DenseEncoderFactory(EncoderFactory):
-    """DenseNet encoder factory class.
-
-    This is an alias for DenseNet architecture proposed in D2RL.
-    This class does exactly same as follows.
-
-    .. code-block:: python
-
-       from d3rlpy.encoders import VectorEncoderFactory
-
-       factory = VectorEncoderFactory(hidden_units=[256, 256, 256, 256],
-                                      use_dense=True)
-
-    For now, this only supports vector observations.
-
-    References:
-        * `Sinha et al., D2RL: Deep Dense Architectures in Reinforcement
-          Learning. <https://arxiv.org/abs/2010.09163>`_
-
-    Args:
-        activation (str): activation function name.
-        use_batch_norm (bool): flag to insert batch normalization layers.
-        dropout_rate (float): dropout probability.
-    """
-
-    activation: str = "relu"
-    use_batch_norm: bool = False
-    dropout_rate: Optional[float] = None
-
-    def create(self, observation_shape: Shape) -> VectorEncoder:
-        if len(observation_shape) == 3:
-            raise NotImplementedError("pixel observation is not supported.")
-        factory = VectorEncoderFactory(
-            hidden_units=[256, 256, 256, 256],
-            activation=self.activation,
-            use_dense=True,
-            use_batch_norm=self.use_batch_norm,
-            dropout_rate=self.dropout_rate,
-        )
-        return factory.create(observation_shape)
-
-    def create_with_action(
-        self,
-        observation_shape: Shape,
-        action_size: int,
-        discrete_action: bool = False,
-    ) -> VectorEncoderWithAction:
-        if len(observation_shape) == 3:
-            raise NotImplementedError("pixel observation is not supported.")
-        factory = VectorEncoderFactory(
-            hidden_units=[256, 256, 256, 256],
-            activation=self.activation,
-            use_dense=True,
-            use_batch_norm=self.use_batch_norm,
-            dropout_rate=self.dropout_rate,
-        )
-        return factory.create_with_action(
-            observation_shape, action_size, discrete_action
-        )
-
-    @staticmethod
-    def get_type() -> str:
-        return "dense"
-
-
 register_encoder_factory, make_encoder_field = generate_config_registration(
     EncoderFactory, lambda: DefaultEncoderFactory()
 )
@@ -313,4 +242,3 @@ register_encoder_factory, make_encoder_field = generate_config_registration(
 register_encoder_factory(VectorEncoderFactory)
 register_encoder_factory(PixelEncoderFactory)
 register_encoder_factory(DefaultEncoderFactory)
-register_encoder_factory(DenseEncoderFactory)

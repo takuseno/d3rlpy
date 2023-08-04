@@ -27,7 +27,7 @@ def test_discrete_mean_q_function(
     feature_size: int, action_size: int, batch_size: int, gamma: float
 ) -> None:
     encoder = DummyEncoder(feature_size)
-    q_func = DiscreteMeanQFunction(encoder, action_size)
+    q_func = DiscreteMeanQFunction(encoder, feature_size, action_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -80,7 +80,7 @@ def test_continuous_mean_q_function(
     gamma: float,
 ) -> None:
     encoder = DummyEncoderWithAction(feature_size, action_size)
-    q_func = ContinuousMeanQFunction(encoder)
+    q_func = ContinuousMeanQFunction(encoder, feature_size, action_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)

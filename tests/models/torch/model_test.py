@@ -56,14 +56,14 @@ def ref_quantile_huber_loss(
     return element_wise_loss.sum(axis=2).mean(axis=1)
 
 
-class DummyEncoder(torch.nn.Module, Encoder):  # type: ignore
+class DummyEncoder(Encoder):
     def __init__(self, feature_size: int):
         super().__init__()
         self.feature_size = feature_size
         self._observation_shape = (feature_size,)
 
-    def __call__(self, *args: Any) -> torch.Tensor:
-        return args[0]
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x
 
     @property
     def observation_shape(self) -> Sequence[int]:
@@ -73,15 +73,15 @@ class DummyEncoder(torch.nn.Module, Encoder):  # type: ignore
         return self.feature_size
 
 
-class DummyEncoderWithAction(torch.nn.Module, EncoderWithAction):  # type: ignore
+class DummyEncoderWithAction(EncoderWithAction):
     def __init__(self, feature_size: int, action_size: int):
         super().__init__()
         self.feature_size = feature_size
         self._observation_shape = (feature_size,)
         self._action_size = action_size
 
-    def __call__(self, *args: Any) -> torch.Tensor:
-        return torch.cat([args[0][:, : -args[1].shape[1]], args[1]], dim=1)
+    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        return torch.cat([x[:, : -action.shape[1]], action], dim=1)
 
     def get_feature_size(self) -> int:
         return self.feature_size

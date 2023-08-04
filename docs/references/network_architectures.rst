@@ -47,10 +47,6 @@ You can also build your own encoder factory.
            h = torch.relu(self.fc2(h))
            return h
 
-       # THIS IS IMPORTANT!
-       def get_feature_size(self):
-           return self.feature_size
-
    # your own encoder factory
    class CustomEncoderFactory(EncoderFactory):
        TYPE = 'custom' # this is necessary
@@ -86,9 +82,6 @@ controls.
            h = torch.relu(self.fc1(h))
            h = torch.relu(self.fc2(h))
            return h
-
-       def get_feature_size(self):
-           return self.feature_size
 
    class CustomEncoderFactory(EncoderFactory):
        TYPE = 'custom' # this is necessary
@@ -133,4 +126,3 @@ your encoder configuration, you need to register your encoder factory.
    d3rlpy.models.DefaultEncoderFactory
    d3rlpy.models.PixelEncoderFactory
    d3rlpy.models.VectorEncoderFactory
-   d3rlpy.models.DenseEncoderFactory

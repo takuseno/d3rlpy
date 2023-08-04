@@ -20,7 +20,7 @@ from .model_test import check_parameter_updates
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("use_batch_norm", [False, True])
 @pytest.mark.parametrize("dropout_rate", [None, 0.2])
-@pytest.mark.parametrize("activation", [torch.relu])
+@pytest.mark.parametrize("activation", [torch.nn.ReLU()])
 def test_pixel_encoder(
     shapes: Tuple[Sequence[int], int],
     filters: List[List[int]],
@@ -30,7 +30,7 @@ def test_pixel_encoder(
     dropout_rate: Optional[float],
     activation: torch.nn.Module,
 ) -> None:
-    observation_shape, linear_input_size = shapes
+    observation_shape, _ = shapes
 
     encoder = PixelEncoder(
         observation_shape=observation_shape,
@@ -44,7 +44,6 @@ def test_pixel_encoder(
     y = encoder(x)
 
     # check output shape
-    assert encoder._get_linear_input_size() == linear_input_size
     assert y.shape == (batch_size, feature_size)
 
     # check use of batch norm
@@ -67,7 +66,7 @@ def test_pixel_encoder(
 @pytest.mark.parametrize("use_batch_norm", [False, True])
 @pytest.mark.parametrize("dropout_rate", [None, 0.2])
 @pytest.mark.parametrize("discrete_action", [False, True])
-@pytest.mark.parametrize("activation", [torch.relu])
+@pytest.mark.parametrize("activation", [torch.nn.ReLU()])
 def test_pixel_encoder_with_action(
     shapes: Tuple[Sequence[int], int],
     action_size: int,
@@ -79,7 +78,7 @@ def test_pixel_encoder_with_action(
     discrete_action: bool,
     activation: torch.nn.Module,
 ) -> None:
-    observation_shape, linear_input_size = shapes
+    observation_shape, _ = shapes
 
     encoder = PixelEncoderWithAction(
         observation_shape=observation_shape,
@@ -99,7 +98,6 @@ def test_pixel_encoder_with_action(
     y = encoder(x, action)
 
     # check output shape
-    assert encoder._get_linear_input_size() == linear_input_size + action_size
     assert y.shape == (batch_size, feature_size)
 
     # check use of batch norm
@@ -119,15 +117,13 @@ def test_pixel_encoder_with_action(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("use_batch_norm", [False, True])
 @pytest.mark.parametrize("dropout_rate", [None, 0.2])
-@pytest.mark.parametrize("use_dense", [False, True])
-@pytest.mark.parametrize("activation", [torch.relu])
+@pytest.mark.parametrize("activation", [torch.nn.ReLU()])
 def test_vector_encoder(
     observation_shape: Sequence[int],
     hidden_units: Sequence[int],
     batch_size: int,
     use_batch_norm: bool,
     dropout_rate: Optional[float],
-    use_dense: bool,
     activation: torch.nn.Module,
 ) -> None:
     encoder = VectorEncoder(
@@ -135,7 +131,6 @@ def test_vector_encoder(
         hidden_units=hidden_units,
         use_batch_norm=use_batch_norm,
         dropout_rate=dropout_rate,
-        use_dense=use_dense,
         activation=activation,
     )
 
@@ -143,7 +138,6 @@ def test_vector_encoder(
     y = encoder(x)
 
     # check output shape
-    assert encoder.get_feature_size() == hidden_units[-1]
     assert y.shape == (batch_size, hidden_units[-1])
 
     # check use of batch norm
@@ -164,9 +158,8 @@ def test_vector_encoder(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("use_batch_norm", [False, True])
 @pytest.mark.parametrize("dropout_rate", [None, 0.2])
-@pytest.mark.parametrize("use_dense", [False, True])
 @pytest.mark.parametrize("discrete_action", [False, True])
-@pytest.mark.parametrize("activation", [torch.relu])
+@pytest.mark.parametrize("activation", [torch.nn.ReLU()])
 def test_vector_encoder_with_action(
     observation_shape: Sequence[int],
     action_size: int,
@@ -174,7 +167,6 @@ def test_vector_encoder_with_action(
     batch_size: int,
     use_batch_norm: bool,
     dropout_rate: Optional[float],
-    use_dense: bool,
     discrete_action: bool,
     activation: torch.nn.Module,
 ) -> None:
@@ -184,7 +176,6 @@ def test_vector_encoder_with_action(
         hidden_units=hidden_units,
         use_batch_norm=use_batch_norm,
         dropout_rate=dropout_rate,
-        use_dense=use_dense,
         discrete_action=discrete_action,
         activation=activation,
     )
@@ -197,7 +188,6 @@ def test_vector_encoder_with_action(
     y = encoder(x, action)
 
     # check output shape
-    assert encoder.get_feature_size() == hidden_units[-1]
     assert y.shape == (batch_size, hidden_units[-1])
 
     # check use of batch norm
