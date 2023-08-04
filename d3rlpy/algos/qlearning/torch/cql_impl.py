@@ -75,7 +75,23 @@ class CQLImpl(SACImpl):
         conservative_loss = self._compute_conservative_loss(
             batch.observations, batch.actions, batch.next_observations
         )
-        return loss + conservative_loss
+        return loss + conservative_loss, conservative_loss
+    
+    @train_api
+    def update_critic(self, batch: TorchMiniBatch) -> float:
+        self._critic_optim.zero_grad()
+
+        q_tpn = self.compute_target(batch)
+
+        loss, cql_loss = self.compute_critic_loss(batch, q_tpn)
+
+        loss.backward()
+        self._critic_optim.step()
+
+        res = np.array(
+            [loss.cpu().detach().numpy(), cql_loss.cpu().detach().numpy()]
+            )
+        return res
 
     @train_api
     def update_alpha(self, batch: TorchMiniBatch) -> Tuple[float, float]:
