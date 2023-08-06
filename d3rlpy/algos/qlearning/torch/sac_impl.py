@@ -13,6 +13,8 @@ from ....models.torch import (
     EnsembleQFunction,
     Parameter,
     Policy,
+    build_categorical_distribution,
+    build_squashed_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch, hard_sync, train_api
 from ..base import QLearningAlgoImplBase
@@ -55,7 +57,10 @@ class SACImpl(DDPGBaseImpl):
         self._temp_optim = temp_optim
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        action, log_prob = self._policy.sample_with_log_prob(batch.observations)
+        dist = build_squashed_gaussian_distribution(
+            self._policy(batch.observations)
+        )
+        action, log_prob = dist.sample_with_log_prob()
         entropy = self._log_temp().exp() * log_prob
         q_t = self._q_func(batch.observations, action, "min")
         return (entropy - q_t).mean()
@@ -65,7 +70,10 @@ class SACImpl(DDPGBaseImpl):
         self._temp_optim.zero_grad()
 
         with torch.no_grad():
-            _, log_prob = self._policy.sample_with_log_prob(batch.observations)
+            dist = build_squashed_gaussian_distribution(
+                self._policy(batch.observations)
+            )
+            _, log_prob = dist.sample_with_log_prob()
             targ_temp = log_prob - self._action_size
 
         loss = -(self._log_temp().exp() * targ_temp).mean()
@@ -80,9 +88,10 @@ class SACImpl(DDPGBaseImpl):
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
-            action, log_prob = self._policy.sample_with_log_prob(
-                batch.next_observations
+            dist = build_squashed_gaussian_distribution(
+                self._policy(batch.next_observations)
             )
+            action, log_prob = dist.sample_with_log_prob()
             entropy = self._log_temp().exp() * log_prob
             target = self._targ_q_func.compute_target(
                 batch.next_observations,
@@ -90,6 +99,10 @@ class SACImpl(DDPGBaseImpl):
                 reduction="min",
             )
             return target - entropy
+
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        dist = build_squashed_gaussian_distribution(self._policy(x))
+        return dist.sample()
 
 
 class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
@@ -142,8 +155,11 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
-            log_probs = self._policy.log_probs(batch.next_observations)
-            probs = log_probs.exp()
+            dist = build_categorical_distribution(
+                self._policy(batch.next_observations)
+            )
+            log_probs = dist.logits
+            probs = dist.probs
             entropy = self._log_temp().exp() * log_probs
             target = self._targ_q_func.compute_target(batch.next_observations)
             keepdims = True
@@ -184,8 +200,9 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
             q_t = self._q_func(batch.observations, reduction="min")
-        log_probs = self._policy.log_probs(batch.observations)
-        probs = log_probs.exp()
+        dist = build_categorical_distribution(self._policy(batch.observations))
+        log_probs = dist.logits
+        probs = dist.probs
         entropy = self._log_temp().exp() * log_probs
         return (probs * (entropy - q_t)).sum(dim=1).mean()
 
@@ -194,8 +211,11 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._temp_optim.zero_grad()
 
         with torch.no_grad():
-            log_probs = self._policy.log_probs(batch.observations)
-            probs = log_probs.exp()
+            dist = build_categorical_distribution(
+                self._policy(batch.observations)
+            )
+            log_probs = dist.logits
+            probs = dist.probs
             expct_log_probs = (probs * log_probs).sum(dim=1, keepdim=True)
             entropy_target = 0.98 * (-math.log(1 / self.action_size))
             targ_temp = expct_log_probs + entropy_target
@@ -211,10 +231,12 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         return float(loss.cpu().detach().numpy()), float(cur_temp)
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._policy.best_action(x)
+        dist = build_categorical_distribution(self._policy(x))
+        return dist.probs.argmax(dim=1)
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._policy.sample(x)
+        dist = build_categorical_distribution(self._policy(x))
+        return dist.sample()
 
     def update_target(self) -> None:
         hard_sync(self._targ_q_func, self._q_func)

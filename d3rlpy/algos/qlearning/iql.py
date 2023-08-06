@@ -6,7 +6,7 @@ from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_continuous_q_function,
-    create_non_squashed_normal_policy,
+    create_normal_policy,
     create_value_function,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
@@ -110,7 +110,7 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        policy = create_non_squashed_normal_policy(
+        policy = create_normal_policy(
             observation_shape,
             action_size,
             self._config.actor_encoder_factory,

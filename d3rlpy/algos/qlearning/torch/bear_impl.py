@@ -7,8 +7,9 @@ from ....dataset import Shape
 from ....models.torch import (
     ConditionalVAE,
     EnsembleContinuousQFunction,
+    NormalPolicy,
     Parameter,
-    SquashedNormalPolicy,
+    build_squashed_gaussian_distribution,
     compute_max_with_n_actions_and_indices,
 )
 from ....torch_utility import TorchMiniBatch, train_api
@@ -32,7 +33,7 @@ def _laplacian_kernel(
 
 
 class BEARImpl(SACImpl):
-    _policy: SquashedNormalPolicy
+    _policy: NormalPolicy
     _alpha_threshold: float
     _lam: float
     _n_action_samples: int
@@ -50,7 +51,7 @@ class BEARImpl(SACImpl):
         self,
         observation_shape: Shape,
         action_size: int,
-        policy: SquashedNormalPolicy,
+        policy: NormalPolicy,
         q_func: EnsembleContinuousQFunction,
         imitator: ConditionalVAE,
         log_temp: Parameter,
@@ -154,8 +155,9 @@ class BEARImpl(SACImpl):
             behavior_actions = self._imitator.sample_n_without_squash(
                 x, self._n_mmd_action_samples
             )
-        policy_actions = self._policy.sample_n_without_squash(
-            x, self._n_mmd_action_samples
+        dist = build_squashed_gaussian_distribution(self._policy(x))
+        policy_actions = dist.sample_n_without_squash(
+            self._n_mmd_action_samples
         )
 
         if self._mmd_kernel == "gaussian":
@@ -199,9 +201,11 @@ class BEARImpl(SACImpl):
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
             # BCQ-like target computation
-            actions, log_probs = self._policy.sample_n_with_log_prob(
-                batch.next_observations,
-                self._n_target_samples,
+            dist = build_squashed_gaussian_distribution(
+                self._policy(batch.next_observations)
+            )
+            actions, log_probs = dist.sample_n_with_log_prob(
+                self._n_target_samples
             )
             values, indices = compute_max_with_n_actions_and_indices(
                 batch.next_observations, actions, self._targ_q_func, self._lam
@@ -216,7 +220,8 @@ class BEARImpl(SACImpl):
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
             # (batch, n, action)
-            actions = self._policy.onnx_safe_sample_n(x, self._n_action_samples)
+            dist = build_squashed_gaussian_distribution(self._policy(x))
+            actions = dist.onnx_safe_sample_n(self._n_action_samples)
             # (batch, n, action) -> (batch * n, action)
             flat_actions = actions.reshape(-1, self._action_size)
 

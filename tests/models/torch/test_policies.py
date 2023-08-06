@@ -6,11 +6,14 @@ from d3rlpy.models.torch.distributions import (
     SquashedGaussianDistribution,
 )
 from d3rlpy.models.torch.policies import (
+    ActionOutput,
     CategoricalPolicy,
     DeterministicPolicy,
     DeterministicResidualPolicy,
-    NonSquashedNormalPolicy,
-    SquashedNormalPolicy,
+    NormalPolicy,
+    build_categorical_distribution,
+    build_gaussian_distribution,
+    build_squashed_gaussian_distribution,
 )
 
 from .model_test import (
@@ -36,11 +39,12 @@ def test_deterministic_policy(
     # check output shape
     x = torch.rand(batch_size, feature_size)
     y = policy(x)
-    assert y.shape == (batch_size, action_size)
+    assert y.mu.shape == (batch_size, action_size)
+    assert y.squashed_mu.shape == (batch_size, action_size)
 
     # check best action
-    best_action = policy.best_action(x)
-    assert torch.allclose(best_action, y)
+    best_action = policy(x).squashed_mu
+    assert torch.allclose(best_action, y.squashed_mu)
 
     # check layer connection
     check_parameter_updates(policy, (x,))
@@ -65,15 +69,16 @@ def test_deterministic_residual_policy(
     x = torch.rand(batch_size, feature_size)
     action = torch.rand(batch_size, action_size)
     y = policy(x, action)
-    assert y.shape == (batch_size, action_size)
+    assert y.mu.shape == (batch_size, action_size)
+    assert y.squashed_mu.shape == (batch_size, action_size)
 
     # check residual
-    assert not (y == action).any()
-    assert ((y - action).abs() <= scale).all()
+    assert not (y.squashed_mu == action).any()
+    assert ((y.squashed_mu - action).abs() <= scale).all()
 
     # check best action
-    best_action = policy.best_residual_action(x, action)
-    assert torch.allclose(best_action, y)
+    best_action = policy(x, action).squashed_mu
+    assert torch.allclose(best_action, y.squashed_mu)
 
     # check layer connection
     check_parameter_updates(policy, (x, action))
@@ -86,7 +91,7 @@ def test_deterministic_residual_policy(
 @pytest.mark.parametrize("max_logstd", [2.0])
 @pytest.mark.parametrize("use_std_parameter", [True, False])
 @pytest.mark.parametrize("n", [10])
-def test_squashed_normal_policy(
+def test_normal_policy(
     feature_size: int,
     action_size: int,
     batch_size: int,
@@ -96,7 +101,7 @@ def test_squashed_normal_policy(
     n: int,
 ) -> None:
     encoder = DummyEncoder(feature_size)
-    policy = SquashedNormalPolicy(
+    policy = NormalPolicy(
         encoder=encoder,
         hidden_size=feature_size,
         action_size=action_size,
@@ -108,80 +113,8 @@ def test_squashed_normal_policy(
     # check output shape
     x = torch.rand(batch_size, feature_size)
     y = policy(x)
-    assert y.shape == (batch_size, action_size)
-
-    # check distribution type
-    assert isinstance(policy.dist(x), SquashedGaussianDistribution)
-
-    # check if sampled action is not identical to the best action
-    assert not torch.allclose(policy.sample(x), policy.best_action(x))
-
-    # check sample_n
-    y_n, log_prob_n = policy.sample_n_with_log_prob(x, n)
-    assert y_n.shape == (batch_size, n, action_size)
-    assert log_prob_n.shape == (batch_size, n, 1)
-
-    # check sample_n_without_squash
-    y_n = policy.sample_n_without_squash(x, n)
-    assert y_n.shape == (batch_size, n, action_size)
-
-    # check onnx_safe_sample_n
-    y_n = policy.onnx_safe_sample_n(x, n)
-    assert y_n.shape == (batch_size, n, action_size)
-
-    # check layer connection
-    check_parameter_updates(policy, (x,))
-
-
-@pytest.mark.parametrize("feature_size", [100])
-@pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("batch_size", [32])
-@pytest.mark.parametrize("min_logstd", [-20.0])
-@pytest.mark.parametrize("max_logstd", [2.0])
-@pytest.mark.parametrize("use_std_parameter", [True, False])
-@pytest.mark.parametrize("n", [10])
-def test_non_squashed_normal_policy(
-    feature_size: int,
-    action_size: int,
-    batch_size: int,
-    min_logstd: float,
-    max_logstd: float,
-    use_std_parameter: bool,
-    n: int,
-) -> None:
-    encoder = DummyEncoder(feature_size)
-    policy = NonSquashedNormalPolicy(
-        encoder=encoder,
-        hidden_size=feature_size,
-        action_size=action_size,
-        min_logstd=min_logstd,
-        max_logstd=max_logstd,
-        use_std_parameter=use_std_parameter,
-    )
-
-    # check output shape
-    x = torch.rand(batch_size, feature_size)
-    y = policy(x)
-    assert y.shape == (batch_size, action_size)
-
-    # check distribution type
-    assert isinstance(policy.dist(x), GaussianDistribution)
-
-    # check if sampled action is not identical to the best action
-    assert not torch.allclose(policy.sample(x), policy.best_action(x))
-
-    # check sample_n
-    y_n, log_prob_n = policy.sample_n_with_log_prob(x, n)
-    assert y_n.shape == (batch_size, n, action_size)
-    assert log_prob_n.shape == (batch_size, n, 1)
-
-    # check sample_n_without_squash
-    y_n = policy.sample_n_without_squash(x, n)
-    assert y_n.shape == (batch_size, n, action_size)
-
-    # check onnx_safe_sample_n
-    y_n = policy.onnx_safe_sample_n(x, n)
-    assert y_n.shape == (batch_size, n, action_size)
+    assert y.mu.shape == (batch_size, action_size)
+    assert y.squashed_mu.shape == (batch_size, action_size)
 
     # check layer connection
     check_parameter_updates(policy, (x,))
@@ -204,27 +137,46 @@ def test_categorical_policy(
     # check output shape
     x = torch.rand(batch_size, feature_size)
     y = policy(x)
-    assert y.shape == (batch_size,)
+    assert y.shape == (batch_size, action_size)
 
-    # check log_prob shape
-    _, log_prob = policy(x, with_log_prob=True)
-    assert log_prob.shape == (batch_size,)
 
-    # check distribution type
-    assert isinstance(policy.dist(x), torch.distributions.Categorical)
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("batch_size", [32])
+def test_build_gaussian_distribution(action_size: int, batch_size: int) -> None:
+    mu = torch.rand(batch_size, action_size)
+    squashed_mu = torch.rand(batch_size, action_size)
+    logstd = torch.rand(batch_size, action_size)
+    action = ActionOutput(mu, squashed_mu, logstd)
 
-    # check if sampled action is not identical to the bset action
-    assert not torch.all(policy.sample(x) == policy.best_action(x))
+    dist = build_gaussian_distribution(action)
+    assert isinstance(dist, GaussianDistribution)
 
-    # check sample_n
-    y_n, log_prob_n = policy.sample_n_with_log_prob(x, n)
-    assert y_n.shape == (batch_size, n)
-    assert log_prob_n.shape == (batch_size, n)
+    assert torch.all(dist.mean == squashed_mu)
+    assert torch.all(dist.std == logstd.exp())
 
-    # check log_probs
-    log_probs = policy.log_probs(x)
-    assert log_probs.shape == (batch_size, action_size)
-    assert torch.allclose(log_probs.exp().sum(dim=1), torch.ones(batch_size))
 
-    # check layer connection
-    check_parameter_updates(policy, output=log_probs)
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("batch_size", [32])
+def test_build_squashed_gaussian_distribution(
+    action_size: int, batch_size: int
+) -> None:
+    mu = torch.rand(batch_size, action_size)
+    squashed_mu = torch.rand(batch_size, action_size)
+    logstd = torch.rand(batch_size, action_size)
+    action = ActionOutput(mu, squashed_mu, logstd)
+
+    dist = build_squashed_gaussian_distribution(action)
+    assert isinstance(dist, SquashedGaussianDistribution)
+
+    assert torch.all(dist.mean == torch.tanh(mu))
+    assert torch.all(dist.std == logstd.exp())
+
+
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("batch_size", [32])
+def test_build_categorical_distribution(
+    action_size: int, batch_size: int
+) -> None:
+    logits = torch.rand(batch_size, action_size)
+    dist = build_categorical_distribution(logits)
+    assert torch.allclose(dist.probs, torch.softmax(logits, dim=1))

@@ -5,7 +5,8 @@ from torch.optim import Optimizer
 from ....dataset import Shape
 from ....models.torch import (
     EnsembleContinuousQFunction,
-    NonSquashedNormalPolicy,
+    NormalPolicy,
+    build_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch, hard_sync
 from .ddpg_impl import DDPGBaseImpl
@@ -19,14 +20,14 @@ class CRRImpl(DDPGBaseImpl):
     _advantage_type: str
     _weight_type: str
     _max_weight: float
-    _policy: NonSquashedNormalPolicy
-    _targ_policy: NonSquashedNormalPolicy
+    _policy: NormalPolicy
+    _targ_policy: NormalPolicy
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        policy: NonSquashedNormalPolicy,
+        policy: NormalPolicy,
         q_func: EnsembleContinuousQFunction,
         actor_optim: Optimizer,
         critic_optim: Optimizer,
@@ -58,7 +59,7 @@ class CRRImpl(DDPGBaseImpl):
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         # compute log probability
-        dist = self._policy.dist(batch.observations)
+        dist = build_gaussian_distribution(self._policy(batch.observations))
         log_probs = dist.log_prob(batch.actions)
 
         weight = self._compute_weight(batch.observations, batch.actions)
@@ -82,9 +83,8 @@ class CRRImpl(DDPGBaseImpl):
             batch_size = obs_t.shape[0]
 
             # (batch_size, N, action)
-            policy_actions = self._policy.sample_n(
-                obs_t, self._n_action_samples
-            )
+            dist = build_gaussian_distribution(self._policy(obs_t))
+            policy_actions = dist.sample_n(self._n_action_samples)
             flat_actions = policy_actions.reshape(-1, self._action_size)
 
             # repeat observation
@@ -113,7 +113,9 @@ class CRRImpl(DDPGBaseImpl):
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
-            action = self._targ_policy.sample(batch.next_observations)
+            action = build_gaussian_distribution(
+                self._targ_policy(batch.next_observations)
+            ).sample()
             return self._targ_q_func.compute_target(
                 batch.next_observations,
                 action.clamp(-1.0, 1.0),
@@ -123,7 +125,8 @@ class CRRImpl(DDPGBaseImpl):
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         # compute CWP
 
-        actions = self._policy.onnx_safe_sample_n(x, self._n_action_samples)
+        dist = build_gaussian_distribution(self._policy(x))
+        actions = dist.onnx_safe_sample_n(self._n_action_samples)
         # (batch_size, N, action_size) -> (batch_size * N, action_size)
         flat_actions = actions.reshape(-1, self._action_size)
 
@@ -147,6 +150,10 @@ class CRRImpl(DDPGBaseImpl):
         indices = torch.multinomial(probs, 1, replacement=True)
 
         return actions[torch.arange(x.shape[0]), indices.view(-1)]
+
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        dist = build_gaussian_distribution(self._policy(x))
+        return dist.sample()
 
     def sync_critic_target(self) -> None:
         hard_sync(self._targ_q_func, self._q_func)

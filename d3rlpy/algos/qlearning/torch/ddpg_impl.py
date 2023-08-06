@@ -103,10 +103,11 @@ class DDPGBaseImpl(
         pass
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._policy.best_action(x)
+        return self._policy(x).squashed_mu
 
+    @abstractmethod
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._policy.sample(x)
+        pass
 
     def update_critic_target(self) -> None:
         soft_sync(self._targ_q_func, self._q_func, self._tau)
@@ -134,7 +135,7 @@ class DDPGBaseImpl(
 class DDPGImpl(DDPGBaseImpl):
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         action = self._policy(batch.observations)
-        q_t = self._q_func(batch.observations, action, "none")[0]
+        q_t = self._q_func(batch.observations, action.squashed_mu, "none")[0]
         return -q_t.mean()
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
@@ -142,7 +143,7 @@ class DDPGImpl(DDPGBaseImpl):
             action = self._targ_policy(batch.next_observations)
             return self._targ_q_func.compute_target(
                 batch.next_observations,
-                action.clamp(-1.0, 1.0),
+                action.squashed_mu.clamp(-1.0, 1.0),
                 reduction="min",
             )
 

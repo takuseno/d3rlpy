@@ -6,8 +6,9 @@ from torch.optim import Optimizer
 from ....dataset import Shape
 from ....models.torch import (
     EnsembleContinuousQFunction,
-    NonSquashedNormalPolicy,
+    NormalPolicy,
     ValueFunction,
+    build_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch, train_api
 from .ddpg_impl import DDPGBaseImpl
@@ -16,7 +17,7 @@ __all__ = ["IQLImpl"]
 
 
 class IQLImpl(DDPGBaseImpl):
-    _policy: NonSquashedNormalPolicy
+    _policy: NormalPolicy
     _value_func: ValueFunction
     _expectile: float
     _weight_temp: float
@@ -26,7 +27,7 @@ class IQLImpl(DDPGBaseImpl):
         self,
         observation_shape: Shape,
         action_size: int,
-        policy: NonSquashedNormalPolicy,
+        policy: NormalPolicy,
         q_func: EnsembleContinuousQFunction,
         value_func: ValueFunction,
         actor_optim: Optimizer,
@@ -72,7 +73,7 @@ class IQLImpl(DDPGBaseImpl):
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         # compute log probability
-        dist = self._policy.dist(batch.observations)
+        dist = build_gaussian_distribution(self._policy(batch.observations))
         log_probs = dist.log_prob(batch.actions)
 
         # compute weight
@@ -115,3 +116,7 @@ class IQLImpl(DDPGBaseImpl):
         return float(q_loss.cpu().detach().numpy()), float(
             v_loss.cpu().detach().numpy()
         )
+
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        dist = build_gaussian_distribution(self._policy(x))
+        return dist.sample()

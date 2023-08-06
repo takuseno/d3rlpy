@@ -10,9 +10,9 @@ from ....models.torch import (
     DeterministicRegressor,
     DiscreteImitator,
     Imitator,
+    NormalPolicy,
     Policy,
     ProbablisticRegressor,
-    SquashedNormalPolicy,
     compute_output_size,
 )
 from ....torch_utility import TorchMiniBatch, hard_sync, train_api
@@ -112,7 +112,7 @@ class BCImpl(BCBaseImpl):
                 action_size=self._action_size,
             )
         elif self._policy_type == "stochastic":
-            return SquashedNormalPolicy(
+            return NormalPolicy(
                 encoder=self._imitator.encoder,
                 hidden_size=hidden_size,
                 action_size=self._action_size,

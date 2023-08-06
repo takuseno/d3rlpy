@@ -5,9 +5,10 @@ from torch.optim import Adam, Optimizer
 from ....dataset import Shape
 from ....models.torch import (
     EnsembleContinuousQFunction,
-    NonSquashedNormalPolicy,
+    NormalPolicy,
     Parameter,
     Policy,
+    build_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch
 from .sac_impl import SACImpl
@@ -16,7 +17,7 @@ __all__ = ["AWACImpl"]
 
 
 class AWACImpl(SACImpl):
-    _policy: NonSquashedNormalPolicy
+    _policy: NormalPolicy
     _lam: float
     _n_action_samples: int
 
@@ -34,7 +35,7 @@ class AWACImpl(SACImpl):
         n_action_samples: int,
         device: str,
     ):
-        assert isinstance(policy, NonSquashedNormalPolicy)
+        assert isinstance(policy, NormalPolicy)
         dummy_log_temp = Parameter(torch.zeros(1))
         super().__init__(
             observation_shape=observation_shape,
@@ -54,7 +55,7 @@ class AWACImpl(SACImpl):
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         # compute log probability
-        dist = self._policy.dist(batch.observations)
+        dist = build_gaussian_distribution(self._policy(batch.observations))
         log_probs = dist.log_prob(batch.actions)
 
         # compute exponential weight
@@ -73,9 +74,8 @@ class AWACImpl(SACImpl):
 
             # sample actions
             # (batch_size * N, action_size)
-            policy_actions = self._policy.sample_n(
-                obs_t, self._n_action_samples
-            )
+            dist = build_gaussian_distribution(self._policy(obs_t))
+            policy_actions = dist.sample_n(self._n_action_samples)
             flat_actions = policy_actions.reshape(-1, self.action_size)
 
             # repeat observation
@@ -98,3 +98,7 @@ class AWACImpl(SACImpl):
             weights = F.softmax(adv_values / self._lam, dim=0).view(-1, 1)
 
         return weights * adv_values.numel()
+
+    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+        dist = build_gaussian_distribution(self._policy(x))
+        return dist.sample()

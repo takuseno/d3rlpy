@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from torch.optim import SGD
 
+from d3rlpy.models.torch import ActionOutput
 from d3rlpy.models.torch.encoders import Encoder, EncoderWithAction
 
 
@@ -19,6 +20,12 @@ def check_parameter_updates(
             output = model.compute_error(*inputs)
         else:
             output = model(*inputs)
+            if isinstance(output, ActionOutput):
+                mu = output.squashed_mu
+                logstd = output.logstd
+                output = mu
+                if logstd is not None:
+                    output = output + logstd
     if isinstance(output, (list, tuple)):
         loss = 0.0
         for y in output:

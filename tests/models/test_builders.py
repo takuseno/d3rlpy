@@ -15,10 +15,9 @@ from d3rlpy.models.builders import (
     create_discrete_decision_transformer,
     create_discrete_imitator,
     create_discrete_q_function,
-    create_non_squashed_normal_policy,
+    create_normal_policy,
     create_parameter,
     create_probablistic_regressor,
-    create_squashed_normal_policy,
     create_value_function,
 )
 from d3rlpy.models.encoders import DefaultEncoderFactory, EncoderFactory
@@ -37,8 +36,7 @@ from d3rlpy.models.torch.policies import (
     CategoricalPolicy,
     DeterministicPolicy,
     DeterministicResidualPolicy,
-    NonSquashedNormalPolicy,
-    SquashedNormalPolicy,
+    NormalPolicy,
 )
 from d3rlpy.models.torch.transformers import (
     ContinuousDecisionTransformer,
@@ -65,7 +63,7 @@ def test_create_deterministic_policy(
 
     x = torch.rand((batch_size, *observation_shape))
     y = policy(x)
-    assert y.shape == (batch_size, action_size)
+    assert y.mu.shape == (batch_size, action_size)
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])
@@ -89,49 +87,28 @@ def test_create_deterministic_residual_policy(
     x = torch.rand((batch_size, *observation_shape))
     action = torch.rand(batch_size, action_size)
     y = policy(x, action)
-    assert y.shape == (batch_size, action_size)
+    assert y.mu.shape == (batch_size, action_size)
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
-def test_create_squashed_normal_policy(
+def test_create_normal_policy(
     observation_shape: Sequence[int],
     action_size: int,
     batch_size: int,
     encoder_factory: EncoderFactory,
 ) -> None:
-    policy = create_squashed_normal_policy(
+    policy = create_normal_policy(
         observation_shape, action_size, encoder_factory, device="cpu:0"
     )
 
-    assert isinstance(policy, SquashedNormalPolicy)
+    assert isinstance(policy, NormalPolicy)
 
     x = torch.rand((batch_size, *observation_shape))
     y = policy(x)
-    assert y.shape == (batch_size, action_size)
-
-
-@pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])
-@pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("batch_size", [32])
-@pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
-def test_create_non_squashed_normal_policy(
-    observation_shape: Sequence[int],
-    action_size: int,
-    batch_size: int,
-    encoder_factory: EncoderFactory,
-) -> None:
-    policy = create_non_squashed_normal_policy(
-        observation_shape, action_size, encoder_factory, device="cpu:0"
-    )
-
-    assert isinstance(policy, NonSquashedNormalPolicy)
-
-    x = torch.rand((batch_size, *observation_shape))
-    y = policy(x)
-    assert y.shape == (batch_size, action_size)
+    assert y.mu.shape == (batch_size, action_size)
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])
@@ -152,7 +129,7 @@ def test_create_categorical_policy(
 
     x = torch.rand((batch_size, *observation_shape))
     y = policy(x)
-    assert y.shape == (batch_size,)
+    assert y.shape == (batch_size, action_size)
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])

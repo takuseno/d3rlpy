@@ -66,19 +66,21 @@ class PLASImpl(DDPGBaseImpl):
         return float(loss.cpu().detach().numpy())
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        latent_actions = 2.0 * self._policy(batch.observations)
+        latent_actions = 2.0 * self._policy(batch.observations).squashed_mu
         actions = self._imitator.decode(batch.observations, latent_actions)
         return -self._q_func(batch.observations, actions, "none")[0].mean()
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._imitator.decode(x, 2.0 * self._policy(x))
+        return self._imitator.decode(x, 2.0 * self._policy(x).squashed_mu)
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
-            latent_actions = 2.0 * self._targ_policy(batch.next_observations)
+            latent_actions = (
+                2.0 * self._targ_policy(batch.next_observations).squashed_mu
+            )
             actions = self._imitator.decode(
                 batch.next_observations, latent_actions
             )
@@ -128,22 +130,26 @@ class PLASWithPerturbationImpl(PLASImpl):
         self._targ_perturbation = copy.deepcopy(perturbation)
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        latent_actions = 2.0 * self._policy(batch.observations)
+        latent_actions = 2.0 * self._policy(batch.observations).squashed_mu
         actions = self._imitator.decode(batch.observations, latent_actions)
-        residual_actions = self._perturbation(batch.observations, actions)
+        residual_actions = self._perturbation(
+            batch.observations, actions
+        ).squashed_mu
         q_value = self._q_func(batch.observations, residual_actions, "none")
         return -q_value[0].mean()
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        action = self._imitator.decode(x, 2.0 * self._policy(x))
-        return self._perturbation(x, action)
+        action = self._imitator.decode(x, 2.0 * self._policy(x).squashed_mu)
+        return self._perturbation(x, action).squashed_mu
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
-            latent_actions = 2.0 * self._targ_policy(batch.next_observations)
+            latent_actions = (
+                2.0 * self._targ_policy(batch.next_observations).squashed_mu
+            )
             actions = self._imitator.decode(
                 batch.next_observations, latent_actions
             )
@@ -152,7 +158,7 @@ class PLASWithPerturbationImpl(PLASImpl):
             )
             return self._targ_q_func.compute_target(
                 batch.next_observations,
-                residual_actions,
+                residual_actions.squashed_mu,
                 reduction="mix",
                 lam=self._lam,
             )

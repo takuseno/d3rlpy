@@ -18,11 +18,10 @@ from .torch import (
     EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
     GlobalPositionEncoding,
-    NonSquashedNormalPolicy,
+    NormalPolicy,
     Parameter,
     ProbablisticRegressor,
     SimplePositionEncoding,
-    SquashedNormalPolicy,
     ValueFunction,
     compute_output_size,
 )
@@ -33,9 +32,8 @@ __all__ = [
     "create_continuous_q_function",
     "create_deterministic_policy",
     "create_deterministic_residual_policy",
-    "create_squashed_normal_policy",
-    "create_non_squashed_normal_policy",
     "create_categorical_policy",
+    "create_normal_policy",
     "create_conditional_vae",
     "create_discrete_imitator",
     "create_deterministic_regressor",
@@ -151,7 +149,7 @@ def create_deterministic_residual_policy(
     return policy
 
 
-def create_squashed_normal_policy(
+def create_normal_policy(
     observation_shape: Shape,
     action_size: int,
     encoder_factory: EncoderFactory,
@@ -159,33 +157,10 @@ def create_squashed_normal_policy(
     min_logstd: float = -20.0,
     max_logstd: float = 2.0,
     use_std_parameter: bool = False,
-) -> SquashedNormalPolicy:
+) -> NormalPolicy:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = compute_output_size([observation_shape], encoder, device)
-    policy = SquashedNormalPolicy(
-        encoder=encoder,
-        hidden_size=hidden_size,
-        action_size=action_size,
-        min_logstd=min_logstd,
-        max_logstd=max_logstd,
-        use_std_parameter=use_std_parameter,
-    )
-    policy.to(device)
-    return policy
-
-
-def create_non_squashed_normal_policy(
-    observation_shape: Shape,
-    action_size: int,
-    encoder_factory: EncoderFactory,
-    device: str,
-    min_logstd: float = -20.0,
-    max_logstd: float = 2.0,
-    use_std_parameter: bool = False,
-) -> NonSquashedNormalPolicy:
-    encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, device)
-    policy = NonSquashedNormalPolicy(
+    policy = NormalPolicy(
         encoder=encoder,
         hidden_size=hidden_size,
         action_size=action_size,

@@ -10,8 +10,9 @@ from ....dataset import Shape
 from ....models.torch import (
     EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
+    NormalPolicy,
     Parameter,
-    SquashedNormalPolicy,
+    build_squashed_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch, train_api
 from .dqn_impl import DoubleDQNImpl
@@ -32,7 +33,7 @@ class CQLImpl(SACImpl):
         self,
         observation_shape: Shape,
         action_size: int,
-        policy: SquashedNormalPolicy,
+        policy: NormalPolicy,
         q_func: EnsembleContinuousQFunction,
         log_temp: Parameter,
         log_alpha: Parameter,
@@ -100,8 +101,11 @@ class CQLImpl(SACImpl):
         self, policy_obs: torch.Tensor, value_obs: torch.Tensor
     ) -> torch.Tensor:
         with torch.no_grad():
-            policy_actions, n_log_probs = self._policy.sample_n_with_log_prob(
-                policy_obs, self._n_action_samples
+            dist = build_squashed_gaussian_distribution(
+                self._policy(policy_obs)
+            )
+            policy_actions, n_log_probs = dist.sample_n_with_log_prob(
+                self._n_action_samples
             )
 
         obs_shape = value_obs.shape
@@ -181,7 +185,7 @@ class CQLImpl(SACImpl):
         self, batch: TorchMiniBatch
     ) -> torch.Tensor:
         with torch.no_grad():
-            action = self._policy.best_action(batch.next_observations)
+            action = self._policy(batch.next_observations).squashed_mu
             return self._targ_q_func.compute_target(
                 batch.next_observations,
                 action,

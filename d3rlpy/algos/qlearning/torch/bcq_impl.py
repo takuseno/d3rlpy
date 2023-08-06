@@ -77,7 +77,9 @@ class BCQImpl(DDPGBaseImpl):
             batch.observations, clipped_latent
         )
         action = self._policy(batch.observations, sampled_action)
-        return -self._q_func(batch.observations, action, "none")[0].mean()
+        return -self._q_func(batch.observations, action.squashed_mu, "none")[
+            0
+        ].mean()
 
     @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> float:
@@ -111,7 +113,9 @@ class BCQImpl(DDPGBaseImpl):
         # add residual action
         policy = self._targ_policy if target else self._policy
         action = policy(flattened_x, sampled_action)
-        return action.view(-1, self._n_action_samples, self._action_size)
+        return action.squashed_mu.view(
+            -1, self._n_action_samples, self._action_size
+        )
 
     def _predict_value(
         self,

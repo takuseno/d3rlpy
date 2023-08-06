@@ -8,8 +8,8 @@ from ...dataset import Shape
 from ...models.builders import (
     create_conditional_vae,
     create_continuous_q_function,
+    create_normal_policy,
     create_parameter,
-    create_squashed_normal_policy,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
@@ -158,7 +158,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        policy = create_squashed_normal_policy(
+        policy = create_normal_policy(
             observation_shape,
             action_size,
             self._config.actor_encoder_factory,

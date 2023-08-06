@@ -45,7 +45,7 @@ class TD3PlusBCImpl(TD3Impl):
         self._alpha = alpha
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        action = self._policy(batch.observations)
+        action = self._policy(batch.observations).squashed_mu
         q_t = self._q_func(batch.observations, action, "none")[0]
         lam = self._alpha / (q_t.abs().mean()).detach()
         return lam * -q_t.mean() + ((batch.actions - action) ** 2).mean()
