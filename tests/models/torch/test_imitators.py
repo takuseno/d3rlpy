@@ -7,6 +7,13 @@ from d3rlpy.models.torch.imitators import (
     DeterministicRegressor,
     DiscreteImitator,
     ProbablisticRegressor,
+    VAEDecoder,
+    VAEEncoder,
+    compute_vae_error,
+    forward_vae_decode,
+    forward_vae_encode,
+    forward_vae_sample,
+    forward_vae_sample_n,
 )
 
 from .model_test import (
@@ -19,26 +26,83 @@ from .model_test import (
 @pytest.mark.parametrize("feature_size", [100])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("latent_size", [32])
-@pytest.mark.parametrize("beta", [0.5])
+@pytest.mark.parametrize("batch_size", [32])
+def test_vae_encoder(
+    feature_size: int,
+    action_size: int,
+    latent_size: int,
+    batch_size: int,
+) -> None:
+    encoder = DummyEncoderWithAction(feature_size, action_size)
+    vae_encoder = VAEEncoder(
+        encoder=encoder,
+        hidden_size=feature_size,
+        latent_size=latent_size,
+    )
+
+    # check output shape
+    x = torch.rand(batch_size, feature_size)
+    action = torch.rand(batch_size, action_size)
+    dist = vae_encoder(x, action)
+    assert dist.mean.shape == (batch_size, latent_size)
+
+
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("latent_size", [32])
+@pytest.mark.parametrize("batch_size", [32])
+def test_vae_decoder(
+    feature_size: int,
+    action_size: int,
+    latent_size: int,
+    batch_size: int,
+) -> None:
+    encoder = DummyEncoderWithAction(feature_size, latent_size)
+    vae_decoder = VAEDecoder(
+        encoder=encoder,
+        hidden_size=feature_size,
+        action_size=action_size,
+    )
+
+    # check output shape
+    x = torch.rand(batch_size, feature_size)
+    latent = torch.rand(batch_size, latent_size)
+    action = vae_decoder(x, latent)
+    assert action.shape == (batch_size, action_size)
+
+    # check layer connections
+    check_parameter_updates(vae_decoder, (x, latent))
+
+
+@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("latent_size", [32])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("n", [100])
+@pytest.mark.parametrize("beta", [0.5])
 def test_conditional_vae(
     feature_size: int,
     action_size: int,
     latent_size: int,
-    beta: float,
     batch_size: int,
     n: int,
+    beta: float,
 ) -> None:
     encoder_encoder = DummyEncoderWithAction(feature_size, action_size)
     decoder_encoder = DummyEncoderWithAction(feature_size, latent_size)
-    vae = ConditionalVAE(
-        encoder_encoder=encoder_encoder,
-        decoder_encoder=decoder_encoder,
+    vae_encoder = VAEEncoder(
+        encoder=encoder_encoder,
         hidden_size=feature_size,
         latent_size=latent_size,
+    )
+    vae_decoder = VAEDecoder(
+        encoder=decoder_encoder,
+        hidden_size=feature_size,
         action_size=action_size,
-        beta=beta,
+    )
+    vae = ConditionalVAE(
+        encoder=vae_encoder,
+        decoder=vae_decoder,
     )
 
     # check output shape
@@ -47,29 +111,25 @@ def test_conditional_vae(
     y = vae(x, action)
     assert y.shape == (batch_size, action_size)
 
-    # check encode
-    dist = vae.encode(x, action)
-    assert isinstance(dist, torch.distributions.Normal)
+    # test encode
+    dist = forward_vae_encode(vae, x, action)
     assert dist.mean.shape == (batch_size, latent_size)
 
-    # check decode
-    latent = torch.rand(batch_size, latent_size)
-    y = vae.decode(x, latent)
+    # test decode
+    y = forward_vae_decode(vae, x, dist.sample())
     assert y.shape == (batch_size, action_size)
 
-    # check sample
-    y = vae.sample(x)
+    # test decode sample
+    y = forward_vae_sample(vae, x)
     assert y.shape == (batch_size, action_size)
 
-    # check sample_n
-    y = vae.sample_n(x, n)
+    # test decode sample n
+    y = forward_vae_sample_n(vae, x, n)
     assert y.shape == (batch_size, n, action_size)
 
-    # check sample_n_without_squash
-    y = vae.sample_n_without_squash(x, n)
-    assert y.shape == (batch_size, n, action_size)
-
-    # TODO: test vae.compute_likelihood_loss(x, action)
+    # test compute error
+    error = compute_vae_error(vae, x, action, beta)
+    assert error.ndim == 0
 
     # check layer connections
     check_parameter_updates(vae, (x, action))

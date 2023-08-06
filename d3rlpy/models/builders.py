@@ -22,6 +22,8 @@ from .torch import (
     Parameter,
     ProbablisticRegressor,
     SimplePositionEncoding,
+    VAEDecoder,
+    VAEEncoder,
     ValueFunction,
     compute_output_size,
 )
@@ -191,7 +193,6 @@ def create_conditional_vae(
     observation_shape: Shape,
     action_size: int,
     latent_size: int,
-    beta: float,
     encoder_factory: EncoderFactory,
     device: str,
     min_logstd: float = -20.0,
@@ -206,16 +207,19 @@ def create_conditional_vae(
     hidden_size = compute_output_size(
         [observation_shape, (action_size,)], encoder_encoder, device
     )
-    policy = ConditionalVAE(
-        encoder_encoder=encoder_encoder,
-        decoder_encoder=decoder_encoder,
+    encoder = VAEEncoder(
+        encoder=encoder_encoder,
         hidden_size=hidden_size,
         latent_size=latent_size,
-        action_size=action_size,
-        beta=beta,
         min_logstd=min_logstd,
         max_logstd=max_logstd,
     )
+    decoder = VAEDecoder(
+        encoder=decoder_encoder,
+        hidden_size=hidden_size,
+        action_size=action_size,
+    )
+    policy = ConditionalVAE(encoder=encoder, decoder=decoder)
     policy.to(device)
     return policy
 

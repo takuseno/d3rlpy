@@ -128,8 +128,8 @@ def test_create_categorical_policy(
     assert isinstance(policy, CategoricalPolicy)
 
     x = torch.rand((batch_size, *observation_shape))
-    y = policy(x)
-    assert y.shape == (batch_size, action_size)
+    dist = policy(x)
+    assert dist.probs.shape == (batch_size, action_size)
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])
@@ -216,14 +216,12 @@ def test_create_continuous_q_function(
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("latent_size", [32])
-@pytest.mark.parametrize("beta", [1.0])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 def test_create_conditional_vae(
     observation_shape: Sequence[int],
     action_size: int,
     latent_size: int,
-    beta: float,
     batch_size: int,
     encoder_factory: EncoderFactory,
 ) -> None:
@@ -231,7 +229,6 @@ def test_create_conditional_vae(
         observation_shape,
         action_size,
         latent_size,
-        beta,
         encoder_factory,
         device="cpu:0",
     )

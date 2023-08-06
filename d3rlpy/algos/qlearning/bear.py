@@ -176,7 +176,6 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             observation_shape=observation_shape,
             action_size=action_size,
             latent_size=2 * action_size,
-            beta=self._config.vae_kl_weight,
             min_logstd=-4.0,
             max_logstd=15.0,
             encoder_factory=self._config.imitator_encoder_factory,

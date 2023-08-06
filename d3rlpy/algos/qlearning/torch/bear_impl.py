@@ -11,6 +11,8 @@ from ....models.torch import (
     Parameter,
     build_squashed_gaussian_distribution,
     compute_max_with_n_actions_and_indices,
+    compute_vae_error,
+    forward_vae_sample_n,
 )
 from ....torch_utility import TorchMiniBatch, train_api
 from .sac_impl import SACImpl
@@ -133,7 +135,12 @@ class BEARImpl(SACImpl):
         return float(loss.cpu().detach().numpy())
 
     def compute_imitator_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        return self._imitator.compute_error(batch.observations, batch.actions)
+        return compute_vae_error(
+            vae=self._imitator,
+            x=batch.observations,
+            action=batch.actions,
+            beta=self._vae_kl_weight,
+        )
 
     @train_api
     def update_alpha(self, batch: TorchMiniBatch) -> Tuple[float, float]:
@@ -152,8 +159,8 @@ class BEARImpl(SACImpl):
 
     def _compute_mmd(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            behavior_actions = self._imitator.sample_n_without_squash(
-                x, self._n_mmd_action_samples
+            behavior_actions = forward_vae_sample_n(
+                self._imitator, x, self._n_mmd_action_samples, with_squash=False
             )
         dist = build_squashed_gaussian_distribution(self._policy(x))
         policy_actions = dist.sample_n_without_squash(

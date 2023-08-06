@@ -11,7 +11,6 @@ from d3rlpy.models.torch.policies import (
     DeterministicPolicy,
     DeterministicResidualPolicy,
     NormalPolicy,
-    build_categorical_distribution,
     build_gaussian_distribution,
     build_squashed_gaussian_distribution,
 )
@@ -136,8 +135,9 @@ def test_categorical_policy(
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
-    y = policy(x)
-    assert y.shape == (batch_size, action_size)
+    dist = policy(x)
+    assert dist.probs.shape == (batch_size, action_size)
+    assert dist.sample().shape == (batch_size,)
 
 
 @pytest.mark.parametrize("action_size", [2])
@@ -170,13 +170,3 @@ def test_build_squashed_gaussian_distribution(
 
     assert torch.all(dist.mean == torch.tanh(mu))
     assert torch.all(dist.std == logstd.exp())
-
-
-@pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("batch_size", [32])
-def test_build_categorical_distribution(
-    action_size: int, batch_size: int
-) -> None:
-    logits = torch.rand(batch_size, action_size)
-    dist = build_categorical_distribution(logits)
-    assert torch.allclose(dist.probs, torch.softmax(logits, dim=1))

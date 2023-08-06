@@ -13,7 +13,6 @@ from ....models.torch import (
     EnsembleQFunction,
     Parameter,
     Policy,
-    build_categorical_distribution,
     build_squashed_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch, hard_sync, train_api
@@ -155,9 +154,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
-            dist = build_categorical_distribution(
-                self._policy(batch.next_observations)
-            )
+            dist = self._policy(batch.next_observations)
             log_probs = dist.logits
             probs = dist.probs
             entropy = self._log_temp().exp() * log_probs
@@ -200,7 +197,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
             q_t = self._q_func(batch.observations, reduction="min")
-        dist = build_categorical_distribution(self._policy(batch.observations))
+        dist = self._policy(batch.observations)
         log_probs = dist.logits
         probs = dist.probs
         entropy = self._log_temp().exp() * log_probs
@@ -211,9 +208,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._temp_optim.zero_grad()
 
         with torch.no_grad():
-            dist = build_categorical_distribution(
-                self._policy(batch.observations)
-            )
+            dist = self._policy(batch.observations)
             log_probs = dist.logits
             probs = dist.probs
             expct_log_probs = (probs * log_probs).sum(dim=1, keepdim=True)
@@ -231,11 +226,11 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         return float(loss.cpu().detach().numpy()), float(cur_temp)
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        dist = build_categorical_distribution(self._policy(x))
+        dist = self._policy(x)
         return dist.probs.argmax(dim=1)
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        dist = build_categorical_distribution(self._policy(x))
+        dist = self._policy(x)
         return dist.sample()
 
     def update_target(self) -> None:

@@ -12,6 +12,8 @@ from ....models.torch import (
     EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
     compute_max_with_n_actions,
+    compute_vae_error,
+    forward_vae_decode,
 )
 from ....torch_utility import TorchMiniBatch, train_api
 from .ddpg_impl import DDPGBaseImpl
@@ -73,8 +75,10 @@ class BCQImpl(DDPGBaseImpl):
             device=self._device,
         )
         clipped_latent = latent.clamp(-0.5, 0.5)
-        sampled_action = self._imitator.decode(
-            batch.observations, clipped_latent
+        sampled_action = forward_vae_decode(
+            vae=self._imitator,
+            x=batch.observations,
+            latent=clipped_latent,
         )
         action = self._policy(batch.observations, sampled_action)
         return -self._q_func(batch.observations, action.squashed_mu, "none")[
@@ -85,7 +89,12 @@ class BCQImpl(DDPGBaseImpl):
     def update_imitator(self, batch: TorchMiniBatch) -> float:
         self._imitator_optim.zero_grad()
 
-        loss = self._imitator.compute_error(batch.observations, batch.actions)
+        loss = compute_vae_error(
+            vae=self._imitator,
+            x=batch.observations,
+            action=batch.actions,
+            beta=self._beta,
+        )
 
         loss.backward()
         self._imitator_optim.step()
@@ -109,7 +118,11 @@ class BCQImpl(DDPGBaseImpl):
         )
         clipped_latent = latent.clamp(-0.5, 0.5)
         # sample action
-        sampled_action = self._imitator.decode(flattened_x, clipped_latent)
+        sampled_action = forward_vae_decode(
+            vae=self._imitator,
+            x=flattened_x,
+            latent=clipped_latent,
+        )
         # add residual action
         policy = self._targ_policy if target else self._policy
         action = policy(flattened_x, sampled_action)

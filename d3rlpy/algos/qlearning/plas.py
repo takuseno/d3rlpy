@@ -124,7 +124,6 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             observation_shape=observation_shape,
             action_size=action_size,
             latent_size=2 * action_size,
-            beta=self._config.beta,
             min_logstd=-4.0,
             max_logstd=15.0,
             encoder_factory=self._config.imitator_encoder_factory,
@@ -153,6 +152,7 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             gamma=self._config.gamma,
             tau=self._config.tau,
             lam=self._config.lam,
+            beta=self._config.beta,
             device=self._device,
         )
 
@@ -257,7 +257,6 @@ class PLASWithPerturbation(PLAS):
             observation_shape=observation_shape,
             action_size=action_size,
             latent_size=2 * action_size,
-            beta=self._config.beta,
             min_logstd=-4.0,
             max_logstd=15.0,
             encoder_factory=self._config.imitator_encoder_factory,
@@ -296,6 +295,7 @@ class PLASWithPerturbation(PLAS):
             gamma=self._config.gamma,
             tau=self._config.tau,
             lam=self._config.lam,
+            beta=self._config.beta,
             device=self._device,
         )
 

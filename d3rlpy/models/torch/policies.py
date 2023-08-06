@@ -16,7 +16,6 @@ __all__ = [
     "CategoricalPolicy",
     "build_gaussian_distribution",
     "build_squashed_gaussian_distribution",
-    "build_categorical_distribution",
     "ActionOutput",
 ]
 
@@ -145,9 +144,5 @@ class CategoricalPolicy(nn.Module):  # type: ignore
         self._encoder = encoder
         self._fc = nn.Linear(hidden_size, action_size)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self._fc(self._encoder(x))
-
-
-def build_categorical_distribution(logits: torch.Tensor) -> Categorical:
-    return Categorical(probs=torch.softmax(logits, dim=1))
+    def forward(self, x: torch.Tensor) -> Categorical:
+        return Categorical(logits=self._fc(self._encoder(x)))
