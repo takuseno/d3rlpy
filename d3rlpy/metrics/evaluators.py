@@ -38,14 +38,14 @@ class EvaluatorProtocol(Protocol):
         algo: QLearningAlgoProtocol,
         dataset: ReplayBuffer,
     ) -> float:
-        """Computes metrics.
+        """Computes metric.
 
         Args:
             algo: Q-learning algorithm.
             dataset: ReplayBuffer.
 
         Returns:
-            Computed metrics.
+            Computed metric.
         """
         raise NotImplementedError
 
@@ -72,7 +72,7 @@ def make_batches(
 class TDErrorEvaluator(EvaluatorProtocol):
     r"""Returns average TD error.
 
-    This metrics suggests how Q functions overfit to training sets.
+    This metric suggests how Q functions overfit to training sets.
     If the TD error is large, the Q functions are overfitting.
 
     .. math::
@@ -124,7 +124,7 @@ class TDErrorEvaluator(EvaluatorProtocol):
 class DiscountedSumOfAdvantageEvaluator(EvaluatorProtocol):
     r"""Returns average of discounted sum of advantage.
 
-    This metrics suggests how the greedy-policy selects different actions in
+    This metric suggests how the greedy-policy selects different actions in
     action-value space.
     If the sum of advantage is small, the policy selects actions with larger
     estimated action-values.
@@ -191,7 +191,7 @@ class DiscountedSumOfAdvantageEvaluator(EvaluatorProtocol):
 class AverageValueEstimationEvaluator(EvaluatorProtocol):
     r"""Returns average value estimation.
 
-    This metrics suggests the scale for estimation of Q functions.
+    This metric suggests the scale for estimation of Q functions.
     If average value estimation is too large, the Q functions overestimate
     action-values, which possibly makes training failed.
 
@@ -228,7 +228,7 @@ class AverageValueEstimationEvaluator(EvaluatorProtocol):
 class InitialStateValueEstimationEvaluator(EvaluatorProtocol):
     r"""Returns mean estimated action-values at the initial states.
 
-    This metrics suggests how much return the trained policy would get from
+    This metric suggests how much return the trained policy would get from
     the initial states by deploying the policy to the states.
     If the estimated value is large, the trained policy is expected to get
     higher returns.
@@ -271,9 +271,9 @@ class InitialStateValueEstimationEvaluator(EvaluatorProtocol):
 
 
 class SoftOPCEvaluator(EvaluatorProtocol):
-    r"""Returns Soft Off-Policy Classification metrics.
+    r"""Returns Soft Off-Policy Classification metric.
 
-    The metrics of the scorer funciton is evaluating gaps of action-value
+    The metric of the scorer funciton is evaluating gaps of action-value
     estimation between the success episodes and the all episodes.
     If the learned Q-function is optimal, action-values in success episodes
     are expected to be higher than the others.
@@ -329,7 +329,7 @@ class SoftOPCEvaluator(EvaluatorProtocol):
 class ContinuousActionDiffEvaluator(EvaluatorProtocol):
     r"""Returns squared difference of actions between algorithm and dataset.
 
-    This metrics suggests how different the greedy-policy is from the given
+    This metric suggests how different the greedy-policy is from the given
     episodes in continuous action-space.
     If the given episodes are near-optimal, the small action difference would
     be better.
@@ -367,7 +367,7 @@ class ContinuousActionDiffEvaluator(EvaluatorProtocol):
 class DiscreteActionMatchEvaluator(EvaluatorProtocol):
     r"""Returns percentage of identical actions between algorithm and dataset.
 
-    This metrics suggests how different the greedy-policy is from the given
+    This metric suggests how different the greedy-policy is from the given
     episodes in discrete action-space.
     If the given episdoes are near-optimal, the large percentage would be
     better.
@@ -406,7 +406,7 @@ class DiscreteActionMatchEvaluator(EvaluatorProtocol):
 class CompareContinuousActionDiffEvaluator(EvaluatorProtocol):
     r"""Action difference between algorithms.
 
-    This metrics suggests how different the two algorithms are in continuous
+    This metric suggests how different the two algorithms are in continuous
     action-space.
     If the algorithm to compare with is near-optimal, the small action
     difference would be better.
@@ -454,7 +454,7 @@ class CompareContinuousActionDiffEvaluator(EvaluatorProtocol):
 class CompareDiscreteActionMatchEvaluator(EvaluatorProtocol):
     r"""Action matches between algorithms.
 
-    This metrics suggests how different the two algorithms are in discrete
+    This metric suggests how different the two algorithms are in discrete
     action-space.
     If the algorithm to compare with is near-optimal, the small action
     difference would be better.
@@ -501,7 +501,7 @@ class CompareDiscreteActionMatchEvaluator(EvaluatorProtocol):
 class EnvironmentEvaluator(EvaluatorProtocol):
     r"""Action matches between algorithms.
 
-    This metrics suggests how different the two algorithms are in discrete
+    This metric suggests how different the two algorithms are in discrete
     action-space.
     If the algorithm to compare with is near-optimal, the small action
     difference would be better.
