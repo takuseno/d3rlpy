@@ -38,14 +38,14 @@ class EvaluatorProtocol(Protocol):
         algo: QLearningAlgoProtocol,
         dataset: ReplayBuffer,
     ) -> float:
-        """Computes metric.
+        """Computes metrics.
 
         Args:
             algo: Q-learning algorithm.
             dataset: ReplayBuffer.
 
         Returns:
-            Computed metric.
+            Computed metrics.
         """
         raise NotImplementedError
 
@@ -271,7 +271,7 @@ class InitialStateValueEstimationEvaluator(EvaluatorProtocol):
 
 
 class SoftOPCEvaluator(EvaluatorProtocol):
-    r"""Returns Soft Off-Policy Classification metric.
+    r"""Returns Soft Off-Policy Classification metrics.
 
     The metric of the scorer funciton is evaluating gaps of action-value
     estimation between the success episodes and the all episodes.
