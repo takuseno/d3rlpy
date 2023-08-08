@@ -72,7 +72,7 @@ def make_batches(
 class TDErrorEvaluator(EvaluatorProtocol):
     r"""Returns average TD error.
 
-    This metics suggests how Q functions overfit to training sets.
+    This metrics suggests how Q functions overfit to training sets.
     If the TD error is large, the Q functions are overfitting.
 
     .. math::
