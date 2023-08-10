@@ -14,7 +14,7 @@ docs/d3rlpy*.rst
 docs/modules.rst
 docs/references/generated
 coverage.xml
-.coverage
+.coverage*
 .mypy_cache
 .ipynb_checkpoints
 build
