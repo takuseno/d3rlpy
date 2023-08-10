@@ -238,7 +238,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
             batch.observations, batch.actions.long()
         )
         cql_loss = self._alpha * conservative_loss
-        return loss + cql_loss, cql_loss 
+        return loss + cql_loss, cql_loss
 
     def _compute_conservative_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
