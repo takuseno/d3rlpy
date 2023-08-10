@@ -206,9 +206,9 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             alpha_loss, alpha = self._impl.update_alpha(batch)
             metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
 
-        critic_loss, cql_loss = self._impl.update_critic(batch)
+        critic_loss, conservative_loss = self._impl.update_critic(batch)
         metrics.update({"critic_loss": critic_loss})
-        metrics.update({"cql_loss": cql_loss})
+        metrics.update({"conservative_loss": conservative_loss})
 
         actor_loss = self._impl.update_actor(batch)
         metrics.update({"actor_loss": actor_loss})
