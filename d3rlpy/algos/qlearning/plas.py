@@ -162,14 +162,11 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
         metrics = {}
 
         if self._grad_step < self._config.warmup_steps:
-            imitator_loss = self._impl.update_imitator(batch)
-            metrics.update({"imitator_loss": imitator_loss})
+            metrics.update(self._impl.update_imitator(batch))
         else:
-            critic_loss = self._impl.update_critic(batch)
-            metrics.update({"critic_loss": critic_loss})
+            metrics.update(self._impl.update_critic(batch))
             if self._grad_step % self._config.update_actor_interval == 0:
-                actor_loss = self._impl.update_actor(batch)
-                metrics.update({"actor_loss": actor_loss})
+                metrics.update(self._impl.update_actor(batch))
                 self._impl.update_actor_target()
                 self._impl.update_critic_target()
 

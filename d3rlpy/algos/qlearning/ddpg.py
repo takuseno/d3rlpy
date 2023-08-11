@@ -131,12 +131,12 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
 
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        critic_loss = self._impl.update_critic(batch)
-        actor_loss = self._impl.update_actor(batch)
+        metrics = {}
+        metrics.update(self._impl.update_critic(batch))
+        metrics.update(self._impl.update_actor(batch))
         self._impl.update_critic_target()
         self._impl.update_actor_target()
-
-        return {"critic_loss": critic_loss, "actor_loss": actor_loss}
+        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS

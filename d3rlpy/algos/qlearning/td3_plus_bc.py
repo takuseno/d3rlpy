@@ -137,13 +137,11 @@ class TD3PlusBC(QLearningAlgoBase[TD3PlusBCImpl, TD3PlusBCConfig]):
 
         metrics = {}
 
-        critic_loss = self._impl.update_critic(batch)
-        metrics.update({"critic_loss": critic_loss})
+        metrics.update(self._impl.update_critic(batch))
 
         # delayed policy update
         if self._grad_step % self._config.update_actor_interval == 0:
-            actor_loss = self._impl.update_actor(batch)
-            metrics.update({"actor_loss": actor_loss})
+            metrics.update(self._impl.update_actor(batch))
             self._impl.update_critic_target()
             self._impl.update_actor_target()
 

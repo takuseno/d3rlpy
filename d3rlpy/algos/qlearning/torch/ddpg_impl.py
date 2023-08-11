@@ -1,5 +1,6 @@
 import copy
 from abc import ABCMeta, abstractmethod
+from typing import Dict
 
 import torch
 from torch.optim import Optimizer
@@ -56,7 +57,7 @@ class DDPGBaseImpl(
         self._targ_policy = copy.deepcopy(policy)
 
     @train_api
-    def update_critic(self, batch: TorchMiniBatch) -> float:
+    def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._critic_optim.zero_grad()
 
         q_tpn = self.compute_target(batch)
@@ -66,7 +67,7 @@ class DDPGBaseImpl(
         loss.backward()
         self._critic_optim.step()
 
-        return float(loss.cpu().detach().numpy())
+        return {"critic_loss": float(loss.cpu().detach().numpy())}
 
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
@@ -81,7 +82,7 @@ class DDPGBaseImpl(
         )
 
     @train_api
-    def update_actor(self, batch: TorchMiniBatch) -> float:
+    def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
         # Q function should be inference mode for stability
         self._q_func.eval()
 
@@ -92,7 +93,7 @@ class DDPGBaseImpl(
         loss.backward()
         self._actor_optim.step()
 
-        return float(loss.cpu().detach().numpy())
+        return {"actor_loss": float(loss.cpu().detach().numpy())}
 
     @abstractmethod
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:

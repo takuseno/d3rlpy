@@ -95,7 +95,7 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
         loss = self._impl.update(batch)
         if self._grad_step % self._config.target_update_interval == 0:
             self._impl.update_target()
-        return {"loss": loss}
+        return loss
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE

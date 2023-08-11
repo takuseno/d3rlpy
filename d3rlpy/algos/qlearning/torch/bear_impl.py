@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Dict
 
 import torch
 from torch.optim import Optimizer
@@ -107,7 +107,7 @@ class BEARImpl(SACImpl):
         return loss + mmd_loss
 
     @train_api
-    def warmup_actor(self, batch: TorchMiniBatch) -> float:
+    def warmup_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._actor_optim.zero_grad()
 
         loss = self._compute_mmd_loss(batch.observations)
@@ -115,7 +115,7 @@ class BEARImpl(SACImpl):
         loss.backward()
         self._actor_optim.step()
 
-        return float(loss.cpu().detach().numpy())
+        return {"actor_loss": float(loss.cpu().detach().numpy())}
 
     def _compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
         mmd = self._compute_mmd(obs_t)
@@ -123,7 +123,7 @@ class BEARImpl(SACImpl):
         return (alpha * (mmd - self._alpha_threshold)).mean()
 
     @train_api
-    def update_imitator(self, batch: TorchMiniBatch) -> float:
+    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._imitator_optim.zero_grad()
 
         loss = self.compute_imitator_loss(batch)
@@ -132,7 +132,7 @@ class BEARImpl(SACImpl):
 
         self._imitator_optim.step()
 
-        return float(loss.cpu().detach().numpy())
+        return {"imitator_loss": float(loss.cpu().detach().numpy())}
 
     def compute_imitator_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         return compute_vae_error(
@@ -143,7 +143,7 @@ class BEARImpl(SACImpl):
         )
 
     @train_api
-    def update_alpha(self, batch: TorchMiniBatch) -> Tuple[float, float]:
+    def update_alpha(self, batch: TorchMiniBatch) -> Dict[str, float]:
         loss = -self._compute_mmd_loss(batch.observations)
 
         self._alpha_optim.zero_grad()
@@ -155,7 +155,10 @@ class BEARImpl(SACImpl):
 
         cur_alpha = self._log_alpha().exp().cpu().detach().numpy()[0][0]
 
-        return float(loss.cpu().detach().numpy()), float(cur_alpha)
+        return {
+            "alpha_loss": float(loss.cpu().detach().numpy()),
+            "alpha": float(cur_alpha),
+        }
 
     def _compute_mmd(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():

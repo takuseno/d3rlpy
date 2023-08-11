@@ -1,3 +1,5 @@
+from typing import Dict
+
 import torch
 from torch.optim import Optimizer
 
@@ -46,7 +48,7 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         return action[0][-1]
 
     @train_api
-    def update(self, batch: TorchTrajectoryMiniBatch) -> float:
+    def update(self, batch: TorchTrajectoryMiniBatch) -> Dict[str, float]:
         self._optim.zero_grad()
 
         loss = self.compute_loss(batch)
@@ -58,7 +60,7 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         self._optim.step()
         self._scheduler.step()
 
-        return float(loss.cpu().detach().numpy())
+        return {"loss": float(loss.cpu().detach().numpy())}
 
     def compute_loss(self, batch: TorchTrajectoryMiniBatch) -> torch.Tensor:
         action = self._transformer(

@@ -1,4 +1,5 @@
 import copy
+from typing import Dict
 
 import torch
 from torch.optim import Optimizer
@@ -38,7 +39,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._targ_q_func = copy.deepcopy(q_func)
 
     @train_api
-    def update(self, batch: TorchMiniBatch) -> float:
+    def update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._optim.zero_grad()
 
         q_tpn = self.compute_target(batch)
@@ -48,7 +49,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         loss.backward()
         self._optim.step()
 
-        return float(loss.cpu().detach().numpy())
+        return {"loss": float(loss.cpu().detach().numpy())}
 
     def compute_loss(
         self,

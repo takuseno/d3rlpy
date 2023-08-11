@@ -225,16 +225,13 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
 
         metrics = {}
 
-        imitator_loss = self._impl.update_imitator(batch)
-        metrics.update({"imitator_loss": imitator_loss})
+        metrics.update(self._impl.update_imitator(batch))
 
         if self._grad_step >= self._config.rl_start_step:
-            critic_loss = self._impl.update_critic(batch)
-            metrics.update({"critic_loss": critic_loss})
+            metrics.update(self._impl.update_critic(batch))
 
             if self._grad_step % self._config.update_actor_interval == 0:
-                actor_loss = self._impl.update_actor(batch)
-                metrics.update({"actor_loss": actor_loss})
+                metrics.update(self._impl.update_actor(batch))
                 self._impl.update_actor_target()
                 self._impl.update_critic_target()
 
@@ -385,7 +382,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
         loss = self._impl.update(batch)
         if self._grad_step % self._config.target_update_interval == 0:
             self._impl.update_target()
-        return {"loss": loss}
+        return loss
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE

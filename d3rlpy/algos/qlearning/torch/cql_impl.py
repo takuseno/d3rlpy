@@ -1,7 +1,6 @@
 import math
-from typing import Tuple
+from typing import Dict
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
@@ -79,7 +78,7 @@ class CQLImpl(SACImpl):
         return loss + conservative_loss
 
     @train_api
-    def update_alpha(self, batch: TorchMiniBatch) -> Tuple[float, float]:
+    def update_alpha(self, batch: TorchMiniBatch) -> Dict[str, float]:
         # Q function should be inference mode for stability
         self._q_func.eval()
 
@@ -95,7 +94,10 @@ class CQLImpl(SACImpl):
 
         cur_alpha = self._log_alpha().exp().cpu().detach().numpy()[0][0]
 
-        return float(loss.cpu().detach().numpy()), float(cur_alpha)
+        return {
+            "alpha_loss": float(loss.cpu().detach().numpy()),
+            "alpha": float(cur_alpha),
+        }
 
     def _compute_policy_is_values(
         self, policy_obs: torch.Tensor, value_obs: torch.Tensor
@@ -216,17 +218,6 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         )
         self._alpha = alpha
 
-    def compute_loss(
-        self,
-        batch: TorchMiniBatch,
-        q_tpn: torch.Tensor,
-    ) -> torch.Tensor:
-        loss = super().compute_loss(batch, q_tpn)
-        conservative_loss = self._compute_conservative_loss(
-            batch.observations, batch.actions.long()
-        )
-        return loss + self._alpha * conservative_loss, conservative_loss
-
     def _compute_conservative_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
@@ -241,18 +232,26 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         return (logsumexp - data_values).mean()
 
     @train_api
-    def update(self, batch: TorchMiniBatch) -> np.ndarray:
+    def update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._optim is not None
 
         self._optim.zero_grad()
 
         q_tpn = self.compute_target(batch)
 
-        loss, cql_loss = self.compute_loss(batch, q_tpn)
+        td_loss = self.compute_loss(batch, q_tpn)
+        conservative_loss = self._compute_conservative_loss(
+            batch.observations, batch.actions.long()
+        )
+        loss = td_loss + self._alpha * conservative_loss
 
         loss.backward()
         self._optim.step()
 
-        return np.array(
-            [loss.cpu().detach().numpy(), cql_loss.cpu().detach().numpy()]
-        )
+        return {
+            "loss": float(loss.cpu().detach().numpy()),
+            "td_loss": float(td_loss.cpu().detach().numpy()),
+            "conservative_loss": float(
+                conservative_loss.cpu().detach().numpy()
+            ),
+        }

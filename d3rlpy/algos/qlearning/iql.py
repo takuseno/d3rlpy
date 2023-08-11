@@ -163,13 +163,8 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
 
         metrics = {}
 
-        critic_loss, value_loss = self._impl.update_critic_and_state_value(
-            batch
-        )
-        metrics.update({"critic_loss": critic_loss, "value_loss": value_loss})
-
-        actor_loss = self._impl.update_actor(batch)
-        metrics.update({"actor_loss": actor_loss})
+        metrics.update(self._impl.update_critic_and_state_value(batch))
+        metrics.update(self._impl.update_actor(batch))
 
         self._impl.update_critic_target()
 

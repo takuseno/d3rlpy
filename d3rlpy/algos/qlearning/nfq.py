@@ -96,7 +96,7 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         loss = self._impl.update(batch)
         self._impl.update_target()
-        return {"loss": float(loss)}
+        return loss
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE

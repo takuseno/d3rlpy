@@ -1,4 +1,5 @@
 import copy
+from typing import Dict
 
 import torch
 from torch.optim import Optimizer
@@ -59,7 +60,7 @@ class PLASImpl(DDPGBaseImpl):
         self._imitator_optim = imitator_optim
 
     @train_api
-    def update_imitator(self, batch: TorchMiniBatch) -> float:
+    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._imitator_optim.zero_grad()
 
         loss = compute_vae_error(
@@ -72,7 +73,7 @@ class PLASImpl(DDPGBaseImpl):
         loss.backward()
         self._imitator_optim.step()
 
-        return float(loss.cpu().detach().numpy())
+        return {"imitator_loss": float(loss.cpu().detach().numpy())}
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         latent_actions = 2.0 * self._policy(batch.observations).squashed_mu

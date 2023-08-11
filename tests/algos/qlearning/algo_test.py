@@ -284,6 +284,8 @@ def update_tester(
     assert algo.grad_step == 0
 
     assert len(loss.items()) > 0
+    for metric in loss.values():
+        assert isinstance(metric, float)
 
     if test_q_function_optim_copy:
         algo2 = cast(

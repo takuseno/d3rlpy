@@ -237,27 +237,23 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
 
         metrics = {}
 
-        imitator_loss = self._impl.update_imitator(batch)
-        metrics.update({"imitator_loss": imitator_loss})
+        metrics.update(self._impl.update_imitator(batch))
 
         # lagrangian parameter update for SAC temperature
         if self._config.temp_learning_rate > 0:
-            temp_loss, temp = self._impl.update_temp(batch)
-            metrics.update({"temp_loss": temp_loss, "temp": temp})
+            metrics.update(self._impl.update_temp(batch))
 
         # lagrangian parameter update for MMD loss weight
         if self._config.alpha_learning_rate > 0:
-            alpha_loss, alpha = self._impl.update_alpha(batch)
-            metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
+            metrics.update(self._impl.update_alpha(batch))
 
-        critic_loss = self._impl.update_critic(batch)
-        metrics.update({"critic_loss": critic_loss})
+        metrics.update(self._impl.update_critic(batch))
 
         if self._grad_step < self._config.warmup_steps:
             actor_loss = self._impl.warmup_actor(batch)
         else:
             actor_loss = self._impl.update_actor(batch)
-        metrics.update({"actor_loss": actor_loss})
+        metrics.update(actor_loss)
 
         self._impl.update_actor_target()
         self._impl.update_critic_target()

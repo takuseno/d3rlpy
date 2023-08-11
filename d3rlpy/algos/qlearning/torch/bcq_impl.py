@@ -1,5 +1,5 @@
 import math
-from typing import cast
+from typing import Dict, cast
 
 import torch
 import torch.nn.functional as F
@@ -88,7 +88,7 @@ class BCQImpl(DDPGBaseImpl):
         ].mean()
 
     @train_api
-    def update_imitator(self, batch: TorchMiniBatch) -> float:
+    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._imitator_optim.zero_grad()
 
         loss = compute_vae_error(
@@ -101,7 +101,7 @@ class BCQImpl(DDPGBaseImpl):
         loss.backward()
         self._imitator_optim.step()
 
-        return float(loss.cpu().detach().numpy())
+        return {"imitator_loss": float(loss.cpu().detach().numpy())}
 
     def _repeat_observation(self, x: torch.Tensor) -> torch.Tensor:
         # (batch_size, *obs_shape) -> (batch_size, n, *obs_shape)

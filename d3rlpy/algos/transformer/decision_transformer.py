@@ -126,7 +126,7 @@ class DecisionTransformer(
     def inner_update(self, batch: TorchTrajectoryMiniBatch) -> Dict[str, float]:
         assert self._impl
         loss = self._impl.update(batch)
-        return {"loss": loss}
+        return loss
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS

@@ -1,6 +1,6 @@
 import copy
 import math
-from typing import Tuple
+from typing import Dict
 
 import torch
 import torch.nn.functional as F
@@ -66,7 +66,7 @@ class SACImpl(DDPGBaseImpl):
         return (entropy - q_t).mean()
 
     @train_api
-    def update_temp(self, batch: TorchMiniBatch) -> Tuple[float, float]:
+    def update_temp(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._temp_optim.zero_grad()
 
         with torch.no_grad():
@@ -84,7 +84,10 @@ class SACImpl(DDPGBaseImpl):
         # current temperature value
         cur_temp = self._log_temp().exp().cpu().detach().numpy()[0][0]
 
-        return float(loss.cpu().detach().numpy()), float(cur_temp)
+        return {
+            "temp_loss": float(loss.cpu().detach().numpy()),
+            "temp": float(cur_temp),
+        }
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
@@ -142,7 +145,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._targ_q_func = copy.deepcopy(q_func)
 
     @train_api
-    def update_critic(self, batch: TorchMiniBatch) -> float:
+    def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._critic_optim.zero_grad()
 
         q_tpn = self.compute_target(batch)
@@ -151,7 +154,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         loss.backward()
         self._critic_optim.step()
 
-        return float(loss.cpu().detach().numpy())
+        return {"critic_loss": float(loss.cpu().detach().numpy())}
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
@@ -182,7 +185,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         )
 
     @train_api
-    def update_actor(self, batch: TorchMiniBatch) -> float:
+    def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
         # Q function should be inference mode for stability
         self._q_func.eval()
 
@@ -193,7 +196,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         loss.backward()
         self._actor_optim.step()
 
-        return float(loss.cpu().detach().numpy())
+        return {"actor_loss": float(loss.cpu().detach().numpy())}
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
@@ -205,7 +208,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         return (probs * (entropy - q_t)).sum(dim=1).mean()
 
     @train_api
-    def update_temp(self, batch: TorchMiniBatch) -> Tuple[float, float]:
+    def update_temp(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._temp_optim.zero_grad()
 
         with torch.no_grad():
@@ -224,7 +227,10 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         # current temperature value
         cur_temp = self._log_temp().exp().cpu().detach().numpy()[0][0]
 
-        return float(loss.cpu().detach().numpy()), float(cur_temp)
+        return {
+            "temp_loss": float(loss.cpu().detach().numpy()),
+            "temp": float(cur_temp),
+        }
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         dist = self._policy(x)

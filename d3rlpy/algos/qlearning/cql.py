@@ -198,19 +198,14 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
 
         # lagrangian parameter update for SAC temperature
         if self._config.temp_learning_rate > 0:
-            temp_loss, temp = self._impl.update_temp(batch)
-            metrics.update({"temp_loss": temp_loss, "temp": temp})
+            metrics.update(self._impl.update_temp(batch))
 
         # lagrangian parameter update for conservative loss weight
         if self._config.alpha_learning_rate > 0:
-            alpha_loss, alpha = self._impl.update_alpha(batch)
-            metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
+            metrics.update(self._impl.update_alpha(batch))
 
-        critic_loss = self._impl.update_critic(batch)
-        metrics.update({"critic_loss": critic_loss})
-
-        actor_loss = self._impl.update_actor(batch)
-        metrics.update({"actor_loss": actor_loss})
+        metrics.update(self._impl.update_critic(batch))
+        metrics.update(self._impl.update_actor(batch))
 
         self._impl.update_critic_target()
         self._impl.update_actor_target()
@@ -309,10 +304,10 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
 
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss, conservative_loss = self._impl.update(batch)
+        loss = self._impl.update(batch)
         if self._grad_step % self._config.target_update_interval == 0:
             self._impl.update_target()
-        return {"loss": loss, "conservative_loss": conservative_loss}
+        return loss
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE

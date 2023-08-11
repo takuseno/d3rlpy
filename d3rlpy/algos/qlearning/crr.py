@@ -176,8 +176,9 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
-        critic_loss = self._impl.update_critic(batch)
-        actor_loss = self._impl.update_actor(batch)
+        metrics = {}
+        metrics.update(self._impl.update_critic(batch))
+        metrics.update(self._impl.update_actor(batch))
 
         if self._config.target_update_type == "hard":
             if self._grad_step % self._config.target_update_interval == 0:
@@ -191,7 +192,7 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
                 f"invalid target_update_type: {self._config.target_update_type}"
             )
 
-        return {"critic_loss": critic_loss, "actor_loss": actor_loss}
+        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS

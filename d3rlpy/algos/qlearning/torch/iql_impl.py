@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Dict
 
 import torch
 from torch.optim import Optimizer
@@ -98,7 +98,7 @@ class IQLImpl(DDPGBaseImpl):
     @train_api
     def update_critic_and_state_value(
         self, batch: TorchMiniBatch
-    ) -> Tuple[float, float]:
+    ) -> Dict[str, float]:
         self._critic_optim.zero_grad()
 
         # compute Q-function loss
@@ -113,9 +113,10 @@ class IQLImpl(DDPGBaseImpl):
         loss.backward()
         self._critic_optim.step()
 
-        return float(q_loss.cpu().detach().numpy()), float(
-            v_loss.cpu().detach().numpy()
-        )
+        return {
+            "critic_loss": float(q_loss.cpu().detach().numpy()),
+            "v_loss": float(v_loss.cpu().detach().numpy()),
+        }
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         dist = build_gaussian_distribution(self._policy(x))
