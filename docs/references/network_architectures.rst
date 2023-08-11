@@ -30,6 +30,7 @@ You can also build your own encoder factory.
 
 .. code-block:: python
 
+   import dataclasses
    import torch
    import torch.nn as nn
 
@@ -48,17 +49,16 @@ You can also build your own encoder factory.
            return h
 
    # your own encoder factory
+   @dataclasses.dataclass()
    class CustomEncoderFactory(EncoderFactory):
-       TYPE = 'custom' # this is necessary
-
-       def __init__(self, feature_size):
-           self.feature_size = feature_size
+       feature_size: int
 
        def create(self, observation_shape):
            return CustomEncoder(observation_shape, self.feature_size)
 
-       def get_params(self, deep=False):
-           return {'feature_size': self.feature_size}
+       @staticmethod
+       def get_type() -> str:
+           return "custom"
 
    dqn = d3rlpy.algos.DQNConfig(
       encoder_factory=CustomEncoderFactory(feature_size=64),
@@ -83,11 +83,9 @@ controls.
            h = torch.relu(self.fc2(h))
            return h
 
+   @dataclasses.dataclass()
    class CustomEncoderFactory(EncoderFactory):
-       TYPE = 'custom' # this is necessary
-
-       def __init__(self, feature_size):
-           self.feature_size = feature_size
+       feature_size: int
 
        def create(self, observation_shape):
            return CustomEncoder(observation_shape, self.feature_size)
@@ -95,8 +93,10 @@ controls.
        def create_with_action(observation_shape, action_size, discrete_action):
            return CustomEncoderWithAction(observation_shape, action_size, self.feature_size)
 
-       def get_params(self, deep=False):
-           return {'feature_size': self.feature_size}
+       @staticmethod
+       def get_type() -> str:
+           return "custom"
+
 
    factory = CustomEncoderFactory(feature_size=64)
 
