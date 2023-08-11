@@ -11,16 +11,13 @@ from .torch import (
     ConditionalVAE,
     ContinuousDecisionTransformer,
     DeterministicPolicy,
-    DeterministicRegressor,
     DeterministicResidualPolicy,
     DiscreteDecisionTransformer,
-    DiscreteImitator,
     EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
     GlobalPositionEncoding,
     NormalPolicy,
     Parameter,
-    ProbablisticRegressor,
     SimplePositionEncoding,
     VAEDecoder,
     VAEEncoder,
@@ -37,9 +34,6 @@ __all__ = [
     "create_categorical_policy",
     "create_normal_policy",
     "create_conditional_vae",
-    "create_discrete_imitator",
-    "create_deterministic_regressor",
-    "create_probablistic_regressor",
     "create_value_function",
     "create_parameter",
     "create_continuous_decision_transformer",
@@ -222,63 +216,6 @@ def create_conditional_vae(
     policy = ConditionalVAE(encoder=encoder, decoder=decoder)
     policy.to(device)
     return policy
-
-
-def create_discrete_imitator(
-    observation_shape: Shape,
-    action_size: int,
-    beta: float,
-    encoder_factory: EncoderFactory,
-    device: str,
-) -> DiscreteImitator:
-    encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, device)
-    imitator = DiscreteImitator(
-        encoder=encoder,
-        hidden_size=hidden_size,
-        action_size=action_size,
-        beta=beta,
-    )
-    imitator.to(device)
-    return imitator
-
-
-def create_deterministic_regressor(
-    observation_shape: Shape,
-    action_size: int,
-    encoder_factory: EncoderFactory,
-    device: str,
-) -> DeterministicRegressor:
-    encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, device)
-    regressor = DeterministicRegressor(
-        encoder=encoder,
-        hidden_size=hidden_size,
-        action_size=action_size,
-    )
-    regressor.to(device)
-    return regressor
-
-
-def create_probablistic_regressor(
-    observation_shape: Shape,
-    action_size: int,
-    encoder_factory: EncoderFactory,
-    device: str,
-    min_logstd: float = -20.0,
-    max_logstd: float = 2.0,
-) -> ProbablisticRegressor:
-    encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, device)
-    regressor = ProbablisticRegressor(
-        encoder=encoder,
-        hidden_size=hidden_size,
-        action_size=action_size,
-        min_logstd=min_logstd,
-        max_logstd=max_logstd,
-    )
-    regressor.to(device)
-    return regressor
 
 
 def create_value_function(

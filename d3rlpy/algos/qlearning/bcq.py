@@ -5,16 +5,16 @@ from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
+    create_categorical_policy,
     create_conditional_vae,
     create_continuous_q_function,
     create_deterministic_residual_policy,
-    create_discrete_imitator,
     create_discrete_q_function,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...models.torch import DiscreteImitator, PixelEncoder, compute_output_size
+from ...models.torch import CategoricalPolicy, PixelEncoder, compute_output_size
 from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
@@ -342,18 +342,16 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
                 q_func.q_funcs[0].encoder,
                 device=self._device,
             )
-            imitator = DiscreteImitator(
+            imitator = CategoricalPolicy(
                 encoder=q_func.q_funcs[0].encoder,
                 hidden_size=hidden_size,
                 action_size=action_size,
-                beta=self._config.beta,
             )
             imitator.to(self._device)
         else:
-            imitator = create_discrete_imitator(
+            imitator = create_categorical_policy(
                 observation_shape,
                 action_size,
-                self._config.beta,
                 self._config.encoder_factory,
                 device=self._device,
             )

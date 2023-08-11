@@ -1,4 +1,4 @@
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from typing import Union
 
 import torch
@@ -6,16 +6,15 @@ from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
+    CategoricalPolicy,
     DeterministicPolicy,
-    DeterministicRegressor,
-    DiscreteImitator,
-    Imitator,
     NormalPolicy,
     Policy,
-    ProbablisticRegressor,
-    compute_output_size,
+    compute_deterministic_imitation_loss,
+    compute_discrete_imitation_loss,
+    compute_stochastic_imitation_loss,
 )
-from ....torch_utility import TorchMiniBatch, hard_sync, train_api
+from ....torch_utility import TorchMiniBatch, train_api
 from ..base import QLearningAlgoImplBase
 
 __all__ = ["BCImpl", "DiscreteBCImpl"]
@@ -23,14 +22,12 @@ __all__ = ["BCImpl", "DiscreteBCImpl"]
 
 class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
     _learning_rate: float
-    _imitator: Imitator
     _optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        imitator: Imitator,
         optim: Optimizer,
         device: str,
     ):
@@ -39,7 +36,6 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
             action_size=action_size,
             device=device,
         )
-        self._imitator = imitator
         self._optim = optim
 
     @train_api
@@ -53,13 +49,11 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
         return float(loss.cpu().detach().numpy())
 
+    @abstractmethod
     def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
-        return self._imitator.compute_error(obs_t, act_t)
-
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._imitator(x)
+        pass
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         return self.inner_predict_best_action(x)
@@ -71,63 +65,42 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
 
 class BCImpl(BCBaseImpl):
-    _policy_type: str
-    _imitator: Union[DeterministicRegressor, ProbablisticRegressor]
+    _imitator: Union[DeterministicPolicy, NormalPolicy]
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        imitator: Union[DeterministicRegressor, ProbablisticRegressor],
+        imitator: Union[DeterministicPolicy, NormalPolicy],
         optim: Optimizer,
-        policy_type: str,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            imitator=imitator,
             optim=optim,
             device=device,
         )
-        self._policy_type = policy_type
+        self._imitator = imitator
+
+    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+        return self._imitator(x).squashed_mu
+
+    def compute_loss(
+        self, obs_t: torch.Tensor, act_t: torch.Tensor
+    ) -> torch.Tensor:
+        if isinstance(self._imitator, DeterministicPolicy):
+            return compute_deterministic_imitation_loss(
+                self._imitator, obs_t, act_t
+            )
+        else:
+            return compute_stochastic_imitation_loss(
+                self._imitator, obs_t, act_t
+            )
 
     @property
     def policy(self) -> Policy:
-        policy: Policy
-        hidden_size = compute_output_size(
-            [self._observation_shape, (self._action_size,)],
-            self._imitator.encoder,
-            device=self._device,
-        )
-        if self._policy_type == "deterministic":
-            hidden_size = compute_output_size(
-                [self._observation_shape, (self._action_size,)],
-                self._imitator.encoder,
-                device=self._device,
-            )
-            policy = DeterministicPolicy(
-                encoder=self._imitator.encoder,
-                hidden_size=hidden_size,
-                action_size=self._action_size,
-            )
-        elif self._policy_type == "stochastic":
-            return NormalPolicy(
-                encoder=self._imitator.encoder,
-                hidden_size=hidden_size,
-                action_size=self._action_size,
-                min_logstd=-4.0,
-                max_logstd=15.0,
-                use_std_parameter=False,
-            )
-        else:
-            raise ValueError(f"invalid policy_type: {self._policy_type}")
-        policy.to(self._device)
-
-        # copy parameters
-        hard_sync(policy, self._imitator)
-
-        return policy
+        return self._imitator
 
     @property
     def policy_optim(self) -> Optimizer:
@@ -136,13 +109,13 @@ class BCImpl(BCBaseImpl):
 
 class DiscreteBCImpl(BCBaseImpl):
     _beta: float
-    _imitator: DiscreteImitator
+    _imitator: CategoricalPolicy
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        imitator: DiscreteImitator,
+        imitator: CategoricalPolicy,
         optim: Optimizer,
         beta: float,
         device: str,
@@ -150,16 +123,18 @@ class DiscreteBCImpl(BCBaseImpl):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            imitator=imitator,
             optim=optim,
             device=device,
         )
+        self._imitator = imitator
         self._beta = beta
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._imitator(x).argmax(dim=1)
+        return self._imitator(x).logits.argmax(dim=1)
 
     def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
-        return self._imitator.compute_error(obs_t, act_t.long())
+        return compute_discrete_imitation_loss(
+            policy=self._imitator, x=obs_t, action=act_t.long(), beta=self._beta
+        )

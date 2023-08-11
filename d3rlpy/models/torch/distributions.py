@@ -1,6 +1,6 @@
 import math
 from abc import ABCMeta, abstractmethod
-from typing import Optional, Tuple
+from typing import Tuple
 
 import torch
 import torch.nn.functional as F
@@ -49,14 +49,13 @@ class GaussianDistribution(Distribution):
 
     def __init__(
         self,
-        loc: torch.Tensor,
+        loc: torch.Tensor,  # squashed mean
         std: torch.Tensor,
-        raw_loc: Optional[torch.Tensor] = None,
+        raw_loc: torch.Tensor,
     ):
         self._mean = loc
         self._std = std
-        if raw_loc is not None:
-            self._raw_loc = raw_loc
+        self._raw_loc = raw_loc
         self._dist = Normal(self._mean, self._std)
 
     def sample(self) -> torch.Tensor:

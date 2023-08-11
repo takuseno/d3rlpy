@@ -3,6 +3,7 @@ import math
 from typing import Tuple
 
 import torch
+import torch.nn.functional as F
 from torch.optim import Optimizer
 
 from ....dataset import Shape
@@ -209,7 +210,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
         with torch.no_grad():
             dist = self._policy(batch.observations)
-            log_probs = dist.logits
+            log_probs = F.log_softmax(dist.logits, dim=1)
             probs = dist.probs
             expct_log_probs = (probs * log_probs).sum(dim=1, keepdim=True)
             entropy_target = 0.98 * (-math.log(1 / self.action_size))

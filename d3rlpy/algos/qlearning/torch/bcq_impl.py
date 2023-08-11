@@ -2,15 +2,17 @@ import math
 from typing import cast
 
 import torch
+import torch.nn.functional as F
 from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
+    CategoricalPolicy,
     ConditionalVAE,
     DeterministicResidualPolicy,
-    DiscreteImitator,
     EnsembleContinuousQFunction,
     EnsembleDiscreteQFunction,
+    compute_discrete_imitation_loss,
     compute_max_with_n_actions,
     compute_vae_error,
     forward_vae_decode,
@@ -171,14 +173,14 @@ class BCQImpl(DDPGBaseImpl):
 class DiscreteBCQImpl(DoubleDQNImpl):
     _action_flexibility: float
     _beta: float
-    _imitator: DiscreteImitator
+    _imitator: CategoricalPolicy
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
         q_func: EnsembleDiscreteQFunction,
-        imitator: DiscreteImitator,
+        imitator: CategoricalPolicy,
         optim: Optimizer,
         gamma: float,
         action_flexibility: float,
@@ -201,13 +203,17 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> torch.Tensor:
         loss = super().compute_loss(batch, q_tpn)
-        imitator_loss = self._imitator.compute_error(
-            batch.observations, batch.actions.long()
+        imitator_loss = compute_discrete_imitation_loss(
+            policy=self._imitator,
+            x=batch.observations,
+            action=batch.actions.long(),
+            beta=self._beta,
         )
         return loss + imitator_loss
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        log_probs = self._imitator(x)
+        dist = self._imitator(x)
+        log_probs = F.log_softmax(dist.logits, dim=1)
         ratio = log_probs - log_probs.max(dim=1, keepdim=True).values
         mask = (ratio > math.log(self._action_flexibility)).float()
         value = self._q_func(x)

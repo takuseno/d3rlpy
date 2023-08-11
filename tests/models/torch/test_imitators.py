@@ -1,19 +1,23 @@
 import pytest
 import torch
-import torch.nn.functional as F
 
 from d3rlpy.models.torch.imitators import (
     ConditionalVAE,
-    DeterministicRegressor,
-    DiscreteImitator,
-    ProbablisticRegressor,
     VAEDecoder,
     VAEEncoder,
+    compute_deterministic_imitation_loss,
+    compute_discrete_imitation_loss,
+    compute_stochastic_imitation_loss,
     compute_vae_error,
     forward_vae_decode,
     forward_vae_encode,
     forward_vae_sample,
     forward_vae_sample_n,
+)
+from d3rlpy.models.torch.policies import (
+    CategoricalPolicy,
+    DeterministicPolicy,
+    NormalPolicy,
 )
 
 from .model_test import (
@@ -137,86 +141,72 @@ def test_conditional_vae(
 
 @pytest.mark.parametrize("feature_size", [100])
 @pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("beta", [1e-2])
 @pytest.mark.parametrize("batch_size", [32])
-def test_discrete_imitator(
-    feature_size: int, action_size: int, beta: float, batch_size: int
+@pytest.mark.parametrize("beta", [0.5])
+def test_compute_discrete_imitation_loss(
+    feature_size: int, action_size: int, batch_size: int, beta: float
 ) -> None:
     encoder = DummyEncoder(feature_size)
-    imitator = DiscreteImitator(
+    policy = CategoricalPolicy(
         encoder=encoder,
         hidden_size=feature_size,
         action_size=action_size,
-        beta=beta,
     )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
-    y = imitator(x)
-    assert torch.allclose(y.exp().sum(dim=1), torch.ones(batch_size))
-    y, logits = imitator.compute_log_probs_with_logits(x)
-    assert torch.allclose(y, F.log_softmax(logits, dim=1))
-
-    action = torch.randint(low=0, high=action_size - 1, size=(batch_size,))
-    loss = imitator.compute_error(x, action)
-    penalty = (logits**2).mean()
-    assert torch.allclose(loss, F.nll_loss(y, action) + beta * penalty)
-
-    # check layer connections
-    check_parameter_updates(imitator, (x, action))
+    action = torch.randint(low=0, high=action_size, size=(batch_size,))
+    loss = compute_discrete_imitation_loss(policy, x, action, beta)
+    assert loss.ndim == 0
 
 
 @pytest.mark.parametrize("feature_size", [100])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
-def test_deterministic_regressor(
+def test_compute_deterministic_imitation_loss(
     feature_size: int, action_size: int, batch_size: int
 ) -> None:
     encoder = DummyEncoder(feature_size)
-    imitator = DeterministicRegressor(
+    policy = DeterministicPolicy(
         encoder=encoder,
         hidden_size=feature_size,
         action_size=action_size,
     )
 
+    # check output shape
     x = torch.rand(batch_size, feature_size)
-    y = imitator(x)
-    assert y.shape == (batch_size, action_size)
-
     action = torch.rand(batch_size, action_size)
-    loss = imitator.compute_error(x, action)
-    assert torch.allclose(F.mse_loss(y, action), loss)
-
-    # check layer connections
-    check_parameter_updates(imitator, (x, action))
+    loss = compute_deterministic_imitation_loss(policy, x, action)
+    assert loss.ndim == 0
+    assert loss == ((policy(x).squashed_mu - action) ** 2).mean()
 
 
 @pytest.mark.parametrize("feature_size", [100])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
-@pytest.mark.parametrize("n", [10])
-def test_probablistic_regressor(
-    feature_size: int, action_size: int, batch_size: int, n: int
+@pytest.mark.parametrize("min_logstd", [-20.0])
+@pytest.mark.parametrize("max_logstd", [2.0])
+@pytest.mark.parametrize("use_std_parameter", [True, False])
+def test_compute_stochastic_imitation_loss(
+    feature_size: int,
+    action_size: int,
+    batch_size: int,
+    min_logstd: float,
+    max_logstd: float,
+    use_std_parameter: bool,
 ) -> None:
     encoder = DummyEncoder(feature_size)
-    imitator = ProbablisticRegressor(
+    policy = NormalPolicy(
         encoder=encoder,
         hidden_size=feature_size,
         action_size=action_size,
-        min_logstd=-20,
-        max_logstd=2,
+        min_logstd=min_logstd,
+        max_logstd=max_logstd,
+        use_std_parameter=use_std_parameter,
     )
 
+    # check output shape
     x = torch.rand(batch_size, feature_size)
-    y = imitator(x)
-    assert y.shape == (batch_size, action_size)
-
     action = torch.rand(batch_size, action_size)
-    loss = imitator.compute_error(x, action)
+    loss = compute_stochastic_imitation_loss(policy, x, action)
     assert loss.ndim == 0
-
-    y = imitator.sample_n(x, n)
-    assert y.shape == (batch_size, n, action_size)
-
-    # check layer connections
-    check_parameter_updates(imitator, (x, action))

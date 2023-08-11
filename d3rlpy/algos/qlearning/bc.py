@@ -5,9 +5,9 @@ from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
-    create_deterministic_regressor,
-    create_discrete_imitator,
-    create_probablistic_regressor,
+    create_categorical_policy,
+    create_deterministic_policy,
+    create_normal_policy,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
@@ -75,14 +75,14 @@ class BC(_BCBase[BCConfig]):
         self, observation_shape: Shape, action_size: int
     ) -> None:
         if self._config.policy_type == "deterministic":
-            imitator = create_deterministic_regressor(
+            imitator = create_deterministic_policy(
                 observation_shape,
                 action_size,
                 self._config.encoder_factory,
                 device=self._device,
             )
         elif self._config.policy_type == "stochastic":
-            imitator = create_probablistic_regressor(
+            imitator = create_normal_policy(
                 observation_shape,
                 action_size,
                 self._config.encoder_factory,
@@ -102,7 +102,6 @@ class BC(_BCBase[BCConfig]):
             action_size=action_size,
             imitator=imitator,
             optim=optim,
-            policy_type=self._config.policy_type,
             device=self._device,
         )
 
@@ -156,10 +155,9 @@ class DiscreteBC(_BCBase[DiscreteBCConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        imitator = create_discrete_imitator(
+        imitator = create_categorical_policy(
             observation_shape,
             action_size,
-            self._config.beta,
             self._config.encoder_factory,
             device=self._device,
         )
