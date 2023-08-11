@@ -11,7 +11,7 @@ Otherwise, the standard MLP architecture that consists with two linear
 layers with ``256`` hidden units.
 
 Furthermore, d3rlpy provides ``EncoderFactory`` that gives you flexible control
-over this neural netowrk architectures.
+over the neural network architectures.
 
 .. code-block:: python
 
