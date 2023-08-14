@@ -13,9 +13,12 @@ from ...models import (
     make_optimizer_field,
 )
 from ...models.builders import create_continuous_decision_transformer
-from ...torch_utility import Checkpointer, TorchTrajectoryMiniBatch
+from ...torch_utility import TorchTrajectoryMiniBatch
 from .base import TransformerAlgoBase, TransformerConfig
-from .torch.decision_transformer_impl import DecisionTransformerImpl
+from .torch.decision_transformer_impl import (
+    DecisionTransformerImpl,
+    DecisionTransformerModules,
+)
 
 __all__ = ["DecisionTransformerConfig", "DecisionTransformer"]
 
@@ -113,19 +116,17 @@ class DecisionTransformer(
         if self._config.compile:
             transformer = torch.compile(transformer, fullgraph=True)
 
-        checkpointer = Checkpointer(
-            modules={"transformer": transformer, "optim": optim},
-            device=self._device,
+        modules = DecisionTransformerModules(
+            transformer=transformer,
+            optim=optim,
         )
 
         self._impl = DecisionTransformerImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            transformer=transformer,
-            optim=optim,
+            modules=modules,
             scheduler=scheduler,
             clip_grad_norm=self._config.clip_grad_norm,
-            checkpointer=checkpointer,
             device=self._device,
         )
 

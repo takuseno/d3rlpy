@@ -1,9 +1,9 @@
+import dataclasses
 import math
 from typing import Dict, cast
 
 import torch
 import torch.nn.functional as F
-from torch import nn
 from torch.optim import Optimizer
 
 from ....dataset import Shape
@@ -18,66 +18,57 @@ from ....models.torch import (
     compute_vae_error,
     forward_vae_decode,
 )
-from ....torch_utility import Checkpointer, TorchMiniBatch, train_api
-from .ddpg_impl import DDPGBaseImpl
-from .dqn_impl import DoubleDQNImpl
+from ....torch_utility import TorchMiniBatch, soft_sync, train_api
+from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
+from .dqn_impl import DoubleDQNImpl, DQNModules
 
-__all__ = ["BCQImpl", "DiscreteBCQImpl"]
+__all__ = ["BCQImpl", "DiscreteBCQImpl", "BCQModules", "DiscreteBCQModules"]
+
+
+@dataclasses.dataclass(frozen=True)
+class BCQModules(DDPGBaseModules):
+    policy: DeterministicResidualPolicy
+    targ_policy: DeterministicResidualPolicy
+    imitator: ConditionalVAE
+    imitator_optim: Optimizer
 
 
 class BCQImpl(DDPGBaseImpl):
+    _modules: BCQModules
     _lam: float
     _n_action_samples: int
     _action_flexibility: float
     _beta: float
-    _policy: DeterministicResidualPolicy
-    _targ_policy: DeterministicResidualPolicy
-    _imitator: ConditionalVAE
-    _imitator_optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        policy: DeterministicResidualPolicy,
-        q_funcs: nn.ModuleList,
+        modules: BCQModules,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        targ_q_funcs: nn.ModuleList,
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        imitator: ConditionalVAE,
-        actor_optim: Optimizer,
-        critic_optim: Optimizer,
-        imitator_optim: Optimizer,
         gamma: float,
         tau: float,
         lam: float,
         n_action_samples: int,
         action_flexibility: float,
         beta: float,
-        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            policy=policy,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            actor_optim=actor_optim,
-            critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
-            checkpointer=checkpointer,
             device=device,
         )
         self._lam = lam
         self._n_action_samples = n_action_samples
         self._action_flexibility = action_flexibility
         self._beta = beta
-        self._imitator = imitator
-        self._imitator_optim = imitator_optim
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         latent = torch.randn(
@@ -87,11 +78,11 @@ class BCQImpl(DDPGBaseImpl):
         )
         clipped_latent = latent.clamp(-0.5, 0.5)
         sampled_action = forward_vae_decode(
-            vae=self._imitator,
+            vae=self._modules.imitator,
             x=batch.observations,
             latent=clipped_latent,
         )
-        action = self._policy(batch.observations, sampled_action)
+        action = self._modules.policy(batch.observations, sampled_action)
         value = self._q_func_forwarder.compute_expected_q(
             batch.observations, action.squashed_mu, "none"
         )
@@ -99,17 +90,17 @@ class BCQImpl(DDPGBaseImpl):
 
     @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        self._imitator_optim.zero_grad()
+        self._modules.imitator_optim.zero_grad()
 
         loss = compute_vae_error(
-            vae=self._imitator,
+            vae=self._modules.imitator,
             x=batch.observations,
             action=batch.actions,
             beta=self._beta,
         )
 
         loss.backward()
-        self._imitator_optim.step()
+        self._modules.imitator_optim.step()
 
         return {"imitator_loss": float(loss.cpu().detach().numpy())}
 
@@ -131,12 +122,12 @@ class BCQImpl(DDPGBaseImpl):
         clipped_latent = latent.clamp(-0.5, 0.5)
         # sample action
         sampled_action = forward_vae_decode(
-            vae=self._imitator,
+            vae=self._modules.imitator,
             x=flattened_x,
             latent=clipped_latent,
         )
         # add residual action
-        policy = self._targ_policy if target else self._policy
+        policy = self._modules.targ_policy if target else self._modules.policy
         action = policy(flattened_x, sampled_action)
         return action.squashed_mu.view(
             -1, self._n_action_samples, self._action_size
@@ -174,60 +165,58 @@ class BCQImpl(DDPGBaseImpl):
         with torch.no_grad():
             repeated_x = self._repeat_observation(batch.next_observations)
             actions = self._sample_repeated_action(repeated_x, True)
-
             values = compute_max_with_n_actions(
                 batch.next_observations,
                 actions,
                 self._targ_q_func_forwarder,
                 self._lam,
             )
-
             return values
+
+    def update_actor_target(self) -> None:
+        soft_sync(self._modules.targ_policy, self._modules.policy, self._tau)
+
+
+@dataclasses.dataclass(frozen=True)
+class DiscreteBCQModules(DQNModules):
+    imitator: CategoricalPolicy
 
 
 class DiscreteBCQImpl(DoubleDQNImpl):
+    _modules: DiscreteBCQModules
     _action_flexibility: float
     _beta: float
-    _imitator: CategoricalPolicy
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        q_funcs: nn.ModuleList,
+        modules: DiscreteBCQModules,
         q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
-        targ_q_funcs: nn.ModuleList,
         targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
-        imitator: CategoricalPolicy,
-        optim: Optimizer,
         gamma: float,
         action_flexibility: float,
         beta: float,
-        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            optim=optim,
             gamma=gamma,
-            checkpointer=checkpointer,
             device=device,
         )
         self._action_flexibility = action_flexibility
         self._beta = beta
-        self._imitator = imitator
 
     def compute_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> torch.Tensor:
         loss = super().compute_loss(batch, q_tpn)
         imitator_loss = compute_discrete_imitation_loss(
-            policy=self._imitator,
+            policy=self._modules.imitator,
             x=batch.observations,
             action=batch.actions.long(),
             beta=self._beta,
@@ -235,7 +224,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         return loss + imitator_loss
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        dist = self._imitator(x)
+        dist = self._modules.imitator(x)
         log_probs = F.log_softmax(dist.logits, dim=1)
         ratio = log_probs - log_probs.max(dim=1, keepdim=True).values
         mask = (ratio > math.log(self._action_flexibility)).float()

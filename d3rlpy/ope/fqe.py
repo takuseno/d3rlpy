@@ -18,8 +18,13 @@ from ..models.builders import (
 from ..models.encoders import EncoderFactory, make_encoder_field
 from ..models.optimizers import OptimizerFactory, make_optimizer_field
 from ..models.q_functions import QFunctionFactory, make_q_func_field
-from ..torch_utility import Checkpointer, TorchMiniBatch, convert_to_torch
-from .torch.fqe_impl import DiscreteFQEImpl, FQEBaseImpl, FQEImpl
+from ..torch_utility import TorchMiniBatch, convert_to_torch
+from .torch.fqe_impl import (
+    DiscreteFQEImpl,
+    FQEBaseImpl,
+    FQEBaseModules,
+    FQEImpl,
+)
 
 __all__ = ["FQEConfig", "FQE", "DiscreteFQE"]
 
@@ -176,25 +181,19 @@ class FQE(_FQEBase):
             q_funcs.parameters(), lr=self._config.learning_rate
         )
 
-        checkpointer = Checkpointer(
-            modules={
-                "q_func": q_funcs,
-                "targ_q_func": targ_q_funcs,
-                "optim": optim,
-            },
-            device=self._device,
+        modules = FQEBaseModules(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
         )
 
         self._impl = FQEImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            optim=optim,
             gamma=self._config.gamma,
-            checkpointer=checkpointer,
             device=self._device,
         )
 
@@ -253,24 +252,18 @@ class DiscreteFQE(_FQEBase):
         optim = self._config.optim_factory.create(
             q_funcs.parameters(), lr=self._config.learning_rate
         )
-        checkpointer = Checkpointer(
-            modules={
-                "q_func": q_funcs,
-                "targ_q_func": targ_q_funcs,
-                "optim": optim,
-            },
-            device=self._device,
+        modules = FQEBaseModules(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
         )
         self._impl = DiscreteFQEImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            optim=optim,
             gamma=self._config.gamma,
-            checkpointer=checkpointer,
             device=self._device,
         )
 

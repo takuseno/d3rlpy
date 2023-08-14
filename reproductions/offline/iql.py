@@ -36,7 +36,8 @@ def main() -> None:
     iql.build_with_dataset(dataset)
     assert iql.impl
     scheduler = CosineAnnealingLR(
-        iql.impl._actor_optim, 500000  # pylint: disable=protected-access
+        iql.impl._modules.actor_optim,  # pylint: disable=protected-access
+        500000,
     )
 
     def callback(algo: d3rlpy.algos.IQL, epoch: int, total_step: int) -> None:

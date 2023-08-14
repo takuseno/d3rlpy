@@ -23,7 +23,7 @@ from .preprocessing import (
     make_reward_scaler_field,
 )
 from .serializable_config import DynamicConfig, generate_config_registration
-from .torch_utility import Checkpointer
+from .torch_utility import Checkpointer, Modules
 
 __all__ = [
     "DeviceArg",
@@ -48,6 +48,7 @@ TConfig_co = TypeVar("TConfig_co", bound="LearnableConfig", covariant=True)
 class ImplBase(metaclass=ABCMeta):
     _observation_shape: Shape
     _action_size: int
+    _modules: Modules
     _checkpointer: Checkpointer
     _device: str
 
@@ -55,12 +56,13 @@ class ImplBase(metaclass=ABCMeta):
         self,
         observation_shape: Shape,
         action_size: int,
-        checkpointer: Checkpointer,
+        modules: Modules,
         device: str,
     ):
         self._observation_shape = observation_shape
         self._action_size = action_size
-        self._checkpointer = checkpointer
+        self._modules = modules
+        self._checkpointer = modules.create_checkpointer(device)
         self._device = device
 
     def save_model(self, f: BinaryIO) -> None:
@@ -80,6 +82,10 @@ class ImplBase(metaclass=ABCMeta):
     @property
     def device(self) -> str:
         return self._device
+
+    @property
+    def modules(self) -> Modules:
+        return self._modules
 
 
 @dataclasses.dataclass()

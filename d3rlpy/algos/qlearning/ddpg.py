@@ -11,9 +11,9 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import Checkpointer, TorchMiniBatch
+from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.ddpg_impl import DDPGImpl
+from .torch.ddpg_impl import DDPGImpl, DDPGModules
 
 __all__ = ["DDPGConfig", "DDPG"]
 
@@ -101,6 +101,12 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
             self._config.actor_encoder_factory,
             device=self._device,
         )
+        targ_policy = create_deterministic_policy(
+            observation_shape,
+            action_size,
+            self._config.actor_encoder_factory,
+            device=self._device,
+        )
         q_funcs, q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
@@ -125,30 +131,23 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
             q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
 
-        checkpointer = Checkpointer(
-            modules={
-                "policy": policy,
-                "q_func": q_funcs,
-                "targ_q_func": targ_q_funcs,
-                "actor_optim": actor_optim,
-                "critic_optim": critic_optim,
-            },
-            device=self._device,
+        modules = DDPGModules(
+            policy=policy,
+            targ_policy=targ_policy,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
         )
 
         self._impl = DDPGImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            policy=policy,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            actor_optim=actor_optim,
-            critic_optim=critic_optim,
             gamma=self._config.gamma,
             tau=self._config.tau,
-            checkpointer=checkpointer,
             device=self._device,
         )
 

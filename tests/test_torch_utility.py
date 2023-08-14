@@ -1,4 +1,5 @@
 import copy
+import dataclasses
 from io import BytesIO
 from typing import Any, Dict, Sequence
 from unittest.mock import Mock
@@ -10,21 +11,18 @@ import torch
 from d3rlpy.dataset import TrajectoryMiniBatch, Transition, TransitionMiniBatch
 from d3rlpy.torch_utility import (
     Checkpointer,
+    Modules,
     Swish,
     TorchMiniBatch,
     TorchTrajectoryMiniBatch,
     View,
     eval_api,
-    freeze,
     hard_sync,
     map_location,
     reset_optimizer_states,
-    set_eval_mode,
-    set_train_mode,
     soft_sync,
     sync_optimizer_state,
     train_api,
-    unfreeze,
 )
 
 from .dummy_scalers import (
@@ -115,17 +113,18 @@ class DummyImpl:
         self.fc1 = torch.nn.Linear(100, 100)
         self.fc2 = torch.nn.Linear(100, 100)
         self.optim = torch.optim.Adam(self.fc1.parameters())
+        self.modules = TestModules(self.fc1, self.optim)
         self.device = "cpu:0"
 
     @train_api
     def train_api_func(self) -> None:
         assert self.fc1.training
-        assert self.fc2.training
+        assert not self.fc2.training
 
     @eval_api
     def eval_api_func(self) -> None:
         assert not self.fc1.training
-        assert not self.fc2.training
+        assert self.fc2.training
 
 
 def check_if_same_dict(a: Dict[str, Any], b: Dict[str, Any]) -> None:
@@ -155,28 +154,6 @@ def test_reset_optimizer_states() -> None:
     assert not reset_state
 
 
-def test_eval_mode() -> None:
-    impl = DummyImpl()
-    impl.fc1.train()
-    impl.fc2.train()
-
-    set_eval_mode(impl)
-
-    assert not impl.fc1.training
-    assert not impl.fc2.training
-
-
-def test_train_mode() -> None:
-    impl = DummyImpl()
-    impl.fc1.eval()
-    impl.fc2.eval()
-
-    set_train_mode(impl)
-
-    assert impl.fc1.training
-    assert impl.fc2.training
-
-
 @pytest.mark.skip(reason="no way to test this")
 def test_to_cuda() -> None:
     pass
@@ -187,26 +164,32 @@ def test_to_cpu() -> None:
     pass
 
 
-def test_freeze() -> None:
-    impl = DummyImpl()
+@dataclasses.dataclass(frozen=True)
+class TestModules(Modules):
+    fc: torch.nn.Linear
+    optim: torch.optim.Adam
 
-    freeze(impl)
 
-    for p in impl.fc1.parameters():
+def test_modules() -> None:
+    fc = torch.nn.Linear(100, 200)
+    optim = torch.optim.Adam(fc.parameters())
+    modules = TestModules(fc, optim)
+
+    # check checkpointer
+    checkpointer = modules.create_checkpointer("cpu:0")
+    assert "fc" in checkpointer.modules
+    assert "optim" in checkpointer.modules
+    assert checkpointer.modules["fc"] is fc
+    assert checkpointer.modules["optim"] is optim
+
+    # check freeze
+    modules.freeze()
+    for p in fc.parameters():
         assert not p.requires_grad
-    for p in impl.fc2.parameters():
-        assert not p.requires_grad
 
-
-def test_unfreeze() -> None:
-    impl = DummyImpl()
-
-    freeze(impl)
-    unfreeze(impl)
-
-    for p in impl.fc1.parameters():
-        assert p.requires_grad
-    for p in impl.fc2.parameters():
+    # check unfreeze
+    modules.unfreeze()
+    for p in fc.parameters():
         assert p.requires_grad
 
 

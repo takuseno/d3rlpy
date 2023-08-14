@@ -43,11 +43,9 @@ from ...torch_utility import (
     convert_to_torch,
     convert_to_torch_recursively,
     eval_api,
-    freeze,
     hard_sync,
     reset_optimizer_states,
     sync_optimizer_state,
-    unfreeze,
 )
 from ..utility import (
     assert_action_space_with_dataset,
@@ -196,7 +194,7 @@ class QLearningAlgoBase(
             )
 
         # workaround until version 1.6
-        freeze(self._impl)
+        self._impl.modules.freeze()
 
         # dummy function to select best actions
         def _func(x: torch.Tensor) -> torch.Tensor:
@@ -234,7 +232,7 @@ class QLearningAlgoBase(
             )
 
         # workaround until version 1.6
-        unfreeze(self._impl)
+        self._impl.modules.unfreeze()
 
     def predict(self, x: Observation) -> np.ndarray:
         """Returns greedy actions.

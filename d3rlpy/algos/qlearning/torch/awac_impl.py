@@ -1,24 +1,18 @@
 import torch
 import torch.nn.functional as F
-from torch import nn
-from torch.optim import Adam, Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
-    NormalPolicy,
-    Parameter,
-    Policy,
     build_gaussian_distribution,
 )
-from ....torch_utility import Checkpointer, TorchMiniBatch
-from .sac_impl import SACImpl
+from ....torch_utility import TorchMiniBatch
+from .sac_impl import SACImpl, SACModules
 
 __all__ = ["AWACImpl"]
 
 
 class AWACImpl(SACImpl):
-    _policy: NormalPolicy
     _lam: float
     _n_action_samples: int
 
@@ -26,37 +20,23 @@ class AWACImpl(SACImpl):
         self,
         observation_shape: Shape,
         action_size: int,
-        q_funcs: nn.ModuleList,
+        modules: SACModules,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        targ_q_funcs: nn.ModuleList,
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        policy: Policy,
-        actor_optim: Optimizer,
-        critic_optim: Optimizer,
         gamma: float,
         tau: float,
         lam: float,
         n_action_samples: int,
-        checkpointer: Checkpointer,
         device: str,
     ):
-        assert isinstance(policy, NormalPolicy)
-        dummy_log_temp = Parameter(torch.zeros(1))
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            policy=policy,
-            actor_optim=actor_optim,
-            critic_optim=critic_optim,
-            log_temp=dummy_log_temp,
-            temp_optim=Adam(dummy_log_temp.parameters(), lr=0.0),
             gamma=gamma,
             tau=tau,
-            checkpointer=checkpointer,
             device=device,
         )
         self._lam = lam
@@ -64,7 +44,9 @@ class AWACImpl(SACImpl):
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         # compute log probability
-        dist = build_gaussian_distribution(self._policy(batch.observations))
+        dist = build_gaussian_distribution(
+            self._modules.policy(batch.observations)
+        )
         log_probs = dist.log_prob(batch.actions)
 
         # compute exponential weight
@@ -85,7 +67,7 @@ class AWACImpl(SACImpl):
 
             # sample actions
             # (batch_size * N, action_size)
-            dist = build_gaussian_distribution(self._policy(obs_t))
+            dist = build_gaussian_distribution(self._modules.policy(obs_t))
             policy_actions = dist.sample_n(self._n_action_samples)
             flat_actions = policy_actions.reshape(-1, self.action_size)
 
@@ -113,5 +95,5 @@ class AWACImpl(SACImpl):
         return weights * adv_values.numel()
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        dist = build_gaussian_distribution(self._policy(x))
+        dist = build_gaussian_distribution(self._modules.policy(x))
         return dist.sample()

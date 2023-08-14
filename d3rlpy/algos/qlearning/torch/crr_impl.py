@@ -1,7 +1,7 @@
+import dataclasses
+
 import torch
 import torch.nn.functional as F
-from torch import nn
-from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
@@ -9,32 +9,33 @@ from ....models.torch import (
     NormalPolicy,
     build_gaussian_distribution,
 )
-from ....torch_utility import Checkpointer, TorchMiniBatch, hard_sync
-from .ddpg_impl import DDPGBaseImpl
+from ....torch_utility import TorchMiniBatch, hard_sync, soft_sync
+from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
 
-__all__ = ["CRRImpl"]
+__all__ = ["CRRImpl", "CRRModules"]
+
+
+@dataclasses.dataclass(frozen=True)
+class CRRModules(DDPGBaseModules):
+    policy: NormalPolicy
+    targ_policy: NormalPolicy
 
 
 class CRRImpl(DDPGBaseImpl):
+    _modules: CRRModules
     _beta: float
     _n_action_samples: int
     _advantage_type: str
     _weight_type: str
     _max_weight: float
-    _policy: NormalPolicy
-    _targ_policy: NormalPolicy
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        policy: NormalPolicy,
-        q_funcs: nn.ModuleList,
+        modules: CRRModules,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        targ_q_funcs: nn.ModuleList,
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        actor_optim: Optimizer,
-        critic_optim: Optimizer,
         gamma: float,
         beta: float,
         n_action_samples: int,
@@ -42,22 +43,16 @@ class CRRImpl(DDPGBaseImpl):
         weight_type: str,
         max_weight: float,
         tau: float,
-        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            policy=policy,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            actor_optim=actor_optim,
-            critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
-            checkpointer=checkpointer,
             device=device,
         )
         self._beta = beta
@@ -68,7 +63,9 @@ class CRRImpl(DDPGBaseImpl):
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         # compute log probability
-        dist = build_gaussian_distribution(self._policy(batch.observations))
+        dist = build_gaussian_distribution(
+            self._modules.policy(batch.observations)
+        )
         log_probs = dist.log_prob(batch.actions)
 
         weight = self._compute_weight(batch.observations, batch.actions)
@@ -92,7 +89,7 @@ class CRRImpl(DDPGBaseImpl):
             batch_size = obs_t.shape[0]
 
             # (batch_size, N, action)
-            dist = build_gaussian_distribution(self._policy(obs_t))
+            dist = build_gaussian_distribution(self._modules.policy(obs_t))
             policy_actions = dist.sample_n(self._n_action_samples)
             flat_actions = policy_actions.reshape(-1, self._action_size)
 
@@ -127,7 +124,7 @@ class CRRImpl(DDPGBaseImpl):
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
             action = build_gaussian_distribution(
-                self._targ_policy(batch.next_observations)
+                self._modules.targ_policy(batch.next_observations)
             ).sample()
             return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
@@ -138,7 +135,7 @@ class CRRImpl(DDPGBaseImpl):
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         # compute CWP
 
-        dist = build_gaussian_distribution(self._policy(x))
+        dist = build_gaussian_distribution(self._modules.policy(x))
         actions = dist.onnx_safe_sample_n(self._n_action_samples)
         # (batch_size, N, action_size) -> (batch_size * N, action_size)
         flat_actions = actions.reshape(-1, self._action_size)
@@ -167,11 +164,14 @@ class CRRImpl(DDPGBaseImpl):
         return actions[torch.arange(x.shape[0]), indices.view(-1)]
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
-        dist = build_gaussian_distribution(self._policy(x))
+        dist = build_gaussian_distribution(self._modules.policy(x))
         return dist.sample()
 
     def sync_critic_target(self) -> None:
-        hard_sync(self._targ_q_funcs, self._q_funcs)
+        hard_sync(self._modules.targ_q_funcs, self._modules.q_funcs)
 
     def sync_actor_target(self) -> None:
-        hard_sync(self._targ_policy, self._policy)
+        hard_sync(self._modules.targ_policy, self._modules.policy)
+
+    def update_actor_target(self) -> None:
+        soft_sync(self._modules.targ_policy, self._modules.policy, self._tau)

@@ -14,9 +14,10 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import Checkpointer, TorchMiniBatch
+from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.cql_impl import CQLImpl, DiscreteCQLImpl
+from .torch.cql_impl import CQLImpl, CQLModules, DiscreteCQLImpl
+from .torch.dqn_impl import DQNModules
 
 __all__ = ["CQLConfig", "CQL", "DiscreteCQLConfig", "DiscreteCQL"]
 
@@ -179,42 +180,30 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             log_alpha.parameters(), lr=self._config.alpha_learning_rate
         )
 
-        checkpointer = Checkpointer(
-            modules={
-                "policy": policy,
-                "q_func": q_funcs,
-                "targ_q_func": targ_q_funcs,
-                "log_temp": log_temp,
-                "log_alpha": log_alpha,
-                "actor_optim": actor_optim,
-                "critic_optim": critic_optim,
-                "temp_optim": temp_optim,
-                "alpha_optim": alpha_optim,
-            },
-            device=self._device,
-        )
-
-        self._impl = CQLImpl(
-            observation_shape=observation_shape,
-            action_size=action_size,
+        modules = CQLModules(
             policy=policy,
             q_funcs=q_funcs,
-            q_func_forwarder=q_func_fowarder,
             targ_q_funcs=targ_q_funcs,
-            targ_q_func_forwarder=targ_q_func_forwarder,
             log_temp=log_temp,
             log_alpha=log_alpha,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
             temp_optim=temp_optim,
             alpha_optim=alpha_optim,
+        )
+
+        self._impl = CQLImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            modules=modules,
+            q_func_forwarder=q_func_fowarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
             alpha_threshold=self._config.alpha_threshold,
             conservative_weight=self._config.conservative_weight,
             n_action_samples=self._config.n_action_samples,
             soft_q_backup=self._config.soft_q_backup,
-            checkpointer=checkpointer,
             device=self._device,
         )
 
@@ -235,7 +224,6 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
         metrics.update(self._impl.update_actor(batch))
 
         self._impl.update_critic_target()
-        self._impl.update_actor_target()
 
         return metrics
 
@@ -327,26 +315,20 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
             q_funcs.parameters(), lr=self._config.learning_rate
         )
 
-        checkpointer = Checkpointer(
-            modules={
-                "q_func": q_funcs,
-                "targ_q_func": targ_q_funcs,
-                "optim": optim,
-            },
-            device=self._device,
+        modules = DQNModules(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
         )
 
         self._impl = DiscreteCQLImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            optim=optim,
             gamma=self._config.gamma,
             alpha=self._config.alpha,
-            checkpointer=checkpointer,
             device=self._device,
         )
 

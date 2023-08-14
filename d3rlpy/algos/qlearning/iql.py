@@ -12,9 +12,9 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import MeanQFunctionFactory
-from ...torch_utility import Checkpointer, TorchMiniBatch
+from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.iql_impl import IQLImpl
+from .torch.iql_impl import IQLImpl, IQLModules
 
 __all__ = ["IQLConfig", "IQL"]
 
@@ -150,35 +150,26 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             q_func_params + v_func_params, lr=self._config.critic_learning_rate
         )
 
-        checkpointer = Checkpointer(
-            modules={
-                "policy": policy,
-                "q_func": q_funcs,
-                "targ_q_func": targ_q_funcs,
-                "value_func": value_func,
-                "actor_optim": actor_optim,
-                "critic_optim": critic_optim,
-            },
-            device=self._device,
+        modules = IQLModules(
+            policy=policy,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            value_func=value_func,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
         )
 
         self._impl = IQLImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            policy=policy,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            value_func=value_func,
-            actor_optim=actor_optim,
-            critic_optim=critic_optim,
             gamma=self._config.gamma,
             tau=self._config.tau,
             expectile=self._config.expectile,
             weight_temp=self._config.weight_temp,
             max_weight=self._config.max_weight,
-            checkpointer=checkpointer,
             device=self._device,
         )
 

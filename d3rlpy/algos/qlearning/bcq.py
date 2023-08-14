@@ -15,9 +15,14 @@ from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...models.torch import CategoricalPolicy, PixelEncoder, compute_output_size
-from ...torch_utility import Checkpointer, TorchMiniBatch
+from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
+from .torch.bcq_impl import (
+    BCQImpl,
+    BCQModules,
+    DiscreteBCQImpl,
+    DiscreteBCQModules,
+)
 
 __all__ = ["BCQConfig", "BCQ", "DiscreteBCQConfig", "DiscreteBCQ"]
 
@@ -174,6 +179,13 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             self._config.actor_encoder_factory,
             device=self._device,
         )
+        targ_policy = create_deterministic_residual_policy(
+            observation_shape,
+            action_size,
+            self._config.action_flexibility,
+            self._config.actor_encoder_factory,
+            device=self._device,
+        )
         q_funcs, q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
@@ -210,38 +222,29 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             imitator.parameters(), lr=self._config.imitator_learning_rate
         )
 
-        checkpointer = Checkpointer(
-            modules={
-                "policy": policy,
-                "q_func": q_funcs,
-                "targ_q_func": targ_q_funcs,
-                "imitator": imitator,
-                "actor_optim": actor_optim,
-                "critic_optim": critic_optim,
-                "imitator_optim": imitator_optim,
-            },
-            device=self._device,
+        modules = BCQModules(
+            policy=policy,
+            targ_policy=targ_policy,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            imitator=imitator,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
+            imitator_optim=imitator_optim,
         )
 
         self._impl = BCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            policy=policy,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            imitator=imitator,
-            actor_optim=actor_optim,
-            critic_optim=critic_optim,
-            imitator_optim=imitator_optim,
             gamma=self._config.gamma,
             tau=self._config.tau,
             lam=self._config.lam,
             n_action_samples=self._config.n_action_samples,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
-            checkpointer=checkpointer,
             device=self._device,
         )
 
@@ -398,29 +401,22 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             unique_params, lr=self._config.learning_rate
         )
 
-        checkpointer = Checkpointer(
-            modules={
-                "q_func": q_funcs,
-                "targ_q_func": targ_q_funcs,
-                "imitator": imitator,
-                "optim": optim,
-            },
-            device=self._device,
+        modules = DiscreteBCQModules(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            imitator=imitator,
+            optim=optim,
         )
 
         self._impl = DiscreteBCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            imitator=imitator,
-            optim=optim,
             gamma=self._config.gamma,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
-            checkpointer=checkpointer,
             device=self._device,
         )
 

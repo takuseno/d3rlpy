@@ -1,3 +1,4 @@
+import dataclasses
 from abc import ABCMeta, abstractmethod
 from typing import Union
 
@@ -14,40 +15,42 @@ from ....models.torch import (
     compute_discrete_imitation_loss,
     compute_stochastic_imitation_loss,
 )
-from ....torch_utility import Checkpointer, TorchMiniBatch, train_api
+from ....torch_utility import Modules, TorchMiniBatch, train_api
 from ..base import QLearningAlgoImplBase
 
-__all__ = ["BCImpl", "DiscreteBCImpl"]
+__all__ = ["BCImpl", "DiscreteBCImpl", "BCModules", "DiscreteBCModules"]
+
+
+@dataclasses.dataclass(frozen=True)
+class BCBaseModules(Modules):
+    optim: Optimizer
 
 
 class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
-    _learning_rate: float
-    _optim: Optimizer
+    _modules: BCBaseModules
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        optim: Optimizer,
-        checkpointer: Checkpointer,
+        modules: BCBaseModules,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            checkpointer=checkpointer,
+            modules=modules,
             device=device,
         )
-        self._optim = optim
 
     @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> float:
-        self._optim.zero_grad()
+        self._modules.optim.zero_grad()
 
         loss = self.compute_loss(batch.observations, batch.actions)
 
         loss.backward()
-        self._optim.step()
+        self._modules.optim.step()
 
         return float(loss.cpu().detach().numpy())
 
@@ -66,81 +69,86 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
         raise NotImplementedError("BC does not support value estimation")
 
 
+@dataclasses.dataclass(frozen=True)
+class BCModules(BCBaseModules):
+    imitator: Union[DeterministicPolicy, NormalPolicy]
+
+
 class BCImpl(BCBaseImpl):
-    _imitator: Union[DeterministicPolicy, NormalPolicy]
+    _modules: BCModules
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        imitator: Union[DeterministicPolicy, NormalPolicy],
-        optim: Optimizer,
-        checkpointer: Checkpointer,
+        modules: BCModules,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            optim=optim,
-            checkpointer=checkpointer,
+            modules=modules,
             device=device,
         )
-        self._imitator = imitator
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._imitator(x).squashed_mu
+        return self._modules.imitator(x).squashed_mu
 
     def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
-        if isinstance(self._imitator, DeterministicPolicy):
+        if isinstance(self._modules.imitator, DeterministicPolicy):
             return compute_deterministic_imitation_loss(
-                self._imitator, obs_t, act_t
+                self._modules.imitator, obs_t, act_t
             )
         else:
             return compute_stochastic_imitation_loss(
-                self._imitator, obs_t, act_t
+                self._modules.imitator, obs_t, act_t
             )
 
     @property
     def policy(self) -> Policy:
-        return self._imitator
+        return self._modules.imitator
 
     @property
     def policy_optim(self) -> Optimizer:
-        return self._optim
+        return self._modules.optim
+
+
+@dataclasses.dataclass(frozen=True)
+class DiscreteBCModules(BCBaseModules):
+    imitator: CategoricalPolicy
 
 
 class DiscreteBCImpl(BCBaseImpl):
+    _modules: DiscreteBCModules
     _beta: float
-    _imitator: CategoricalPolicy
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        imitator: CategoricalPolicy,
-        optim: Optimizer,
+        modules: DiscreteBCModules,
         beta: float,
-        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            optim=optim,
-            checkpointer=checkpointer,
+            modules=modules,
             device=device,
         )
-        self._imitator = imitator
         self._beta = beta
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._imitator(x).logits.argmax(dim=1)
+        return self._modules.imitator(x).logits.argmax(dim=1)
 
     def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
         return compute_discrete_imitation_loss(
-            policy=self._imitator, x=obs_t, action=act_t.long(), beta=self._beta
+            policy=self._modules.imitator,
+            x=obs_t,
+            action=act_t.long(),
+            beta=self._beta,
         )

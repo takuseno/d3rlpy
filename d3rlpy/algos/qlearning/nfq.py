@@ -8,9 +8,9 @@ from ...models.builders import create_discrete_q_function
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import Checkpointer, TorchMiniBatch
+from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.dqn_impl import DQNImpl
+from .torch.dqn_impl import DQNImpl, DQNModules
 
 __all__ = ["NFQConfig", "NFQ"]
 
@@ -91,25 +91,19 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
             q_funcs.parameters(), lr=self._config.learning_rate
         )
 
-        checkpointer = Checkpointer(
-            modules={
-                "q_func": q_funcs,
-                "targ_q_func": targ_q_funcs,
-                "optim": optim,
-            },
-            device=self._device,
+        modules = DQNModules(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
         )
 
         self._impl = DQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            optim=optim,
             gamma=self._config.gamma,
-            checkpointer=checkpointer,
             device=self._device,
         )
 

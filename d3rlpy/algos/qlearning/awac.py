@@ -1,6 +1,8 @@
 import dataclasses
 from typing import Dict
 
+import torch
+
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import Shape
@@ -11,9 +13,11 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import Checkpointer, TorchMiniBatch
+from ...models.torch import Parameter
+from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.awac_impl import AWACImpl
+from .torch.sac_impl import SACModules
 
 __all__ = ["AWACConfig", "AWAC"]
 
@@ -130,32 +134,27 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
 
-        checkpointer = Checkpointer(
-            modules={
-                "policy": policy,
-                "q_func": q_funcs,
-                "targ_q_func": targ_q_funcs,
-                "actor_optim": actor_optim,
-                "critic_optim": critic_optim,
-            },
-            device=self._device,
+        dummy_log_temp = Parameter(torch.zeros(1))
+        modules = SACModules(
+            policy=policy,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            log_temp=dummy_log_temp,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
+            temp_optim=torch.optim.Adam(dummy_log_temp.parameters(), lr=0.0),
         )
 
         self._impl = AWACImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            policy=policy,
-            actor_optim=actor_optim,
-            critic_optim=critic_optim,
             gamma=self._config.gamma,
             tau=self._config.tau,
             lam=self._config.lam,
             n_action_samples=self._config.n_action_samples,
-            checkpointer=checkpointer,
             device=self._device,
         )
 

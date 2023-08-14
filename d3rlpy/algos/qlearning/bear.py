@@ -14,9 +14,9 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import Checkpointer, TorchMiniBatch
+from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.bear_impl import BEARImpl
+from .torch.bear_impl import BEARImpl, BEARModules
 
 __all__ = ["BEARConfig", "BEAR"]
 
@@ -214,31 +214,10 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             log_alpha.parameters(), lr=self._config.actor_learning_rate
         )
 
-        checkpointer = Checkpointer(
-            modules={
-                "policy": policy,
-                "q_func": q_funcs,
-                "targ_q_func": targ_q_funcs,
-                "imitator": imitator,
-                "log_temp": log_temp,
-                "log_alpha": log_alpha,
-                "actor_optim": actor_optim,
-                "critic_optim": critic_optim,
-                "imitator_optim": imitator_optim,
-                "temp_optim": temp_optim,
-                "alpha_optim": alpha_optim,
-            },
-            device=self._device,
-        )
-
-        self._impl = BEARImpl(
-            observation_shape=observation_shape,
-            action_size=action_size,
+        modules = BEARModules(
             policy=policy,
             q_funcs=q_funcs,
-            q_func_forwarder=q_func_forwarder,
             targ_q_funcs=targ_q_funcs,
-            targ_q_func_forwarder=targ_q_func_forwarder,
             imitator=imitator,
             log_temp=log_temp,
             log_alpha=log_alpha,
@@ -247,6 +226,14 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             imitator_optim=imitator_optim,
             temp_optim=temp_optim,
             alpha_optim=alpha_optim,
+        )
+
+        self._impl = BEARImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
             alpha_threshold=self._config.alpha_threshold,
@@ -257,7 +244,6 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             mmd_kernel=self._config.mmd_kernel,
             mmd_sigma=self._config.mmd_sigma,
             vae_kl_weight=self._config.vae_kl_weight,
-            checkpointer=checkpointer,
             device=self._device,
         )
 
@@ -284,7 +270,6 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             actor_loss = self._impl.update_actor(batch)
         metrics.update(actor_loss)
 
-        self._impl.update_actor_target()
         self._impl.update_critic_target()
 
         return metrics

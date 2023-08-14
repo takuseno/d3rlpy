@@ -1,3 +1,4 @@
+import dataclasses
 from typing import Union
 
 import torch
@@ -14,55 +15,54 @@ from ...models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
 )
-from ...torch_utility import Checkpointer, TorchMiniBatch, hard_sync, train_api
+from ...torch_utility import Modules, TorchMiniBatch, hard_sync, train_api
 
-__all__ = ["FQEBaseImpl", "FQEImpl", "DiscreteFQEImpl"]
+__all__ = ["FQEBaseImpl", "FQEImpl", "DiscreteFQEImpl", "FQEBaseModules"]
+
+
+@dataclasses.dataclass(frozen=True)
+class FQEBaseModules(Modules):
+    q_funcs: nn.ModuleList
+    targ_q_funcs: nn.ModuleList
+    optim: Optimizer
 
 
 class FQEBaseImpl(QLearningAlgoImplBase):
+    _modules: FQEBaseModules
     _gamma: float
-    _q_funcs: nn.ModuleList
     _q_func_forwarder: Union[
         DiscreteEnsembleQFunctionForwarder, ContinuousEnsembleQFunctionForwarder
     ]
-    _targ_q_funcs: nn.ModuleList
     _targ_q_func_forwarder: Union[
         DiscreteEnsembleQFunctionForwarder, ContinuousEnsembleQFunctionForwarder
     ]
-    _optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        q_funcs: nn.ModuleList,
+        modules: FQEBaseModules,
         q_func_forwarder: Union[
             DiscreteEnsembleQFunctionForwarder,
             ContinuousEnsembleQFunctionForwarder,
         ],
-        targ_q_funcs: nn.ModuleList,
         targ_q_func_forwarder: Union[
             DiscreteEnsembleQFunctionForwarder,
             ContinuousEnsembleQFunctionForwarder,
         ],
-        optim: Optimizer,
         gamma: float,
-        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            checkpointer=checkpointer,
+            modules=modules,
             device=device,
         )
         self._gamma = gamma
-        self._q_funcs = q_funcs
         self._q_func_forwarder = q_func_forwarder
-        self._targ_q_funcs = targ_q_funcs
         self._targ_q_func_forwarder = targ_q_func_forwarder
-        self._optim = optim
-        hard_sync(targ_q_funcs, q_funcs)
+        hard_sync(modules.targ_q_funcs, modules.q_funcs)
 
     @train_api
     def update(
@@ -71,9 +71,9 @@ class FQEBaseImpl(QLearningAlgoImplBase):
         q_tpn = self.compute_target(batch, next_actions)
         loss = self.compute_loss(batch, q_tpn)
 
-        self._optim.zero_grad()
+        self._modules.optim.zero_grad()
         loss.backward()
-        self._optim.step()
+        self._modules.optim.step()
 
         return float(loss.cpu().detach().numpy())
 
@@ -100,7 +100,7 @@ class FQEBaseImpl(QLearningAlgoImplBase):
             )
 
     def update_target(self) -> None:
-        hard_sync(self._targ_q_funcs, self._q_funcs)
+        hard_sync(self._modules.targ_q_funcs, self._modules.q_funcs)
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError

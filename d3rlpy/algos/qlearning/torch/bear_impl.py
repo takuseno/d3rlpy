@@ -1,24 +1,23 @@
+import dataclasses
 from typing import Dict
 
 import torch
-from torch import nn
 from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
     ConditionalVAE,
     ContinuousEnsembleQFunctionForwarder,
-    NormalPolicy,
     Parameter,
     build_squashed_gaussian_distribution,
     compute_max_with_n_actions_and_indices,
     compute_vae_error,
     forward_vae_sample_n,
 )
-from ....torch_utility import Checkpointer, TorchMiniBatch, train_api
-from .sac_impl import SACImpl
+from ....torch_utility import TorchMiniBatch, train_api
+from .sac_impl import SACImpl, SACModules
 
-__all__ = ["BEARImpl"]
+__all__ = ["BEARImpl", "BEARModules"]
 
 
 def _gaussian_kernel(
@@ -35,8 +34,16 @@ def _laplacian_kernel(
     return (-(x - y).abs().sum(dim=3) / (2 * sigma)).exp()
 
 
+@dataclasses.dataclass(frozen=True)
+class BEARModules(SACModules):
+    imitator: ConditionalVAE
+    log_alpha: Parameter
+    imitator_optim: Optimizer
+    alpha_optim: Optimizer
+
+
 class BEARImpl(SACImpl):
-    _policy: NormalPolicy
+    _modules: BEARModules
     _alpha_threshold: float
     _lam: float
     _n_action_samples: int
@@ -45,28 +52,14 @@ class BEARImpl(SACImpl):
     _mmd_kernel: str
     _mmd_sigma: float
     _vae_kl_weight: float
-    _imitator: ConditionalVAE
-    _imitator_optim: Optimizer
-    _log_alpha: Parameter
-    _alpha_optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        policy: NormalPolicy,
-        q_funcs: nn.ModuleList,
+        modules: BEARModules,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        targ_q_funcs: nn.ModuleList,
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        imitator: ConditionalVAE,
-        log_temp: Parameter,
-        log_alpha: Parameter,
-        actor_optim: Optimizer,
-        critic_optim: Optimizer,
-        imitator_optim: Optimizer,
-        temp_optim: Optimizer,
-        alpha_optim: Optimizer,
         gamma: float,
         tau: float,
         alpha_threshold: float,
@@ -77,24 +70,16 @@ class BEARImpl(SACImpl):
         mmd_kernel: str,
         mmd_sigma: float,
         vae_kl_weight: float,
-        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            policy=policy,
-            q_funcs=q_funcs,
+            modules=modules,
             q_func_forwarder=q_func_forwarder,
-            targ_q_funcs=targ_q_funcs,
             targ_q_func_forwarder=targ_q_func_forwarder,
-            log_temp=log_temp,
-            actor_optim=actor_optim,
-            critic_optim=critic_optim,
-            temp_optim=temp_optim,
             gamma=gamma,
             tau=tau,
-            checkpointer=checkpointer,
             device=device,
         )
         self._alpha_threshold = alpha_threshold
@@ -105,10 +90,6 @@ class BEARImpl(SACImpl):
         self._mmd_kernel = mmd_kernel
         self._mmd_sigma = mmd_sigma
         self._vae_kl_weight = vae_kl_weight
-        self._imitator = imitator
-        self._log_alpha = log_alpha
-        self._imitator_optim = imitator_optim
-        self._alpha_optim = alpha_optim
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         loss = super().compute_actor_loss(batch)
@@ -117,35 +98,35 @@ class BEARImpl(SACImpl):
 
     @train_api
     def warmup_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        self._actor_optim.zero_grad()
+        self._modules.actor_optim.zero_grad()
 
         loss = self._compute_mmd_loss(batch.observations)
 
         loss.backward()
-        self._actor_optim.step()
+        self._modules.actor_optim.step()
 
         return {"actor_loss": float(loss.cpu().detach().numpy())}
 
     def _compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
         mmd = self._compute_mmd(obs_t)
-        alpha = self._log_alpha().exp()
+        alpha = self._modules.log_alpha().exp()
         return (alpha * (mmd - self._alpha_threshold)).mean()
 
     @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        self._imitator_optim.zero_grad()
+        self._modules.imitator_optim.zero_grad()
 
         loss = self.compute_imitator_loss(batch)
 
         loss.backward()
 
-        self._imitator_optim.step()
+        self._modules.imitator_optim.step()
 
         return {"imitator_loss": float(loss.cpu().detach().numpy())}
 
     def compute_imitator_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         return compute_vae_error(
-            vae=self._imitator,
+            vae=self._modules.imitator,
             x=batch.observations,
             action=batch.actions,
             beta=self._vae_kl_weight,
@@ -155,14 +136,14 @@ class BEARImpl(SACImpl):
     def update_alpha(self, batch: TorchMiniBatch) -> Dict[str, float]:
         loss = -self._compute_mmd_loss(batch.observations)
 
-        self._alpha_optim.zero_grad()
+        self._modules.alpha_optim.zero_grad()
         loss.backward()
-        self._alpha_optim.step()
+        self._modules.alpha_optim.step()
 
         # clip for stability
-        self._log_alpha.data.clamp_(-5.0, 10.0)
+        self._modules.log_alpha.data.clamp_(-5.0, 10.0)
 
-        cur_alpha = self._log_alpha().exp().cpu().detach().numpy()[0][0]
+        cur_alpha = self._modules.log_alpha().exp().cpu().detach().numpy()[0][0]
 
         return {
             "alpha_loss": float(loss.cpu().detach().numpy()),
@@ -172,9 +153,12 @@ class BEARImpl(SACImpl):
     def _compute_mmd(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
             behavior_actions = forward_vae_sample_n(
-                self._imitator, x, self._n_mmd_action_samples, with_squash=False
+                self._modules.imitator,
+                x,
+                self._n_mmd_action_samples,
+                with_squash=False,
             )
-        dist = build_squashed_gaussian_distribution(self._policy(x))
+        dist = build_squashed_gaussian_distribution(self._modules.policy(x))
         policy_actions = dist.sample_n_without_squash(
             self._n_mmd_action_samples
         )
@@ -221,7 +205,7 @@ class BEARImpl(SACImpl):
         with torch.no_grad():
             # BCQ-like target computation
             dist = build_squashed_gaussian_distribution(
-                self._policy(batch.next_observations)
+                self._modules.policy(batch.next_observations)
             )
             actions, log_probs = dist.sample_n_with_log_prob(
                 self._n_target_samples
@@ -237,12 +221,12 @@ class BEARImpl(SACImpl):
             batch_size = batch.observations.shape[0]
             max_log_prob = log_probs[torch.arange(batch_size), indices]
 
-            return values - self._log_temp().exp() * max_log_prob
+            return values - self._modules.log_temp().exp() * max_log_prob
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
             # (batch, n, action)
-            dist = build_squashed_gaussian_distribution(self._policy(x))
+            dist = build_squashed_gaussian_distribution(self._modules.policy(x))
             actions = dist.onnx_safe_sample_n(self._n_action_samples)
             # (batch, n, action) -> (batch * n, action)
             flat_actions = actions.reshape(-1, self._action_size)
