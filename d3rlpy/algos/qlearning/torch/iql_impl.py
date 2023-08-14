@@ -11,7 +11,7 @@ from ....models.torch import (
     ValueFunction,
     build_gaussian_distribution,
 )
-from ....torch_utility import TorchMiniBatch, train_api
+from ....torch_utility import Checkpointer, TorchMiniBatch, train_api
 from .ddpg_impl import DDPGBaseImpl
 
 __all__ = ["IQLImpl"]
@@ -41,6 +41,7 @@ class IQLImpl(DDPGBaseImpl):
         expectile: float,
         weight_temp: float,
         max_weight: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -55,6 +56,7 @@ class IQLImpl(DDPGBaseImpl):
             critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
+            checkpointer=checkpointer,
             device=device,
         )
         self._expectile = expectile

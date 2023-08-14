@@ -8,7 +8,7 @@ from ...models.builders import create_discrete_q_function
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
+from ...torch_utility import Checkpointer, TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.dqn_impl import DoubleDQNImpl, DQNImpl
 
@@ -89,6 +89,15 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
             q_funcs.parameters(), lr=self._config.learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "optim": optim,
+            },
+            device=self._device,
+        )
+
         self._impl = DQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -98,6 +107,7 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
             targ_q_func_forwarder=targ_forwarder,
             optim=optim,
             gamma=self._config.gamma,
+            checkpointer=checkpointer,
             device=self._device,
         )
 
@@ -193,6 +203,15 @@ class DoubleDQN(DQN):
             q_funcs.parameters(), lr=self._config.learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "optim": optim,
+            },
+            device=self._device,
+        )
+
         self._impl = DoubleDQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -202,6 +221,7 @@ class DoubleDQN(DQN):
             targ_q_func_forwarder=targ_forwarder,
             optim=optim,
             gamma=self._config.gamma,
+            checkpointer=checkpointer,
             device=self._device,
         )
 

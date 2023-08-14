@@ -11,7 +11,7 @@ from ...models.builders import (
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
-from ...torch_utility import TorchMiniBatch
+from ...torch_utility import Checkpointer, TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.bc_impl import BCBaseImpl, BCImpl, DiscreteBCImpl
 
@@ -97,11 +97,16 @@ class BC(_BCBase[BCConfig]):
             imitator.parameters(), lr=self._config.learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={"imitator": imitator, "optim": optim}, device=self._device
+        )
+
         self._impl = BCImpl(
             observation_shape=observation_shape,
             action_size=action_size,
             imitator=imitator,
             optim=optim,
+            checkpointer=checkpointer,
             device=self._device,
         )
 
@@ -166,12 +171,17 @@ class DiscreteBC(_BCBase[DiscreteBCConfig]):
             imitator.parameters(), lr=self._config.learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={"imitator": imitator, "optim": optim}, device=self._device
+        )
+
         self._impl = DiscreteBCImpl(
             observation_shape=observation_shape,
             action_size=action_size,
             imitator=imitator,
             optim=optim,
             beta=self._config.beta,
+            checkpointer=checkpointer,
             device=self._device,
         )
 

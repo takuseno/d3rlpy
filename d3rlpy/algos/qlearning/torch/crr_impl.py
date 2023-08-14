@@ -9,7 +9,7 @@ from ....models.torch import (
     NormalPolicy,
     build_gaussian_distribution,
 )
-from ....torch_utility import TorchMiniBatch, hard_sync
+from ....torch_utility import Checkpointer, TorchMiniBatch, hard_sync
 from .ddpg_impl import DDPGBaseImpl
 
 __all__ = ["CRRImpl"]
@@ -42,6 +42,7 @@ class CRRImpl(DDPGBaseImpl):
         weight_type: str,
         max_weight: float,
         tau: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -56,6 +57,7 @@ class CRRImpl(DDPGBaseImpl):
             critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
+            checkpointer=checkpointer,
             device=device,
         )
         self._beta = beta

@@ -8,7 +8,13 @@ from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import ContinuousEnsembleQFunctionForwarder, Policy
-from ....torch_utility import TorchMiniBatch, hard_sync, soft_sync, train_api
+from ....torch_utility import (
+    Checkpointer,
+    TorchMiniBatch,
+    hard_sync,
+    soft_sync,
+    train_api,
+)
 from ..base import QLearningAlgoImplBase
 from .utility import ContinuousQFunctionMixin
 
@@ -42,11 +48,13 @@ class DDPGBaseImpl(
         critic_optim: Optimizer,
         gamma: float,
         tau: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
+            checkpointer=checkpointer,
             device=device,
         )
         self._gamma = gamma

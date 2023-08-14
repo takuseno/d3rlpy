@@ -14,7 +14,7 @@ from ....models.torch import (
     compute_vae_error,
     forward_vae_decode,
 )
-from ....torch_utility import TorchMiniBatch, soft_sync, train_api
+from ....torch_utility import Checkpointer, TorchMiniBatch, soft_sync, train_api
 from .ddpg_impl import DDPGBaseImpl
 
 __all__ = ["PLASImpl", "PLASWithPerturbationImpl"]
@@ -45,6 +45,7 @@ class PLASImpl(DDPGBaseImpl):
         tau: float,
         lam: float,
         beta: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -59,6 +60,7 @@ class PLASImpl(DDPGBaseImpl):
             critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
+            checkpointer=checkpointer,
             device=device,
         )
         self._lam = lam
@@ -136,6 +138,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         tau: float,
         lam: float,
         beta: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -154,6 +157,7 @@ class PLASWithPerturbationImpl(PLASImpl):
             tau=tau,
             lam=lam,
             beta=beta,
+            checkpointer=checkpointer,
             device=device,
         )
         self._perturbation = perturbation

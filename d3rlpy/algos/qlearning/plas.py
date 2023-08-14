@@ -13,7 +13,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
+from ...torch_utility import Checkpointer, TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.plas_impl import PLASImpl, PLASWithPerturbationImpl
 
@@ -148,6 +148,19 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             imitator.parameters(), lr=self._config.imitator_learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "policy": policy,
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "imitator": imitator,
+                "actor_optim": actor_optim,
+                "critic_optim": critic_optim,
+                "imitator_optim": imitator_optim,
+            },
+            device=self._device,
+        )
+
         self._impl = PLASImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -164,6 +177,7 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             tau=self._config.tau,
             lam=self._config.lam,
             beta=self._config.beta,
+            checkpointer=checkpointer,
             device=self._device,
         )
 
@@ -298,6 +312,20 @@ class PLASWithPerturbation(PLAS):
             imitator.parameters(), lr=self._config.imitator_learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "policy": policy,
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "imitator": imitator,
+                "perturbation": perturbation,
+                "actor_optim": actor_optim,
+                "critic_optim": critic_optim,
+                "imitator_optim": imitator_optim,
+            },
+            device=self._device,
+        )
+
         self._impl = PLASWithPerturbationImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -315,6 +343,7 @@ class PLASWithPerturbation(PLAS):
             tau=self._config.tau,
             lam=self._config.lam,
             beta=self._config.beta,
+            checkpointer=checkpointer,
             device=self._device,
         )
 

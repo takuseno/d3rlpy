@@ -1,6 +1,6 @@
 import collections
 import dataclasses
-from typing import Any, Dict, List, Optional, Sequence, TypeVar, Union
+from typing import Any, BinaryIO, Dict, List, Optional, Sequence, TypeVar, Union
 
 import numpy as np
 import torch
@@ -21,12 +21,11 @@ __all__ = [
     "to_device",
     "freeze",
     "unfreeze",
-    "get_state_dict",
-    "set_state_dict",
     "reset_optimizer_states",
     "map_location",
     "TorchMiniBatch",
     "TorchTrajectoryMiniBatch",
+    "Checkpointer",
     "convert_to_torch",
     "convert_to_torch_recursively",
     "eval_api",
@@ -122,22 +121,6 @@ def unfreeze(impl: Any) -> None:
         if isinstance(module, torch.nn.Module):
             for p in module.parameters():
                 p.requires_grad = True
-
-
-def get_state_dict(impl: Any) -> Dict[str, Any]:
-    rets = {}
-    for key in _get_attributes(impl):
-        obj = getattr(impl, key)
-        if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
-            rets[key] = obj.state_dict()
-    return rets
-
-
-def set_state_dict(impl: Any, chkpt: Dict[str, Any]) -> None:
-    for key in _get_attributes(impl):
-        obj = getattr(impl, key)
-        if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
-            obj.load_state_dict(chkpt[key])
 
 
 def reset_optimizer_states(impl: Any) -> None:
@@ -281,6 +264,26 @@ class TorchTrajectoryMiniBatch:
             device=device,
             numpy_batch=batch,
         )
+
+
+class Checkpointer:
+    _modules: Dict[str, Union[nn.Module, Optimizer]]
+    _device: str
+
+    def __init__(
+        self, modules: Dict[str, Union[nn.Module, Optimizer]], device: str
+    ):
+        self._modules = modules
+        self._device = device
+
+    def save(self, f: BinaryIO) -> None:
+        states = {k: v.state_dict() for k, v in self._modules.items()}
+        torch.save(states, f)
+
+    def load(self, f: BinaryIO) -> None:
+        chkpt = torch.load(f, map_location=map_location(self._device))
+        for k, v in self._modules.items():
+            v.load_state_dict(chkpt[k])
 
 
 TCallable = TypeVar("TCallable")

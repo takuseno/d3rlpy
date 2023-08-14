@@ -11,7 +11,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
+from ...torch_utility import Checkpointer, TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.awac_impl import AWACImpl
 
@@ -130,6 +130,17 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "policy": policy,
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "actor_optim": actor_optim,
+                "critic_optim": critic_optim,
+            },
+            device=self._device,
+        )
+
         self._impl = AWACImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -144,6 +155,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             tau=self._config.tau,
             lam=self._config.lam,
             n_action_samples=self._config.n_action_samples,
+            checkpointer=checkpointer,
             device=self._device,
         )
 

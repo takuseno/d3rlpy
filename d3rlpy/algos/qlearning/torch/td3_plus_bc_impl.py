@@ -9,7 +9,7 @@ from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DeterministicPolicy,
 )
-from ....torch_utility import TorchMiniBatch
+from ....torch_utility import Checkpointer, TorchMiniBatch
 from .td3_impl import TD3Impl
 
 __all__ = ["TD3PlusBCImpl"]
@@ -34,6 +34,7 @@ class TD3PlusBCImpl(TD3Impl):
         target_smoothing_sigma: float,
         target_smoothing_clip: float,
         alpha: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -50,6 +51,7 @@ class TD3PlusBCImpl(TD3Impl):
             tau=tau,
             target_smoothing_sigma=target_smoothing_sigma,
             target_smoothing_clip=target_smoothing_clip,
+            checkpointer=checkpointer,
             device=device,
         )
         self._alpha = alpha

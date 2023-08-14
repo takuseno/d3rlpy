@@ -14,7 +14,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
+from ...torch_utility import Checkpointer, TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.bear_impl import BEARImpl
 
@@ -214,6 +214,23 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             log_alpha.parameters(), lr=self._config.actor_learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "policy": policy,
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "imitator": imitator,
+                "log_temp": log_temp,
+                "log_alpha": log_alpha,
+                "actor_optim": actor_optim,
+                "critic_optim": critic_optim,
+                "imitator_optim": imitator_optim,
+                "temp_optim": temp_optim,
+                "alpha_optim": alpha_optim,
+            },
+            device=self._device,
+        )
+
         self._impl = BEARImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -240,6 +257,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             mmd_kernel=self._config.mmd_kernel,
             mmd_sigma=self._config.mmd_sigma,
             vae_kl_weight=self._config.vae_kl_weight,
+            checkpointer=checkpointer,
             device=self._device,
         )
 

@@ -4,7 +4,6 @@ import pickle
 from abc import ABCMeta, abstractmethod
 from typing import BinaryIO, Generic, Optional, Type, TypeVar, Union
 
-import torch
 from gym.spaces import Box, Discrete
 from gymnasium.spaces import Box as GymnasiumBox
 from gymnasium.spaces import Discrete as GymnasiumDiscrete
@@ -24,7 +23,7 @@ from .preprocessing import (
     make_reward_scaler_field,
 )
 from .serializable_config import DynamicConfig, generate_config_registration
-from .torch_utility import get_state_dict, map_location, set_state_dict
+from .torch_utility import Checkpointer
 
 __all__ = [
     "DeviceArg",
@@ -49,24 +48,26 @@ TConfig_co = TypeVar("TConfig_co", bound="LearnableConfig", covariant=True)
 class ImplBase(metaclass=ABCMeta):
     _observation_shape: Shape
     _action_size: int
+    _checkpointer: Checkpointer
     _device: str
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
+        checkpointer: Checkpointer,
         device: str,
     ):
         self._observation_shape = observation_shape
         self._action_size = action_size
+        self._checkpointer = checkpointer
         self._device = device
 
     def save_model(self, f: BinaryIO) -> None:
-        torch.save(get_state_dict(self), f)
+        self._checkpointer.save(f)
 
     def load_model(self, f: BinaryIO) -> None:
-        chkpt = torch.load(f, map_location=map_location(self._device))
-        set_state_dict(self, chkpt)
+        self._checkpointer.load(f)
 
     @property
     def observation_shape(self) -> Shape:

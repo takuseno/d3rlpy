@@ -11,7 +11,7 @@ from ....models.torch import (
     Policy,
     build_gaussian_distribution,
 )
-from ....torch_utility import TorchMiniBatch
+from ....torch_utility import Checkpointer, TorchMiniBatch
 from .sac_impl import SACImpl
 
 __all__ = ["AWACImpl"]
@@ -37,6 +37,7 @@ class AWACImpl(SACImpl):
         tau: float,
         lam: float,
         n_action_samples: int,
+        checkpointer: Checkpointer,
         device: str,
     ):
         assert isinstance(policy, NormalPolicy)
@@ -55,6 +56,7 @@ class AWACImpl(SACImpl):
             temp_optim=Adam(dummy_log_temp.parameters(), lr=0.0),
             gamma=gamma,
             tau=tau,
+            checkpointer=checkpointer,
             device=device,
         )
         self._lam = lam

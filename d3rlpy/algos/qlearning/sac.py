@@ -15,7 +15,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
+from ...torch_utility import Checkpointer, TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.sac_impl import DiscreteSACImpl, SACImpl
 
@@ -157,6 +157,19 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
             log_temp.parameters(), lr=self._config.temp_learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "policy": policy,
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "log_temp": log_temp,
+                "actor_optim": actor_optim,
+                "critic_optim": critic_optim,
+                "temp_optim": temp_optim,
+            },
+            device=self._device,
+        )
+
         self._impl = SACImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -171,6 +184,7 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
             temp_optim=temp_optim,
             gamma=self._config.gamma,
             tau=self._config.tau,
+            checkpointer=checkpointer,
             device=self._device,
         )
 
@@ -314,6 +328,19 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             log_temp.parameters(), lr=self._config.temp_learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "policy": policy,
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "log_temp": log_temp,
+                "critic_optim": critic_optim,
+                "actor_optim": actor_optim,
+                "temp_optim": temp_optim,
+            },
+            device=self._device,
+        )
+
         self._impl = DiscreteSACImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -327,6 +354,7 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             critic_optim=critic_optim,
             temp_optim=temp_optim,
             gamma=self._config.gamma,
+            checkpointer=checkpointer,
             device=self._device,
         )
 

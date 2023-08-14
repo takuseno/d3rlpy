@@ -11,7 +11,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
+from ...torch_utility import Checkpointer, TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.crr_impl import CRRImpl
 
@@ -164,6 +164,17 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
             q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "policy": policy,
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "actor_optim": actor_optim,
+                "critic_optim": critic_optim,
+            },
+            device=self._device,
+        )
+
         self._impl = CRRImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -181,6 +192,7 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
             weight_type=self._config.weight_type,
             max_weight=self._config.max_weight,
             tau=self._config.tau,
+            checkpointer=checkpointer,
             device=self._device,
         )
 

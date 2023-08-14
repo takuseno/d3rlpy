@@ -14,7 +14,7 @@ from ....models.torch import (
     compute_discrete_imitation_loss,
     compute_stochastic_imitation_loss,
 )
-from ....torch_utility import TorchMiniBatch, train_api
+from ....torch_utility import Checkpointer, TorchMiniBatch, train_api
 from ..base import QLearningAlgoImplBase
 
 __all__ = ["BCImpl", "DiscreteBCImpl"]
@@ -29,11 +29,13 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
         observation_shape: Shape,
         action_size: int,
         optim: Optimizer,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
+            checkpointer=checkpointer,
             device=device,
         )
         self._optim = optim
@@ -73,12 +75,14 @@ class BCImpl(BCBaseImpl):
         action_size: int,
         imitator: Union[DeterministicPolicy, NormalPolicy],
         optim: Optimizer,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             optim=optim,
+            checkpointer=checkpointer,
             device=device,
         )
         self._imitator = imitator
@@ -118,12 +122,14 @@ class DiscreteBCImpl(BCBaseImpl):
         imitator: CategoricalPolicy,
         optim: Optimizer,
         beta: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             optim=optim,
+            checkpointer=checkpointer,
             device=device,
         )
         self._imitator = imitator

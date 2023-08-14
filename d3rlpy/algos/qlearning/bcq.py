@@ -15,7 +15,7 @@ from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...models.torch import CategoricalPolicy, PixelEncoder, compute_output_size
-from ...torch_utility import TorchMiniBatch
+from ...torch_utility import Checkpointer, TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
 
@@ -210,6 +210,19 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             imitator.parameters(), lr=self._config.imitator_learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "policy": policy,
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "imitator": imitator,
+                "actor_optim": actor_optim,
+                "critic_optim": critic_optim,
+                "imitator_optim": imitator_optim,
+            },
+            device=self._device,
+        )
+
         self._impl = BCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -228,6 +241,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             n_action_samples=self._config.n_action_samples,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
+            checkpointer=checkpointer,
             device=self._device,
         )
 
@@ -384,6 +398,16 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             unique_params, lr=self._config.learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "imitator": imitator,
+                "optim": optim,
+            },
+            device=self._device,
+        )
+
         self._impl = DiscreteBCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -396,6 +420,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             gamma=self._config.gamma,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
+            checkpointer=checkpointer,
             device=self._device,
         )
 

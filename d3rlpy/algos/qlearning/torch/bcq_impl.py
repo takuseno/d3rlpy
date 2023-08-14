@@ -18,7 +18,7 @@ from ....models.torch import (
     compute_vae_error,
     forward_vae_decode,
 )
-from ....torch_utility import TorchMiniBatch, train_api
+from ....torch_utility import Checkpointer, TorchMiniBatch, train_api
 from .ddpg_impl import DDPGBaseImpl
 from .dqn_impl import DoubleDQNImpl
 
@@ -54,6 +54,7 @@ class BCQImpl(DDPGBaseImpl):
         n_action_samples: int,
         action_flexibility: float,
         beta: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -68,6 +69,7 @@ class BCQImpl(DDPGBaseImpl):
             critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
+            checkpointer=checkpointer,
             device=device,
         )
         self._lam = lam
@@ -201,6 +203,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         gamma: float,
         action_flexibility: float,
         beta: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -212,6 +215,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             optim=optim,
             gamma=gamma,
+            checkpointer=checkpointer,
             device=device,
         )
         self._action_flexibility = action_flexibility

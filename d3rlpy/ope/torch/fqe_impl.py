@@ -14,7 +14,7 @@ from ...models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
 )
-from ...torch_utility import TorchMiniBatch, hard_sync, train_api
+from ...torch_utility import Checkpointer, TorchMiniBatch, hard_sync, train_api
 
 __all__ = ["FQEBaseImpl", "FQEImpl", "DiscreteFQEImpl"]
 
@@ -47,11 +47,13 @@ class FQEBaseImpl(QLearningAlgoImplBase):
         ],
         optim: Optimizer,
         gamma: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
+            checkpointer=checkpointer,
             device=device,
         )
         self._gamma = gamma

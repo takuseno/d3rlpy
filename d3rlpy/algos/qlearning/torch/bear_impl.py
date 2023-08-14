@@ -15,7 +15,7 @@ from ....models.torch import (
     compute_vae_error,
     forward_vae_sample_n,
 )
-from ....torch_utility import TorchMiniBatch, train_api
+from ....torch_utility import Checkpointer, TorchMiniBatch, train_api
 from .sac_impl import SACImpl
 
 __all__ = ["BEARImpl"]
@@ -77,6 +77,7 @@ class BEARImpl(SACImpl):
         mmd_kernel: str,
         mmd_sigma: float,
         vae_kl_weight: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -93,6 +94,7 @@ class BEARImpl(SACImpl):
             temp_optim=temp_optim,
             gamma=gamma,
             tau=tau,
+            checkpointer=checkpointer,
             device=device,
         )
         self._alpha_threshold = alpha_threshold

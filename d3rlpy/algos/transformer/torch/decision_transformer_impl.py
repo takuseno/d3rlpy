@@ -5,7 +5,12 @@ from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import ContinuousDecisionTransformer
-from ....torch_utility import TorchTrajectoryMiniBatch, eval_api, train_api
+from ....torch_utility import (
+    Checkpointer,
+    TorchTrajectoryMiniBatch,
+    eval_api,
+    train_api,
+)
 from ..base import TransformerAlgoImplBase
 from ..inputs import TorchTransformerInput
 
@@ -26,11 +31,13 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         optim: Optimizer,
         scheduler: torch.optim.lr_scheduler.LambdaLR,
         clip_grad_norm: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
+            checkpointer=checkpointer,
             device=device,
         )
         self._transformer = transformer

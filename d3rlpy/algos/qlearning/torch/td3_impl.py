@@ -7,7 +7,7 @@ from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DeterministicPolicy,
 )
-from ....torch_utility import TorchMiniBatch
+from ....torch_utility import Checkpointer, TorchMiniBatch
 from .ddpg_impl import DDPGImpl
 
 __all__ = ["TD3Impl"]
@@ -32,6 +32,7 @@ class TD3Impl(DDPGImpl):
         tau: float,
         target_smoothing_sigma: float,
         target_smoothing_clip: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -46,6 +47,7 @@ class TD3Impl(DDPGImpl):
             critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
+            checkpointer=checkpointer,
             device=device,
         )
         self._target_smoothing_sigma = target_smoothing_sigma

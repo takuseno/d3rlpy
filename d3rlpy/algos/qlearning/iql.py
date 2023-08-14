@@ -12,7 +12,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import MeanQFunctionFactory
-from ...torch_utility import TorchMiniBatch
+from ...torch_utility import Checkpointer, TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.iql_impl import IQLImpl
 
@@ -150,6 +150,18 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             q_func_params + v_func_params, lr=self._config.critic_learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "policy": policy,
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "value_func": value_func,
+                "actor_optim": actor_optim,
+                "critic_optim": critic_optim,
+            },
+            device=self._device,
+        )
+
         self._impl = IQLImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -166,6 +178,7 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             expectile=self._config.expectile,
             weight_temp=self._config.weight_temp,
             max_weight=self._config.max_weight,
+            checkpointer=checkpointer,
             device=self._device,
         )
 

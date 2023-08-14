@@ -1,4 +1,5 @@
 import copy
+from io import BytesIO
 from typing import Any, Dict, Sequence
 from unittest.mock import Mock
 
@@ -8,18 +9,17 @@ import torch
 
 from d3rlpy.dataset import TrajectoryMiniBatch, Transition, TransitionMiniBatch
 from d3rlpy.torch_utility import (
+    Checkpointer,
     Swish,
     TorchMiniBatch,
     TorchTrajectoryMiniBatch,
     View,
     eval_api,
     freeze,
-    get_state_dict,
     hard_sync,
     map_location,
     reset_optimizer_states,
     set_eval_mode,
-    set_state_dict,
     set_train_mode,
     soft_sync,
     sync_optimizer_state,
@@ -134,37 +134,6 @@ def check_if_same_dict(a: Dict[str, Any], b: Dict[str, Any]) -> None:
             assert (b[k] == v).all()
         else:
             assert b[k] == v
-
-
-def test_get_state_dict() -> None:
-    impl = DummyImpl()
-
-    state_dict = get_state_dict(impl)
-
-    check_if_same_dict(state_dict["fc1"], impl.fc1.state_dict())
-    check_if_same_dict(state_dict["fc2"], impl.fc2.state_dict())
-    check_if_same_dict(state_dict["optim"], impl.optim.state_dict())
-
-
-def test_set_state_dict() -> None:
-    impl1 = DummyImpl()
-    impl2 = DummyImpl()
-
-    impl1.optim.step()
-
-    assert not (impl1.fc1.weight == impl2.fc1.weight).all()
-    assert not (impl1.fc1.bias == impl2.fc1.bias).all()
-    assert not (impl1.fc2.weight == impl2.fc2.weight).all()
-    assert not (impl1.fc2.bias == impl2.fc2.bias).all()
-
-    chkpt = get_state_dict(impl1)
-
-    set_state_dict(impl2, chkpt)
-
-    assert (impl1.fc1.weight == impl2.fc1.weight).all()
-    assert (impl1.fc1.bias == impl2.fc1.bias).all()
-    assert (impl1.fc2.weight == impl2.fc2.weight).all()
-    assert (impl1.fc2.bias == impl2.fc2.bias).all()
 
 
 def test_reset_optimizer_states() -> None:
@@ -394,6 +363,48 @@ def test_torch_trajectory_mini_batch(
         assert np.all(torch_batch.returns_to_go.numpy() == batch.returns_to_go)
 
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
+
+
+def test_checkpointer() -> None:
+    fc1 = torch.nn.Linear(100, 100)
+    fc2 = torch.nn.Linear(100, 100)
+    optim = torch.optim.Adam(fc1.parameters())
+    checkpointer = Checkpointer(
+        modules={"fc1": fc1, "fc2": fc2, "optim": optim}, device="cpu:0"
+    )
+
+    # prepare reference bytes
+    ref_bytes = BytesIO()
+    states = {
+        "fc1": fc1.state_dict(),
+        "fc2": fc2.state_dict(),
+        "optim": optim.state_dict(),
+    }
+    torch.save(states, ref_bytes)
+
+    # check saved bytes
+    saved_bytes = BytesIO()
+    checkpointer.save(saved_bytes)
+    assert ref_bytes.getvalue() == saved_bytes.getvalue()
+
+    fc1_2 = torch.nn.Linear(100, 100)
+    fc2_2 = torch.nn.Linear(100, 100)
+    optim_2 = torch.optim.Adam(fc1_2.parameters())
+    checkpointer = Checkpointer(
+        modules={"fc1": fc1_2, "fc2": fc2_2, "optim": optim_2}, device="cpu:0"
+    )
+
+    # check load
+    checkpointer.load(BytesIO(saved_bytes.getvalue()))
+
+    # check output
+    x = torch.rand(32, 100)
+    y1_ref = fc1(x)
+    y2_ref = fc2(x)
+    y1 = fc1_2(x)
+    y2 = fc2_2(x)
+    assert torch.all(y1_ref == y1)
+    assert torch.all(y2_ref == y2)
 
 
 def test_train_api() -> None:

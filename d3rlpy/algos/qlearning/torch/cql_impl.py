@@ -14,7 +14,7 @@ from ....models.torch import (
     Parameter,
     build_squashed_gaussian_distribution,
 )
-from ....torch_utility import TorchMiniBatch, train_api
+from ....torch_utility import Checkpointer, TorchMiniBatch, train_api
 from .dqn_impl import DoubleDQNImpl
 from .sac_impl import SACImpl
 
@@ -50,6 +50,7 @@ class CQLImpl(SACImpl):
         conservative_weight: float,
         n_action_samples: int,
         soft_q_backup: bool,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -66,6 +67,7 @@ class CQLImpl(SACImpl):
             temp_optim=temp_optim,
             gamma=gamma,
             tau=tau,
+            checkpointer=checkpointer,
             device=device,
         )
         self._alpha_threshold = alpha_threshold
@@ -222,6 +224,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         optim: Optimizer,
         gamma: float,
         alpha: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -233,6 +236,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             optim=optim,
             gamma=gamma,
+            checkpointer=checkpointer,
             device=device,
         )
         self._alpha = alpha

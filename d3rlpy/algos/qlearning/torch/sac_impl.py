@@ -15,7 +15,7 @@ from ....models.torch import (
     Policy,
     build_squashed_gaussian_distribution,
 )
-from ....torch_utility import TorchMiniBatch, hard_sync, train_api
+from ....torch_utility import Checkpointer, TorchMiniBatch, hard_sync, train_api
 from ..base import QLearningAlgoImplBase
 from .ddpg_impl import DDPGBaseImpl
 from .utility import DiscreteQFunctionMixin
@@ -42,6 +42,7 @@ class SACImpl(DDPGBaseImpl):
         temp_optim: Optimizer,
         gamma: float,
         tau: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
@@ -56,6 +57,7 @@ class SACImpl(DDPGBaseImpl):
             critic_optim=critic_optim,
             gamma=gamma,
             tau=tau,
+            checkpointer=checkpointer,
             device=device,
         )
         self._log_temp = log_temp
@@ -140,11 +142,13 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         critic_optim: Optimizer,
         temp_optim: Optimizer,
         gamma: float,
+        checkpointer: Checkpointer,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
+            checkpointer=checkpointer,
             device=device,
         )
         self._gamma = gamma

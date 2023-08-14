@@ -14,7 +14,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
+from ...torch_utility import Checkpointer, TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.cql_impl import CQLImpl, DiscreteCQLImpl
 
@@ -179,6 +179,21 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             log_alpha.parameters(), lr=self._config.alpha_learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "policy": policy,
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "log_temp": log_temp,
+                "log_alpha": log_alpha,
+                "actor_optim": actor_optim,
+                "critic_optim": critic_optim,
+                "temp_optim": temp_optim,
+                "alpha_optim": alpha_optim,
+            },
+            device=self._device,
+        )
+
         self._impl = CQLImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -199,6 +214,7 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             conservative_weight=self._config.conservative_weight,
             n_action_samples=self._config.n_action_samples,
             soft_q_backup=self._config.soft_q_backup,
+            checkpointer=checkpointer,
             device=self._device,
         )
 
@@ -311,6 +327,15 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
             q_funcs.parameters(), lr=self._config.learning_rate
         )
 
+        checkpointer = Checkpointer(
+            modules={
+                "q_func": q_funcs,
+                "targ_q_func": targ_q_funcs,
+                "optim": optim,
+            },
+            device=self._device,
+        )
+
         self._impl = DiscreteCQLImpl(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -321,6 +346,7 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
             optim=optim,
             gamma=self._config.gamma,
             alpha=self._config.alpha,
+            checkpointer=checkpointer,
             device=self._device,
         )
 
