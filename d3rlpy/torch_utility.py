@@ -1,6 +1,6 @@
 import collections
 import dataclasses
-from typing import Any, BinaryIO, Dict, List, Optional, Sequence, TypeVar, Union
+from typing import Any, BinaryIO, Dict, Optional, Sequence, TypeVar, Union
 
 import numpy as np
 import torch
@@ -15,10 +15,6 @@ __all__ = [
     "soft_sync",
     "hard_sync",
     "sync_optimizer_state",
-    "to_cuda",
-    "to_cpu",
-    "to_device",
-    "reset_optimizer_states",
     "map_location",
     "TorchMiniBatch",
     "TorchTrajectoryMiniBatch",
@@ -30,18 +26,6 @@ __all__ = [
     "train_api",
     "View",
 ]
-
-
-IGNORE_LIST = [
-    "policy",
-    "q_function",
-    "policy_optim",
-    "q_function_optim",
-]  # special properties
-
-
-def _get_attributes(obj: Any) -> List[str]:
-    return [key for key in dir(obj) if key not in IGNORE_LIST]
 
 
 def soft_sync(targ_model: nn.Module, model: nn.Module, tau: float) -> None:
@@ -68,34 +52,6 @@ def sync_optimizer_state(targ_optim: Optimizer, optim: Optimizer) -> None:
     param_groups = targ_optim.state_dict()["param_groups"]
     # update only state
     targ_optim.load_state_dict({"state": state, "param_groups": param_groups})
-
-
-def to_cuda(impl: Any, device: str) -> None:
-    for key in _get_attributes(impl):
-        module = getattr(impl, key)
-        if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
-            module.cuda(device)
-
-
-def to_cpu(impl: Any) -> None:
-    for key in _get_attributes(impl):
-        module = getattr(impl, key)
-        if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
-            module.cpu()
-
-
-def to_device(impl: Any, device: str) -> None:
-    if device.startswith("cuda"):
-        to_cuda(impl, device)
-    else:
-        to_cpu(impl)
-
-
-def reset_optimizer_states(impl: Any) -> None:
-    for key in _get_attributes(impl):
-        obj = getattr(impl, key)
-        if isinstance(obj, torch.optim.Optimizer):
-            obj.state = collections.defaultdict(dict)
 
 
 def map_location(device: str) -> Any:
@@ -284,6 +240,11 @@ class Modules:
         for v in asdict_without_copy(self).values():
             if isinstance(v, nn.Module):
                 v.train()
+
+    def reset_optimizer_states(self) -> None:
+        for v in asdict_without_copy(self).values():
+            if isinstance(v, torch.optim.Optimizer):
+                v.state = collections.defaultdict(dict)
 
 
 TCallable = TypeVar("TCallable")

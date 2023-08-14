@@ -44,7 +44,6 @@ from ...torch_utility import (
     convert_to_torch_recursively,
     eval_api,
     hard_sync,
-    reset_optimizer_states,
     sync_optimizer_state,
 )
 from ..utility import (
@@ -144,7 +143,7 @@ class QLearningAlgoImplBase(ImplBase):
         sync_optimizer_state(self.q_function_optim, impl.q_function_optim)
 
     def reset_optimizer_states(self) -> None:
-        reset_optimizer_states(self)
+        self.modules.reset_optimizer_states()
 
 
 TQLearningImpl = TypeVar("TQLearningImpl", bound=QLearningAlgoImplBase)

@@ -19,7 +19,6 @@ from d3rlpy.torch_utility import (
     eval_api,
     hard_sync,
     map_location,
-    reset_optimizer_states,
     soft_sync,
     sync_optimizer_state,
     train_api,
@@ -147,7 +146,7 @@ def test_reset_optimizer_states() -> None:
     state = copy.deepcopy(impl.optim.state)
     assert state
 
-    reset_optimizer_states(impl)
+    impl.modules.reset_optimizer_states()
 
     # check if state is empty
     reset_state = impl.optim.state
