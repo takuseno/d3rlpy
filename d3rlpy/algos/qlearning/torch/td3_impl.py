@@ -1,8 +1,12 @@
 import torch
+from torch import nn
 from torch.optim import Optimizer
 
 from ....dataset import Shape
-from ....models.torch import DeterministicPolicy, EnsembleContinuousQFunction
+from ....models.torch import (
+    ContinuousEnsembleQFunctionForwarder,
+    DeterministicPolicy,
+)
 from ....torch_utility import TorchMiniBatch
 from .ddpg_impl import DDPGImpl
 
@@ -18,7 +22,10 @@ class TD3Impl(DDPGImpl):
         observation_shape: Shape,
         action_size: int,
         policy: DeterministicPolicy,
-        q_func: EnsembleContinuousQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         actor_optim: Optimizer,
         critic_optim: Optimizer,
         gamma: float,
@@ -31,7 +38,10 @@ class TD3Impl(DDPGImpl):
             observation_shape=observation_shape,
             action_size=action_size,
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
             gamma=gamma,
@@ -52,7 +62,7 @@ class TD3Impl(DDPGImpl):
             )
             smoothed_action = action.squashed_mu + clipped_noise
             clipped_action = smoothed_action.clamp(-1.0, 1.0)
-            return self._targ_q_func.compute_target(
+            return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 clipped_action,
                 reduction="min",

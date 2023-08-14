@@ -1,10 +1,11 @@
 import torch
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import Adam, Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
-    EnsembleContinuousQFunction,
+    ContinuousEnsembleQFunctionForwarder,
     NormalPolicy,
     Parameter,
     Policy,
@@ -25,7 +26,10 @@ class AWACImpl(SACImpl):
         self,
         observation_shape: Shape,
         action_size: int,
-        q_func: EnsembleContinuousQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         policy: Policy,
         actor_optim: Optimizer,
         critic_optim: Optimizer,
@@ -40,7 +44,10 @@ class AWACImpl(SACImpl):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             policy=policy,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
@@ -70,7 +77,9 @@ class AWACImpl(SACImpl):
             batch_size = obs_t.shape[0]
 
             # compute action-value
-            q_values = self._q_func(obs_t, act_t, "min")
+            q_values = self._q_func_forwarder.compute_expected_q(
+                obs_t, act_t, "min"
+            )
 
             # sample actions
             # (batch_size * N, action_size)
@@ -89,7 +98,9 @@ class AWACImpl(SACImpl):
             flat_obs_t = repeated_obs_t.reshape(-1, *obs_t.shape[1:])
 
             # compute state-value
-            flat_v_values = self._q_func(flat_obs_t, flat_actions, "min")
+            flat_v_values = self._q_func_forwarder.compute_expected_q(
+                flat_obs_t, flat_actions, "min"
+            )
             reshaped_v_values = flat_v_values.view(obs_t.shape[0], -1, 1)
             v_values = reshaped_v_values.mean(dim=1)
 

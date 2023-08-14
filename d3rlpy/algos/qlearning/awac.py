@@ -106,7 +106,15 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             use_std_parameter=True,
             device=self._device,
         )
-        q_func = create_continuous_q_function(
+        q_funcs, q_func_forwarder = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
@@ -119,13 +127,16 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             policy.parameters(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_func.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
 
         self._impl = AWACImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             policy=policy,
             actor_optim=actor_optim,
             critic_optim=critic_optim,

@@ -1,14 +1,12 @@
-from typing import List, Optional, Tuple, Union, cast
+from typing import List, Optional, Sequence, Tuple, Union
 
 import torch
-from torch import nn
 
-from .base import ContinuousQFunction, DiscreteQFunction
+from .base import ContinuousQFunctionForwarder, DiscreteQFunctionForwarder
 
 __all__ = [
-    "EnsembleQFunction",
-    "EnsembleDiscreteQFunction",
-    "EnsembleContinuousQFunction",
+    "DiscreteEnsembleQFunctionForwarder",
+    "ContinuousEnsembleQFunctionForwarder",
     "compute_max_with_n_actions",
     "compute_max_with_n_actions_and_indices",
 ]
@@ -74,17 +72,93 @@ def _reduce_quantile_ensemble(
     raise ValueError
 
 
-class EnsembleQFunction(nn.Module):  # type: ignore
+def compute_ensemble_q_function_error(
+    forwarders: Union[
+        Sequence[DiscreteQFunctionForwarder],
+        Sequence[ContinuousQFunctionForwarder],
+    ],
+    observations: torch.Tensor,
+    actions: torch.Tensor,
+    rewards: torch.Tensor,
+    target: torch.Tensor,
+    terminals: torch.Tensor,
+    gamma: float = 0.99,
+) -> torch.Tensor:
+    assert target.ndim == 2
+    td_sum = torch.tensor(
+        0.0,
+        dtype=torch.float32,
+        device=observations.device,
+    )
+    for forwarder in forwarders:
+        loss = forwarder.compute_error(
+            observations=observations,
+            actions=actions,
+            rewards=rewards,
+            target=target,
+            terminals=terminals,
+            gamma=gamma,
+            reduction="none",
+        )
+        td_sum += loss.mean()
+    return td_sum
+
+
+def compute_ensemble_q_function_target(
+    forwarders: Union[
+        Sequence[DiscreteQFunctionForwarder],
+        Sequence[ContinuousQFunctionForwarder],
+    ],
+    action_size: int,
+    x: torch.Tensor,
+    action: Optional[torch.Tensor] = None,
+    reduction: str = "min",
+    lam: float = 0.75,
+) -> torch.Tensor:
+    values_list: List[torch.Tensor] = []
+    for forwarder in forwarders:
+        if isinstance(forwarder, ContinuousQFunctionForwarder):
+            assert action is not None
+            target = forwarder.compute_target(x, action)
+        else:
+            target = forwarder.compute_target(x, action)
+        values_list.append(target.reshape(1, x.shape[0], -1))
+
+    values = torch.cat(values_list, dim=0)
+
+    if action is None:
+        # mean Q function
+        if values.shape[2] == action_size:
+            return _reduce_ensemble(values, reduction)
+        # distributional Q function
+        n_q_funcs = values.shape[0]
+        values = values.view(n_q_funcs, x.shape[0], action_size, -1)
+        return _reduce_quantile_ensemble(values, reduction)
+
+    if values.shape[2] == 1:
+        return _reduce_ensemble(values, reduction, lam=lam)
+
+    return _reduce_quantile_ensemble(values, reduction, lam=lam)
+
+
+class DiscreteEnsembleQFunctionForwarder:
+    _forwarders: Sequence[DiscreteQFunctionForwarder]
     _action_size: int
-    _q_funcs: nn.ModuleList
 
     def __init__(
-        self,
-        q_funcs: Union[List[DiscreteQFunction], List[ContinuousQFunction]],
+        self, forwarders: Sequence[DiscreteQFunctionForwarder], action_size: int
     ):
-        super().__init__()
-        self._action_size = q_funcs[0].action_size
-        self._q_funcs = nn.ModuleList(q_funcs)
+        self._forwarders = forwarders
+        self._action_size = action_size
+
+    def compute_expected_q(
+        self, x: torch.Tensor, reduction: str = "mean"
+    ) -> torch.Tensor:
+        values = []
+        for forwarder in self._forwarders:
+            value = forwarder.compute_expected_q(x)
+            values.append(value.view(1, x.shape[0], self._action_size))
+        return _reduce_ensemble(torch.cat(values, dim=0), reduction)
 
     def compute_error(
         self,
@@ -95,68 +169,15 @@ class EnsembleQFunction(nn.Module):  # type: ignore
         terminals: torch.Tensor,
         gamma: float = 0.99,
     ) -> torch.Tensor:
-        assert target.ndim == 2
-
-        td_sum = torch.tensor(
-            0.0, dtype=torch.float32, device=observations.device
+        return compute_ensemble_q_function_error(
+            forwarders=self._forwarders,
+            observations=observations,
+            actions=actions,
+            rewards=rewards,
+            target=target,
+            terminals=terminals,
+            gamma=gamma,
         )
-        for q_func in self._q_funcs:
-            loss = q_func.compute_error(
-                observations=observations,
-                actions=actions,
-                rewards=rewards,
-                target=target,
-                terminals=terminals,
-                gamma=gamma,
-                reduction="none",
-            )
-            td_sum += loss.mean()
-        return td_sum
-
-    def _compute_target(
-        self,
-        x: torch.Tensor,
-        action: Optional[torch.Tensor] = None,
-        reduction: str = "min",
-        lam: float = 0.75,
-    ) -> torch.Tensor:
-        values_list: List[torch.Tensor] = []
-        for q_func in self._q_funcs:
-            target = q_func.compute_target(x, action)
-            values_list.append(target.reshape(1, x.shape[0], -1))
-
-        values = torch.cat(values_list, dim=0)
-
-        if action is None:
-            # mean Q function
-            if values.shape[2] == self._action_size:
-                return _reduce_ensemble(values, reduction)
-            # distributional Q function
-            n_q_funcs = values.shape[0]
-            values = values.view(n_q_funcs, x.shape[0], self._action_size, -1)
-            return _reduce_quantile_ensemble(values, reduction)
-
-        if values.shape[2] == 1:
-            return _reduce_ensemble(values, reduction, lam=lam)
-
-        return _reduce_quantile_ensemble(values, reduction, lam=lam)
-
-    @property
-    def q_funcs(self) -> nn.ModuleList:
-        return self._q_funcs
-
-
-class EnsembleDiscreteQFunction(EnsembleQFunction):
-    def forward(self, x: torch.Tensor, reduction: str = "mean") -> torch.Tensor:
-        values = []
-        for q_func in self._q_funcs:
-            values.append(q_func(x).view(1, x.shape[0], self._action_size))
-        return _reduce_ensemble(torch.cat(values, dim=0), reduction)
-
-    def __call__(
-        self, x: torch.Tensor, reduction: str = "mean"
-    ) -> torch.Tensor:
-        return cast(torch.Tensor, super().__call__(x, reduction))
 
     def compute_target(
         self,
@@ -165,22 +186,59 @@ class EnsembleDiscreteQFunction(EnsembleQFunction):
         reduction: str = "min",
         lam: float = 0.75,
     ) -> torch.Tensor:
-        return self._compute_target(x, action, reduction, lam)
+        return compute_ensemble_q_function_target(
+            forwarders=self._forwarders,
+            action_size=self._action_size,
+            x=x,
+            action=action,
+            reduction=reduction,
+            lam=lam,
+        )
+
+    @property
+    def forwarders(self) -> Sequence[DiscreteQFunctionForwarder]:
+        return self._forwarders
 
 
-class EnsembleContinuousQFunction(EnsembleQFunction):
-    def forward(
+class ContinuousEnsembleQFunctionForwarder:
+    _forwarders: Sequence[ContinuousQFunctionForwarder]
+    _action_size: int
+
+    def __init__(
+        self,
+        forwarders: Sequence[ContinuousQFunctionForwarder],
+        action_size: int,
+    ):
+        self._forwarders = forwarders
+        self._action_size = action_size
+
+    def compute_expected_q(
         self, x: torch.Tensor, action: torch.Tensor, reduction: str = "mean"
     ) -> torch.Tensor:
         values = []
-        for q_func in self._q_funcs:
-            values.append(q_func(x, action).view(1, x.shape[0], 1))
+        for forwarder in self._forwarders:
+            value = forwarder.compute_expected_q(x, action)
+            values.append(value.view(1, x.shape[0], 1))
         return _reduce_ensemble(torch.cat(values, dim=0), reduction)
 
-    def __call__(
-        self, x: torch.Tensor, action: torch.Tensor, reduction: str = "mean"
+    def compute_error(
+        self,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        target: torch.Tensor,
+        terminals: torch.Tensor,
+        gamma: float = 0.99,
     ) -> torch.Tensor:
-        return cast(torch.Tensor, super().__call__(x, action, reduction))
+        return compute_ensemble_q_function_error(
+            forwarders=self._forwarders,
+            observations=observations,
+            actions=actions,
+            rewards=rewards,
+            target=target,
+            terminals=terminals,
+            gamma=gamma,
+        )
 
     def compute_target(
         self,
@@ -189,13 +247,24 @@ class EnsembleContinuousQFunction(EnsembleQFunction):
         reduction: str = "min",
         lam: float = 0.75,
     ) -> torch.Tensor:
-        return self._compute_target(x, action, reduction, lam)
+        return compute_ensemble_q_function_target(
+            forwarders=self._forwarders,
+            action_size=self._action_size,
+            x=x,
+            action=action,
+            reduction=reduction,
+            lam=lam,
+        )
+
+    @property
+    def forwarders(self) -> Sequence[ContinuousQFunctionForwarder]:
+        return self._forwarders
 
 
 def compute_max_with_n_actions_and_indices(
     x: torch.Tensor,
     actions: torch.Tensor,
-    q_func: EnsembleContinuousQFunction,
+    forwarder: ContinuousEnsembleQFunctionForwarder,
     lam: float,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Returns weighted target value from sampled actions.
@@ -205,7 +274,7 @@ def compute_max_with_n_actions_and_indices(
     `actions` should be shaped with `(batch, N, dim_action)`.
     """
     batch_size = actions.shape[0]
-    n_critics = len(q_func.q_funcs)
+    n_critics = len(forwarder.forwarders)
     n_actions = actions.shape[1]
 
     # (batch, observation) -> (batch, n, observation)
@@ -216,7 +285,7 @@ def compute_max_with_n_actions_and_indices(
     flat_actions = actions.reshape(batch_size * n_actions, -1)
 
     # estimate values while taking care of quantiles
-    flat_values = q_func.compute_target(flat_x, flat_actions, "none")
+    flat_values = forwarder.compute_target(flat_x, flat_actions, "none")
     # reshape to (n_ensembles, batch_size, n, -1)
     transposed_values = flat_values.view(n_critics, batch_size, n_actions, -1)
     # (n_ensembles, batch_size, n, -1) -> (batch_size, n_ensembles, n, -1)
@@ -254,7 +323,7 @@ def compute_max_with_n_actions_and_indices(
 def compute_max_with_n_actions(
     x: torch.Tensor,
     actions: torch.Tensor,
-    q_func: EnsembleContinuousQFunction,
+    forwarder: ContinuousEnsembleQFunctionForwarder,
     lam: float,
 ) -> torch.Tensor:
-    return compute_max_with_n_actions_and_indices(x, actions, q_func, lam)[0]
+    return compute_max_with_n_actions_and_indices(x, actions, forwarder, lam)[0]

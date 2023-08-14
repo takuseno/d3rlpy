@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch.optim import SGD
 
-from d3rlpy.models.torch import ActionOutput
+from d3rlpy.models.torch import ActionOutput, QFunctionOutput
 from d3rlpy.models.torch.encoders import Encoder, EncoderWithAction
 
 
@@ -26,6 +26,8 @@ def check_parameter_updates(
                 output = mu
                 if logstd is not None:
                     output = output + logstd
+            elif isinstance(output, QFunctionOutput):
+                output = output.q_value
     if isinstance(output, (list, tuple)):
         loss = 0.0
         for y in output:

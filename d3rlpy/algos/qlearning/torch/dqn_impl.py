@@ -1,11 +1,11 @@
-import copy
 from typing import Dict
 
 import torch
+from torch import nn
 from torch.optim import Optimizer
 
 from ....dataset import Shape
-from ....models.torch import EnsembleDiscreteQFunction, EnsembleQFunction
+from ....models.torch import DiscreteEnsembleQFunctionForwarder
 from ....torch_utility import TorchMiniBatch, hard_sync, train_api
 from ..base import QLearningAlgoImplBase
 from .utility import DiscreteQFunctionMixin
@@ -15,15 +15,20 @@ __all__ = ["DQNImpl", "DoubleDQNImpl"]
 
 class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
     _gamma: float
-    _q_func: EnsembleDiscreteQFunction
-    _targ_q_func: EnsembleDiscreteQFunction
+    _q_funcs: nn.ModuleList
+    _targ_q_funcs: nn.ModuleList
+    _q_func_forwarder: DiscreteEnsembleQFunctionForwarder
+    _targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder
     _optim: Optimizer
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
-        q_func: EnsembleDiscreteQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         optim: Optimizer,
         gamma: float,
         device: str,
@@ -34,9 +39,12 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             device=device,
         )
         self._gamma = gamma
-        self._q_func = q_func
+        self._q_funcs = q_funcs
+        self._q_func_forwarder = q_func_forwarder
+        self._targ_q_funcs = targ_q_funcs
+        self._targ_q_func_forwarder = targ_q_func_forwarder
         self._optim = optim
-        self._targ_q_func = copy.deepcopy(q_func)
+        hard_sync(targ_q_funcs, q_funcs)
 
     @train_api
     def update(self, batch: TorchMiniBatch) -> Dict[str, float]:
@@ -56,7 +64,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
     ) -> torch.Tensor:
-        return self._q_func.compute_error(
+        return self._q_func_forwarder.compute_error(
             observations=batch.observations,
             actions=batch.actions.long(),
             rewards=batch.rewards,
@@ -67,26 +75,28 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
-            next_actions = self._targ_q_func(batch.next_observations)
+            next_actions = self._targ_q_func_forwarder.compute_expected_q(
+                batch.next_observations
+            )
             max_action = next_actions.argmax(dim=1)
-            return self._targ_q_func.compute_target(
+            return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 max_action,
                 reduction="min",
             )
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
-        return self._q_func(x).argmax(dim=1)
+        return self._q_func_forwarder.compute_expected_q(x).argmax(dim=1)
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
     def update_target(self) -> None:
-        hard_sync(self._targ_q_func, self._q_func)
+        hard_sync(self._targ_q_funcs, self._q_funcs)
 
     @property
-    def q_function(self) -> EnsembleQFunction:
-        return self._q_func
+    def q_function(self) -> nn.ModuleList:
+        return self._q_funcs
 
     @property
     def q_function_optim(self) -> Optimizer:
@@ -97,7 +107,7 @@ class DoubleDQNImpl(DQNImpl):
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
             action = self.inner_predict_best_action(batch.next_observations)
-            return self._targ_q_func.compute_target(
+            return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 action,
                 reduction="min",

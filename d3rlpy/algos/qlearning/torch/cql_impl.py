@@ -3,12 +3,13 @@ from typing import Dict
 
 import torch
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
-    EnsembleContinuousQFunction,
-    EnsembleDiscreteQFunction,
+    ContinuousEnsembleQFunctionForwarder,
+    DiscreteEnsembleQFunctionForwarder,
     NormalPolicy,
     Parameter,
     build_squashed_gaussian_distribution,
@@ -33,7 +34,10 @@ class CQLImpl(SACImpl):
         observation_shape: Shape,
         action_size: int,
         policy: NormalPolicy,
-        q_func: EnsembleContinuousQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         log_temp: Parameter,
         log_alpha: Parameter,
         actor_optim: Optimizer,
@@ -52,7 +56,10 @@ class CQLImpl(SACImpl):
             observation_shape=observation_shape,
             action_size=action_size,
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             log_temp=log_temp,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
@@ -80,7 +87,7 @@ class CQLImpl(SACImpl):
     @train_api
     def update_alpha(self, batch: TorchMiniBatch) -> Dict[str, float]:
         # Q function should be inference mode for stability
-        self._q_func.eval()
+        self._q_funcs.eval()
 
         self._alpha_optim.zero_grad()
 
@@ -121,7 +128,9 @@ class CQLImpl(SACImpl):
         flat_policy_acts = policy_actions.reshape(-1, self.action_size)
 
         # estimate action-values for policy actions
-        policy_values = self._q_func(flat_obs, flat_policy_acts, "none")
+        policy_values = self._q_func_forwarder.compute_expected_q(
+            flat_obs, flat_policy_acts, "none"
+        )
         policy_values = policy_values.view(
             -1, obs_shape[0], self._n_action_samples
         )
@@ -142,7 +151,9 @@ class CQLImpl(SACImpl):
         flat_shape = (obs.shape[0] * self._n_action_samples, self._action_size)
         zero_tensor = torch.zeros(flat_shape, device=self._device)
         random_actions = zero_tensor.uniform_(-1.0, 1.0)
-        random_values = self._q_func(flat_obs, random_actions, "none")
+        random_values = self._q_func_forwarder.compute_expected_q(
+            flat_obs, random_actions, "none"
+        )
         random_values = random_values.view(
             -1, obs.shape[0], self._n_action_samples
         )
@@ -166,7 +177,9 @@ class CQLImpl(SACImpl):
         logsumexp = torch.logsumexp(target_values, dim=2, keepdim=True)
 
         # estimate action-values for data actions
-        data_values = self._q_func(obs_t, act_t, "none")
+        data_values = self._q_func_forwarder.compute_expected_q(
+            obs_t, act_t, "none"
+        )
 
         loss = logsumexp.mean(dim=0).mean() - data_values.mean(dim=0).mean()
         scaled_loss = self._conservative_weight * loss
@@ -188,7 +201,7 @@ class CQLImpl(SACImpl):
     ) -> torch.Tensor:
         with torch.no_grad():
             action = self._policy(batch.next_observations).squashed_mu
-            return self._targ_q_func.compute_target(
+            return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 action,
                 reduction="min",
@@ -202,7 +215,10 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         self,
         observation_shape: Shape,
         action_size: int,
-        q_func: EnsembleDiscreteQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         optim: Optimizer,
         gamma: float,
         alpha: float,
@@ -211,7 +227,10 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             optim=optim,
             gamma=gamma,
             device=device,
@@ -222,12 +241,12 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
         # compute logsumexp
-        policy_values = self._q_func(obs_t)
-        logsumexp = torch.logsumexp(policy_values, dim=1, keepdim=True)
+        values = self._q_func_forwarder.compute_expected_q(obs_t)
+        logsumexp = torch.logsumexp(values, dim=1, keepdim=True)
 
         # estimate action-values under data distribution
         one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
-        data_values = (self._q_func(obs_t) * one_hot).sum(dim=1, keepdim=True)
+        data_values = (values * one_hot).sum(dim=1, keepdim=True)
 
         return (logsumexp - data_values).mean()
 

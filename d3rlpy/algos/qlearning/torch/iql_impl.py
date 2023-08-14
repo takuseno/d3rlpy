@@ -1,11 +1,12 @@
 from typing import Dict
 
 import torch
+from torch import nn
 from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
-    EnsembleContinuousQFunction,
+    ContinuousEnsembleQFunctionForwarder,
     NormalPolicy,
     ValueFunction,
     build_gaussian_distribution,
@@ -28,7 +29,10 @@ class IQLImpl(DDPGBaseImpl):
         observation_shape: Shape,
         action_size: int,
         policy: NormalPolicy,
-        q_func: EnsembleContinuousQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         value_func: ValueFunction,
         actor_optim: Optimizer,
         critic_optim: Optimizer,
@@ -43,7 +47,10 @@ class IQLImpl(DDPGBaseImpl):
             observation_shape=observation_shape,
             action_size=action_size,
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
             gamma=gamma,
@@ -58,7 +65,7 @@ class IQLImpl(DDPGBaseImpl):
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> torch.Tensor:
-        return self._q_func.compute_error(
+        return self._q_func_forwarder.compute_error(
             observations=batch.observations,
             actions=batch.actions,
             rewards=batch.rewards,
@@ -83,13 +90,17 @@ class IQLImpl(DDPGBaseImpl):
         return -(weight * log_probs).mean()
 
     def _compute_weight(self, batch: TorchMiniBatch) -> torch.Tensor:
-        q_t = self._targ_q_func(batch.observations, batch.actions, "min")
+        q_t = self._targ_q_func_forwarder.compute_expected_q(
+            batch.observations, batch.actions, "min"
+        )
         v_t = self._value_func(batch.observations)
         adv = q_t - v_t
         return (self._weight_temp * adv).exp().clamp(max=self._max_weight)
 
     def compute_value_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        q_t = self._targ_q_func(batch.observations, batch.actions, "min")
+        q_t = self._targ_q_func_forwarder.compute_expected_q(
+            batch.observations, batch.actions, "min"
+        )
         v_t = self._value_func(batch.observations)
         diff = q_t.detach() - v_t
         weight = (self._expectile - (diff < 0.0).float()).abs().detach()

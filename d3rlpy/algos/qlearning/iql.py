@@ -119,7 +119,15 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             use_std_parameter=True,
             device=self._device,
         )
-        q_func = create_continuous_q_function(
+        q_funcs, q_func_forwarder = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            MeanQFunctionFactory(),
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
@@ -136,7 +144,7 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
         actor_optim = self._config.actor_optim_factory.create(
             policy.parameters(), lr=self._config.actor_learning_rate
         )
-        q_func_params = list(q_func.parameters())
+        q_func_params = list(q_funcs.parameters())
         v_func_params = list(value_func.parameters())
         critic_optim = self._config.critic_optim_factory.create(
             q_func_params + v_func_params, lr=self._config.critic_learning_rate
@@ -146,7 +154,10 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             observation_shape=observation_shape,
             action_size=action_size,
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             value_func=value_func,
             actor_optim=actor_optim,
             critic_optim=critic_optim,

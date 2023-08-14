@@ -1,10 +1,11 @@
 import torch
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
-    EnsembleContinuousQFunction,
+    ContinuousEnsembleQFunctionForwarder,
     NormalPolicy,
     build_gaussian_distribution,
 )
@@ -28,7 +29,10 @@ class CRRImpl(DDPGBaseImpl):
         observation_shape: Shape,
         action_size: int,
         policy: NormalPolicy,
-        q_func: EnsembleContinuousQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         actor_optim: Optimizer,
         critic_optim: Optimizer,
         gamma: float,
@@ -44,7 +48,10 @@ class CRRImpl(DDPGBaseImpl):
             observation_shape=observation_shape,
             action_size=action_size,
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
             gamma=gamma,
@@ -97,7 +104,9 @@ class CRRImpl(DDPGBaseImpl):
             # (batch_size, N, obs_size) -> (batch_size * N, obs_size)
             flat_obs_t = repeated_obs_t.reshape(-1, *obs_t.shape[1:])
 
-            flat_values = self._q_func(flat_obs_t, flat_actions)
+            flat_values = self._q_func_forwarder.compute_expected_q(
+                flat_obs_t, flat_actions
+            )
             reshaped_values = flat_values.view(obs_t.shape[0], -1, 1)
 
             if self._advantage_type == "mean":
@@ -109,14 +118,16 @@ class CRRImpl(DDPGBaseImpl):
                     f"invalid advantage type: {self._advantage_type}."
                 )
 
-            return self._q_func(obs_t, act_t) - values
+            return (
+                self._q_func_forwarder.compute_expected_q(obs_t, act_t) - values
+            )
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
             action = build_gaussian_distribution(
                 self._targ_policy(batch.next_observations)
             ).sample()
-            return self._targ_q_func.compute_target(
+            return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 action.clamp(-1.0, 1.0),
                 reduction="min",
@@ -141,7 +152,9 @@ class CRRImpl(DDPGBaseImpl):
         flat_obs_t = repeated_obs_t.reshape(-1, *x.shape[1:])
 
         # (batch_size * N, 1)
-        flat_values = self._q_func(flat_obs_t, flat_actions)
+        flat_values = self._q_func_forwarder.compute_expected_q(
+            flat_obs_t, flat_actions
+        )
         # (batch_size * N, 1) -> (batch_size, N)
         reshaped_values = flat_values.view(x.shape[0], -1)
 
@@ -156,7 +169,7 @@ class CRRImpl(DDPGBaseImpl):
         return dist.sample()
 
     def sync_critic_target(self) -> None:
-        hard_sync(self._targ_q_func, self._q_func)
+        hard_sync(self._targ_q_funcs, self._q_funcs)
 
     def sync_actor_target(self) -> None:
         hard_sync(self._targ_policy, self._policy)

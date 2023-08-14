@@ -33,7 +33,7 @@ def test_compute_max_with_n_actions(
     n_actions: int,
     lam: float,
 ) -> None:
-    q_func = create_continuous_q_function(
+    _, forwarder = create_continuous_q_function(
         observation_shape,
         action_size,
         encoder_factory,
@@ -44,7 +44,7 @@ def test_compute_max_with_n_actions(
     x = torch.rand(batch_size, *observation_shape)
     actions = torch.rand(batch_size, n_actions, action_size)
 
-    y = compute_max_with_n_actions(x, actions, q_func, lam)
+    y = compute_max_with_n_actions(x, actions, forwarder, lam)
 
     if isinstance(q_func_factory, MeanQFunctionFactory):
         assert y.shape == (batch_size, 1)

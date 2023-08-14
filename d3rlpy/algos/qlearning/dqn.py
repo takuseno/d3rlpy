@@ -68,7 +68,15 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        q_func = create_discrete_q_function(
+        q_funcs, forwarder = create_discrete_q_function(
+            observation_shape,
+            action_size,
+            self._config.encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
             self._config.encoder_factory,
@@ -78,13 +86,16 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
         )
 
         optim = self._config.optim_factory.create(
-            q_func.parameters(), lr=self._config.learning_rate
+            q_funcs.parameters(), lr=self._config.learning_rate
         )
 
         self._impl = DQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            q_func_forwarder=forwarder,
+            targ_q_func_forwarder=targ_forwarder,
             optim=optim,
             gamma=self._config.gamma,
             device=self._device,
@@ -161,7 +172,15 @@ class DoubleDQN(DQN):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        q_func = create_discrete_q_function(
+        q_funcs, forwarder = create_discrete_q_function(
+            observation_shape,
+            action_size,
+            self._config.encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
             self._config.encoder_factory,
@@ -171,13 +190,16 @@ class DoubleDQN(DQN):
         )
 
         optim = self._config.optim_factory.create(
-            q_func.parameters(), lr=self._config.learning_rate
+            q_funcs.parameters(), lr=self._config.learning_rate
         )
 
         self._impl = DoubleDQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            q_func_forwarder=forwarder,
+            targ_q_func_forwarder=targ_forwarder,
             optim=optim,
             gamma=self._config.gamma,
             device=self._device,

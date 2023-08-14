@@ -1,17 +1,16 @@
-import copy
 import math
 from typing import Dict
 
 import torch
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
     CategoricalPolicy,
-    EnsembleContinuousQFunction,
-    EnsembleDiscreteQFunction,
-    EnsembleQFunction,
+    ContinuousEnsembleQFunctionForwarder,
+    DiscreteEnsembleQFunctionForwarder,
     Parameter,
     Policy,
     build_squashed_gaussian_distribution,
@@ -33,7 +32,10 @@ class SACImpl(DDPGBaseImpl):
         observation_shape: Shape,
         action_size: int,
         policy: Policy,
-        q_func: EnsembleContinuousQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         log_temp: Parameter,
         actor_optim: Optimizer,
         critic_optim: Optimizer,
@@ -46,7 +48,10 @@ class SACImpl(DDPGBaseImpl):
             observation_shape=observation_shape,
             action_size=action_size,
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
             gamma=gamma,
@@ -62,7 +67,9 @@ class SACImpl(DDPGBaseImpl):
         )
         action, log_prob = dist.sample_with_log_prob()
         entropy = self._log_temp().exp() * log_prob
-        q_t = self._q_func(batch.observations, action, "min")
+        q_t = self._q_func_forwarder.compute_expected_q(
+            batch.observations, action, "min"
+        )
         return (entropy - q_t).mean()
 
     @train_api
@@ -96,7 +103,7 @@ class SACImpl(DDPGBaseImpl):
             )
             action, log_prob = dist.sample_with_log_prob()
             entropy = self._log_temp().exp() * log_prob
-            target = self._targ_q_func.compute_target(
+            target = self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 action,
                 reduction="min",
@@ -110,8 +117,10 @@ class SACImpl(DDPGBaseImpl):
 
 class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
     _policy: CategoricalPolicy
-    _q_func: EnsembleDiscreteQFunction
-    _targ_q_func: EnsembleDiscreteQFunction
+    _q_funcss: nn.ModuleList
+    _q_func_forwarder: DiscreteEnsembleQFunctionForwarder
+    _targ_q_funcs: nn.ModuleList
+    _targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder
     _log_temp: Parameter
     _actor_optim: Optimizer
     _critic_optim: Optimizer
@@ -121,7 +130,10 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self,
         observation_shape: Shape,
         action_size: int,
-        q_func: EnsembleDiscreteQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         policy: CategoricalPolicy,
         log_temp: Parameter,
         actor_optim: Optimizer,
@@ -136,13 +148,16 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             device=device,
         )
         self._gamma = gamma
-        self._q_func = q_func
+        self._q_funcs = q_funcs
+        self._q_func_forwarder = q_func_forwarder
+        self._targ_q_funcs = targ_q_funcs
+        self._targ_q_func_forwarder = targ_q_func_forwarder
         self._policy = policy
         self._log_temp = log_temp
         self._actor_optim = actor_optim
         self._critic_optim = critic_optim
         self._temp_optim = temp_optim
-        self._targ_q_func = copy.deepcopy(q_func)
+        hard_sync(targ_q_funcs, q_funcs)
 
     @train_api
     def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
@@ -162,7 +177,9 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             log_probs = dist.logits
             probs = dist.probs
             entropy = self._log_temp().exp() * log_probs
-            target = self._targ_q_func.compute_target(batch.next_observations)
+            target = self._targ_q_func_forwarder.compute_target(
+                batch.next_observations
+            )
             keepdims = True
             if target.dim() == 3:
                 entropy = entropy.unsqueeze(-1)
@@ -175,7 +192,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
     ) -> torch.Tensor:
-        return self._q_func.compute_error(
+        return self._q_func_forwarder.compute_error(
             observations=batch.observations,
             actions=batch.actions.long(),
             rewards=batch.rewards,
@@ -187,7 +204,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
     @train_api
     def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
         # Q function should be inference mode for stability
-        self._q_func.eval()
+        self._q_funcs.eval()
 
         self._actor_optim.zero_grad()
 
@@ -200,7 +217,9 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
-            q_t = self._q_func(batch.observations, reduction="min")
+            q_t = self._q_func_forwarder.compute_expected_q(
+                batch.observations, reduction="min"
+            )
         dist = self._policy(batch.observations)
         log_probs = dist.logits
         probs = dist.probs
@@ -241,7 +260,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         return dist.sample()
 
     def update_target(self) -> None:
-        hard_sync(self._targ_q_func, self._q_func)
+        hard_sync(self._targ_q_funcs, self._q_funcs)
 
     @property
     def policy(self) -> Policy:
@@ -252,8 +271,8 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         return self._actor_optim
 
     @property
-    def q_function(self) -> EnsembleQFunction:
-        return self._q_func
+    def q_function(self) -> nn.ModuleList:
+        return self._q_funcs
 
     @property
     def q_function_optim(self) -> Optimizer:

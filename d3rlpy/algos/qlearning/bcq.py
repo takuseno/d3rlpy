@@ -174,7 +174,15 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             self._config.actor_encoder_factory,
             device=self._device,
         )
-        q_func = create_continuous_q_function(
+        q_funcs, q_func_forwarder = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
@@ -196,7 +204,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             policy.parameters(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_func.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
         imitator_optim = self._config.imitator_optim_factory.create(
             imitator.parameters(), lr=self._config.imitator_learning_rate
@@ -206,7 +214,10 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             observation_shape=observation_shape,
             action_size=action_size,
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             imitator=imitator,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
@@ -323,7 +334,15 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        q_func = create_discrete_q_function(
+        q_funcs, q_func_forwarder = create_discrete_q_function(
+            observation_shape,
+            action_size,
+            self._config.encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
             self._config.encoder_factory,
@@ -333,14 +352,14 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
         )
 
         # share convolutional layers if observation is pixel
-        if isinstance(q_func.q_funcs[0].encoder, PixelEncoder):
+        if isinstance(q_funcs[0].encoder, PixelEncoder):
             hidden_size = compute_output_size(
                 [observation_shape],
-                q_func.q_funcs[0].encoder,
+                q_funcs[0].encoder,
                 device=self._device,
             )
             imitator = CategoricalPolicy(
-                encoder=q_func.q_funcs[0].encoder,
+                encoder=q_funcs[0].encoder,
                 hidden_size=hidden_size,
                 action_size=action_size,
             )
@@ -355,7 +374,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
 
         # TODO: replace this with a cleaner way
         # retrieve unique elements
-        q_func_params = list(q_func.parameters())
+        q_func_params = list(q_funcs.parameters())
         imitator_params = list(imitator.parameters())
         unique_dict = {}
         for param in q_func_params + imitator_params:
@@ -368,7 +387,10 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
         self._impl = DiscreteBCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             imitator=imitator,
             optim=optim,
             gamma=self._config.gamma,

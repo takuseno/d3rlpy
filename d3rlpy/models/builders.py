@@ -1,4 +1,4 @@
-from typing import Sequence, cast
+from typing import Sequence, Tuple, cast
 
 import torch
 from torch import nn
@@ -10,11 +10,11 @@ from .torch import (
     CategoricalPolicy,
     ConditionalVAE,
     ContinuousDecisionTransformer,
+    ContinuousEnsembleQFunctionForwarder,
     DeterministicPolicy,
     DeterministicResidualPolicy,
     DiscreteDecisionTransformer,
-    EnsembleContinuousQFunction,
-    EnsembleDiscreteQFunction,
+    DiscreteEnsembleQFunctionForwarder,
     GlobalPositionEncoding,
     NormalPolicy,
     Parameter,
@@ -48,7 +48,7 @@ def create_discrete_q_function(
     q_func_factory: QFunctionFactory,
     device: str,
     n_ensembles: int = 1,
-) -> EnsembleDiscreteQFunction:
+) -> Tuple[nn.ModuleList, DiscreteEnsembleQFunctionForwarder]:
     if q_func_factory.share_encoder:
         encoder = encoder_factory.create(observation_shape)
         hidden_size = compute_output_size([observation_shape], encoder, device)
@@ -57,18 +57,24 @@ def create_discrete_q_function(
             p.register_hook(lambda grad: grad / n_ensembles)
 
     q_funcs = []
+    forwarders = []
     for _ in range(n_ensembles):
         if not q_func_factory.share_encoder:
             encoder = encoder_factory.create(observation_shape)
             hidden_size = compute_output_size(
                 [observation_shape], encoder, device
             )
-        q_funcs.append(
-            q_func_factory.create_discrete(encoder, hidden_size, action_size)
+        q_func, forwarder = q_func_factory.create_discrete(
+            encoder, hidden_size, action_size
         )
-    q_func = EnsembleDiscreteQFunction(q_funcs)
-    q_func.to(device)
-    return q_func
+        q_funcs.append(q_func)
+        forwarders.append(forwarder)
+    q_func_modules = nn.ModuleList(q_funcs)
+    q_func_modules.to(device)
+    ensemble_forwarder = DiscreteEnsembleQFunctionForwarder(
+        forwarders, action_size
+    )
+    return q_func_modules, ensemble_forwarder
 
 
 def create_continuous_q_function(
@@ -78,7 +84,7 @@ def create_continuous_q_function(
     q_func_factory: QFunctionFactory,
     device: str,
     n_ensembles: int = 1,
-) -> EnsembleContinuousQFunction:
+) -> Tuple[nn.ModuleList, ContinuousEnsembleQFunctionForwarder]:
     if q_func_factory.share_encoder:
         encoder = encoder_factory.create_with_action(
             observation_shape, action_size
@@ -91,6 +97,7 @@ def create_continuous_q_function(
             p.register_hook(lambda grad: grad / n_ensembles)
 
     q_funcs = []
+    forwarders = []
     for _ in range(n_ensembles):
         if not q_func_factory.share_encoder:
             encoder = encoder_factory.create_with_action(
@@ -99,12 +106,17 @@ def create_continuous_q_function(
             hidden_size = compute_output_size(
                 [observation_shape, (action_size,)], encoder, device
             )
-        q_funcs.append(
-            q_func_factory.create_continuous(encoder, hidden_size, action_size)
+        q_func, forwarder = q_func_factory.create_continuous(
+            encoder, hidden_size
         )
-    q_func = EnsembleContinuousQFunction(q_funcs)
-    q_func.to(device)
-    return q_func
+        q_funcs.append(q_func)
+        forwarders.append(forwarder)
+    q_func_modules = nn.ModuleList(q_funcs)
+    q_func_modules.to(device)
+    ensemble_forwarder = ContinuousEnsembleQFunctionForwarder(
+        forwarders, action_size
+    )
+    return q_func_modules, ensemble_forwarder
 
 
 def create_deterministic_policy(

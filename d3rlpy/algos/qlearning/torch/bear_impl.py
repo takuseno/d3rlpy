@@ -1,12 +1,13 @@
 from typing import Dict
 
 import torch
+from torch import nn
 from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
     ConditionalVAE,
-    EnsembleContinuousQFunction,
+    ContinuousEnsembleQFunctionForwarder,
     NormalPolicy,
     Parameter,
     build_squashed_gaussian_distribution,
@@ -54,7 +55,10 @@ class BEARImpl(SACImpl):
         observation_shape: Shape,
         action_size: int,
         policy: NormalPolicy,
-        q_func: EnsembleContinuousQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         imitator: ConditionalVAE,
         log_temp: Parameter,
         log_alpha: Parameter,
@@ -79,7 +83,10 @@ class BEARImpl(SACImpl):
             observation_shape=observation_shape,
             action_size=action_size,
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             log_temp=log_temp,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
@@ -218,7 +225,10 @@ class BEARImpl(SACImpl):
                 self._n_target_samples
             )
             values, indices = compute_max_with_n_actions_and_indices(
-                batch.next_observations, actions, self._targ_q_func, self._lam
+                batch.next_observations,
+                actions,
+                self._targ_q_func_forwarder,
+                self._lam,
             )
 
             # (batch, n, 1) -> (batch, 1)
@@ -245,7 +255,9 @@ class BEARImpl(SACImpl):
             flat_x = repeated_x.reshape(-1, *x.shape[1:])
 
             # (batch * n, 1)
-            flat_values = self._q_func(flat_x, flat_actions, "none")[0]
+            flat_values = self._q_func_forwarder.compute_expected_q(
+                flat_x, flat_actions, "none"
+            )[0]
 
             # (batch, n)
             values = flat_values.view(x.shape[0], self._n_action_samples)

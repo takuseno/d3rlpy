@@ -4,27 +4,29 @@ import pytest
 import torch
 
 from d3rlpy.models.torch import (
+    ContinuousEnsembleQFunctionForwarder,
     ContinuousIQNQFunction,
+    ContinuousIQNQFunctionForwarder,
     ContinuousMeanQFunction,
-    ContinuousQFunction,
+    ContinuousMeanQFunctionForwarder,
+    ContinuousQFunctionForwarder,
     ContinuousQRQFunction,
+    ContinuousQRQFunctionForwarder,
+    DiscreteEnsembleQFunctionForwarder,
     DiscreteIQNQFunction,
+    DiscreteIQNQFunctionForwarder,
     DiscreteMeanQFunction,
-    DiscreteQFunction,
+    DiscreteMeanQFunctionForwarder,
+    DiscreteQFunctionForwarder,
     DiscreteQRQFunction,
-    EnsembleContinuousQFunction,
-    EnsembleDiscreteQFunction,
+    DiscreteQRQFunctionForwarder,
 )
 from d3rlpy.models.torch.q_functions.ensemble_q_function import (
     _reduce_ensemble,
     _reduce_quantile_ensemble,
 )
 
-from ..model_test import (
-    DummyEncoder,
-    DummyEncoderWithAction,
-    check_parameter_updates,
-)
+from ..model_test import DummyEncoder, DummyEncoderWithAction
 
 
 @pytest.mark.parametrize("n_ensembles", [2])
@@ -80,7 +82,7 @@ def test_reduce_quantile_ensemble(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn"])
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("embed_size", [64])
-def test_ensemble_discrete_q_function(
+def test_discrete_ensemble_q_function_forwarder(
     feature_size: int,
     action_size: int,
     batch_size: int,
@@ -90,15 +92,18 @@ def test_ensemble_discrete_q_function(
     n_quantiles: int,
     embed_size: int,
 ) -> None:
-    q_funcs: List[DiscreteQFunction] = []
+    forwarders: List[DiscreteQFunctionForwarder] = []
     for _ in range(ensemble_size):
         encoder = DummyEncoder(feature_size)
+        forwarder: DiscreteQFunctionForwarder
         if q_func_factory == "mean":
             q_func = DiscreteMeanQFunction(encoder, feature_size, action_size)
+            forwarder = DiscreteMeanQFunctionForwarder(q_func, action_size)
         elif q_func_factory == "qr":
             q_func = DiscreteQRQFunction(
                 encoder, feature_size, action_size, n_quantiles
             )
+            forwarder = DiscreteQRQFunctionForwarder(q_func, n_quantiles)
         elif q_func_factory == "iqn":
             q_func = DiscreteIQNQFunction(
                 encoder,
@@ -108,17 +113,22 @@ def test_ensemble_discrete_q_function(
                 n_quantiles,
                 embed_size,
             )
-        q_funcs.append(q_func)
-    q_func = EnsembleDiscreteQFunction(q_funcs)
+            forwarder = DiscreteIQNQFunctionForwarder(q_func, n_quantiles)
+        else:
+            raise ValueError
+        forwarders.append(forwarder)
+    ensemble_forwarder = DiscreteEnsembleQFunctionForwarder(
+        forwarders, action_size
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
-    values = q_func(x, "none")
+    values = ensemble_forwarder.compute_expected_q(x, "none")
     assert values.shape == (ensemble_size, batch_size, action_size)
 
     # check compute_target
     action = torch.randint(high=action_size, size=(batch_size,))
-    target = q_func.compute_target(x, action)
+    target = ensemble_forwarder.compute_target(x, action)
     if q_func_factory == "mean":
         assert target.shape == (batch_size, 1)
         min_values = values.min(dim=0).values
@@ -129,7 +139,7 @@ def test_ensemble_discrete_q_function(
         assert target.shape == (batch_size, n_quantiles)
 
     # check compute_target with action=None
-    targets = q_func.compute_target(x)
+    targets = ensemble_forwarder.compute_target(x)
     if q_func_factory == "mean":
         assert targets.shape == (batch_size, action_size)
     else:
@@ -137,9 +147,17 @@ def test_ensemble_discrete_q_function(
 
     # check reductions
     if q_func_factory != "iqn":
-        assert torch.allclose(values.min(dim=0).values, q_func(x, "min"))
-        assert torch.allclose(values.max(dim=0).values, q_func(x, "max"))
-        assert torch.allclose(values.mean(dim=0), q_func(x, "mean"))
+        assert torch.allclose(
+            values.min(dim=0).values,
+            ensemble_forwarder.compute_expected_q(x, "min"),
+        )
+        assert torch.allclose(
+            values.max(dim=0).values,
+            ensemble_forwarder.compute_expected_q(x, "max"),
+        )
+        assert torch.allclose(
+            values.mean(dim=0), ensemble_forwarder.compute_expected_q(x, "mean")
+        )
 
     # check td computation
     obs_t = torch.rand(batch_size, feature_size)
@@ -153,20 +171,25 @@ def test_ensemble_discrete_q_function(
     else:
         q_tp1 = torch.rand(batch_size, n_quantiles)
     ref_td_sum = 0.0
-    for i in range(ensemble_size):
-        f = q_func.q_funcs[i]
-        ref_td_sum += f.compute_error(
-            obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma
+    for forwarder in forwarders:
+        ref_td_sum += forwarder.compute_error(
+            observations=obs_t,
+            actions=act_t,
+            rewards=rew_tp1,
+            target=q_tp1,
+            terminals=ter_tp1,
+            gamma=gamma,
         )
-    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma)
+    loss = ensemble_forwarder.compute_error(
+        observations=obs_t,
+        actions=act_t,
+        rewards=rew_tp1,
+        target=q_tp1,
+        terminals=ter_tp1,
+        gamma=gamma,
+    )
     if q_func_factory != "iqn":
         assert torch.allclose(ref_td_sum, loss)
-
-    # check layer connection
-    check_parameter_updates(
-        q_func,
-        (obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma),
-    )
 
 
 @pytest.mark.parametrize("feature_size", [100])
@@ -187,36 +210,41 @@ def test_ensemble_continuous_q_function(
     n_quantiles: int,
     embed_size: int,
 ) -> None:
-    q_funcs: List[ContinuousQFunction] = []
+    forwarders: List[ContinuousQFunctionForwarder] = []
     for _ in range(ensemble_size):
+        forwarder: ContinuousQFunctionForwarder
         encoder = DummyEncoderWithAction(feature_size, action_size)
         if q_func_factory == "mean":
-            q_func = ContinuousMeanQFunction(encoder, feature_size, action_size)
+            q_func = ContinuousMeanQFunction(encoder, feature_size)
+            forwarder = ContinuousMeanQFunctionForwarder(q_func)
         elif q_func_factory == "qr":
-            q_func = ContinuousQRQFunction(
-                encoder, feature_size, action_size, n_quantiles
-            )
+            q_func = ContinuousQRQFunction(encoder, feature_size, n_quantiles)
+            forwarder = ContinuousQRQFunctionForwarder(q_func, n_quantiles)
         elif q_func_factory == "iqn":
             q_func = ContinuousIQNQFunction(
                 encoder,
                 feature_size,
-                action_size,
                 n_quantiles,
                 n_quantiles,
                 embed_size,
             )
-        q_funcs.append(q_func)
+            forwarder = ContinuousIQNQFunctionForwarder(q_func, n_quantiles)
+        else:
+            raise ValueError
+        forwarders.append(forwarder)
 
-    q_func = EnsembleContinuousQFunction(q_funcs)
+    ensemble_forwarder = ContinuousEnsembleQFunctionForwarder(
+        forwarders, action_size
+    )
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
     action = torch.rand(batch_size, action_size)
-    values = q_func(x, action, "none")
+    values = ensemble_forwarder.compute_expected_q(x, action, "none")
     assert values.shape == (ensemble_size, batch_size, 1)
 
     # check compute_target
-    target = q_func.compute_target(x, action)
+    target = ensemble_forwarder.compute_target(x, action)
     if q_func_factory == "mean":
         assert target.shape == (batch_size, 1)
         min_values = values.min(dim=0).values
@@ -226,9 +254,18 @@ def test_ensemble_continuous_q_function(
 
     # check reductions
     if q_func_factory != "iqn":
-        assert torch.allclose(values.min(dim=0)[0], q_func(x, action, "min"))
-        assert torch.allclose(values.max(dim=0)[0], q_func(x, action, "max"))
-        assert torch.allclose(values.mean(dim=0), q_func(x, action, "mean"))
+        assert torch.allclose(
+            values.min(dim=0)[0],
+            ensemble_forwarder.compute_expected_q(x, action, "min"),
+        )
+        assert torch.allclose(
+            values.max(dim=0)[0],
+            ensemble_forwarder.compute_expected_q(x, action, "max"),
+        )
+        assert torch.allclose(
+            values.mean(dim=0),
+            ensemble_forwarder.compute_expected_q(x, action, "mean"),
+        )
 
     # check td computation
     obs_t = torch.rand(batch_size, feature_size)
@@ -240,17 +277,22 @@ def test_ensemble_continuous_q_function(
     else:
         q_tp1 = torch.rand(batch_size, n_quantiles)
     ref_td_sum = 0.0
-    for i in range(ensemble_size):
-        f = q_func.q_funcs[i]
-        ref_td_sum += f.compute_error(
-            obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma
+    for forwarder in forwarders:
+        ref_td_sum += forwarder.compute_error(
+            observations=obs_t,
+            actions=act_t,
+            rewards=rew_tp1,
+            target=q_tp1,
+            terminals=ter_tp1,
+            gamma=gamma,
         )
-    loss = q_func.compute_error(obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma)
+    loss = ensemble_forwarder.compute_error(
+        observations=obs_t,
+        actions=act_t,
+        rewards=rew_tp1,
+        target=q_tp1,
+        terminals=ter_tp1,
+        gamma=gamma,
+    )
     if q_func_factory != "iqn":
         assert torch.allclose(ref_td_sum, loss)
-
-    # check layer connection
-    check_parameter_updates(
-        q_func,
-        (obs_t, act_t, rew_tp1, q_tp1, ter_tp1, gamma),
-    )

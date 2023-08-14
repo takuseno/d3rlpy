@@ -1,15 +1,24 @@
 import dataclasses
+from typing import Tuple
 
 from ..serializable_config import DynamicConfig, generate_config_registration
 from .torch import (
     ContinuousIQNQFunction,
+    ContinuousIQNQFunctionForwarder,
     ContinuousMeanQFunction,
+    ContinuousMeanQFunctionForwarder,
     ContinuousQFunction,
+    ContinuousQFunctionForwarder,
     ContinuousQRQFunction,
+    ContinuousQRQFunctionForwarder,
     DiscreteIQNQFunction,
+    DiscreteIQNQFunctionForwarder,
     DiscreteMeanQFunction,
+    DiscreteMeanQFunctionForwarder,
     DiscreteQFunction,
+    DiscreteQFunctionForwarder,
     DiscreteQRQFunction,
+    DiscreteQRQFunctionForwarder,
     Encoder,
     EncoderWithAction,
 )
@@ -29,7 +38,7 @@ class QFunctionFactory(DynamicConfig):
 
     def create_discrete(
         self, encoder: Encoder, hidden_size: int, action_size: int
-    ) -> DiscreteQFunction:
+    ) -> Tuple[DiscreteQFunction, DiscreteQFunctionForwarder]:
         """Returns PyTorch's Q function module.
 
         Args:
@@ -39,23 +48,22 @@ class QFunctionFactory(DynamicConfig):
             action_size: Dimension of discrete action-space.
 
         Returns:
-            discrete Q function object.
+            Tuple of discrete Q function and its forwarder.
         """
         raise NotImplementedError
 
     def create_continuous(
-        self, encoder: EncoderWithAction, hidden_size: int, action_size: int
-    ) -> ContinuousQFunction:
+        self, encoder: EncoderWithAction, hidden_size: int
+    ) -> Tuple[ContinuousQFunction, ContinuousQFunctionForwarder]:
         """Returns PyTorch's Q function module.
 
         Args:
             encoder: Encoder module that processes the observation and
                 action to obtain feature representations.
             hidden_size: Dimension of encoder output.
-            action_size: Dimension of continuous actions.
 
         Returns:
-            continuous Q function object.
+            Tuple of continuous Q function and its forwarder.
         """
         raise NotImplementedError
 
@@ -90,16 +98,19 @@ class MeanQFunctionFactory(QFunctionFactory):
         encoder: Encoder,
         hidden_size: int,
         action_size: int,
-    ) -> DiscreteMeanQFunction:
-        return DiscreteMeanQFunction(encoder, hidden_size, action_size)
+    ) -> Tuple[DiscreteMeanQFunction, DiscreteMeanQFunctionForwarder]:
+        q_func = DiscreteMeanQFunction(encoder, hidden_size, action_size)
+        forwarder = DiscreteMeanQFunctionForwarder(q_func, action_size)
+        return q_func, forwarder
 
     def create_continuous(
         self,
         encoder: EncoderWithAction,
         hidden_size: int,
-        action_size: int,
-    ) -> ContinuousMeanQFunction:
-        return ContinuousMeanQFunction(encoder, hidden_size, action_size)
+    ) -> Tuple[ContinuousMeanQFunction, ContinuousMeanQFunctionForwarder]:
+        q_func = ContinuousMeanQFunction(encoder, hidden_size)
+        forwarder = ContinuousMeanQFunctionForwarder(q_func)
+        return q_func, forwarder
 
     @staticmethod
     def get_type() -> str:
@@ -123,26 +134,28 @@ class QRQFunctionFactory(QFunctionFactory):
 
     def create_discrete(
         self, encoder: Encoder, hidden_size: int, action_size: int
-    ) -> DiscreteQRQFunction:
-        return DiscreteQRQFunction(
+    ) -> Tuple[DiscreteQRQFunction, DiscreteQRQFunctionForwarder]:
+        q_func = DiscreteQRQFunction(
             encoder=encoder,
             hidden_size=hidden_size,
             action_size=action_size,
             n_quantiles=self.n_quantiles,
         )
+        forwarder = DiscreteQRQFunctionForwarder(q_func, self.n_quantiles)
+        return q_func, forwarder
 
     def create_continuous(
         self,
         encoder: EncoderWithAction,
         hidden_size: int,
-        action_size: int,
-    ) -> ContinuousQRQFunction:
-        return ContinuousQRQFunction(
+    ) -> Tuple[ContinuousQRQFunction, ContinuousQRQFunctionForwarder]:
+        q_func = ContinuousQRQFunction(
             encoder=encoder,
             hidden_size=hidden_size,
-            action_size=action_size,
             n_quantiles=self.n_quantiles,
         )
+        forwarder = ContinuousQRQFunctionForwarder(q_func, self.n_quantiles)
+        return q_func, forwarder
 
     @staticmethod
     def get_type() -> str:
@@ -173,8 +186,8 @@ class IQNQFunctionFactory(QFunctionFactory):
         encoder: Encoder,
         hidden_size: int,
         action_size: int,
-    ) -> DiscreteIQNQFunction:
-        return DiscreteIQNQFunction(
+    ) -> Tuple[DiscreteIQNQFunction, DiscreteIQNQFunctionForwarder]:
+        q_func = DiscreteIQNQFunction(
             encoder=encoder,
             hidden_size=hidden_size,
             action_size=action_size,
@@ -182,18 +195,23 @@ class IQNQFunctionFactory(QFunctionFactory):
             n_greedy_quantiles=self.n_greedy_quantiles,
             embed_size=self.embed_size,
         )
+        forwarder = DiscreteIQNQFunctionForwarder(q_func, self.n_quantiles)
+        return q_func, forwarder
 
     def create_continuous(
-        self, encoder: EncoderWithAction, hidden_size: int, action_size: int
-    ) -> ContinuousIQNQFunction:
-        return ContinuousIQNQFunction(
+        self, encoder: EncoderWithAction, hidden_size: int
+    ) -> Tuple[ContinuousIQNQFunction, ContinuousIQNQFunctionForwarder]:
+        q_func = ContinuousIQNQFunction(
             encoder=encoder,
             hidden_size=hidden_size,
-            action_size=action_size,
             n_quantiles=self.n_quantiles,
             n_greedy_quantiles=self.n_greedy_quantiles,
             embed_size=self.embed_size,
         )
+        forwarder = ContinuousIQNQFunctionForwarder(
+            q_func, self.n_greedy_quantiles
+        )
+        return q_func, forwarder
 
     @staticmethod
     def get_type() -> str:

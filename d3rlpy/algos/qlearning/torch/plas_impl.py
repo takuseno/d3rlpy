@@ -2,14 +2,15 @@ import copy
 from typing import Dict
 
 import torch
+from torch import nn
 from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
     ConditionalVAE,
+    ContinuousEnsembleQFunctionForwarder,
     DeterministicPolicy,
     DeterministicResidualPolicy,
-    EnsembleContinuousQFunction,
     compute_vae_error,
     forward_vae_decode,
 )
@@ -32,7 +33,10 @@ class PLASImpl(DDPGBaseImpl):
         observation_shape: Shape,
         action_size: int,
         policy: DeterministicPolicy,
-        q_func: EnsembleContinuousQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         imitator: ConditionalVAE,
         actor_optim: Optimizer,
         critic_optim: Optimizer,
@@ -47,7 +51,10 @@ class PLASImpl(DDPGBaseImpl):
             observation_shape=observation_shape,
             action_size=action_size,
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
             gamma=gamma,
@@ -80,7 +87,9 @@ class PLASImpl(DDPGBaseImpl):
         actions = forward_vae_decode(
             self._imitator, batch.observations, latent_actions
         )
-        return -self._q_func(batch.observations, actions, "none")[0].mean()
+        return -self._q_func_forwarder.compute_expected_q(
+            batch.observations, actions, "none"
+        )[0].mean()
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         latent_actions = 2.0 * self._policy(x).squashed_mu
@@ -97,7 +106,7 @@ class PLASImpl(DDPGBaseImpl):
             actions = forward_vae_decode(
                 self._imitator, batch.next_observations, latent_actions
             )
-            return self._targ_q_func.compute_target(
+            return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 actions,
                 "mix",
@@ -114,7 +123,10 @@ class PLASWithPerturbationImpl(PLASImpl):
         observation_shape: Shape,
         action_size: int,
         policy: DeterministicPolicy,
-        q_func: EnsembleContinuousQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         imitator: ConditionalVAE,
         perturbation: DeterministicResidualPolicy,
         actor_optim: Optimizer,
@@ -130,7 +142,10 @@ class PLASWithPerturbationImpl(PLASImpl):
             observation_shape=observation_shape,
             action_size=action_size,
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             imitator=imitator,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
@@ -152,7 +167,9 @@ class PLASWithPerturbationImpl(PLASImpl):
         residual_actions = self._perturbation(
             batch.observations, actions
         ).squashed_mu
-        q_value = self._q_func(batch.observations, residual_actions, "none")
+        q_value = self._q_func_forwarder.compute_expected_q(
+            batch.observations, residual_actions, "none"
+        )
         return -q_value[0].mean()
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
@@ -174,7 +191,7 @@ class PLASWithPerturbationImpl(PLASImpl):
             residual_actions = self._targ_perturbation(
                 batch.next_observations, actions
             )
-            return self._targ_q_func.compute_target(
+            return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 residual_actions.squashed_mu,
                 reduction="mix",

@@ -3,15 +3,16 @@ from typing import Dict, cast
 
 import torch
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import (
     CategoricalPolicy,
     ConditionalVAE,
+    ContinuousEnsembleQFunctionForwarder,
     DeterministicResidualPolicy,
-    EnsembleContinuousQFunction,
-    EnsembleDiscreteQFunction,
+    DiscreteEnsembleQFunctionForwarder,
     compute_discrete_imitation_loss,
     compute_max_with_n_actions,
     compute_vae_error,
@@ -39,7 +40,10 @@ class BCQImpl(DDPGBaseImpl):
         observation_shape: Shape,
         action_size: int,
         policy: DeterministicResidualPolicy,
-        q_func: EnsembleContinuousQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         imitator: ConditionalVAE,
         actor_optim: Optimizer,
         critic_optim: Optimizer,
@@ -56,7 +60,10 @@ class BCQImpl(DDPGBaseImpl):
             observation_shape=observation_shape,
             action_size=action_size,
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
             gamma=gamma,
@@ -83,9 +90,10 @@ class BCQImpl(DDPGBaseImpl):
             latent=clipped_latent,
         )
         action = self._policy(batch.observations, sampled_action)
-        return -self._q_func(batch.observations, action.squashed_mu, "none")[
-            0
-        ].mean()
+        value = self._q_func_forwarder.compute_expected_q(
+            batch.observations, action.squashed_mu, "none"
+        )
+        return -value[0].mean()
 
     @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
@@ -143,7 +151,9 @@ class BCQImpl(DDPGBaseImpl):
         # (batch_size, n, action_size) -> (batch_size * n, action_size)
         flattend_action = action.view(-1, self.action_size)
         # estimate values
-        return self._q_func(flattened_x, flattend_action, "none")
+        return self._q_func_forwarder.compute_expected_q(
+            flattened_x, flattend_action, "none"
+        )
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         # TODO: this seems to be slow with image observation
@@ -164,7 +174,10 @@ class BCQImpl(DDPGBaseImpl):
             actions = self._sample_repeated_action(repeated_x, True)
 
             values = compute_max_with_n_actions(
-                batch.next_observations, actions, self._targ_q_func, self._lam
+                batch.next_observations,
+                actions,
+                self._targ_q_func_forwarder,
+                self._lam,
             )
 
             return values
@@ -179,7 +192,10 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         self,
         observation_shape: Shape,
         action_size: int,
-        q_func: EnsembleDiscreteQFunction,
+        q_funcs: nn.ModuleList,
+        q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        targ_q_funcs: nn.ModuleList,
+        targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         imitator: CategoricalPolicy,
         optim: Optimizer,
         gamma: float,
@@ -190,7 +206,10 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_funcs=targ_q_funcs,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             optim=optim,
             gamma=gamma,
             device=device,
@@ -216,7 +235,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         log_probs = F.log_softmax(dist.logits, dim=1)
         ratio = log_probs - log_probs.max(dim=1, keepdim=True).values
         mask = (ratio > math.log(self._action_flexibility)).float()
-        value = self._q_func(x)
+        value = self._q_func_forwarder.compute_expected_q(x)
         # add a small constant value to deal with the case where the all
         # actions except the min value are masked
         normalized_value = value - value.min(dim=1, keepdim=True).values + 1e-5

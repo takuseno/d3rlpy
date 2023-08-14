@@ -14,6 +14,7 @@ from typing import (
 
 import numpy as np
 import torch
+from torch import nn
 from tqdm.auto import tqdm, trange
 from typing_extensions import Self
 
@@ -36,7 +37,7 @@ from ...logging import (
     LoggerAdapterFactory,
 )
 from ...metrics import EvaluatorProtocol, evaluate_qlearning_with_environment
-from ...models.torch import EnsembleQFunction, Policy
+from ...models.torch import Policy
 from ...torch_utility import (
     TorchMiniBatch,
     convert_to_torch,
@@ -119,15 +120,15 @@ class QLearningAlgoImplBase(ImplBase):
         sync_optimizer_state(self.policy_optim, impl.policy_optim)
 
     @property
-    def q_function(self) -> EnsembleQFunction:
+    def q_function(self) -> nn.ModuleList:
         raise NotImplementedError
 
     def copy_q_function_from(self, impl: "QLearningAlgoImplBase") -> None:
-        q_func = self.q_function.q_funcs[0]
-        if not isinstance(impl.q_function.q_funcs[0], type(q_func)):
+        q_func = self.q_function[0]
+        if not isinstance(impl.q_function[0], type(q_func)):
             raise ValueError(
                 f"Invalid Q-function type: expected={type(q_func)},"
-                f"actual={type(impl.q_function.q_funcs[0])}"
+                f"actual={type(impl.q_function[0])}"
             )
         hard_sync(self.q_function, impl.q_function)
 

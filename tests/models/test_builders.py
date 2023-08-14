@@ -20,8 +20,8 @@ from d3rlpy.models.builders import (
 from d3rlpy.models.encoders import DefaultEncoderFactory, EncoderFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory
 from d3rlpy.models.torch import (
-    EnsembleContinuousQFunction,
-    EnsembleDiscreteQFunction,
+    ContinuousEnsembleQFunctionForwarder,
+    DiscreteEnsembleQFunctionForwarder,
 )
 from d3rlpy.models.torch.imitators import ConditionalVAE
 from d3rlpy.models.torch.policies import (
@@ -140,7 +140,7 @@ def test_create_discrete_q_function(
 ) -> None:
     q_func_factory = MeanQFunctionFactory(share_encoder=share_encoder)
 
-    q_func = create_discrete_q_function(
+    q_funcs, forwarder = create_discrete_q_function(
         observation_shape,
         action_size,
         encoder_factory,
@@ -149,18 +149,18 @@ def test_create_discrete_q_function(
         n_ensembles=n_ensembles,
     )
 
-    assert isinstance(q_func, EnsembleDiscreteQFunction)
+    assert isinstance(forwarder, DiscreteEnsembleQFunctionForwarder)
 
     # check share_encoder
-    encoder = q_func.q_funcs[0].encoder
-    for q_func in q_func.q_funcs[1:]:
+    encoder = q_funcs[0].encoder
+    for q_func in q_funcs[1:]:
         if share_encoder:
             assert encoder is q_func.encoder
         else:
             assert encoder is not q_func.encoder
 
     x = torch.rand((batch_size, *observation_shape))
-    y = q_func(x)
+    y = forwarder.compute_expected_q(x)
     assert y.shape == (batch_size, action_size)
 
 
@@ -180,7 +180,7 @@ def test_create_continuous_q_function(
 ) -> None:
     q_func_factory = MeanQFunctionFactory(share_encoder=share_encoder)
 
-    q_func = create_continuous_q_function(
+    q_funcs, forwarder = create_continuous_q_function(
         observation_shape,
         action_size,
         encoder_factory,
@@ -189,11 +189,11 @@ def test_create_continuous_q_function(
         n_ensembles=n_ensembles,
     )
 
-    assert isinstance(q_func, EnsembleContinuousQFunction)
+    assert isinstance(forwarder, ContinuousEnsembleQFunctionForwarder)
 
     # check share_encoder
-    encoder = q_func.q_funcs[0].encoder
-    for q_func in q_func.q_funcs[1:]:
+    encoder = q_funcs[0].encoder
+    for q_func in q_funcs[1:]:
         if share_encoder:
             assert encoder is q_func.encoder
         else:
@@ -201,7 +201,7 @@ def test_create_continuous_q_function(
 
     x = torch.rand((batch_size, *observation_shape))
     action = torch.rand(batch_size, action_size)
-    y = q_func(x, action)
+    y = forwarder.compute_expected_q(x, action)
     assert y.shape == (batch_size, 1)
 
 
