@@ -109,6 +109,7 @@ class BC(_BCBase[BCConfig]):
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
+            policy_type=self._config.policy_type,
             device=self._device,
         )
 

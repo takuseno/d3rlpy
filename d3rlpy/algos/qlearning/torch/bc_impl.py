@@ -76,12 +76,14 @@ class BCModules(BCBaseModules):
 
 class BCImpl(BCBaseImpl):
     _modules: BCModules
+    _policy_type: str
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
         modules: BCModules,
+        policy_type: str,
         device: str,
     ):
         super().__init__(
@@ -90,6 +92,7 @@ class BCImpl(BCBaseImpl):
             modules=modules,
             device=device,
         )
+        self._policy_type = policy_type
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         return self._modules.imitator(x).squashed_mu
@@ -97,14 +100,16 @@ class BCImpl(BCBaseImpl):
     def compute_loss(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
     ) -> torch.Tensor:
-        if isinstance(self._modules.imitator, DeterministicPolicy):
+        if self._policy_type == "deterministic":
             return compute_deterministic_imitation_loss(
                 self._modules.imitator, obs_t, act_t
             )
-        else:
+        elif self._policy_type == "stochastic":
             return compute_stochastic_imitation_loss(
                 self._modules.imitator, obs_t, act_t
             )
+        else:
+            raise ValueError(f"invalid policy_type: {self._policy_type}")
 
     @property
     def policy(self) -> Policy:

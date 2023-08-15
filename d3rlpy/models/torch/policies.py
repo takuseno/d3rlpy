@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, NamedTuple, Optional, Union, cast
+from typing import Any, NamedTuple, Optional, Union
 
 import torch
 from torch import nn
@@ -85,7 +85,7 @@ class DeterministicResidualPolicy(Policy):
         action = args[0]
         h = self._encoder(x, action)
         residual_action = self._scale * torch.tanh(self._fc(h))
-        action = (action + cast(torch.Tensor, residual_action)).clamp(-1.0, 1.0)
+        action = (action + residual_action).clamp(-1.0, 1.0)
         return ActionOutput(mu=action, squashed_mu=action, logstd=None)
 
 
@@ -125,11 +125,13 @@ class NormalPolicy(Policy):
         mu = self._mu(h)
 
         if self._use_std_parameter:
-            logstd = torch.sigmoid(cast(nn.Parameter, self._logstd))
+            assert isinstance(self._logstd, nn.Parameter)
+            logstd = torch.sigmoid(self._logstd)
             base_logstd = self._max_logstd - self._min_logstd
             clipped_logstd = self._min_logstd + logstd * base_logstd
         else:
-            logstd = cast(nn.Linear, self._logstd)(h)
+            assert isinstance(self._logstd, nn.Linear)
+            logstd = self._logstd(h)
             clipped_logstd = logstd.clamp(self._min_logstd, self._max_logstd)
 
         return ActionOutput(mu, torch.tanh(mu), clipped_logstd)

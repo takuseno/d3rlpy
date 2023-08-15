@@ -14,7 +14,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...models.torch import CategoricalPolicy, PixelEncoder, compute_output_size
+from ...models.torch import CategoricalPolicy, compute_output_size
 from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.bcq_impl import (
@@ -327,6 +327,8 @@ class DiscreteBCQConfig(LearnableConfig):
             :math:`\tau`.
         beta (float): Reguralization term for imitation function.
         target_update_interval (int): Interval to update the target network.
+        share_encoder (bool): Flag to share encoder between Q-function and
+            imitation models.
     """
     learning_rate: float = 6.25e-5
     optim_factory: OptimizerFactory = make_optimizer_field()
@@ -338,6 +340,7 @@ class DiscreteBCQConfig(LearnableConfig):
     action_flexibility: float = 0.3
     beta: float = 0.5
     target_update_interval: int = 8000
+    share_encoder: bool = True
 
     def create(self, device: DeviceArg = False) -> "DiscreteBCQ":
         return DiscreteBCQ(self, device)
@@ -369,7 +372,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
         )
 
         # share convolutional layers if observation is pixel
-        if isinstance(q_funcs[0].encoder, PixelEncoder):
+        if self._config.share_encoder:
             hidden_size = compute_output_size(
                 [observation_shape],
                 q_funcs[0].encoder,

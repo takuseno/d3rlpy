@@ -195,7 +195,7 @@ class QLearningAlgoBase(
         # workaround until version 1.6
         self._impl.modules.freeze()
 
-        # dummy function to select best actions
+        # local function to select best actions
         def _func(x: torch.Tensor) -> torch.Tensor:
             assert self._impl
 
