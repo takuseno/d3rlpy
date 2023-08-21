@@ -1,8 +1,9 @@
-from typing import Sequence
+from typing import Optional, Sequence
 
 import numpy as np
 import pytest
 import torch
+from torch._dynamo import OptimizedModule
 
 from d3rlpy.models.builders import (
     create_categorical_policy,
@@ -17,6 +18,7 @@ from d3rlpy.models.builders import (
     create_parameter,
     create_value_function,
 )
+from d3rlpy.models.compiler import TorchCompiler, TraceCompiler, Compiler
 from d3rlpy.models.encoders import DefaultEncoderFactory, EncoderFactory
 from d3rlpy.models.q_functions import MeanQFunctionFactory
 from d3rlpy.models.torch import (
@@ -48,7 +50,10 @@ def test_create_deterministic_policy(
     encoder_factory: EncoderFactory,
 ) -> None:
     policy = create_deterministic_policy(
-        observation_shape, action_size, encoder_factory, device="cpu:0"
+        observation_shape,
+        action_size,
+        encoder_factory,
+        device="cpu:0",
     )
 
     assert isinstance(policy, DeterministicPolicy)
@@ -71,7 +76,11 @@ def test_create_deterministic_residual_policy(
     encoder_factory: EncoderFactory,
 ) -> None:
     policy = create_deterministic_residual_policy(
-        observation_shape, action_size, scale, encoder_factory, device="cpu:0"
+        observation_shape,
+        action_size,
+        scale,
+        encoder_factory,
+        device="cpu:0",
     )
 
     assert isinstance(policy, DeterministicResidualPolicy)
@@ -93,7 +102,10 @@ def test_create_normal_policy(
     encoder_factory: EncoderFactory,
 ) -> None:
     policy = create_normal_policy(
-        observation_shape, action_size, encoder_factory, device="cpu:0"
+        observation_shape,
+        action_size,
+        encoder_factory,
+        device="cpu:0",
     )
 
     assert isinstance(policy, NormalPolicy)
@@ -114,7 +126,10 @@ def test_create_categorical_policy(
     encoder_factory: EncoderFactory,
 ) -> None:
     policy = create_categorical_policy(
-        observation_shape, action_size, encoder_factory, device="cpu:0"
+        observation_shape,
+        action_size,
+        encoder_factory,
+        device="cpu:0",
     )
 
     assert isinstance(policy, CategoricalPolicy)
@@ -242,7 +257,9 @@ def test_create_value_function(
     batch_size: int,
 ) -> None:
     v_func = create_value_function(
-        observation_shape, encoder_factory, device="cpu:0"
+        observation_shape,
+        encoder_factory,
+        device="cpu:0",
     )
 
     assert isinstance(v_func, ValueFunction)
@@ -272,6 +289,7 @@ def test_create_parameter(shape: Sequence[int]) -> None:
 @pytest.mark.parametrize("activation_type", ["relu"])
 @pytest.mark.parametrize("position_encoding_type", ["simple"])
 @pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("compiler", [None, TorchCompiler(), TraceCompiler()])
 def test_create_continuous_decision_transformer(
     observation_shape: Sequence[int],
     encoder_factory: EncoderFactory,
@@ -284,6 +302,7 @@ def test_create_continuous_decision_transformer(
     activation_type: str,
     position_encoding_type: str,
     batch_size: int,
+    compiler: Optional[Compiler],
 ) -> None:
     transformer = create_continuous_decision_transformer(
         observation_shape=observation_shape,
@@ -299,9 +318,16 @@ def test_create_continuous_decision_transformer(
         activation_type=activation_type,
         position_encoding_type=position_encoding_type,
         device="cpu:0",
+        compiler=compiler,
     )
 
-    assert isinstance(transformer, ContinuousDecisionTransformer)
+    if isinstance(compiler, TorchCompiler):
+        assert isinstance(transformer, OptimizedModule)
+    elif isinstance(compiler, TraceCompiler):
+        print(transformer)
+        assert isinstance(transformer, torch.ScriptModule)
+    else:
+        assert isinstance(transformer, ContinuousDecisionTransformer)
 
     x = torch.rand(batch_size, context_size, *observation_shape)
     action = torch.rand(batch_size, context_size, action_size)
@@ -323,6 +349,7 @@ def test_create_continuous_decision_transformer(
 @pytest.mark.parametrize("activation_type", ["relu"])
 @pytest.mark.parametrize("position_encoding_type", ["simple"])
 @pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("compiler", [None, TorchCompiler(), TraceCompiler()])
 def test_create_discrete_decision_transformer(
     observation_shape: Sequence[int],
     encoder_factory: EncoderFactory,
@@ -335,6 +362,7 @@ def test_create_discrete_decision_transformer(
     activation_type: str,
     position_encoding_type: str,
     batch_size: int,
+    compiler: Optional[Compiler],
 ) -> None:
     transformer = create_discrete_decision_transformer(
         observation_shape=observation_shape,
@@ -350,9 +378,15 @@ def test_create_discrete_decision_transformer(
         activation_type=activation_type,
         position_encoding_type=position_encoding_type,
         device="cpu:0",
+        compiler=compiler,
     )
 
-    assert isinstance(transformer, DiscreteDecisionTransformer)
+    if isinstance(compiler, TorchCompiler):
+        assert isinstance(transformer, OptimizedModule)
+    elif isinstance(compiler, TraceCompiler):
+        assert isinstance(transformer, torch.ScriptModule)
+    else:
+        assert isinstance(transformer, DiscreteDecisionTransformer)
 
     x = torch.rand(batch_size, context_size, *observation_shape)
     action = torch.randint(0, action_size, size=(batch_size, context_size))

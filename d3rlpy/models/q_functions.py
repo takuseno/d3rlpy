@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Tuple
+from typing import Optional, Tuple
 
 from ..serializable_config import DynamicConfig, generate_config_registration
 from .torch import (
@@ -37,7 +37,10 @@ class QFunctionFactory(DynamicConfig):
     share_encoder: bool = False
 
     def create_discrete(
-        self, encoder: Encoder, hidden_size: int, action_size: int
+        self,
+        encoder: Encoder,
+        hidden_size: int,
+        action_size: int,
     ) -> Tuple[DiscreteQFunction, DiscreteQFunctionForwarder]:
         """Returns PyTorch's Q function module.
 
@@ -53,7 +56,9 @@ class QFunctionFactory(DynamicConfig):
         raise NotImplementedError
 
     def create_continuous(
-        self, encoder: EncoderWithAction, hidden_size: int
+        self,
+        encoder: EncoderWithAction,
+        hidden_size: int,
     ) -> Tuple[ContinuousQFunction, ContinuousQFunctionForwarder]:
         """Returns PyTorch's Q function module.
 
@@ -133,7 +138,10 @@ class QRQFunctionFactory(QFunctionFactory):
     n_quantiles: int = 32
 
     def create_discrete(
-        self, encoder: Encoder, hidden_size: int, action_size: int
+        self,
+        encoder: Encoder,
+        hidden_size: int,
+        action_size: int,
     ) -> Tuple[DiscreteQRQFunction, DiscreteQRQFunctionForwarder]:
         q_func = DiscreteQRQFunction(
             encoder=encoder,
@@ -199,7 +207,9 @@ class IQNQFunctionFactory(QFunctionFactory):
         return q_func, forwarder
 
     def create_continuous(
-        self, encoder: EncoderWithAction, hidden_size: int
+        self,
+        encoder: EncoderWithAction,
+        hidden_size: int,
     ) -> Tuple[ContinuousIQNQFunction, ContinuousIQNQFunctionForwarder]:
         q_func = ContinuousIQNQFunction(
             encoder=encoder,

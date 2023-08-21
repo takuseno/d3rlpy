@@ -62,19 +62,28 @@ def map_location(device: str) -> Any:
     raise ValueError(f"invalid device={device}")
 
 
-def convert_to_torch(array: np.ndarray, device: str) -> torch.Tensor:
+def convert_to_torch(
+    array: np.ndarray, device: str, requires_grad: bool = False
+) -> torch.Tensor:
     dtype = torch.uint8 if array.dtype == np.uint8 else torch.float32
     tensor = torch.tensor(data=array, dtype=dtype, device=device)
-    return tensor.float()
+    tensor = tensor.float()
+    tensor.requires_grad = requires_grad
+    return tensor
 
 
 def convert_to_torch_recursively(
-    array: Union[np.ndarray, Sequence[np.ndarray]], device: str
+    array: Union[np.ndarray, Sequence[np.ndarray]],
+    device: str,
+    requires_grad: bool = False,
 ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
     if isinstance(array, (list, tuple)):
-        return [convert_to_torch(data, device) for data in array]
+        return [
+            convert_to_torch(data, device, requires_grad=requires_grad)
+            for data in array
+        ]
     elif isinstance(array, np.ndarray):
-        return convert_to_torch(array, device)
+        return convert_to_torch(array, device, requires_grad=requires_grad)
     else:
         raise ValueError(f"invalid array type: {type(array)}")
 
@@ -100,11 +109,14 @@ class TorchMiniBatch:
         reward_scaler: Optional[RewardScaler] = None,
     ) -> "TorchMiniBatch":
         # convert numpy array to torch tensor
-        observations = convert_to_torch_recursively(batch.observations, device)
-        actions = convert_to_torch(batch.actions, device)
+        # requires_grad=True is a workaround for torch.compile compatibility
+        observations = convert_to_torch_recursively(
+            batch.observations, device, requires_grad=True
+        )
+        actions = convert_to_torch(batch.actions, device, requires_grad=True)
         rewards = convert_to_torch(batch.rewards, device)
         next_observations = convert_to_torch_recursively(
-            batch.next_observations, device
+            batch.next_observations, device, requires_grad=True
         )
         terminals = convert_to_torch(batch.terminals, device)
         intervals = convert_to_torch(batch.intervals, device)

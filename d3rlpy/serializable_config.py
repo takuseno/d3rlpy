@@ -130,7 +130,9 @@ def generate_optional_config_generation(
             "params": orig_config.serialize_to_dict(),
         }
 
-    def _decoder(dict_config: Dict[str, Any]) -> Optional[TDynamicConfig]:
+    def _decoder(dict_config: Optional[Dict[str, Any]]) -> Optional[TDynamicConfig]:
+        if dict_config is None:
+            return None
         name = dict_config["type"]
         params = dict_config["params"]
         if name == "none":

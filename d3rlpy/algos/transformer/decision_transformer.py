@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 
@@ -13,6 +13,7 @@ from ...models import (
     make_optimizer_field,
 )
 from ...models.builders import create_continuous_decision_transformer
+from ...models.compiler import Compiler, make_compiler_field
 from ...torch_utility import TorchTrajectoryMiniBatch
 from .base import TransformerAlgoBase, TransformerConfig
 from .torch.decision_transformer_impl import (
@@ -57,7 +58,7 @@ class DecisionTransformerConfig(TransformerConfig):
             (``simple`` or ``global``).
         warmup_steps (int): Warmup steps for learning rate scheduler.
         clip_grad_norm (float): Norm of gradient clipping.
-        compile (bool): (experimental) Flag to enable JIT compilation.
+        compiler (Optional[d3rlpy.models.Compiler]): Compiler config.
     """
 
     batch_size: int = 64
@@ -74,7 +75,7 @@ class DecisionTransformerConfig(TransformerConfig):
     position_encoding_type: str = "simple"
     warmup_steps: int = 10000
     clip_grad_norm: float = 0.25
-    compile: bool = False
+    compiler: Optional[Compiler] = make_compiler_field()
 
     def create(self, device: DeviceArg = False) -> "DecisionTransformer":
         return DecisionTransformer(self, device)
@@ -104,6 +105,7 @@ class DecisionTransformer(
             activation_type=self._config.activation_type,
             position_encoding_type=self._config.position_encoding_type,
             device=self._device,
+            compiler=self._config.compiler,
         )
         optim = self._config.optim_factory.create(
             transformer.parameters(), lr=self._config.learning_rate
@@ -111,10 +113,6 @@ class DecisionTransformer(
         scheduler = torch.optim.lr_scheduler.LambdaLR(
             optim, lambda steps: min((steps + 1) / self._config.warmup_steps, 1)
         )
-
-        # JIT compile
-        if self._config.compile:
-            transformer = torch.compile(transformer, fullgraph=True)
 
         modules = DecisionTransformerModules(
             transformer=transformer,

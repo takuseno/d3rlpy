@@ -41,7 +41,8 @@ def _create_encoder_with_action(
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
 def test_mean_q_function_factory(
-    observation_shape: Sequence[int], action_size: int
+    observation_shape: Sequence[int],
+    action_size: int,
 ) -> None:
     factory = MeanQFunctionFactory()
     assert factory.get_type() == "mean"
@@ -73,7 +74,8 @@ def test_mean_q_function_factory(
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
 def test_qr_q_function_factory(
-    observation_shape: Sequence[int], action_size: int
+    observation_shape: Sequence[int],
+    action_size: int,
 ) -> None:
     factory = QRQFunctionFactory()
     assert factory.get_type() == "qr"
@@ -105,7 +107,8 @@ def test_qr_q_function_factory(
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [2])
 def test_iqn_q_function_factory(
-    observation_shape: Sequence[int], action_size: int
+    observation_shape: Sequence[int],
+    action_size: int,
 ) -> None:
     factory = IQNQFunctionFactory()
     assert factory.get_type() == "iqn"

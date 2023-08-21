@@ -1,9 +1,10 @@
-from typing import Sequence, Tuple, cast
+from typing import Optional, Sequence, Tuple, cast
 
 import torch
 from torch import nn
 
 from ..dataset import Shape
+from .compiler import Compiler, create_example_input
 from .encoders import EncoderFactory
 from .q_functions import QFunctionFactory
 from .torch import (
@@ -231,7 +232,9 @@ def create_conditional_vae(
 
 
 def create_value_function(
-    observation_shape: Shape, encoder_factory: EncoderFactory, device: str
+    observation_shape: Shape,
+    encoder_factory: EncoderFactory,
+    device: str,
 ) -> ValueFunction:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = compute_output_size([observation_shape], encoder, device)
@@ -241,7 +244,9 @@ def create_value_function(
 
 
 def create_parameter(
-    shape: Sequence[int], initial_value: float, device: str
+    shape: Sequence[int],
+    initial_value: float,
+    device: str,
 ) -> Parameter:
     data = torch.full(shape, initial_value, dtype=torch.float32)
     parameter = Parameter(data)
@@ -263,6 +268,7 @@ def create_continuous_decision_transformer(
     activation_type: str,
     position_encoding_type: str,
     device: str,
+    compiler: Optional[Compiler],
 ) -> ContinuousDecisionTransformer:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = compute_output_size([observation_shape], encoder, device)
@@ -292,6 +298,12 @@ def create_continuous_decision_transformer(
         activation=create_activation(activation_type),
     )
     transformer.to(device)
+    if compiler:
+        observation = create_example_input(observation_shape, seq_size=context_size)
+        action = create_example_input((action_size,), seq_size=context_size)
+        rtg = create_example_input((1,), seq_size=context_size)
+        timesteps = torch.arange(context_size).view(1, context_size)
+        transformer = compiler.compile(transformer, example_inputs=(observation, action, rtg, timesteps))
     return transformer
 
 
@@ -309,6 +321,7 @@ def create_discrete_decision_transformer(
     activation_type: str,
     position_encoding_type: str,
     device: str,
+    compiler: Optional[Compiler],
 ) -> DiscreteDecisionTransformer:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = compute_output_size([observation_shape], encoder, device)
@@ -338,4 +351,10 @@ def create_discrete_decision_transformer(
         activation=create_activation(activation_type),
     )
     transformer.to(device)
+    if compiler:
+        observation = create_example_input(observation_shape, seq_size=context_size)
+        action = create_example_input((1,), seq_size=context_size).long()
+        rtg = create_example_input((1,), seq_size=context_size)
+        timesteps = torch.arange(context_size).view(1, context_size)
+        transformer = compiler.compile(transformer, example_inputs=(observation, action, rtg, timesteps))
     return transformer
