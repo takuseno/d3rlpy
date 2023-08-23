@@ -1,8 +1,7 @@
 import dataclasses
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_continuous_q_function,
@@ -12,7 +11,6 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import MeanQFunctionFactory
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.iql_impl import IQLImpl, IQLModules
 
@@ -172,18 +170,6 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             max_weight=self._config.max_weight,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        metrics.update(self._impl.update_critic_and_state_value(batch))
-        metrics.update(self._impl.update_actor(batch))
-
-        self._impl.update_critic_target()
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS

@@ -1,8 +1,7 @@
 import dataclasses
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_categorical_policy,
@@ -15,7 +14,6 @@ from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...models.torch import CategoricalPolicy, compute_output_size
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.bcq_impl import (
     BCQImpl,
@@ -245,25 +243,9 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             n_action_samples=self._config.n_action_samples,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
+            rl_start_step=self._config.rl_start_step,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        metrics.update(self._impl.update_imitator(batch))
-
-        if self._grad_step >= self._config.rl_start_step:
-            metrics.update(self._impl.update_critic(batch))
-
-            if self._grad_step % self._config.update_actor_interval == 0:
-                metrics.update(self._impl.update_actor(batch))
-                self._impl.update_actor_target()
-                self._impl.update_critic_target()
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
@@ -417,18 +399,12 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             modules=modules,
             q_func_forwarder=q_func_forwarder,
             targ_q_func_forwarder=targ_q_func_forwarder,
+            target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update(batch)
-        if self._grad_step % self._config.target_update_interval == 0:
-            self._impl.update_target()
-        return loss
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE

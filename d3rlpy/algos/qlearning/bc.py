@@ -1,8 +1,7 @@
 import dataclasses
-from typing import Dict, Generic, TypeVar
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_categorical_policy,
@@ -11,7 +10,6 @@ from ...models.builders import (
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.bc_impl import (
     BCBaseImpl,
@@ -22,16 +20,6 @@ from .torch.bc_impl import (
 )
 
 __all__ = ["BCConfig", "BC", "DiscreteBCConfig", "DiscreteBC"]
-
-
-TBCConfig = TypeVar("TBCConfig", bound="LearnableConfig")
-
-
-class _BCBase(Generic[TBCConfig], QLearningAlgoBase[BCBaseImpl, TBCConfig]):
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update_imitator(batch)
-        return {"loss": loss}
 
 
 @dataclasses.dataclass()
@@ -76,7 +64,7 @@ class BCConfig(LearnableConfig):
         return "bc"
 
 
-class BC(_BCBase[BCConfig]):
+class BC(QLearningAlgoBase[BCBaseImpl, BCConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -159,7 +147,7 @@ class DiscreteBCConfig(LearnableConfig):
         return "discrete_bc"
 
 
-class DiscreteBC(_BCBase[DiscreteBCConfig]):
+class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

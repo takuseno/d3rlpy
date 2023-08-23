@@ -1,8 +1,7 @@
 import dataclasses
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_conditional_vae,
@@ -13,7 +12,6 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.plas_impl import (
     PLASImpl,
@@ -75,7 +73,6 @@ class PLASConfig(LearnableConfig):
         gamma (float): Discount factor.
         tau (float): Target network synchronization coefficiency.
         n_critics (int): Number of Q functions for ensemble.
-        update_actor_interval (int): Interval to update policy function.
         lam (float): Weight factor for critic ensemble.
         warmup_steps (int): Number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
@@ -94,7 +91,6 @@ class PLASConfig(LearnableConfig):
     gamma: float = 0.99
     tau: float = 0.005
     n_critics: int = 2
-    update_actor_interval: int = 1
     lam: float = 0.75
     warmup_steps: int = 500000
     beta: float = 0.5
@@ -180,24 +176,9 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             tau=self._config.tau,
             lam=self._config.lam,
             beta=self._config.beta,
+            warmup_steps=self._config.warmup_steps,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        if self._grad_step < self._config.warmup_steps:
-            metrics.update(self._impl.update_imitator(batch))
-        else:
-            metrics.update(self._impl.update_critic(batch))
-            if self._grad_step % self._config.update_actor_interval == 0:
-                metrics.update(self._impl.update_actor(batch))
-                self._impl.update_actor_target()
-                self._impl.update_critic_target()
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
@@ -350,6 +331,7 @@ class PLASWithPerturbation(PLAS):
             tau=self._config.tau,
             lam=self._config.lam,
             beta=self._config.beta,
+            warmup_steps=self._config.warmup_steps,
             device=self._device,
         )
 

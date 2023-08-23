@@ -1,3 +1,5 @@
+from typing import Dict
+
 import torch
 
 from ....dataset import Shape
@@ -11,6 +13,7 @@ __all__ = ["TD3Impl"]
 class TD3Impl(DDPGImpl):
     _target_smoothing_sigma: float
     _target_smoothing_clip: float
+    _update_actor_interval: int
 
     def __init__(
         self,
@@ -23,6 +26,7 @@ class TD3Impl(DDPGImpl):
         tau: float,
         target_smoothing_sigma: float,
         target_smoothing_clip: float,
+        update_actor_interval: int,
         device: str,
     ):
         super().__init__(
@@ -37,6 +41,7 @@ class TD3Impl(DDPGImpl):
         )
         self._target_smoothing_sigma = target_smoothing_sigma
         self._target_smoothing_clip = target_smoothing_clip
+        self._update_actor_interval = update_actor_interval
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
@@ -54,3 +59,18 @@ class TD3Impl(DDPGImpl):
                 clipped_action,
                 reduction="min",
             )
+
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        metrics = {}
+
+        metrics.update(self.update_critic(batch))
+
+        # delayed policy update
+        if grad_step % self._update_actor_interval == 0:
+            metrics.update(self.update_actor(batch))
+            self.update_critic_target()
+            self.update_actor_target()
+
+        return metrics

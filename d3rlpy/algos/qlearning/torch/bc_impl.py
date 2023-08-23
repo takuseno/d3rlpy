@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
-from typing import Union
+from typing import Dict, Union
 
 import torch
 from torch.optim import Optimizer
@@ -15,7 +15,7 @@ from ....models.torch import (
     compute_discrete_imitation_loss,
     compute_stochastic_imitation_loss,
 )
-from ....torch_utility import Modules, TorchMiniBatch, train_api
+from ....torch_utility import Modules, TorchMiniBatch
 from ..base import QLearningAlgoImplBase
 
 __all__ = ["BCImpl", "DiscreteBCImpl", "BCModules", "DiscreteBCModules"]
@@ -43,7 +43,6 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
             device=device,
         )
 
-    @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> float:
         self._modules.optim.zero_grad()
 
@@ -67,6 +66,11 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
         self, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
         raise NotImplementedError("BC does not support value estimation")
+
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        return {"loss": self.update_imitator(batch)}
 
 
 @dataclasses.dataclass(frozen=True)

@@ -8,13 +8,7 @@ from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import ContinuousEnsembleQFunctionForwarder, Policy
-from ....torch_utility import (
-    Modules,
-    TorchMiniBatch,
-    hard_sync,
-    soft_sync,
-    train_api,
-)
+from ....torch_utility import Modules, TorchMiniBatch, hard_sync, soft_sync
 from ..base import QLearningAlgoImplBase
 from .utility import ContinuousQFunctionMixin
 
@@ -62,7 +56,6 @@ class DDPGBaseImpl(
         self._targ_q_func_forwarder = targ_q_func_forwarder
         hard_sync(self._modules.targ_q_funcs, self._modules.q_funcs)
 
-    @train_api
     def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.critic_optim.zero_grad()
 
@@ -87,7 +80,6 @@ class DDPGBaseImpl(
             gamma=self._gamma**batch.intervals,
         )
 
-    @train_api
     def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
         # Q function should be inference mode for stability
         self._modules.q_funcs.eval()
@@ -100,6 +92,15 @@ class DDPGBaseImpl(
         self._modules.actor_optim.step()
 
         return {"actor_loss": float(loss.cpu().detach().numpy())}
+
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        metrics = {}
+        metrics.update(self.update_critic(batch))
+        metrics.update(self.update_actor(batch))
+        self.update_critic_target()
+        return metrics
 
     @abstractmethod
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
@@ -188,3 +189,10 @@ class DDPGImpl(DDPGBaseImpl):
 
     def update_actor_target(self) -> None:
         soft_sync(self._modules.targ_policy, self._modules.policy, self._tau)
+
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        metrics = super().inner_update(batch, grad_step)
+        self.update_actor_target()
+        return metrics

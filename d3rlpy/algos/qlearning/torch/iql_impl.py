@@ -10,7 +10,7 @@ from ....models.torch import (
     ValueFunction,
     build_gaussian_distribution,
 )
-from ....torch_utility import TorchMiniBatch, train_api
+from ....torch_utility import TorchMiniBatch
 from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
 
 __all__ = ["IQLImpl", "IQLModules"]
@@ -102,7 +102,6 @@ class IQLImpl(DDPGBaseImpl):
         weight = (self._expectile - (diff < 0.0).float()).abs().detach()
         return (weight * (diff**2)).mean()
 
-    @train_api
     def update_critic_and_state_value(
         self, batch: TorchMiniBatch
     ) -> Dict[str, float]:
@@ -128,3 +127,12 @@ class IQLImpl(DDPGBaseImpl):
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         dist = build_gaussian_distribution(self._modules.policy(x))
         return dist.sample()
+
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        metrics = {}
+        metrics.update(self.update_critic_and_state_value(batch))
+        metrics.update(self.update_actor(batch))
+        self.update_critic_target()
+        return metrics

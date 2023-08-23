@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 import torch.nn.functional as F
@@ -13,17 +13,17 @@ from ....models.torch import (
     Parameter,
     build_squashed_gaussian_distribution,
 )
-from ....torch_utility import TorchMiniBatch, train_api
-from .dqn_impl import DoubleDQNImpl, DQNModules
+from ....torch_utility import TorchMiniBatch
+from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 from .sac_impl import SACImpl, SACModules
 
-__all__ = ["CQLImpl", "DiscreteCQLImpl", "CQLModules"]
+__all__ = ["CQLImpl", "DiscreteCQLImpl", "CQLModules", "DiscreteCQLLoss"]
 
 
 @dataclasses.dataclass(frozen=True)
 class CQLModules(SACModules):
     log_alpha: Parameter
-    alpha_optim: Optimizer
+    alpha_optim: Optional[Optimizer]
 
 
 class CQLImpl(SACImpl):
@@ -72,8 +72,9 @@ class CQLImpl(SACImpl):
         )
         return loss + conservative_loss
 
-    @train_api
     def update_alpha(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        assert self._modules.alpha_optim
+
         # Q function should be inference mode for stability
         self._modules.q_funcs.eval()
 
@@ -195,6 +196,32 @@ class CQLImpl(SACImpl):
                 reduction="min",
             )
 
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        metrics = {}
+
+        # lagrangian parameter update for SAC temperature
+        if self._modules.temp_optim:
+            metrics.update(self.update_temp(batch))
+
+        # lagrangian parameter update for conservative loss weight
+        if self._modules.alpha_optim:
+            metrics.update(self.update_alpha(batch))
+
+        metrics.update(self.update_critic(batch))
+        metrics.update(self.update_actor(batch))
+
+        self.update_critic_target()
+
+        return metrics
+
+
+@dataclasses.dataclass(frozen=True)
+class DiscreteCQLLoss(DQNLoss):
+    td_loss: torch.Tensor
+    conservative_loss: torch.Tensor
+
 
 class DiscreteCQLImpl(DoubleDQNImpl):
     _alpha: float
@@ -206,6 +233,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         modules: DQNModules,
         q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        target_update_interval: int,
         gamma: float,
         alpha: float,
         device: str,
@@ -216,6 +244,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
             modules=modules,
             q_func_forwarder=q_func_forwarder,
             targ_q_func_forwarder=targ_q_func_forwarder,
+            target_update_interval=target_update_interval,
             gamma=gamma,
             device=device,
         )
@@ -234,27 +263,16 @@ class DiscreteCQLImpl(DoubleDQNImpl):
 
         return (logsumexp - data_values).mean()
 
-    @train_api
-    def update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._modules.optim is not None
-
-        self._modules.optim.zero_grad()
-
-        q_tpn = self.compute_target(batch)
-
-        td_loss = self.compute_loss(batch, q_tpn)
+    def compute_loss(
+        self,
+        batch: TorchMiniBatch,
+        q_tpn: torch.Tensor,
+    ) -> DiscreteCQLLoss:
+        td_loss = super().compute_loss(batch, q_tpn).loss
         conservative_loss = self._compute_conservative_loss(
             batch.observations, batch.actions.long()
         )
         loss = td_loss + self._alpha * conservative_loss
-
-        loss.backward()
-        self._modules.optim.step()
-
-        return {
-            "loss": float(loss.cpu().detach().numpy()),
-            "td_loss": float(td_loss.cpu().detach().numpy()),
-            "conservative_loss": float(
-                conservative_loss.cpu().detach().numpy()
-            ),
-        }
+        return DiscreteCQLLoss(
+            loss=loss, td_loss=td_loss, conservative_loss=conservative_loss
+        )

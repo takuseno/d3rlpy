@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Dict
 
 import torch
 import torch.nn.functional as F
@@ -28,6 +29,8 @@ class CRRImpl(DDPGBaseImpl):
     _advantage_type: str
     _weight_type: str
     _max_weight: float
+    _target_update_type: str
+    _target_update_interval: int
 
     def __init__(
         self,
@@ -43,6 +46,8 @@ class CRRImpl(DDPGBaseImpl):
         weight_type: str,
         max_weight: float,
         tau: float,
+        target_update_type: str,
+        target_update_interval: int,
         device: str,
     ):
         super().__init__(
@@ -60,6 +65,8 @@ class CRRImpl(DDPGBaseImpl):
         self._advantage_type = advantage_type
         self._weight_type = weight_type
         self._max_weight = max_weight
+        self._target_update_type = target_update_type
+        self._target_update_interval = target_update_interval
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         # compute log probability
@@ -175,3 +182,24 @@ class CRRImpl(DDPGBaseImpl):
 
     def update_actor_target(self) -> None:
         soft_sync(self._modules.targ_policy, self._modules.policy, self._tau)
+
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        metrics = {}
+        metrics.update(self.update_critic(batch))
+        metrics.update(self.update_actor(batch))
+
+        if self._target_update_type == "hard":
+            if grad_step % self._target_update_interval == 0:
+                self.sync_critic_target()
+                self.sync_actor_target()
+        elif self._target_update_type == "soft":
+            self.update_critic_target()
+            self.update_actor_target()
+        else:
+            raise ValueError(
+                f"invalid target_update_type: {self._target_update_type}"
+            )
+
+        return metrics

@@ -217,7 +217,12 @@ class Checkpointer:
 @dataclasses.dataclass(frozen=True)
 class Modules:
     def create_checkpointer(self, device: str) -> Checkpointer:
-        return Checkpointer(modules=asdict_without_copy(self), device=device)
+        modules = {
+            k: v
+            for k, v in asdict_without_copy(self).items()
+            if isinstance(v, (nn.Module, torch.optim.Optimizer))
+        }
+        return Checkpointer(modules=modules, device=device)
 
     def freeze(self) -> None:
         for v in asdict_without_copy(self).values():

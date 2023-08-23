@@ -45,6 +45,7 @@ from ...torch_utility import (
     eval_api,
     hard_sync,
     sync_optimizer_state,
+    train_api,
 )
 from ..utility import (
     assert_action_space_with_dataset,
@@ -63,6 +64,16 @@ __all__ = [
 
 
 class QLearningAlgoImplBase(ImplBase):
+    @train_api
+    def update(self, batch: TorchMiniBatch, grad_step: int) -> Dict[str, float]:
+        return self.inner_update(batch, grad_step)
+
+    @abstractmethod
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        pass
+
     @eval_api
     def predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         return self.inner_predict_best_action(x)
@@ -809,6 +820,7 @@ class QLearningAlgoBase(
         Returns:
             Dictionary of metrics.
         """
+        assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         torch_batch = TorchMiniBatch.from_batch(
             batch=batch,
             device=self._device,
@@ -816,21 +828,9 @@ class QLearningAlgoBase(
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
         )
-        loss = self.inner_update(torch_batch)
+        loss = self._impl.inner_update(torch_batch, self._grad_step)
         self._grad_step += 1
         return loss
-
-    @abstractmethod
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        """Update parameters with PyTorch mini-batch.
-
-        Args:
-            batch: PyTorch mini-batch data.
-
-        Returns:
-            Dictionary of metrics.
-        """
-        raise NotImplementedError
 
     def copy_policy_from(
         self, algo: "QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig]"

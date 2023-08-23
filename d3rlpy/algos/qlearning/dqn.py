@@ -1,14 +1,12 @@
 import dataclasses
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import create_discrete_q_function
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.dqn_impl import DoubleDQNImpl, DQNImpl, DQNModules
 
@@ -100,17 +98,11 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
             action_size=action_size,
             q_func_forwarder=forwarder,
             targ_q_func_forwarder=targ_forwarder,
+            target_update_interval=self._config.target_update_interval,
             modules=modules,
             gamma=self._config.gamma,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update(batch)
-        if self._grad_step % self._config.target_update_interval == 0:
-            self._impl.update_target()
-        return loss
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE
@@ -209,6 +201,7 @@ class DoubleDQN(DQN):
             modules=modules,
             q_func_forwarder=forwarder,
             targ_q_func_forwarder=targ_forwarder,
+            target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
             device=self._device,
         )

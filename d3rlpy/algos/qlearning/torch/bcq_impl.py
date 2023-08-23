@@ -18,11 +18,17 @@ from ....models.torch import (
     compute_vae_error,
     forward_vae_decode,
 )
-from ....torch_utility import TorchMiniBatch, soft_sync, train_api
+from ....torch_utility import TorchMiniBatch, soft_sync
 from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
-from .dqn_impl import DoubleDQNImpl, DQNModules
+from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 
-__all__ = ["BCQImpl", "DiscreteBCQImpl", "BCQModules", "DiscreteBCQModules"]
+__all__ = [
+    "BCQImpl",
+    "DiscreteBCQImpl",
+    "BCQModules",
+    "DiscreteBCQModules",
+    "DiscreteBCQLoss",
+]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -39,6 +45,7 @@ class BCQImpl(DDPGBaseImpl):
     _n_action_samples: int
     _action_flexibility: float
     _beta: float
+    _rl_start_step: float
 
     def __init__(
         self,
@@ -53,6 +60,7 @@ class BCQImpl(DDPGBaseImpl):
         n_action_samples: int,
         action_flexibility: float,
         beta: float,
+        rl_start_step: int,
         device: str,
     ):
         super().__init__(
@@ -69,6 +77,7 @@ class BCQImpl(DDPGBaseImpl):
         self._n_action_samples = n_action_samples
         self._action_flexibility = action_flexibility
         self._beta = beta
+        self._rl_start_step = rl_start_step
 
     def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         latent = torch.randn(
@@ -88,7 +97,6 @@ class BCQImpl(DDPGBaseImpl):
         )
         return -value[0].mean()
 
-    @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.imitator_optim.zero_grad()
 
@@ -176,10 +184,26 @@ class BCQImpl(DDPGBaseImpl):
     def update_actor_target(self) -> None:
         soft_sync(self._modules.targ_policy, self._modules.policy, self._tau)
 
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        metrics = {}
+        metrics.update(self.update_imitator(batch))
+        if grad_step >= self._rl_start_step:
+            metrics.update(super().inner_update(batch, grad_step))
+            self.update_actor_target()
+        return metrics
+
 
 @dataclasses.dataclass(frozen=True)
 class DiscreteBCQModules(DQNModules):
     imitator: CategoricalPolicy
+
+
+@dataclasses.dataclass(frozen=True)
+class DiscreteBCQLoss(DQNLoss):
+    td_loss: torch.Tensor
+    imitator_loss: torch.Tensor
 
 
 class DiscreteBCQImpl(DoubleDQNImpl):
@@ -194,6 +218,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         modules: DiscreteBCQModules,
         q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        target_update_interval: int,
         gamma: float,
         action_flexibility: float,
         beta: float,
@@ -205,6 +230,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             modules=modules,
             q_func_forwarder=q_func_forwarder,
             targ_q_func_forwarder=targ_q_func_forwarder,
+            target_update_interval=target_update_interval,
             gamma=gamma,
             device=device,
         )
@@ -213,15 +239,18 @@ class DiscreteBCQImpl(DoubleDQNImpl):
 
     def compute_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
-    ) -> torch.Tensor:
-        loss = super().compute_loss(batch, q_tpn)
+    ) -> DiscreteBCQLoss:
+        td_loss = super().compute_loss(batch, q_tpn).loss
         imitator_loss = compute_discrete_imitation_loss(
             policy=self._modules.imitator,
             x=batch.observations,
             action=batch.actions.long(),
             beta=self._beta,
         )
-        return loss + imitator_loss
+        loss = td_loss + imitator_loss
+        return DiscreteBCQLoss(
+            loss=loss, td_loss=td_loss, imitator_loss=imitator_loss
+        )
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         dist = self._modules.imitator(x)

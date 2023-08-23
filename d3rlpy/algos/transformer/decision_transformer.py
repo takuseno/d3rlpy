@@ -1,5 +1,4 @@
 import dataclasses
-from typing import Dict
 
 import torch
 
@@ -13,7 +12,6 @@ from ...models import (
     make_optimizer_field,
 )
 from ...models.builders import create_continuous_decision_transformer
-from ...torch_utility import TorchTrajectoryMiniBatch
 from .base import TransformerAlgoBase, TransformerConfig
 from .torch.decision_transformer_impl import (
     DecisionTransformerImpl,
@@ -129,11 +127,6 @@ class DecisionTransformer(
             clip_grad_norm=self._config.clip_grad_norm,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchTrajectoryMiniBatch) -> Dict[str, float]:
-        assert self._impl
-        loss = self._impl.update(batch)
-        return loss
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS

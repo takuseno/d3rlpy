@@ -6,12 +6,7 @@ from torch.optim import Optimizer
 
 from ....dataset import Shape
 from ....models.torch import ContinuousDecisionTransformer
-from ....torch_utility import (
-    Modules,
-    TorchTrajectoryMiniBatch,
-    eval_api,
-    train_api,
-)
+from ....torch_utility import Modules, TorchTrajectoryMiniBatch, eval_api
 from ..base import TransformerAlgoImplBase
 from ..inputs import TorchTransformerInput
 
@@ -56,8 +51,9 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         # (1, T, A) -> (A,)
         return action[0][-1]
 
-    @train_api
-    def update(self, batch: TorchTrajectoryMiniBatch) -> Dict[str, float]:
+    def inner_update(
+        self, batch: TorchTrajectoryMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
         self._modules.optim.zero_grad()
 
         loss = self.compute_loss(batch)

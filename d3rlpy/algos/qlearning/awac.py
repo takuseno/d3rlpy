@@ -1,10 +1,9 @@
 import dataclasses
-from typing import Dict
 
 import torch
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_continuous_q_function,
@@ -14,7 +13,6 @@ from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...models.torch import Parameter
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.awac_impl import AWACImpl
 from .torch.sac_impl import SACModules
@@ -72,7 +70,6 @@ class AWACConfig(LearnableConfig):
         n_action_samples (int): Number of sampled actions to calculate
             :math:`A^\pi(s_t, a_t)`.
         n_critics (int): Number of Q functions for ensemble.
-        update_actor_interval (int): Interval to update policy function.
     """
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4
@@ -87,7 +84,6 @@ class AWACConfig(LearnableConfig):
     lam: float = 1.0
     n_action_samples: int = 1
     n_critics: int = 2
-    update_actor_interval: int = 1
 
     def create(self, device: DeviceArg = False) -> "AWAC":
         return AWAC(self, device)
@@ -134,7 +130,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
 
-        dummy_log_temp = Parameter(torch.zeros(1))
+        dummy_log_temp = Parameter(torch.zeros(1, 1))
         modules = SACModules(
             policy=policy,
             q_funcs=q_funcs,
@@ -142,7 +138,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             log_temp=dummy_log_temp,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
-            temp_optim=torch.optim.Adam(dummy_log_temp.parameters(), lr=0.0),
+            temp_optim=None,
         )
 
         self._impl = AWACImpl(
@@ -157,19 +153,6 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             n_action_samples=self._config.n_action_samples,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        metrics.update(self._impl.update_critic(batch))
-
-        # delayed policy update
-        if self._grad_step % self._config.update_actor_interval == 0:
-            metrics.update(self._impl.update_actor(batch))
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS

@@ -1,9 +1,8 @@
 import dataclasses
 import math
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_conditional_vae,
@@ -14,7 +13,6 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.bear_impl import BEARImpl, BEARModules
 
@@ -244,35 +242,9 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             mmd_kernel=self._config.mmd_kernel,
             mmd_sigma=self._config.mmd_sigma,
             vae_kl_weight=self._config.vae_kl_weight,
+            warmup_steps=self._config.warmup_steps,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        metrics.update(self._impl.update_imitator(batch))
-
-        # lagrangian parameter update for SAC temperature
-        if self._config.temp_learning_rate > 0:
-            metrics.update(self._impl.update_temp(batch))
-
-        # lagrangian parameter update for MMD loss weight
-        if self._config.alpha_learning_rate > 0:
-            metrics.update(self._impl.update_alpha(batch))
-
-        metrics.update(self._impl.update_critic(batch))
-
-        if self._grad_step < self._config.warmup_steps:
-            actor_loss = self._impl.warmup_actor(batch)
-        else:
-            actor_loss = self._impl.update_actor(batch)
-        metrics.update(actor_loss)
-
-        self._impl.update_critic_target()
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS

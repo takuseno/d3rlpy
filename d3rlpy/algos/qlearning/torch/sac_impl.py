@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 import torch.nn.functional as F
@@ -17,7 +17,7 @@ from ....models.torch import (
     Policy,
     build_squashed_gaussian_distribution,
 )
-from ....torch_utility import Modules, TorchMiniBatch, hard_sync, train_api
+from ....torch_utility import Modules, TorchMiniBatch, hard_sync
 from ..base import QLearningAlgoImplBase
 from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
 from .utility import DiscreteQFunctionMixin
@@ -29,7 +29,7 @@ __all__ = ["SACImpl", "DiscreteSACImpl", "SACModules", "DiscreteSACModules"]
 class SACModules(DDPGBaseModules):
     policy: NormalPolicy
     log_temp: Parameter
-    temp_optim: Optimizer
+    temp_optim: Optional[Optimizer]
 
 
 class SACImpl(DDPGBaseImpl):
@@ -68,8 +68,8 @@ class SACImpl(DDPGBaseImpl):
         )
         return (entropy - q_t).mean()
 
-    @train_api
     def update_temp(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        assert self._modules.temp_optim
         self._modules.temp_optim.zero_grad()
 
         with torch.no_grad():
@@ -106,6 +106,15 @@ class SACImpl(DDPGBaseImpl):
             )
             return target - entropy
 
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        metrics = {}
+        if self._modules.temp_optim:
+            metrics.update(self.update_temp(batch))
+        metrics.update(super().inner_update(batch, grad_step))
+        return metrics
+
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         dist = build_squashed_gaussian_distribution(self._modules.policy(x))
         return dist.sample()
@@ -119,13 +128,14 @@ class DiscreteSACModules(Modules):
     log_temp: Parameter
     actor_optim: Optimizer
     critic_optim: Optimizer
-    temp_optim: Optimizer
+    temp_optim: Optional[Optimizer]
 
 
 class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
     _modules: DiscreteSACModules
     _q_func_forwarder: DiscreteEnsembleQFunctionForwarder
     _targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder
+    _target_update_interval: int
 
     def __init__(
         self,
@@ -134,6 +144,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         modules: DiscreteSACModules,
         q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        target_update_interval: int,
         gamma: float,
         device: str,
     ):
@@ -146,9 +157,9 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._gamma = gamma
         self._q_func_forwarder = q_func_forwarder
         self._targ_q_func_forwarder = targ_q_func_forwarder
+        self._target_update_interval = target_update_interval
         hard_sync(modules.targ_q_funcs, modules.q_funcs)
 
-    @train_api
     def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.critic_optim.zero_grad()
 
@@ -190,7 +201,6 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             gamma=self._gamma**batch.intervals,
         )
 
-    @train_api
     def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
         # Q function should be inference mode for stability
         self._modules.q_funcs.eval()
@@ -215,8 +225,8 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         entropy = self._modules.log_temp().exp() * log_probs
         return (probs * (entropy - q_t)).sum(dim=1).mean()
 
-    @train_api
     def update_temp(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        assert self._modules.temp_optim
         self._modules.temp_optim.zero_grad()
 
         with torch.no_grad():
@@ -239,6 +249,22 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             "temp_loss": float(loss.cpu().detach().numpy()),
             "temp": float(cur_temp),
         }
+
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        metrics = {}
+
+        # lagrangian parameter update for SAC temeprature
+        if self._modules.temp_optim:
+            metrics.update(self.update_temp(batch))
+        metrics.update(self.update_critic(batch))
+        metrics.update(self.update_actor(batch))
+
+        if grad_step % self._target_update_interval == 0:
+            self.update_target()
+
+        return metrics
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         dist = self._modules.policy(x)

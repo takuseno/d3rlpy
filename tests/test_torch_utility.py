@@ -112,7 +112,7 @@ class DummyImpl:
         self.fc1 = torch.nn.Linear(100, 100)
         self.fc2 = torch.nn.Linear(100, 100)
         self.optim = torch.optim.Adam(self.fc1.parameters())
-        self.modules = TestModules(self.fc1, self.optim)
+        self.modules = DummyModules(self.fc1, self.optim)
         self.device = "cpu:0"
 
     @train_api
@@ -164,7 +164,7 @@ def test_to_cpu() -> None:
 
 
 @dataclasses.dataclass(frozen=True)
-class TestModules(Modules):
+class DummyModules(Modules):
     fc: torch.nn.Linear
     optim: torch.optim.Adam
 
@@ -172,7 +172,7 @@ class TestModules(Modules):
 def test_modules() -> None:
     fc = torch.nn.Linear(100, 200)
     optim = torch.optim.Adam(fc.parameters())
-    modules = TestModules(fc, optim)
+    modules = DummyModules(fc, optim)
 
     # check checkpointer
     checkpointer = modules.create_checkpointer("cpu:0")

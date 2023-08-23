@@ -13,7 +13,7 @@ from ....models.torch import (
     compute_vae_error,
     forward_vae_decode,
 )
-from ....torch_utility import TorchMiniBatch, soft_sync, train_api
+from ....torch_utility import TorchMiniBatch, soft_sync
 from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
 
 __all__ = [
@@ -36,6 +36,7 @@ class PLASImpl(DDPGBaseImpl):
     _modules: PLASModules
     _lam: float
     _beta: float
+    _warmup_steps: int
 
     def __init__(
         self,
@@ -48,6 +49,7 @@ class PLASImpl(DDPGBaseImpl):
         tau: float,
         lam: float,
         beta: float,
+        warmup_steps: int,
         device: str,
     ):
         super().__init__(
@@ -62,8 +64,8 @@ class PLASImpl(DDPGBaseImpl):
         )
         self._lam = lam
         self._beta = beta
+        self._warmup_steps = warmup_steps
 
-    @train_api
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.imitator_optim.zero_grad()
 
@@ -116,6 +118,21 @@ class PLASImpl(DDPGBaseImpl):
     def update_actor_target(self) -> None:
         soft_sync(self._modules.targ_policy, self._modules.policy, self._tau)
 
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        metrics = {}
+
+        if grad_step < self._warmup_steps:
+            metrics.update(self.update_imitator(batch))
+        else:
+            metrics.update(self.update_critic(batch))
+            metrics.update(self.update_actor(batch))
+            self.update_actor_target()
+            self.update_critic_target()
+
+        return metrics
+
 
 @dataclasses.dataclass(frozen=True)
 class PLASWithPerturbationModules(PLASModules):
@@ -137,6 +154,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         tau: float,
         lam: float,
         beta: float,
+        warmup_steps: int,
         device: str,
     ):
         super().__init__(
@@ -149,6 +167,7 @@ class PLASWithPerturbationImpl(PLASImpl):
             tau=tau,
             lam=lam,
             beta=beta,
+            warmup_steps=warmup_steps,
             device=device,
         )
 

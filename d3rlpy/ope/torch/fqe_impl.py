@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Union
+from typing import Dict, Union
 
 import torch
 from torch import nn
@@ -15,7 +15,7 @@ from ...models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
 )
-from ...torch_utility import Modules, TorchMiniBatch, hard_sync, train_api
+from ...torch_utility import Modules, TorchMiniBatch, hard_sync
 
 __all__ = ["FQEBaseImpl", "FQEImpl", "DiscreteFQEImpl", "FQEBaseModules"]
 
@@ -28,6 +28,7 @@ class FQEBaseModules(Modules):
 
 
 class FQEBaseImpl(QLearningAlgoImplBase):
+    _algo: QLearningAlgoImplBase
     _modules: FQEBaseModules
     _gamma: float
     _q_func_forwarder: Union[
@@ -36,11 +37,13 @@ class FQEBaseImpl(QLearningAlgoImplBase):
     _targ_q_func_forwarder: Union[
         DiscreteEnsembleQFunctionForwarder, ContinuousEnsembleQFunctionForwarder
     ]
+    _target_update_interval: int
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
+        algo: QLearningAlgoImplBase,
         modules: FQEBaseModules,
         q_func_forwarder: Union[
             DiscreteEnsembleQFunctionForwarder,
@@ -51,6 +54,7 @@ class FQEBaseImpl(QLearningAlgoImplBase):
             ContinuousEnsembleQFunctionForwarder,
         ],
         gamma: float,
+        target_update_interval: int,
         device: str,
     ):
         super().__init__(
@@ -59,23 +63,12 @@ class FQEBaseImpl(QLearningAlgoImplBase):
             modules=modules,
             device=device,
         )
+        self._algo = algo
         self._gamma = gamma
         self._q_func_forwarder = q_func_forwarder
         self._targ_q_func_forwarder = targ_q_func_forwarder
+        self._target_update_interval = target_update_interval
         hard_sync(modules.targ_q_funcs, modules.q_funcs)
-
-    @train_api
-    def update(
-        self, batch: TorchMiniBatch, next_actions: torch.Tensor
-    ) -> float:
-        q_tpn = self.compute_target(batch, next_actions)
-        loss = self.compute_loss(batch, q_tpn)
-
-        self._modules.optim.zero_grad()
-        loss.backward()
-        self._modules.optim.step()
-
-        return float(loss.cpu().detach().numpy())
 
     def compute_loss(
         self,
@@ -107,6 +100,23 @@ class FQEBaseImpl(QLearningAlgoImplBase):
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
+
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        next_actions = self._algo.predict_best_action(batch.next_observations)
+
+        q_tpn = self.compute_target(batch, next_actions)
+        loss = self.compute_loss(batch, q_tpn)
+
+        self._modules.optim.zero_grad()
+        loss.backward()
+        self._modules.optim.step()
+
+        if grad_step % self._target_update_interval == 0:
+            self.update_target()
+
+        return {"loss": float(loss.cpu().detach().numpy())}
 
 
 class FQEImpl(ContinuousQFunctionMixin, FQEBaseImpl):

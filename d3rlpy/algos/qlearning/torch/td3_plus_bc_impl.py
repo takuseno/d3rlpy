@@ -26,6 +26,7 @@ class TD3PlusBCImpl(TD3Impl):
         target_smoothing_sigma: float,
         target_smoothing_clip: float,
         alpha: float,
+        update_actor_interval: int,
         device: str,
     ):
         super().__init__(
@@ -38,6 +39,7 @@ class TD3PlusBCImpl(TD3Impl):
             tau=tau,
             target_smoothing_sigma=target_smoothing_sigma,
             target_smoothing_clip=target_smoothing_clip,
+            update_actor_interval=update_actor_interval,
             device=device,
         )
         self._alpha = alpha

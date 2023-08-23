@@ -1,8 +1,7 @@
 import dataclasses
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_continuous_q_function,
@@ -11,7 +10,6 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.crr_impl import CRRImpl, CRRModules
 
@@ -192,29 +190,10 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
             weight_type=self._config.weight_type,
             max_weight=self._config.max_weight,
             tau=self._config.tau,
+            target_update_type=self._config.target_update_type,
+            target_update_interval=self._config.target_update_interval,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-        metrics.update(self._impl.update_critic(batch))
-        metrics.update(self._impl.update_actor(batch))
-
-        if self._config.target_update_type == "hard":
-            if self._grad_step % self._config.target_update_interval == 0:
-                self._impl.sync_critic_target()
-                self._impl.sync_actor_target()
-        elif self._config.target_update_type == "soft":
-            self._impl.update_critic_target()
-            self._impl.update_actor_target()
-        else:
-            raise ValueError(
-                f"invalid target_update_type: {self._config.target_update_type}"
-            )
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS

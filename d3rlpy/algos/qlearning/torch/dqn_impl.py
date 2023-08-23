@@ -5,13 +5,14 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
+from ....dataclass_utils import asdict_as_float
 from ....dataset import Shape
 from ....models.torch import DiscreteEnsembleQFunctionForwarder
-from ....torch_utility import Modules, TorchMiniBatch, hard_sync, train_api
+from ....torch_utility import Modules, TorchMiniBatch, hard_sync
 from ..base import QLearningAlgoImplBase
 from .utility import DiscreteQFunctionMixin
 
-__all__ = ["DQNImpl", "DQNModules", "DoubleDQNImpl"]
+__all__ = ["DQNImpl", "DQNModules", "DQNLoss", "DoubleDQNImpl"]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -21,11 +22,17 @@ class DQNModules(Modules):
     optim: Optimizer
 
 
+@dataclasses.dataclass(frozen=True)
+class DQNLoss:
+    loss: torch.Tensor
+
+
 class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
     _modules: DQNModules
     _gamma: float
     _q_func_forwarder: DiscreteEnsembleQFunctionForwarder
     _targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder
+    _target_update_interval: int
 
     def __init__(
         self,
@@ -34,6 +41,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         modules: DQNModules,
         q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        target_update_interval: int,
         gamma: float,
         device: str,
     ):
@@ -46,27 +54,32 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._gamma = gamma
         self._q_func_forwarder = q_func_forwarder
         self._targ_q_func_forwarder = targ_q_func_forwarder
+        self._target_update_interval = target_update_interval
         hard_sync(modules.targ_q_funcs, modules.q_funcs)
 
-    @train_api
-    def update(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
         self._modules.optim.zero_grad()
 
         q_tpn = self.compute_target(batch)
 
         loss = self.compute_loss(batch, q_tpn)
 
-        loss.backward()
+        loss.loss.backward()
         self._modules.optim.step()
 
-        return {"loss": float(loss.cpu().detach().numpy())}
+        if grad_step % self._target_update_interval == 0:
+            self.update_target()
+
+        return asdict_as_float(loss)
 
     def compute_loss(
         self,
         batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
-    ) -> torch.Tensor:
-        return self._q_func_forwarder.compute_error(
+    ) -> DQNLoss:
+        loss = self._q_func_forwarder.compute_error(
             observations=batch.observations,
             actions=batch.actions.long(),
             rewards=batch.rewards,
@@ -74,6 +87,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             terminals=batch.terminals,
             gamma=self._gamma**batch.intervals,
         )
+        return DQNLoss(loss=loss)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():

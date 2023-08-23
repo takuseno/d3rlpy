@@ -1,9 +1,8 @@
 import dataclasses
 import math
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_continuous_q_function,
@@ -14,7 +13,6 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
 from .torch.cql_impl import CQLImpl, CQLModules, DiscreteCQLImpl
 from .torch.dqn_impl import DQNModules
@@ -173,12 +171,18 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
-        temp_optim = self._config.temp_optim_factory.create(
-            log_temp.parameters(), lr=self._config.temp_learning_rate
-        )
-        alpha_optim = self._config.alpha_optim_factory.create(
-            log_alpha.parameters(), lr=self._config.alpha_learning_rate
-        )
+        if self._config.temp_learning_rate > 0:
+            temp_optim = self._config.temp_optim_factory.create(
+                log_temp.parameters(), lr=self._config.temp_learning_rate
+            )
+        else:
+            temp_optim = None
+        if self._config.alpha_learning_rate > 0:
+            alpha_optim = self._config.alpha_optim_factory.create(
+                log_alpha.parameters(), lr=self._config.alpha_learning_rate
+            )
+        else:
+            alpha_optim = None
 
         modules = CQLModules(
             policy=policy,
@@ -206,26 +210,6 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             soft_q_backup=self._config.soft_q_backup,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        # lagrangian parameter update for SAC temperature
-        if self._config.temp_learning_rate > 0:
-            metrics.update(self._impl.update_temp(batch))
-
-        # lagrangian parameter update for conservative loss weight
-        if self._config.alpha_learning_rate > 0:
-            metrics.update(self._impl.update_alpha(batch))
-
-        metrics.update(self._impl.update_critic(batch))
-        metrics.update(self._impl.update_actor(batch))
-
-        self._impl.update_critic_target()
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
@@ -327,17 +311,11 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
             modules=modules,
             q_func_forwarder=q_func_forwarder,
             targ_q_func_forwarder=targ_q_func_forwarder,
+            target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
             alpha=self._config.alpha,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update(batch)
-        if self._grad_step % self._config.target_update_interval == 0:
-            self._impl.update_target()
-        return loss
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE
