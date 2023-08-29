@@ -1,8 +1,7 @@
 import dataclasses
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_conditional_vae,
@@ -13,9 +12,13 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.plas_impl import PLASImpl, PLASWithPerturbationImpl
+from .torch.plas_impl import (
+    PLASImpl,
+    PLASModules,
+    PLASWithPerturbationImpl,
+    PLASWithPerturbationModules,
+)
 
 __all__ = [
     "PLASConfig",
@@ -70,7 +73,6 @@ class PLASConfig(LearnableConfig):
         gamma (float): Discount factor.
         tau (float): Target network synchronization coefficiency.
         n_critics (int): Number of Q functions for ensemble.
-        update_actor_interval (int): Interval to update policy function.
         lam (float): Weight factor for critic ensemble.
         warmup_steps (int): Number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
@@ -89,7 +91,6 @@ class PLASConfig(LearnableConfig):
     gamma: float = 0.99
     tau: float = 0.005
     n_critics: int = 2
-    update_actor_interval: int = 1
     lam: float = 0.75
     warmup_steps: int = 500000
     beta: float = 0.5
@@ -112,7 +113,21 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             self._config.actor_encoder_factory,
             device=self._device,
         )
-        q_func = create_continuous_q_function(
+        targ_policy = create_deterministic_policy(
+            observation_shape,
+            2 * action_size,
+            self._config.actor_encoder_factory,
+            device=self._device,
+        )
+        q_funcs, q_func_forwarder = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
@@ -124,7 +139,6 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             observation_shape=observation_shape,
             action_size=action_size,
             latent_size=2 * action_size,
-            beta=self._config.beta,
             min_logstd=-4.0,
             max_logstd=15.0,
             encoder_factory=self._config.imitator_encoder_factory,
@@ -135,45 +149,36 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             policy.parameters(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_func.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
         imitator_optim = self._config.critic_optim_factory.create(
             imitator.parameters(), lr=self._config.imitator_learning_rate
         )
 
-        self._impl = PLASImpl(
-            observation_shape=observation_shape,
-            action_size=action_size,
+        modules = PLASModules(
             policy=policy,
-            q_func=q_func,
+            targ_policy=targ_policy,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
             imitator=imitator,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
             imitator_optim=imitator_optim,
+        )
+
+        self._impl = PLASImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
             lam=self._config.lam,
+            beta=self._config.beta,
+            warmup_steps=self._config.warmup_steps,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        if self._grad_step < self._config.warmup_steps:
-            imitator_loss = self._impl.update_imitator(batch)
-            metrics.update({"imitator_loss": imitator_loss})
-        else:
-            critic_loss = self._impl.update_critic(batch)
-            metrics.update({"critic_loss": critic_loss})
-            if self._grad_step % self._config.update_actor_interval == 0:
-                actor_loss = self._impl.update_actor(batch)
-                metrics.update({"actor_loss": actor_loss})
-                self._impl.update_actor_target()
-                self._impl.update_critic_target()
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
@@ -245,7 +250,21 @@ class PLASWithPerturbation(PLAS):
             self._config.actor_encoder_factory,
             device=self._device,
         )
-        q_func = create_continuous_q_function(
+        targ_policy = create_deterministic_policy(
+            observation_shape,
+            2 * action_size,
+            self._config.actor_encoder_factory,
+            device=self._device,
+        )
+        q_funcs, q_func_forwarder = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
@@ -257,13 +276,19 @@ class PLASWithPerturbation(PLAS):
             observation_shape=observation_shape,
             action_size=action_size,
             latent_size=2 * action_size,
-            beta=self._config.beta,
             min_logstd=-4.0,
             max_logstd=15.0,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
         )
         perturbation = create_deterministic_residual_policy(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            scale=self._config.action_flexibility,
+            encoder_factory=self._config.actor_encoder_factory,
+            device=self._device,
+        )
+        targ_perturbation = create_deterministic_residual_policy(
             observation_shape=observation_shape,
             action_size=action_size,
             scale=self._config.action_flexibility,
@@ -277,25 +302,36 @@ class PLASWithPerturbation(PLAS):
             params=parameters, lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_func.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
         imitator_optim = self._config.critic_optim_factory.create(
             imitator.parameters(), lr=self._config.imitator_learning_rate
         )
 
-        self._impl = PLASWithPerturbationImpl(
-            observation_shape=observation_shape,
-            action_size=action_size,
+        modules = PLASWithPerturbationModules(
             policy=policy,
-            q_func=q_func,
+            targ_policy=targ_policy,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
             imitator=imitator,
             perturbation=perturbation,
+            targ_perturbation=targ_perturbation,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
             imitator_optim=imitator_optim,
+        )
+
+        self._impl = PLASWithPerturbationImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
             lam=self._config.lam,
+            beta=self._config.beta,
+            warmup_steps=self._config.warmup_steps,
             device=self._device,
         )
 

@@ -27,7 +27,7 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
       libxrender1 \
       libpcre3-dev && \
     pip install --no-cache-dir \
-      Cython \
+      Cython==0.29.28 \
       git+https://github.com/takuseno/d4rl-atari && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /tmp/* && \

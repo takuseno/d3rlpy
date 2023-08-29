@@ -14,6 +14,7 @@ from typing import (
 
 import numpy as np
 import torch
+from torch import nn
 from tqdm.auto import tqdm, trange
 from typing_extensions import Self
 
@@ -36,17 +37,15 @@ from ...logging import (
     LoggerAdapterFactory,
 )
 from ...metrics import EvaluatorProtocol, evaluate_qlearning_with_environment
-from ...models.torch import EnsembleQFunction, Policy
+from ...models.torch import Policy
 from ...torch_utility import (
     TorchMiniBatch,
     convert_to_torch,
     convert_to_torch_recursively,
     eval_api,
-    freeze,
     hard_sync,
-    reset_optimizer_states,
     sync_optimizer_state,
-    unfreeze,
+    train_api,
 )
 from ..utility import (
     assert_action_space_with_dataset,
@@ -65,6 +64,16 @@ __all__ = [
 
 
 class QLearningAlgoImplBase(ImplBase):
+    @train_api
+    def update(self, batch: TorchMiniBatch, grad_step: int) -> Dict[str, float]:
+        return self.inner_update(batch, grad_step)
+
+    @abstractmethod
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        pass
+
     @eval_api
     def predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         return self.inner_predict_best_action(x)
@@ -119,15 +128,15 @@ class QLearningAlgoImplBase(ImplBase):
         sync_optimizer_state(self.policy_optim, impl.policy_optim)
 
     @property
-    def q_function(self) -> EnsembleQFunction:
+    def q_function(self) -> nn.ModuleList:
         raise NotImplementedError
 
     def copy_q_function_from(self, impl: "QLearningAlgoImplBase") -> None:
-        q_func = self.q_function.q_funcs[0]
-        if not isinstance(impl.q_function.q_funcs[0], type(q_func)):
+        q_func = self.q_function[0]
+        if not isinstance(impl.q_function[0], type(q_func)):
             raise ValueError(
                 f"Invalid Q-function type: expected={type(q_func)},"
-                f"actual={type(impl.q_function.q_funcs[0])}"
+                f"actual={type(impl.q_function[0])}"
             )
         hard_sync(self.q_function, impl.q_function)
 
@@ -145,7 +154,7 @@ class QLearningAlgoImplBase(ImplBase):
         sync_optimizer_state(self.q_function_optim, impl.q_function_optim)
 
     def reset_optimizer_states(self) -> None:
-        reset_optimizer_states(self)
+        self.modules.reset_optimizer_states()
 
 
 TQLearningImpl = TypeVar("TQLearningImpl", bound=QLearningAlgoImplBase)
@@ -195,9 +204,9 @@ class QLearningAlgoBase(
             )
 
         # workaround until version 1.6
-        freeze(self._impl)
+        self._impl.modules.freeze()
 
-        # dummy function to select best actions
+        # local function to select best actions
         def _func(x: torch.Tensor) -> torch.Tensor:
             assert self._impl
 
@@ -233,7 +242,7 @@ class QLearningAlgoBase(
             )
 
         # workaround until version 1.6
-        unfreeze(self._impl)
+        self._impl.modules.unfreeze()
 
     def predict(self, x: Observation) -> np.ndarray:
         """Returns greedy actions.
@@ -811,6 +820,7 @@ class QLearningAlgoBase(
         Returns:
             Dictionary of metrics.
         """
+        assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         torch_batch = TorchMiniBatch.from_batch(
             batch=batch,
             device=self._device,
@@ -818,21 +828,9 @@ class QLearningAlgoBase(
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
         )
-        loss = self.inner_update(torch_batch)
+        loss = self._impl.inner_update(torch_batch, self._grad_step)
         self._grad_step += 1
         return loss
-
-    @abstractmethod
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        """Update parameters with PyTorch mini-batch.
-
-        Args:
-            batch: PyTorch mini-batch data.
-
-        Returns:
-            Dictionary of metrics.
-        """
-        raise NotImplementedError
 
     def copy_policy_from(
         self, algo: "QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig]"

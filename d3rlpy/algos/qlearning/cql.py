@@ -1,22 +1,21 @@
 import dataclasses
 import math
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_continuous_q_function,
     create_discrete_q_function,
+    create_normal_policy,
     create_parameter,
-    create_squashed_normal_policy,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.cql_impl import CQLImpl, DiscreteCQLImpl
+from .torch.cql_impl import CQLImpl, CQLModules, DiscreteCQLImpl
+from .torch.dqn_impl import DQNModules
 
 __all__ = ["CQLConfig", "CQL", "DiscreteCQLConfig", "DiscreteCQL"]
 
@@ -135,13 +134,21 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        policy = create_squashed_normal_policy(
+        policy = create_normal_policy(
             observation_shape,
             action_size,
             self._config.actor_encoder_factory,
             device=self._device,
         )
-        q_func = create_continuous_q_function(
+        q_funcs, q_func_fowarder = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
@@ -162,26 +169,39 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             policy.parameters(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_func.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
-        temp_optim = self._config.temp_optim_factory.create(
-            log_temp.parameters(), lr=self._config.temp_learning_rate
-        )
-        alpha_optim = self._config.alpha_optim_factory.create(
-            log_alpha.parameters(), lr=self._config.alpha_learning_rate
-        )
+        if self._config.temp_learning_rate > 0:
+            temp_optim = self._config.temp_optim_factory.create(
+                log_temp.parameters(), lr=self._config.temp_learning_rate
+            )
+        else:
+            temp_optim = None
+        if self._config.alpha_learning_rate > 0:
+            alpha_optim = self._config.alpha_optim_factory.create(
+                log_alpha.parameters(), lr=self._config.alpha_learning_rate
+            )
+        else:
+            alpha_optim = None
 
-        self._impl = CQLImpl(
-            observation_shape=observation_shape,
-            action_size=action_size,
+        modules = CQLModules(
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
             log_temp=log_temp,
             log_alpha=log_alpha,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
             temp_optim=temp_optim,
             alpha_optim=alpha_optim,
+        )
+
+        self._impl = CQLImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            modules=modules,
+            q_func_forwarder=q_func_fowarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
             alpha_threshold=self._config.alpha_threshold,
@@ -190,33 +210,6 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             soft_q_backup=self._config.soft_q_backup,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        # lagrangian parameter update for SAC temperature
-        if self._config.temp_learning_rate > 0:
-            temp_loss, temp = self._impl.update_temp(batch)
-            metrics.update({"temp_loss": temp_loss, "temp": temp})
-
-        # lagrangian parameter update for conservative loss weight
-        if self._config.alpha_learning_rate > 0:
-            alpha_loss, alpha = self._impl.update_alpha(batch)
-            metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
-
-        critic_loss, conservative_loss = self._impl.update_critic(batch)
-        metrics.update({"critic_loss": critic_loss})
-        metrics.update({"conservative_loss": conservative_loss})
-
-        actor_loss = self._impl.update_actor(batch)
-        metrics.update({"actor_loss": actor_loss})
-
-        self._impl.update_critic_target()
-        self._impl.update_actor_target()
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
@@ -285,7 +278,15 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        q_func = create_discrete_q_function(
+        q_funcs, q_func_forwarder = create_discrete_q_function(
+            observation_shape,
+            action_size,
+            self._config.encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
             self._config.encoder_factory,
@@ -295,25 +296,26 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
         )
 
         optim = self._config.optim_factory.create(
-            q_func.parameters(), lr=self._config.learning_rate
+            q_funcs.parameters(), lr=self._config.learning_rate
+        )
+
+        modules = DQNModules(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
         )
 
         self._impl = DiscreteCQLImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
-            optim=optim,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
+            target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
             alpha=self._config.alpha,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss, conservative_loss = self._impl.update(batch)
-        if self._grad_step % self._config.target_update_interval == 0:
-            self._impl.update_target()
-        return {"loss": loss, "conservative_loss": conservative_loss}
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE

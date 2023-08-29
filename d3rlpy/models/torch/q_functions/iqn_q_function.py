@@ -1,34 +1,45 @@
 import math
-from typing import Optional, cast
+from typing import Optional
 
 import torch
 from torch import nn
 
 from ..encoders import Encoder, EncoderWithAction
-from .base import ContinuousQFunction, DiscreteQFunction
+from .base import (
+    ContinuousQFunction,
+    ContinuousQFunctionForwarder,
+    DiscreteQFunction,
+    DiscreteQFunctionForwarder,
+    QFunctionOutput,
+)
 from .utility import (
     compute_quantile_loss,
     compute_reduce,
     pick_quantile_value_by_action,
 )
 
-__all__ = ["DiscreteIQNQFunction", "ContinuousIQNQFunction"]
+__all__ = [
+    "DiscreteIQNQFunction",
+    "ContinuousIQNQFunction",
+    "DiscreteIQNQFunctionForwarder",
+    "ContinuousIQNQFunctionForwarder",
+]
 
 
 def _make_taus(
-    h: torch.Tensor, n_quantiles: int, training: bool
+    batch_size: int, n_quantiles: int, training: bool, device: torch.device
 ) -> torch.Tensor:
     if training:
-        taus = torch.rand(h.shape[0], n_quantiles, device=h.device)
+        taus = torch.rand(batch_size, n_quantiles, device=device)
     else:
         taus = torch.linspace(
             start=0,
             end=1,
             steps=n_quantiles,
-            device=h.device,
+            device=device,
             dtype=torch.float32,
         )
-        taus = taus.view(1, -1).repeat(h.shape[0], 1)
+        taus = taus.view(1, -1).repeat(batch_size, 1)
     return taus
 
 
@@ -49,7 +60,7 @@ def compute_iqn_feature(
     return h.view(h.shape[0], 1, -1) * phi
 
 
-class DiscreteIQNQFunction(DiscreteQFunction, nn.Module):  # type: ignore
+class DiscreteIQNQFunction(DiscreteQFunction):
     _action_size: int
     _encoder: Encoder
     _fc: nn.Linear
@@ -61,6 +72,7 @@ class DiscreteIQNQFunction(DiscreteQFunction, nn.Module):  # type: ignore
     def __init__(
         self,
         encoder: Encoder,
+        hidden_size: int,
         action_size: int,
         n_quantiles: int,
         n_greedy_quantiles: int,
@@ -69,32 +81,52 @@ class DiscreteIQNQFunction(DiscreteQFunction, nn.Module):  # type: ignore
         super().__init__()
         self._encoder = encoder
         self._action_size = action_size
-        self._fc = nn.Linear(encoder.get_feature_size(), self._action_size)
+        self._fc = nn.Linear(hidden_size, self._action_size)
         self._n_quantiles = n_quantiles
         self._n_greedy_quantiles = n_greedy_quantiles
         self._embed_size = embed_size
-        self._embed = nn.Linear(embed_size, encoder.get_feature_size())
+        self._embed = nn.Linear(embed_size, hidden_size)
 
-    def _make_taus(self, h: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> QFunctionOutput:
+        h = self._encoder(x)
+
         if self.training:
             n_quantiles = self._n_quantiles
         else:
             n_quantiles = self._n_greedy_quantiles
-        return _make_taus(h, n_quantiles, self.training)
+        taus = _make_taus(
+            batch_size=x.shape[0],
+            n_quantiles=n_quantiles,
+            training=self.training,
+            device=x.device,
+        )
 
-    def _compute_quantiles(
-        self, h: torch.Tensor, taus: torch.Tensor
-    ) -> torch.Tensor:
-        # element-wise product on feature and phi (batch, quantile, feature)
+        # (batch, quantile, feature)
         prod = compute_iqn_feature(h, taus, self._embed, self._embed_size)
-        # (batch, quantile, feature) -> (batch, action, quantile)
-        return cast(torch.Tensor, self._fc(prod)).transpose(1, 2)
+        # (batch, quantile, action) -> (batch, action, quantile)
+        quantiles = self._fc(prod).transpose(1, 2)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        h = self._encoder(x)
-        taus = self._make_taus(h)
-        quantiles = self._compute_quantiles(h, taus)
-        return quantiles.mean(dim=2)
+        return QFunctionOutput(
+            q_value=quantiles.mean(dim=2),
+            quantiles=quantiles,
+            taus=taus,
+        )
+
+    @property
+    def encoder(self) -> Encoder:
+        return self._encoder
+
+
+class DiscreteIQNQFunctionForwarder(DiscreteQFunctionForwarder):
+    _q_func: DiscreteIQNQFunction
+    _n_quantiles: int
+
+    def __init__(self, q_func: DiscreteIQNQFunction, n_quantiles: int):
+        self._q_func = q_func
+        self._n_quantiles = n_quantiles
+
+    def compute_expected_q(self, x: torch.Tensor) -> torch.Tensor:
+        return self._q_func(x).q_value
 
     def compute_error(
         self,
@@ -109,9 +141,10 @@ class DiscreteIQNQFunction(DiscreteQFunction, nn.Module):  # type: ignore
         assert target.shape == (observations.shape[0], self._n_quantiles)
 
         # extraect quantiles corresponding to act_t
-        h = self._encoder(observations)
-        taus = self._make_taus(h)
-        all_quantiles = self._compute_quantiles(h, taus)
+        output = self._q_func(observations)
+        taus = output.taus
+        all_quantiles = output.quantiles
+        assert taus is not None and all_quantiles is not None
         quantiles = pick_quantile_value_by_action(all_quantiles, actions)
 
         loss = compute_quantile_loss(
@@ -128,24 +161,14 @@ class DiscreteIQNQFunction(DiscreteQFunction, nn.Module):  # type: ignore
     def compute_target(
         self, x: torch.Tensor, action: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
-        h = self._encoder(x)
-        taus = self._make_taus(h)
-        quantiles = self._compute_quantiles(h, taus)
+        quantiles = self._q_func(x).quantiles
+        assert quantiles is not None
         if action is None:
             return quantiles
         return pick_quantile_value_by_action(quantiles, action)
 
-    @property
-    def action_size(self) -> int:
-        return self._action_size
-
-    @property
-    def encoder(self) -> Encoder:
-        return self._encoder
-
 
 class ContinuousIQNQFunction(ContinuousQFunction, nn.Module):  # type: ignore
-    _action_size: int
     _encoder: EncoderWithAction
     _fc: nn.Linear
     _n_quantiles: int
@@ -156,39 +179,61 @@ class ContinuousIQNQFunction(ContinuousQFunction, nn.Module):  # type: ignore
     def __init__(
         self,
         encoder: EncoderWithAction,
+        hidden_size: int,
         n_quantiles: int,
         n_greedy_quantiles: int,
         embed_size: int,
     ):
         super().__init__()
         self._encoder = encoder
-        self._action_size = encoder.action_size
-        self._fc = nn.Linear(encoder.get_feature_size(), 1)
+        self._fc = nn.Linear(hidden_size, 1)
         self._n_quantiles = n_quantiles
         self._n_greedy_quantiles = n_greedy_quantiles
         self._embed_size = embed_size
-        self._embed = nn.Linear(embed_size, encoder.get_feature_size())
+        self._embed = nn.Linear(embed_size, hidden_size)
 
-    def _make_taus(self, h: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, action: torch.Tensor) -> QFunctionOutput:
+        h = self._encoder(x, action)
+
         if self.training:
             n_quantiles = self._n_quantiles
         else:
             n_quantiles = self._n_greedy_quantiles
-        return _make_taus(h, n_quantiles, self.training)
+        taus = _make_taus(
+            batch_size=x.shape[0],
+            n_quantiles=n_quantiles,
+            training=self.training,
+            device=x.device,
+        )
 
-    def _compute_quantiles(
-        self, h: torch.Tensor, taus: torch.Tensor
-    ) -> torch.Tensor:
         # element-wise product on feature and phi (batch, quantile, feature)
         prod = compute_iqn_feature(h, taus, self._embed, self._embed_size)
         # (batch, quantile, feature) -> (batch, quantile)
-        return cast(torch.Tensor, self._fc(prod)).view(h.shape[0], -1)
+        quantiles = self._fc(prod).view(h.shape[0], -1)
 
-    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
-        h = self._encoder(x, action)
-        taus = self._make_taus(h)
-        quantiles = self._compute_quantiles(h, taus)
-        return quantiles.mean(dim=1, keepdim=True)
+        return QFunctionOutput(
+            q_value=quantiles.mean(dim=1, keepdim=True),
+            quantiles=quantiles,
+            taus=taus,
+        )
+
+    @property
+    def encoder(self) -> EncoderWithAction:
+        return self._encoder
+
+
+class ContinuousIQNQFunctionForwarder(ContinuousQFunctionForwarder):
+    _q_func: ContinuousIQNQFunction
+    _n_quantiles: int
+
+    def __init__(self, q_func: ContinuousIQNQFunction, n_quantiles: int):
+        self._q_func = q_func
+        self._n_quantiles = n_quantiles
+
+    def compute_expected_q(
+        self, x: torch.Tensor, action: torch.Tensor
+    ) -> torch.Tensor:
+        return self._q_func(x, action).q_value
 
     def compute_error(
         self,
@@ -202,9 +247,10 @@ class ContinuousIQNQFunction(ContinuousQFunction, nn.Module):  # type: ignore
     ) -> torch.Tensor:
         assert target.shape == (observations.shape[0], self._n_quantiles)
 
-        h = self._encoder(observations, actions)
-        taus = self._make_taus(h)
-        quantiles = self._compute_quantiles(h, taus)
+        output = self._q_func(observations, actions)
+        taus = output.taus
+        quantiles = output.quantiles
+        assert taus is not None and quantiles is not None
 
         loss = compute_quantile_loss(
             quantiles=quantiles,
@@ -220,14 +266,6 @@ class ContinuousIQNQFunction(ContinuousQFunction, nn.Module):  # type: ignore
     def compute_target(
         self, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
-        h = self._encoder(x, action)
-        taus = self._make_taus(h)
-        return self._compute_quantiles(h, taus)
-
-    @property
-    def action_size(self) -> int:
-        return self._action_size
-
-    @property
-    def encoder(self) -> EncoderWithAction:
-        return self._encoder
+        quantiles = self._q_func(x, action).quantiles
+        assert quantiles is not None
+        return quantiles

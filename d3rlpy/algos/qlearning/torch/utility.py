@@ -1,30 +1,27 @@
-from typing import Optional
-
 import torch
 from typing_extensions import Protocol
 
 from ....models.torch import (
-    EnsembleContinuousQFunction,
-    EnsembleDiscreteQFunction,
+    ContinuousEnsembleQFunctionForwarder,
+    DiscreteEnsembleQFunctionForwarder,
 )
 
 __all__ = ["DiscreteQFunctionMixin", "ContinuousQFunctionMixin"]
 
 
 class _DiscreteQFunctionProtocol(Protocol):
-    _q_func: Optional[EnsembleDiscreteQFunction]
+    _q_func_forwarder: DiscreteEnsembleQFunctionForwarder
 
 
 class _ContinuousQFunctionProtocol(Protocol):
-    _q_func: Optional[EnsembleContinuousQFunction]
+    _q_func_forwarder: ContinuousEnsembleQFunctionForwarder
 
 
 class DiscreteQFunctionMixin:
     def inner_predict_value(
         self: _DiscreteQFunctionProtocol, x: torch.Tensor, action: torch.Tensor
     ) -> torch.Tensor:
-        assert self._q_func is not None
-        values = self._q_func(x, reduction="mean")
+        values = self._q_func_forwarder.compute_expected_q(x, reduction="mean")
         flat_action = action.reshape(-1)
         return values[torch.arange(0, x.size(0)), flat_action].reshape(-1)
 
@@ -35,5 +32,6 @@ class ContinuousQFunctionMixin:
         x: torch.Tensor,
         action: torch.Tensor,
     ) -> torch.Tensor:
-        assert self._q_func is not None
-        return self._q_func(x, action, reduction="mean").reshape(-1)
+        return self._q_func_forwarder.compute_expected_q(
+            x, action, reduction="mean"
+        ).reshape(-1)

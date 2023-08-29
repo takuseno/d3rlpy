@@ -1,31 +1,25 @@
 import dataclasses
-from typing import Dict, Generic, TypeVar
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
-    create_deterministic_regressor,
-    create_discrete_imitator,
-    create_probablistic_regressor,
+    create_categorical_policy,
+    create_deterministic_policy,
+    create_normal_policy,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.bc_impl import BCBaseImpl, BCImpl, DiscreteBCImpl
+from .torch.bc_impl import (
+    BCBaseImpl,
+    BCImpl,
+    BCModules,
+    DiscreteBCImpl,
+    DiscreteBCModules,
+)
 
 __all__ = ["BCConfig", "BC", "DiscreteBCConfig", "DiscreteBC"]
-
-
-TBCConfig = TypeVar("TBCConfig", bound="LearnableConfig")
-
-
-class _BCBase(Generic[TBCConfig], QLearningAlgoBase[BCBaseImpl, TBCConfig]):
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update_imitator(batch)
-        return {"loss": loss}
 
 
 @dataclasses.dataclass()
@@ -70,19 +64,19 @@ class BCConfig(LearnableConfig):
         return "bc"
 
 
-class BC(_BCBase[BCConfig]):
+class BC(QLearningAlgoBase[BCBaseImpl, BCConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
         if self._config.policy_type == "deterministic":
-            imitator = create_deterministic_regressor(
+            imitator = create_deterministic_policy(
                 observation_shape,
                 action_size,
                 self._config.encoder_factory,
                 device=self._device,
             )
         elif self._config.policy_type == "stochastic":
-            imitator = create_probablistic_regressor(
+            imitator = create_normal_policy(
                 observation_shape,
                 action_size,
                 self._config.encoder_factory,
@@ -97,11 +91,12 @@ class BC(_BCBase[BCConfig]):
             imitator.parameters(), lr=self._config.learning_rate
         )
 
+        modules = BCModules(optim=optim, imitator=imitator)
+
         self._impl = BCImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            imitator=imitator,
-            optim=optim,
+            modules=modules,
             policy_type=self._config.policy_type,
             device=self._device,
         )
@@ -152,14 +147,13 @@ class DiscreteBCConfig(LearnableConfig):
         return "discrete_bc"
 
 
-class DiscreteBC(_BCBase[DiscreteBCConfig]):
+class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        imitator = create_discrete_imitator(
+        imitator = create_categorical_policy(
             observation_shape,
             action_size,
-            self._config.beta,
             self._config.encoder_factory,
             device=self._device,
         )
@@ -168,11 +162,12 @@ class DiscreteBC(_BCBase[DiscreteBCConfig]):
             imitator.parameters(), lr=self._config.learning_rate
         )
 
+        modules = DiscreteBCModules(optim=optim, imitator=imitator)
+
         self._impl = DiscreteBCImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            imitator=imitator,
-            optim=optim,
+            modules=modules,
             beta=self._config.beta,
             device=self._device,
         )

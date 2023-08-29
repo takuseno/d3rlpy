@@ -37,7 +37,12 @@ def algo_tester(
         load_learnable_tester(algo, observation_shape, action_size)
     predict_tester(algo, observation_shape, action_size)
     sample_action_tester(algo, observation_shape, action_size)
-    save_and_load_tester(algo, observation_shape, action_size)
+    save_and_load_tester(
+        algo,
+        observation_shape,
+        action_size,
+        deterministic_best_action=deterministic_best_action,
+    )
     update_tester(
         algo,
         observation_shape,
@@ -227,10 +232,25 @@ def save_and_load_tester(
     algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
     observation_shape: Sequence[int],
     action_size: int,
+    deterministic_best_action: bool = True,
 ) -> None:
     algo.create_impl(observation_shape, action_size)
     algo.save_model(os.path.join("test_data", "model.pt"))
-    algo.load_model(os.path.join("test_data", "model.pt"))
+
+    try:
+        algo2 = algo.config.create()
+        algo2.create_impl(observation_shape, action_size)
+        algo2.load_model(os.path.join("test_data", "model.pt"))
+        assert isinstance(algo2, QLearningAlgoBase)
+
+        if deterministic_best_action:
+            observations = np.random.random((100, *observation_shape))
+            action1 = algo.predict(observations)
+            action2 = algo2.predict(observations)
+            assert np.all(action1 == action2)
+    except NotImplementedError:
+        # check interface at least
+        algo.load_model(os.path.join("test_data", "model.pt"))
 
 
 def update_tester(
@@ -284,6 +304,8 @@ def update_tester(
     assert algo.grad_step == 0
 
     assert len(loss.items()) > 0
+    for metric in loss.values():
+        assert isinstance(metric, float)
 
     if test_q_function_optim_copy:
         algo2 = cast(

@@ -1,12 +1,13 @@
 import collections
 import dataclasses
-from typing import Any, Dict, List, Optional, Sequence, TypeVar, Union
+from typing import Any, BinaryIO, Dict, Optional, Sequence, TypeVar, Union
 
 import numpy as np
 import torch
 from torch import nn
 from torch.optim import Optimizer
 
+from .dataclass_utils import asdict_without_copy
 from .dataset import TrajectoryMiniBatch, TransitionMiniBatch
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
 
@@ -14,37 +15,17 @@ __all__ = [
     "soft_sync",
     "hard_sync",
     "sync_optimizer_state",
-    "set_eval_mode",
-    "set_train_mode",
-    "to_cuda",
-    "to_cpu",
-    "to_device",
-    "freeze",
-    "unfreeze",
-    "get_state_dict",
-    "set_state_dict",
-    "reset_optimizer_states",
     "map_location",
     "TorchMiniBatch",
     "TorchTrajectoryMiniBatch",
+    "Checkpointer",
+    "Modules",
     "convert_to_torch",
     "convert_to_torch_recursively",
     "eval_api",
     "train_api",
     "View",
 ]
-
-
-IGNORE_LIST = [
-    "policy",
-    "q_function",
-    "policy_optim",
-    "q_function_optim",
-]  # special properties
-
-
-def _get_attributes(obj: Any) -> List[str]:
-    return [key for key in dir(obj) if key not in IGNORE_LIST]
 
 
 def soft_sync(targ_model: nn.Module, model: nn.Module, tau: float) -> None:
@@ -71,80 +52,6 @@ def sync_optimizer_state(targ_optim: Optimizer, optim: Optimizer) -> None:
     param_groups = targ_optim.state_dict()["param_groups"]
     # update only state
     targ_optim.load_state_dict({"state": state, "param_groups": param_groups})
-
-
-def set_eval_mode(impl: Any) -> None:
-    for key in _get_attributes(impl):
-        module = getattr(impl, key)
-        if isinstance(module, torch.nn.Module):
-            module.eval()
-
-
-def set_train_mode(impl: Any) -> None:
-    for key in _get_attributes(impl):
-        module = getattr(impl, key)
-        if isinstance(module, torch.nn.Module):
-            module.train()
-
-
-def to_cuda(impl: Any, device: str) -> None:
-    for key in _get_attributes(impl):
-        module = getattr(impl, key)
-        if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
-            module.cuda(device)
-
-
-def to_cpu(impl: Any) -> None:
-    for key in _get_attributes(impl):
-        module = getattr(impl, key)
-        if isinstance(module, (torch.nn.Module, torch.nn.Parameter)):
-            module.cpu()
-
-
-def to_device(impl: Any, device: str) -> None:
-    if device.startswith("cuda"):
-        to_cuda(impl, device)
-    else:
-        to_cpu(impl)
-
-
-def freeze(impl: Any) -> None:
-    for key in _get_attributes(impl):
-        module = getattr(impl, key)
-        if isinstance(module, torch.nn.Module):
-            for p in module.parameters():
-                p.requires_grad = False
-
-
-def unfreeze(impl: Any) -> None:
-    for key in _get_attributes(impl):
-        module = getattr(impl, key)
-        if isinstance(module, torch.nn.Module):
-            for p in module.parameters():
-                p.requires_grad = True
-
-
-def get_state_dict(impl: Any) -> Dict[str, Any]:
-    rets = {}
-    for key in _get_attributes(impl):
-        obj = getattr(impl, key)
-        if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
-            rets[key] = obj.state_dict()
-    return rets
-
-
-def set_state_dict(impl: Any, chkpt: Dict[str, Any]) -> None:
-    for key in _get_attributes(impl):
-        obj = getattr(impl, key)
-        if isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
-            obj.load_state_dict(chkpt[key])
-
-
-def reset_optimizer_states(impl: Any) -> None:
-    for key in _get_attributes(impl):
-        obj = getattr(impl, key)
-        if isinstance(obj, torch.optim.Optimizer):
-            obj.state = collections.defaultdict(dict)
 
 
 def map_location(device: str) -> Any:
@@ -283,12 +190,76 @@ class TorchTrajectoryMiniBatch:
         )
 
 
+class Checkpointer:
+    _modules: Dict[str, Union[nn.Module, Optimizer]]
+    _device: str
+
+    def __init__(
+        self, modules: Dict[str, Union[nn.Module, Optimizer]], device: str
+    ):
+        self._modules = modules
+        self._device = device
+
+    def save(self, f: BinaryIO) -> None:
+        states = {k: v.state_dict() for k, v in self._modules.items()}
+        torch.save(states, f)
+
+    def load(self, f: BinaryIO) -> None:
+        chkpt = torch.load(f, map_location=map_location(self._device))
+        for k, v in self._modules.items():
+            v.load_state_dict(chkpt[k])
+
+    @property
+    def modules(self) -> Dict[str, Union[nn.Module, Optimizer]]:
+        return self._modules
+
+
+@dataclasses.dataclass(frozen=True)
+class Modules:
+    def create_checkpointer(self, device: str) -> Checkpointer:
+        modules = {
+            k: v
+            for k, v in asdict_without_copy(self).items()
+            if isinstance(v, (nn.Module, torch.optim.Optimizer))
+        }
+        return Checkpointer(modules=modules, device=device)
+
+    def freeze(self) -> None:
+        for v in asdict_without_copy(self).values():
+            if isinstance(v, nn.Module):
+                for p in v.parameters():
+                    p.requires_grad = False
+
+    def unfreeze(self) -> None:
+        for v in asdict_without_copy(self).values():
+            if isinstance(v, nn.Module):
+                for p in v.parameters():
+                    p.requires_grad = True
+
+    def set_eval(self) -> None:
+        for v in asdict_without_copy(self).values():
+            if isinstance(v, nn.Module):
+                v.eval()
+
+    def set_train(self) -> None:
+        for v in asdict_without_copy(self).values():
+            if isinstance(v, nn.Module):
+                v.train()
+
+    def reset_optimizer_states(self) -> None:
+        for v in asdict_without_copy(self).values():
+            if isinstance(v, torch.optim.Optimizer):
+                v.state = collections.defaultdict(dict)
+
+
 TCallable = TypeVar("TCallable")
 
 
 def eval_api(f: TCallable) -> TCallable:
     def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
-        set_eval_mode(self)
+        assert hasattr(self, "modules")
+        assert isinstance(self.modules, Modules)
+        self.modules.set_eval()
         return f(self, *args, **kwargs)  # type: ignore
 
     return wrapper  # type: ignore
@@ -296,7 +267,9 @@ def eval_api(f: TCallable) -> TCallable:
 
 def train_api(f: TCallable) -> TCallable:
     def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
-        set_train_mode(self)
+        assert hasattr(self, "modules")
+        assert isinstance(self.modules, Modules)
+        self.modules.set_train()
         return f(self, *args, **kwargs)  # type: ignore
 
     return wrapper  # type: ignore

@@ -5,7 +5,6 @@ import pytest
 
 from d3rlpy.models.encoders import (
     DefaultEncoderFactory,
-    DenseEncoderFactory,
     PixelEncoderFactory,
     VectorEncoderFactory,
 )
@@ -105,32 +104,3 @@ def test_default_encoder_factory(
 
     # check serization and deserialization
     DefaultEncoderFactory.deserialize(factory.serialize())
-
-
-@pytest.mark.parametrize("observation_shape", [(100,)])
-@pytest.mark.parametrize("action_size", [2])
-@pytest.mark.parametrize("discrete_action", [False, True])
-def test_dense_encoder_factory(
-    observation_shape: Sequence[int],
-    action_size: int,
-    discrete_action: bool,
-) -> None:
-    factory = DenseEncoderFactory()
-
-    # test state encoder
-    encoder = factory.create(observation_shape)
-    assert isinstance(encoder, VectorEncoder)
-    assert encoder._use_dense
-
-    # test state-action encoder
-    encoder = factory.create_with_action(
-        observation_shape, action_size, discrete_action
-    )
-    assert isinstance(encoder, VectorEncoderWithAction)
-    assert encoder._discrete_action == discrete_action
-    assert encoder._use_dense
-
-    assert factory.get_type() == "dense"
-
-    # check serization and deserialization
-    DenseEncoderFactory.deserialize(factory.serialize())

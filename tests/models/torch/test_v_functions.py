@@ -2,7 +2,10 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from d3rlpy.models.torch.v_functions import ValueFunction
+from d3rlpy.models.torch.v_functions import (
+    ValueFunction,
+    compute_v_function_error,
+)
 
 from .model_test import DummyEncoder, check_parameter_updates
 
@@ -11,7 +14,7 @@ from .model_test import DummyEncoder, check_parameter_updates
 @pytest.mark.parametrize("batch_size", [32])
 def test_value_function(feature_size: int, batch_size: int) -> None:
     encoder = DummyEncoder(feature_size)
-    v_func = ValueFunction(encoder)
+    v_func = ValueFunction(encoder, feature_size)
 
     # check output shape
     x = torch.rand(batch_size, feature_size)
@@ -20,14 +23,11 @@ def test_value_function(feature_size: int, batch_size: int) -> None:
 
     # check compute_error
     returns = torch.rand(batch_size, 1)
-    loss = v_func.compute_error(x, returns)
+    loss = compute_v_function_error(v_func, x, returns)
     assert torch.allclose(loss, F.mse_loss(y, returns))
 
     # check layer connections
     check_parameter_updates(
         v_func,
-        (
-            x,
-            returns,
-        ),
+        (x,),
     )

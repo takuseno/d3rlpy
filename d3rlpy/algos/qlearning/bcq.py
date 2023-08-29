@@ -1,23 +1,26 @@
 import dataclasses
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
+    create_categorical_policy,
     create_conditional_vae,
     create_continuous_q_function,
     create_deterministic_residual_policy,
-    create_discrete_imitator,
     create_discrete_q_function,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...models.torch import DiscreteImitator, PixelEncoder
-from ...torch_utility import TorchMiniBatch
+from ...models.torch import CategoricalPolicy, compute_output_size
 from .base import QLearningAlgoBase
-from .torch.bcq_impl import BCQImpl, DiscreteBCQImpl
+from .torch.bcq_impl import (
+    BCQImpl,
+    BCQModules,
+    DiscreteBCQImpl,
+    DiscreteBCQModules,
+)
 
 __all__ = ["BCQConfig", "BCQ", "DiscreteBCQConfig", "DiscreteBCQ"]
 
@@ -174,7 +177,22 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             self._config.actor_encoder_factory,
             device=self._device,
         )
-        q_func = create_continuous_q_function(
+        targ_policy = create_deterministic_residual_policy(
+            observation_shape,
+            action_size,
+            self._config.action_flexibility,
+            self._config.actor_encoder_factory,
+            device=self._device,
+        )
+        q_funcs, q_func_forwarder = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
@@ -186,7 +204,6 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             observation_shape=observation_shape,
             action_size=action_size,
             latent_size=2 * action_size,
-            beta=self._config.beta,
             min_logstd=-4.0,
             max_logstd=15.0,
             encoder_factory=self._config.imitator_encoder_factory,
@@ -197,49 +214,38 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             policy.parameters(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_func.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
         imitator_optim = self._config.imitator_optim_factory.create(
             imitator.parameters(), lr=self._config.imitator_learning_rate
         )
 
-        self._impl = BCQImpl(
-            observation_shape=observation_shape,
-            action_size=action_size,
+        modules = BCQModules(
             policy=policy,
-            q_func=q_func,
+            targ_policy=targ_policy,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
             imitator=imitator,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
             imitator_optim=imitator_optim,
+        )
+
+        self._impl = BCQImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
             lam=self._config.lam,
             n_action_samples=self._config.n_action_samples,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
+            rl_start_step=self._config.rl_start_step,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        imitator_loss = self._impl.update_imitator(batch)
-        metrics.update({"imitator_loss": imitator_loss})
-
-        if self._grad_step >= self._config.rl_start_step:
-            critic_loss = self._impl.update_critic(batch)
-            metrics.update({"critic_loss": critic_loss})
-
-            if self._grad_step % self._config.update_actor_interval == 0:
-                actor_loss = self._impl.update_actor(batch)
-                metrics.update({"actor_loss": actor_loss})
-                self._impl.update_actor_target()
-                self._impl.update_critic_target()
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
@@ -303,6 +309,8 @@ class DiscreteBCQConfig(LearnableConfig):
             :math:`\tau`.
         beta (float): Reguralization term for imitation function.
         target_update_interval (int): Interval to update the target network.
+        share_encoder (bool): Flag to share encoder between Q-function and
+            imitation models.
     """
     learning_rate: float = 6.25e-5
     optim_factory: OptimizerFactory = make_optimizer_field()
@@ -314,6 +322,7 @@ class DiscreteBCQConfig(LearnableConfig):
     action_flexibility: float = 0.3
     beta: float = 0.5
     target_update_interval: int = 8000
+    share_encoder: bool = True
 
     def create(self, device: DeviceArg = False) -> "DiscreteBCQ":
         return DiscreteBCQ(self, device)
@@ -327,7 +336,15 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        q_func = create_discrete_q_function(
+        q_funcs, q_func_forwarder = create_discrete_q_function(
+            observation_shape,
+            action_size,
+            self._config.encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
             self._config.encoder_factory,
@@ -337,23 +354,29 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
         )
 
         # share convolutional layers if observation is pixel
-        if isinstance(q_func.q_funcs[0].encoder, PixelEncoder):
-            imitator = DiscreteImitator(
-                q_func.q_funcs[0].encoder, action_size, self._config.beta
+        if self._config.share_encoder:
+            hidden_size = compute_output_size(
+                [observation_shape],
+                q_funcs[0].encoder,
+                device=self._device,
+            )
+            imitator = CategoricalPolicy(
+                encoder=q_funcs[0].encoder,
+                hidden_size=hidden_size,
+                action_size=action_size,
             )
             imitator.to(self._device)
         else:
-            imitator = create_discrete_imitator(
+            imitator = create_categorical_policy(
                 observation_shape,
                 action_size,
-                self._config.beta,
                 self._config.encoder_factory,
                 device=self._device,
             )
 
         # TODO: replace this with a cleaner way
         # retrieve unique elements
-        q_func_params = list(q_func.parameters())
+        q_func_params = list(q_funcs.parameters())
         imitator_params = list(imitator.parameters())
         unique_dict = {}
         for param in q_func_params + imitator_params:
@@ -363,24 +386,25 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             unique_params, lr=self._config.learning_rate
         )
 
+        modules = DiscreteBCQModules(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            imitator=imitator,
+            optim=optim,
+        )
+
         self._impl = DiscreteBCQImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
-            imitator=imitator,
-            optim=optim,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
+            target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update(batch)
-        if self._grad_step % self._config.target_update_interval == 0:
-            self._impl.update_target()
-        return {"loss": loss}
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE

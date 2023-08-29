@@ -11,7 +11,7 @@ Otherwise, the standard MLP architecture that consists with two linear
 layers with ``256`` hidden units.
 
 Furthermore, d3rlpy provides ``EncoderFactory`` that gives you flexible control
-over this neural netowrk architectures.
+over the neural network architectures.
 
 .. code-block:: python
 
@@ -30,6 +30,7 @@ You can also build your own encoder factory.
 
 .. code-block:: python
 
+   import dataclasses
    import torch
    import torch.nn as nn
 
@@ -47,22 +48,17 @@ You can also build your own encoder factory.
            h = torch.relu(self.fc2(h))
            return h
 
-       # THIS IS IMPORTANT!
-       def get_feature_size(self):
-           return self.feature_size
-
    # your own encoder factory
+   @dataclasses.dataclass()
    class CustomEncoderFactory(EncoderFactory):
-       TYPE = 'custom' # this is necessary
-
-       def __init__(self, feature_size):
-           self.feature_size = feature_size
+       feature_size: int
 
        def create(self, observation_shape):
            return CustomEncoder(observation_shape, self.feature_size)
 
-       def get_params(self, deep=False):
-           return {'feature_size': self.feature_size}
+       @staticmethod
+       def get_type() -> str:
+           return "custom"
 
    dqn = d3rlpy.algos.DQNConfig(
       encoder_factory=CustomEncoderFactory(feature_size=64),
@@ -87,14 +83,9 @@ controls.
            h = torch.relu(self.fc2(h))
            return h
 
-       def get_feature_size(self):
-           return self.feature_size
-
+   @dataclasses.dataclass()
    class CustomEncoderFactory(EncoderFactory):
-       TYPE = 'custom' # this is necessary
-
-       def __init__(self, feature_size):
-           self.feature_size = feature_size
+       feature_size: int
 
        def create(self, observation_shape):
            return CustomEncoder(observation_shape, self.feature_size)
@@ -102,8 +93,10 @@ controls.
        def create_with_action(observation_shape, action_size, discrete_action):
            return CustomEncoderWithAction(observation_shape, action_size, self.feature_size)
 
-       def get_params(self, deep=False):
-           return {'feature_size': self.feature_size}
+       @staticmethod
+       def get_type() -> str:
+           return "custom"
+
 
    factory = CustomEncoderFactory(feature_size=64)
 
@@ -133,4 +126,3 @@ your encoder configuration, you need to register your encoder factory.
    d3rlpy.models.DefaultEncoderFactory
    d3rlpy.models.PixelEncoderFactory
    d3rlpy.models.VectorEncoderFactory
-   d3rlpy.models.DenseEncoderFactory

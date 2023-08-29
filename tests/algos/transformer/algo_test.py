@@ -120,7 +120,19 @@ def save_and_load_tester(
 ) -> None:
     algo.create_impl(observation_shape, action_size)
     algo.save_model(os.path.join("test_data", "model.pt"))
-    algo.load_model(os.path.join("test_data", "model.pt"))
+
+    algo2 = algo.config.create()
+    algo2.create_impl(observation_shape, action_size)
+    algo2.load_model(os.path.join("test_data", "model.pt"))
+    assert isinstance(algo2, TransformerAlgoBase)
+
+    actor1 = algo.as_stateful_wrapper(0)
+    actor2 = algo2.as_stateful_wrapper(0)
+
+    observation = np.random.random(observation_shape)
+    action1 = actor1.predict(observation, 0)
+    action2 = actor2.predict(observation, 0)
+    assert np.all(action1 == action2)
 
 
 def update_tester(

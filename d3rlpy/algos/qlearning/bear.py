@@ -1,22 +1,20 @@
 import dataclasses
 import math
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_conditional_vae,
     create_continuous_q_function,
+    create_normal_policy,
     create_parameter,
-    create_squashed_normal_policy,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.bear_impl import BEARImpl
+from .torch.bear_impl import BEARImpl, BEARModules
 
 __all__ = ["BEARConfig", "BEAR"]
 
@@ -158,13 +156,21 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        policy = create_squashed_normal_policy(
+        policy = create_normal_policy(
             observation_shape,
             action_size,
             self._config.actor_encoder_factory,
             device=self._device,
         )
-        q_func = create_continuous_q_function(
+        q_funcs, q_func_forwarder = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
@@ -176,7 +182,6 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             observation_shape=observation_shape,
             action_size=action_size,
             latent_size=2 * action_size,
-            beta=self._config.vae_kl_weight,
             min_logstd=-4.0,
             max_logstd=15.0,
             encoder_factory=self._config.imitator_encoder_factory,
@@ -195,7 +200,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             policy.parameters(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_func.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
         imitator_optim = self._config.imitator_optim_factory.create(
             imitator.parameters(), lr=self._config.imitator_learning_rate
@@ -207,11 +212,10 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             log_alpha.parameters(), lr=self._config.actor_learning_rate
         )
 
-        self._impl = BEARImpl(
-            observation_shape=observation_shape,
-            action_size=action_size,
+        modules = BEARModules(
             policy=policy,
-            q_func=q_func,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
             imitator=imitator,
             log_temp=log_temp,
             log_alpha=log_alpha,
@@ -220,6 +224,14 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             imitator_optim=imitator_optim,
             temp_optim=temp_optim,
             alpha_optim=alpha_optim,
+        )
+
+        self._impl = BEARImpl(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
             alpha_threshold=self._config.alpha_threshold,
@@ -230,40 +242,9 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             mmd_kernel=self._config.mmd_kernel,
             mmd_sigma=self._config.mmd_sigma,
             vae_kl_weight=self._config.vae_kl_weight,
+            warmup_steps=self._config.warmup_steps,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        imitator_loss = self._impl.update_imitator(batch)
-        metrics.update({"imitator_loss": imitator_loss})
-
-        # lagrangian parameter update for SAC temperature
-        if self._config.temp_learning_rate > 0:
-            temp_loss, temp = self._impl.update_temp(batch)
-            metrics.update({"temp_loss": temp_loss, "temp": temp})
-
-        # lagrangian parameter update for MMD loss weight
-        if self._config.alpha_learning_rate > 0:
-            alpha_loss, alpha = self._impl.update_alpha(batch)
-            metrics.update({"alpha_loss": alpha_loss, "alpha": alpha})
-
-        critic_loss = self._impl.update_critic(batch)
-        metrics.update({"critic_loss": critic_loss})
-
-        if self._grad_step < self._config.warmup_steps:
-            actor_loss = self._impl.warmup_actor(batch)
-        else:
-            actor_loss = self._impl.update_actor(batch)
-        metrics.update({"actor_loss": actor_loss})
-
-        self._impl.update_actor_target()
-        self._impl.update_critic_target()
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS

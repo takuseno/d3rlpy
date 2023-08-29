@@ -1,16 +1,14 @@
 import dataclasses
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import create_discrete_q_function
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.dqn_impl import DQNImpl
+from .torch.dqn_impl import DQNImpl, DQNModules
 
 __all__ = ["NFQConfig", "NFQ"]
 
@@ -70,7 +68,15 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        q_func = create_discrete_q_function(
+        q_funcs, q_func_forwarder = create_discrete_q_function(
+            observation_shape,
+            action_size,
+            self._config.encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
             self._config.encoder_factory,
@@ -80,23 +86,25 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
         )
 
         optim = self._config.optim_factory.create(
-            q_func.parameters(), lr=self._config.learning_rate
+            q_funcs.parameters(), lr=self._config.learning_rate
+        )
+
+        modules = DQNModules(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
         )
 
         self._impl = DQNImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
-            optim=optim,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
+            target_update_interval=1,
             gamma=self._config.gamma,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update(batch)
-        self._impl.update_target()
-        return {"loss": float(loss)}
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE

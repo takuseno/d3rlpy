@@ -4,20 +4,24 @@ import pytest
 
 from d3rlpy.models.encoders import VectorEncoderFactory
 from d3rlpy.models.q_functions import (
-    FQFQFunctionFactory,
     IQNQFunctionFactory,
     MeanQFunctionFactory,
     QRQFunctionFactory,
 )
 from d3rlpy.models.torch import (
-    ContinuousFQFQFunction,
     ContinuousIQNQFunction,
+    ContinuousIQNQFunctionForwarder,
     ContinuousMeanQFunction,
+    ContinuousMeanQFunctionForwarder,
     ContinuousQRQFunction,
-    DiscreteFQFQFunction,
+    ContinuousQRQFunctionForwarder,
     DiscreteIQNQFunction,
+    DiscreteIQNQFunctionForwarder,
     DiscreteMeanQFunction,
+    DiscreteMeanQFunctionForwarder,
+    DiscreteQFunctionForwarder,
     DiscreteQRQFunction,
+    compute_output_size,
 )
 from d3rlpy.models.torch.encoders import Encoder, EncoderWithAction
 
@@ -45,12 +49,22 @@ def test_mean_q_function_factory(
     encoder_with_action = _create_encoder_with_action(
         observation_shape, action_size
     )
-    q_func = factory.create_continuous(encoder_with_action)
+    hidden_size = compute_output_size(
+        [observation_shape, (action_size,)], encoder_with_action, "cpu:0"
+    )
+    q_func, forwarder = factory.create_continuous(
+        encoder_with_action, hidden_size
+    )
     assert isinstance(q_func, ContinuousMeanQFunction)
+    assert isinstance(forwarder, ContinuousMeanQFunctionForwarder)
 
     encoder = _create_encoder(observation_shape)
-    discrete_q_func = factory.create_discrete(encoder, action_size)
+    hidden_size = compute_output_size([observation_shape], encoder, "cpu:0")
+    discrete_q_func, discrete_forwarder = factory.create_discrete(
+        encoder, hidden_size, action_size
+    )
     assert isinstance(discrete_q_func, DiscreteMeanQFunction)
+    assert isinstance(discrete_forwarder, DiscreteMeanQFunctionForwarder)
 
     # check serization and deserialization
     MeanQFunctionFactory.deserialize(factory.serialize())
@@ -67,12 +81,22 @@ def test_qr_q_function_factory(
     encoder_with_action = _create_encoder_with_action(
         observation_shape, action_size
     )
-    q_func = factory.create_continuous(encoder_with_action)
+    hidden_size = compute_output_size(
+        [observation_shape, (action_size,)], encoder_with_action, "cpu:0"
+    )
+    q_func, forwarder = factory.create_continuous(
+        encoder_with_action, hidden_size
+    )
     assert isinstance(q_func, ContinuousQRQFunction)
+    assert isinstance(forwarder, ContinuousQRQFunctionForwarder)
 
     encoder = _create_encoder(observation_shape)
-    discrete_q_func = factory.create_discrete(encoder, action_size)
+    hidden_size = compute_output_size([observation_shape], encoder, "cpu:0")
+    discrete_q_func, discrete_forwarder = factory.create_discrete(
+        encoder, hidden_size, action_size
+    )
     assert isinstance(discrete_q_func, DiscreteQRQFunction)
+    assert isinstance(discrete_forwarder, DiscreteQFunctionForwarder)
 
     # check serization and deserialization
     QRQFunctionFactory.deserialize(factory.serialize())
@@ -89,34 +113,22 @@ def test_iqn_q_function_factory(
     encoder_with_action = _create_encoder_with_action(
         observation_shape, action_size
     )
-    q_func = factory.create_continuous(encoder_with_action)
+    hidden_size = compute_output_size(
+        [observation_shape, (action_size,)], encoder_with_action, "cpu:0"
+    )
+    q_func, forwarder = factory.create_continuous(
+        encoder_with_action, hidden_size
+    )
     assert isinstance(q_func, ContinuousIQNQFunction)
+    assert isinstance(forwarder, ContinuousIQNQFunctionForwarder)
 
     encoder = _create_encoder(observation_shape)
-    discrete_q_func = factory.create_discrete(encoder, action_size)
+    hidden_size = compute_output_size([observation_shape], encoder, "cpu:0")
+    discrete_q_func, discrete_forwarder = factory.create_discrete(
+        encoder, hidden_size, action_size
+    )
     assert isinstance(discrete_q_func, DiscreteIQNQFunction)
+    assert isinstance(discrete_forwarder, DiscreteIQNQFunctionForwarder)
 
     # check serization and deserialization
     IQNQFunctionFactory.deserialize(factory.serialize())
-
-
-@pytest.mark.parametrize("observation_shape", [(100,)])
-@pytest.mark.parametrize("action_size", [2])
-def test_fqf_q_function_factory(
-    observation_shape: Sequence[int], action_size: int
-) -> None:
-    factory = FQFQFunctionFactory()
-    assert factory.get_type() == "fqf"
-
-    encoder_with_action = _create_encoder_with_action(
-        observation_shape, action_size
-    )
-    q_func = factory.create_continuous(encoder_with_action)
-    assert isinstance(q_func, ContinuousFQFQFunction)
-
-    encoder = _create_encoder(observation_shape)
-    discrete_q_func = factory.create_discrete(encoder, action_size)
-    assert isinstance(discrete_q_func, DiscreteFQFQFunction)
-
-    # check serization and deserialization
-    FQFQFunctionFactory.deserialize(factory.serialize())

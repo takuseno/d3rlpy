@@ -1,15 +1,11 @@
 import dataclasses
-from typing import Dict, Optional
+from typing import Optional
 
 import numpy as np
 
 from ..algos.qlearning import QLearningAlgoBase, QLearningAlgoImplBase
 from ..base import DeviceArg, LearnableConfig, register_learnable
-from ..constants import (
-    ALGO_NOT_GIVEN_ERROR,
-    IMPL_NOT_INITIALIZED_ERROR,
-    ActionSpace,
-)
+from ..constants import ALGO_NOT_GIVEN_ERROR, ActionSpace
 from ..dataset import Observation, Shape
 from ..models.builders import (
     create_continuous_q_function,
@@ -18,8 +14,12 @@ from ..models.builders import (
 from ..models.encoders import EncoderFactory, make_encoder_field
 from ..models.optimizers import OptimizerFactory, make_optimizer_field
 from ..models.q_functions import QFunctionFactory, make_q_func_field
-from ..torch_utility import TorchMiniBatch, convert_to_torch
-from .torch.fqe_impl import DiscreteFQEImpl, FQEBaseImpl, FQEImpl
+from .torch.fqe_impl import (
+    DiscreteFQEImpl,
+    FQEBaseImpl,
+    FQEBaseModules,
+    FQEImpl,
+)
 
 __all__ = ["FQEConfig", "FQE", "DiscreteFQE"]
 
@@ -109,18 +109,6 @@ class _FQEBase(QLearningAlgoBase[FQEBaseImpl, FQEConfig]):
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         return self._algo.sample_action(x)
 
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-        assert batch.numpy_batch
-        next_actions = self._algo.predict(batch.numpy_batch.next_observations)
-        loss = self._impl.update(
-            batch, convert_to_torch(next_actions, self._device)
-        )
-        if self._grad_step % self._config.target_update_interval == 0:
-            self._impl.update_target()
-        return {"loss": loss}
-
     @property
     def algo(self) -> QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig]:
         return self._algo
@@ -156,7 +144,17 @@ class FQE(_FQEBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        q_func = create_continuous_q_function(
+        assert self._algo.impl, "The target algorithm is not initialized."
+
+        q_funcs, q_func_forwarder = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
             self._config.encoder_factory,
@@ -165,14 +163,24 @@ class FQE(_FQEBase):
             device=self._device,
         )
         optim = self._config.optim_factory.create(
-            q_func.parameters(), lr=self._config.learning_rate
+            q_funcs.parameters(), lr=self._config.learning_rate
         )
+
+        modules = FQEBaseModules(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
+        )
+
         self._impl = FQEImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
-            optim=optim,
+            algo=self._algo.impl,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
+            target_update_interval=self._config.target_update_interval,
             device=self._device,
         )
 
@@ -212,7 +220,17 @@ class DiscreteFQE(_FQEBase):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        q_func = create_discrete_q_function(
+        assert self._algo.impl, "The target algorithm is not initialized."
+
+        q_funcs, q_func_forwarder = create_discrete_q_function(
+            observation_shape,
+            action_size,
+            self._config.encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
             self._config.encoder_factory,
@@ -221,14 +239,22 @@ class DiscreteFQE(_FQEBase):
             device=self._device,
         )
         optim = self._config.optim_factory.create(
-            q_func.parameters(), lr=self._config.learning_rate
+            q_funcs.parameters(), lr=self._config.learning_rate
+        )
+        modules = FQEBaseModules(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
         )
         self._impl = DiscreteFQEImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
-            optim=optim,
+            algo=self._algo.impl,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
+            target_update_interval=self._config.target_update_interval,
             device=self._device,
         )
 

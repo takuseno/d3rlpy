@@ -24,7 +24,7 @@ from ...logging import (
     LoggerAdapterFactory,
 )
 from ...metrics import evaluate_transformer_with_environment
-from ...torch_utility import TorchTrajectoryMiniBatch
+from ...torch_utility import TorchTrajectoryMiniBatch, train_api
 from ..utility import (
     assert_action_space_with_dataset,
     build_scalers_with_trajectory_slicer,
@@ -43,6 +43,18 @@ class TransformerAlgoImplBase(ImplBase):
     @abstractmethod
     def predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
         ...
+
+    @train_api
+    def update(
+        self, batch: TorchTrajectoryMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        return self.inner_update(batch, grad_step)
+
+    @abstractmethod
+    def inner_update(
+        self, batch: TorchTrajectoryMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        pass
 
 
 @dataclasses.dataclass()
@@ -334,6 +346,7 @@ class TransformerAlgoBase(
         Returns:
             Dictionary of metrics.
         """
+        assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         torch_batch = TorchTrajectoryMiniBatch.from_batch(
             batch=batch,
             device=self._device,
@@ -341,21 +354,9 @@ class TransformerAlgoBase(
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
         )
-        loss = self.inner_update(torch_batch)
+        loss = self._impl.inner_update(torch_batch, self._grad_step)
         self._grad_step += 1
         return loss
-
-    @abstractmethod
-    def inner_update(self, batch: TorchTrajectoryMiniBatch) -> Dict[str, float]:
-        """Update parameters with PyTorch mini-batch.
-
-        Args:
-            batch: PyTorch mini-batch data.
-
-        Returns:
-            Dictionary of metrics.
-        """
-        raise NotImplementedError
 
     def as_stateful_wrapper(
         self, target_return: float

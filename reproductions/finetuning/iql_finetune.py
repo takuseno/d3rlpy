@@ -36,7 +36,10 @@ def main() -> None:
     # workaround for learning scheduler
     iql.build_with_dataset(dataset)
     assert iql.impl
-    scheduler = CosineAnnealingLR(iql.impl._actor_optim, 1000000)
+    scheduler = CosineAnnealingLR(
+        iql.impl._modules.actor_optim,  # pylint: disable=protected-access
+        1000000,
+    )
 
     def callback(algo: d3rlpy.algos.IQL, epoch: int, total_step: int) -> None:
         scheduler.step()
@@ -53,7 +56,7 @@ def main() -> None:
     )
 
     # reset learning rate
-    for g in iql.impl._actor_optim.param_groups:
+    for g in iql.impl._modules.actor_optim.param_groups:
         g["lr"] = iql.config.actor_learning_rate
 
     # prepare FIFO buffer filled with dataset episodes

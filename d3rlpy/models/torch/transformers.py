@@ -248,6 +248,7 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
     def __init__(
         self,
         encoder: Encoder,
+        feature_size: int,
         position_encoding: PositionEncoding,
         action_size: int,
         num_heads: int,
@@ -261,11 +262,11 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         super().__init__()
         self._encoder = encoder
         self._position_encoding = position_encoding
-        self._action_embed = nn.Linear(action_size, encoder.get_feature_size())
-        self._rtg_embed = nn.Linear(1, encoder.get_feature_size())
-        self._embed_ln = nn.LayerNorm(encoder.get_feature_size())
+        self._action_embed = nn.Linear(action_size, feature_size)
+        self._rtg_embed = nn.Linear(1, feature_size)
+        self._embed_ln = nn.LayerNorm(feature_size)
         self._gpt2 = GPT2(
-            hidden_size=encoder.get_feature_size(),
+            hidden_size=feature_size,
             num_heads=num_heads,
             context_size=3 * context_size,
             num_layers=num_layers,
@@ -274,7 +275,7 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
             embed_dropout=embed_dropout,
             activation=activation,
         )
-        self._output = nn.Linear(encoder.get_feature_size(), action_size)
+        self._output = nn.Linear(feature_size, action_size)
 
     def forward(
         self,
@@ -322,6 +323,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
     def __init__(
         self,
         encoder: Encoder,
+        feature_size: int,
         position_encoding: PositionEncoding,
         action_size: int,
         num_heads: int,
@@ -335,12 +337,10 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         super().__init__()
         self._encoder = encoder
         self._position_encoding = position_encoding
-        self._action_embed = nn.Embedding(
-            action_size, encoder.get_feature_size()
-        )
-        self._rtg_embed = nn.Linear(1, encoder.get_feature_size())
+        self._action_embed = nn.Embedding(action_size, feature_size)
+        self._rtg_embed = nn.Linear(1, feature_size)
         self._gpt2 = GPT2(
-            hidden_size=encoder.get_feature_size(),
+            hidden_size=feature_size,
             num_heads=num_heads,
             context_size=3 * context_size,
             num_layers=num_layers,
@@ -349,9 +349,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
             embed_dropout=embed_dropout,
             activation=activation,
         )
-        self._output = nn.Linear(
-            encoder.get_feature_size(), action_size, bias=False
-        )
+        self._output = nn.Linear(feature_size, action_size, bias=False)
 
     def forward(
         self,

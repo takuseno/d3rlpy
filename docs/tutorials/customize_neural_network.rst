@@ -10,8 +10,6 @@ Prepare PyTorch Model
 ---------------------
 
 If you're familiar with PyTorch, this step should be easy for you.
-Please note that your model must have ``get_feature_size`` method to tell the
-feature size to the final layer.
 
 .. code-block:: python
 
@@ -31,32 +29,30 @@ feature size to the final layer.
           h = torch.relu(self.fc2(h))
           return h
 
-      # THIS IS IMPORTANT!
-      def get_feature_size(self):
-          return self.feature_size
 
 Setup EncoderFactory
 --------------------
 
-Once you setup your PyTorch model, you need to setup ``EncoderFactory``.
-In your ``EncoderFactory`` class, you need to define ``create`` and
-``get_params`` methods as well as ``TYPE`` attribute.
-``TYPE`` attribute and ``get_params`` method are used to serialize your
-customized neural network configuration.
+Once you setup your PyTorch model, you need to setup ``EncoderFactory`` as a
+dataclass class. In your ``EncoderFactory`` class, you need to define
+``create`` and ``get_type``.
+``get_type`` method is used to serialize your customized neural network
+configuration.
 
 .. code-block:: python
 
-  class CustomEncoderFactory(d3rlpy.models.encoders.EncoderFactory):
-      TYPE = "custom"  # this is necessary
+  import dataclasses
 
-      def __init__(self, feature_size):
-          self.feature_size = feature_size
+  @dataclasses.dataclass()
+  class CustomEncoderFactory(d3rlpy.models.EncoderFactory):
+      feature_size: int
 
       def create(self, observation_shape):
           return CustomEncoder(observation_shape, self.feature_size)
 
-      def get_params(self, deep=False):
-          return {"feature_size": self.feature_size}
+      @staticmethod
+      def get_type() -> str:
+          return "custom"
 
 
 Now, you can use your model with d3rlpy.
@@ -90,18 +86,13 @@ you need to prepare an action-conditioned model.
             h = torch.relu(self.fc2(h))
             return h
 
-        def get_feature_size(self):
-            return self.feature_size
-
 Finally, you can update your ``CustomEncoderFactory`` as follows.
 
 .. code-block:: python
 
-  class CustomEncoderFactory(EncoderFactory):
-      TYPE = "custom"
-
-      def __init__(self, feature_size):
-          self.feature_size = feature_size
+  @dataclasses.dataclass()
+  class CustomEncoderFactory(d3rlpy.models.EncoderFactory):
+      feature_size: int
 
       def create(self, observation_shape):
           return CustomEncoder(observation_shape, self.feature_size)
@@ -109,8 +100,9 @@ Finally, you can update your ``CustomEncoderFactory`` as follows.
       def create_with_action(self, observation_shape, action_size, discrete_action):
           return CustomEncoderWithAction(observation_shape, action_size, self.feature_size)
 
-      def get_params(self, deep=False):
-          return {"feature_size": self.feature_size}
+      @staticmethod
+      def get_type() -> str:
+          return "custom"
 
 Now, you can customize actor-critic algorithms.
 

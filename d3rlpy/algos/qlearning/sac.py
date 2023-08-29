@@ -1,23 +1,26 @@
 import dataclasses
 import math
-from typing import Dict
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import ActionSpace
 from ...dataset import Shape
 from ...models.builders import (
     create_categorical_policy,
     create_continuous_q_function,
     create_discrete_q_function,
+    create_normal_policy,
     create_parameter,
-    create_squashed_normal_policy,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
-from ...torch_utility import TorchMiniBatch
 from .base import QLearningAlgoBase
-from .torch.sac_impl import DiscreteSACImpl, SACImpl
+from .torch.sac_impl import (
+    DiscreteSACImpl,
+    DiscreteSACModules,
+    SACImpl,
+    SACModules,
+)
 
 __all__ = ["SACConfig", "SAC", "DiscreteSACConfig", "DiscreteSAC"]
 
@@ -119,13 +122,21 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        policy = create_squashed_normal_policy(
+        policy = create_normal_policy(
             observation_shape,
             action_size,
             self._config.actor_encoder_factory,
             device=self._device,
         )
-        q_func = create_continuous_q_function(
+        q_funcs, q_func_forwarder = create_continuous_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
@@ -143,46 +154,35 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
             policy.parameters(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_func.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
-        temp_optim = self._config.temp_optim_factory.create(
-            log_temp.parameters(), lr=self._config.temp_learning_rate
+        if self._config.temp_learning_rate > 0:
+            temp_optim = self._config.temp_optim_factory.create(
+                log_temp.parameters(), lr=self._config.temp_learning_rate
+            )
+        else:
+            temp_optim = None
+
+        modules = SACModules(
+            policy=policy,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            log_temp=log_temp,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
+            temp_optim=temp_optim,
         )
 
         self._impl = SACImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            policy=policy,
-            q_func=q_func,
-            log_temp=log_temp,
-            actor_optim=actor_optim,
-            critic_optim=critic_optim,
-            temp_optim=temp_optim,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        # lagrangian parameter update for SAC temperature
-        if self._config.temp_learning_rate > 0:
-            temp_loss, temp = self._impl.update_temp(batch)
-            metrics.update({"temp_loss": temp_loss, "temp": temp})
-
-        critic_loss = self._impl.update_critic(batch)
-        metrics.update({"critic_loss": critic_loss})
-
-        actor_loss = self._impl.update_actor(batch)
-        metrics.update({"actor_loss": actor_loss})
-
-        self._impl.update_critic_target()
-        self._impl.update_actor_target()
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
@@ -270,7 +270,15 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        q_func = create_discrete_q_function(
+        q_funcs, q_func_forwarder = create_discrete_q_function(
+            observation_shape,
+            action_size,
+            self._config.critic_encoder_factory,
+            self._config.q_func_factory,
+            n_ensembles=self._config.n_critics,
+            device=self._device,
+        )
+        targ_q_funcs, targ_q_func_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
@@ -291,48 +299,38 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
         )
 
         critic_optim = self._config.critic_optim_factory.create(
-            q_func.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.parameters(), lr=self._config.critic_learning_rate
         )
         actor_optim = self._config.actor_optim_factory.create(
             policy.parameters(), lr=self._config.actor_learning_rate
         )
-        temp_optim = self._config.temp_optim_factory.create(
-            log_temp.parameters(), lr=self._config.temp_learning_rate
+        if self._config.temp_learning_rate > 0:
+            temp_optim = self._config.temp_optim_factory.create(
+                log_temp.parameters(), lr=self._config.temp_learning_rate
+            )
+        else:
+            temp_optim = None
+
+        modules = DiscreteSACModules(
+            policy=policy,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            log_temp=log_temp,
+            actor_optim=actor_optim,
+            critic_optim=critic_optim,
+            temp_optim=temp_optim,
         )
 
         self._impl = DiscreteSACImpl(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func=q_func,
-            policy=policy,
-            log_temp=log_temp,
-            actor_optim=actor_optim,
-            critic_optim=critic_optim,
-            temp_optim=temp_optim,
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
+            target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
             device=self._device,
         )
-
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
-
-        metrics = {}
-
-        # lagrangian parameter update for SAC temeprature
-        if self._config.temp_learning_rate > 0:
-            temp_loss, temp = self._impl.update_temp(batch)
-            metrics.update({"temp_loss": temp_loss, "temp": temp})
-
-        critic_loss = self._impl.update_critic(batch)
-        metrics.update({"critic_loss": critic_loss})
-
-        actor_loss = self._impl.update_actor(batch)
-        metrics.update({"actor_loss": actor_loss})
-
-        if self._grad_step % self._config.target_update_interval == 0:
-            self._impl.update_target()
-
-        return metrics
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE

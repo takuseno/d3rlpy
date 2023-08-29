@@ -19,7 +19,7 @@ from .model_test import DummyEncoder, check_parameter_updates
 @pytest.mark.parametrize("out_size", [100])
 @pytest.mark.parametrize("num_heads", [2])
 @pytest.mark.parametrize("context_size", [10])
-@pytest.mark.parametrize("dropout", [0.1])
+@pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_causal_self_attention(
     in_size: int,
@@ -51,7 +51,7 @@ def test_causal_self_attention(
 @pytest.mark.parametrize("in_size", [100])
 @pytest.mark.parametrize("out_size", [100])
 @pytest.mark.parametrize("context_size", [10])
-@pytest.mark.parametrize("dropout", [0.1])
+@pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_mlp(
     in_size: int,
@@ -81,7 +81,7 @@ def test_mlp(
 @pytest.mark.parametrize("out_size", [100])
 @pytest.mark.parametrize("num_heads", [2])
 @pytest.mark.parametrize("context_size", [10])
-@pytest.mark.parametrize("dropout", [0.1])
+@pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_block(
     in_size: int,
@@ -158,7 +158,7 @@ def test_global_position_encoding(
 @pytest.mark.parametrize("num_heads", [2])
 @pytest.mark.parametrize("num_layers", [3])
 @pytest.mark.parametrize("context_size", [10])
-@pytest.mark.parametrize("dropout", [0.1])
+@pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_gpt2(
     hidden_size: int,
@@ -195,7 +195,7 @@ def test_gpt2(
 @pytest.mark.parametrize("num_layers", [3])
 @pytest.mark.parametrize("max_timestep", [20])
 @pytest.mark.parametrize("context_size", [10])
-@pytest.mark.parametrize("dropout", [0.1])
+@pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_continuous_decision_transformer(
     hidden_size: int,
@@ -211,6 +211,7 @@ def test_continuous_decision_transformer(
 
     model = ContinuousDecisionTransformer(
         encoder=encoder,
+        feature_size=hidden_size,
         position_encoding=SimplePositionEncoding(hidden_size, max_timestep),
         action_size=action_size,
         num_heads=num_heads,
@@ -241,7 +242,7 @@ def test_continuous_decision_transformer(
 @pytest.mark.parametrize("num_layers", [3])
 @pytest.mark.parametrize("max_timestep", [20])
 @pytest.mark.parametrize("context_size", [10])
-@pytest.mark.parametrize("dropout", [0.1])
+@pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_discrete_decision_transformer(
     hidden_size: int,
@@ -257,6 +258,7 @@ def test_discrete_decision_transformer(
 
     model = DiscreteDecisionTransformer(
         encoder=encoder,
+        feature_size=hidden_size,
         position_encoding=SimplePositionEncoding(hidden_size, max_timestep),
         action_size=action_size,
         num_heads=num_heads,
