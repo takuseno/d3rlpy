@@ -15,7 +15,7 @@ from ....models.torch import (
     build_squashed_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch
-from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
+from .dqn_impl import DoubleDQNImpl, DQNModules
 from .sac_impl import SACImpl, SACModules
 from .utility import CriticLoss
 

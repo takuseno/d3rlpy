@@ -20,7 +20,8 @@ from ....models.torch import (
 )
 from ....torch_utility import TorchMiniBatch, soft_sync
 from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
-from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
+from .dqn_impl import DoubleDQNImpl, DQNModules
+from .utility import CriticLoss
 
 __all__ = [
     "BCQImpl",
@@ -201,9 +202,12 @@ class DiscreteBCQModules(DQNModules):
 
 
 @dataclasses.dataclass(frozen=True)
-class DiscreteBCQLoss(DQNLoss):
-    td_loss: torch.Tensor
+class DiscreteBCQLoss(CriticLoss):
     imitator_loss: torch.Tensor
+
+    def get_loss(self) -> torch.Tensor:
+        return super().get_loss() + self.imitator_loss
+
 
 
 class DiscreteBCQImpl(DoubleDQNImpl):
@@ -247,9 +251,8 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             action=batch.actions.long(),
             beta=self._beta,
         )
-        loss = td_loss + imitator_loss
         return DiscreteBCQLoss(
-            loss=loss, td_loss=td_loss, imitator_loss=imitator_loss
+            td_loss=td_loss, imitator_loss=imitator_loss
         )
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
