@@ -1,9 +1,12 @@
 from abc import ABCMeta, abstractmethod
 from typing import Sequence
 
-from ...algos import QLearningAlgoBase, QLearningAlgoImplBase
-from ...constants import IMPL_NOT_INITIALIZED_ERROR
+from ... import QLearningAlgoBase, QLearningAlgoImplBase
+from ....constants import IMPL_NOT_INITIALIZED_ERROR
 
+__all__ = [
+    "ParameterReset"
+]
 
 class QLearningCallback(metaclass=ABCMeta):
     @abstractmethod
@@ -24,6 +27,9 @@ class ParameterReset(QLearningCallback):
     def _check_layer_resets(self, algo:QLearningAlgoBase):
         assert algo._impl is not None, IMPL_NOT_INITIALIZED_ERROR
         assert isinstance(algo._impl, QLearningAlgoImplBase)
+        
+        if  len(self._layer_reset) != len(algo._impl.q_function):
+            raise ValueError
         valid_layers = [
             hasattr(layer, 'reset_parameters') for lr, layer in zip(
                 self._layer_reset, algo._impl.q_function) 
@@ -40,8 +46,6 @@ class ParameterReset(QLearningCallback):
             self._check_layer_resets(algo=algo)
         assert isinstance(algo._impl, QLearningAlgoImplBase)
         if epoch % self._replay_ratio == 0:
-            for lr, layer in enumerate(
-                zip(self._layer_reset, algo._impl.q_function)
-                ):
+            for lr, layer in zip(self._layer_reset, algo._impl.q_function):
                 if lr:
                     layer.reset_parameters()
