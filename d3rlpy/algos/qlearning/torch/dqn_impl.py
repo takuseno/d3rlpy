@@ -10,9 +10,9 @@ from ....dataset import Shape
 from ....models.torch import DiscreteEnsembleQFunctionForwarder
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync
 from ..base import QLearningAlgoImplBase
-from .utility import DiscreteQFunctionMixin
+from .utility import CriticLoss, DiscreteQFunctionMixin
 
-__all__ = ["DQNImpl", "DQNModules", "DQNLoss", "DoubleDQNImpl"]
+__all__ = ["DQNImpl", "DQNModules", "DoubleDQNImpl"]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -20,11 +20,6 @@ class DQNModules(Modules):
     q_funcs: nn.ModuleList
     targ_q_funcs: nn.ModuleList
     optim: Optimizer
-
-
-@dataclasses.dataclass(frozen=True)
-class DQNLoss:
-    loss: torch.Tensor
 
 
 class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
@@ -78,7 +73,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self,
         batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
-    ) -> DQNLoss:
+    ) -> CriticLoss:
         loss = self._q_func_forwarder.compute_error(
             observations=batch.observations,
             actions=batch.actions.long(),
@@ -87,7 +82,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             terminals=batch.terminals,
             gamma=self._gamma**batch.intervals,
         )
-        return DQNLoss(loss=loss)
+        return CriticLoss(td_loss=loss)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():

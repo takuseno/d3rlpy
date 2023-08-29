@@ -44,8 +44,8 @@ class CriticLoss:
     td_loss: torch.Tensor
     loss: torch.Tensor = dataclasses.field(init=False)
 
-    def __post_init__(self)->None:
+    def __post_init__(self) -> None:
         object.__setattr__(self, "loss", self.get_loss())
 
-    def get_loss(self)->torch.Tensor:
+    def get_loss(self) -> torch.Tensor:
         return self.td_loss
