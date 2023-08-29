@@ -15,15 +15,14 @@ from ....models.torch import (
     build_squashed_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch
-from .ddpg_impl import DDPGCriticLoss
 from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 from .sac_impl import SACImpl, SACModules
+from .utility import CriticLoss
 
 __all__ = [
     "CQLImpl",
     "DiscreteCQLImpl",
     "CQLModules",
-    "DiscreteCQLLoss",
     "CQLLoss",
 ]
 
@@ -35,9 +34,11 @@ class CQLModules(SACModules):
 
 
 @dataclasses.dataclass(frozen=True)
-class CQLLoss(DDPGCriticLoss):
-    td_loss: torch.Tensor
+class CQLLoss(CriticLoss):
     conservative_loss: torch.Tensor
+
+    def get_loss(self):
+        return super().get_loss() + self.conservative_loss
 
 
 class CQLImpl(SACImpl):
@@ -80,13 +81,12 @@ class CQLImpl(SACImpl):
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> CQLLoss:
-        loss = super().compute_critic_loss(batch, q_tpn).loss
+        td_loss = super().compute_critic_loss(batch, q_tpn).loss
         conservative_loss = self._compute_conservative_loss(
             batch.observations, batch.actions, batch.next_observations
         )
         return CQLLoss(
-            loss=loss + conservative_loss,
-            td_loss=loss,
+            td_loss=td_loss,
             conservative_loss=conservative_loss,
         )
 
@@ -247,12 +247,6 @@ class CQLImpl(SACImpl):
         return metrics
 
 
-@dataclasses.dataclass(frozen=True)
-class DiscreteCQLLoss(DQNLoss):
-    td_loss: torch.Tensor
-    conservative_loss: torch.Tensor
-
-
 class DiscreteCQLImpl(DoubleDQNImpl):
     _alpha: float
 
@@ -297,14 +291,12 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         self,
         batch: TorchMiniBatch,
         q_tpn: torch.Tensor,
-    ) -> DiscreteCQLLoss:
+    ) -> CQLLoss:
         td_loss = super().compute_loss(batch, q_tpn).loss
         conservative_loss = self._compute_conservative_loss(
             batch.observations, batch.actions.long()
         )
-        loss = td_loss + self._alpha * conservative_loss
-        return DiscreteCQLLoss(
-            loss=loss,
+        return CQLLoss(
             td_loss=td_loss,
             conservative_loss=self._alpha * conservative_loss,
         )

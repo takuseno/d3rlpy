@@ -1,3 +1,5 @@
+import dataclasses
+
 import torch
 from typing_extensions import Protocol
 
@@ -6,7 +8,7 @@ from ....models.torch import (
     DiscreteEnsembleQFunctionForwarder,
 )
 
-__all__ = ["DiscreteQFunctionMixin", "ContinuousQFunctionMixin"]
+__all__ = ["DiscreteQFunctionMixin", "ContinuousQFunctionMixin", "CriticLoss"]
 
 
 class _DiscreteQFunctionProtocol(Protocol):
@@ -35,3 +37,15 @@ class ContinuousQFunctionMixin:
         return self._q_func_forwarder.compute_expected_q(
             x, action, reduction="mean"
         ).reshape(-1)
+
+
+@dataclasses.dataclass(frozen=True)
+class CriticLoss:
+    td_loss: torch.Tensor
+    loss: torch.Tensor = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        object.__setattr__(self, "loss", self.get_loss())
+
+    def get_loss(self):
+        return self.td_loss

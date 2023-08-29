@@ -11,14 +11,13 @@ from ....dataset import Shape
 from ....models.torch import ContinuousEnsembleQFunctionForwarder, Policy
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync, soft_sync
 from ..base import QLearningAlgoImplBase
-from .utility import ContinuousQFunctionMixin
+from .utility import ContinuousQFunctionMixin, CriticLoss
 
 __all__ = [
     "DDPGImpl",
     "DDPGBaseImpl",
     "DDPGBaseModules",
     "DDPGModules",
-    "DDPGCriticLoss",
 ]
 
 
@@ -29,11 +28,6 @@ class DDPGBaseModules(Modules):
     targ_q_funcs: nn.ModuleList
     actor_optim: Optimizer
     critic_optim: Optimizer
-
-
-@dataclasses.dataclass(frozen=True)
-class DDPGCriticLoss:
-    loss: torch.Tensor
 
 
 class DDPGBaseImpl(
@@ -82,7 +76,7 @@ class DDPGBaseImpl(
 
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
-    ) -> DDPGCriticLoss:
+    ) -> CriticLoss:
         loss = self._q_func_forwarder.compute_error(
             observations=batch.observations,
             actions=batch.actions,
@@ -91,7 +85,7 @@ class DDPGBaseImpl(
             terminals=batch.terminals,
             gamma=self._gamma**batch.intervals,
         )
-        return DDPGCriticLoss(loss=loss)
+        return CriticLoss(td_loss=loss)
 
     def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
         # Q function should be inference mode for stability
