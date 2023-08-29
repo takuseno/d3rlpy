@@ -15,14 +15,17 @@ from ....models.torch import (
     build_squashed_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch
+from .ddpg_impl import DDPGCriticLoss
 from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 from .sac_impl import SACImpl, SACModules
-from .ddpg_impl import DDPGCriticLoss
 
 __all__ = [
-    "CQLImpl", "DiscreteCQLImpl", "CQLModules", "DiscreteCQLLoss",
-    "CQLLoss"
-    ]
+    "CQLImpl",
+    "DiscreteCQLImpl",
+    "CQLModules",
+    "DiscreteCQLLoss",
+    "CQLLoss",
+]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -82,9 +85,10 @@ class CQLImpl(SACImpl):
             batch.observations, batch.actions, batch.next_observations
         )
         return CQLLoss(
-            loss=loss+conservative_loss, td_loss=loss, 
-            conservative_loss=conservative_loss 
-            )
+            loss=loss + conservative_loss,
+            td_loss=loss,
+            conservative_loss=conservative_loss,
+        )
 
     def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.critic_optim.zero_grad()
@@ -300,6 +304,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         )
         loss = td_loss + self._alpha * conservative_loss
         return DiscreteCQLLoss(
-            loss=loss, td_loss=td_loss, 
-            conservative_loss=self._alpha * conservative_loss
+            loss=loss,
+            td_loss=td_loss,
+            conservative_loss=self._alpha * conservative_loss,
         )

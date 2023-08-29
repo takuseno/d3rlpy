@@ -14,9 +14,12 @@ from ..base import QLearningAlgoImplBase
 from .utility import ContinuousQFunctionMixin
 
 __all__ = [
-    "DDPGImpl", "DDPGBaseImpl", "DDPGBaseModules", "DDPGModules", 
-    "DDPGCriticLoss"
-    ]
+    "DDPGImpl",
+    "DDPGBaseImpl",
+    "DDPGBaseModules",
+    "DDPGModules",
+    "DDPGCriticLoss",
+]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -26,6 +29,7 @@ class DDPGBaseModules(Modules):
     targ_q_funcs: nn.ModuleList
     actor_optim: Optimizer
     critic_optim: Optimizer
+
 
 @dataclasses.dataclass(frozen=True)
 class DDPGCriticLoss:
@@ -75,7 +79,7 @@ class DDPGBaseImpl(
         self._modules.critic_optim.step()
 
         return asdict_as_float(loss)
-    
+
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> DDPGCriticLoss:
