@@ -209,7 +209,6 @@ class DiscreteBCQLoss(CriticLoss):
         return super().get_loss() + self.imitator_loss
 
 
-
 class DiscreteBCQImpl(DoubleDQNImpl):
     _modules: DiscreteBCQModules
     _action_flexibility: float
@@ -251,9 +250,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             action=batch.actions.long(),
             beta=self._beta,
         )
-        return DiscreteBCQLoss(
-            td_loss=td_loss, imitator_loss=imitator_loss
-        )
+        return DiscreteBCQLoss(td_loss=td_loss, imitator_loss=imitator_loss)
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         dist = self._modules.imitator(x)
