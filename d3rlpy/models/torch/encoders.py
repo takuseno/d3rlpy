@@ -263,8 +263,9 @@ class VectorEncoderWithAction(EncoderWithAction):
 
 
 def compute_output_size(
-    input_shapes: Sequence[Shape], encoder: nn.Module, device: str
-) -> int:
+    input_shapes: Sequence[Shape], encoder: nn.Module
+    ) -> int:
+    device = next(encoder.parameters()).device
     with torch.no_grad():
         inputs = []
         for shape in input_shapes:

@@ -358,7 +358,6 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             hidden_size = compute_output_size(
                 [observation_shape],
                 q_funcs[0].encoder,
-                device=self._device,
             )
             imitator = CategoricalPolicy(
                 encoder=q_funcs[0].encoder,

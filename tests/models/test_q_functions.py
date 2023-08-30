@@ -50,7 +50,7 @@ def test_mean_q_function_factory(
         observation_shape, action_size
     )
     hidden_size = compute_output_size(
-        [observation_shape, (action_size,)], encoder_with_action, "cpu:0"
+        [observation_shape, (action_size,)], encoder_with_action
     )
     q_func, forwarder = factory.create_continuous(
         encoder_with_action, hidden_size
@@ -59,7 +59,7 @@ def test_mean_q_function_factory(
     assert isinstance(forwarder, ContinuousMeanQFunctionForwarder)
 
     encoder = _create_encoder(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, "cpu:0")
+    hidden_size = compute_output_size([observation_shape], encoder)
     discrete_q_func, discrete_forwarder = factory.create_discrete(
         encoder, hidden_size, action_size
     )
@@ -82,7 +82,7 @@ def test_qr_q_function_factory(
         observation_shape, action_size
     )
     hidden_size = compute_output_size(
-        [observation_shape, (action_size,)], encoder_with_action, "cpu:0"
+        [observation_shape, (action_size,)], encoder_with_action
     )
     q_func, forwarder = factory.create_continuous(
         encoder_with_action, hidden_size
@@ -91,7 +91,7 @@ def test_qr_q_function_factory(
     assert isinstance(forwarder, ContinuousQRQFunctionForwarder)
 
     encoder = _create_encoder(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, "cpu:0")
+    hidden_size = compute_output_size([observation_shape], encoder)
     discrete_q_func, discrete_forwarder = factory.create_discrete(
         encoder, hidden_size, action_size
     )
@@ -114,7 +114,7 @@ def test_iqn_q_function_factory(
         observation_shape, action_size
     )
     hidden_size = compute_output_size(
-        [observation_shape, (action_size,)], encoder_with_action, "cpu:0"
+        [observation_shape, (action_size,)], encoder_with_action
     )
     q_func, forwarder = factory.create_continuous(
         encoder_with_action, hidden_size
@@ -123,7 +123,7 @@ def test_iqn_q_function_factory(
     assert isinstance(forwarder, ContinuousIQNQFunctionForwarder)
 
     encoder = _create_encoder(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, "cpu:0")
+    hidden_size = compute_output_size([observation_shape], encoder)
     discrete_q_func, discrete_forwarder = factory.create_discrete(
         encoder, hidden_size, action_size
     )
