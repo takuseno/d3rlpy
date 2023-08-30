@@ -61,8 +61,7 @@ def create_discrete_q_function(
     for _ in range(n_ensembles):
         if not q_func_factory.share_encoder:
             encoder = encoder_factory.create(observation_shape)
-            hidden_size = compute_output_size(
-                [observation_shape], encoder)
+            hidden_size = compute_output_size([observation_shape], encoder)
         q_func, forwarder = q_func_factory.create_discrete(
             encoder, hidden_size, action_size
         )
