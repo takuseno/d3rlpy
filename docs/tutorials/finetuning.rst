@@ -76,6 +76,7 @@ algorithms, you can do it in an out-of-the-box way.
 
   # transfer to DQN
   dqn = d3rlpy.algos.DQN()
+  dqn.build_with_env(env)
   dqn.copy_q_function_from(cql)
 
   # start finetuning
