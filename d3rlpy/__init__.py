@@ -11,6 +11,7 @@ from . import (
     logging,
     metrics,
     models,
+    notebook_utils,
     ope,
     preprocessing,
 )
