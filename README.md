@@ -188,10 +188,11 @@ Please check the [contribution guide](CONTRIBUTING.md).
 |:-|:-|
 | Issues | [GitHub Issues](https://github.com/takuseno/d3rlpy/issues) |
 
-## Family projects
+## Projects using d3rlpy
 | Project | Description |
 |:-:|:-|
-| [d4rl-atari](https://github.com/takuseno/d4rl-atari) | A d4rl-style library of Google's Atari 2600 datasets |
+| [MINERVA](https://github.com/takuseno/minerva) | An out-of-the-box GUI tool for offline RL |
+| [SCOPE-RL](https://github.com/hakuhodo-technologies/scope-rl) | An off-policy evaluation and selection library |
 
 ## Roadmap
 The roadmap to the future release is available in [ROADMAP.md](ROADMAP.md).
