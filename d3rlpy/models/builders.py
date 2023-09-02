@@ -51,7 +51,7 @@ def create_discrete_q_function(
 ) -> Tuple[nn.ModuleList, DiscreteEnsembleQFunctionForwarder]:
     if q_func_factory.share_encoder:
         encoder = encoder_factory.create(observation_shape)
-        hidden_size = compute_output_size([observation_shape], encoder, device)
+        hidden_size = compute_output_size([observation_shape], encoder)
         # normalize gradient scale by ensemble size
         for p in cast(nn.Module, encoder).parameters():
             p.register_hook(lambda grad: grad / n_ensembles)
@@ -61,9 +61,7 @@ def create_discrete_q_function(
     for _ in range(n_ensembles):
         if not q_func_factory.share_encoder:
             encoder = encoder_factory.create(observation_shape)
-            hidden_size = compute_output_size(
-                [observation_shape], encoder, device
-            )
+            hidden_size = compute_output_size([observation_shape], encoder)
         q_func, forwarder = q_func_factory.create_discrete(
             encoder, hidden_size, action_size
         )
@@ -90,7 +88,7 @@ def create_continuous_q_function(
             observation_shape, action_size
         )
         hidden_size = compute_output_size(
-            [observation_shape, (action_size,)], encoder, device
+            [observation_shape, (action_size,)], encoder
         )
         # normalize gradient scale by ensemble size
         for p in cast(nn.Module, encoder).parameters():
@@ -104,7 +102,7 @@ def create_continuous_q_function(
                 observation_shape, action_size
             )
             hidden_size = compute_output_size(
-                [observation_shape, (action_size,)], encoder, device
+                [observation_shape, (action_size,)], encoder
             )
         q_func, forwarder = q_func_factory.create_continuous(
             encoder, hidden_size
@@ -126,7 +124,7 @@ def create_deterministic_policy(
     device: str,
 ) -> DeterministicPolicy:
     encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, device)
+    hidden_size = compute_output_size([observation_shape], encoder)
     policy = DeterministicPolicy(
         encoder=encoder,
         hidden_size=hidden_size,
@@ -145,7 +143,7 @@ def create_deterministic_residual_policy(
 ) -> DeterministicResidualPolicy:
     encoder = encoder_factory.create_with_action(observation_shape, action_size)
     hidden_size = compute_output_size(
-        [observation_shape, (action_size,)], encoder, device
+        [observation_shape, (action_size,)], encoder
     )
     policy = DeterministicResidualPolicy(
         encoder=encoder,
@@ -167,7 +165,7 @@ def create_normal_policy(
     use_std_parameter: bool = False,
 ) -> NormalPolicy:
     encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, device)
+    hidden_size = compute_output_size([observation_shape], encoder)
     policy = NormalPolicy(
         encoder=encoder,
         hidden_size=hidden_size,
@@ -187,7 +185,7 @@ def create_categorical_policy(
     device: str,
 ) -> CategoricalPolicy:
     encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, device)
+    hidden_size = compute_output_size([observation_shape], encoder)
     policy = CategoricalPolicy(
         encoder=encoder, hidden_size=hidden_size, action_size=action_size
     )
@@ -211,7 +209,7 @@ def create_conditional_vae(
         observation_shape, latent_size
     )
     hidden_size = compute_output_size(
-        [observation_shape, (action_size,)], encoder_encoder, device
+        [observation_shape, (action_size,)], encoder_encoder
     )
     encoder = VAEEncoder(
         encoder=encoder_encoder,
@@ -234,7 +232,7 @@ def create_value_function(
     observation_shape: Shape, encoder_factory: EncoderFactory, device: str
 ) -> ValueFunction:
     encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, device)
+    hidden_size = compute_output_size([observation_shape], encoder)
     value_func = ValueFunction(encoder, hidden_size)
     value_func.to(device)
     return value_func
@@ -265,7 +263,7 @@ def create_continuous_decision_transformer(
     device: str,
 ) -> ContinuousDecisionTransformer:
     encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, device)
+    hidden_size = compute_output_size([observation_shape], encoder)
 
     if position_encoding_type == "simple":
         position_encoding = SimplePositionEncoding(hidden_size, max_timestep)
@@ -311,7 +309,7 @@ def create_discrete_decision_transformer(
     device: str,
 ) -> DiscreteDecisionTransformer:
     encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder, device)
+    hidden_size = compute_output_size([observation_shape], encoder)
 
     if position_encoding_type == "simple":
         position_encoding = SimplePositionEncoding(hidden_size, max_timestep)
