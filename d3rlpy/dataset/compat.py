@@ -2,6 +2,7 @@ from typing import Optional
 
 import numpy as np
 
+from ..constants import ActionSpace
 from .buffers import InfiniteBuffer
 from .episode_generator import EpisodeGenerator
 from .replay_buffer import ReplayBuffer
@@ -30,6 +31,12 @@ class MDPDataset(ReplayBuffer):
         trajectory_slicer (Optional[TrajectorySlicerProtocol]):
             Trajectory slicer implementation for Transformer-based algorithms.
             If ``None`` is given, ``BasicTrajectorySlicer`` is used by default.
+        action_space (Optional[d3rlpy.constants.ActionSpace]):
+            Action-space type.
+        action_size (Optional[int]): Size of action-space. For continuous
+            action-space, this represents dimension of action vectors. For
+            discrete action-space, this represents the number of discrete
+            actions.
     """
 
     def __init__(
@@ -41,6 +48,8 @@ class MDPDataset(ReplayBuffer):
         timeouts: Optional[np.ndarray] = None,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+        action_space: Optional[ActionSpace] = None,
+        action_size: Optional[int] = None,
     ):
         episode_generator = EpisodeGenerator(
             observations=observations,
@@ -55,4 +64,6 @@ class MDPDataset(ReplayBuffer):
             episodes=episode_generator(),
             transition_picker=transition_picker,
             trajectory_slicer=trajectory_slicer,
+            action_space=action_space,
+            action_size=action_size,
         )
