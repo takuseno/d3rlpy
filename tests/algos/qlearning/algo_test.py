@@ -359,7 +359,10 @@ def save_policy_tester(
 
     # check save_policy as ONNX
     algo.save_policy(os.path.join("test_data", "model.onnx"))
-    ort_session = ort.InferenceSession(os.path.join("test_data", "model.onnx"))
+    ort_session = ort.InferenceSession(
+        os.path.join("test_data", "model.onnx"),
+        providers=["CPUExecutionProvider"],
+    )
     observations = np.random.rand(1, *observation_shape).astype("f4")
     action = ort_session.run(None, {"input_0": observations})[0]
     if algo.get_action_type() == ActionSpace.DISCRETE:

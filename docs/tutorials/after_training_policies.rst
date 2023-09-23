@@ -121,7 +121,7 @@ ONNX is a widely used machine learning model format that is supported by numerou
    import onnxruntime as ort
 
    # load ONNX policy via onnxruntime
-   ort_session = ort.InferenceSession('policy.onnx')
+   ort_session = ort.InferenceSession('policy.onnx', providers=["CPUExecutionProvider"])
 
    # observation
    observation = np.random.rand(1, 3).astype(np.float32)
