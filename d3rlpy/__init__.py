@@ -17,6 +17,7 @@ from . import (
 )
 from ._version import __version__
 from .base import load_learnable
+from .constants import ActionSpace
 from .healthcheck import run_healthcheck
 
 

@@ -1,5 +1,7 @@
-from typing import Sequence, Tuple, cast
+from typing import Any, Sequence, Tuple, Union, cast
 
+import gym
+import gymnasium
 import numpy as np
 import pytest
 
@@ -12,7 +14,9 @@ from d3rlpy.dataset import (
     check_dtype,
     check_non_1d_array,
     create_zero_observation,
+    detect_action_size_from_env,
     detect_action_space,
+    detect_action_space_from_env,
     get_dtype_from_observation,
     get_dtype_from_observation_sequence,
     get_shape_from_observation,
@@ -308,3 +312,35 @@ def test_detect_action_space() -> None:
 
     discrete_actions = np.random.randint(4, size=(100, 1))
     assert detect_action_space(discrete_actions) == ActionSpace.DISCRETE
+
+
+def test_detect_action_space_from_env() -> None:
+    env: Union[gym.Env[Any, Any], gymnasium.Env[Any, Any]] = gym.make(
+        "CartPole-v1"
+    )
+    assert detect_action_space_from_env(env) == ActionSpace.DISCRETE
+
+    env = gym.make("Pendulum-v1")
+    assert detect_action_space_from_env(env) == ActionSpace.CONTINUOUS
+
+    env = gymnasium.make("CartPole-v1")
+    assert detect_action_space_from_env(env) == ActionSpace.DISCRETE
+
+    env = gymnasium.make("Pendulum-v1")
+    assert detect_action_space_from_env(env) == ActionSpace.CONTINUOUS
+
+
+def test_detect_action_size_from_env() -> None:
+    env: Union[gym.Env[Any, Any], gymnasium.Env[Any, Any]] = gym.make(
+        "CartPole-v1"
+    )
+    assert detect_action_size_from_env(env) == 2
+
+    env = gym.make("Pendulum-v1")
+    assert detect_action_size_from_env(env) == 1
+
+    env = gymnasium.make("CartPole-v1")
+    assert detect_action_size_from_env(env) == 2
+
+    env = gymnasium.make("Pendulum-v1")
+    assert detect_action_size_from_env(env) == 1

@@ -2,9 +2,12 @@ from typing import BinaryIO, List, Optional, Sequence, Type, Union
 
 import numpy as np
 
+from ..constants import ActionSpace
 from ..envs import GymEnv
+from ..logging import LOG
 from .buffers import BufferProtocol, FIFOBuffer, InfiniteBuffer
 from .components import (
+    DatasetInfo,
     Episode,
     EpisodeBase,
     PartialTrajectory,
@@ -17,6 +20,11 @@ from .mini_batch import TrajectoryMiniBatch, TransitionMiniBatch
 from .trajectory_slicers import BasicTrajectorySlicer, TrajectorySlicerProtocol
 from .transition_pickers import BasicTransitionPicker, TransitionPickerProtocol
 from .types import Observation
+from .utils import (
+    detect_action_size_from_env,
+    detect_action_space,
+    detect_action_space_from_env,
+)
 from .writers import (
     BasicWriterPreprocess,
     ExperienceWriter,
@@ -78,6 +86,12 @@ class ReplayBuffer:
             Signature of action.
         reward_signature (Optional[d3rlpy.dataset.Signature]):
             Signature of reward.
+        action_space (Optional[d3rlpy.constants.ActionSpace]):
+            Action-space type.
+        action_size (Optional[int]): Size of action-space. For continuous
+            action-space, this represents dimension of action vectors. For
+            discrete action-space, this represents the number of discrete
+            actions.
         cache_size (int): Size of cache to record active episode history used
             for online training. ``cache_size`` needs to be greater than the
             maximum possible episode length.
@@ -87,6 +101,7 @@ class ReplayBuffer:
     _trajectory_slicer: TrajectorySlicerProtocol
     _writer: ExperienceWriter
     _episodes: List[EpisodeBase]
+    _dataset_info: DatasetInfo
 
     def __init__(
         self,
@@ -99,6 +114,8 @@ class ReplayBuffer:
         observation_signature: Optional[Signature] = None,
         action_signature: Optional[Signature] = None,
         reward_signature: Optional[Signature] = None,
+        action_space: Optional[ActionSpace] = None,
+        action_size: Optional[int] = None,
         cache_size: int = 10000,
     ):
         transition_picker = transition_picker or BasicTransitionPicker()
@@ -127,8 +144,53 @@ class ReplayBuffer:
                 )
             else:
                 raise ValueError(
-                    "Either episodes or env must be provided for signatures"
+                    "Either episodes or env must be provided to determine signatures."
+                    " Or specify signatures directly."
                 )
+            LOG.info(
+                "Signatures have been automatically determined.",
+                observation_signature=observation_signature,
+                action_signature=action_signature,
+                reward_signature=reward_signature,
+            )
+
+        if action_space is None:
+            if episodes:
+                action_space = detect_action_space(episodes[0].actions)
+            elif env:
+                action_space = detect_action_space_from_env(env)
+            else:
+                raise ValueError(
+                    "Either episodes or env must be provided to determine action_space."
+                    " Or specify action_space directly."
+                )
+            LOG.info(
+                "Action-space has been automatically determined.",
+                action_space=action_space,
+            )
+
+        if action_size is None:
+            if episodes:
+                if action_space == ActionSpace.CONTINUOUS:
+                    action_size = action_signature.shape[0][0]
+                else:
+                    max_action = 0
+                    for episode in episodes:
+                        max_action = max(
+                            int(np.max(episode.actions)), max_action
+                        )
+                    action_size = max_action + 1  # index should start from 0
+            elif env:
+                action_size = detect_action_size_from_env(env)
+            else:
+                raise ValueError(
+                    "Either episodes or env must be provided to determine action_space."
+                    " Or specify action_size directly."
+                )
+            LOG.info(
+                "Action size has been automatically determined.",
+                action_size=action_size,
+            )
 
         self._buffer = buffer
         self._writer = ExperienceWriter(
@@ -141,6 +203,13 @@ class ReplayBuffer:
         )
         self._transition_picker = transition_picker
         self._trajectory_slicer = trajectory_slicer
+        self._dataset_info = DatasetInfo(
+            observation_signature=observation_signature,
+            action_signature=action_signature,
+            reward_signature=reward_signature,
+            action_space=action_space,
+            action_size=action_size,
+        )
 
         if episodes:
             for episode in episodes:
@@ -367,6 +436,15 @@ class ReplayBuffer:
             Trajectory slicer.
         """
         return self._trajectory_slicer
+
+    @property
+    def dataset_info(self) -> DatasetInfo:
+        """Returns dataset information.
+
+        Returns:
+            Dataset information.
+        """
+        return self._dataset_info
 
 
 def create_fifo_replay_buffer(

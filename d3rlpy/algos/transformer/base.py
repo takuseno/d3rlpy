@@ -10,12 +10,7 @@ from typing_extensions import Self
 
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
-from ...dataset import (
-    DatasetInfo,
-    Observation,
-    ReplayBuffer,
-    TrajectoryMiniBatch,
-)
+from ...dataset import Observation, ReplayBuffer, TrajectoryMiniBatch
 from ...envs import GymEnv
 from ...logging import (
     LOG,
@@ -243,11 +238,10 @@ class TransformerAlgoBase(
             callback: Callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
         """
-        dataset_info = DatasetInfo.from_episodes(dataset.episodes)
-        LOG.info("dataset info", dataset_info=dataset_info)
+        LOG.info("dataset info", dataset_info=dataset.dataset_info)
 
         # check action space
-        assert_action_space_with_dataset(self, dataset_info)
+        assert_action_space_with_dataset(self, dataset.dataset_info)
 
         # initialize scalers
         build_scalers_with_trajectory_slicer(self, dataset)
@@ -264,7 +258,7 @@ class TransformerAlgoBase(
         # instantiate implementation
         if self._impl is None:
             LOG.debug("Building models...")
-            action_size = dataset_info.action_size
+            action_size = dataset.dataset_info.action_size
             observation_shape = (
                 dataset.sample_transition().observation_signature.shape[0]
             )

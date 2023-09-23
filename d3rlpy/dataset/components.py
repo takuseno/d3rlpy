@@ -7,7 +7,6 @@ from typing_extensions import Protocol
 from ..constants import ActionSpace
 from .types import Observation, ObservationSequence
 from .utils import (
-    detect_action_space,
     get_dtype_from_observation,
     get_dtype_from_observation_sequence,
     get_shape_from_observation,
@@ -381,29 +380,3 @@ class DatasetInfo:
     reward_signature: Signature
     action_space: ActionSpace
     action_size: int
-
-    @classmethod
-    def from_episodes(cls, episodes: Sequence[EpisodeBase]) -> "DatasetInfo":
-        r"""Constructs from sequence of episodes.
-
-        Args:
-            episodes: Sequence of episodes.
-
-        Returns:
-            DatasetInfo object.
-        """
-        action_space = detect_action_space(episodes[0].actions)
-        if action_space == ActionSpace.CONTINUOUS:
-            action_size = episodes[0].action_signature.shape[0][0]
-        else:
-            max_action = 0
-            for episode in episodes:
-                max_action = max(int(np.max(episode.actions)), max_action)
-            action_size = max_action + 1  # index should start from 0
-        return DatasetInfo(
-            observation_signature=episodes[0].observation_signature,
-            action_signature=episodes[0].action_signature,
-            reward_signature=episodes[0].reward_signature,
-            action_space=action_space,
-            action_size=action_size,
-        )

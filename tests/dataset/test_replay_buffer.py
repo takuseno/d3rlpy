@@ -4,6 +4,7 @@ from typing import Optional
 import numpy as np
 import pytest
 
+from d3rlpy.constants import ActionSpace
 from d3rlpy.dataset import (
     BasicTrajectorySlicer,
     BasicTransitionPicker,
@@ -31,6 +32,8 @@ def test_replay_buffer(
         observation_signature=episode.observation_signature,
         action_signature=episode.action_signature,
         reward_signature=episode.reward_signature,
+        action_space=ActionSpace.CONTINUOUS,
+        action_size=action_size,
     )
 
     for _ in range(length):

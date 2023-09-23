@@ -3,14 +3,7 @@ from typing import Sequence
 import numpy as np
 import pytest
 
-from d3rlpy.constants import ActionSpace
-from d3rlpy.dataset import (
-    DatasetInfo,
-    Episode,
-    PartialTrajectory,
-    Signature,
-    Transition,
-)
+from d3rlpy.dataset import Episode, PartialTrajectory, Signature, Transition
 
 
 @pytest.mark.parametrize("shape", [(100,)])
@@ -92,39 +85,3 @@ def test_episode(
     assert np.all(episode2.actions == episode.actions)
     assert np.all(episode2.rewards == episode.rewards)
     assert episode2.terminated == episode.terminated
-
-
-@pytest.mark.parametrize("data_size", [100])
-@pytest.mark.parametrize("observation_size", [4])
-@pytest.mark.parametrize("action_size", [2])
-def test_dataset_info(
-    data_size: int, observation_size: int, action_size: int
-) -> None:
-    # continuous action space
-    episode = Episode(
-        observations=np.random.random((data_size, observation_size)),
-        actions=np.random.random((data_size, action_size)),
-        rewards=np.random.random((data_size, 1)),
-        terminated=False,
-    )
-    dataset_info = DatasetInfo.from_episodes([episode])
-    assert dataset_info.observation_signature.shape[0] == (observation_size,)
-    assert dataset_info.action_signature.shape[0] == (action_size,)
-    assert dataset_info.reward_signature.shape[0] == (1,)
-    assert dataset_info.action_space == ActionSpace.CONTINUOUS
-    assert dataset_info.action_size == action_size
-
-    # discrete action space
-    episode = Episode(
-        observations=np.random.random((data_size, observation_size)),
-        actions=np.random.randint(action_size, size=(data_size, 1)),
-        rewards=np.random.random((data_size, 1)),
-        terminated=False,
-    )
-    dataset_info = DatasetInfo.from_episodes([episode])
-    assert dataset_info.observation_signature.shape[0] == (observation_size,)
-    assert dataset_info.action_signature.shape[0] == (1,)
-    assert dataset_info.action_signature.dtype[0] == np.int64
-    assert dataset_info.reward_signature.shape[0] == (1,)
-    assert dataset_info.action_space == ActionSpace.DISCRETE
-    assert dataset_info.action_size == action_size

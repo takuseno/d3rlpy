@@ -4,14 +4,13 @@ import pickle
 from abc import ABCMeta, abstractmethod
 from typing import BinaryIO, Generic, Optional, Type, TypeVar, Union
 
-from gym.spaces import Box, Discrete
+from gym.spaces import Box
 from gymnasium.spaces import Box as GymnasiumBox
-from gymnasium.spaces import Discrete as GymnasiumDiscrete
 from typing_extensions import Self
 
 from ._version import __version__
 from .constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
-from .dataset import DatasetInfo, ReplayBuffer, Shape
+from .dataset import ReplayBuffer, Shape, detect_action_size_from_env
 from .envs import GymEnv
 from .logging import LOG, D3RLPyLogger
 from .preprocessing import (
@@ -313,11 +312,10 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
         Args:
             dataset: dataset.
         """
-        dataset_info = DatasetInfo.from_episodes(dataset.episodes)
         observation_shape = (
             dataset.sample_transition().observation_signature.shape[0]
         )
-        self.create_impl(observation_shape, dataset_info.action_size)
+        self.create_impl(observation_shape, dataset.dataset_info.action_size)
 
     def build_with_env(self, env: GymEnv) -> None:
         """Instantiate implementation object with OpenAI Gym object.
@@ -329,15 +327,8 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
             env.observation_space, (Box, GymnasiumBox)
         ), f"Unsupported observation space: {type(env.observation_space)}"
         observation_shape = env.observation_space.shape
-        if isinstance(env.action_space, (Discrete, GymnasiumDiscrete)):
-            action_size = env.action_space.n
-        elif isinstance(env.action_space, (Box, GymnasiumBox)):
-            action_size = env.action_space.shape[0]
-        else:
-            raise ValueError(
-                f"Unsupported action space: {type(env.action_space)}"
-            )
-        self.create_impl(observation_shape, int(action_size))
+        action_size = detect_action_size_from_env(env)
+        self.create_impl(observation_shape, action_size)
 
     def get_action_type(self) -> ActionSpace:
         """Returns action type (continuous or discrete).
