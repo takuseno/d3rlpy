@@ -7,6 +7,7 @@ from .cql import *
 from .crr import *
 from .ddpg import *
 from .dqn import *
+from .droq import *
 from .explorers import *
 from .iql import *
 from .nfq import *

@@ -138,6 +138,7 @@ class VectorEncoderFactory(EncoderFactory):
     activation: str = "relu"
     use_batch_norm: bool = False
     dropout_rate: Optional[float] = None
+    use_layer_norm: bool = False
     exclude_last_activation: bool = False
 
     def create(self, observation_shape: Shape) -> VectorEncoder:
@@ -147,6 +148,7 @@ class VectorEncoderFactory(EncoderFactory):
             hidden_units=self.hidden_units,
             use_batch_norm=self.use_batch_norm,
             dropout_rate=self.dropout_rate,
+            # use_layer_norm=self.use_layer_norm,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
         )
@@ -164,6 +166,7 @@ class VectorEncoderFactory(EncoderFactory):
             hidden_units=self.hidden_units,
             use_batch_norm=self.use_batch_norm,
             dropout_rate=self.dropout_rate,
+            use_layer_norm=self.use_layer_norm,
             discrete_action=discrete_action,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,

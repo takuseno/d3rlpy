@@ -226,6 +226,7 @@ class VectorEncoderWithAction(EncoderWithAction):
         hidden_units: Optional[Sequence[int]] = None,
         use_batch_norm: bool = False,
         dropout_rate: Optional[float] = None,
+        use_layer_norm: bool = False,
         discrete_action: bool = False,
         activation: nn.Module = nn.ReLU(),
         exclude_last_activation: bool = False,
@@ -251,6 +252,8 @@ class VectorEncoderWithAction(EncoderWithAction):
                 layers.append(nn.BatchNorm1d(out_unit))
             if dropout_rate is not None:
                 layers.append(nn.Dropout(dropout_rate))
+            if use_layer_norm:
+                layers.append(nn.LayerNorm(out_unit))
         self._layers = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
