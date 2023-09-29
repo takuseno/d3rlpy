@@ -3,16 +3,16 @@ import math
 
 from .torch import SACModules
 from .torch.droq_impl import DroQImpl
-from .. import SACConfig
-from ...base import DeviceArg, register_learnable
+from ...base import DeviceArg, register_learnable, LearnableConfig
 from ...constants import ActionSpace
 from ...dataset import Shape
+from ...models import QFunctionFactory, make_q_func_field, make_optimizer_field, OptimizerFactory
 from ...models.builders import (
     create_continuous_q_function,
     create_normal_policy,
     create_parameter,
 )
-from ...models.encoders import EncoderFactory, VectorEncoderFactory
+from ...models.encoders import EncoderFactory, make_encoder_field
 from .base import QLearningAlgoBase
 
 
@@ -20,14 +20,23 @@ __all__ = ["DroQConfig", "DroQ"]
 
 
 @dataclasses.dataclass()
-class DroQConfig(SACConfig):
+class DroQConfig(LearnableConfig):
     r"""TODO
     """
-    critic_encoder_factory: EncoderFactory = VectorEncoderFactory(
-        dropout_rate=0.9,
-        use_layer_norm=True,
-    )
-    dropout_rate: int = 0.9
+    actor_learning_rate: float = 3e-4
+    critic_learning_rate: float = 3e-4
+    temp_learning_rate: float = 3e-4
+    actor_optim_factory: OptimizerFactory = make_optimizer_field()
+    critic_optim_factory: OptimizerFactory = make_optimizer_field()
+    temp_optim_factory: OptimizerFactory = make_optimizer_field()
+    actor_encoder_factory: EncoderFactory = make_encoder_field()
+    critic_encoder_factory: EncoderFactory = make_encoder_field()
+    q_func_factory: QFunctionFactory = make_q_func_field()
+    batch_size: int = 256
+    gamma: float = 0.99
+    tau: float = 0.005
+    n_critics: int = 2
+    initial_temperature: float = 1.0
 
     def create(self, device: DeviceArg = False) -> "DroQ":
         return DroQ(self, device)

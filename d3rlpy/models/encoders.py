@@ -192,6 +192,7 @@ class DefaultEncoderFactory(EncoderFactory):
     activation: str = "relu"
     use_batch_norm: bool = False
     dropout_rate: Optional[float] = None
+    use_layer_norm: bool = False
 
     def create(self, observation_shape: Shape) -> Encoder:
         factory: Union[PixelEncoderFactory, VectorEncoderFactory]
