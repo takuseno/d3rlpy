@@ -131,6 +131,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
         )
 
         dummy_log_temp = Parameter(torch.zeros(1, 1))
+        dummy_log_temp.to(self._device)
         modules = SACModules(
             policy=policy,
             q_funcs=q_funcs,
