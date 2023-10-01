@@ -173,7 +173,8 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
         activation_type (str): Type of activation function.
         position_encoding_type (str): Type of positional encoding
             (``simple`` or ``global``).
-        warmup_steps (int): Warmup steps for learning rate scheduler.
+        warmup_tokens (int): Number of tokens to warmup learning rate scheduler.
+        final_tokens (int): Final number of tokens for learning rate scheduler.
         clip_grad_norm (float): Norm of gradient clipping.
         compile (bool): (experimental) Flag to enable JIT compilation.
     """
