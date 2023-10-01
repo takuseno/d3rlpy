@@ -213,6 +213,10 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
         device: DeviceArg,
         impl: Optional[TImpl_co] = None,
     ):
+        if self.get_action_type() == ActionSpace.DISCRETE:
+            assert (
+                config.action_scaler is None
+            ), "action_scaler cannot be used with discrete action-space algorithms."
         self._config = config
         self._device = _process_device(device)
         self._impl = impl
