@@ -8,6 +8,8 @@ __all__ = ["create_activation"]
 def create_activation(activation_type: str) -> nn.Module:
     if activation_type == "relu":
         return nn.ReLU()
+    elif activation_type == "gelu":
+        return nn.GELU()
     elif activation_type == "tanh":
         return nn.Tanh()
     elif activation_type == "swish":

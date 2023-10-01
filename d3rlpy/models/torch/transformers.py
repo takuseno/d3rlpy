@@ -368,7 +368,8 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         )
         state_embedding = state_embedding + position_embedding
 
-        action_embedding = self._action_embed(action) + position_embedding
+        flat_action = action.view(batch_size, context_size).long()
+        action_embedding = self._action_embed(flat_action) + position_embedding
         rtg_embedding = self._rtg_embed(return_to_go) + position_embedding
 
         # (B, T, N) -> (B, 3, T, N)

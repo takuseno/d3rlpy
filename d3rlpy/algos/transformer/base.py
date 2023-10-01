@@ -144,6 +144,8 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         self._actions.append(self._get_pad_action())
         self._timestep += 1
         self._return_rest -= reward
+        if self._algo.get_action_type() == ActionSpace.DISCRETE:
+            action = int(action)
         return action
 
     def reset(self) -> None:

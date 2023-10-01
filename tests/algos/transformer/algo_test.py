@@ -211,7 +211,9 @@ def stateful_wrapper_tester(
     action1 = wrapper.predict(observation1, reward1)
     observation, reward = np.random.random(observation_shape), 0.0
     action2 = wrapper.predict(observation, reward)
-    assert np.all(action1 != action2)
+    # in discrete case, there is high chance that action is the same.
+    if algo.get_action_type() == ActionSpace.CONTINUOUS:
+        assert np.all(action1 != action2)
     wrapper.reset()
     action3 = wrapper.predict(observation1, reward1)
     assert np.all(action1 == action3)
