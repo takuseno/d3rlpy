@@ -70,24 +70,24 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 ```
 
 ## Supported algorithms
-| algorithm | discrete control | continuous control | offline RL? |
-|:-|:-:|:-:|:-:|
-| Behavior Cloning (supervised learning) | :white_check_mark: | :white_check_mark: | |
-| [Neural Fitted Q Iteration (NFQ)](https://link.springer.com/chapter/10.1007/11564096_32) | :white_check_mark: | :no_entry: | :white_check_mark: |
-| [Deep Q-Network (DQN)](https://www.nature.com/articles/nature14236) | :white_check_mark: | :no_entry: | |
-| [Double DQN](https://arxiv.org/abs/1509.06461) | :white_check_mark: | :no_entry: | |
-| [Deep Deterministic Policy Gradients (DDPG)](https://arxiv.org/abs/1509.02971) | :no_entry: | :white_check_mark: | |
-| [Twin Delayed Deep Deterministic Policy Gradients (TD3)](https://arxiv.org/abs/1802.09477) | :no_entry: | :white_check_mark: | |
-| [Soft Actor-Critic (SAC)](https://arxiv.org/abs/1812.05905) | :white_check_mark: | :white_check_mark: | |
-| [Batch Constrained Q-learning (BCQ)](https://arxiv.org/abs/1812.02900) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| [Bootstrapping Error Accumulation Reduction (BEAR)](https://arxiv.org/abs/1906.00949) | :no_entry: | :white_check_mark: | :white_check_mark: |
-| [Conservative Q-Learning (CQL)](https://arxiv.org/abs/2006.04779) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| [Advantage Weighted Actor-Critic (AWAC)](https://arxiv.org/abs/2006.09359) | :no_entry: | :white_check_mark: | :white_check_mark: |
-| [Critic Reguralized Regression (CRR)](https://arxiv.org/abs/2006.15134) | :no_entry: | :white_check_mark: | :white_check_mark: |
-| [Policy in Latent Action Space (PLAS)](https://arxiv.org/abs/2011.07213) | :no_entry: | :white_check_mark: | :white_check_mark: |
-| [TD3+BC](https://arxiv.org/abs/2106.06860) | :no_entry: | :white_check_mark: | :white_check_mark: |
-| [Implicit Q-Learning (IQL)](https://arxiv.org/abs/2110.06169) | :no_entry: | :white_check_mark: | :white_check_mark: |
-| [Decision Transformer](https://arxiv.org/abs/2106.01345) | :construction: | :white_check_mark: | :white_check_mark: |
+| algorithm | discrete control | continuous control |
+|:-|:-:|:-:|
+| Behavior Cloning (supervised learning) | :white_check_mark: | :white_check_mark: |
+| [Neural Fitted Q Iteration (NFQ)](https://link.springer.com/chapter/10.1007/11564096_32) | :white_check_mark: | :no_entry: |
+| [Deep Q-Network (DQN)](https://www.nature.com/articles/nature14236) | :white_check_mark: | :no_entry: |
+| [Double DQN](https://arxiv.org/abs/1509.06461) | :white_check_mark: | :no_entry: |
+| [Deep Deterministic Policy Gradients (DDPG)](https://arxiv.org/abs/1509.02971) | :no_entry: | :white_check_mark: |
+| [Twin Delayed Deep Deterministic Policy Gradients (TD3)](https://arxiv.org/abs/1802.09477) | :no_entry: | :white_check_mark: |
+| [Soft Actor-Critic (SAC)](https://arxiv.org/abs/1812.05905) | :white_check_mark: | :white_check_mark: |
+| [Batch Constrained Q-learning (BCQ)](https://arxiv.org/abs/1812.02900) | :white_check_mark: | :white_check_mark: |
+| [Bootstrapping Error Accumulation Reduction (BEAR)](https://arxiv.org/abs/1906.00949) | :no_entry: | :white_check_mark: |
+| [Conservative Q-Learning (CQL)](https://arxiv.org/abs/2006.04779) | :white_check_mark: | :white_check_mark: |
+| [Advantage Weighted Actor-Critic (AWAC)](https://arxiv.org/abs/2006.09359) | :no_entry: | :white_check_mark: |
+| [Critic Reguralized Regression (CRR)](https://arxiv.org/abs/2006.15134) | :no_entry: | :white_check_mark: |
+| [Policy in Latent Action Space (PLAS)](https://arxiv.org/abs/2011.07213) | :no_entry: | :white_check_mark: |
+| [TD3+BC](https://arxiv.org/abs/2106.06860) | :no_entry: | :white_check_mark: |
+| [Implicit Q-Learning (IQL)](https://arxiv.org/abs/2110.06169) | :no_entry: | :white_check_mark: |
+| [Decision Transformer](https://arxiv.org/abs/2106.01345) | :construction: | :white_check_mark: |
 
 ## Supported Q functions
 - [x] standard Q function
