@@ -84,7 +84,7 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
         )
 
         optim = self._config.optim_factory.create(
-            q_funcs.parameters(), lr=self._config.learning_rate
+            q_funcs.named_modules(), lr=self._config.learning_rate
         )
 
         modules = DQNModules(
@@ -186,7 +186,7 @@ class DoubleDQN(DQN):
         )
 
         optim = self._config.optim_factory.create(
-            q_funcs.parameters(), lr=self._config.learning_rate
+            q_funcs.named_modules(), lr=self._config.learning_rate
         )
 
         modules = DQNModules(

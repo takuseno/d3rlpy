@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Iterable, Tuple
+from typing import Iterable, Sequence, Tuple
 
 from torch import nn
 from torch.optim import SGD, Adam, AdamW, Optimizer, RMSprop
@@ -17,6 +17,18 @@ __all__ = [
 ]
 
 
+def _get_parameters_from_named_modules(
+    named_modules: Iterable[Tuple[str, nn.Module]]
+) -> Sequence[nn.Parameter]:
+    # retrieve unique set of parameters
+    params_dict = {}
+    for _, module in named_modules:
+        for param in module.parameters():
+            if param not in params_dict:
+                params_dict[param] = param
+    return list(params_dict.values())
+
+
 @dataclasses.dataclass()
 class OptimizerFactory(DynamicConfig):
     """A factory class that creates an optimizer object in a lazy way.
@@ -24,12 +36,14 @@ class OptimizerFactory(DynamicConfig):
     The optimizers in algorithms can be configured through this factory class.
     """
 
-    def create(self, params: Iterable[nn.Parameter], lr: float) -> Optimizer:
+    def create(
+        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+    ) -> Optimizer:
         """Returns an optimizer object.
 
         Args:
-            params (list): a list of PyTorch parameters.
-            lr (float): learning rate.
+            named_modules (list): List of tuples of module names and modules.
+            lr (float): Learning rate.
 
         Returns:
             torch.optim.Optimizer: an optimizer object.
@@ -59,9 +73,11 @@ class SGDFactory(OptimizerFactory):
     weight_decay: float = 0.0
     nesterov: bool = False
 
-    def create(self, params: Iterable[nn.Parameter], lr: float) -> SGD:
+    def create(
+        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+    ) -> SGD:
         return SGD(
-            params,
+            _get_parameters_from_named_modules(named_modules),
             lr=lr,
             momentum=self.momentum,
             dampening=self.dampening,
@@ -97,9 +113,11 @@ class AdamFactory(OptimizerFactory):
     weight_decay: float = 0
     amsgrad: bool = False
 
-    def create(self, params: Iterable[nn.Parameter], lr: float) -> Adam:
+    def create(
+        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+    ) -> Adam:
         return Adam(
-            params,
+            _get_parameters_from_named_modules(named_modules),
             lr=lr,
             betas=self.betas,
             eps=self.eps,
@@ -135,9 +153,11 @@ class AdamWFactory(OptimizerFactory):
     weight_decay: float = 0
     amsgrad: bool = False
 
-    def create(self, params: Iterable[nn.Parameter], lr: float) -> AdamW:
+    def create(
+        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+    ) -> AdamW:
         return AdamW(
-            params,
+            _get_parameters_from_named_modules(named_modules),
             lr=lr,
             betas=self.betas,
             eps=self.eps,
@@ -175,9 +195,11 @@ class RMSpropFactory(OptimizerFactory):
     momentum: float = 0.0
     centered: bool = True
 
-    def create(self, params: Iterable[nn.Parameter], lr: float) -> RMSprop:
+    def create(
+        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+    ) -> RMSprop:
         return RMSprop(
-            params,
+            _get_parameters_from_named_modules(named_modules),
             lr=lr,
             alpha=self.alpha,
             eps=self.eps,

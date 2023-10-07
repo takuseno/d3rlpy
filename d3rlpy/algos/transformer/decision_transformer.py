@@ -114,7 +114,7 @@ class DecisionTransformer(
             device=self._device,
         )
         optim = self._config.optim_factory.create(
-            transformer.parameters(), lr=self._config.learning_rate
+            transformer.named_modules(), lr=self._config.learning_rate
         )
         scheduler = torch.optim.lr_scheduler.LambdaLR(
             optim, lambda steps: min((steps + 1) / self._config.warmup_steps, 1)
@@ -234,7 +234,7 @@ class DiscreteDecisionTransformer(
             device=self._device,
         )
         optim = self._config.optim_factory.create(
-            transformer.parameters(), lr=self._config.learning_rate
+            transformer.named_modules(), lr=self._config.learning_rate
         )
         # JIT compile
         if self._config.compile:

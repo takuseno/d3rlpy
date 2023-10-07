@@ -211,13 +211,13 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.parameters(), lr=self._config.actor_learning_rate
+            policy.named_modules(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(), lr=self._config.critic_learning_rate
         )
         imitator_optim = self._config.imitator_optim_factory.create(
-            imitator.parameters(), lr=self._config.imitator_learning_rate
+            imitator.named_modules(), lr=self._config.imitator_learning_rate
         )
 
         modules = BCQModules(
@@ -373,16 +373,10 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
                 device=self._device,
             )
 
-        # TODO: replace this with a cleaner way
-        # retrieve unique elements
-        q_func_params = list(q_funcs.parameters())
-        imitator_params = list(imitator.parameters())
-        unique_dict = {}
-        for param in q_func_params + imitator_params:
-            unique_dict[param] = param
-        unique_params = list(unique_dict.values())
+        q_func_params = list(q_funcs.named_modules())
+        imitator_params = list(imitator.named_modules())
         optim = self._config.optim_factory.create(
-            unique_params, lr=self._config.learning_rate
+            q_func_params + imitator_params, lr=self._config.learning_rate
         )
 
         modules = DiscreteBCQModules(

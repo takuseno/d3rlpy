@@ -88,7 +88,7 @@ class BC(QLearningAlgoBase[BCBaseImpl, BCConfig]):
             raise ValueError(f"invalid policy_type: {self._config.policy_type}")
 
         optim = self._config.optim_factory.create(
-            imitator.parameters(), lr=self._config.learning_rate
+            imitator.named_modules(), lr=self._config.learning_rate
         )
 
         modules = BCModules(optim=optim, imitator=imitator)
@@ -159,7 +159,7 @@ class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
         )
 
         optim = self._config.optim_factory.create(
-            imitator.parameters(), lr=self._config.learning_rate
+            imitator.named_modules(), lr=self._config.learning_rate
         )
 
         modules = DiscreteBCModules(optim=optim, imitator=imitator)

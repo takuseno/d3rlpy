@@ -140,10 +140,10 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.parameters(), lr=self._config.actor_learning_rate
+            policy.named_modules(), lr=self._config.actor_learning_rate
         )
-        q_func_params = list(q_funcs.parameters())
-        v_func_params = list(value_func.parameters())
+        q_func_params = list(q_funcs.named_modules())
+        v_func_params = list(value_func.named_modules())
         critic_optim = self._config.critic_optim_factory.create(
             q_func_params + v_func_params, lr=self._config.critic_learning_rate
         )

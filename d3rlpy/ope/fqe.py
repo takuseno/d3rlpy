@@ -163,7 +163,7 @@ class FQE(_FQEBase):
             device=self._device,
         )
         optim = self._config.optim_factory.create(
-            q_funcs.parameters(), lr=self._config.learning_rate
+            q_funcs.named_modules(), lr=self._config.learning_rate
         )
 
         modules = FQEBaseModules(
@@ -239,7 +239,7 @@ class DiscreteFQE(_FQEBase):
             device=self._device,
         )
         optim = self._config.optim_factory.create(
-            q_funcs.parameters(), lr=self._config.learning_rate
+            q_funcs.named_modules(), lr=self._config.learning_rate
         )
         modules = FQEBaseModules(
             q_funcs=q_funcs,

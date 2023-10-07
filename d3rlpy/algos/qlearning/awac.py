@@ -124,10 +124,10 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.parameters(), lr=self._config.actor_learning_rate
+            policy.named_modules(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(), lr=self._config.critic_learning_rate
         )
 
         dummy_log_temp = Parameter(torch.zeros(1, 1))

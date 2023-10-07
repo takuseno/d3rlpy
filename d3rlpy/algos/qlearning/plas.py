@@ -146,13 +146,13 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.parameters(), lr=self._config.actor_learning_rate
+            policy.named_modules(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(), lr=self._config.critic_learning_rate
         )
         imitator_optim = self._config.critic_optim_factory.create(
-            imitator.parameters(), lr=self._config.imitator_learning_rate
+            imitator.named_modules(), lr=self._config.imitator_learning_rate
         )
 
         modules = PLASModules(
@@ -296,16 +296,16 @@ class PLASWithPerturbation(PLAS):
             device=self._device,
         )
 
-        parameters = list(policy.parameters())
-        parameters += list(perturbation.parameters())
+        named_modules = list(policy.named_modules())
+        named_modules += list(perturbation.named_modules())
         actor_optim = self._config.actor_optim_factory.create(
-            params=parameters, lr=self._config.actor_learning_rate
+            named_modules, lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(), lr=self._config.critic_learning_rate
         )
         imitator_optim = self._config.critic_optim_factory.create(
-            imitator.parameters(), lr=self._config.imitator_learning_rate
+            imitator.named_modules(), lr=self._config.imitator_learning_rate
         )
 
         modules = PLASWithPerturbationModules(

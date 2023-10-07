@@ -166,20 +166,20 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.parameters(), lr=self._config.actor_learning_rate
+            policy.named_modules(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(), lr=self._config.critic_learning_rate
         )
         if self._config.temp_learning_rate > 0:
             temp_optim = self._config.temp_optim_factory.create(
-                log_temp.parameters(), lr=self._config.temp_learning_rate
+                log_temp.named_modules(), lr=self._config.temp_learning_rate
             )
         else:
             temp_optim = None
         if self._config.alpha_learning_rate > 0:
             alpha_optim = self._config.alpha_optim_factory.create(
-                log_alpha.parameters(), lr=self._config.alpha_learning_rate
+                log_alpha.named_modules(), lr=self._config.alpha_learning_rate
             )
         else:
             alpha_optim = None
@@ -296,7 +296,7 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
         )
 
         optim = self._config.optim_factory.create(
-            q_funcs.parameters(), lr=self._config.learning_rate
+            q_funcs.named_modules(), lr=self._config.learning_rate
         )
 
         modules = DQNModules(

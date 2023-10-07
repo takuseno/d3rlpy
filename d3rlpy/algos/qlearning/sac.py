@@ -151,14 +151,14 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.parameters(), lr=self._config.actor_learning_rate
+            policy.named_modules(), lr=self._config.actor_learning_rate
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(), lr=self._config.critic_learning_rate
         )
         if self._config.temp_learning_rate > 0:
             temp_optim = self._config.temp_optim_factory.create(
-                log_temp.parameters(), lr=self._config.temp_learning_rate
+                log_temp.named_modules(), lr=self._config.temp_learning_rate
             )
         else:
             temp_optim = None
@@ -299,14 +299,14 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
         )
 
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.parameters(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(), lr=self._config.critic_learning_rate
         )
         actor_optim = self._config.actor_optim_factory.create(
-            policy.parameters(), lr=self._config.actor_learning_rate
+            policy.named_modules(), lr=self._config.actor_learning_rate
         )
         if self._config.temp_learning_rate > 0:
             temp_optim = self._config.temp_optim_factory.create(
-                log_temp.parameters(), lr=self._config.temp_learning_rate
+                log_temp.named_modules(), lr=self._config.temp_learning_rate
             )
         else:
             temp_optim = None

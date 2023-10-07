@@ -15,7 +15,7 @@ from d3rlpy.models.optimizers import (
 def test_sgd_factory(lr: float, module: torch.nn.Module) -> None:
     factory = SGDFactory()
 
-    optim = factory.create(module.parameters(), lr)
+    optim = factory.create(module.named_modules(), lr)
 
     assert isinstance(optim, SGD)
     assert optim.defaults["lr"] == lr
@@ -29,7 +29,7 @@ def test_sgd_factory(lr: float, module: torch.nn.Module) -> None:
 def test_adam_factory(lr: float, module: torch.nn.Module) -> None:
     factory = AdamFactory()
 
-    optim = factory.create(module.parameters(), lr)
+    optim = factory.create(module.named_modules(), lr)
 
     assert isinstance(optim, Adam)
     assert optim.defaults["lr"] == lr
@@ -43,7 +43,7 @@ def test_adam_factory(lr: float, module: torch.nn.Module) -> None:
 def test_adam_w_factory(lr: float, module: torch.nn.Module) -> None:
     factory = AdamWFactory()
 
-    optim = factory.create(module.parameters(), lr)
+    optim = factory.create(module.named_modules(), lr)
 
     assert isinstance(optim, AdamW)
     assert optim.defaults["lr"] == lr
@@ -57,7 +57,7 @@ def test_adam_w_factory(lr: float, module: torch.nn.Module) -> None:
 def test_rmsprop_factory(lr: float, module: torch.nn.Module) -> None:
     factory = RMSpropFactory()
 
-    optim = factory.create(module.parameters(), lr)
+    optim = factory.create(module.named_modules(), lr)
 
     assert isinstance(optim, RMSprop)
     assert optim.defaults["lr"] == lr
