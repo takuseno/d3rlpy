@@ -179,6 +179,6 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
         loss = F.cross_entropy(
             logits.view(-1, self._action_size),
             batch.actions.view(-1).long(),
-            reduce=None,
+            reduction="none",
         )
         return (loss * batch.masks.view(-1)).sum() / batch.masks.sum()
