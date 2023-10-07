@@ -13,6 +13,7 @@ from gym.wrappers.time_limit import TimeLimit
 from .dataset import (
     Episode,
     EpisodeGenerator,
+    FrameStackTrajectorySlicer,
     FrameStackTransitionPicker,
     InfiniteBuffer,
     MDPDataset,
@@ -291,6 +292,7 @@ def get_atari_transitions(
             InfiniteBuffer(),
             episodes=copied_episodes,
             transition_picker=FrameStackTransitionPicker(num_stack or 1),
+            trajectory_slicer=FrameStackTrajectorySlicer(num_stack or 1),
         )
 
         if num_stack:

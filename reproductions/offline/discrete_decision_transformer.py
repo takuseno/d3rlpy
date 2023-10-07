@@ -40,6 +40,11 @@ def main() -> None:
     else:
         raise ValueError(f"target_return is not defined for {args.game}")
 
+    # extract maximum timestep in dataset
+    max_timestep = 0
+    for episode in dataset.episodes:
+        max_timestep = max(max_timestep, episode.transition_count + 1)
+
     dt = d3rlpy.algos.DiscreteDecisionTransformerConfig(
         batch_size=batch_size,
         context_size=context_size,
@@ -47,7 +52,7 @@ def main() -> None:
         activation_type="gelu",
         embed_activation_type="tanh",
         encoder_factory=d3rlpy.models.PixelEncoderFactory(
-            exclude_last_activation=True
+            feature_size=128, exclude_last_activation=True
         ),  # Nature DQN
         num_heads=8,
         num_layers=6,
@@ -61,7 +66,7 @@ def main() -> None:
         warmup_tokens=512 * 20,
         final_tokens=2 * 500000 * context_size,
         observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
-        max_timestep=500000,
+        max_timestep=max_timestep,
     ).create(device=args.gpu)
 
     n_steps_per_epoch = dataset.transition_count // batch_size
