@@ -8,6 +8,7 @@ def main() -> None:
     parser.add_argument("--game", type=str, default="breakout")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--gpu", type=int)
+    parser.add_argument("--pre-stack", action="store_true")
     args = parser.parse_args()
 
     d3rlpy.seed(args.seed)
@@ -18,6 +19,7 @@ def main() -> None:
         index=1 if args.game == "asterix" else 0,
         num_stack=4,
         sticky_action=False,
+        pre_stack=args.pre_stack,
     )
 
     d3rlpy.envs.seed_env(env, args.seed)

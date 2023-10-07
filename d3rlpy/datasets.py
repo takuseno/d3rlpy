@@ -11,6 +11,8 @@ import numpy as np
 from gym.wrappers.time_limit import TimeLimit
 
 from .dataset import (
+    BasicTrajectorySlicer,
+    BasicTransitionPicker,
     Episode,
     EpisodeGenerator,
     FrameStackTrajectorySlicer,
@@ -159,6 +161,8 @@ def get_pendulum(
 def get_atari(
     env_name: str,
     num_stack: Optional[int] = None,
+    sticky_action: bool = True,
+    pre_stack: bool = False,
     render_mode: Optional[str] = None,
 ) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, int]]:
     """Returns atari dataset and envrironment.
@@ -178,6 +182,10 @@ def get_atari(
     Args:
         env_name: environment id of d4rl-atari dataset.
         num_stack: the number of frames to stack (only applied to env).
+        sticky_action: Flag to enable sticky action.
+        pre_stack: Flag to pre-stack observations. If this is ``False``,
+            ``FrameStackTransitionPicker`` and ``FrameStackTrajectorySlicer``
+            will be used to stack observations at sampling-time.
         render_mode: Mode of rendering (``human``, ``rgb_array``).
 
     Returns:
@@ -186,13 +194,52 @@ def get_atari(
     try:
         import d4rl_atari  # type: ignore
 
-        env = gym.make(env_name, render_mode=render_mode)
+        env = gym.make(
+            env_name,
+            render_mode=render_mode,
+            sticky_action=sticky_action,
+        )
         raw_dataset = env.get_dataset()  # type: ignore
         episode_generator = EpisodeGenerator(**raw_dataset)
+        episodes = episode_generator()
+
+        if pre_stack:
+            stacked_episodes = []
+            for episode in episodes:
+                assert num_stack is not None
+                assert isinstance(episode.observations, np.ndarray)
+                episode_length = episode.observations.shape[0]
+                observations = np.zeros(
+                    (episode_length, num_stack, 84, 84),
+                    dtype=np.uint8,
+                )
+                for i in range(num_stack):
+                    pad_size = num_stack - i - 1
+                    observations[pad_size:, i] = np.reshape(
+                        episode.observations[pad_size:], [-1, 84, 84]
+                    )
+                stacked_episode = Episode(
+                    observations=observations,
+                    actions=episode.actions.copy(),
+                    rewards=episode.rewards.copy(),
+                    terminated=episode.terminated,
+                )
+                stacked_episodes.append(stacked_episode)
+            episodes = stacked_episodes
+
+        picker: TransitionPickerProtocol
+        slicer: TrajectorySlicerProtocol
+        if num_stack is None or pre_stack:
+            picker = BasicTransitionPicker()
+            slicer = BasicTrajectorySlicer()
+        else:
+            picker = FrameStackTransitionPicker(num_stack or 1)
+            slicer = FrameStackTrajectorySlicer(num_stack or 1)
+
         dataset = create_infinite_replay_buffer(
-            episodes=episode_generator(),
-            transition_picker=FrameStackTransitionPicker(num_stack or 1),
-            trajectory_slicer=None,
+            episodes=episodes,
+            transition_picker=picker,
+            trajectory_slicer=slicer,
         )
         if num_stack:
             env = FrameStack(env, num_stack=num_stack)
@@ -211,6 +258,7 @@ def get_atari_transitions(
     index: int = 0,
     num_stack: Optional[int] = None,
     sticky_action: bool = True,
+    pre_stack: bool = False,
     render_mode: Optional[str] = None,
 ) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, int]]:
     """Returns atari dataset as a list of Transition objects and envrironment.
@@ -236,6 +284,9 @@ def get_atari_transitions(
         index: index to specify which trial to load.
         num_stack: the number of frames to stack (only applied to env).
         sticky_action: Flag to enable sticky action.
+        pre_stack: Flag to pre-stack observations. If this is ``False``,
+            ``FrameStackTransitionPicker`` and ``FrameStackTrajectorySlicer``
+            will be used to stack observations at sampling-time.
         render_mode: Mode of rendering (``human``, ``rgb_array``).
 
     Returns:
@@ -268,8 +319,24 @@ def get_atari_transitions(
                 if num_data >= num_transitions_per_epoch:
                     break
 
+                assert isinstance(episode.observations, np.ndarray)
+                if pre_stack:
+                    assert num_stack is not None
+                    episode_length = episode.observations.shape[0]
+                    observations = np.zeros(
+                        (episode_length, num_stack, 84, 84),
+                        dtype=np.uint8,
+                    )
+                    for j in range(num_stack):
+                        pad_size = num_stack - j - 1
+                        observations[pad_size:, j] = np.reshape(
+                            episode.observations[pad_size:], [-1, 84, 84]
+                        )
+                else:
+                    observations = episode.observations.copy()
+
                 copied_episode = Episode(
-                    observations=episode.observations.copy(),  # type: ignore
+                    observations=observations,
                     actions=episode.actions.copy(),
                     rewards=episode.rewards.copy(),
                     terminated=episode.terminated,
@@ -288,11 +355,20 @@ def get_atari_transitions(
                 copied_episodes.append(copied_episode)
                 num_data += copied_episode.size()
 
+        picker: TransitionPickerProtocol
+        slicer: TrajectorySlicerProtocol
+        if num_stack is None or pre_stack:
+            picker = BasicTransitionPicker()
+            slicer = BasicTrajectorySlicer()
+        else:
+            picker = FrameStackTransitionPicker(num_stack or 1)
+            slicer = FrameStackTrajectorySlicer(num_stack or 1)
+
         dataset = ReplayBuffer(
             InfiniteBuffer(),
             episodes=copied_episodes,
-            transition_picker=FrameStackTransitionPicker(num_stack or 1),
-            trajectory_slicer=FrameStackTrajectorySlicer(num_stack or 1),
+            transition_picker=picker,
+            trajectory_slicer=slicer,
         )
 
         if num_stack:
