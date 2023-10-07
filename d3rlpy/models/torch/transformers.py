@@ -319,6 +319,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
     _rtg_embed: nn.Linear
     _gpt2: GPT2
     _output: nn.Linear
+    _embed_activation: nn.Module
 
     def __init__(
         self,
@@ -333,11 +334,13 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         resid_dropout: float,
         embed_dropout: float,
         activation: nn.Module,
+        embed_activation: nn.Module,
     ):
         super().__init__()
         self._encoder = encoder
         self._position_encoding = position_encoding
         self._action_embed = nn.Embedding(action_size, feature_size)
+        nn.init.normal_(self._action_embed.weight, mean=0.0, std=0.02)
         self._rtg_embed = nn.Linear(1, feature_size)
         self._gpt2 = GPT2(
             hidden_size=feature_size,
@@ -350,6 +353,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
             activation=activation,
         )
         self._output = nn.Linear(feature_size, action_size, bias=False)
+        self._embed_activation = embed_activation
 
     def forward(
         self,
@@ -366,16 +370,16 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         state_embedding = flat_state_embedding.view(
             batch_size, context_size, -1
         )
-        state_embedding = state_embedding + position_embedding
-
         flat_action = action.view(batch_size, context_size).long()
-        action_embedding = self._action_embed(flat_action) + position_embedding
-        rtg_embedding = self._rtg_embed(return_to_go) + position_embedding
+        action_embedding = self._action_embed(flat_action)
+        rtg_embedding = self._rtg_embed(return_to_go)
 
         # (B, T, N) -> (B, 3, T, N)
         h = torch.stack(
             [rtg_embedding, state_embedding, action_embedding], dim=1
         )
+        h = self._embed_activation(h)
+        h = h + position_embedding.view(batch_size, 1, context_size, -1)
         # (B, 3, T, N) -> (B, T, 3, N) -> (B, T * 3, N)
         h = h.transpose(1, 2).reshape(batch_size, 3 * context_size, -1)
 

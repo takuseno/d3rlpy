@@ -5,6 +5,9 @@ from unittest.mock import Mock
 import numpy as np
 
 from d3rlpy.algos import (
+    GreedyTransformerActionSampler,
+    IdentityTransformerActionSampler,
+    TransformerActionSampler,
     TransformerAlgoBase,
     TransformerAlgoImplBase,
     TransformerConfig,
@@ -108,7 +111,7 @@ def predict_tester(
     )
     y = algo.predict(inpt)
     if algo.get_action_type() == ActionSpace.DISCRETE:
-        assert y.ndim == 0
+        assert y.shape == (action_size,)
     else:
         assert y.shape == (action_size,)
 
@@ -126,8 +129,13 @@ def save_and_load_tester(
     algo2.load_model(os.path.join("test_data", "model.pt"))
     assert isinstance(algo2, TransformerAlgoBase)
 
-    actor1 = algo.as_stateful_wrapper(0)
-    actor2 = algo2.as_stateful_wrapper(0)
+    action_sampler: TransformerActionSampler
+    if algo.get_action_type() == ActionSpace.DISCRETE:
+        action_sampler = GreedyTransformerActionSampler()
+    else:
+        action_sampler = IdentityTransformerActionSampler()
+    actor1 = algo.as_stateful_wrapper(0, action_sampler)
+    actor2 = algo2.as_stateful_wrapper(0, action_sampler)
 
     observation = np.random.random(observation_shape)
     action1 = actor1.predict(observation, 0)
@@ -193,7 +201,13 @@ def stateful_wrapper_tester(
     action_size: int,
 ) -> None:
     algo.create_impl(observation_shape, action_size)
-    wrapper = algo.as_stateful_wrapper(100.0)
+
+    action_sampler: TransformerActionSampler
+    if algo.get_action_type() == ActionSpace.DISCRETE:
+        action_sampler = GreedyTransformerActionSampler()
+    else:
+        action_sampler = IdentityTransformerActionSampler()
+    wrapper = algo.as_stateful_wrapper(100.0, action_sampler)
 
     # check predict
     for _ in range(10):

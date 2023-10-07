@@ -348,6 +348,7 @@ def test_create_discrete_decision_transformer(
         resid_dropout=dropout,
         embed_dropout=dropout,
         activation_type=activation_type,
+        embed_activation_type=activation_type,
         position_encoding_type=position_encoding_type,
         device="cpu:0",
     )

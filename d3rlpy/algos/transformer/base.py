@@ -24,6 +24,11 @@ from ..utility import (
     assert_action_space_with_dataset,
     build_scalers_with_trajectory_slicer,
 )
+from .action_samplers import (
+    IdentityTransformerActionSampler,
+    SoftmaxTransformerActionSampler,
+    TransformerActionSampler,
+)
 from .inputs import TorchTransformerInput, TransformerInput
 
 __all__ = [
@@ -89,9 +94,11 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
     Args:
         algo (TransformerAlgoBase): Transformer-based algorithm.
         target_return (float): Target return.
+        action_sampler (d3rlpy.algos.TransformerActionSampler): Action sampler.
     """
     _algo: "TransformerAlgoBase[TTransformerImpl, TTransformerConfig]"
     _target_return: float
+    _action_sampler: TransformerActionSampler
     _return_rest: float
     _observations: Deque[Observation]
     _actions: Deque[Union[np.ndarray, int]]
@@ -104,10 +111,12 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         self,
         algo: "TransformerAlgoBase[TTransformerImpl, TTransformerConfig]",
         target_return: float,
+        action_sampler: TransformerActionSampler,
     ):
         assert algo.impl, "algo must be built."
         self._algo = algo
         self._target_return = target_return
+        self._action_sampler = action_sampler
         self._return_rest = target_return
 
         context_size = algo.config.context_size
@@ -139,13 +148,11 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
             returns_to_go=np.array(self._returns_to_go).reshape((-1, 1)),
             timesteps=np.array(self._timesteps),
         )
-        action = self._algo.predict(inpt)
+        action = self._action_sampler(self._algo.predict(inpt))
         self._actions[-1] = action
         self._actions.append(self._get_pad_action())
         self._timestep += 1
         self._return_rest -= reward
-        if self._algo.get_action_type() == ActionSpace.DISCRETE:
-            action = int(action)
         return action
 
     def reset(self) -> None:
@@ -218,6 +225,7 @@ class TransformerAlgoBase(
         show_progress: bool = True,
         eval_env: Optional[GymEnv] = None,
         eval_target_return: Optional[float] = None,
+        eval_action_sampler: Optional[TransformerActionSampler] = None,
         save_interval: int = 1,
         callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> None:
@@ -236,6 +244,7 @@ class TransformerAlgoBase(
             show_progress: Flag to show progress bar for iterations.
             eval_env: Evaluation environment.
             eval_target_return: Evaluation return target.
+            eval_action_sampler: Action sampler used in evaluation.
             save_interval: Interval to save parameters.
             callback: Callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
@@ -319,7 +328,10 @@ class TransformerAlgoBase(
             if eval_env:
                 assert eval_target_return is not None
                 eval_score = evaluate_transformer_with_environment(
-                    algo=self.as_stateful_wrapper(eval_target_return),
+                    algo=self.as_stateful_wrapper(
+                        target_return=eval_target_return,
+                        action_sampler=eval_action_sampler,
+                    ),
                     env=eval_env,
                 )
                 logger.add_metric("environment", eval_score)
@@ -355,14 +367,22 @@ class TransformerAlgoBase(
         return loss
 
     def as_stateful_wrapper(
-        self, target_return: float
+        self,
+        target_return: float,
+        action_sampler: Optional[TransformerActionSampler] = None,
     ) -> StatefulTransformerWrapper[TTransformerImpl, TTransformerConfig]:
         """Returns a wrapped Transformer algorithm for stateful decision making.
 
         Args:
             target_return: Target environment return.
+            action_sampler: Action sampler.
 
         Returns:
             StatefulTransformerWrapper object.
         """
-        return StatefulTransformerWrapper(self, target_return)
+        if action_sampler is None:
+            if self.get_action_type() == ActionSpace.CONTINUOUS:
+                action_sampler = IdentityTransformerActionSampler()
+            else:
+                action_sampler = SoftmaxTransformerActionSampler()
+        return StatefulTransformerWrapper(self, target_return, action_sampler)

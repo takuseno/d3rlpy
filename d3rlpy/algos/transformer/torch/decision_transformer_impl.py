@@ -133,8 +133,8 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
         probs, _ = self._modules.transformer(
             inpt.observations, inpt.actions, inpt.returns_to_go, inpt.timesteps
         )
-        # (1, T, A) -> (1,)
-        return probs[0][-1].argmax()
+        # (1, T, A) -> (A,)
+        return probs[0][-1]
 
     def inner_update(
         self, batch: TorchTrajectoryMiniBatch, grad_step: int

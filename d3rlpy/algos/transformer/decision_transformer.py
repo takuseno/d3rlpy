@@ -171,6 +171,8 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
         resid_dropout (float): Dropout probability for residual connection.
         embed_dropout (float): Dropout probability for embeddings.
         activation_type (str): Type of activation function.
+        embed_activation_type (str): Type of activation function applied to
+            embeddings.
         position_encoding_type (str): Type of positional encoding
             (``simple`` or ``global``).
         warmup_tokens (int): Number of tokens to warmup learning rate scheduler.
@@ -190,6 +192,7 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
     resid_dropout: float = 0.1
     embed_dropout: float = 0.1
     activation_type: str = "gelu"
+    embed_activation_type: str = "tanh"
     position_encoding_type: str = "global"
     warmup_tokens: int = 10240
     final_tokens: int = 30000000
@@ -226,6 +229,7 @@ class DiscreteDecisionTransformer(
             resid_dropout=self._config.resid_dropout,
             embed_dropout=self._config.embed_dropout,
             activation_type=self._config.activation_type,
+            embed_activation_type=self._config.embed_activation_type,
             position_encoding_type=self._config.position_encoding_type,
             device=self._device,
         )

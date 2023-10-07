@@ -305,6 +305,7 @@ def create_discrete_decision_transformer(
     resid_dropout: float,
     embed_dropout: float,
     activation_type: str,
+    embed_activation_type: str,
     position_encoding_type: str,
     device: str,
 ) -> DiscreteDecisionTransformer:
@@ -334,6 +335,7 @@ def create_discrete_decision_transformer(
         resid_dropout=resid_dropout,
         embed_dropout=embed_dropout,
         activation=create_activation(activation_type),
+        embed_activation=create_activation(embed_activation_type),
     )
     transformer.to(device)
     return transformer

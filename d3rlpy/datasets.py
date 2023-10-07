@@ -209,6 +209,7 @@ def get_atari_transitions(
     fraction: float = 0.01,
     index: int = 0,
     num_stack: Optional[int] = None,
+    sticky_action: bool = True,
     render_mode: Optional[str] = None,
 ) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, int]]:
     """Returns atari dataset as a list of Transition objects and envrironment.
@@ -233,6 +234,7 @@ def get_atari_transitions(
         fraction: fraction of sampled transitions.
         index: index to specify which trial to load.
         num_stack: the number of frames to stack (only applied to env).
+        sticky_action: Flag to enable sticky action.
         render_mode: Mode of rendering (``human``, ``rgb_array``).
 
     Returns:
@@ -251,7 +253,7 @@ def get_atari_transitions(
             LOG.info(f"Collecting {env_name}...")
             env = gym.make(
                 env_name,
-                sticky_action=True,
+                sticky_action=sticky_action,
                 render_mode=render_mode,
             )
             raw_dataset = env.get_dataset()  # type: ignore

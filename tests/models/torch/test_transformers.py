@@ -268,6 +268,7 @@ def test_discrete_decision_transformer(
         resid_dropout=dropout,
         embed_dropout=dropout,
         activation=torch.nn.ReLU(),
+        embed_activation=torch.nn.Tanh(),
     )
 
     x = torch.rand(batch_size, context_size, hidden_size)
