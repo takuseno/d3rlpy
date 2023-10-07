@@ -365,7 +365,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         batch_size, context_size, _ = return_to_go.shape
         position_embedding = self._position_encoding(timesteps)
 
-        flat_x = x.view(-1, *x.shape[2:])
+        flat_x = x.reshape(-1, *x.shape[2:])
         flat_state_embedding = self._encoder(flat_x)
         state_embedding = flat_state_embedding.view(
             batch_size, context_size, -1
