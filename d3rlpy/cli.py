@@ -14,11 +14,7 @@ import numpy as np
 from gym.wrappers import RecordVideo
 
 from ._version import __version__
-from .algos import (
-    QLearningAlgoBase,
-    StatefulTransformerWrapper,
-    TransformerAlgoBase,
-)
+from .algos import QLearningAlgoBase, TransformerAlgoBase
 from .base import load_learnable
 from .metrics.utility import (
     evaluate_qlearning_with_environment,
@@ -292,7 +288,7 @@ def record(
     elif isinstance(algo, TransformerAlgoBase):
         assert target_return is not None, "--target-return must be specified."
         evaluate_transformer_with_environment(
-            StatefulTransformerWrapper(algo, float(target_return)),
+            algo.as_stateful_wrapper(float(target_return)),
             wrapped_env,
             n_episodes,
         )
@@ -343,7 +339,7 @@ def play(
     elif isinstance(algo, TransformerAlgoBase):
         assert target_return is not None, "--target-return must be specified."
         score = evaluate_transformer_with_environment(
-            StatefulTransformerWrapper(algo, float(target_return)),
+            algo.as_stateful_wrapper(float(target_return)),
             env,
             n_episodes,
         )
