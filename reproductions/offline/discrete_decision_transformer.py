@@ -60,7 +60,7 @@ def main() -> None:
         num_layers=6,
         attn_dropout=0.1,
         embed_dropout=0.1,
-        optim_factory=d3rlpy.models.optimizers.AdamFactory(
+        optim_factory=d3rlpy.models.optimizers.AdamWFactory(
             betas=(0.9, 0.95),
             weight_decay=0.1,
         ),

@@ -130,11 +130,11 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
     @eval_api
     def predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
         # (1, T, A)
-        probs, _ = self._modules.transformer(
+        _, logits = self._modules.transformer(
             inpt.observations, inpt.actions, inpt.returns_to_go, inpt.timesteps
         )
         # (1, T, A) -> (A,)
-        return probs[0][-1]
+        return logits[0][-1]
 
     def inner_update(
         self, batch: TorchTrajectoryMiniBatch, grad_step: int
