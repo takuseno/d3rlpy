@@ -261,6 +261,7 @@ You can also implement your own ``TrajectorySlicer`` for custom experiments.
 
    d3rlpy.dataset.TrajectorySlicerProtocol
    d3rlpy.dataset.BasicTrajectorySlicer
+   d3rlpy.dataset.FrameStackTrajectorySlicer
 
 
 

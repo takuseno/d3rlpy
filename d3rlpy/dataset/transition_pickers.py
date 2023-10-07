@@ -90,6 +90,7 @@ class FrameStackTransitionPicker(TransitionPickerProtocol):
     _n_frames: int
 
     def __init__(self, n_frames: int):
+        assert n_frames > 0
         self._n_frames = n_frames
 
     def __call__(self, episode: EpisodeBase, index: int) -> Transition:
