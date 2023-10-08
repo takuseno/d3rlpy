@@ -1,10 +1,12 @@
 import pytest
 import torch
+from torch import nn
 from torch.optim import SGD, Adam, AdamW, RMSprop
 
 from d3rlpy.models.optimizers import (
     AdamFactory,
     AdamWFactory,
+    GPTAdamWFactory,
     RMSpropFactory,
     SGDFactory,
 )
@@ -64,3 +66,28 @@ def test_rmsprop_factory(lr: float, module: torch.nn.Module) -> None:
 
     # check serialization and deserialization
     RMSpropFactory.deserialize(factory.serialize())
+
+
+@pytest.mark.parametrize("lr", [1e-4])
+@pytest.mark.parametrize("weight_decay", [0.1])
+def test_gpt_adam_w_factory(lr: float, weight_decay: float) -> None:
+    factory = GPTAdamWFactory(weight_decay=weight_decay)
+
+    class M(nn.Module):  # type: ignore
+        def __init__(self) -> None:
+            super().__init__()
+            self.decay_module = nn.Linear(20, 30)
+            self.non_decay_module = nn.Embedding(30, 30)
+
+    module = M()
+
+    optim = factory.create(module.named_modules(), lr)
+
+    assert isinstance(optim, AdamW)
+    assert optim.defaults["lr"] == lr
+    assert len(optim.param_groups) == 2
+    assert optim.param_groups[0]["weight_decay"] == weight_decay
+    assert optim.param_groups[1]["weight_decay"] == 0.0
+
+    # check serialization and deserialization
+    GPTAdamWFactory.deserialize(factory.serialize())
