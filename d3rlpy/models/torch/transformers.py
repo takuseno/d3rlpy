@@ -316,12 +316,13 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         # (B, 3, T, N) -> (B, T, 3, N) -> (B, T * 3, N)
         h = h.transpose(1, 2).reshape(batch_size, 3 * context_size, -1)
 
+        # for inference, drop the last step action to prevent copy
+        if not self.training:
+            h = h[:, :-1, :]
+
         h = self._gpt2(self._embed_ln(h))
 
-        # (B, T * 3, N) -> (B, T, 3, N) -> (B, 3, T, N)
-        h = h.view(batch_size, context_size, 3, -1).transpose(1, 2)
-
-        return torch.tanh(self._output(h[:, 1]))
+        return torch.tanh(self._output(h[:, 1::3, :]))
 
 
 class DiscreteDecisionTransformer(nn.Module):  # type: ignore
@@ -396,11 +397,13 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         # (B, 3, T, N) -> (B, T, 3, N) -> (B, T * 3, N)
         h = h.transpose(1, 2).reshape(batch_size, 3 * context_size, -1)
 
+        # for inference, drop the last step action to prevent copy
+        if not self.training:
+            h = h[:, :-1, :]
+
         h = self._gpt2(h)
 
-        # (B, T * 3, N) -> (B, T, 3, N) -> (B, 3, T, N)
-        h = h.view(batch_size, context_size, 3, -1).transpose(1, 2)
-
-        logits = self._output(h[:, 1])
+        # use state embeddings as input
+        logits = self._output(h[:, 1::3, :])
 
         return F.softmax(logits, dim=-1), logits
