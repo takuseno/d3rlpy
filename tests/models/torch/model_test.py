@@ -14,7 +14,7 @@ def check_parameter_updates(
 ) -> None:
     model.train()
     params_before = copy.deepcopy(list(model.parameters()))
-    optim = SGD(model.parameters(), lr=10.0)
+    optim = SGD(model.parameters(), lr=1000.0)
     if output is None:
         if hasattr(model, "compute_error"):
             output = model.compute_error(*inputs)

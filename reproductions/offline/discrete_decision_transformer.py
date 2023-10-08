@@ -60,13 +60,13 @@ def main() -> None:
         num_layers=6,
         attn_dropout=0.1,
         embed_dropout=0.1,
-        optim_factory=d3rlpy.models.optimizers.AdamWFactory(
+        optim_factory=d3rlpy.models.GPTAdamWFactory(
             betas=(0.9, 0.95),
             weight_decay=0.1,
         ),
         clip_grad_norm=1.0,
         warmup_tokens=512 * 20,
-        final_tokens=2 * 500000 * context_size,
+        final_tokens=2 * 500000 * context_size * 3,
         observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
         max_timestep=max_timestep,
     ).create(device=args.gpu)
@@ -82,7 +82,7 @@ def main() -> None:
         eval_action_sampler=d3rlpy.algos.SoftmaxTransformerActionSampler(
             temperature=1.0,
         ),
-        experiment_name=f"DiscreteDecisionTransformer_{args.game}_{args.seed}",
+        experiment_name=f"DiscreteDT_{args.game}_{args.seed}",
     )
 
 
