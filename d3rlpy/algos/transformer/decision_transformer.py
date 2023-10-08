@@ -48,6 +48,7 @@ class DecisionTransformerConfig(TransformerConfig):
         action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
         reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
         context_size (int): Prior sequence length.
+        max_timestep (int): Maximum environmental timestep.
         batch_size (int): Mini-batch size.
         learning_rate (float): Learning rate.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
@@ -55,7 +56,6 @@ class DecisionTransformerConfig(TransformerConfig):
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             Optimizer factory.
         num_heads (int): Number of attention heads.
-        max_timestep (int): Maximum environmental timestep.
         num_layers (int): Number of attention blocks.
         attn_dropout (float): Dropout probability for attentions.
         resid_dropout (float): Dropout probability for residual connection.
@@ -73,7 +73,6 @@ class DecisionTransformerConfig(TransformerConfig):
     encoder_factory: EncoderFactory = make_encoder_field()
     optim_factory: OptimizerFactory = make_optimizer_field()
     num_heads: int = 1
-    max_timestep: int = 1000
     num_layers: int = 3
     attn_dropout: float = 0.1
     resid_dropout: float = 0.1
@@ -158,6 +157,7 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
             Observation preprocessor.
         reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
         context_size (int): Prior sequence length.
+        max_timestep (int): Maximum environmental timestep.
         batch_size (int): Mini-batch size.
         learning_rate (float): Learning rate.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
@@ -165,7 +165,6 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             Optimizer factory.
         num_heads (int): Number of attention heads.
-        max_timestep (int): Maximum environmental timestep.
         num_layers (int): Number of attention blocks.
         attn_dropout (float): Dropout probability for attentions.
         resid_dropout (float): Dropout probability for residual connection.
@@ -186,7 +185,6 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
     encoder_factory: EncoderFactory = make_encoder_field()
     optim_factory: OptimizerFactory = make_optimizer_field()
     num_heads: int = 8
-    max_timestep: int = 1000
     num_layers: int = 6
     attn_dropout: float = 0.1
     resid_dropout: float = 0.1

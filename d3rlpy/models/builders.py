@@ -266,10 +266,12 @@ def create_continuous_decision_transformer(
     hidden_size = compute_output_size([observation_shape], encoder)
 
     if position_encoding_type == "simple":
-        position_encoding = SimplePositionEncoding(hidden_size, max_timestep)
+        position_encoding = SimplePositionEncoding(
+            hidden_size, max_timestep + 1
+        )
     elif position_encoding_type == "global":
         position_encoding = GlobalPositionEncoding(
-            hidden_size, max_timestep, context_size
+            hidden_size, max_timestep + 1, context_size
         )
     else:
         raise ValueError(
@@ -313,10 +315,12 @@ def create_discrete_decision_transformer(
     hidden_size = compute_output_size([observation_shape], encoder)
 
     if position_encoding_type == "simple":
-        position_encoding = SimplePositionEncoding(hidden_size, max_timestep)
+        position_encoding = SimplePositionEncoding(
+            hidden_size, max_timestep + 1
+        )
     elif position_encoding_type == "global":
         position_encoding = GlobalPositionEncoding(
-            hidden_size, max_timestep, context_size
+            hidden_size, max_timestep + 1, context_size
         )
     else:
         raise ValueError(

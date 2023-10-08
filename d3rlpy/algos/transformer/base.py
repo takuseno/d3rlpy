@@ -60,6 +60,7 @@ class TransformerAlgoImplBase(ImplBase):
 @dataclasses.dataclass()
 class TransformerConfig(LearnableConfig):
     context_size: int = 20
+    max_timestep: int = 1000
 
 
 TTransformerImpl = TypeVar("TTransformerImpl", bound=TransformerAlgoImplBase)
@@ -125,7 +126,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         self._rewards = deque([], maxlen=context_size)
         self._returns_to_go = deque([], maxlen=context_size)
         self._timesteps = deque([], maxlen=context_size)
-        self._timestep = 0
+        self._timestep = 1
 
     def predict(self, x: Observation, reward: float) -> Union[np.ndarray, int]:
         r"""Returns action.
@@ -151,7 +152,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         action = self._action_sampler(self._algo.predict(inpt))
         self._actions[-1] = action
         self._actions.append(self._get_pad_action())
-        self._timestep += 1
+        self._timestep = min(self._timestep + 1, self._algo.config.max_timestep)
         self._return_rest -= reward
         return action
 
@@ -163,7 +164,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         self._returns_to_go.clear()
         self._timesteps.clear()
         self._actions.append(self._get_pad_action())
-        self._timestep = 0
+        self._timestep = 1
         self._return_rest = self._target_return
 
     @property

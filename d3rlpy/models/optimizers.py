@@ -250,7 +250,7 @@ class GPTAdamWFactory(OptimizerFactory):
                     f"{module_name}.{param_name}" if module_name else param_name
                 )
 
-                if full_name not in decay and full_name not in no_decay:
+                if full_name not in params_dict:
                     params_dict[full_name] = param
 
                 if param_name.endswith("bias"):

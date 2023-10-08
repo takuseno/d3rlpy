@@ -78,7 +78,7 @@ def test_basic_trajectory_slicer(
         assert np.all(traj.returns_to_go[pad_size:] == returns_to_go[start:end])
         assert np.all(traj.returns_to_go[:pad_size] == 0.0)
         assert np.all(traj.terminals == 0.0)
-        assert np.all(traj.timesteps[pad_size:] == np.arange(start, end))
+        assert np.all(traj.timesteps[pad_size:] == np.arange(start, end)) + 1
         assert np.all(traj.timesteps[:pad_size] == 0.0)
         assert np.all(traj.masks[pad_size:] == 1.0)
         assert np.all(traj.masks[:pad_size] == 0.0)
@@ -157,7 +157,7 @@ def test_frame_stack_trajectory_slicer(
         assert np.all(traj.returns_to_go[pad_size:] == returns_to_go[start:end])
         assert np.all(traj.returns_to_go[:pad_size] == 0.0)
         assert np.all(traj.terminals == 0.0)
-        assert np.all(traj.timesteps[pad_size:] == np.arange(start, end))
+        assert np.all(traj.timesteps[pad_size:] == np.arange(start, end)) + 1
         assert np.all(traj.timesteps[:pad_size] == 0.0)
         assert np.all(traj.masks[pad_size:] == 1.0)
         assert np.all(traj.masks[:pad_size] == 0.0)

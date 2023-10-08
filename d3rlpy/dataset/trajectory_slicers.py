@@ -61,7 +61,7 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
         returns_to_go = all_returns_to_go[:actual_size].reshape((-1, 1))
 
         # prepare metadata
-        timesteps = np.arange(start, end)
+        timesteps = np.arange(start, end) + 1
         masks = np.ones(end - start, dtype=np.float32)
 
         # compute backward padding size
@@ -171,7 +171,7 @@ class FrameStackTrajectorySlicer(TrajectorySlicerProtocol):
         returns_to_go = all_returns_to_go[:actual_size].reshape((-1, 1))
 
         # prepare metadata
-        timesteps = np.arange(start, end)
+        timesteps = np.arange(start, end) + 1
         masks = np.ones(end - start, dtype=np.float32)
 
         # compute backward padding size
