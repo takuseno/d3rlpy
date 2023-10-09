@@ -35,6 +35,7 @@ def main() -> None:
         ),
         observation_scaler=d3rlpy.preprocessing.StandardObservationScaler(),
         reward_scaler=d3rlpy.preprocessing.MultiplyRewardScaler(0.001),
+        position_encoding_type=d3rlpy.PositionEncodingType.SIMPLE,
         context_size=20,
         num_heads=1,
         num_layers=3,

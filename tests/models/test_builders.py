@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import torch
 
+from d3rlpy.constants import PositionEncodingType
 from d3rlpy.models.builders import (
     create_categorical_policy,
     create_conditional_vae,
@@ -270,7 +271,10 @@ def test_create_parameter(shape: Sequence[int]) -> None:
 @pytest.mark.parametrize("context_size", [10])
 @pytest.mark.parametrize("dropout", [0.1])
 @pytest.mark.parametrize("activation_type", ["relu"])
-@pytest.mark.parametrize("position_encoding_type", ["simple"])
+@pytest.mark.parametrize(
+    "position_encoding_type",
+    [PositionEncodingType.SIMPLE, PositionEncodingType.GLOBAL],
+)
 @pytest.mark.parametrize("batch_size", [32])
 def test_create_continuous_decision_transformer(
     observation_shape: Sequence[int],
@@ -282,7 +286,7 @@ def test_create_continuous_decision_transformer(
     context_size: int,
     dropout: float,
     activation_type: str,
-    position_encoding_type: str,
+    position_encoding_type: PositionEncodingType,
     batch_size: int,
 ) -> None:
     transformer = create_continuous_decision_transformer(
@@ -321,7 +325,10 @@ def test_create_continuous_decision_transformer(
 @pytest.mark.parametrize("context_size", [10])
 @pytest.mark.parametrize("dropout", [0.1])
 @pytest.mark.parametrize("activation_type", ["relu"])
-@pytest.mark.parametrize("position_encoding_type", ["simple"])
+@pytest.mark.parametrize(
+    "position_encoding_type",
+    [PositionEncodingType.SIMPLE, PositionEncodingType.GLOBAL],
+)
 @pytest.mark.parametrize("batch_size", [32])
 def test_create_discrete_decision_transformer(
     observation_shape: Sequence[int],
@@ -333,7 +340,7 @@ def test_create_discrete_decision_transformer(
     context_size: int,
     dropout: float,
     activation_type: str,
-    position_encoding_type: str,
+    position_encoding_type: PositionEncodingType,
     batch_size: int,
 ) -> None:
     transformer = create_discrete_decision_transformer(

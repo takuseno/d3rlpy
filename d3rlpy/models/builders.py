@@ -3,6 +3,7 @@ from typing import Sequence, Tuple, cast
 import torch
 from torch import nn
 
+from ..constants import PositionEncodingType
 from ..dataset import Shape
 from .encoders import EncoderFactory
 from .q_functions import QFunctionFactory
@@ -18,6 +19,7 @@ from .torch import (
     GlobalPositionEncoding,
     NormalPolicy,
     Parameter,
+    PositionEncoding,
     SimplePositionEncoding,
     VAEDecoder,
     VAEEncoder,
@@ -247,6 +249,25 @@ def create_parameter(
     return parameter
 
 
+def _create_position_encoding(
+    position_encoding_type: PositionEncodingType,
+    embed_dim: int,
+    max_timestep: int,
+    context_size: int,
+) -> PositionEncoding:
+    if position_encoding_type == PositionEncodingType.SIMPLE:
+        position_encoding = SimplePositionEncoding(embed_dim, max_timestep + 1)
+    elif position_encoding_type == PositionEncodingType.GLOBAL:
+        position_encoding = GlobalPositionEncoding(
+            embed_dim, max_timestep + 1, context_size
+        )
+    else:
+        raise ValueError(
+            f"invalid position_encoding_type: {position_encoding_type}"
+        )
+    return position_encoding
+
+
 def create_continuous_decision_transformer(
     observation_shape: Shape,
     action_size: int,
@@ -259,24 +280,18 @@ def create_continuous_decision_transformer(
     resid_dropout: float,
     embed_dropout: float,
     activation_type: str,
-    position_encoding_type: str,
+    position_encoding_type: PositionEncodingType,
     device: str,
 ) -> ContinuousDecisionTransformer:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = compute_output_size([observation_shape], encoder)
 
-    if position_encoding_type == "simple":
-        position_encoding = SimplePositionEncoding(
-            hidden_size, max_timestep + 1
-        )
-    elif position_encoding_type == "global":
-        position_encoding = GlobalPositionEncoding(
-            hidden_size, max_timestep + 1, context_size
-        )
-    else:
-        raise ValueError(
-            f"invalid position_encoding_type: {position_encoding_type}"
-        )
+    position_encoding = _create_position_encoding(
+        position_encoding_type=position_encoding_type,
+        embed_dim=hidden_size,
+        max_timestep=max_timestep + 1,
+        context_size=context_size,
+    )
 
     transformer = ContinuousDecisionTransformer(
         encoder=encoder,
@@ -308,24 +323,18 @@ def create_discrete_decision_transformer(
     embed_dropout: float,
     activation_type: str,
     embed_activation_type: str,
-    position_encoding_type: str,
+    position_encoding_type: PositionEncodingType,
     device: str,
 ) -> DiscreteDecisionTransformer:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = compute_output_size([observation_shape], encoder)
 
-    if position_encoding_type == "simple":
-        position_encoding = SimplePositionEncoding(
-            hidden_size, max_timestep + 1
-        )
-    elif position_encoding_type == "global":
-        position_encoding = GlobalPositionEncoding(
-            hidden_size, max_timestep + 1, context_size
-        )
-    else:
-        raise ValueError(
-            f"invalid position_encoding_type: {position_encoding_type}"
-        )
+    position_encoding = _create_position_encoding(
+        position_encoding_type=position_encoding_type,
+        embed_dim=hidden_size,
+        max_timestep=max_timestep + 1,
+        context_size=context_size,
+    )
 
     transformer = DiscreteDecisionTransformer(
         encoder=encoder,

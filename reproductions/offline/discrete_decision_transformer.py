@@ -69,6 +69,7 @@ def main() -> None:
         final_tokens=2 * 500000 * context_size * 3,
         observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
         max_timestep=max_timestep,
+        position_encoding_type=d3rlpy.PositionEncodingType.GLOBAL,
     ).create(device=args.gpu)
 
     n_steps_per_epoch = dataset.transition_count // batch_size

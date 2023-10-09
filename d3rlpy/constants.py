@@ -8,6 +8,7 @@ __all__ = [
     "DISCRETE_ACTION_SPACE_MISMATCH_ERROR",
     "CONTINUOUS_ACTION_SPACE_MISMATCH_ERROR",
     "ActionSpace",
+    "PositionEncodingType",
 ]
 
 IMPL_NOT_INITIALIZED_ERROR = (
@@ -41,3 +42,8 @@ class ActionSpace(Enum):
     CONTINUOUS = 1
     DISCRETE = 2
     BOTH = 3
+
+
+class PositionEncodingType(Enum):
+    SIMPLE = "simple"
+    GLOBAL = "global"

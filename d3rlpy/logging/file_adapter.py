@@ -1,5 +1,6 @@
 import json
 import os
+from enum import Enum, IntEnum
 from typing import Any, Dict
 
 import numpy as np
@@ -17,6 +18,8 @@ def default_json_encoder(obj: Any) -> Any:
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
+    elif isinstance(obj, (Enum, IntEnum)):
+        return obj.value
     raise ValueError(f"invalid object type: {type(obj)}")
 
 

@@ -12,6 +12,7 @@ from .parameters import Parameter
 __all__ = [
     "ContinuousDecisionTransformer",
     "DiscreteDecisionTransformer",
+    "PositionEncoding",
     "SimplePositionEncoding",
     "GlobalPositionEncoding",
 ]

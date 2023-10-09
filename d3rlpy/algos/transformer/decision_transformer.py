@@ -3,7 +3,7 @@ import dataclasses
 import torch
 
 from ...base import DeviceArg, register_learnable
-from ...constants import ActionSpace
+from ...constants import ActionSpace, PositionEncodingType
 from ...dataset import Shape
 from ...models import (
     EncoderFactory,
@@ -61,8 +61,8 @@ class DecisionTransformerConfig(TransformerConfig):
         resid_dropout (float): Dropout probability for residual connection.
         embed_dropout (float): Dropout probability for embeddings.
         activation_type (str): Type of activation function.
-        position_encoding_type (str): Type of positional encoding
-            (``simple`` or ``global``).
+        position_encoding_type (d3rlpy.PositionEncodingType):
+            Type of positional encoding (``SIMPLE`` or ``GLOBAL``).
         warmup_steps (int): Warmup steps for learning rate scheduler.
         clip_grad_norm (float): Norm of gradient clipping.
         compile (bool): (experimental) Flag to enable JIT compilation.
@@ -78,7 +78,7 @@ class DecisionTransformerConfig(TransformerConfig):
     resid_dropout: float = 0.1
     embed_dropout: float = 0.1
     activation_type: str = "relu"
-    position_encoding_type: str = "simple"
+    position_encoding_type: PositionEncodingType = PositionEncodingType.SIMPLE
     warmup_steps: int = 10000
     clip_grad_norm: float = 0.25
     compile: bool = False
@@ -172,8 +172,8 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
         activation_type (str): Type of activation function.
         embed_activation_type (str): Type of activation function applied to
             embeddings.
-        position_encoding_type (str): Type of positional encoding
-            (``simple`` or ``global``).
+        position_encoding_type (d3rlpy.PositionEncodingType):
+            Type of positional encoding (``SIMPLE`` or ``GLOBAL``).
         warmup_tokens (int): Number of tokens to warmup learning rate scheduler.
         final_tokens (int): Final number of tokens for learning rate scheduler.
         clip_grad_norm (float): Norm of gradient clipping.
@@ -191,7 +191,7 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
     embed_dropout: float = 0.1
     activation_type: str = "gelu"
     embed_activation_type: str = "tanh"
-    position_encoding_type: str = "global"
+    position_encoding_type: PositionEncodingType = PositionEncodingType.GLOBAL
     warmup_tokens: int = 10240
     final_tokens: int = 30000000
     clip_grad_norm: float = 1.0
