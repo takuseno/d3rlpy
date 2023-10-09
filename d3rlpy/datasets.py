@@ -449,6 +449,7 @@ def get_minari(
     render_mode: Optional[str] = None,
 ) -> Tuple[ReplayBuffer, gymnasium.Env[np.ndarray, np.ndarray]]:
     """Returns minari dataset and envrironment.
+
     The dataset is provided through minari.
     .. code-block:: python
         from d3rlpy.datasets import get_minari
