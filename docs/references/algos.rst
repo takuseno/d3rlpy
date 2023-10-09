@@ -359,7 +359,7 @@ TransformerAlgoBase
    :show-inheritance:
 
 
-Decision Transformer
+DecisionTransformer
 --------------------
 
 .. autoclass:: d3rlpy.algos.DecisionTransformerConfig
@@ -369,3 +369,58 @@ Decision Transformer
 .. autoclass:: d3rlpy.algos.DecisionTransformer
    :members:
    :show-inheritance:
+
+
+DiscreteDecisionTransformer
+---------------------------
+
+.. autoclass:: d3rlpy.algos.DiscreteDecisionTransformerConfig
+   :members:
+   :show-inheritance:
+
+.. autoclass:: d3rlpy.algos.DiscreteDecisionTransformer
+   :members:
+   :show-inheritance:
+
+
+TransformerActionSampler
+------------------------
+
+``TransformerActionSampler`` is an interface to sample actions from
+DecisionTransformer outputs. Basically, the default action-sampler will be used
+if you don't explicitly specify one.
+
+.. code-block:: python
+
+   import d3rlpy
+
+   dataset, env = d3rlpy.datasets.get_pendulum()
+
+   dt = d3rlpy.algos.DecisionTransformerConfig().create(device="cuda:0")
+
+   # offline training
+   dt.fit(
+      dataset,
+      n_steps=100000,
+      n_steps_per_epoch=1000,
+      eval_env=env,
+      eval_target_return=0,
+      # manually specify action-sampler
+      eval_action_sampler=d3rlpy.algos.IdentityTransformerActionSampler(),
+   )
+
+   # wrap as stateful actor for interaction with manually specified action-sampler
+   actor = dt.as_stateful_wrapper(
+       target_return=0,
+       action_sampler=d3rlpy.algos.IdentityTransformerActionSampler(),
+   )
+
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   d3rlpy.algos.TransformerActionSampler
+   d3rlpy.algos.IdentityTransformerActionSampler(
+   d3rlpy.algos.SoftmaxTransformerActionSampler
+   d3rlpy.algos.GreedyTransformerActionSampler

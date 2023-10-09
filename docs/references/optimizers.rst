@@ -37,3 +37,4 @@ There are also convenient alises.
    d3rlpy.models.SGDFactory
    d3rlpy.models.AdamFactory
    d3rlpy.models.RMSpropFactory
+   d3rlpy.models.GPTAdamWFactory
