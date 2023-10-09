@@ -158,6 +158,29 @@ def get_pendulum(
     return dataset, env
 
 
+def _stack_frames(episode: Episode, num_stack: int) -> Episode:
+    assert isinstance(episode.observations, np.ndarray)
+    episode_length = episode.observations.shape[0]
+    observations = np.zeros(
+        (episode_length, num_stack, 84, 84),
+        dtype=np.uint8,
+    )
+    for i in range(num_stack):
+        pad_size = num_stack - i - 1
+        if pad_size > 0:
+            observations[pad_size:, i] = np.reshape(
+                episode.observations[:-pad_size], [-1, 84, 84]
+            )
+        else:
+            observations[:, i] = np.reshape(episode.observations, [-1, 84, 84])
+    return Episode(
+        observations=observations,
+        actions=episode.actions.copy(),
+        rewards=episode.rewards.copy(),
+        terminated=episode.terminated,
+    )
+
+
 def get_atari(
     env_name: str,
     num_stack: Optional[int] = None,
@@ -207,23 +230,7 @@ def get_atari(
             stacked_episodes = []
             for episode in episodes:
                 assert num_stack is not None
-                assert isinstance(episode.observations, np.ndarray)
-                episode_length = episode.observations.shape[0]
-                observations = np.zeros(
-                    (episode_length, num_stack, 84, 84),
-                    dtype=np.uint8,
-                )
-                for i in range(num_stack):
-                    pad_size = num_stack - i - 1
-                    observations[pad_size:, i] = np.reshape(
-                        episode.observations[pad_size:], [-1, 84, 84]
-                    )
-                stacked_episode = Episode(
-                    observations=observations,
-                    actions=episode.actions.copy(),
-                    rewards=episode.rewards.copy(),
-                    terminated=episode.terminated,
-                )
+                stacked_episode = _stack_frames(episode, num_stack)
                 stacked_episodes.append(stacked_episode)
             episodes = stacked_episodes
 
@@ -320,27 +327,15 @@ def get_atari_transitions(
                     break
 
                 assert isinstance(episode.observations, np.ndarray)
-                if pre_stack:
-                    assert num_stack is not None
-                    episode_length = episode.observations.shape[0]
-                    observations = np.zeros(
-                        (episode_length, num_stack, 84, 84),
-                        dtype=np.uint8,
-                    )
-                    for j in range(num_stack):
-                        pad_size = num_stack - j - 1
-                        observations[pad_size:, j] = np.reshape(
-                            episode.observations[pad_size:], [-1, 84, 84]
-                        )
-                else:
-                    observations = episode.observations.copy()
-
                 copied_episode = Episode(
-                    observations=observations,
+                    observations=episode.observations.copy(),
                     actions=episode.actions.copy(),
                     rewards=episode.rewards.copy(),
                     terminated=episode.terminated,
                 )
+                if pre_stack:
+                    assert num_stack is not None
+                    copied_episode = _stack_frames(copied_episode, num_stack)
 
                 # trim episode
                 if num_data + copied_episode.size() > num_transitions_per_epoch:
