@@ -1,6 +1,6 @@
 import pytest
 
-from d3rlpy.datasets import get_cartpole, get_dataset, get_pendulum
+from d3rlpy.datasets import get_cartpole, get_dataset, get_pendulum, get_minari
 
 
 @pytest.mark.parametrize("dataset_type", ["replay", "random"])
@@ -23,3 +23,15 @@ def test_get_dataset(env_name: str) -> None:
         assert env.unwrapped.spec.id == "CartPole-v1"
     elif env_name == "pendulum-random":
         assert env.unwrapped.spec.id == "Pendulum-v1"
+
+
+@pytest.mark.parametrize(
+    "dataset_name, env_name",
+    [
+        ("door-cloned-v1", "AdroitHandDoor-v1"),
+        ("relocate-expert-v1", "AdroitHandRelocate-v1"),
+    ],
+)
+def test_get_minari(dataset_name: str, env_name: str) -> None:
+    _, env = get_minari(dataset_name)
+    assert env.unwrapped.spec.id == env_name
