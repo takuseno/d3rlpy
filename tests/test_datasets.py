@@ -1,6 +1,6 @@
 import pytest
 
-from d3rlpy.datasets import get_cartpole, get_dataset, get_pendulum, get_minari
+from d3rlpy.datasets import get_cartpole, get_dataset, get_minari, get_pendulum
 
 
 @pytest.mark.parametrize("dataset_type", ["replay", "random"])
