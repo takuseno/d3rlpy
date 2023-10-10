@@ -6,13 +6,20 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
+from ....dataclass_utils import asdict_as_float
 from ....dataset import Shape
 from ....models.torch import ContinuousEnsembleQFunctionForwarder, Policy
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync, soft_sync
 from ..base import QLearningAlgoImplBase
 from .utility import ContinuousQFunctionMixin
 
-__all__ = ["DDPGImpl", "DDPGBaseImpl", "DDPGBaseModules", "DDPGModules"]
+__all__ = [
+    "DDPGImpl",
+    "DDPGBaseImpl",
+    "DDPGBaseModules",
+    "DDPGModules",
+    "DDPGCriticLoss",
+]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -22,6 +29,11 @@ class DDPGBaseModules(Modules):
     targ_q_funcs: nn.ModuleList
     actor_optim: Optimizer
     critic_optim: Optimizer
+
+
+@dataclasses.dataclass(frozen=True)
+class DDPGCriticLoss:
+    loss: torch.Tensor
 
 
 class DDPGBaseImpl(
@@ -63,15 +75,15 @@ class DDPGBaseImpl(
 
         loss = self.compute_critic_loss(batch, q_tpn)
 
-        loss.backward()
+        loss.loss.backward()
         self._modules.critic_optim.step()
 
-        return {"critic_loss": float(loss.cpu().detach().numpy())}
+        return asdict_as_float(loss)
 
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
-    ) -> torch.Tensor:
-        return self._q_func_forwarder.compute_error(
+    ) -> DDPGCriticLoss:
+        loss = self._q_func_forwarder.compute_error(
             observations=batch.observations,
             actions=batch.actions,
             rewards=batch.rewards,
@@ -79,6 +91,7 @@ class DDPGBaseImpl(
             terminals=batch.terminals,
             gamma=self._gamma**batch.intervals,
         )
+        return DDPGCriticLoss(loss=loss)
 
     def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
         # Q function should be inference mode for stability

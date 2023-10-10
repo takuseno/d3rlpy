@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
+from ....dataclass_utils import asdict_as_float
 from ....dataset import Shape
 from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
@@ -14,16 +15,29 @@ from ....models.torch import (
     build_squashed_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch
+from .ddpg_impl import DDPGCriticLoss
 from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 from .sac_impl import SACImpl, SACModules
 
-__all__ = ["CQLImpl", "DiscreteCQLImpl", "CQLModules", "DiscreteCQLLoss"]
+__all__ = [
+    "CQLImpl",
+    "DiscreteCQLImpl",
+    "CQLModules",
+    "DiscreteCQLLoss",
+    "CQLLoss",
+]
 
 
 @dataclasses.dataclass(frozen=True)
 class CQLModules(SACModules):
     log_alpha: Parameter
     alpha_optim: Optional[Optimizer]
+
+
+@dataclasses.dataclass(frozen=True)
+class CQLLoss(DDPGCriticLoss):
+    td_loss: torch.Tensor
+    conservative_loss: torch.Tensor
 
 
 class CQLImpl(SACImpl):
@@ -65,12 +79,28 @@ class CQLImpl(SACImpl):
 
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
-    ) -> torch.Tensor:
-        loss = super().compute_critic_loss(batch, q_tpn)
+    ) -> CQLLoss:
+        loss = super().compute_critic_loss(batch, q_tpn).loss
         conservative_loss = self._compute_conservative_loss(
             batch.observations, batch.actions, batch.next_observations
         )
-        return loss + conservative_loss
+        return CQLLoss(
+            loss=loss + conservative_loss,
+            td_loss=loss,
+            conservative_loss=conservative_loss,
+        )
+
+    def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        self._modules.critic_optim.zero_grad()
+
+        q_tpn = self.compute_target(batch)
+
+        loss = self.compute_critic_loss(batch, q_tpn)
+
+        loss.loss.backward()
+        self._modules.critic_optim.step()
+
+        return asdict_as_float(loss)
 
     def update_alpha(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._modules.alpha_optim
@@ -274,5 +304,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         )
         loss = td_loss + self._alpha * conservative_loss
         return DiscreteCQLLoss(
-            loss=loss, td_loss=td_loss, conservative_loss=conservative_loss
+            loss=loss,
+            td_loss=td_loss,
+            conservative_loss=self._alpha * conservative_loss,
         )
