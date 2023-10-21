@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence, Union
+from typing import Optional, Sequence
 
 import numpy as np
 import pytest
@@ -8,15 +8,22 @@ from d3rlpy.algos.qlearning.explorers import (
     LinearDecayEpsilonGreedy,
     NormalNoise,
 )
-from d3rlpy.preprocessing import ActionScaler, MinMaxActionScaler
+from d3rlpy.dataset import Observation
+from d3rlpy.preprocessing import (
+    ActionScaler,
+    MinMaxActionScaler,
+    ObservationScaler,
+    RewardScaler,
+)
+from d3rlpy.types import NDArray
 
 
 class DummyAlgo:
     def __init__(
         self,
         action_size: int,
-        ref_x: np.ndarray,
-        ref_y: np.ndarray,
+        ref_x: NDArray,
+        ref_y: NDArray,
         action_scaler: Optional[ActionScaler] = None,
     ):
         self.action_size = action_size
@@ -24,9 +31,27 @@ class DummyAlgo:
         self.ref_y = ref_y
         self.action_scaler = action_scaler
 
-    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
+    def predict(self, x: Observation) -> NDArray:
         assert np.all(x == self.ref_x)
         return self.ref_y
+
+    def predict_value(self, x: Observation, action: NDArray) -> NDArray:
+        raise NotImplementedError
+
+    def sample_action(self, x: Observation) -> NDArray:
+        raise NotImplementedError
+
+    @property
+    def gamma(self) -> float:
+        raise NotImplementedError
+
+    @property
+    def observation_scaler(self) -> Optional[ObservationScaler]:
+        raise NotImplementedError
+
+    @property
+    def reward_scaler(self) -> Optional[RewardScaler]:
+        raise NotImplementedError
 
 
 @pytest.mark.parametrize("action_size", [3])

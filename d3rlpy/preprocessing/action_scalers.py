@@ -16,6 +16,7 @@ from ..serializable_config import (
     generate_optional_config_generation,
     make_optional_numpy_field,
 )
+from ..types import NDArray
 from .base import Scaler, add_leading_dims, add_leading_dims_numpy
 
 __all__ = [
@@ -58,8 +59,8 @@ class MinMaxActionScaler(ActionScaler):
         minimum (numpy.ndarray): Minimum values at each entry.
         maximum (numpy.ndarray): Maximum values at each entry.
     """
-    minimum: Optional[np.ndarray] = make_optional_numpy_field()
-    maximum: Optional[np.ndarray] = make_optional_numpy_field()
+    minimum: Optional[NDArray] = make_optional_numpy_field()
+    maximum: Optional[NDArray] = make_optional_numpy_field()
 
     def __post_init__(self) -> None:
         if self.minimum is not None:
@@ -145,21 +146,23 @@ class MinMaxActionScaler(ActionScaler):
         # transform action from [-1.0, 1.0]
         return ((maximum - minimum) * ((x + 1.0) / 2.0)) + minimum
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.maximum is not None and self.minimum is not None
         minimum = add_leading_dims_numpy(self.minimum, target=x)
         maximum = add_leading_dims_numpy(self.maximum, target=x)
         # transform action into [-1.0, 1.0]
-        return ((x - minimum) / (maximum - minimum)) * 2.0 - 1.0
+        ret = ((x - minimum) / (maximum - minimum)) * 2.0 - 1.0
+        return ret  # type: ignore
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.maximum is not None and self.minimum is not None
         minimum = add_leading_dims_numpy(self.minimum, target=x)
         maximum = add_leading_dims_numpy(self.maximum, target=x)
         # transform action from [-1.0, 1.0]
-        return ((maximum - minimum) * ((x + 1.0) / 2.0)) + minimum
+        ret = ((maximum - minimum) * ((x + 1.0) / 2.0)) + minimum
+        return ret  # type: ignore
 
     def _set_torch_value(self, device: torch.device) -> None:
         self._torch_minimum = torch.tensor(

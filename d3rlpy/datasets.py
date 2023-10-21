@@ -27,6 +27,7 @@ from .dataset import (
 )
 from .envs import ChannelFirst, FrameStack
 from .logging import LOG
+from .types import NDArray
 
 __all__ = [
     "DATA_DIRECTORY",
@@ -56,7 +57,7 @@ def get_cartpole(
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, int]]:
+) -> Tuple[ReplayBuffer, gym.Env[NDArray, int]]:
     """Returns cartpole dataset and environment.
 
     The dataset is automatically downloaded to ``d3rlpy_data/cartpole.h5`` if
@@ -110,7 +111,7 @@ def get_pendulum(
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, np.ndarray]]:
+) -> Tuple[ReplayBuffer, gym.Env[NDArray, NDArray]]:
     """Returns pendulum dataset and environment.
 
     The dataset is automatically downloaded to ``d3rlpy_data/pendulum.h5`` if
@@ -187,7 +188,7 @@ def get_atari(
     sticky_action: bool = True,
     pre_stack: bool = False,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, int]]:
+) -> Tuple[ReplayBuffer, gym.Env[NDArray, int]]:
     """Returns atari dataset and envrironment.
 
     The dataset is provided through d4rl-atari. See more details including
@@ -267,7 +268,7 @@ def get_atari_transitions(
     sticky_action: bool = True,
     pre_stack: bool = False,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, int]]:
+) -> Tuple[ReplayBuffer, gym.Env[NDArray, int]]:
     """Returns atari dataset as a list of Transition objects and envrironment.
 
     The dataset is provided through d4rl-atari.
@@ -383,7 +384,7 @@ def get_d4rl(
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gym.Env[np.ndarray, np.ndarray]]:
+) -> Tuple[ReplayBuffer, gym.Env[NDArray, NDArray]]:
     """Returns d4rl dataset and envrironment.
 
     The dataset is provided through d4rl.
@@ -412,7 +413,7 @@ def get_d4rl(
         import d4rl  # type: ignore
 
         env = gym.make(env_name)
-        raw_dataset: Dict[str, np.ndarray] = env.get_dataset()  # type: ignore
+        raw_dataset: Dict[str, NDArray] = env.get_dataset()  # type: ignore
 
         observations = raw_dataset["observations"]
         actions = raw_dataset["actions"]

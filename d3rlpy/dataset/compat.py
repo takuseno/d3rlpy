@@ -1,8 +1,7 @@
 from typing import Optional
 
-import numpy as np
-
 from ..constants import ActionSpace
+from ..types import NDArray
 from .buffers import InfiniteBuffer
 from .episode_generator import EpisodeGenerator
 from .replay_buffer import ReplayBuffer
@@ -42,10 +41,10 @@ class MDPDataset(ReplayBuffer):
     def __init__(
         self,
         observations: ObservationSequence,
-        actions: np.ndarray,
-        rewards: np.ndarray,
-        terminals: np.ndarray,
-        timeouts: Optional[np.ndarray] = None,
+        actions: NDArray,
+        rewards: NDArray,
+        terminals: NDArray,
+        timeouts: Optional[NDArray] = None,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         action_space: Optional[ActionSpace] = None,

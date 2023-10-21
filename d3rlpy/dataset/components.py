@@ -5,6 +5,7 @@ import numpy as np
 from typing_extensions import Protocol
 
 from ..constants import ActionSpace
+from ..types import DType, NDArray
 from .types import Observation, ObservationSequence
 from .utils import (
     get_dtype_from_observation,
@@ -31,10 +32,10 @@ class Signature:
         dtype: List of numpy data types.
         shape: List of array shapes.
     """
-    dtype: Sequence[np.dtype]
+    dtype: Sequence[DType]
     shape: Sequence[Sequence[int]]
 
-    def sample(self) -> Sequence[np.ndarray]:
+    def sample(self) -> Sequence[NDArray]:
         r"""Returns sampled arrays.
 
         Returns:
@@ -60,8 +61,8 @@ class Transition:
         interval: Timesteps between ``observation`` and ``next_observation``.
     """
     observation: Observation  # (...)
-    action: np.ndarray  # (...)
-    reward: np.ndarray  # (1,)
+    action: NDArray  # (...)
+    reward: NDArray  # (1,)
     next_observation: Observation  # (...)
     terminal: float
     interval: int
@@ -120,12 +121,12 @@ class PartialTrajectory:
         length: Sequence length.
     """
     observations: ObservationSequence  # (L, ...)
-    actions: np.ndarray  # (L, ...)
-    rewards: np.ndarray  # (L, 1)
-    returns_to_go: np.ndarray  # (L, 1)
-    terminals: np.ndarray  # (L, 1)
-    timesteps: np.ndarray  # (L,)
-    masks: np.ndarray  # (L,)
+    actions: NDArray  # (L, ...)
+    rewards: NDArray  # (L, 1)
+    returns_to_go: NDArray  # (L, 1)
+    terminals: NDArray  # (L, 1)
+    timesteps: NDArray  # (L,)
+    masks: NDArray  # (L,)
     length: int
 
     @property
@@ -186,7 +187,7 @@ class EpisodeBase(Protocol):
         raise NotImplementedError
 
     @property
-    def actions(self) -> np.ndarray:
+    def actions(self) -> NDArray:
         r"""Returns sequence of actions.
 
         Returns:
@@ -195,7 +196,7 @@ class EpisodeBase(Protocol):
         raise NotImplementedError
 
     @property
-    def rewards(self) -> np.ndarray:
+    def rewards(self) -> NDArray:
         r"""Returns sequence of rewards.
 
         Returns:
@@ -304,8 +305,8 @@ class Episode:
         terminated: Flag of environment termination.
     """
     observations: ObservationSequence
-    actions: np.ndarray
-    rewards: np.ndarray
+    actions: NDArray
+    rewards: NDArray
     terminated: bool
 
     @property
@@ -355,7 +356,7 @@ class Episode:
         )
 
     def __len__(self) -> int:
-        return self.actions.shape[0]  # type: ignore
+        return self.actions.shape[0]
 
     @property
     def transition_count(self) -> int:

@@ -46,6 +46,7 @@ from ...torch_utility import (
     sync_optimizer_state,
     train_api,
 )
+from ...types import NDArray
 from ..utility import (
     assert_action_space_with_dataset,
     assert_action_space_with_env,
@@ -243,7 +244,7 @@ class QLearningAlgoBase(
         # workaround until version 1.6
         self._impl.modules.unfreeze()
 
-    def predict(self, x: Observation) -> np.ndarray:
+    def predict(self, x: Observation) -> NDArray:
         """Returns greedy actions.
 
         .. code-block:: python
@@ -278,9 +279,9 @@ class QLearningAlgoBase(
             if self._config.action_scaler:
                 action = self._config.action_scaler.reverse_transform(action)
 
-        return action.cpu().detach().numpy()
+        return action.cpu().detach().numpy()  # type: ignore
 
-    def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
+    def predict_value(self, x: Observation, action: NDArray) -> NDArray:
         """Returns predicted action-values.
 
         .. code-block:: python
@@ -332,9 +333,9 @@ class QLearningAlgoBase(
 
             value = self._impl.predict_value(torch_x, torch_action)
 
-        return value.cpu().detach().numpy()
+        return value.cpu().detach().numpy()  # type: ignore
 
-    def sample_action(self, x: Observation) -> np.ndarray:
+    def sample_action(self, x: Observation) -> NDArray:
         """Returns sampled actions.
 
         The sampled actions are identical to the output of `predict` method if
@@ -364,7 +365,7 @@ class QLearningAlgoBase(
             if self._config.action_scaler:
                 action = self._config.action_scaler.reverse_transform(action)
 
-        return action.cpu().detach().numpy()
+        return action.cpu().detach().numpy()  # type: ignore
 
     def fit(
         self,
@@ -795,7 +796,7 @@ class QLearningAlgoBase(
             clip_episode = terminal or truncated
 
             # store observation
-            buffer.append(observation, action, reward)
+            buffer.append(observation, action, float(reward))
 
             # reset if terminated
             if clip_episode:

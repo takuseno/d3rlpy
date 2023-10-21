@@ -16,6 +16,7 @@ from ..serializable_config import (
     generate_optional_config_generation,
     make_optional_numpy_field,
 )
+from ..types import NDArray
 from .base import Scaler, add_leading_dims, add_leading_dims_numpy
 
 __all__ = [
@@ -70,10 +71,10 @@ class PixelObservationScaler(ObservationScaler):
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         return (x * 255.0).long()
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         return x / 255.0
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         return x * 255.0
 
     @staticmethod
@@ -116,8 +117,8 @@ class MinMaxObservationScaler(ObservationScaler):
         minimum (numpy.ndarray): Minimum values at each entry.
         maximum (numpy.ndarray): Maximum values at each entry.
     """
-    minimum: Optional[np.ndarray] = make_optional_numpy_field()
-    maximum: Optional[np.ndarray] = make_optional_numpy_field()
+    minimum: Optional[NDArray] = make_optional_numpy_field()
+    maximum: Optional[NDArray] = make_optional_numpy_field()
 
     def __post_init__(self) -> None:
         if self.minimum is not None:
@@ -202,19 +203,21 @@ class MinMaxObservationScaler(ObservationScaler):
         maximum = add_leading_dims(self._torch_maximum, target=x)
         return ((maximum - minimum) * (x + 1.0) / 2.0) + minimum
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.minimum is not None and self.maximum is not None
         minimum = add_leading_dims_numpy(self.minimum, target=x)
         maximum = add_leading_dims_numpy(self.maximum, target=x)
-        return (x - minimum) / (maximum - minimum) * 2.0 - 1.0
+        ret = (x - minimum) / (maximum - minimum) * 2.0 - 1.0
+        return ret  # type: ignore
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.minimum is not None and self.maximum is not None
         minimum = add_leading_dims_numpy(self.minimum, target=x)
         maximum = add_leading_dims_numpy(self.maximum, target=x)
-        return ((maximum - minimum) * (x + 1.0) / 2.0) + minimum
+        ret = ((maximum - minimum) * (x + 1.0) / 2.0) + minimum
+        return ret  # type: ignore
 
     def _set_torch_value(self, device: torch.device) -> None:
         self._torch_minimum = torch.tensor(
@@ -260,8 +263,8 @@ class StandardObservationScaler(ObservationScaler):
         std (numpy.ndarray): Standard deviation at each entry.
         eps (float): Small constant value to avoid zero-division.
     """
-    mean: Optional[np.ndarray] = make_optional_numpy_field()
-    std: Optional[np.ndarray] = make_optional_numpy_field()
+    mean: Optional[NDArray] = make_optional_numpy_field()
+    std: Optional[NDArray] = make_optional_numpy_field()
     eps: float = 1e-3
 
     def __post_init__(self) -> None:
@@ -353,14 +356,15 @@ class StandardObservationScaler(ObservationScaler):
         std = add_leading_dims(self._torch_std, target=x)
         return ((std + self.eps) * x) + mean
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.mean is not None and self.std is not None
         mean = add_leading_dims_numpy(self.mean, target=x)
         std = add_leading_dims_numpy(self.std, target=x)
-        return (x - mean) / (std + self.eps)
+        ret = (x - mean) / (std + self.eps)
+        return ret  # type: ignore
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.mean is not None and self.std is not None
         mean = add_leading_dims_numpy(self.mean, target=x)

@@ -1,6 +1,5 @@
 from typing import Sequence
 
-import numpy as np
 import torch
 
 from d3rlpy.dataset import (
@@ -10,6 +9,7 @@ from d3rlpy.dataset import (
 )
 from d3rlpy.envs import GymEnv
 from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
+from d3rlpy.types import NDArray
 
 
 class DummyObservationScaler(ObservationScaler):
@@ -36,10 +36,10 @@ class DummyObservationScaler(ObservationScaler):
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         return x - 0.1
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         return x + 0.1
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         return x - 0.1
 
     @property
@@ -71,10 +71,10 @@ class DummyActionScaler(ActionScaler):
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         return x - 0.2
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         return x + 0.2
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         return x - 0.2
 
     @property
@@ -106,10 +106,10 @@ class DummyRewardScaler(RewardScaler):
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         return x - 0.3
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         return x + 0.3
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         return x - 0.3
 
     @property

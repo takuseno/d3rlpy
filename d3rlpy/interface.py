@@ -1,22 +1,22 @@
 from typing import Optional, Union
 
-import numpy as np
 from typing_extensions import Protocol
 
 from .dataset import Observation
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
+from .types import NDArray
 
 __all__ = ["QLearningAlgoProtocol", "StatefulTransformerAlgoProtocol"]
 
 
 class QLearningAlgoProtocol(Protocol):
-    def predict(self, x: Observation) -> np.ndarray:
+    def predict(self, x: Observation) -> NDArray:
         ...
 
-    def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
+    def predict_value(self, x: Observation, action: NDArray) -> NDArray:
         ...
 
-    def sample_action(self, x: Observation) -> np.ndarray:
+    def sample_action(self, x: Observation) -> NDArray:
         ...
 
     @property
@@ -35,9 +35,13 @@ class QLearningAlgoProtocol(Protocol):
     def reward_scaler(self) -> Optional[RewardScaler]:
         ...
 
+    @property
+    def action_size(self) -> Optional[int]:
+        ...
+
 
 class StatefulTransformerAlgoProtocol(Protocol):
-    def predict(self, x: Observation, reward: float) -> Union[np.ndarray, int]:
+    def predict(self, x: Observation, reward: float) -> Union[NDArray, int]:
         ...
 
     def reset(self) -> None:

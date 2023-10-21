@@ -1,4 +1,4 @@
-from typing import Any, Iterator, Optional, Sequence, cast
+from typing import Any, Iterator, Optional, Sequence
 
 import gym
 import numpy as np
@@ -111,11 +111,11 @@ class TDErrorEvaluator(EvaluatorProtocol):
                 )
 
                 # calculate td errors
-                mask = (1.0 - np.asarray(batch.terminals)).reshape(-1)
+                mask = (1.0 - batch.terminals).reshape(-1)
                 rewards = np.asarray(batch.rewards).reshape(-1)
                 if algo.reward_scaler:
                     rewards = algo.reward_scaler.transform_numpy(rewards)
-                y = rewards + algo.gamma * cast(np.ndarray, next_values) * mask
+                y = rewards + algo.gamma * next_values * mask
                 total_errors += ((values - y) ** 2).tolist()
 
         return float(np.mean(total_errors))
@@ -165,7 +165,6 @@ class DiscountedSumOfAdvantageEvaluator(EvaluatorProtocol):
                 dataset_values = algo.predict_value(
                     batch.observations, batch.actions
                 )
-                dataset_values = cast(np.ndarray, dataset_values)
 
                 # estimate values for the current policy
                 actions = algo.predict(batch.observations)
@@ -221,7 +220,7 @@ class AverageValueEstimationEvaluator(EvaluatorProtocol):
             ):
                 actions = algo.predict(batch.observations)
                 values = algo.predict_value(batch.observations, actions)
-                total_values += cast(np.ndarray, values).tolist()
+                total_values += values.tolist()
         return float(np.mean(total_values))
 
 
@@ -319,7 +318,6 @@ class SoftOPCEvaluator(EvaluatorProtocol):
                 episode, WINDOW_SIZE, dataset.transition_picker
             ):
                 values = algo.predict_value(batch.observations, batch.actions)
-                values = cast(np.ndarray, values)
                 all_values += values.reshape(-1).tolist()
                 if is_success:
                     success_values += values.reshape(-1).tolist()

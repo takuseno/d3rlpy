@@ -13,6 +13,7 @@ from ...dataset import (
 )
 from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import convert_to_torch, convert_to_torch_recursively
+from ...types import NDArray
 
 __all__ = ["TransformerInput", "TorchTransformerInput"]
 
@@ -20,10 +21,10 @@ __all__ = ["TransformerInput", "TorchTransformerInput"]
 @dataclasses.dataclass(frozen=True)
 class TransformerInput:
     observations: ObservationSequence  # (L, ...)
-    actions: np.ndarray  # (L, ...)
-    rewards: np.ndarray  # (L, 1)
-    returns_to_go: np.ndarray  # (L, 1)
-    timesteps: np.ndarray  # (L,)
+    actions: NDArray  # (L, ...)
+    rewards: NDArray  # (L, 1)
+    returns_to_go: NDArray  # (L, 1)
+    timesteps: NDArray  # (L,)
 
     def __post_init__(self) -> None:
         # check sequence size
@@ -79,31 +80,31 @@ class TorchTransformerInput:
             )
 
         # convert numpy array to torch tensor
-        observations = convert_to_torch_recursively(observations, device)
-        actions = convert_to_torch(actions, device)
-        rewards = convert_to_torch(rewards, device)
-        returns_to_go = convert_to_torch(returns_to_go, device)
-        timesteps = convert_to_torch(timesteps, device).long()
-        masks = convert_to_torch(masks, device)
+        observations_pt = convert_to_torch_recursively(observations, device)
+        actions_pt = convert_to_torch(actions, device)
+        rewards_pt = convert_to_torch(rewards, device)
+        returns_to_go_pt = convert_to_torch(returns_to_go, device)
+        timesteps_pt = convert_to_torch(timesteps, device).long()
+        masks_pt = convert_to_torch(masks, device)
 
         # TODO: support tuple observation
-        assert isinstance(observations, torch.Tensor)
+        assert isinstance(observations_pt, torch.Tensor)
 
         # apply scaler
         if observation_scaler:
-            observations = observation_scaler.transform(observations)
+            observations_pt = observation_scaler.transform(observations_pt)
         if action_scaler:
-            actions = action_scaler.transform(actions)
+            actions_pt = action_scaler.transform(actions_pt)
         if reward_scaler:
-            rewards = reward_scaler.transform(rewards)
-            returns_to_go = reward_scaler.transform(returns_to_go)
+            rewards_pt = reward_scaler.transform(rewards_pt)
+            returns_to_go_pt = reward_scaler.transform(returns_to_go_pt)
 
         return TorchTransformerInput(
-            observations=observations.unsqueeze(0),
-            actions=actions.unsqueeze(0),
-            rewards=rewards.unsqueeze(0),
-            returns_to_go=returns_to_go.unsqueeze(0),
-            timesteps=timesteps.unsqueeze(0),
-            masks=masks.unsqueeze(0),
+            observations=observations_pt.unsqueeze(0),
+            actions=actions_pt.unsqueeze(0),
+            rewards=rewards_pt.unsqueeze(0),
+            returns_to_go=returns_to_go_pt.unsqueeze(0),
+            timesteps=timesteps_pt.unsqueeze(0),
+            masks=masks_pt.unsqueeze(0),
             length=context_size,
         )

@@ -29,6 +29,7 @@ from d3rlpy.preprocessing import (
     ObservationScaler,
     RewardScaler,
 )
+from d3rlpy.types import NDArray
 
 from ..testing_utils import create_episode
 
@@ -50,7 +51,7 @@ def _create_replay_buffer(episodes: Sequence[Episode]) -> ReplayBuffer:
 class DummyAlgo:
     def __init__(
         self,
-        A: np.ndarray,
+        A: NDArray,
         gamma: float,
         discrete: bool = False,
         reward_scaler: Optional[RewardScaler] = None,
@@ -61,18 +62,18 @@ class DummyAlgo:
         self.n_frames = 1
         self.reward_scaler = reward_scaler
 
-    def predict(self, x: Observation) -> np.ndarray:
+    def predict(self, x: Observation) -> NDArray:
         x = np.array(x)
         y = np.matmul(x.reshape(x.shape[0], -1), self.A)
         if self.discrete:
-            return y.argmax(axis=1)
-        return y
+            return y.argmax(axis=1)  # type: ignore
+        return y  # type: ignore
 
-    def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
+    def predict_value(self, x: Observation, action: NDArray) -> NDArray:
         values = np.mean(x, axis=1) + np.mean(action, axis=1)
-        return values.reshape(-1)
+        return values.reshape(-1)  # type: ignore
 
-    def sample_action(self, x: Observation) -> np.ndarray:
+    def sample_action(self, x: Observation) -> NDArray:
         raise NotImplementedError
 
     @property
@@ -83,15 +84,19 @@ class DummyAlgo:
     def action_scaler(self) -> Optional[ActionScaler]:
         return None
 
+    @property
+    def action_size(self) -> int:
+        return 1
+
 
 def ref_td_error_score(
-    predict_value: Callable[[Observation, np.ndarray], np.ndarray],
+    predict_value: Callable[[Observation, NDArray], NDArray],
     observations: Observation,
-    actions: np.ndarray,
-    rewards: np.ndarray,
+    actions: NDArray,
+    rewards: NDArray,
     next_observations: Observation,
-    next_actions: np.ndarray,
-    terminals: np.ndarray,
+    next_actions: NDArray,
+    terminals: NDArray,
     gamma: float,
     reward_scaler: Optional[RewardScaler],
 ) -> List[float]:
@@ -190,10 +195,10 @@ def test_td_error_scorer_with_algos(
 
 
 def ref_discounted_sum_of_advantage_score(
-    predict_value: Callable[[Observation, np.ndarray], np.ndarray],
+    predict_value: Callable[[Observation, NDArray], NDArray],
     observations: Observation,
-    dataset_actions: np.ndarray,
-    policy_actions: np.ndarray,
+    dataset_actions: NDArray,
+    policy_actions: NDArray,
     gamma: float,
 ) -> List[float]:
     dataset_values = predict_value(observations, dataset_actions)

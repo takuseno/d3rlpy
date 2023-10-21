@@ -1,8 +1,6 @@
 import dataclasses
 from typing import Optional
 
-import numpy as np
-
 from ..algos.qlearning import QLearningAlgoBase, QLearningAlgoImplBase
 from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import ALGO_NOT_GIVEN_ERROR, ActionSpace
@@ -14,6 +12,7 @@ from ..models.builders import (
 from ..models.encoders import EncoderFactory, make_encoder_field
 from ..models.optimizers import OptimizerFactory, make_optimizer_field
 from ..models.q_functions import QFunctionFactory, make_q_func_field
+from ..types import NDArray
 from .torch.fqe_impl import (
     DiscreteFQEImpl,
     FQEBaseImpl,
@@ -101,11 +100,11 @@ class _FQEBase(QLearningAlgoBase[FQEBaseImpl, FQEConfig]):
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         self._algo.save_policy(fname)
 
-    def predict(self, x: Observation) -> np.ndarray:
+    def predict(self, x: Observation) -> NDArray:
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         return self._algo.predict(x)
 
-    def sample_action(self, x: Observation) -> np.ndarray:
+    def sample_action(self, x: Observation) -> NDArray:
         assert self._algo is not None, ALGO_NOT_GIVEN_ERROR
         return self._algo.sample_action(x)
 

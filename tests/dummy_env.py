@@ -4,8 +4,10 @@ import gym
 import numpy as np
 from gym.spaces import Box, Discrete
 
+from d3rlpy.types import NDArray
 
-class DummyAtari(gym.Env[np.ndarray, int]):
+
+class DummyAtari(gym.Env[NDArray, int]):
     def __init__(self, grayscale: bool = True, squeeze: bool = False):
         if grayscale:
             shape = (84, 84) if squeeze else (84, 84, 1)
@@ -21,11 +23,11 @@ class DummyAtari(gym.Env[np.ndarray, int]):
 
     def step(
         self, action: int
-    ) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
+    ) -> Tuple[NDArray, float, bool, bool, Dict[str, Any]]:
         observation = self.observation_space.sample()
         reward = np.random.random()
         return observation, reward, False, self.t % 80 == 0, {}
 
-    def reset(self, **kwargs: Any) -> Tuple[np.ndarray, Dict[str, Any]]:
+    def reset(self, **kwargs: Any) -> Tuple[NDArray, Dict[str, Any]]:
         self.t = 1
         return self.observation_space.sample(), {}

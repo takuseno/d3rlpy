@@ -10,21 +10,22 @@ from gym import spaces
 from d3rlpy.dataset import Observation
 from d3rlpy.metrics.utility import evaluate_qlearning_with_environment
 from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
+from d3rlpy.types import NDArray
 
 
 class DummyAlgo:
-    def __init__(self, A: np.ndarray):
+    def __init__(self, A: NDArray):
         self.A = A
 
-    def predict(self, x: Observation) -> np.ndarray:
+    def predict(self, x: Observation) -> NDArray:
         x = np.array(x)
         y = np.matmul(x.reshape(x.shape[0], -1), self.A)
-        return y
+        return y  # type: ignore
 
-    def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
+    def predict_value(self, x: Observation, action: NDArray) -> NDArray:
         raise NotImplementedError
 
-    def sample_action(self, x: Observation) -> np.ndarray:
+    def sample_action(self, x: Observation) -> NDArray:
         raise NotImplementedError
 
     @property
@@ -43,11 +44,15 @@ class DummyAlgo:
     def reward_scaler(self) -> Optional[RewardScaler]:
         return None
 
+    @property
+    def action_size(self) -> int:
+        return 1
 
-class DummyEnv(gym.Env[np.ndarray, np.ndarray]):
+
+class DummyEnv(gym.Env[NDArray, NDArray]):
     def __init__(
         self,
-        observations: np.ndarray,
+        observations: NDArray,
         observation_shape: Sequence[int],
         episode_length: int,
     ):
@@ -60,15 +65,15 @@ class DummyEnv(gym.Env[np.ndarray, np.ndarray]):
         )
 
     def step(
-        self, action: np.ndarray
-    ) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
+        self, action: NDArray
+    ) -> Tuple[NDArray, float, bool, bool, Dict[str, Any]]:
         self.t += 1
         observation = self.observations[self.episode - 1, self.t]
         reward = np.mean(observation) + np.mean(action)
         done = self.t == self.episode_length
         return observation, float(reward), done, False, {}
 
-    def reset(self, **kwargs: Any) -> Tuple[np.ndarray, Dict[str, Any]]:
+    def reset(self, **kwargs: Any) -> Tuple[NDArray, Dict[str, Any]]:
         self.t = 0
         self.episode += 1
         return self.observations[self.episode - 1, 0], {}

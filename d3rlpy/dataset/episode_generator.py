@@ -3,6 +3,7 @@ from typing import Optional, Sequence
 import numpy as np
 from typing_extensions import Protocol
 
+from ..types import NDArray
 from .components import Episode, EpisodeBase
 from .types import ObservationSequence
 from .utils import slice_observations
@@ -33,18 +34,18 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
         timeouts: Sequence of timeout flags.
     """
     _observations: ObservationSequence
-    _actions: np.ndarray
-    _rewards: np.ndarray
-    _terminals: np.ndarray
-    _timeouts: np.ndarray
+    _actions: NDArray
+    _rewards: NDArray
+    _terminals: NDArray
+    _timeouts: NDArray
 
     def __init__(
         self,
         observations: ObservationSequence,
-        actions: np.ndarray,
-        rewards: np.ndarray,
-        terminals: np.ndarray,
-        timeouts: Optional[np.ndarray] = None,
+        actions: NDArray,
+        rewards: NDArray,
+        terminals: NDArray,
+        timeouts: Optional[NDArray] = None,
     ):
         if actions.ndim == 1:
             actions = np.reshape(actions, [-1, 1])

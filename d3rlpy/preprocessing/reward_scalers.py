@@ -11,6 +11,7 @@ from ..dataset import (
 )
 from ..envs import GymEnv
 from ..serializable_config import generate_optional_config_generation
+from ..types import NDArray
 from .base import Scaler
 
 __all__ = [
@@ -71,10 +72,10 @@ class MultiplyRewardScaler(RewardScaler):
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         return x / self.multiplier
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         return self.multiplier * x
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         return x / self.multiplier
 
     @staticmethod
@@ -128,10 +129,10 @@ class ClipRewardScaler(RewardScaler):
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         return x / self.multiplier
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         return self.multiplier * np.clip(x, self.low, self.high)
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         return x / self.multiplier
 
     @staticmethod
@@ -215,13 +216,13 @@ class MinMaxRewardScaler(RewardScaler):
         base = self.maximum - self.minimum
         return x * base / self.multiplier + self.minimum
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.maximum is not None and self.minimum is not None
         base = self.maximum - self.minimum
         return self.multiplier * (x - self.minimum) / base
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.maximum is not None and self.minimum is not None
         base = self.maximum - self.minimum
@@ -307,13 +308,13 @@ class StandardRewardScaler(RewardScaler):
         assert self.mean is not None and self.std is not None
         return x * (self.std + self.eps) / self.multiplier + self.mean
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.mean is not None and self.std is not None
         nonzero_std = self.std + self.eps
         return self.multiplier * (x - self.mean) / nonzero_std
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.mean is not None and self.std is not None
         return x * (self.std + self.eps) / self.multiplier + self.mean
@@ -404,12 +405,12 @@ class ReturnBasedRewardScaler(RewardScaler):
         assert self.return_min is not None and self.return_max is not None
         return x * (self.return_max - self.return_min) / self.multiplier
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.return_min is not None and self.return_max is not None
         return self.multiplier * x / (self.return_max - self.return_min)
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         assert self.built
         assert self.return_min is not None and self.return_max is not None
         return x * (self.return_max - self.return_min) / self.multiplier
@@ -470,10 +471,10 @@ class ConstantShiftRewardScaler(RewardScaler):
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         return x - self.shift
 
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         return self.shift + x
 
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         return x - self.shift
 
     @staticmethod

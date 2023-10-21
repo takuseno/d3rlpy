@@ -12,6 +12,8 @@ except ImportError:
 from gym.spaces import Box
 from gym.wrappers.transform_reward import TransformReward
 
+from ..types import NDArray
+
 __all__ = [
     "ChannelFirst",
     "FrameStack",
@@ -48,14 +50,14 @@ class ChannelFirst(gym.Wrapper[_ObsType, _ActType]):
                 low=np.transpose(low, [2, 0, 1]),
                 high=np.transpose(high, [2, 0, 1]),
                 shape=(shape[2], shape[0], shape[1]),
-                dtype=dtype,
+                dtype=dtype,  # type: ignore
             )
         elif len(shape) == 2:
             self.observation_space = Box(
                 low=np.reshape(low, (1, *shape)),
                 high=np.reshape(high, (1, *shape)),
                 shape=(1, *shape),
-                dtype=dtype,
+                dtype=dtype,  # type: ignore
             )
         else:
             raise ValueError("image observation is only allowed.")
@@ -70,7 +72,7 @@ class ChannelFirst(gym.Wrapper[_ObsType, _ActType]):
         else:
             observation_T = np.reshape(observation, (1, *observation.shape))
         assert observation_T.shape == self.observation_space.shape
-        return observation_T, reward, terminal, truncated, info
+        return observation_T, reward, terminal, truncated, info  # type: ignore
 
     def reset(self, **kwargs: Any) -> Tuple[_ObsType, Dict[str, Any]]:
         observation, info = self.env.reset(**kwargs)
@@ -80,10 +82,10 @@ class ChannelFirst(gym.Wrapper[_ObsType, _ActType]):
         else:
             observation_T = np.reshape(observation, (1, *observation.shape))
         assert observation_T.shape == self.observation_space.shape
-        return observation_T, info
+        return observation_T, info  # type: ignore
 
 
-class FrameStack(gym.Wrapper[np.ndarray, _ActType]):
+class FrameStack(gym.Wrapper[NDArray, _ActType]):
     """Observation wrapper that stacks the observations in a rolling manner.
 
     This wrapper is implemented based on gym.wrappers.FrameStack. The
@@ -95,9 +97,9 @@ class FrameStack(gym.Wrapper[np.ndarray, _ActType]):
     """
 
     _num_stack: int
-    _frames: Deque[np.ndarray]
+    _frames: Deque[NDArray]
 
-    def __init__(self, env: gym.Env[np.ndarray, _ActType], num_stack: int):
+    def __init__(self, env: gym.Env[NDArray, _ActType], num_stack: int):
         super().__init__(env)
         self._num_stack = num_stack
         self._frames = deque(maxlen=num_stack)
@@ -118,17 +120,17 @@ class FrameStack(gym.Wrapper[np.ndarray, _ActType]):
             dtype=self.observation_space.dtype,  # type: ignore
         )
 
-    def observation(self, observation: Any) -> np.ndarray:
+    def observation(self, observation: Any) -> NDArray:
         return np.array(self._frames, dtype=self._frames[-1].dtype)
 
     def step(
         self, action: _ActType
-    ) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
+    ) -> Tuple[NDArray, float, bool, bool, Dict[str, Any]]:
         observation, reward, terminated, truncated, info = self.env.step(action)
         self._frames.append(observation)
         return self.observation(None), reward, terminated, truncated, info
 
-    def reset(self, **kwargs: Any) -> Tuple[np.ndarray, Dict[str, Any]]:
+    def reset(self, **kwargs: Any) -> Tuple[NDArray, Dict[str, Any]]:
         obs, info = self.env.reset(**kwargs)
         for _ in range(self._num_stack - 1):
             self._frames.append(np.zeros_like(obs))
@@ -137,7 +139,7 @@ class FrameStack(gym.Wrapper[np.ndarray, _ActType]):
 
 
 # https://github.com/openai/gym/blob/0.17.3/gym/wrappers/atari_preprocessing.py
-class AtariPreprocessing(gym.Wrapper[np.ndarray, int]):
+class AtariPreprocessing(gym.Wrapper[NDArray, int]):
     r"""Atari 2600 preprocessings.
     This class follows the guidelines in
     Machado et al. (2018), "Revisiting the Arcade Learning Environment:
@@ -174,7 +176,7 @@ class AtariPreprocessing(gym.Wrapper[np.ndarray, int]):
 
     def __init__(
         self,
-        env: gym.Env[np.ndarray, int],
+        env: gym.Env[NDArray, int],
         noop_max: int = 30,
         frame_skip: int = 4,
         screen_size: int = 84,
@@ -237,7 +239,7 @@ class AtariPreprocessing(gym.Wrapper[np.ndarray, int]):
 
     def step(
         self, action: int
-    ) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
+    ) -> Tuple[NDArray, float, bool, bool, Dict[str, Any]]:
         R = 0.0
 
         for t in range(self.frame_skip):
@@ -265,7 +267,7 @@ class AtariPreprocessing(gym.Wrapper[np.ndarray, int]):
 
         return self._get_obs(), R, done, truncated, info
 
-    def reset(self, **kwargs: Any) -> Tuple[np.ndarray, Dict[str, Any]]:
+    def reset(self, **kwargs: Any) -> Tuple[NDArray, Dict[str, Any]]:
         # this condition is not included in the original code
         if self.game_over:
             _, info = self.env.reset(**kwargs)
@@ -291,7 +293,7 @@ class AtariPreprocessing(gym.Wrapper[np.ndarray, int]):
         self.obs_buffer[1].fill(0)
         return self._get_obs(), info
 
-    def _get_obs(self) -> np.ndarray:
+    def _get_obs(self) -> NDArray:
         if self.frame_skip > 1:  # more efficient in-place pooling
             np.maximum(
                 self.obs_buffer[0], self.obs_buffer[1], out=self.obs_buffer[0]
@@ -309,10 +311,10 @@ class AtariPreprocessing(gym.Wrapper[np.ndarray, int]):
 
         if self.grayscale_obs and self.grayscale_newaxis:
             obs = np.expand_dims(obs, axis=-1)  # Add a channel axis
-        return obs
+        return obs  # type: ignore
 
 
-class Atari(gym.Wrapper[np.ndarray, int]):
+class Atari(gym.Wrapper[NDArray, int]):
     """Atari 2600 wrapper for experiments.
 
     Args:
@@ -323,7 +325,7 @@ class Atari(gym.Wrapper[np.ndarray, int]):
 
     def __init__(
         self,
-        env: gym.Env[np.ndarray, int],
+        env: gym.Env[NDArray, int],
         num_stack: Optional[int] = None,
         is_eval: bool = False,
     ):

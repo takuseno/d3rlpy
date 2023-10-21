@@ -3,6 +3,7 @@ from typing import Any, Dict, Sequence, Union
 import numpy as np
 from typing_extensions import Protocol
 
+from ..types import NDArray
 from .buffers import BufferProtocol
 from .components import Episode, EpisodeBase, Signature
 from .types import Observation, ObservationSequence
@@ -30,7 +31,7 @@ class WriterPreprocessProtocol(Protocol):
         """
         raise NotImplementedError
 
-    def process_action(self, action: np.ndarray) -> np.ndarray:
+    def process_action(self, action: NDArray) -> NDArray:
         r"""Processes action.
 
         Args:
@@ -41,7 +42,7 @@ class WriterPreprocessProtocol(Protocol):
         """
         raise NotImplementedError
 
-    def process_reward(self, reward: np.ndarray) -> np.ndarray:
+    def process_reward(self, reward: NDArray) -> NDArray:
         r"""Processes reward.
 
         Args:
@@ -62,10 +63,10 @@ class BasicWriterPreprocess(WriterPreprocessProtocol):
     def process_observation(self, observation: Observation) -> Observation:
         return observation
 
-    def process_action(self, action: np.ndarray) -> np.ndarray:
+    def process_action(self, action: NDArray) -> NDArray:
         return action
 
-    def process_reward(self, reward: np.ndarray) -> np.ndarray:
+    def process_reward(self, reward: NDArray) -> NDArray:
         return reward
 
 
@@ -89,9 +90,9 @@ class _ActiveEpisode(EpisodeBase):
     _observation_signature: Signature
     _action_signature: Signature
     _reward_signature: Signature
-    _observations: Sequence[np.ndarray]
-    _actions: np.ndarray
-    _rewards: np.ndarray
+    _observations: Sequence[NDArray]
+    _actions: NDArray
+    _rewards: NDArray
     _terminated: bool
     _frozen: bool
 
@@ -129,8 +130,8 @@ class _ActiveEpisode(EpisodeBase):
     def append(
         self,
         observation: Observation,
-        action: Union[int, np.ndarray],
-        reward: Union[float, np.ndarray],
+        action: Union[int, NDArray],
+        reward: Union[float, NDArray],
     ) -> None:
         assert self._frozen, "This episode is already shrinked."
         assert (
@@ -187,17 +188,17 @@ class _ActiveEpisode(EpisodeBase):
     @property
     def observations(self) -> ObservationSequence:
         if len(self._observations) == 1:
-            return self._observations[0][: self._cursor]
+            return self._observations[0][: self._cursor]  # type: ignore
         else:
             return [obs[: self._cursor] for obs in self._observations]
 
     @property
-    def actions(self) -> np.ndarray:
-        return self._actions[: self._cursor]
+    def actions(self) -> NDArray:
+        return self._actions[: self._cursor]  # type: ignore
 
     @property
-    def rewards(self) -> np.ndarray:
-        return self._rewards[: self._cursor]
+    def rewards(self) -> NDArray:
+        return self._rewards[: self._cursor]  # type: ignore
 
     @property
     def terminated(self) -> bool:
@@ -299,9 +300,11 @@ class ExperienceWriter:
                 shape=observation_shape,  # type: ignore
                 dtype=observation_dtype,
             )
+
         processed_action = preprocessor.process_action(
             action_signature.sample()[0]
         )
+        action_shape: Sequence[int]
         if (
             not isinstance(processed_action, np.ndarray)
             or processed_action.ndim == 0
@@ -313,9 +316,11 @@ class ExperienceWriter:
             shape=[action_shape],
             dtype=[processed_action.dtype],
         )
+
         processed_reward = preprocessor.process_reward(
             reward_signature.sample()[0]
         )
+        reward_shape: Sequence[int]
         if (
             not isinstance(processed_reward, np.ndarray)
             or processed_reward.ndim == 0
@@ -342,8 +347,8 @@ class ExperienceWriter:
     def write(
         self,
         observation: Observation,
-        action: Union[int, np.ndarray],
-        reward: Union[float, np.ndarray],
+        action: Union[int, NDArray],
+        reward: Union[float, NDArray],
     ) -> None:
         r"""Writes state tuple to buffer.
 

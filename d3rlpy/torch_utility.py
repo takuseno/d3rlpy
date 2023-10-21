@@ -1,6 +1,15 @@
 import collections
 import dataclasses
-from typing import Any, BinaryIO, Dict, Optional, Sequence, TypeVar, Union
+from typing import (
+    Any,
+    BinaryIO,
+    Dict,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+    overload,
+)
 
 import numpy as np
 import torch
@@ -10,6 +19,7 @@ from torch.optim import Optimizer
 from .dataclass_utils import asdict_without_copy
 from .dataset import TrajectoryMiniBatch, TransitionMiniBatch
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
+from .types import NDArray
 
 __all__ = [
     "soft_sync",
@@ -62,14 +72,26 @@ def map_location(device: str) -> Any:
     raise ValueError(f"invalid device={device}")
 
 
-def convert_to_torch(array: np.ndarray, device: str) -> torch.Tensor:
+def convert_to_torch(array: NDArray, device: str) -> torch.Tensor:
     dtype = torch.uint8 if array.dtype == np.uint8 else torch.float32
     tensor = torch.tensor(data=array, dtype=dtype, device=device)
     return tensor.float()
 
 
+@overload
+def convert_to_torch_recursively(array: NDArray, device: str) -> torch.Tensor:
+    ...
+
+
+@overload
 def convert_to_torch_recursively(
-    array: Union[np.ndarray, Sequence[np.ndarray]], device: str
+    array: Sequence[NDArray], device: str
+) -> Sequence[torch.Tensor]:
+    ...
+
+
+def convert_to_torch_recursively(
+    array: Union[NDArray, Sequence[NDArray]], device: str
 ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
     if isinstance(array, (list, tuple)):
         return [convert_to_torch(data, device) for data in array]

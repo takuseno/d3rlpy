@@ -4,11 +4,12 @@ import numpy as np
 import pytest
 
 from d3rlpy.dataset import Episode, PartialTrajectory, Signature, Transition
+from d3rlpy.types import DType
 
 
 @pytest.mark.parametrize("shape", [(100,)])
 @pytest.mark.parametrize("dtype", [np.float32])
-def test_signature(shape: Sequence[int], dtype: np.dtype) -> None:
+def test_signature(shape: Sequence[int], dtype: DType) -> None:
     signature = Signature(dtype=[dtype], shape=[shape])
     data = signature.sample()
     assert data[0].shape == shape

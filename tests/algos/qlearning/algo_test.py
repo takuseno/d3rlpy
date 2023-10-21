@@ -16,6 +16,7 @@ from d3rlpy.dataset import (
     create_infinite_replay_buffer,
 )
 from d3rlpy.logging import NoopAdapterFactory
+from d3rlpy.types import NDArray
 from tests.base_test import from_json_tester, load_learnable_tester
 
 
@@ -78,14 +79,18 @@ def fit_tester(
     data_size = n_episodes * episode_length
     shape = (data_size, *observation_shape)
 
+    observations: NDArray
     if len(observation_shape) == 3:
         observations = np.random.randint(256, size=shape, dtype=np.uint8)
     else:
         observations = np.random.random(shape).astype("f4")
+
+    actions: NDArray
     if algo.get_action_type() == ActionSpace.CONTINUOUS:
         actions = np.random.random((data_size, action_size))
     else:
         actions = np.random.randint(action_size, size=(data_size, 1))
+
     rewards = np.random.random(data_size)
     terminals = np.zeros(data_size)
     for i in range(n_episodes):
@@ -198,6 +203,8 @@ def q_function_copy_tester(
     )
     algo2.create_impl(observation_shape, action_size)
     x = np.random.random((100, *observation_shape))
+
+    action: NDArray
     if algo.get_action_type() == ActionSpace.DISCRETE:
         action = np.random.randint(action_size, size=(100,))
     else:
@@ -220,10 +227,13 @@ def predict_value_tester(
 ) -> None:
     algo.create_impl(observation_shape, action_size)
     x = np.random.random((100, *observation_shape))
+
+    action: NDArray
     if algo.get_action_type() == ActionSpace.DISCRETE:
         action = np.random.randint(action_size, size=(100,))
     else:
         action = np.random.random((100, action_size))
+
     value = algo.predict_value(x, action)
     assert value.shape == (100,)
 

@@ -257,7 +257,6 @@ def test_standard_reward_scaler_with_transition_picker(
     rewards_without_first = []
     for episode in episodes:
         rewards_without_first += episode.rewards.tolist()
-    rewards_without_first = np.array(rewards_without_first)
 
     mean = np.mean(rewards_without_first)
     std = np.std(rewards_without_first)
@@ -298,7 +297,6 @@ def test_standard_reward_scaler_with_trajectory_slicer(
     rewards_without_first = []
     for episode in episodes:
         rewards_without_first += episode.rewards.tolist()
-    rewards_without_first = np.array(rewards_without_first)
 
     mean = np.mean(rewards_without_first)
     std = np.std(rewards_without_first)

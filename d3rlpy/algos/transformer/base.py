@@ -20,6 +20,7 @@ from ...logging import (
 )
 from ...metrics import evaluate_transformer_with_environment
 from ...torch_utility import TorchTrajectoryMiniBatch, train_api
+from ...types import NDArray
 from ..utility import (
     assert_action_space_with_dataset,
     build_scalers_with_trajectory_slicer,
@@ -102,7 +103,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
     _action_sampler: TransformerActionSampler
     _return_rest: float
     _observations: Deque[Observation]
-    _actions: Deque[Union[np.ndarray, int]]
+    _actions: Deque[Union[NDArray, int]]
     _rewards: Deque[float]
     _returns_to_go: Deque[float]
     _timesteps: Deque[int]
@@ -128,7 +129,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         self._timesteps = deque([], maxlen=context_size)
         self._timestep = 1
 
-    def predict(self, x: Observation, reward: float) -> Union[np.ndarray, int]:
+    def predict(self, x: Observation, reward: float) -> Union[NDArray, int]:
         r"""Returns action.
 
         Args:
@@ -173,8 +174,9 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
     ) -> "TransformerAlgoBase[TTransformerImpl, TTransformerConfig]":
         return self._algo
 
-    def _get_pad_action(self) -> Union[int, np.ndarray]:
+    def _get_pad_action(self) -> Union[int, NDArray]:
         assert self._algo.impl
+        pad_action: Union[int, NDArray]
         if self._algo.get_action_type() == ActionSpace.CONTINUOUS:
             pad_action = np.zeros(self._algo.impl.action_size, dtype=np.float32)
         else:
@@ -186,7 +188,7 @@ class TransformerAlgoBase(
     Generic[TTransformerImpl, TTransformerConfig],
     LearnableBase[TTransformerImpl, TTransformerConfig],
 ):
-    def predict(self, inpt: TransformerInput) -> np.ndarray:
+    def predict(self, inpt: TransformerInput) -> NDArray:
         """Returns action.
 
         This is for internal use. For evaluation, use
@@ -213,7 +215,7 @@ class TransformerAlgoBase(
             if self._config.action_scaler:
                 action = self._config.action_scaler.reverse_transform(action)
 
-        return action.cpu().detach().numpy()
+        return action.cpu().detach().numpy()  # type: ignore
 
     def fit(
         self,

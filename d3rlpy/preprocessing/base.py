@@ -11,6 +11,7 @@ from ..dataset import (
 )
 from ..envs import GymEnv
 from ..serializable_config import DynamicConfig
+from ..types import NDArray
 
 __all__ = ["Scaler", "add_leading_dims", "add_leading_dims_numpy"]
 
@@ -78,7 +79,7 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def transform_numpy(self, x: NDArray) -> NDArray:
         """Returns processed output in numpy.
 
         Args:
@@ -90,7 +91,7 @@ class Scaler(DynamicConfig, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def reverse_transform_numpy(self, x: np.ndarray) -> np.ndarray:
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
         """Returns reversely transformed output in numpy.
 
         Args:
@@ -119,7 +120,7 @@ def add_leading_dims(x: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     return torch.reshape(x, [1] * dim_diff + list(x.shape))
 
 
-def add_leading_dims_numpy(x: np.ndarray, target: np.ndarray) -> np.ndarray:
+def add_leading_dims_numpy(x: NDArray, target: NDArray) -> NDArray:
     assert x.ndim <= target.ndim
     dim_diff = target.ndim - x.ndim
     assert x.shape == target.shape[dim_diff:]

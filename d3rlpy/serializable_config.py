@@ -14,6 +14,8 @@ from typing import (
 import numpy as np
 from dataclasses_json import config, dataclass_json
 
+from .types import NDArray
+
 __all__ = [
     "SerializableConfig",
     "DynamicConfig",
@@ -147,21 +149,21 @@ def generate_optional_config_generation(
 
 
 # setup numpy encoder/decoder
-def _numpy_encoder(v: np.ndarray) -> Sequence[float]:
+def _numpy_encoder(v: NDArray) -> Sequence[float]:
     return v.tolist()  # type: ignore
 
 
-def _numpy_decoder(v: Sequence[float]) -> np.ndarray:
+def _numpy_decoder(v: Sequence[float]) -> NDArray:
     return np.array(v)
 
 
-def make_numpy_field() -> np.ndarray:
-    return dataclasses.field(
+def make_numpy_field() -> NDArray:
+    return dataclasses.field(  # type: ignore
         metadata=config(encoder=_numpy_encoder, decoder=_numpy_decoder),
     )
 
 
-def make_optional_numpy_field() -> Optional[np.ndarray]:
+def make_optional_numpy_field() -> Optional[NDArray]:
     return dataclasses.field(
         metadata=config(encoder=_numpy_encoder, decoder=_numpy_decoder),
         default=None,

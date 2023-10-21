@@ -8,6 +8,7 @@ from d3rlpy.models.torch import (
     DiscreteMeanQFunction,
     DiscreteMeanQFunctionForwarder,
 )
+from d3rlpy.types import NDArray
 
 from ..model_test import (
     DummyEncoder,
@@ -18,10 +19,10 @@ from ..model_test import (
 
 
 def filter_by_action(
-    value: np.ndarray, action: np.ndarray, action_size: int
-) -> np.ndarray:
+    value: NDArray, action: NDArray, action_size: int
+) -> NDArray:
     act_one_hot = np.identity(action_size)[np.reshape(action, (-1,))]
-    return (value * act_one_hot).sum(axis=1)
+    return (value * act_one_hot).sum(axis=1)  # type: ignore
 
 
 @pytest.mark.parametrize("feature_size", [100])

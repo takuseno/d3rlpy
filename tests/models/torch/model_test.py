@@ -7,6 +7,7 @@ from torch.optim import SGD
 
 from d3rlpy.models.torch import ActionOutput, QFunctionOutput
 from d3rlpy.models.torch.encoders import Encoder, EncoderWithAction
+from d3rlpy.types import NDArray
 
 
 def check_parameter_updates(
@@ -42,7 +43,7 @@ def check_parameter_updates(
         ), f"tensor with shape of {after.shape} is not updated."
 
 
-def ref_huber_loss(a: np.ndarray, b: np.ndarray) -> float:
+def ref_huber_loss(a: NDArray, b: NDArray) -> float:
     abs_diff = np.abs(a - b).reshape((-1,))
     l2_diff = ((a - b) ** 2).reshape((-1,))
     huber_diff = np.zeros_like(abs_diff)
@@ -52,8 +53,8 @@ def ref_huber_loss(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def ref_quantile_huber_loss(
-    a: np.ndarray, b: np.ndarray, taus: np.ndarray, n_quantiles: int
-) -> np.ndarray:
+    a: NDArray, b: NDArray, taus: NDArray, n_quantiles: int
+) -> NDArray:
     abs_diff = np.abs(a - b).reshape((-1,))
     l2_diff = ((a - b) ** 2).reshape((-1,))
     huber_diff = np.zeros_like(abs_diff)
@@ -62,7 +63,7 @@ def ref_quantile_huber_loss(
     huber_diff = huber_diff.reshape((-1, n_quantiles, n_quantiles))
     delta = np.array((b - a) < 0.0, dtype=np.float32)
     element_wise_loss = np.abs(taus - delta) * huber_diff
-    return element_wise_loss.sum(axis=2).mean(axis=1)
+    return element_wise_loss.sum(axis=2).mean(axis=1)  # type: ignore
 
 
 class DummyEncoder(Encoder):

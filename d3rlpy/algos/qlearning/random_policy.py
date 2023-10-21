@@ -7,6 +7,7 @@ from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
 from ...dataset import Observation, Shape
 from ...torch_utility import TorchMiniBatch
+from ...types import NDArray
 from .base import QLearningAlgoBase
 
 __all__ = [
@@ -54,10 +55,10 @@ class RandomPolicy(QLearningAlgoBase[None, RandomPolicyConfig]):  # type: ignore
     ) -> None:
         self._action_size = action_size
 
-    def predict(self, x: Observation) -> np.ndarray:
+    def predict(self, x: Observation) -> NDArray:
         return self.sample_action(x)
 
-    def sample_action(self, x: Observation) -> np.ndarray:
+    def sample_action(self, x: Observation) -> NDArray:
         x = np.asarray(x)
         action_shape = (x.shape[0], self._action_size)
 
@@ -79,7 +80,7 @@ class RandomPolicy(QLearningAlgoBase[None, RandomPolicyConfig]):  # type: ignore
 
         return action
 
-    def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
+    def predict_value(self, x: Observation, action: NDArray) -> NDArray:
         raise NotImplementedError
 
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
@@ -117,14 +118,14 @@ class DiscreteRandomPolicy(QLearningAlgoBase[None, DiscreteRandomPolicyConfig]):
     ) -> None:
         self._action_size = action_size
 
-    def predict(self, x: Observation) -> np.ndarray:
+    def predict(self, x: Observation) -> NDArray:
         return self.sample_action(x)
 
-    def sample_action(self, x: Observation) -> np.ndarray:
+    def sample_action(self, x: Observation) -> NDArray:
         x = np.asarray(x)
         return np.random.randint(self._action_size, size=x.shape[0])
 
-    def predict_value(self, x: Observation, action: np.ndarray) -> np.ndarray:
+    def predict_value(self, x: Observation, action: NDArray) -> NDArray:
         raise NotImplementedError
 
     def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:

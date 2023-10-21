@@ -3,6 +3,8 @@ from typing import Union
 import numpy as np
 from typing_extensions import Protocol
 
+from ...types import NDArray
+
 __all__ = [
     "TransformerActionSampler",
     "IdentityTransformerActionSampler",
@@ -14,9 +16,7 @@ __all__ = [
 class TransformerActionSampler(Protocol):
     r"""Interface of TransformerActionSampler."""
 
-    def __call__(
-        self, transformer_output: np.ndarray
-    ) -> Union[np.ndarray, int]:
+    def __call__(self, transformer_output: NDArray) -> Union[NDArray, int]:
         r"""Returns sampled action from Transformer output.
 
         Args:
@@ -35,9 +35,7 @@ class IdentityTransformerActionSampler(TransformerActionSampler):
     Sampled action is the exactly same as ``transformer_output``.
     """
 
-    def __call__(
-        self, transformer_output: np.ndarray
-    ) -> Union[np.ndarray, int]:
+    def __call__(self, transformer_output: NDArray) -> Union[NDArray, int]:
         return transformer_output
 
 
@@ -55,9 +53,7 @@ class SoftmaxTransformerActionSampler(TransformerActionSampler):
     def __init__(self, temperature: float = 1.0):
         self._temperature = temperature
 
-    def __call__(
-        self, transformer_output: np.ndarray
-    ) -> Union[np.ndarray, int]:
+    def __call__(self, transformer_output: NDArray) -> Union[NDArray, int]:
         assert transformer_output.ndim == 1
         logits = transformer_output / self._temperature
         x = np.exp(logits - np.max(logits))
@@ -73,8 +69,6 @@ class GreedyTransformerActionSampler(TransformerActionSampler):
     probability distribution.
     """
 
-    def __call__(
-        self, transformer_output: np.ndarray
-    ) -> Union[np.ndarray, int]:
+    def __call__(self, transformer_output: NDArray) -> Union[NDArray, int]:
         assert transformer_output.ndim == 1
         return int(np.argmax(transformer_output))

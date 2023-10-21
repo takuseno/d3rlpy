@@ -5,6 +5,7 @@ import numpy as np
 from ..constants import ActionSpace
 from ..envs import GymEnv
 from ..logging import LOG
+from ..types import NDArray
 from .buffers import BufferProtocol, FIFOBuffer, InfiniteBuffer
 from .components import (
     DatasetInfo,
@@ -218,8 +219,8 @@ class ReplayBuffer:
     def append(
         self,
         observation: Observation,
-        action: Union[int, np.ndarray],
-        reward: Union[float, np.ndarray],
+        action: Union[int, NDArray],
+        reward: Union[float, NDArray],
     ) -> None:
         r"""Appends observation, action and reward to buffer.
 

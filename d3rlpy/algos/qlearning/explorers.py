@@ -1,10 +1,12 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, List, Optional, Union
+from typing import Union
 
 import numpy as np
-from typing_extensions import Protocol
 
-from ...preprocessing.action_scalers import ActionScaler, MinMaxActionScaler
+from ...dataset import Observation
+from ...interface import QLearningAlgoProtocol
+from ...preprocessing.action_scalers import MinMaxActionScaler
+from ...types import NDArray
 
 __all__ = [
     "Explorer",
@@ -14,24 +16,11 @@ __all__ = [
 ]
 
 
-class _ActionProtocol(Protocol):
-    def predict(self, x: Union[np.ndarray, List[Any]]) -> np.ndarray:
-        ...
-
-    @property
-    def action_size(self) -> Optional[int]:
-        ...
-
-    @property
-    def action_scaler(self) -> Optional[ActionScaler]:
-        ...
-
-
 class Explorer(metaclass=ABCMeta):
     @abstractmethod
     def sample(
-        self, algo: _ActionProtocol, x: np.ndarray, step: int
-    ) -> np.ndarray:
+        self, algo: QLearningAlgoProtocol, x: Observation, step: int
+    ) -> NDArray:
         pass
 
 
@@ -48,11 +37,14 @@ class ConstantEpsilonGreedy(Explorer):
         self._epsilon = epsilon
 
     def sample(
-        self, algo: _ActionProtocol, x: np.ndarray, step: int
-    ) -> np.ndarray:
+        self, algo: QLearningAlgoProtocol, x: Observation, step: int
+    ) -> NDArray:
+        action_size = algo.action_size
+        assert action_size is not None
         greedy_actions = algo.predict(x)
-        random_actions = np.random.randint(algo.action_size, size=x.shape[0])
-        is_random = np.random.random(x.shape[0]) < self._epsilon
+        batch_size = greedy_actions.shape[0]
+        random_actions = np.random.randint(action_size, size=batch_size)
+        is_random = np.random.random(batch_size) < self._epsilon
         return np.where(is_random, random_actions, greedy_actions)
 
 
@@ -80,8 +72,8 @@ class LinearDecayEpsilonGreedy(Explorer):
         self._duration = duration
 
     def sample(
-        self, algo: _ActionProtocol, x: np.ndarray, step: int
-    ) -> np.ndarray:
+        self, algo: QLearningAlgoProtocol, x: Observation, step: int
+    ) -> NDArray:
         """Returns :math:`\\epsilon`-greedy action.
 
         Args:
@@ -92,9 +84,12 @@ class LinearDecayEpsilonGreedy(Explorer):
         Returns:
             :math:`\\epsilon`-greedy action.
         """
+        action_size = algo.action_size
+        assert action_size is not None
         greedy_actions = algo.predict(x)
-        random_actions = np.random.randint(algo.action_size, size=x.shape[0])
-        is_random = np.random.random(x.shape[0]) < self.compute_epsilon(step)
+        batch_size = greedy_actions.shape[0]
+        random_actions = np.random.randint(action_size, size=batch_size)
+        is_random = np.random.random(batch_size) < self.compute_epsilon(step)
         return np.where(is_random, random_actions, greedy_actions)
 
     def compute_epsilon(self, step: int) -> float:
@@ -125,8 +120,8 @@ class NormalNoise(Explorer):
         self._std = std
 
     def sample(
-        self, algo: _ActionProtocol, x: np.ndarray, step: int
-    ) -> np.ndarray:
+        self, algo: QLearningAlgoProtocol, x: Observation, step: int
+    ) -> NDArray:
         """Returns action with noise injection.
 
         Args:
@@ -139,12 +134,16 @@ class NormalNoise(Explorer):
         action = algo.predict(x)
         noise = np.random.normal(self._mean, self._std, size=action.shape)
 
+        minimum: Union[float, NDArray]
+        maximum: Union[float, NDArray]
         if isinstance(algo.action_scaler, MinMaxActionScaler):
             # scale noise
+            assert algo.action_scaler.minimum is not None
+            assert algo.action_scaler.maximum is not None
             minimum = algo.action_scaler.minimum
             maximum = algo.action_scaler.maximum
         else:
             minimum = -1.0
             maximum = 1.0
 
-        return np.clip(action + noise, minimum, maximum)
+        return np.clip(action + noise, minimum, maximum)  # type: ignore

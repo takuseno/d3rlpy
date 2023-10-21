@@ -22,7 +22,7 @@ def test_basic_writer_preprocess(
 ) -> None:
     observation = create_observation(observation_shape)
     action = np.random.random(action_size)
-    reward = np.random.random()
+    reward = np.random.random(1)
 
     preprocessor = BasicWriterPreprocess()
 

@@ -3,6 +3,7 @@ from typing import Sequence, Union
 
 import numpy as np
 
+from ..types import NDArray
 from .components import PartialTrajectory, Transition
 from .types import Shape
 from .utils import (
@@ -29,12 +30,12 @@ class TransitionMiniBatch:
         intervals: Batched timesteps between observations and next
             observations.
     """
-    observations: Union[np.ndarray, Sequence[np.ndarray]]  # (B, ...)
-    actions: np.ndarray  # (B, ...)
-    rewards: np.ndarray  # (B, 1)
-    next_observations: Union[np.ndarray, Sequence[np.ndarray]]  # (B, ...)
-    terminals: np.ndarray  # (B, 1)
-    intervals: np.ndarray  # (B, 1)
+    observations: Union[NDArray, Sequence[NDArray]]  # (B, ...)
+    actions: NDArray  # (B, ...)
+    rewards: NDArray  # (B, 1)
+    next_observations: Union[NDArray, Sequence[NDArray]]  # (B, ...)
+    terminals: NDArray  # (B, 1)
+    intervals: NDArray  # (B, 1)
 
     def __post_init__(self) -> None:
         assert check_non_1d_array(self.observations)
@@ -107,7 +108,7 @@ class TransitionMiniBatch:
         Returns:
             Action shape.
         """
-        return self.actions.shape[1:]  # type: ignore
+        return self.actions.shape[1:]
 
     @property
     def reward_shape(self) -> Sequence[int]:
@@ -116,7 +117,7 @@ class TransitionMiniBatch:
         Returns:
             Reward shape.
         """
-        return self.rewards.shape[1:]  # type: ignore
+        return self.rewards.shape[1:]
 
     def __len__(self) -> int:
         return int(self.actions.shape[0])
@@ -136,13 +137,13 @@ class TrajectoryMiniBatch:
         masks: Batched masks that represent padding.
         length: Length of trajectories.
     """
-    observations: Union[np.ndarray, Sequence[np.ndarray]]  # (B, L, ...)
-    actions: np.ndarray  # (B, L, ...)
-    rewards: np.ndarray  # (B, L, 1)
-    returns_to_go: np.ndarray  # (B, L, 1)
-    terminals: np.ndarray  # (B, L, 1)
-    timesteps: np.ndarray  # (B, L)
-    masks: np.ndarray  # (B, L)
+    observations: Union[NDArray, Sequence[NDArray]]  # (B, L, ...)
+    actions: NDArray  # (B, L, ...)
+    rewards: NDArray  # (B, L, 1)
+    returns_to_go: NDArray  # (B, L, 1)
+    terminals: NDArray  # (B, L, 1)
+    timesteps: NDArray  # (B, L)
+    masks: NDArray  # (B, L)
     length: int
 
     def __post_init__(self) -> None:
@@ -204,7 +205,7 @@ class TrajectoryMiniBatch:
         Returns:
             Action shape.
         """
-        return self.actions.shape[1:]  # type: ignore
+        return self.actions.shape[1:]
 
     @property
     def reward_shape(self) -> Sequence[int]:
@@ -213,7 +214,7 @@ class TrajectoryMiniBatch:
         Returns:
             Reward shape.
         """
-        return self.rewards.shape[1:]  # type: ignore
+        return self.rewards.shape[1:]
 
     def __len__(self) -> int:
         return int(self.actions.shape[0])
