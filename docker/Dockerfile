@@ -1,11 +1,10 @@
-FROM pytorch/pytorch:1.13.1-cuda11.6-cudnn8-devel
+FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-devel
 
 # this needs to avoid time zone question
 ENV DEBIAN_FRONTEND=noninteractive
 
 # install dependencies
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub && \
-    apt-get update && \
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       build-essential \
       software-properties-common \
