@@ -8,7 +8,6 @@ from d3rlpy.dataset import (
     BasicTransitionPicker,
     Episode,
     InfiniteBuffer,
-    Observation,
     ReplayBuffer,
     TransitionMiniBatch,
 )
@@ -29,7 +28,7 @@ from d3rlpy.preprocessing import (
     ObservationScaler,
     RewardScaler,
 )
-from d3rlpy.types import NDArray
+from d3rlpy.types import NDArray, Observation
 
 from ..testing_utils import create_episode
 

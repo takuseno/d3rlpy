@@ -8,14 +8,13 @@ from d3rlpy.algos.qlearning.explorers import (
     LinearDecayEpsilonGreedy,
     NormalNoise,
 )
-from d3rlpy.dataset import Observation
 from d3rlpy.preprocessing import (
     ActionScaler,
     MinMaxActionScaler,
     ObservationScaler,
     RewardScaler,
 )
-from d3rlpy.types import NDArray
+from d3rlpy.types import NDArray, Observation
 
 
 class DummyAlgo:

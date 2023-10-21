@@ -7,7 +7,6 @@ import pytest
 
 from d3rlpy.constants import ActionSpace
 from d3rlpy.dataset import (
-    Shape,
     batch_pad_array,
     batch_pad_observations,
     cast_recursively,
@@ -26,7 +25,7 @@ from d3rlpy.dataset import (
     stack_observations,
     stack_recent_observations,
 )
-from d3rlpy.types import DType
+from d3rlpy.types import DType, Shape
 
 from ..testing_utils import create_observation, create_observations
 

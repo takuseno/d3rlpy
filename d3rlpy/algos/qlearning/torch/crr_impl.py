@@ -4,13 +4,13 @@ from typing import Dict
 import torch
 import torch.nn.functional as F
 
-from ....dataset import Shape
 from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     NormalPolicy,
     build_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch, hard_sync, soft_sync
+from ....types import Shape
 from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
 
 __all__ = ["CRRImpl", "CRRModules"]

@@ -2,9 +2,9 @@
 
 import torch
 
-from ....dataset import Shape
 from ....models.torch import ContinuousEnsembleQFunctionForwarder
 from ....torch_utility import TorchMiniBatch
+from ....types import Shape
 from .ddpg_impl import DDPGModules
 from .td3_impl import TD3Impl
 

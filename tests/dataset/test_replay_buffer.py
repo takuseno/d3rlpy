@@ -11,10 +11,10 @@ from d3rlpy.dataset import (
     FIFOBuffer,
     InfiniteBuffer,
     ReplayBuffer,
-    Shape,
     create_fifo_replay_buffer,
     create_infinite_replay_buffer,
 )
+from d3rlpy.types import Shape
 
 from ..testing_utils import create_episode, create_observation
 

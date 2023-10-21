@@ -3,10 +3,9 @@ from typing import Any, Dict, Sequence, Union
 import numpy as np
 from typing_extensions import Protocol
 
-from ..types import NDArray
+from ..types import NDArray, Observation, ObservationSequence
 from .buffers import BufferProtocol
 from .components import Episode, EpisodeBase, Signature
-from .types import Observation, ObservationSequence
 from .utils import get_dtype_from_observation, get_shape_from_observation
 
 __all__ = [

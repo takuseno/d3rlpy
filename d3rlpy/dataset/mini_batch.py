@@ -3,9 +3,8 @@ from typing import Sequence, Union
 
 import numpy as np
 
-from ..types import NDArray
+from ..types import NDArray, Shape
 from .components import PartialTrajectory, Transition
-from .types import Shape
 from .utils import (
     cast_recursively,
     check_dtype,

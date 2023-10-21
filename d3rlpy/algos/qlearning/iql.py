@@ -2,7 +2,6 @@ import dataclasses
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
-from ...dataset import Shape
 from ...models.builders import (
     create_continuous_q_function,
     create_normal_policy,
@@ -11,6 +10,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import MeanQFunctionFactory
+from ...types import Shape
 from .base import QLearningAlgoBase
 from .torch.iql_impl import IQLImpl, IQLModules
 

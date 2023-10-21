@@ -1,12 +1,12 @@
 import torch
 import torch.nn.functional as F
 
-from ....dataset import Shape
 from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     build_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch
+from ....types import Shape
 from .sac_impl import SACImpl, SACModules
 
 __all__ = ["AWACImpl"]

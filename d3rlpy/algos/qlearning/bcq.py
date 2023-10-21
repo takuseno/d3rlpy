@@ -2,7 +2,6 @@ import dataclasses
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
-from ...dataset import Shape
 from ...models.builders import (
     create_categorical_policy,
     create_conditional_vae,
@@ -14,6 +13,7 @@ from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...models.torch import CategoricalPolicy, compute_output_size
+from ...types import Shape
 from .base import QLearningAlgoBase
 from .torch.bcq_impl import (
     BCQImpl,

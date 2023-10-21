@@ -7,10 +7,9 @@ import numpy as np
 import pytest
 from gym import spaces
 
-from d3rlpy.dataset import Observation
 from d3rlpy.metrics.utility import evaluate_qlearning_with_environment
 from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from d3rlpy.types import NDArray
+from d3rlpy.types import NDArray, Observation
 
 
 class DummyAlgo:

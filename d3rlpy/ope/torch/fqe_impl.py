@@ -10,12 +10,12 @@ from ...algos.qlearning.torch.utility import (
     ContinuousQFunctionMixin,
     DiscreteQFunctionMixin,
 )
-from ...dataset import Shape
 from ...models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
 )
 from ...torch_utility import Modules, TorchMiniBatch, hard_sync
+from ...types import Shape
 
 __all__ = ["FQEBaseImpl", "FQEImpl", "DiscreteFQEImpl", "FQEBaseModules"]
 

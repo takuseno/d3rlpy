@@ -3,10 +3,9 @@ from typing import Union
 
 import numpy as np
 
-from ...dataset import Observation
 from ...interface import QLearningAlgoProtocol
 from ...preprocessing.action_scalers import MinMaxActionScaler
-from ...types import NDArray
+from ...types import NDArray, Observation
 
 __all__ = [
     "Explorer",

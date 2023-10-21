@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 from ..constants import PositionEncodingType
-from ..dataset import Shape
+from ..types import Shape
 from .encoders import EncoderFactory
 from .q_functions import QFunctionFactory
 from .torch import (

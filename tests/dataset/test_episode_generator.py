@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from d3rlpy.dataset import EpisodeGenerator, Shape
+from d3rlpy.dataset import EpisodeGenerator
+from d3rlpy.types import Shape
 
 from ..testing_utils import create_observations
 

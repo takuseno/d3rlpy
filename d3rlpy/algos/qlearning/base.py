@@ -21,7 +21,6 @@ from typing_extensions import Self
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import (
-    Observation,
     ReplayBuffer,
     TransitionMiniBatch,
     check_non_1d_array,
@@ -46,7 +45,7 @@ from ...torch_utility import (
     sync_optimizer_state,
     train_api,
 )
-from ...types import NDArray
+from ...types import NDArray, Observation
 from ..utility import (
     assert_action_space_with_dataset,
     assert_action_space_with_env,

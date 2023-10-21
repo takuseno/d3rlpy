@@ -6,9 +6,9 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
-from ....dataset import Shape
 from ....models.torch import ContinuousEnsembleQFunctionForwarder, Policy
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync, soft_sync
+from ....types import Shape
 from ..base import QLearningAlgoImplBase
 from .utility import ContinuousQFunctionMixin
 

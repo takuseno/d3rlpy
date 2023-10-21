@@ -5,8 +5,8 @@ from d3rlpy.dataset import (
     BasicTransitionPicker,
     FrameStackTransitionPicker,
     MultiStepTransitionPicker,
-    Shape,
 )
+from d3rlpy.types import Shape
 
 from ..testing_utils import create_episode
 

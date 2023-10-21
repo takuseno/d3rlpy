@@ -5,7 +5,6 @@ from typing import Dict, Union
 import torch
 from torch.optim import Optimizer
 
-from ....dataset import Shape
 from ....models.torch import (
     CategoricalPolicy,
     DeterministicPolicy,
@@ -16,6 +15,7 @@ from ....models.torch import (
     compute_stochastic_imitation_loss,
 )
 from ....torch_utility import Modules, TorchMiniBatch
+from ....types import Shape
 from ..base import QLearningAlgoImplBase
 
 __all__ = ["BCImpl", "DiscreteBCImpl", "BCModules", "DiscreteBCModules"]

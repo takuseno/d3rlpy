@@ -4,7 +4,6 @@ from typing import Dict
 import torch
 from torch.optim import Optimizer
 
-from ....dataset import Shape
 from ....models.torch import (
     ConditionalVAE,
     ContinuousEnsembleQFunctionForwarder,
@@ -14,6 +13,7 @@ from ....models.torch import (
     forward_vae_decode,
 )
 from ....torch_utility import TorchMiniBatch, soft_sync
+from ....types import Shape
 from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
 
 __all__ = [

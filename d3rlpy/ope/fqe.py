@@ -4,7 +4,6 @@ from typing import Optional
 from ..algos.qlearning import QLearningAlgoBase, QLearningAlgoImplBase
 from ..base import DeviceArg, LearnableConfig, register_learnable
 from ..constants import ALGO_NOT_GIVEN_ERROR, ActionSpace
-from ..dataset import Observation, Shape
 from ..models.builders import (
     create_continuous_q_function,
     create_discrete_q_function,
@@ -12,7 +11,7 @@ from ..models.builders import (
 from ..models.encoders import EncoderFactory, make_encoder_field
 from ..models.optimizers import OptimizerFactory, make_optimizer_field
 from ..models.q_functions import QFunctionFactory, make_q_func_field
-from ..types import NDArray
+from ..types import NDArray, Observation, Shape
 from .torch.fqe_impl import (
     DiscreteFQEImpl,
     FQEBaseImpl,

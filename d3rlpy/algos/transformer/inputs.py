@@ -5,7 +5,6 @@ import numpy as np
 import torch
 
 from ...dataset import (
-    ObservationSequence,
     batch_pad_array,
     batch_pad_observations,
     get_axis_size,
@@ -13,7 +12,7 @@ from ...dataset import (
 )
 from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import convert_to_torch, convert_to_torch_recursively
-from ...types import NDArray
+from ...types import NDArray, ObservationSequence
 
 __all__ = ["TransformerInput", "TorchTransformerInput"]
 

@@ -6,9 +6,9 @@ from torch import nn
 from torch.optim import Optimizer
 
 from ....dataclass_utils import asdict_as_float
-from ....dataset import Shape
 from ....models.torch import DiscreteEnsembleQFunctionForwarder
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync
+from ....types import Shape
 from ..base import QLearningAlgoImplBase
 from .utility import DiscreteQFunctionMixin
 

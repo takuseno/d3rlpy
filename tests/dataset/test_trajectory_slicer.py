@@ -7,8 +7,8 @@ from d3rlpy.dataset import (
     BasicTrajectorySlicer,
     FrameStackTrajectorySlicer,
     FrameStackTransitionPicker,
-    Shape,
 )
+from d3rlpy.types import Shape
 
 from ..testing_utils import create_episode
 

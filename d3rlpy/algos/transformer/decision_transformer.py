@@ -4,7 +4,6 @@ import torch
 
 from ...base import DeviceArg, register_learnable
 from ...constants import ActionSpace, PositionEncodingType
-from ...dataset import Shape
 from ...models import (
     EncoderFactory,
     OptimizerFactory,
@@ -15,6 +14,7 @@ from ...models.builders import (
     create_continuous_decision_transformer,
     create_discrete_decision_transformer,
 )
+from ...types import Shape
 from .base import TransformerAlgoBase, TransformerConfig
 from .torch.decision_transformer_impl import (
     DecisionTransformerImpl,

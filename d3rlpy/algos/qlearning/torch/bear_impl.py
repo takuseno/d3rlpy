@@ -4,7 +4,6 @@ from typing import Dict, Optional
 import torch
 from torch.optim import Optimizer
 
-from ....dataset import Shape
 from ....models.torch import (
     ConditionalVAE,
     ContinuousEnsembleQFunctionForwarder,
@@ -15,6 +14,7 @@ from ....models.torch import (
     forward_vae_sample_n,
 )
 from ....torch_utility import TorchMiniBatch
+from ....types import Shape
 from .sac_impl import SACImpl, SACModules
 
 __all__ = ["BEARImpl", "BEARModules"]

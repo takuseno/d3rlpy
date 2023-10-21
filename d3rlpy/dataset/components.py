@@ -5,8 +5,7 @@ import numpy as np
 from typing_extensions import Protocol
 
 from ..constants import ActionSpace
-from ..types import DType, NDArray
-from .types import Observation, ObservationSequence
+from ..types import DType, NDArray, Observation, ObservationSequence
 from .utils import (
     get_dtype_from_observation,
     get_dtype_from_observation_sequence,

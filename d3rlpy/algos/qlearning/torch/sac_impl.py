@@ -7,7 +7,6 @@ import torch.nn.functional as F
 from torch import nn
 from torch.optim import Optimizer
 
-from ....dataset import Shape
 from ....models.torch import (
     CategoricalPolicy,
     ContinuousEnsembleQFunctionForwarder,
@@ -18,6 +17,7 @@ from ....models.torch import (
     build_squashed_gaussian_distribution,
 )
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync
+from ....types import Shape
 from ..base import QLearningAlgoImplBase
 from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
 from .utility import DiscreteQFunctionMixin

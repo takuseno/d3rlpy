@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
 
-from ..dataset import Shape, cast_flat_shape
+from ..dataset import cast_flat_shape
 from ..serializable_config import DynamicConfig, generate_config_registration
+from ..types import Shape
 from .torch import (
     Encoder,
     EncoderWithAction,

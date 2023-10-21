@@ -10,7 +10,7 @@ from typing_extensions import Self
 
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
-from ...dataset import Observation, ReplayBuffer, TrajectoryMiniBatch
+from ...dataset import ReplayBuffer, TrajectoryMiniBatch
 from ...envs import GymEnv
 from ...logging import (
     LOG,
@@ -20,7 +20,7 @@ from ...logging import (
 )
 from ...metrics import evaluate_transformer_with_environment
 from ...torch_utility import TorchTrajectoryMiniBatch, train_api
-from ...types import NDArray
+from ...types import NDArray, Observation
 from ..utility import (
     assert_action_space_with_dataset,
     build_scalers_with_trajectory_slicer,

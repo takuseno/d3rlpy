@@ -3,7 +3,8 @@ import os
 import numpy as np
 import pytest
 
-from d3rlpy.dataset import Episode, Shape, dump, load
+from d3rlpy.dataset import Episode, dump, load
+from d3rlpy.types import Shape
 
 from ..testing_utils import create_episode
 

@@ -9,8 +9,8 @@ from d3rlpy.dataset import (
     ExperienceWriter,
     InfiniteBuffer,
     LastFrameWriterPreprocess,
-    Shape,
 )
+from d3rlpy.types import Shape
 
 from ..testing_utils import create_episode, create_observation
 

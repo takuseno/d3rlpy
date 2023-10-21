@@ -6,7 +6,6 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
-from ....dataset import Shape
 from ....models.torch import (
     CategoricalPolicy,
     ConditionalVAE,
@@ -19,6 +18,7 @@ from ....models.torch import (
     forward_vae_decode,
 )
 from ....torch_utility import TorchMiniBatch, soft_sync
+from ....types import Shape
 from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
 from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 

@@ -5,9 +5,8 @@ import numpy as np
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
-from ...dataset import Observation, Shape
 from ...torch_utility import TorchMiniBatch
-from ...types import NDArray
+from ...types import NDArray, Observation, Shape
 from .base import QLearningAlgoBase
 
 __all__ = [

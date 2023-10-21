@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from d3rlpy.dataset import Shape, TrajectoryMiniBatch, TransitionMiniBatch
+from d3rlpy.dataset import TrajectoryMiniBatch, TransitionMiniBatch
+from d3rlpy.types import Shape
 
 from ..testing_utils import create_partial_trajectory, create_transition
 

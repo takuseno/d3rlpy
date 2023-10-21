@@ -3,7 +3,6 @@ import math
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
-from ...dataset import Shape
 from ...models.builders import (
     create_categorical_policy,
     create_continuous_q_function,
@@ -14,6 +13,7 @@ from ...models.builders import (
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
+from ...types import Shape
 from .base import QLearningAlgoBase
 from .torch.sac_impl import (
     DiscreteSACImpl,

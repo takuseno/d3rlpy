@@ -5,8 +5,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ...dataset import Shape
 from ...itertools import last_flag
+from ...types import Shape
 
 __all__ = [
     "Encoder",

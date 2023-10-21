@@ -6,7 +6,6 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
-from ....dataset import Shape
 from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
@@ -14,6 +13,7 @@ from ....models.torch import (
     build_squashed_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch
+from ....types import Shape
 from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 from .sac_impl import SACImpl, SACModules
 

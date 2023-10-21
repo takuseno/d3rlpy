@@ -2,9 +2,9 @@ from typing import Dict
 
 import torch
 
-from ....dataset import Shape
 from ....models.torch import ContinuousEnsembleQFunctionForwarder
 from ....torch_utility import TorchMiniBatch
+from ....types import Shape
 from .ddpg_impl import DDPGImpl, DDPGModules
 
 __all__ = ["TD3Impl"]

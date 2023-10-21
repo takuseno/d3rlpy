@@ -2,11 +2,11 @@ import dataclasses
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
-from ...dataset import Shape
 from ...models.builders import create_discrete_q_function
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
+from ...types import Shape
 from .base import QLearningAlgoBase
 from .torch.dqn_impl import DQNImpl, DQNModules
 

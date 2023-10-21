@@ -3,9 +3,8 @@ from typing import Optional, Sequence
 import numpy as np
 from typing_extensions import Protocol
 
-from ..types import NDArray
+from ..types import NDArray, ObservationSequence
 from .components import Episode, EpisodeBase
-from .types import ObservationSequence
 from .utils import slice_observations
 
 __all__ = ["EpisodeGeneratorProtocol", "EpisodeGenerator"]

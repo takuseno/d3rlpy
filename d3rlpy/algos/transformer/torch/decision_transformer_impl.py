@@ -6,12 +6,12 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
-from ....dataset import Shape
 from ....models.torch import (
     ContinuousDecisionTransformer,
     DiscreteDecisionTransformer,
 )
 from ....torch_utility import Modules, TorchTrajectoryMiniBatch, eval_api
+from ....types import Shape
 from ..base import TransformerAlgoImplBase
 from ..inputs import TorchTransformerInput
 

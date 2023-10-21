@@ -1,13 +1,12 @@
 from typing import Optional
 
 from ..constants import ActionSpace
-from ..types import NDArray
+from ..types import NDArray, ObservationSequence
 from .buffers import InfiniteBuffer
 from .episode_generator import EpisodeGenerator
 from .replay_buffer import ReplayBuffer
 from .trajectory_slicers import TrajectorySlicerProtocol
 from .transition_pickers import TransitionPickerProtocol
-from .types import ObservationSequence
 
 __all__ = ["MDPDataset"]
 

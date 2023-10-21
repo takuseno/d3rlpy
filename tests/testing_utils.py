@@ -2,14 +2,7 @@ from typing import Optional, Sequence, Tuple, cast, overload
 
 import numpy as np
 
-from d3rlpy.dataset import (
-    Episode,
-    Observation,
-    ObservationSequence,
-    PartialTrajectory,
-    Shape,
-    Transition,
-)
+from d3rlpy.dataset import Episode, PartialTrajectory, Transition
 from d3rlpy.preprocessing import (
     ActionScaler,
     MinMaxActionScaler,
@@ -18,7 +11,7 @@ from d3rlpy.preprocessing import (
     ObservationScaler,
     RewardScaler,
 )
-from d3rlpy.types import DType, NDArray
+from d3rlpy.types import DType, NDArray, Observation, ObservationSequence, Shape
 
 
 @overload

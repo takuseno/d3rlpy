@@ -2,9 +2,8 @@ from typing import Optional, Union
 
 from typing_extensions import Protocol
 
-from .dataset import Observation
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from .types import NDArray
+from .types import NDArray, Observation
 
 __all__ = ["QLearningAlgoProtocol", "StatefulTransformerAlgoProtocol"]
 

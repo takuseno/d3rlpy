@@ -5,7 +5,7 @@ import numpy as np
 from ..constants import ActionSpace
 from ..envs import GymEnv
 from ..logging import LOG
-from ..types import NDArray
+from ..types import NDArray, Observation
 from .buffers import BufferProtocol, FIFOBuffer, InfiniteBuffer
 from .components import (
     DatasetInfo,
@@ -20,7 +20,6 @@ from .io import dump, load
 from .mini_batch import TrajectoryMiniBatch, TransitionMiniBatch
 from .trajectory_slicers import BasicTrajectorySlicer, TrajectorySlicerProtocol
 from .transition_pickers import BasicTransitionPicker, TransitionPickerProtocol
-from .types import Observation
 from .utils import (
     detect_action_size_from_env,
     detect_action_space,
