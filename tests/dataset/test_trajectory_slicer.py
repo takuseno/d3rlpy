@@ -51,8 +51,8 @@ def test_basic_trajectory_slicer(
         assert traj.rewards.shape == (size, 1)
         assert traj.returns_to_go.shape == (size, 1)
         assert traj.terminals.shape == (size, 1)
-        assert traj.timesteps.shape == (size,)
-        assert traj.masks.shape == (size,)
+        assert traj.timesteps.shape == (size,)  # type: ignore
+        assert traj.masks.shape == (size,)  # type: ignore
         assert traj.length == size
 
         # check values
@@ -132,8 +132,8 @@ def test_frame_stack_trajectory_slicer(
         assert traj.rewards.shape == (size, 1)
         assert traj.returns_to_go.shape == (size, 1)
         assert traj.terminals.shape == (size, 1)
-        assert traj.timesteps.shape == (size,)
-        assert traj.masks.shape == (size,)
+        assert traj.timesteps.shape == (size,)  # type: ignore
+        assert traj.masks.shape == (size,)  # type: ignore
         assert traj.length == size
 
         # check values

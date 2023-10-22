@@ -64,10 +64,10 @@ def test_trajectory_mini_batch(
             length,
             *observation_shape,
         )
-    assert batch.actions.shape == (batch_size, length, action_size)
-    assert batch.rewards.shape == (batch_size, length, 1)
-    assert batch.returns_to_go.shape == (batch_size, length, 1)
-    assert batch.terminals.shape == (batch_size, length, 1)
+    assert batch.actions.shape == (batch_size, length, action_size)  # type: ignore
+    assert batch.rewards.shape == (batch_size, length, 1)  # type: ignore
+    assert batch.returns_to_go.shape == (batch_size, length, 1)  # type: ignore
+    assert batch.terminals.shape == (batch_size, length, 1)  # type: ignore
     assert batch.timesteps.shape == (batch_size, length)
     assert batch.masks.shape == (batch_size, length)
     assert batch.length == length

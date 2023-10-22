@@ -212,7 +212,7 @@ def test_torch_mini_batch(
         transition = Transition(
             observation=np.random.random(obs_shape),
             action=np.random.random(action_size),
-            reward=np.random.random((1,)),
+            reward=np.random.random((1,)).astype(np.float32),
             next_observation=np.random.random(obs_shape),
             terminal=0.0,
             interval=1,

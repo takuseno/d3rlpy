@@ -5,7 +5,14 @@ import numpy as np
 from typing_extensions import Protocol
 
 from ..constants import ActionSpace
-from ..types import DType, NDArray, Observation, ObservationSequence
+from ..types import (
+    DType,
+    FloatNDArray,
+    IntNDArray,
+    NDArray,
+    Observation,
+    ObservationSequence,
+)
 from .utils import (
     get_dtype_from_observation,
     get_dtype_from_observation_sequence,
@@ -61,7 +68,7 @@ class Transition:
     """
     observation: Observation  # (...)
     action: NDArray  # (...)
-    reward: NDArray  # (1,)
+    reward: FloatNDArray  # (1,)
     next_observation: Observation  # (...)
     terminal: float
     interval: int
@@ -121,11 +128,11 @@ class PartialTrajectory:
     """
     observations: ObservationSequence  # (L, ...)
     actions: NDArray  # (L, ...)
-    rewards: NDArray  # (L, 1)
-    returns_to_go: NDArray  # (L, 1)
-    terminals: NDArray  # (L, 1)
-    timesteps: NDArray  # (L,)
-    masks: NDArray  # (L,)
+    rewards: FloatNDArray  # (L, 1)
+    returns_to_go: FloatNDArray  # (L, 1)
+    terminals: FloatNDArray  # (L, 1)
+    timesteps: IntNDArray  # (L,)
+    masks: FloatNDArray  # (L,)
     length: int
 
     @property
@@ -195,7 +202,7 @@ class EpisodeBase(Protocol):
         raise NotImplementedError
 
     @property
-    def rewards(self) -> NDArray:
+    def rewards(self) -> FloatNDArray:
         r"""Returns sequence of rewards.
 
         Returns:
@@ -305,7 +312,7 @@ class Episode:
     """
     observations: ObservationSequence
     actions: NDArray
-    rewards: NDArray
+    rewards: FloatNDArray
     terminated: bool
 
     @property

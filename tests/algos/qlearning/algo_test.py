@@ -16,7 +16,7 @@ from d3rlpy.dataset import (
     create_infinite_replay_buffer,
 )
 from d3rlpy.logging import NoopAdapterFactory
-from d3rlpy.types import NDArray
+from d3rlpy.types import FloatNDArray, NDArray
 from tests.base_test import from_json_tester, load_learnable_tester
 
 
@@ -91,8 +91,8 @@ def fit_tester(
     else:
         actions = np.random.randint(action_size, size=(data_size, 1))
 
-    rewards = np.random.random(data_size)
-    terminals = np.zeros(data_size)
+    rewards: FloatNDArray = np.random.random(data_size).astype(np.float32)
+    terminals: FloatNDArray = np.zeros(data_size, dtype=np.float32)
     for i in range(n_episodes):
         terminals[(i + 1) * episode_length - 1] = 1.0
     dataset = create_infinite_replay_buffer(
@@ -149,7 +149,7 @@ def predict_tester(
     x = np.random.random((100, *observation_shape))
     y = algo.predict(x)
     if algo.get_action_type() == ActionSpace.DISCRETE:
-        assert y.shape == (100,)
+        assert y.shape == (100,)  # type: ignore
     else:
         assert y.shape == (100, action_size)
 
@@ -163,7 +163,7 @@ def sample_action_tester(
     x = np.random.random((100, *observation_shape))
     y = algo.sample_action(x)
     if algo.get_action_type() == ActionSpace.DISCRETE:
-        assert y.shape == (100,)
+        assert y.shape == (100,)  # type: ignore
     else:
         assert y.shape == (100, action_size)
 
@@ -235,7 +235,7 @@ def predict_value_tester(
         action = np.random.random((100, action_size))
 
     value = algo.predict_value(x, action)
-    assert value.shape == (100,)
+    assert value.shape == (100,)  # type: ignore
 
 
 def save_and_load_tester(
@@ -283,7 +283,7 @@ def update_tester(
         else:
             observation = np.random.random(observation_shape).astype("f4")
             next_observation = np.random.random(observation_shape).astype("f4")
-        reward = np.random.random((1,))
+        reward: FloatNDArray = np.random.random((1,)).astype(np.float32)
         terminal = np.random.randint(2)
         if algo.get_action_type() == ActionSpace.DISCRETE:
             action = np.random.randint(action_size, size=(1,))

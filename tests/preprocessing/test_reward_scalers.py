@@ -17,6 +17,7 @@ from d3rlpy.preprocessing import (
     ReturnBasedRewardScaler,
     StandardRewardScaler,
 )
+from d3rlpy.types import FloatNDArray
 
 
 @pytest.mark.parametrize("batch_size", [32])
@@ -135,8 +136,8 @@ def test_min_max_reward_scaler_with_transition_picker(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size))
-    rewards = np.random.random(batch_size)
-    terminals = np.zeros(batch_size)
+    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[-1] = 1.0
 
     episodes = EpisodeGenerator(
@@ -167,8 +168,8 @@ def test_min_max_reward_scaler_with_trajectory_slicer(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size))
-    rewards = np.random.random(batch_size)
-    terminals = np.zeros(batch_size)
+    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[-1] = 1.0
 
     episodes = EpisodeGenerator(
@@ -243,8 +244,8 @@ def test_standard_reward_scaler_with_transition_picker(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size))
-    rewards = np.random.random(batch_size).astype("f4")
-    terminals = np.zeros(batch_size)
+    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[-1] = 1.0
 
     episodes = EpisodeGenerator(
@@ -283,8 +284,8 @@ def test_standard_reward_scaler_with_trajectory_slicer(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size))
-    rewards = np.random.random(batch_size).astype("f4")
-    terminals = np.zeros(batch_size)
+    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[-1] = 1.0
 
     episodes = EpisodeGenerator(
@@ -356,8 +357,8 @@ def test_return_based_reward_scaler_with_transition_picker(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size))
-    rewards = np.random.random(batch_size).astype("f4")
-    terminals = np.zeros(batch_size)
+    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[batch_size // 2] = 1.0
     terminals[-1] = 1.0
 
@@ -390,8 +391,8 @@ def test_return_based_reward_scaler_with_trajectory_slicer(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size))
-    rewards = np.random.random(batch_size).astype("f4")
-    terminals = np.zeros(batch_size)
+    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[batch_size // 2] = 1.0
     terminals[-1] = 1.0
 
@@ -418,7 +419,7 @@ def test_return_based_reward_scaler_with_trajectory_slicer(
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("shift", [-1])
 def test_constant_shift_reward_scaler(batch_size: int, shift: float) -> None:
-    rewards = np.random.random(batch_size).astype("f4") * 2 - 1
+    rewards = np.random.random(batch_size).astype(np.float32) * 2 - 1
 
     scaler = ConstantShiftRewardScaler(shift)
     assert scaler.built

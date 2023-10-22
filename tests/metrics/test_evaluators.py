@@ -28,7 +28,7 @@ from d3rlpy.preprocessing import (
     ObservationScaler,
     RewardScaler,
 )
-from d3rlpy.types import NDArray, Observation
+from d3rlpy.types import FloatNDArray, NDArray, Observation
 
 from ..testing_utils import create_episode
 
@@ -653,7 +653,9 @@ def test_compare_continuous_action_diff(
     for _ in range(n_episodes):
         observations = np.random.random((episode_length, *observation_shape))
         actions = np.random.random((episode_length, action_size))
-        rewards = np.random.random((episode_length, 1))
+        rewards: FloatNDArray = np.random.random((episode_length, 1)).astype(
+            np.float32
+        )
         episode = Episode(
             observations.astype("f4"),
             actions,
@@ -718,7 +720,9 @@ def test_compare_discrete_action_diff(
     for _ in range(n_episodes):
         observations = np.random.random((episode_length, *observation_shape))
         actions = np.random.random((episode_length, action_size))
-        rewards = np.random.random((episode_length, 1))
+        rewards: FloatNDArray = np.random.random((episode_length, 1)).astype(
+            np.float32
+        )
         episode = Episode(
             observations.astype("f4"),
             actions,

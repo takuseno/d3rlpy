@@ -27,7 +27,7 @@ from .dataset import (
 )
 from .envs import ChannelFirst, FrameStack
 from .logging import LOG
-from .types import NDArray
+from .types import NDArray, UInt8NDArray
 
 __all__ = [
     "DATA_DIRECTORY",
@@ -162,7 +162,7 @@ def get_pendulum(
 def _stack_frames(episode: Episode, num_stack: int) -> Episode:
     assert isinstance(episode.observations, np.ndarray)
     episode_length = episode.observations.shape[0]
-    observations = np.zeros(
+    observations: UInt8NDArray = np.zeros(
         (episode_length, num_stack, 84, 84),
         dtype=np.uint8,
     )

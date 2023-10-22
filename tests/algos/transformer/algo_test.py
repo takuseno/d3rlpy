@@ -21,7 +21,7 @@ from d3rlpy.dataset import (
     create_infinite_replay_buffer,
 )
 from d3rlpy.logging import NoopAdapterFactory
-from d3rlpy.types import NDArray
+from d3rlpy.types import FloatNDArray, NDArray
 from tests.base_test import from_json_tester, load_learnable_tester
 
 
@@ -67,8 +67,8 @@ def fit_tester(
     else:
         actions = np.random.randint(action_size, size=(data_size, 1))
 
-    rewards = np.random.random(data_size)
-    terminals = np.zeros(data_size)
+    rewards: FloatNDArray = np.random.random(data_size).astype(np.float32)
+    terminals: FloatNDArray = np.zeros(data_size, dtype=np.float32)
     for i in range(n_episodes):
         terminals[(i + 1) * episode_length - 1] = 1.0
     dataset = create_infinite_replay_buffer(
@@ -113,15 +113,15 @@ def predict_tester(
     inpt = TransformerInput(
         observations=np.random.random((context_size, *observation_shape)),
         actions=actions,
-        rewards=np.random.random((context_size, 1)),
-        returns_to_go=np.random.random((context_size, 1)),
+        rewards=np.random.random((context_size, 1)).astype(np.float32),
+        returns_to_go=np.random.random((context_size, 1)).astype(np.float32),
         timesteps=np.arange(context_size),
     )
     y = algo.predict(inpt)
     if algo.get_action_type() == ActionSpace.DISCRETE:
-        assert y.shape == (action_size,)
+        assert y.shape == (action_size,)  # type: ignore
     else:
-        assert y.shape == (action_size,)
+        assert y.shape == (action_size,)  # type: ignore
 
 
 def save_and_load_tester(
@@ -168,8 +168,9 @@ def update_tester(
             observations = np.random.random(
                 (context_size, *observation_shape)
             ).astype("f4")
-        rewards = np.random.random((context_size, 1))
-        terminals = np.random.random((context_size, 1))
+        rewards: FloatNDArray = np.random.random((context_size, 1)).astype(
+            np.float32
+        )
         if algo.get_action_type() == ActionSpace.DISCRETE:
             actions = np.random.randint(action_size, size=(context_size, 1))
         else:
@@ -179,10 +180,10 @@ def update_tester(
             observations=observations,
             actions=actions,
             rewards=rewards,
-            terminals=terminals,
+            terminals=np.random.random((context_size, 1)).astype(np.float32),
             returns_to_go=rewards,
             timesteps=np.arange(context_size),
-            masks=np.zeros(context_size),
+            masks=np.zeros(context_size, dtype=np.float32),
             length=context_size,
         )
         trajectories.append(trajectory)
@@ -225,7 +226,7 @@ def stateful_wrapper_tester(
             assert isinstance(action, int)
         else:
             assert isinstance(action, np.ndarray)
-            assert action.shape == (action_size,)
+            assert action.shape == (action_size,)  # type: ignore
     wrapper.reset()
 
     # check reset

@@ -12,7 +12,7 @@ from ...dataset import (
 )
 from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import convert_to_torch, convert_to_torch_recursively
-from ...types import NDArray, ObservationSequence
+from ...types import FloatNDArray, IntNDArray, NDArray, ObservationSequence
 
 __all__ = ["TransformerInput", "TorchTransformerInput"]
 
@@ -21,9 +21,9 @@ __all__ = ["TransformerInput", "TorchTransformerInput"]
 class TransformerInput:
     observations: ObservationSequence  # (L, ...)
     actions: NDArray  # (L, ...)
-    rewards: NDArray  # (L, 1)
-    returns_to_go: NDArray  # (L, 1)
-    timesteps: NDArray  # (L,)
+    rewards: FloatNDArray  # (L, 1)
+    returns_to_go: FloatNDArray  # (L, 1)
+    timesteps: IntNDArray  # (L,)
 
     def __post_init__(self) -> None:
         # check sequence size
@@ -58,6 +58,7 @@ class TorchTransformerInput:
         action_scaler: Optional[ActionScaler] = None,
         reward_scaler: Optional[RewardScaler] = None,
     ) -> "TorchTransformerInput":
+        masks: FloatNDArray
         if context_size < inpt.length:
             observations = slice_observations(
                 inpt.observations, inpt.length - context_size, inpt.length

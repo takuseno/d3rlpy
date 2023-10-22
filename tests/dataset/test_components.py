@@ -44,11 +44,11 @@ def test_partial_trajectory(
     trajectory = PartialTrajectory(
         observations=np.random.random((data_size, observation_size)),
         actions=np.random.random((data_size, action_size)),
-        rewards=np.random.random((data_size, 1)),
-        returns_to_go=np.random.random((data_size, 1)),
-        terminals=np.zeros((data_size, 1)),
+        rewards=np.random.random((data_size, 1)).astype(np.float32),
+        returns_to_go=np.random.random((data_size, 1)).astype(np.float32),
+        terminals=np.zeros((data_size, 1), dtype=np.float32),
         timesteps=np.arange(data_size),
-        masks=np.ones(data_size),
+        masks=np.ones(data_size, dtype=np.float32),
         length=data_size,
     )
     assert trajectory.observation_signature.shape[0] == (observation_size,)
@@ -67,7 +67,7 @@ def test_episode(
     episode = Episode(
         observations=np.random.random((data_size, observation_size)),
         actions=np.random.random((data_size, action_size)),
-        rewards=np.random.random((data_size, 1)),
+        rewards=np.random.random((data_size, 1)).astype(np.float32),
         terminated=terminated,
     )
     assert episode.observation_signature.shape[0] == (observation_size,)

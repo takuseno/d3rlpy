@@ -11,7 +11,14 @@ from d3rlpy.preprocessing import (
     ObservationScaler,
     RewardScaler,
 )
-from d3rlpy.types import DType, NDArray, Observation, ObservationSequence, Shape
+from d3rlpy.types import (
+    DType,
+    FloatNDArray,
+    NDArray,
+    Observation,
+    ObservationSequence,
+    Shape,
+)
 
 
 @overload
@@ -91,7 +98,7 @@ def create_episode(
     return Episode(
         observations=observations,
         actions=actions,
-        rewards=np.random.random((length, 1)),
+        rewards=np.random.random((length, 1)).astype(np.float32),
         terminated=terminated,
     )
 
@@ -122,7 +129,7 @@ def create_transition(
     return Transition(
         observation=observation,
         action=action,
-        reward=np.random.random(1),
+        reward=np.random.random(1).astype(np.float32),
         next_observation=next_observation,
         terminal=1.0 if terminated else 0.0,
         interval=1,
@@ -143,16 +150,16 @@ def create_partial_trajectory(
     else:
         actions = np.random.random((length, action_size))
 
-    rewards = np.random.random((length, 1))
+    rewards: FloatNDArray = np.random.random((length, 1)).astype(np.float32)
 
     return PartialTrajectory(
         observations=observations,
         actions=actions,
         rewards=rewards,
         returns_to_go=np.reshape(np.cumsum(rewards), [-1, 1]),
-        terminals=np.zeros((length, 1)),
+        terminals=np.zeros((length, 1), dtype=np.float32),
         timesteps=np.arange(length),
-        masks=np.ones(length),
+        masks=np.ones(length, dtype=np.float32),
         length=length,
     )
 

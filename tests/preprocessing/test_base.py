@@ -13,4 +13,4 @@ def test_add_leading_dims() -> None:
 def test_add_leading_dims_numpy() -> None:
     x = np.random.random(3)
     target = np.random.random((1, 2, 3))
-    assert add_leading_dims_numpy(x, target).shape == (1, 1, 3)
+    assert add_leading_dims_numpy(x, target).shape == (1, 1, 3)  # type: ignore

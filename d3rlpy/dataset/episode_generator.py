@@ -3,7 +3,7 @@ from typing import Optional, Sequence
 import numpy as np
 from typing_extensions import Protocol
 
-from ..types import NDArray, ObservationSequence
+from ..types import FloatNDArray, NDArray, ObservationSequence
 from .components import Episode, EpisodeBase
 from .utils import slice_observations
 
@@ -34,17 +34,17 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
     """
     _observations: ObservationSequence
     _actions: NDArray
-    _rewards: NDArray
-    _terminals: NDArray
-    _timeouts: NDArray
+    _rewards: FloatNDArray
+    _terminals: FloatNDArray
+    _timeouts: FloatNDArray
 
     def __init__(
         self,
         observations: ObservationSequence,
         actions: NDArray,
-        rewards: NDArray,
-        terminals: NDArray,
-        timeouts: Optional[NDArray] = None,
+        rewards: FloatNDArray,
+        terminals: FloatNDArray,
+        timeouts: Optional[FloatNDArray] = None,
     ):
         if actions.ndim == 1:
             actions = np.reshape(actions, [-1, 1])

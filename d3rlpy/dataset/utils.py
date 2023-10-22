@@ -1,6 +1,7 @@
-from typing import Sequence, TypeVar, Union, overload
+from typing import Any, Sequence, Type, TypeVar, Union, overload
 
 import numpy as np
+import numpy.typing as npt
 from gym.spaces import Box, Discrete
 from gymnasium.spaces import Box as GymnasiumBox
 from gymnasium.spaces import Discrete as GymnasiumDiscrete
@@ -102,7 +103,12 @@ def slice_observations(
         raise ValueError(f"invalid observation type: {type(observations)}")
 
 
-def batch_pad_array(array: NDArray, pad_size: int) -> NDArray:
+_TDType = TypeVar("_TDType", bound=Any)
+
+
+def batch_pad_array(
+    array: npt.NDArray[_TDType], pad_size: int
+) -> npt.NDArray[_TDType]:
     batch_size = array.shape[0]
     shape = array.shape[1:]
     padded_array = np.zeros((pad_size + batch_size, *shape), dtype=array.dtype)
@@ -320,14 +326,27 @@ def check_non_1d_array(array: Union[NDArray, Sequence[NDArray]]) -> bool:
         raise ValueError(f"invalid array type: {type(array)}")
 
 
-_T = TypeVar("_T")
+@overload
+def cast_recursively(
+    array: NDArray, dtype: Type[_TDType]
+) -> npt.NDArray[_TDType]:
+    ...
 
 
-def cast_recursively(array: _T, dtype: DType) -> _T:
+@overload
+def cast_recursively(
+    array: Sequence[NDArray], dtype: Type[_TDType]
+) -> Sequence[npt.NDArray[_TDType]]:
+    ...
+
+
+def cast_recursively(
+    array: Union[NDArray, Sequence[NDArray]], dtype: Type[_TDType]
+) -> Union[npt.NDArray[_TDType], Sequence[npt.NDArray[_TDType]]]:
     if isinstance(array, (list, tuple)):
-        return [array[i].astype(dtype) for i in range(len(array))]  # type: ignore
+        return [array[i].astype(dtype) for i in range(len(array))]
     elif isinstance(array, np.ndarray):
-        return array.astype(dtype)  # type: ignore
+        return array.astype(dtype)
     else:
         raise ValueError(f"invalid array type: {type(array)}")
 

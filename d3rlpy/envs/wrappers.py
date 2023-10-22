@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Any, Deque, Dict, Optional, Tuple, TypeVar
+from typing import Any, Deque, Dict, Optional, Sequence, Tuple, TypeVar
 
 import gym
 import numpy as np
@@ -173,6 +173,7 @@ class AtariPreprocessing(gym.Wrapper[NDArray, int]):
             FrameStack Wrapper.
 
     """
+    _obs_buffer: Sequence[NDArray]
 
     def __init__(
         self,
@@ -213,12 +214,12 @@ class AtariPreprocessing(gym.Wrapper[NDArray, int]):
         shape = env.observation_space.shape
         assert shape is not None
         if grayscale_obs:
-            self.obs_buffer = [
+            self._obs_buffer = [
                 np.empty(shape[:2], dtype=np.uint8),
                 np.empty(shape[:2], dtype=np.uint8),
             ]
         else:
-            self.obs_buffer = [
+            self._obs_buffer = [
                 np.empty(shape, dtype=np.uint8),
                 np.empty(shape, dtype=np.uint8),
             ]
@@ -256,14 +257,14 @@ class AtariPreprocessing(gym.Wrapper[NDArray, int]):
                 break
             if t == self.frame_skip - 2:
                 if self.grayscale_obs:
-                    self.ale.getScreenGrayscale(self.obs_buffer[1])
+                    self.ale.getScreenGrayscale(self._obs_buffer[1])
                 else:
-                    self.ale.getScreenRGB2(self.obs_buffer[1])
+                    self.ale.getScreenRGB2(self._obs_buffer[1])
             elif t == self.frame_skip - 1:
                 if self.grayscale_obs:
-                    self.ale.getScreenGrayscale(self.obs_buffer[0])
+                    self.ale.getScreenGrayscale(self._obs_buffer[0])
                 else:
-                    self.ale.getScreenRGB2(self.obs_buffer[0])
+                    self.ale.getScreenRGB2(self._obs_buffer[0])
 
         return self._get_obs(), R, done, truncated, info
 
@@ -287,19 +288,21 @@ class AtariPreprocessing(gym.Wrapper[NDArray, int]):
 
         self.lives = self.ale.lives()
         if self.grayscale_obs:
-            self.ale.getScreenGrayscale(self.obs_buffer[0])
+            self.ale.getScreenGrayscale(self._obs_buffer[0])
         else:
-            self.ale.getScreenRGB2(self.obs_buffer[0])
-        self.obs_buffer[1].fill(0)
+            self.ale.getScreenRGB2(self._obs_buffer[0])
+        self._obs_buffer[1].fill(0)
         return self._get_obs(), info
 
     def _get_obs(self) -> NDArray:
         if self.frame_skip > 1:  # more efficient in-place pooling
             np.maximum(
-                self.obs_buffer[0], self.obs_buffer[1], out=self.obs_buffer[0]
+                self._obs_buffer[0],
+                self._obs_buffer[1],
+                out=self._obs_buffer[0],
             )
         obs = cv2.resize(
-            self.obs_buffer[0],
+            self._obs_buffer[0],
             (self.screen_size, self.screen_size),
             interpolation=cv2.INTER_AREA,
         )
