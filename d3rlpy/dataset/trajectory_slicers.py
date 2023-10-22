@@ -1,7 +1,7 @@
 import numpy as np
 from typing_extensions import Protocol
 
-from ..types import FloatNDArray, IntNDArray
+from ..types import Float32NDArray, Int32NDArray
 from .components import EpisodeBase, PartialTrajectory
 from .utils import batch_pad_array, batch_pad_observations, slice_observations
 
@@ -49,7 +49,7 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
         actual_size = end - start
 
         # prepare terminal flags
-        terminals: FloatNDArray = np.zeros((actual_size, 1), dtype=np.float32)
+        terminals: Float32NDArray = np.zeros((actual_size, 1), dtype=np.float32)
         if episode.terminated and end_index == episode.size() - 1:
             terminals[-1][0] = 1.0
 
@@ -62,8 +62,8 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
         returns_to_go = all_returns_to_go[:actual_size].reshape((-1, 1))
 
         # prepare metadata
-        timesteps: IntNDArray = np.arange(start, end) + 1
-        masks: FloatNDArray = np.ones(end - start, dtype=np.float32)
+        timesteps: Int32NDArray = np.arange(start, end) + 1
+        masks: Float32NDArray = np.ones(end - start, dtype=np.float32)
 
         # compute backward padding size
         pad_size = size - actual_size
@@ -130,7 +130,7 @@ class FrameStackTrajectorySlicer(TrajectorySlicerProtocol):
         actual_size = end - start
 
         # prepare terminal flags
-        terminals: FloatNDArray = np.zeros((actual_size, 1), dtype=np.float32)
+        terminals: Float32NDArray = np.zeros((actual_size, 1), dtype=np.float32)
         if episode.terminated and end_index == episode.size() - 1:
             terminals[-1][0] = 1.0
 
@@ -172,8 +172,8 @@ class FrameStackTrajectorySlicer(TrajectorySlicerProtocol):
         returns_to_go = all_returns_to_go[:actual_size].reshape((-1, 1))
 
         # prepare metadata
-        timesteps: IntNDArray = np.arange(start, end) + 1
-        masks: FloatNDArray = np.ones(end - start, dtype=np.float32)
+        timesteps: Int32NDArray = np.arange(start, end) + 1
+        masks: Float32NDArray = np.ones(end - start, dtype=np.float32)
 
         # compute backward padding size
         pad_size = size - actual_size

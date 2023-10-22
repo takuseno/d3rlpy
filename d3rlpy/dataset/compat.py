@@ -1,7 +1,7 @@
 from typing import Optional
 
 from ..constants import ActionSpace
-from ..types import FloatNDArray, NDArray, ObservationSequence
+from ..types import Float32NDArray, NDArray, ObservationSequence
 from .buffers import InfiniteBuffer
 from .episode_generator import EpisodeGenerator
 from .replay_buffer import ReplayBuffer
@@ -41,9 +41,9 @@ class MDPDataset(ReplayBuffer):
         self,
         observations: ObservationSequence,
         actions: NDArray,
-        rewards: FloatNDArray,
-        terminals: FloatNDArray,
-        timeouts: Optional[FloatNDArray] = None,
+        rewards: Float32NDArray,
+        terminals: Float32NDArray,
+        timeouts: Optional[Float32NDArray] = None,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         action_space: Optional[ActionSpace] = None,

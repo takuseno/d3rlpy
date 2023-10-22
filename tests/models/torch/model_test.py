@@ -7,7 +7,7 @@ from torch.optim import SGD
 
 from d3rlpy.models.torch import ActionOutput, QFunctionOutput
 from d3rlpy.models.torch.encoders import Encoder, EncoderWithAction
-from d3rlpy.types import FloatNDArray, NDArray
+from d3rlpy.types import Float32NDArray, NDArray
 
 
 def check_parameter_updates(
@@ -61,7 +61,7 @@ def ref_quantile_huber_loss(
     huber_diff[abs_diff < 1.0] = 0.5 * l2_diff[abs_diff < 1.0]
     huber_diff[abs_diff >= 1.0] = abs_diff[abs_diff >= 1.0] - 0.5
     huber_diff = huber_diff.reshape((-1, n_quantiles, n_quantiles))
-    delta: FloatNDArray = np.array((b - a) < 0.0, dtype=np.float32)
+    delta: Float32NDArray = np.array((b - a) < 0.0, dtype=np.float32)
     element_wise_loss = np.abs(taus - delta) * huber_diff
     return element_wise_loss.sum(axis=2).mean(axis=1)  # type: ignore
 

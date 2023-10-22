@@ -14,7 +14,7 @@ from d3rlpy.preprocessing import (
     PixelObservationScaler,
     StandardObservationScaler,
 )
-from d3rlpy.types import FloatNDArray
+from d3rlpy.types import Float32NDArray
 
 from ..dummy_env import DummyAtari
 
@@ -88,8 +88,8 @@ def test_min_max_observation_scaler_with_transition_picker(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1))
-    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
-    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
+    rewards: Float32NDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: Float32NDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[-1] = 1.0
 
     episodes = EpisodeGenerator(
@@ -119,8 +119,8 @@ def test_min_max_observation_scaler_with_trajectory_slicer(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1))
-    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
-    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
+    rewards: Float32NDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: Float32NDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[-1] = 1.0
 
     episodes = EpisodeGenerator(
@@ -203,8 +203,8 @@ def test_standard_observation_scaler_with_transition_picker(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1)).astype("f4")
-    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
-    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
+    rewards: Float32NDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: Float32NDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[-1] = 1.0
 
     episodes = EpisodeGenerator(
@@ -235,8 +235,8 @@ def test_standard_observation_scaler_with_trajectory_slicer(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape).astype("f4")
     actions = np.random.random((batch_size, 1)).astype("f4")
-    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
-    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
+    rewards: Float32NDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: Float32NDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[-1] = 1.0
 
     episodes = EpisodeGenerator(

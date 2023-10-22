@@ -13,7 +13,7 @@ from d3rlpy.preprocessing import (
 )
 from d3rlpy.types import (
     DType,
-    FloatNDArray,
+    Float32NDArray,
     NDArray,
     Observation,
     ObservationSequence,
@@ -150,7 +150,7 @@ def create_partial_trajectory(
     else:
         actions = np.random.random((length, action_size))
 
-    rewards: FloatNDArray = np.random.random((length, 1)).astype(np.float32)
+    rewards: Float32NDArray = np.random.random((length, 1)).astype(np.float32)
 
     return PartialTrajectory(
         observations=observations,

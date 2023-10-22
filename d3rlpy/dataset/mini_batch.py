@@ -3,7 +3,7 @@ from typing import Sequence, Union
 
 import numpy as np
 
-from ..types import FloatNDArray, Shape
+from ..types import Float32NDArray, Shape
 from .components import PartialTrajectory, Transition
 from .utils import (
     cast_recursively,
@@ -29,12 +29,14 @@ class TransitionMiniBatch:
         intervals: Batched timesteps between observations and next
             observations.
     """
-    observations: Union[FloatNDArray, Sequence[FloatNDArray]]  # (B, ...)
-    actions: FloatNDArray  # (B, ...)
-    rewards: FloatNDArray  # (B, 1)
-    next_observations: Union[FloatNDArray, Sequence[FloatNDArray]]  # (B, ...)
-    terminals: FloatNDArray  # (B, 1)
-    intervals: FloatNDArray  # (B, 1)
+    observations: Union[Float32NDArray, Sequence[Float32NDArray]]  # (B, ...)
+    actions: Float32NDArray  # (B, ...)
+    rewards: Float32NDArray  # (B, 1)
+    next_observations: Union[
+        Float32NDArray, Sequence[Float32NDArray]
+    ]  # (B, ...)
+    terminals: Float32NDArray  # (B, 1)
+    intervals: Float32NDArray  # (B, 1)
 
     def __post_init__(self) -> None:
         assert check_non_1d_array(self.observations)
@@ -136,13 +138,13 @@ class TrajectoryMiniBatch:
         masks: Batched masks that represent padding.
         length: Length of trajectories.
     """
-    observations: Union[FloatNDArray, Sequence[FloatNDArray]]  # (B, L, ...)
-    actions: FloatNDArray  # (B, L, ...)
-    rewards: FloatNDArray  # (B, L, 1)
-    returns_to_go: FloatNDArray  # (B, L, 1)
-    terminals: FloatNDArray  # (B, L, 1)
-    timesteps: FloatNDArray  # (B, L)
-    masks: FloatNDArray  # (B, L)
+    observations: Union[Float32NDArray, Sequence[Float32NDArray]]  # (B, L, ...)
+    actions: Float32NDArray  # (B, L, ...)
+    rewards: Float32NDArray  # (B, L, 1)
+    returns_to_go: Float32NDArray  # (B, L, 1)
+    terminals: Float32NDArray  # (B, L, 1)
+    timesteps: Float32NDArray  # (B, L)
+    masks: Float32NDArray  # (B, L)
     length: int
 
     def __post_init__(self) -> None:

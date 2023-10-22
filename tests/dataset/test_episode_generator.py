@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from d3rlpy.dataset import EpisodeGenerator
-from d3rlpy.types import FloatNDArray, Shape
+from d3rlpy.types import Float32NDArray, Shape
 
 from ..testing_utils import create_observations
 
@@ -16,9 +16,9 @@ def test_episode_generator(
 ) -> None:
     observations = create_observations(observation_shape, length)
     actions = np.random.random((length, action_size))
-    rewards: FloatNDArray = np.random.random((length, 1)).astype(np.float32)
-    terminals: FloatNDArray = np.zeros(length, dtype=np.float32)
-    timeouts: FloatNDArray = np.zeros(length, dtype=np.float32)
+    rewards: Float32NDArray = np.random.random((length, 1)).astype(np.float32)
+    terminals: Float32NDArray = np.zeros(length, dtype=np.float32)
+    timeouts: Float32NDArray = np.zeros(length, dtype=np.float32)
     for i in range(length // 100):
         if terminal:
             terminals[(i + 1) * 100 - 1] = 1.0

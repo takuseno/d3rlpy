@@ -7,8 +7,8 @@ from typing_extensions import Protocol
 from ..constants import ActionSpace
 from ..types import (
     DType,
-    FloatNDArray,
-    IntNDArray,
+    Float32NDArray,
+    Int32NDArray,
     NDArray,
     Observation,
     ObservationSequence,
@@ -68,7 +68,7 @@ class Transition:
     """
     observation: Observation  # (...)
     action: NDArray  # (...)
-    reward: FloatNDArray  # (1,)
+    reward: Float32NDArray  # (1,)
     next_observation: Observation  # (...)
     terminal: float
     interval: int
@@ -128,11 +128,11 @@ class PartialTrajectory:
     """
     observations: ObservationSequence  # (L, ...)
     actions: NDArray  # (L, ...)
-    rewards: FloatNDArray  # (L, 1)
-    returns_to_go: FloatNDArray  # (L, 1)
-    terminals: FloatNDArray  # (L, 1)
-    timesteps: IntNDArray  # (L,)
-    masks: FloatNDArray  # (L,)
+    rewards: Float32NDArray  # (L, 1)
+    returns_to_go: Float32NDArray  # (L, 1)
+    terminals: Float32NDArray  # (L, 1)
+    timesteps: Int32NDArray  # (L,)
+    masks: Float32NDArray  # (L,)
     length: int
 
     @property
@@ -202,7 +202,7 @@ class EpisodeBase(Protocol):
         raise NotImplementedError
 
     @property
-    def rewards(self) -> FloatNDArray:
+    def rewards(self) -> Float32NDArray:
         r"""Returns sequence of rewards.
 
         Returns:
@@ -312,7 +312,7 @@ class Episode:
     """
     observations: ObservationSequence
     actions: NDArray
-    rewards: FloatNDArray
+    rewards: Float32NDArray
     terminated: bool
 
     @property

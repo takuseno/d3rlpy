@@ -11,7 +11,7 @@ from d3rlpy.dataset import (
     EpisodeGenerator,
 )
 from d3rlpy.preprocessing import MinMaxActionScaler
-from d3rlpy.types import FloatNDArray
+from d3rlpy.types import Float32NDArray
 
 
 @pytest.mark.parametrize("action_size", [10])
@@ -66,8 +66,8 @@ def test_min_max_action_scaler_with_transition_picker(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size)).astype("f4")
-    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
-    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
+    rewards: Float32NDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: Float32NDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[-1] = 1.0
 
     episodes = EpisodeGenerator(
@@ -100,8 +100,8 @@ def test_min_max_action_scaler_with_trajectory_slicer(
     shape = (batch_size, *observation_shape)
     observations = np.random.random(shape)
     actions = np.random.random((batch_size, action_size)).astype("f4")
-    rewards: FloatNDArray = np.random.random(batch_size).astype(np.float32)
-    terminals: FloatNDArray = np.zeros(batch_size, dtype=np.float32)
+    rewards: Float32NDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: Float32NDArray = np.zeros(batch_size, dtype=np.float32)
     terminals[-1] = 1.0
 
     episodes = EpisodeGenerator(

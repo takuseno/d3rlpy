@@ -5,8 +5,8 @@ import numpy.typing as npt
 
 __all__ = [
     "NDArray",
-    "FloatNDArray",
-    "IntNDArray",
+    "Float32NDArray",
+    "Int32NDArray",
     "UInt8NDArray",
     "DType",
     "Observation",
@@ -16,8 +16,8 @@ __all__ = [
 
 
 NDArray = npt.NDArray[Any]
-FloatNDArray = npt.NDArray[np.float32]
-IntNDArray = npt.NDArray[np.int32]
+Float32NDArray = npt.NDArray[np.float32]
+Int32NDArray = npt.NDArray[np.int32]
 UInt8NDArray = npt.NDArray[np.uint8]
 DType = npt.DTypeLike
 

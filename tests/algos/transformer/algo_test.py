@@ -21,7 +21,7 @@ from d3rlpy.dataset import (
     create_infinite_replay_buffer,
 )
 from d3rlpy.logging import NoopAdapterFactory
-from d3rlpy.types import FloatNDArray, NDArray
+from d3rlpy.types import Float32NDArray, NDArray
 from tests.base_test import from_json_tester, load_learnable_tester
 
 
@@ -67,8 +67,8 @@ def fit_tester(
     else:
         actions = np.random.randint(action_size, size=(data_size, 1))
 
-    rewards: FloatNDArray = np.random.random(data_size).astype(np.float32)
-    terminals: FloatNDArray = np.zeros(data_size, dtype=np.float32)
+    rewards: Float32NDArray = np.random.random(data_size).astype(np.float32)
+    terminals: Float32NDArray = np.zeros(data_size, dtype=np.float32)
     for i in range(n_episodes):
         terminals[(i + 1) * episode_length - 1] = 1.0
     dataset = create_infinite_replay_buffer(
@@ -168,7 +168,7 @@ def update_tester(
             observations = np.random.random(
                 (context_size, *observation_shape)
             ).astype("f4")
-        rewards: FloatNDArray = np.random.random((context_size, 1)).astype(
+        rewards: Float32NDArray = np.random.random((context_size, 1)).astype(
             np.float32
         )
         if algo.get_action_type() == ActionSpace.DISCRETE:
