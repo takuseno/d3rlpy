@@ -81,7 +81,7 @@ class TransitionMiniBatch:
             [-1, 1],
         )
         intervals = np.reshape(
-            np.array([transition.terminal for transition in transitions]),
+            np.array([transition.interval for transition in transitions]),
             [-1, 1],
         )
         return TransitionMiniBatch(

@@ -112,19 +112,25 @@ def create_transition(
     observation: Observation
     next_observation: Observation
     if isinstance(observation_shape[0], (list, tuple)):
-        observation = [np.random.random(shape) for shape in observation_shape]
+        observation = [
+            np.random.random(shape).astype(np.float32)
+            for shape in observation_shape
+        ]
         next_observation = [
-            np.random.random(shape) for shape in observation_shape
+            np.random.random(shape).astype(np.float32)
+            for shape in observation_shape
         ]
     else:
-        observation = np.random.random(observation_shape)
-        next_observation = np.random.random(observation_shape)
+        observation = np.random.random(observation_shape).astype(np.float32)
+        next_observation = np.random.random(observation_shape).astype(
+            np.float32
+        )
 
     action: NDArray
     if discrete_action:
         action = np.random.randint(action_size, size=(1,))
     else:
-        action = np.random.random(action_size)
+        action = np.random.random(action_size).astype(np.float32)
 
     return Transition(
         observation=observation,
