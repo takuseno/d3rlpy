@@ -350,28 +350,26 @@ def play(
 
 @cli.command(short_help="Install additional packages.")
 @click.argument("name")
-def install(name: str) -> None:
+def _install_module(
+    name: list[str], upgrade: bool = False, check: bool = True
+) -> None:
     if name == "atari":
-        subprocess.run(
-            ["pip3", "install", "-U", "gym[atari,accept-rom-license]"],
-            check=True,
-        )
+        _install_module(["gym[atari,accept-rom-license]"], upgrade=True)
     elif name == "d4rl_atari":
-        subprocess.run(["d3rlpy", "install", "atari"], check=True)
-        subprocess.run(
-            ["pip3", "install", "git+https://github.com/takuseno/d4rl-atari"],
-            check=True,
-        )
+        install("atari")
+        _install_module(["git+https://github.com/takuseno/d4rl-atari"])
     elif name == "d4rl":
-        subprocess.run(
-            [
-                "pip3",
-                "install",
-                "git+https://github.com/Farama-Foundation/D4RL",
-            ],
-            check=True,
-        )
-        subprocess.run(["pip3", "install", "-U", "gym"], check=True)
-        subprocess.run(["pip3", "uninstall", "-y", "pybullet"], check=True)
+        _install_module(["git+https://github.com/Farama-Foundation/D4RL"])
+        _install_module(["gym"], upgrade=True)
+        _install_module(["-y", "pybullet"], upgrade=True)
+    elif name == "minari":
+        _install_module(["minari==0.4.2"], upgrade=True)
     else:
         raise ValueError(f"Unsupported command: {name}")
+
+
+def _install_module(
+    name: list[str], upgrade: bool = False, check: bool = True
+) -> None:
+    name = ["-U", *name] if upgrade else name
+    subprocess.run(["pip3", "install", *name], check=check)

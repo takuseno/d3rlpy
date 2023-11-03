@@ -16,3 +16,4 @@ learning algorithms.
    d3rlpy.datasets.get_atari_transitions
    d3rlpy.datasets.get_d4rl
    d3rlpy.datasets.get_dataset
+   d3rlpy.datasets.get_minari
