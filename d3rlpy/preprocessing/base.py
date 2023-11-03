@@ -9,9 +9,8 @@ from ..dataset import (
     TrajectorySlicerProtocol,
     TransitionPickerProtocol,
 )
-from ..envs import GymEnv
 from ..serializable_config import DynamicConfig
-from ..types import NDArray
+from ..types import GymEnv, NDArray
 
 __all__ = ["Scaler", "add_leading_dims", "add_leading_dims_numpy"]
 

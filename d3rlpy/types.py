@@ -1,5 +1,7 @@
 from typing import Any, Sequence, Union
 
+import gym
+import gymnasium
 import numpy as np
 import numpy.typing as npt
 
@@ -12,6 +14,7 @@ __all__ = [
     "Observation",
     "ObservationSequence",
     "Shape",
+    "GymEnv",
 ]
 
 
@@ -24,3 +27,5 @@ DType = npt.DTypeLike
 Observation = Union[NDArray, Sequence[NDArray]]
 ObservationSequence = Union[NDArray, Sequence[NDArray]]
 Shape = Union[Sequence[int], Sequence[Sequence[int]]]
+
+GymEnv = Union[gym.Env[Any, Any], gymnasium.Env[Any, Any]]

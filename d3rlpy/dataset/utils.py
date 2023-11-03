@@ -7,8 +7,14 @@ from gymnasium.spaces import Box as GymnasiumBox
 from gymnasium.spaces import Discrete as GymnasiumDiscrete
 
 from ..constants import ActionSpace
-from ..envs.types import GymEnv
-from ..types import DType, NDArray, Observation, ObservationSequence, Shape
+from ..types import (
+    DType,
+    GymEnv,
+    NDArray,
+    Observation,
+    ObservationSequence,
+    Shape,
+)
 
 __all__ = [
     "retrieve_observation",

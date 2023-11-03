@@ -14,7 +14,7 @@ def main() -> None:
     parser.add_argument("--gpu", type=int)
     args = parser.parse_args()
 
-    dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
+    dataset, env = d3rlpy.datasets.get_minari(args.dataset)
 
     # fix seed
     d3rlpy.seed(args.seed)

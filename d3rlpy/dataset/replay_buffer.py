@@ -3,9 +3,8 @@ from typing import BinaryIO, List, Optional, Sequence, Type, Union
 import numpy as np
 
 from ..constants import ActionSpace
-from ..envs import GymEnv
 from ..logging import LOG
-from ..types import NDArray, Observation
+from ..types import GymEnv, NDArray, Observation
 from .buffers import BufferProtocol, FIFOBuffer, InfiniteBuffer
 from .components import (
     DatasetInfo,

@@ -27,7 +27,6 @@ from ...dataset import (
     create_fifo_replay_buffer,
     is_tuple_shape,
 )
-from ...envs import GymEnv
 from ...logging import (
     LOG,
     D3RLPyLogger,
@@ -45,7 +44,7 @@ from ...torch_utility import (
     sync_optimizer_state,
     train_api,
 )
-from ...types import NDArray, Observation
+from ...types import GymEnv, NDArray, Observation
 from ..utility import (
     assert_action_space_with_dataset,
     assert_action_space_with_env,

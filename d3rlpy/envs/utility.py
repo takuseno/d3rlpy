@@ -1,4 +1,4 @@
-from .types import GymEnv
+from ..types import GymEnv
 
 __all__ = ["seed_env"]
 

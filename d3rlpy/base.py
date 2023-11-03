@@ -11,7 +11,6 @@ from typing_extensions import Self
 from ._version import __version__
 from .constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from .dataset import ReplayBuffer, detect_action_size_from_env
-from .envs import GymEnv
 from .logging import LOG, D3RLPyLogger
 from .preprocessing import (
     ActionScaler,
@@ -23,7 +22,7 @@ from .preprocessing import (
 )
 from .serializable_config import DynamicConfig, generate_config_registration
 from .torch_utility import Checkpointer, Modules
-from .types import Shape
+from .types import GymEnv, Shape
 
 __all__ = [
     "DeviceArg",

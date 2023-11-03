@@ -7,9 +7,8 @@ from d3rlpy.dataset import (
     TrajectorySlicerProtocol,
     TransitionPickerProtocol,
 )
-from d3rlpy.envs import GymEnv
 from d3rlpy.preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from d3rlpy.types import NDArray
+from d3rlpy.types import GymEnv, NDArray
 
 
 class DummyObservationScaler(ObservationScaler):

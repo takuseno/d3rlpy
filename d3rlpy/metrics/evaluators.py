@@ -1,6 +1,5 @@
-from typing import Any, Iterator, Optional, Sequence
+from typing import Iterator, Optional, Sequence
 
-import gym
 import numpy as np
 from typing_extensions import Protocol
 
@@ -11,6 +10,7 @@ from ..dataset import (
     TransitionPickerProtocol,
 )
 from ..interface import QLearningAlgoProtocol
+from ..types import GymEnv
 from .utility import evaluate_qlearning_with_environment
 
 __all__ = [
@@ -515,13 +515,13 @@ class EnvironmentEvaluator(EvaluatorProtocol):
         n_trials: Number of episodes to evaluate.
         epsilon: Probability of random action.
     """
-    _env: gym.Env[Any, Any]
+    _env: GymEnv
     _n_trials: int
     _epsilon: float
 
     def __init__(
         self,
-        env: gym.Env[Any, Any],
+        env: GymEnv,
         n_trials: int = 10,
         epsilon: float = 0.0,
     ):

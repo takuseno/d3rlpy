@@ -1,7 +1,17 @@
 from collections import deque
-from typing import Any, Deque, Dict, Optional, Sequence, Tuple, TypeVar
+from typing import (
+    Any,
+    Deque,
+    Dict,
+    Optional,
+    Sequence,
+    SupportsFloat,
+    Tuple,
+    TypeVar,
+)
 
 import gym
+import gymnasium
 import numpy as np
 
 try:
@@ -11,6 +21,8 @@ except ImportError:
 
 from gym.spaces import Box
 from gym.wrappers.transform_reward import TransformReward
+from gymnasium.spaces import Box as GymnasiumBox
+from gymnasium.spaces import Dict as GymnasiumDictSpace
 
 from ..types import NDArray
 
@@ -19,6 +31,7 @@ __all__ = [
     "FrameStack",
     "AtariPreprocessing",
     "Atari",
+    "GoalConcatWrapper",
 ]
 
 _ObsType = TypeVar("_ObsType")
@@ -340,3 +353,65 @@ class Atari(gym.Wrapper[NDArray, int]):
         else:
             env = ChannelFirst(env)
         super().__init__(env)
+
+
+class GoalConcatWrapper(
+    gymnasium.Wrapper[NDArray, _ActType, Dict[str, NDArray], _ActType]
+):
+    r"""GaolConcatWrapper class for goal-conditioned environments.
+
+    This class concatenates a main observation and a goal observation to make a
+    single numpy observation output. This is especially useful with environments
+    such as AntMaze int the non-hindsight training case.
+
+    Args:
+        env (Union[gym.Env, gymnasium.Env]): Goal-conditioned environment.
+        observation_key (str): String key of the main observation.
+        goal_key (str): String key of the goal observation.
+    """
+    _observation_key: str
+    _goal_key: str
+
+    def __init__(
+        self,
+        env: gymnasium.Env[Dict[str, NDArray], _ActType],
+        observation_key: str = "observation",
+        goal_key: str = "desired_goal",
+    ):
+        super().__init__(env)
+        assert isinstance(env.observation_space, GymnasiumDictSpace)
+        self._observation_key = observation_key
+        self._goal_key = goal_key
+        observation_space = env.observation_space[observation_key]
+        assert isinstance(observation_space, GymnasiumBox)
+        goal_space = env.observation_space[goal_key]
+        assert isinstance(goal_space, GymnasiumBox)
+        low = np.concatenate([observation_space.low, goal_space.low])
+        high = np.concatenate([observation_space.high, goal_space.high])
+        self._observation_space = GymnasiumBox(
+            low=low,
+            high=high,
+            shape=low.shape,
+            dtype=observation_space.dtype,  # type: ignore
+        )
+
+    def step(
+        self, action: _ActType
+    ) -> Tuple[NDArray, SupportsFloat, bool, bool, Dict[str, Any]]:
+        obs, rew, terminal, truncate, info = self.env.step(action)
+        concat_obs = np.concatenate(
+            [obs[self._observation_key], obs[self._goal_key]]
+        )
+        return concat_obs, rew, terminal, truncate, info
+
+    def reset(
+        self,
+        *,
+        seed: Optional[int] = None,
+        options: Optional[Dict[str, Any]] = None
+    ) -> Tuple[NDArray, Dict[str, Any]]:
+        obs, info = self.env.reset(seed=seed, options=options)
+        concat_obs = np.concatenate(
+            [obs[self._observation_key], obs[self._goal_key]]
+        )
+        return concat_obs, info

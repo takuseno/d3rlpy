@@ -11,8 +11,8 @@ from ..constants import (
     ActionSpace,
 )
 from ..dataset import DatasetInfo, ReplayBuffer
-from ..envs import GymEnv
 from ..logging import LOG
+from ..types import GymEnv
 
 __all__ = ["assert_action_space_with_dataset", "assert_action_space_with_env"]
 

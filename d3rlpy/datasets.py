@@ -1,5 +1,6 @@
 # pylint: disable=unused-import,too-many-return-statements
 
+import enum
 import os
 import random
 import re
@@ -10,6 +11,8 @@ import gym
 import gymnasium
 import numpy as np
 from gym.wrappers.time_limit import TimeLimit
+from gymnasium.spaces import Box as GymnasiumBox
+from gymnasium.spaces import Dict as GymnasiumDictSpace
 from gymnasium.wrappers.time_limit import TimeLimit as GymnasiumTimeLimit
 
 from .dataset import (
@@ -27,7 +30,7 @@ from .dataset import (
     create_infinite_replay_buffer,
     load_v1,
 )
-from .envs import ChannelFirst, FrameStack
+from .envs import ChannelFirst, FrameStack, GoalConcatWrapper
 from .logging import LOG
 from .types import NDArray, UInt8NDArray
 
@@ -444,12 +447,17 @@ def get_d4rl(
         ) from e
 
 
+class _MinariEnvType(enum.Enum):
+    BOX = 0
+    GOAL_CONDITIONED = 1
+
+
 def get_minari(
     env_name: str,
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gymnasium.Env[NDArray, NDArray]]:
+) -> Tuple[ReplayBuffer, gymnasium.Env[Any, Any]]:
     """Returns minari dataset and envrironment.
 
     The dataset is provided through minari.
@@ -471,6 +479,23 @@ def get_minari(
         import minari
 
         _dataset = minari.load_dataset(env_name, download=True)
+        env = _dataset.recover_environment()
+        unwrapped_env = env.unwrapped
+        unwrapped_env.render_mode = render_mode
+
+        if isinstance(env.observation_space, GymnasiumBox):
+            env_type = _MinariEnvType.BOX
+        elif (
+            isinstance(env.observation_space, GymnasiumDictSpace)
+            and "observation" in env.observation_space.spaces
+            and "desired_goal" in env.observation_space.spaces
+        ):
+            env_type = _MinariEnvType.GOAL_CONDITIONED
+            unwrapped_env = GoalConcatWrapper(unwrapped_env)
+        else:
+            raise ValueError(
+                f"Unsupported observation space: {env.observation_space}"
+            )
 
         observations = []
         actions = []
@@ -479,22 +504,19 @@ def get_minari(
         timeouts = []
 
         for ep in _dataset:
-            if isinstance(ep.observations, dict):
-                if (
-                    "desired_goal" in ep.observations
-                    and "observation" in ep.observations
-                ):
-                    _observations = np.concatenate(
-                        [
-                            ep.observations["observation"],
-                            ep.observations["desired_goal"],
-                        ],
-                        axis=-1,
-                    )
-                else:
-                    raise ValueError("Unsupported observation format.")
-            else:
+            if env_type == _MinariEnvType.BOX:
                 _observations = ep.observations
+            elif env_type == _MinariEnvType.GOAL_CONDITIONED:
+                assert isinstance(ep.observations, dict)
+                _observations = np.concatenate(
+                    [
+                        ep.observations["observation"],
+                        ep.observations["desired_goal"],
+                    ],
+                    axis=-1,
+                )
+            else:
+                raise ValueError("Unsupported observation format.")
             observations.append(_observations)
             actions.append(ep.actions)
             rewards.append(ep.rewards)
@@ -511,10 +533,6 @@ def get_minari(
             trajectory_slicer=trajectory_slicer,
         )
 
-        env = _dataset.recover_environment()
-        unwrapped_env = env.unwrapped
-
-        unwrapped_env.render_mode = render_mode
         return dataset, GymnasiumTimeLimit(
             unwrapped_env, max_episode_steps=env.spec.max_episode_steps
         )

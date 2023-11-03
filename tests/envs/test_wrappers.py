@@ -1,9 +1,17 @@
 import gym
+import gymnasium
 import numpy as np
 import pytest
+from gymnasium.spaces import Box as GymnasiumBox
+from gymnasium.spaces import Dict as GymnasiumDictSpace
 
 from d3rlpy.algos import DQNConfig
-from d3rlpy.envs.wrappers import Atari, ChannelFirst, FrameStack
+from d3rlpy.envs.wrappers import (
+    Atari,
+    ChannelFirst,
+    FrameStack,
+    GoalConcatWrapper,
+)
 
 from ..dummy_env import DummyAtari
 
@@ -89,3 +97,28 @@ def test_atari(is_eval: bool) -> None:
     # check step
     observation, _, _, _, _ = env.step(env.action_space.sample())
     assert observation.shape == (1, 84, 84)  # type: ignore
+
+
+def test_goal_concat_wrapper() -> None:
+    raw_env = gymnasium.make("AntMaze_UMaze-v4")
+    env = GoalConcatWrapper(raw_env)
+
+    assert isinstance(raw_env.observation_space, GymnasiumDictSpace)
+
+    observation_space = raw_env.observation_space["observation"]
+    assert isinstance(observation_space, GymnasiumBox)
+    observation_shape = observation_space.shape
+
+    goal_space = raw_env.observation_space["desired_goal"]
+    assert isinstance(goal_space, GymnasiumBox)
+    goal_shape = goal_space.shape
+
+    concat_shape = (observation_shape[0] + goal_shape[0],)
+
+    # check reset
+    observation, _ = env.reset()
+    assert observation.shape == concat_shape  # type: ignore
+
+    # check step
+    observation, _, _, _, _ = env.step(env.action_space.sample())
+    assert observation.shape == concat_shape  # type: ignore

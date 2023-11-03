@@ -11,12 +11,11 @@ from ..dataset import (
     TrajectorySlicerProtocol,
     TransitionPickerProtocol,
 )
-from ..envs import GymEnv
 from ..serializable_config import (
     generate_optional_config_generation,
     make_optional_numpy_field,
 )
-from ..types import NDArray
+from ..types import GymEnv, NDArray
 from .base import Scaler, add_leading_dims, add_leading_dims_numpy
 
 __all__ = [
