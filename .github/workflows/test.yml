@@ -35,9 +35,9 @@ jobs:
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          pip install Cython numpy pytest-cov onnxruntime onnx
+          pip install Cython numpy
           pip install -e .
-          d3rlpy install minari
+          pip install -r dev.requirements.txt
       - name: Unit tests
         run: |
           mkdir -p test_data

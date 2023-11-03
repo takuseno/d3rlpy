@@ -9,7 +9,7 @@ Contribution examples:
 
 ## Development Guide
 
-### build from source
+### Build from source
 ```
 $ git clone git@github.com:takuseno/d3rlpy
 $ cd d3rlpy
@@ -18,25 +18,27 @@ $ pip install -e .
 
 Before making your nice PR, please run the follwing commands to inspect code qualities.
 
-### testing
+### Install additional dependencies for development
 ```
-$ pip install pytest-cov onnxruntime onnx # dependencies used in unit tests
+$ pip install -r dev.requirements.txt
+```
+
+### Testing
+```
 $ ./scripts/test
 ```
 
-### coding style
+### Coding style check
 This repository is styled with [black](https://github.com/psf/black) formatter.
 Also, [isort](https://github.com/PyCQA/isort) is used to format package imports.
 [docformatter](https://github.com/PyCQA/docformatter) is additionally used to format docstrings.
 ```
-$ pip install black isort docformatter # formatters
 $ ./scripts/format
 ```
 
-### linter
+### Linter
 This repository is fully type-annotated and checked by [mypy](https://github.com/python/mypy).
 Also, [pylint](https://github.com/PyCQA/pylint) checks code consistency.
 ```
-$ pip install mypy pylint==2.13.5 # linters
 $ ./scripts/lint
 ```

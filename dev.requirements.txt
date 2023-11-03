@@ -1,0 +1,13 @@
+pytest
+pytest-cov
+onnxruntime
+onnx
+matplotlib
+tensorboardX
+black
+mypy
+pylint==2.13.5
+isort
+docformatter
+minari==0.4.2
+gymnasium_robotics
