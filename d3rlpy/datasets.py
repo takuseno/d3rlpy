@@ -3,13 +3,14 @@
 import os
 import random
 import re
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib import request
 
 import gym
 import gymnasium
 import numpy as np
 from gym.wrappers.time_limit import TimeLimit
+from gymnasium.wrappers.time_limit import TimeLimit as GymnasiumTimeLimit
 
 from .dataset import (
     BasicTrajectorySlicer,
@@ -448,18 +449,21 @@ def get_minari(
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gymnasium.Env[np.ndarray, np.ndarray]]:
+) -> Tuple[ReplayBuffer, gymnasium.Env[NDArray, NDArray]]:
     """Returns minari dataset and envrironment.
 
     The dataset is provided through minari.
+
     .. code-block:: python
         from d3rlpy.datasets import get_minari
         dataset, env = get_minari('door-cloned-v1')
+
     Args:
         env_name: environment id of minari dataset.
         transition_picker: TransitionPickerProtocol object.
         trajectory_slicer: TrajectorySlicerProtocol object.
         render_mode: Mode of rendering (``human``, ``rgb_array``).
+
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
     """
@@ -470,7 +474,7 @@ def get_minari(
             env_name, download=True
         )
 
-        data = {
+        data: Dict[str, List[NDArray]] = {
             "observations": [],
             "actions": [],
             "rewards": [],
@@ -479,8 +483,8 @@ def get_minari(
         }
 
         for ep in _dataset:
-            for key in data.keys():
-                data[key].append(getattr(ep, key))
+            for k, v in data.items():
+                v.append(getattr(ep, k))
 
         dataset = MDPDataset(
             observations=np.concatenate(data["observations"]),
@@ -496,7 +500,7 @@ def get_minari(
         unwrapped_env = env.unwrapped
 
         unwrapped_env.render_mode = render_mode
-        return dataset, TimeLimit(
+        return dataset, GymnasiumTimeLimit(
             unwrapped_env, max_episode_steps=env.spec.max_episode_steps
         )
 

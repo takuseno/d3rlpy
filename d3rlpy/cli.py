@@ -348,11 +348,20 @@ def play(
     print(f"Score: {score}")
 
 
-@cli.command(short_help="Install additional packages.")
-@click.argument("name")
 def _install_module(
     name: list[str], upgrade: bool = False, check: bool = True
 ) -> None:
+    name = ["-U", *name] if upgrade else name
+    subprocess.run(["pip3", "install", *name], check=check)
+
+
+def _uninstall_module(name: list[str], check: bool = True) -> None:
+    subprocess.run(["pip3", "uninstall", "-y", *name], check=check)
+
+
+@cli.command(short_help="Install additional packages.")
+@click.argument("name")
+def install(name: str) -> None:
     if name == "atari":
         _install_module(["gym[atari,accept-rom-license]"], upgrade=True)
     elif name == "d4rl_atari":
@@ -361,15 +370,8 @@ def _install_module(
     elif name == "d4rl":
         _install_module(["git+https://github.com/Farama-Foundation/D4RL"])
         _install_module(["gym"], upgrade=True)
-        _install_module(["-y", "pybullet"], upgrade=True)
+        _uninstall_module(["pybullet"])
     elif name == "minari":
-        _install_module(["minari==0.4.2"], upgrade=True)
+        _install_module(["minari==0.4.2", "gymnasium_robotics"], upgrade=True)
     else:
         raise ValueError(f"Unsupported command: {name}")
-
-
-def _install_module(
-    name: list[str], upgrade: bool = False, check: bool = True
-) -> None:
-    name = ["-U", *name] if upgrade else name
-    subprocess.run(["pip3", "install", *name], check=check)

@@ -34,4 +34,4 @@ def test_get_dataset(env_name: str) -> None:
 )
 def test_get_minari(dataset_name: str, env_name: str) -> None:
     _, env = get_minari(dataset_name)
-    assert env.unwrapped.spec.id == env_name
+    assert env.unwrapped.spec.id == env_name  # type: ignore
