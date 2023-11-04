@@ -10,6 +10,7 @@ from d3rlpy.dataset import (
     BasicTransitionPicker,
     FIFOBuffer,
     InfiniteBuffer,
+    MixedReplayBuffer,
     ReplayBuffer,
     create_fifo_replay_buffer,
     create_infinite_replay_buffer,
@@ -128,3 +129,44 @@ def test_create_infinite_replay_buffer(
     episode = create_episode(observation_shape, action_size, length)
     replay_buffer = create_infinite_replay_buffer(episodes=[episode])
     assert isinstance(replay_buffer.buffer, InfiniteBuffer)
+
+
+@pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("length", [100])
+@pytest.mark.parametrize("limit", [1000])
+@pytest.mark.parametrize("secondary_mix_ratio", [0.5])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("partial_length", [10])
+def test_mixed_replay_buffer(
+    observation_shape: Shape,
+    action_size: int,
+    length: int,
+    limit: int,
+    secondary_mix_ratio: float,
+    batch_size: int,
+    partial_length: int,
+) -> None:
+    episode = create_episode(observation_shape, action_size, length)
+    replay_buffer1 = create_fifo_replay_buffer(limit, episodes=[episode])
+    replay_buffer2 = create_fifo_replay_buffer(limit, episodes=[episode])
+
+    mixed_replay_buffer = MixedReplayBuffer(
+        replay_buffer1, replay_buffer2, secondary_mix_ratio
+    )
+
+    # check transition sampling
+    batch = mixed_replay_buffer.sample_transition_batch(batch_size)
+    assert len(batch) == batch_size
+
+    # check trajectory sampling
+    traj_batch = mixed_replay_buffer.sample_trajectory_batch(
+        batch_size, partial_length
+    )
+    assert len(traj_batch) == batch_size
+
+    # check add episode
+    episode = create_episode(observation_shape, action_size, length)
+    mixed_replay_buffer.append_episode(episode)
+    assert replay_buffer1.transition_count == 2 * length - 2
+    assert replay_buffer2.transition_count == length - 1

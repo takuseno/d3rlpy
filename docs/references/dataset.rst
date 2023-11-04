@@ -134,7 +134,9 @@ You can compose sub-components of ``ReplayBuffer``, ``Buffer``, ``TransitionPick
    :toctree: generated/
    :nosignatures:
 
+   d3rlpy.dataset.ReplayBufferBase
    d3rlpy.dataset.ReplayBuffer
+   d3rlpy.dataset.MixedReplayBuffer
    d3rlpy.dataset.create_infinite_replay_buffer
    d3rlpy.dataset.create_fifo_replay_buffer
 

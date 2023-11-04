@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import BinaryIO, List, Optional, Sequence, Type, Union
 
 import numpy as np
@@ -31,13 +32,246 @@ from .writers import (
 )
 
 __all__ = [
+    "ReplayBufferBase",
     "ReplayBuffer",
+    "MixedReplayBuffer",
     "create_fifo_replay_buffer",
     "create_infinite_replay_buffer",
 ]
 
 
-class ReplayBuffer:
+class ReplayBufferBase(ABC):
+    """An interface of ReplayBuffer."""
+
+    @abstractmethod
+    def append(
+        self,
+        observation: Observation,
+        action: Union[int, NDArray],
+        reward: Union[float, NDArray],
+    ) -> None:
+        r"""Appends observation, action and reward to buffer.
+
+        Args:
+            observation: Observation.
+            action: Action.
+            reward: Reward.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def append_episode(self, episode: EpisodeBase) -> None:
+        r"""Appends episode to buffer.
+
+        Args:
+            episode: Episode.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def clip_episode(self, terminated: bool) -> None:
+        r"""Clips current episode.
+
+        Args:
+            terminated: Flag to represent environmental termination. This flag
+                should be ``False`` if the episode is terminated by timeout.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def sample_transition(self) -> Transition:
+        r"""Samples a transition.
+
+        Returns:
+            Transition.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def sample_transition_batch(self, batch_size: int) -> TransitionMiniBatch:
+        r"""Samples a mini-batch of transitions.
+
+        Args:
+            batch_size: Mini-batch size.
+
+        Returns:
+            Mini-batch.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def sample_trajectory(self, length: int) -> PartialTrajectory:
+        r"""Samples a partial trajectory.
+
+        Args:
+            length: Length of partial trajectory.
+
+        Returns:
+            Partial trajectory.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def sample_trajectory_batch(
+        self, batch_size: int, length: int
+    ) -> TrajectoryMiniBatch:
+        r"""Samples a mini-batch of partial trajectories.
+
+        Args:
+            batch_size: Mini-batch size.
+            length: Length of partial trajectories.
+
+        Returns:
+            Mini-batch.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def dump(self, f: BinaryIO) -> None:
+        """Dumps buffer data.
+
+        .. code-block:: python
+
+            with open('dataset.h5', 'w+b') as f:
+                replay_buffer.dump(f)
+
+        Args:
+            f: IO object to write to.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def from_episode_generator(
+        cls,
+        episode_generator: EpisodeGeneratorProtocol,
+        buffer: BufferProtocol,
+        transition_picker: Optional[TransitionPickerProtocol] = None,
+        trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+        writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
+    ) -> "ReplayBuffer":
+        """Builds ReplayBuffer from episode generator.
+
+        Args:
+            episode_generator: Episode generator implementation.
+            buffer: Buffer implementation.
+            transition_picker: Transition picker implementation for
+                Q-learning-based algorithms.
+            trajectory_slicer: Trajectory slicer implementation for
+                Transformer-based algorithms.
+            writer_preprocessor: Writer preprocessor implementation.
+
+        Returns:
+            Replay buffer.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def load(
+        cls,
+        f: BinaryIO,
+        buffer: BufferProtocol,
+        episode_cls: Type[EpisodeBase] = Episode,
+        transition_picker: Optional[TransitionPickerProtocol] = None,
+        trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+        writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
+    ) -> "ReplayBuffer":
+        """Builds ReplayBuffer from dumped data.
+
+        This method reconstructs replay buffer dumped by ``dump`` method.
+
+        .. code-block:: python
+
+            with open('dataset.h5', 'rb') as f:
+                replay_buffer = ReplayBuffer.load(f, buffer)
+
+        Args:
+            f: IO object to read from.
+            buffer: Buffer implementation.
+            episode_cls: Eisode class used to reconstruct data.
+            transition_picker: Transition picker implementation for
+                Q-learning-based algorithms.
+            trajectory_slicer: Trajectory slicer implementation for
+                Transformer-based algorithms.
+            writer_preprocessor: Writer preprocessor implementation.
+
+        Returns:
+            Replay buffer.
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def episodes(self) -> Sequence[EpisodeBase]:
+        """Returns sequence of episodes.
+
+        Returns:
+            Sequence of episodes.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def size(self) -> int:
+        """Returns number of episodes.
+
+        Returns:
+            Number of episodes.
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def buffer(self) -> BufferProtocol:
+        """Returns buffer.
+
+        Returns:
+            Buffer.
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def transition_count(self) -> int:
+        """Returns number of transitions.
+
+        Returns:
+            Number of transitions.
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def transition_picker(self) -> TransitionPickerProtocol:
+        """Returns transition picker.
+
+        Returns:
+            Transition picker.
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def trajectory_slicer(self) -> TrajectorySlicerProtocol:
+        """Returns trajectory slicer.
+
+        Returns:
+            Trajectory slicer.
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def dataset_info(self) -> DatasetInfo:
+        """Returns dataset information.
+
+        Returns:
+            Dataset information.
+        """
+        raise NotImplementedError
+
+
+class ReplayBuffer(ReplayBufferBase):
     r"""Replay buffer for experience replay.
 
     This replay buffer implementation is used for both online and offline
@@ -220,65 +454,26 @@ class ReplayBuffer:
         action: Union[int, NDArray],
         reward: Union[float, NDArray],
     ) -> None:
-        r"""Appends observation, action and reward to buffer.
-
-        Args:
-            observation: Observation.
-            action: Action.
-            reward: Reward.
-        """
         self._writer.write(observation, action, reward)
 
     def append_episode(self, episode: EpisodeBase) -> None:
-        r"""Appends episode to buffer.
-
-        Args:
-            episode: Episode.
-        """
         for i in range(episode.transition_count):
             self._buffer.append(episode, i)
 
     def clip_episode(self, terminated: bool) -> None:
-        r"""Clips current episode.
-
-        Args:
-            terminated: Flag to represent environmental termination. This flag
-                should be ``False`` if the episode is terminated by timeout.
-        """
         self._writer.clip_episode(terminated)
 
     def sample_transition(self) -> Transition:
-        r"""Samples a transition.
-
-        Returns:
-            Transition.
-        """
         index = np.random.randint(self._buffer.transition_count)
         episode, transition_index = self._buffer[index]
         return self._transition_picker(episode, transition_index)
 
     def sample_transition_batch(self, batch_size: int) -> TransitionMiniBatch:
-        r"""Samples a mini-batch of transitions.
-
-        Args:
-            batch_size: Mini-batch size.
-
-        Returns:
-            Mini-batch.
-        """
         return TransitionMiniBatch.from_transitions(
             [self.sample_transition() for _ in range(batch_size)]
         )
 
     def sample_trajectory(self, length: int) -> PartialTrajectory:
-        r"""Samples a partial trajectory.
-
-        Args:
-            length: Length of partial trajectory.
-
-        Returns:
-            Partial trajectory.
-        """
         index = np.random.randint(self._buffer.transition_count)
         episode, transition_index = self._buffer[index]
         return self._trajectory_slicer(episode, transition_index, length)
@@ -286,30 +481,11 @@ class ReplayBuffer:
     def sample_trajectory_batch(
         self, batch_size: int, length: int
     ) -> TrajectoryMiniBatch:
-        r"""Samples a mini-batch of partial trajectories.
-
-        Args:
-            batch_size: Mini-batch size.
-            length: Length of partial trajectories.
-
-        Returns:
-            Mini-batch.
-        """
         return TrajectoryMiniBatch.from_partial_trajectories(
             [self.sample_trajectory(length) for _ in range(batch_size)]
         )
 
     def dump(self, f: BinaryIO) -> None:
-        """Dumps buffer data.
-
-        .. code-block:: python
-
-            with open('dataset.h5', 'w+b') as f:
-                replay_buffer.dump(f)
-
-        Args:
-            f: IO object to write to.
-        """
         dump(self._buffer.episodes, f)
 
     @classmethod
@@ -321,20 +497,6 @@ class ReplayBuffer:
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
     ) -> "ReplayBuffer":
-        """Builds ReplayBuffer from episode generator.
-
-        Args:
-            episode_generator: Episode generator implementation.
-            buffer: Buffer implementation.
-            transition_picker: Transition picker implementation for
-                Q-learning-based algorithms.
-            trajectory_slicer: Trajectory slicer implementation for
-                Transformer-based algorithms.
-            writer_preprocessor: Writer preprocessor implementation.
-
-        Returns:
-            Replay buffer.
-        """
         return cls(
             buffer,
             episodes=episode_generator(),
@@ -353,28 +515,6 @@ class ReplayBuffer:
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
     ) -> "ReplayBuffer":
-        """Builds ReplayBuffer from dumped data.
-
-        This method reconstructs replay buffer dumped by ``dump`` method.
-
-        .. code-block:: python
-
-            with open('dataset.h5', 'rb') as f:
-                replay_buffer = ReplayBuffer.load(f, buffer)
-
-        Args:
-            f: IO object to read from.
-            buffer: Buffer implementation.
-            episode_cls: Eisode class used to reconstruct data.
-            transition_picker: Transition picker implementation for
-                Q-learning-based algorithms.
-            trajectory_slicer: Trajectory slicer implementation for
-                Transformer-based algorithms.
-            writer_preprocessor: Writer preprocessor implementation.
-
-        Returns:
-            Replay buffer.
-        """
         return cls(
             buffer,
             episodes=load(episode_cls, f),
@@ -385,65 +525,217 @@ class ReplayBuffer:
 
     @property
     def episodes(self) -> Sequence[EpisodeBase]:
-        """Returns sequence of episodes.
-
-        Returns:
-            Sequence of episodes.
-        """
         return self._buffer.episodes
 
     def size(self) -> int:
-        """Returns number of episodes.
-
-        Returns:
-            Number of episodes.
-        """
         return len(self._buffer.episodes)
 
     @property
     def buffer(self) -> BufferProtocol:
-        """Returns buffer.
-
-        Returns:
-            Buffer.
-        """
         return self._buffer
 
     @property
     def transition_count(self) -> int:
-        """Returns number of transitions.
-
-        Returns:
-            Number of transitions.
-        """
         return self._buffer.transition_count
 
     @property
     def transition_picker(self) -> TransitionPickerProtocol:
-        """Returns transition picker.
-
-        Returns:
-            Transition picker.
-        """
         return self._transition_picker
 
     @property
     def trajectory_slicer(self) -> TrajectorySlicerProtocol:
-        """Returns trajectory slicer.
-
-        Returns:
-            Trajectory slicer.
-        """
         return self._trajectory_slicer
 
     @property
     def dataset_info(self) -> DatasetInfo:
-        """Returns dataset information.
-
-        Returns:
-            Dataset information.
-        """
         return self._dataset_info
+
+
+class MixedReplayBuffer(ReplayBufferBase):
+    r"""A class combining two replay buffer instances.
+
+    This replay buffer implementation combines two replay buffers
+    (e.g. offline buffer and online buffer). The primary replay buffer is
+    exposed to methods such as ``append``. Mini-batches are sampled from each
+    replay buffer based on ``secondary_mix_ratio``.
+
+    .. code-block::
+
+        import d3rlpy
+
+        # offline dataset
+        dataset, env = d3rlpy.datasets.get_cartpole()
+
+        # online replay buffer
+        online_buffer = d3rlpy.dataset.create_fifo_replay_buffer(
+            limit=100000,
+            env=env,
+        )
+
+        # combine two replay buffers
+        replay_buffer = d3rlpy.dataset.MixedReplayBuffer(
+            primary_replay_buffer=online_buffer,
+            secondary_replay_buffer=dataset,
+            secondary_mix_ratio=0.5,
+        )
+
+    Args:
+        primary_replay_buffer (d3rlpy.dataset.ReplayBufferBase):
+            Primary replay buffer.
+        secondary_replay_buffer (d3rlpy.dataset.ReplayBufferBase):
+            Secondary replay buffer.
+        secondary_mix_ratio (float): Ratio to sample mini-batches from the
+            secondary replay buffer.
+    """
+    _primary_replay_buffer: ReplayBufferBase
+    _secondary_replay_buffer: ReplayBufferBase
+    _secondary_mix_ratio: float
+
+    def __init__(
+        self,
+        primary_replay_buffer: ReplayBufferBase,
+        secondary_replay_buffer: ReplayBufferBase,
+        secondary_mix_ratio: float,
+    ):
+        assert 0.0 <= secondary_mix_ratio <= 1.0
+        assert isinstance(
+            primary_replay_buffer.transition_picker,
+            type(secondary_replay_buffer.transition_picker),
+        )
+        assert isinstance(
+            primary_replay_buffer.trajectory_slicer,
+            type(secondary_replay_buffer.trajectory_slicer),
+        )
+        self._primary_replay_buffer = primary_replay_buffer
+        self._secondary_replay_buffer = secondary_replay_buffer
+        self._secondary_mix_ratio = secondary_mix_ratio
+
+    def append(
+        self,
+        observation: Observation,
+        action: Union[int, NDArray],
+        reward: Union[float, NDArray],
+    ) -> None:
+        self._primary_replay_buffer.append(observation, action, reward)
+
+    def append_episode(self, episode: EpisodeBase) -> None:
+        self._primary_replay_buffer.append_episode(episode)
+
+    def clip_episode(self, terminated: bool) -> None:
+        self._primary_replay_buffer.clip_episode(terminated)
+
+    def sample_transition(self) -> Transition:
+        raise NotImplementedError(
+            "MixedReplayBuffer does not support sample_transition."
+        )
+
+    def sample_transition_batch(self, batch_size: int) -> TransitionMiniBatch:
+        primary_batch_size = int((1 - self._secondary_mix_ratio) * batch_size)
+        secondary_batch_size = batch_size - primary_batch_size
+        primary_batches = [
+            self._primary_replay_buffer.sample_transition()
+            for _ in range(primary_batch_size)
+        ]
+        secondary_batches = [
+            self._secondary_replay_buffer.sample_transition()
+            for _ in range(secondary_batch_size)
+        ]
+        return TransitionMiniBatch.from_transitions(
+            primary_batches + secondary_batches
+        )
+
+    def sample_trajectory(self, length: int) -> PartialTrajectory:
+        raise NotImplementedError(
+            "MixedReplayBuffer does not support sample_trajectory."
+        )
+
+    def sample_trajectory_batch(
+        self, batch_size: int, length: int
+    ) -> TrajectoryMiniBatch:
+        primary_batch_size = int((1 - self._secondary_mix_ratio) * batch_size)
+        secondary_batch_size = batch_size - primary_batch_size
+        primary_batches = [
+            self._primary_replay_buffer.sample_trajectory(length)
+            for _ in range(primary_batch_size)
+        ]
+        secondary_batches = [
+            self._secondary_replay_buffer.sample_trajectory(length)
+            for _ in range(secondary_batch_size)
+        ]
+        return TrajectoryMiniBatch.from_partial_trajectories(
+            primary_batches + secondary_batches
+        )
+
+    def dump(self, f: BinaryIO) -> None:
+        raise NotImplementedError("MixedReplayBuffer does not support dump.")
+
+    @classmethod
+    def from_episode_generator(
+        cls,
+        episode_generator: EpisodeGeneratorProtocol,
+        buffer: BufferProtocol,
+        transition_picker: Optional[TransitionPickerProtocol] = None,
+        trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+        writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
+    ) -> "ReplayBuffer":
+        raise NotImplementedError(
+            "MixedReplayBuffer does not support from_episode_generator."
+        )
+
+    @classmethod
+    def load(
+        cls,
+        f: BinaryIO,
+        buffer: BufferProtocol,
+        episode_cls: Type[EpisodeBase] = Episode,
+        transition_picker: Optional[TransitionPickerProtocol] = None,
+        trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
+        writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
+    ) -> "ReplayBuffer":
+        raise NotImplementedError("MixedReplayBuffer does not support load.")
+
+    @property
+    def episodes(self) -> Sequence[EpisodeBase]:
+        return list(self._primary_replay_buffer.episodes) + list(
+            self._secondary_replay_buffer.episodes
+        )
+
+    def size(self) -> int:
+        return (
+            self._primary_replay_buffer.size()
+            + self._secondary_replay_buffer.size()
+        )
+
+    @property
+    def buffer(self) -> BufferProtocol:
+        return self._primary_replay_buffer.buffer
+
+    @property
+    def transition_count(self) -> int:
+        return (
+            self._primary_replay_buffer.transition_count
+            + self._secondary_replay_buffer.transition_count
+        )
+
+    @property
+    def transition_picker(self) -> TransitionPickerProtocol:
+        return self._primary_replay_buffer.transition_picker
+
+    @property
+    def trajectory_slicer(self) -> TrajectorySlicerProtocol:
+        return self._primary_replay_buffer.trajectory_slicer
+
+    @property
+    def dataset_info(self) -> DatasetInfo:
+        return self._primary_replay_buffer.dataset_info
+
+    @property
+    def primary_replay_buffer(self) -> ReplayBufferBase:
+        return self._primary_replay_buffer
+
+    @property
+    def secondary_replay_buffer(self) -> ReplayBufferBase:
+        return self._secondary_replay_buffer
 
 
 def create_fifo_replay_buffer(
