@@ -24,6 +24,7 @@ def test_transition(observation_size: int, action_size: int) -> None:
         action=np.random.random(action_size).astype(np.float32),
         reward=np.random.random(1).astype(np.float32),
         next_observation=np.random.random(observation_size).astype(np.float32),
+        return_to_go=np.random.random(1).astype(np.float32),
         terminal=0.0,
         interval=1,
     )

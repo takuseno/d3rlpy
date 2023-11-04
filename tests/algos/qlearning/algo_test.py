@@ -295,6 +295,7 @@ def update_tester(
             action=action,
             reward=reward,
             next_observation=next_observation,
+            return_to_go=reward,
             terminal=terminal,
             interval=1,
         )

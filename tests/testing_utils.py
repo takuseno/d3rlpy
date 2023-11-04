@@ -137,6 +137,7 @@ def create_transition(
         action=action,
         reward=np.random.random(1).astype(np.float32),
         next_observation=next_observation,
+        return_to_go=np.random.random(1).astype(np.float32),
         terminal=1.0 if terminated else 0.0,
         interval=1,
     )

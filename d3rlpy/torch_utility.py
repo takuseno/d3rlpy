@@ -107,6 +107,7 @@ class TorchMiniBatch:
     actions: torch.Tensor
     rewards: torch.Tensor
     next_observations: torch.Tensor
+    returns_to_go: torch.Tensor
     terminals: torch.Tensor
     intervals: torch.Tensor
     device: str
@@ -128,6 +129,7 @@ class TorchMiniBatch:
         next_observations = convert_to_torch_recursively(
             batch.next_observations, device
         )
+        returns_to_go = convert_to_torch(batch.returns_to_go, device)
         terminals = convert_to_torch(batch.terminals, device)
         intervals = convert_to_torch(batch.intervals, device)
 
@@ -143,12 +145,15 @@ class TorchMiniBatch:
             actions = action_scaler.transform(actions)
         if reward_scaler:
             rewards = reward_scaler.transform(rewards)
+            # NOTE: some operations might be incompatible with returns
+            returns_to_go = reward_scaler.transform(returns_to_go)
 
         return TorchMiniBatch(
             observations=observations,
             actions=actions,
             rewards=rewards,
             next_observations=next_observations,
+            returns_to_go=returns_to_go,
             terminals=terminals,
             intervals=intervals,
             device=device,

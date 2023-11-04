@@ -40,7 +40,15 @@ class BasicTransitionPicker(TransitionPickerProtocol):
     r"""Standard transition picker.
 
     This class implements a basic transition picking.
+
+    Args:
+        gamma (float): Discount factor to compute return-to-go.
     """
+
+    _gamma: float
+
+    def __init__(self, gamma: float = 0.99):
+        self._gamma = gamma
 
     def __call__(self, episode: EpisodeBase, index: int) -> Transition:
         _validate_index(episode, index)
@@ -53,11 +61,18 @@ class BasicTransitionPicker(TransitionPickerProtocol):
             next_observation = retrieve_observation(
                 episode.observations, index + 1
             )
+
+        # compute return-to-go
+        length = episode.size() - index
+        cum_gammas = np.expand_dims(self._gamma ** np.arange(length), axis=1)
+        return_to_go = np.sum(cum_gammas * episode.rewards[index:], axis=0)
+
         return Transition(
             observation=observation,
             action=episode.actions[index],
             reward=episode.rewards[index],
             next_observation=next_observation,
+            return_to_go=return_to_go,
             terminal=float(is_terminal),
             interval=1,
         )
@@ -85,13 +100,16 @@ class FrameStackTransitionPicker(TransitionPickerProtocol):
         transition.observation.shape == (4, 84, 84)
 
     Args:
-        n_frames: Number of frames to stack.
+        n_frames (int): Number of frames to stack.
+        gamma (float): Discount factor to compute return-to-go.
     """
     _n_frames: int
+    _gamma: float
 
-    def __init__(self, n_frames: int):
+    def __init__(self, n_frames: int, gamma: float = 0.99):
         assert n_frames > 0
         self._n_frames = n_frames
+        self._gamma = gamma
 
     def __call__(self, episode: EpisodeBase, index: int) -> Transition:
         _validate_index(episode, index)
@@ -106,11 +124,18 @@ class FrameStackTransitionPicker(TransitionPickerProtocol):
             next_observation = stack_recent_observations(
                 episode.observations, index + 1, self._n_frames
             )
+
+        # compute return-to-go
+        length = episode.size() - index
+        cum_gammas = np.expand_dims(self._gamma ** np.arange(length), axis=1)
+        return_to_go = np.sum(cum_gammas * episode.rewards[index:], axis=0)
+
         return Transition(
             observation=observation,
             action=episode.actions[index],
             reward=episode.rewards[index],
             next_observation=next_observation,
+            return_to_go=return_to_go,
             terminal=float(is_terminal),
             interval=1,
         )
@@ -156,6 +181,11 @@ class MultiStepTransitionPicker(TransitionPickerProtocol):
                 episode.observations, next_index
             )
 
+        # compute return-to-go
+        length = episode.size() - index
+        cum_gammas = np.expand_dims(self._gamma ** np.arange(length), axis=1)
+        return_to_go = np.sum(cum_gammas * episode.rewards[index:], axis=0)
+
         # compute multi-step return
         interval = next_index - index
         cum_gammas = np.expand_dims(self._gamma ** np.arange(interval), axis=1)
@@ -166,6 +196,7 @@ class MultiStepTransitionPicker(TransitionPickerProtocol):
             action=episode.actions[index],
             reward=ret,
             next_observation=next_observation,
+            return_to_go=return_to_go,
             terminal=float(is_terminal),
             interval=interval,
         )

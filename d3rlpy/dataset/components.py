@@ -63,6 +63,7 @@ class Transition:
         reward: Reward. This could be a multi-step discounted return.
         next_observation: Observation at next timestep. This could be
             observation at multi-step ahead.
+        return_to_go: Remaining return till the end of an episode.
         terminal: Flag of environment termination.
         interval: Timesteps between ``observation`` and ``next_observation``.
     """
@@ -70,6 +71,7 @@ class Transition:
     action: NDArray  # (...)
     reward: Float32NDArray  # (1,)
     next_observation: Observation  # (...)
+    return_to_go: Float32NDArray  # (1,)
     terminal: float
     interval: int
 

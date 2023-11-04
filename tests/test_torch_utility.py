@@ -214,6 +214,7 @@ def test_torch_mini_batch(
             action=np.random.random(action_size),
             reward=np.random.random((1,)).astype(np.float32),
             next_observation=np.random.random(obs_shape),
+            return_to_go=np.random.random((1,)).astype(np.float32),
             terminal=0.0,
             interval=1,
         )
@@ -267,8 +268,12 @@ def test_torch_mini_batch(
 
     if use_reward_scaler:
         assert np.all(torch_batch.rewards.numpy() == batch.rewards + 0.3)
+        assert np.all(
+            torch_batch.returns_to_go.numpy() == batch.returns_to_go + 0.3
+        )
     else:
         assert np.all(torch_batch.rewards.numpy() == batch.rewards)
+        assert np.all(torch_batch.returns_to_go.numpy() == batch.returns_to_go)
 
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
     assert np.all(torch_batch.intervals.numpy() == batch.intervals)

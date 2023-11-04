@@ -26,6 +26,7 @@ def test_transition_mini_batch(
 
     ref_actions = np.array([t.action for t in transitions])
     ref_rewards = np.array([t.reward for t in transitions])
+    ref_returns_to_go = np.array([t.return_to_go for t in transitions])
     ref_terminals = np.array([[t.terminal] for t in transitions])
     ref_intervals = np.array([[t.interval] for t in transitions])
 
@@ -53,10 +54,12 @@ def test_transition_mini_batch(
         assert np.all(batch.next_observations == ref_next_observations)
     assert batch.actions.shape == (batch_size, action_size)
     assert batch.rewards.shape == (batch_size, 1)
+    assert batch.returns_to_go.shape == (batch_size, 1)
     assert batch.terminals.shape == (batch_size, 1)
     assert batch.intervals.shape == (batch_size, 1)
     assert np.all(batch.actions == ref_actions)
     assert np.all(batch.rewards == ref_rewards)
+    assert np.all(batch.returns_to_go == ref_returns_to_go)
     assert np.all(batch.terminals == ref_terminals)
     assert np.all(batch.intervals == ref_intervals)
 
