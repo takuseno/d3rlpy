@@ -18,6 +18,7 @@ from torch import nn
 from tqdm.auto import tqdm, trange
 from typing_extensions import Self
 
+from ...misc import IncrementalCounter
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
 from ...dataset import (
@@ -52,6 +53,7 @@ from ..utility import (
     build_scalers_with_transition_picker,
 )
 from .explorers import Explorer
+from .online_loop import OnlineLoop, SimultaneousOnlineLoop
 
 __all__ = [
     "QLearningAlgoImplBase",
@@ -569,9 +571,9 @@ class QLearningAlgoBase(
         env: GymEnv,
         buffer: Optional[ReplayBuffer] = None,
         explorer: Optional[Explorer] = None,
+        online_loop: Optional[OnlineLoop] = None,
         n_steps: int = 1000000,
         n_steps_per_epoch: int = 10000,
-        update_interval: int = 1,
         update_start_step: int = 0,
         random_steps: int = 0,
         eval_env: Optional[GymEnv] = None,
@@ -582,6 +584,7 @@ class QLearningAlgoBase(
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
         callback: Optional[Callable[[Self, int, int], None]] = None,
+        epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> None:
         """Start training loop of online deep reinforcement learning.
 
@@ -589,9 +592,9 @@ class QLearningAlgoBase(
             env: Gym-like environment.
             buffer : Replay buffer.
             explorer: Action explorer.
+            online_loop: Online loop logic.
             n_steps: Number of total steps to train.
             n_steps_per_epoch: Number of steps per epoch.
-            update_interval: Number of steps per update.
             update_start_step: Steps before starting updates.
             random_steps: Steps for the initial random explortion.
             eval_env: Gym-like environment. If None, evaluation is skipped.
@@ -604,12 +607,19 @@ class QLearningAlgoBase(
             logger_adapter: LoggerAdapterFactory object.
             show_progress: Flag to show progress bar for iterations.
             callback: Callable function that takes ``(algo, epoch, total_step)``
-                , which is called at the end of epochs.
+                , which is called at every update steps.
+            epoch_callback: Callable function that takes
+                ``(algo, epoch, total_step)``, which is called at the end of
+                epoch.
         """
 
         # create default replay buffer
         if buffer is None:
             buffer = create_fifo_replay_buffer(1000000)
+
+        # create default online loop
+        if online_loop is None:
+            online_loop = SimultaneousOnlineLoop()
 
         # check action-space
         assert_action_space_with_env(self, env)
@@ -637,90 +647,42 @@ class QLearningAlgoBase(
         # save hyperparameters
         save_config(self, logger)
 
-        # switch based on show_progress flag
-        xrange = trange if show_progress else range
-
         # start training loop
         observation, _ = env.reset()
-        rollout_return = 0.0
-        for total_step in xrange(1, n_steps + 1):
-            with logger.measure_time("step"):
-                # sample exploration action
-                with logger.measure_time("inference"):
-                    if total_step < random_steps:
-                        action = env.action_space.sample()
-                    elif explorer:
-                        x = observation.reshape((1,) + observation.shape)
-                        action = explorer.sample(self, x, total_step)[0]
-                    else:
-                        action = self.sample_action(
-                            np.expand_dims(observation, axis=0)
-                        )[0]
 
-                # step environment
-                with logger.measure_time("environment_step"):
-                    (
-                        next_observation,
-                        reward,
-                        terminal,
-                        truncated,
-                        _,
-                    ) = env.step(action)
-                    rollout_return += float(reward)
+        total_step = IncrementalCounter()
+        for epoch in range(1, n_steps // n_steps_per_epoch + 1):
+            observation = online_loop.rollout_one_epoch(
+                n_steps_per_epoch=n_steps_per_epoch,
+                last_observation=observation,
+                algo=self,
+                buffer=buffer,
+                env=env,
+                explorer=explorer,
+                total_step=total_step,
+                max_steps=n_steps,
+                update_start_step=update_start_step,
+                random_steps=random_steps,
+                logger=logger,
+                show_progress=show_progress,
+                callback=callback,
+            )
 
-                clip_episode = terminal or truncated
+            # evaluation
+            if eval_env:
+                eval_score = evaluate_qlearning_with_environment(
+                    self, eval_env, epsilon=eval_epsilon
+                )
+                logger.add_metric("evaluation", eval_score)
 
-                # store observation
-                buffer.append(observation, action, float(reward))
+            if epoch % save_interval == 0:
+                logger.save_model(total_step.get_value(), self)
 
-                # reset if terminated
-                if clip_episode:
-                    buffer.clip_episode(terminal)
-                    observation, _ = env.reset()
-                    logger.add_metric("rollout_return", rollout_return)
-                    rollout_return = 0.0
-                else:
-                    observation = next_observation
+            if epoch_callback:
+                epoch_callback(self, epoch, total_step.get_value())
 
-                # psuedo epoch count
-                epoch = total_step // n_steps_per_epoch
-
-                if (
-                    total_step > update_start_step
-                    and buffer.transition_count > self.batch_size
-                ):
-                    if total_step % update_interval == 0:
-                        # sample mini-batch
-                        with logger.measure_time("sample_batch"):
-                            batch = buffer.sample_transition_batch(
-                                self.batch_size
-                            )
-
-                        # update parameters
-                        with logger.measure_time("algorithm_update"):
-                            loss = self.update(batch)
-
-                        # record metrics
-                        for name, val in loss.items():
-                            logger.add_metric(name, val)
-
-                # call callback if given
-                if callback:
-                    callback(self, epoch, total_step)
-
-            if epoch > 0 and total_step % n_steps_per_epoch == 0:
-                # evaluation
-                if eval_env:
-                    eval_score = evaluate_qlearning_with_environment(
-                        self, eval_env, epsilon=eval_epsilon
-                    )
-                    logger.add_metric("evaluation", eval_score)
-
-                if epoch % save_interval == 0:
-                    logger.save_model(total_step, self)
-
-                # save metrics
-                logger.commit(epoch, total_step)
+            # save metrics
+            logger.commit(epoch, total_step.get_value())
 
         # clip the last episode
         buffer.clip_episode(False)

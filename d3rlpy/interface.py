@@ -1,7 +1,8 @@
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 from typing_extensions import Protocol
 
+from .dataset import TransitionMiniBatch
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from .types import NDArray, Observation
 
@@ -16,6 +17,9 @@ class QLearningAlgoProtocol(Protocol):
         ...
 
     def sample_action(self, x: Observation) -> NDArray:
+        ...
+
+    def update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
         ...
 
     @property
@@ -36,6 +40,10 @@ class QLearningAlgoProtocol(Protocol):
 
     @property
     def action_size(self) -> Optional[int]:
+        ...
+
+    @property
+    def batch_size(self) -> int:
         ...
 
 
