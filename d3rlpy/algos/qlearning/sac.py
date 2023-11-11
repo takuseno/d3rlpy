@@ -292,11 +292,14 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             self._config.actor_encoder_factory,
             device=self._device,
         )
-        log_temp = create_parameter(
-            (1, 1),
-            math.log(self._config.initial_temperature),
-            device=self._device,
-        )
+        if self._config.initial_temperature > 0:
+            log_temp = create_parameter(
+                (1, 1),
+                math.log(self._config.initial_temperature),
+                device=self._device,
+            )
+        else:
+            log_temp = None
 
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(), lr=self._config.critic_learning_rate
@@ -305,6 +308,7 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             policy.named_modules(), lr=self._config.actor_learning_rate
         )
         if self._config.temp_learning_rate > 0:
+            assert log_temp is not None
             temp_optim = self._config.temp_optim_factory.create(
                 log_temp.named_modules(), lr=self._config.temp_learning_rate
             )

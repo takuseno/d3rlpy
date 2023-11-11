@@ -125,7 +125,7 @@ class DiscreteSACModules(Modules):
     policy: CategoricalPolicy
     q_funcs: nn.ModuleList
     targ_q_funcs: nn.ModuleList
-    log_temp: Parameter
+    log_temp: Optional[Parameter]
     actor_optim: Optimizer
     critic_optim: Optimizer
     temp_optim: Optional[Optimizer]
@@ -176,7 +176,11 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             dist = self._modules.policy(batch.next_observations)
             log_probs = dist.logits
             probs = dist.probs
-            entropy = self._modules.log_temp().exp() * log_probs
+            if self._modules.log_temp is None:
+                temp = torch.zeros_like(log_probs)
+            else:
+                temp = self._modules.log_temp().exp()
+            entropy = temp * log_probs
             target = self._targ_q_func_forwarder.compute_target(
                 batch.next_observations
             )
@@ -222,11 +226,16 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         dist = self._modules.policy(batch.observations)
         log_probs = dist.logits
         probs = dist.probs
-        entropy = self._modules.log_temp().exp() * log_probs
+        if self._modules.log_temp is None:
+            temp = torch.zeros_like(log_probs)
+        else:
+            temp = self._modules.log_temp().exp()
+        entropy = temp * log_probs
         return (probs * (entropy - q_t)).sum(dim=1).mean()
 
     def update_temp(self, batch: TorchMiniBatch) -> Dict[str, float]:
         assert self._modules.temp_optim
+        assert self._modules.log_temp is not None
         self._modules.temp_optim.zero_grad()
 
         with torch.no_grad():
