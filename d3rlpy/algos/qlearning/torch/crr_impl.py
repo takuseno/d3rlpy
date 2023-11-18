@@ -5,13 +5,14 @@ import torch
 import torch.nn.functional as F
 
 from ....models.torch import (
+    ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
     NormalPolicy,
     build_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch, hard_sync, soft_sync
 from ....types import Shape
-from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
+from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
 
 __all__ = ["CRRImpl", "CRRModules"]
 
@@ -68,16 +69,14 @@ class CRRImpl(DDPGBaseImpl):
         self._target_update_type = target_update_type
         self._target_update_interval = target_update_interval
 
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> DDPGBaseActorLoss:
         # compute log probability
-        dist = build_gaussian_distribution(
-            self._modules.policy(batch.observations)
-        )
+        dist = build_gaussian_distribution(action)
         log_probs = dist.log_prob(batch.actions)
-
         weight = self._compute_weight(batch.observations, batch.actions)
-
-        return -(log_probs * weight).mean()
+        return DDPGBaseActorLoss(-(log_probs * weight).mean())
 
     def _compute_weight(
         self, obs_t: torch.Tensor, act_t: torch.Tensor
@@ -187,8 +186,9 @@ class CRRImpl(DDPGBaseImpl):
         self, batch: TorchMiniBatch, grad_step: int
     ) -> Dict[str, float]:
         metrics = {}
+        action = self._modules.policy(batch.observations)
         metrics.update(self.update_critic(batch))
-        metrics.update(self.update_actor(batch))
+        metrics.update(self.update_actor(batch, action))
 
         if self._target_update_type == "hard":
             if grad_step % self._target_update_interval == 0:

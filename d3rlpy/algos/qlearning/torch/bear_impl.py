@@ -5,6 +5,7 @@ import torch
 from torch.optim import Optimizer
 
 from ....models.torch import (
+    ActionOutput,
     ConditionalVAE,
     ContinuousEnsembleQFunctionForwarder,
     Parameter,
@@ -15,7 +16,7 @@ from ....models.torch import (
 )
 from ....torch_utility import TorchMiniBatch
 from ....types import Shape
-from .sac_impl import SACImpl, SACModules
+from .sac_impl import SACActorLoss, SACImpl, SACModules
 
 __all__ = ["BEARImpl", "BEARModules"]
 
@@ -40,6 +41,12 @@ class BEARModules(SACModules):
     log_alpha: Parameter
     imitator_optim: Optimizer
     alpha_optim: Optional[Optimizer]
+
+
+@dataclasses.dataclass(frozen=True)
+class BEARActorLoss(SACActorLoss):
+    mmd_loss: torch.Tensor
+    alpha: torch.Tensor
 
 
 class BEARImpl(SACImpl):
@@ -94,19 +101,26 @@ class BEARImpl(SACImpl):
         self._vae_kl_weight = vae_kl_weight
         self._warmup_steps = warmup_steps
 
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        loss = super().compute_actor_loss(batch)
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> BEARActorLoss:
+        loss = super().compute_actor_loss(batch, action)
         mmd_loss = self._compute_mmd_loss(batch.observations)
-        return loss + mmd_loss
+        if self._modules.alpha_optim:
+            self.update_alpha(mmd_loss)
+        return BEARActorLoss(
+            actor_loss=loss.actor_loss + mmd_loss,
+            temp_loss=loss.temp_loss,
+            temp=loss.temp,
+            mmd_loss=mmd_loss,
+            alpha=self._modules.log_alpha().exp(),
+        )
 
     def warmup_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.actor_optim.zero_grad()
-
         loss = self._compute_mmd_loss(batch.observations)
-
         loss.backward()
         self._modules.actor_optim.step()
-
         return {"actor_loss": float(loss.cpu().detach().numpy())}
 
     def _compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
@@ -116,13 +130,9 @@ class BEARImpl(SACImpl):
 
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.imitator_optim.zero_grad()
-
         loss = self.compute_imitator_loss(batch)
-
         loss.backward()
-
         self._modules.imitator_optim.step()
-
         return {"imitator_loss": float(loss.cpu().detach().numpy())}
 
     def compute_imitator_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
@@ -133,24 +143,14 @@ class BEARImpl(SACImpl):
             beta=self._vae_kl_weight,
         )
 
-    def update_alpha(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_alpha(self, mmd_loss: torch.Tensor) -> None:
         assert self._modules.alpha_optim
         self._modules.alpha_optim.zero_grad()
-
-        loss = -self._compute_mmd_loss(batch.observations)
-
-        loss.backward()
+        loss = -mmd_loss
+        loss.backward(retain_graph=True)
         self._modules.alpha_optim.step()
-
         # clip for stability
         self._modules.log_alpha.data.clamp_(-5.0, 10.0)
-
-        cur_alpha = self._modules.log_alpha().exp().cpu().detach().numpy()[0][0]
-
-        return {
-            "alpha_loss": float(loss.cpu().detach().numpy()),
-            "alpha": float(cur_alpha),
-        }
 
     def _compute_mmd(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
@@ -259,25 +259,13 @@ class BEARImpl(SACImpl):
         self, batch: TorchMiniBatch, grad_step: int
     ) -> Dict[str, float]:
         metrics = {}
-
         metrics.update(self.update_imitator(batch))
-
-        # lagrangian parameter update for SAC temperature
-        if self._modules.temp_optim:
-            metrics.update(self.update_temp(batch))
-
-        # lagrangian parameter update for MMD loss weight
-        if self._modules.alpha_optim:
-            metrics.update(self.update_alpha(batch))
-
         metrics.update(self.update_critic(batch))
-
         if grad_step < self._warmup_steps:
             actor_loss = self.warmup_actor(batch)
         else:
-            actor_loss = self.update_actor(batch)
+            action = self._modules.policy(batch.observations)
+            actor_loss = self.update_actor(batch, action)
         metrics.update(actor_loss)
-
         self.update_critic_target()
-
         return metrics

@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Dict, Optional
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -14,6 +14,7 @@ from ....models.torch import (
 )
 from ....torch_utility import TorchMiniBatch
 from ....types import Shape
+from .ddpg_impl import DDPGBaseCriticLoss
 from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 from .sac_impl import SACImpl, SACModules
 
@@ -24,6 +25,12 @@ __all__ = ["CQLImpl", "DiscreteCQLImpl", "CQLModules", "DiscreteCQLLoss"]
 class CQLModules(SACModules):
     log_alpha: Parameter
     alpha_optim: Optional[Optimizer]
+
+
+@dataclasses.dataclass(frozen=True)
+class CQLCriticLoss(DDPGBaseCriticLoss):
+    conservative_loss: torch.Tensor
+    alpha: torch.Tensor
 
 
 class CQLImpl(SACImpl):
@@ -65,35 +72,26 @@ class CQLImpl(SACImpl):
 
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
-    ) -> torch.Tensor:
+    ) -> CQLCriticLoss:
         loss = super().compute_critic_loss(batch, q_tpn)
         conservative_loss = self._compute_conservative_loss(
             batch.observations, batch.actions, batch.next_observations
         )
-        return loss + conservative_loss
-
-    def update_alpha(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        assert self._modules.alpha_optim
-
-        # Q function should be inference mode for stability
-        self._modules.q_funcs.eval()
-
-        self._modules.alpha_optim.zero_grad()
-
-        # the original implementation does scale the loss value
-        loss = -self._compute_conservative_loss(
-            batch.observations, batch.actions, batch.next_observations
+        if self._modules.alpha_optim:
+            self.update_alpha(conservative_loss)
+        return CQLCriticLoss(
+            critic_loss=loss.critic_loss + conservative_loss,
+            conservative_loss=conservative_loss,
+            alpha=self._modules.log_alpha().exp(),
         )
 
-        loss.backward()
+    def update_alpha(self, conservative_loss: torch.Tensor) -> None:
+        assert self._modules.alpha_optim
+        self._modules.alpha_optim.zero_grad()
+        # the original implementation does scale the loss value
+        loss = -conservative_loss
+        loss.backward(retain_graph=True)
         self._modules.alpha_optim.step()
-
-        cur_alpha = self._modules.log_alpha().exp().cpu().detach().numpy()[0][0]
-
-        return {
-            "alpha_loss": float(loss.cpu().detach().numpy()),
-            "alpha": float(cur_alpha),
-        }
 
     def _compute_policy_is_values(
         self, policy_obs: torch.Tensor, value_obs: torch.Tensor
@@ -195,26 +193,6 @@ class CQLImpl(SACImpl):
                 action,
                 reduction="min",
             )
-
-    def inner_update(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
-        metrics = {}
-
-        # lagrangian parameter update for SAC temperature
-        if self._modules.temp_optim:
-            metrics.update(self.update_temp(batch))
-
-        # lagrangian parameter update for conservative loss weight
-        if self._modules.alpha_optim:
-            metrics.update(self.update_alpha(batch))
-
-        metrics.update(self.update_critic(batch))
-        metrics.update(self.update_actor(batch))
-
-        self.update_critic_target()
-
-        return metrics
 
 
 @dataclasses.dataclass(frozen=True)

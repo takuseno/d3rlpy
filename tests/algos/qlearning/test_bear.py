@@ -31,6 +31,7 @@ def test_bear(
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
+        warmup_steps=0,
     )
     bear = config.create()
     algo_tester(
