@@ -31,7 +31,8 @@ actions = sac.predict(x)
 - Documentation: https://d3rlpy.readthedocs.io
 - Paper: https://arxiv.org/abs/2111.03788
 
-:warning: v2.x.x introduces breaking changes. If you still stick to v1.x.x, please explicitly install previous versions (e.g. `pip install d3rlpy==1.1.1`).
+> [!IMPORTANT]
+> v2.x.x introduces breaking changes. If you still stick to v1.x.x, please explicitly install previous versions (e.g. `pip install d3rlpy==1.1.1`).
 
 ## Key features
 
