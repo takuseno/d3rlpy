@@ -121,7 +121,7 @@ Once the training is done, your algorithm is ready to make decisions.
 
 .. code-block:: python
 
-  observation = env.reset()
+  observation, _ = env.reset()
 
   # return actions based on the greedy-policy
   action = dqn.predict(np.expand_dims(observation, axis=0))
