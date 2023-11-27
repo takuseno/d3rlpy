@@ -7,10 +7,32 @@ from typing import Any, DefaultDict, Dict, Iterator, List
 import structlog
 from typing_extensions import Protocol
 
-__all__ = ["LOG", "D3RLPyLogger", "LoggerAdapter", "LoggerAdapterFactory"]
+__all__ = [
+    "LOG",
+    "set_log_context",
+    "D3RLPyLogger",
+    "LoggerAdapter",
+    "LoggerAdapterFactory",
+]
+
+structlog.configure(
+    processors=[
+        structlog.threadlocal.merge_threadlocal,
+        structlog.processors.add_log_level,
+        structlog.processors.StackInfoRenderer(),
+        structlog.dev.set_exc_info,
+        structlog.processors.format_exc_info,
+        structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False),
+        structlog.dev.ConsoleRenderer(),
+    ],
+)
 
 
 LOG: structlog.BoundLogger = structlog.get_logger(__name__)
+
+
+def set_log_context(**kwargs: Any) -> None:
+    structlog.threadlocal.bind_threadlocal(**kwargs)
 
 
 class SaveProtocol(Protocol):

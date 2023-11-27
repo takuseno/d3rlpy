@@ -86,6 +86,12 @@ class ImplBase(metaclass=ABCMeta):
     def modules(self) -> Modules:
         return self._modules
 
+    def wrap_models_by_ddp(self) -> None:
+        self._modules = self._modules.wrap_models_by_ddp()
+
+    def unwrap_models_by_ddp(self) -> None:
+        self._modules = self._modules.unwrap_models_by_ddp()
+
 
 @dataclasses.dataclass()
 class LearnableConfig(DynamicConfig):

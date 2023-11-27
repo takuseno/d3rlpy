@@ -14,7 +14,9 @@ from typing import (
 import numpy as np
 import torch
 from torch import nn
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
+from typing_extensions import Self
 
 from .dataclass_utils import asdict_without_copy
 from .dataset import TrajectoryMiniBatch, TransitionMiniBatch
@@ -277,6 +279,23 @@ class Modules:
         for v in asdict_without_copy(self).values():
             if isinstance(v, torch.optim.Optimizer):
                 v.state = collections.defaultdict(dict)
+
+    def wrap_models_by_ddp(self) -> Self:
+        dict_values = asdict_without_copy(self)
+        for k, v in dict_values.items():
+            if isinstance(v, nn.Module):
+                device_id = next(v.parameters()).device.index
+                dict_values[k] = DDP(
+                    v, device_ids=[device_id] if device_id else None
+                )
+        return self.__class__(**dict_values)
+
+    def unwrap_models_by_ddp(self) -> Self:
+        dict_values = asdict_without_copy(self)
+        for k, v in dict_values.items():
+            if isinstance(v, DDP):
+                dict_values[k] = v.module
+        return self.__class__(**dict_values)
 
 
 TCallable = TypeVar("TCallable")

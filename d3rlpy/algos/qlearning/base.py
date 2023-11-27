@@ -378,6 +378,7 @@ class QLearningAlgoBase(
         evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
         epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
+        enable_ddp: bool = False,
     ) -> List[Tuple[int, Dict[str, float]]]:
         """Trains with given dataset.
 
@@ -403,23 +404,25 @@ class QLearningAlgoBase(
             epoch_callback: Callable function that takes
                 ``(algo, epoch, total_step)``, which is called at the end of
                 every epoch.
+            enable_ddp: Flag to wrap models with DataDistributedParallel.
 
         Returns:
             List of result tuples (epoch, metrics) per epoch.
         """
         results = list(
             self.fitter(
-                dataset,
-                n_steps,
-                n_steps_per_epoch,
-                experiment_name,
-                with_timestamp,
-                logger_adapter,
-                show_progress,
-                save_interval,
-                evaluators,
-                callback,
-                epoch_callback,
+                dataset=dataset,
+                n_steps=n_steps,
+                n_steps_per_epoch=n_steps_per_epoch,
+                experiment_name=experiment_name,
+                with_timestamp=with_timestamp,
+                logger_adapter=logger_adapter,
+                show_progress=show_progress,
+                save_interval=save_interval,
+                evaluators=evaluators,
+                callback=callback,
+                epoch_callback=epoch_callback,
+                enable_ddp=enable_ddp,
             )
         )
         return results
@@ -437,6 +440,7 @@ class QLearningAlgoBase(
         evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
         epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
+        enable_ddp: bool = False,
     ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
         """Iterate over epochs steps to train with the given dataset. At each
         iteration algo methods and properties can be changed or queried.
@@ -465,6 +469,7 @@ class QLearningAlgoBase(
             epoch_callback: Callable function that takes
                 ``(algo, epoch, total_step)``, which is called at the end of
                 every epoch.
+            enable_ddp: Flag to wrap models with DataDistributedParallel.
 
         Returns:
             Iterator yielding current epoch and metrics dict.
@@ -497,6 +502,11 @@ class QLearningAlgoBase(
             LOG.debug("Models have been built.")
         else:
             LOG.warning("Skip building models since they're already built.")
+
+        # wrap all PyTorch modules with DataDistributedParallel
+        if enable_ddp:
+            assert self._impl
+            self._impl.wrap_models_by_ddp()
 
         # save hyperparameters
         save_config(self, logger)
