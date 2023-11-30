@@ -5,6 +5,7 @@ import torch
 from torch.optim import Optimizer
 
 from ....models.torch import (
+    ActionOutput,
     ConditionalVAE,
     ContinuousEnsembleQFunctionForwarder,
     DeterministicPolicy,
@@ -14,7 +15,7 @@ from ....models.torch import (
 )
 from ....torch_utility import TorchMiniBatch, soft_sync
 from ....types import Shape
-from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
+from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
 
 __all__ = [
     "PLASImpl",
@@ -68,29 +69,27 @@ class PLASImpl(DDPGBaseImpl):
 
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.imitator_optim.zero_grad()
-
         loss = compute_vae_error(
             vae=self._modules.imitator,
             x=batch.observations,
             action=batch.actions,
             beta=self._beta,
         )
-
         loss.backward()
         self._modules.imitator_optim.step()
-
         return {"imitator_loss": float(loss.cpu().detach().numpy())}
 
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        latent_actions = (
-            2.0 * self._modules.policy(batch.observations).squashed_mu
-        )
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> DDPGBaseActorLoss:
+        latent_actions = 2.0 * action.squashed_mu
         actions = forward_vae_decode(
             self._modules.imitator, batch.observations, latent_actions
         )
-        return -self._q_func_forwarder.compute_expected_q(
+        loss = -self._q_func_forwarder.compute_expected_q(
             batch.observations, actions, "none"
         )[0].mean()
+        return DDPGBaseActorLoss(loss)
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         latent_actions = 2.0 * self._modules.policy(x).squashed_mu
@@ -126,8 +125,9 @@ class PLASImpl(DDPGBaseImpl):
         if grad_step < self._warmup_steps:
             metrics.update(self.update_imitator(batch))
         else:
+            action = self._modules.policy(batch.observations)
             metrics.update(self.update_critic(batch))
-            metrics.update(self.update_actor(batch))
+            metrics.update(self.update_actor(batch, action))
             self.update_actor_target()
             self.update_critic_target()
 
@@ -171,10 +171,10 @@ class PLASWithPerturbationImpl(PLASImpl):
             device=device,
         )
 
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        latent_actions = (
-            2.0 * self._modules.policy(batch.observations).squashed_mu
-        )
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> DDPGBaseActorLoss:
+        latent_actions = 2.0 * action.squashed_mu
         actions = forward_vae_decode(
             self._modules.imitator, batch.observations, latent_actions
         )
@@ -184,7 +184,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         q_value = self._q_func_forwarder.compute_expected_q(
             batch.observations, residual_actions, "none"
         )
-        return -q_value[0].mean()
+        return DDPGBaseActorLoss(-q_value[0].mean())
 
     def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
         latent_actions = 2.0 * self._modules.policy(x).squashed_mu

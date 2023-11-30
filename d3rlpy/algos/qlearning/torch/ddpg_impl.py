@@ -6,13 +6,25 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
-from ....models.torch import ContinuousEnsembleQFunctionForwarder, Policy
+from ....dataclass_utils import asdict_as_float
+from ....models.torch import (
+    ActionOutput,
+    ContinuousEnsembleQFunctionForwarder,
+    Policy,
+)
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync, soft_sync
 from ....types import Shape
 from ..base import QLearningAlgoImplBase
 from .utility import ContinuousQFunctionMixin
 
-__all__ = ["DDPGImpl", "DDPGBaseImpl", "DDPGBaseModules", "DDPGModules"]
+__all__ = [
+    "DDPGImpl",
+    "DDPGBaseImpl",
+    "DDPGBaseModules",
+    "DDPGModules",
+    "DDPGBaseActorLoss",
+    "DDPGBaseCriticLoss",
+]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -22,6 +34,16 @@ class DDPGBaseModules(Modules):
     targ_q_funcs: nn.ModuleList
     actor_optim: Optimizer
     critic_optim: Optimizer
+
+
+@dataclasses.dataclass(frozen=True)
+class DDPGBaseActorLoss:
+    actor_loss: torch.Tensor
+
+
+@dataclasses.dataclass(frozen=True)
+class DDPGBaseCriticLoss:
+    critic_loss: torch.Tensor
 
 
 class DDPGBaseImpl(
@@ -58,20 +80,16 @@ class DDPGBaseImpl(
 
     def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.critic_optim.zero_grad()
-
         q_tpn = self.compute_target(batch)
-
         loss = self.compute_critic_loss(batch, q_tpn)
-
-        loss.backward()
+        loss.critic_loss.backward()
         self._modules.critic_optim.step()
-
-        return {"critic_loss": float(loss.cpu().detach().numpy())}
+        return asdict_as_float(loss)
 
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
-    ) -> torch.Tensor:
-        return self._q_func_forwarder.compute_error(
+    ) -> DDPGBaseCriticLoss:
+        loss = self._q_func_forwarder.compute_error(
             observations=batch.observations,
             actions=batch.actions,
             rewards=batch.rewards,
@@ -79,31 +97,33 @@ class DDPGBaseImpl(
             terminals=batch.terminals,
             gamma=self._gamma**batch.intervals,
         )
+        return DDPGBaseCriticLoss(loss)
 
-    def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_actor(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> Dict[str, float]:
         # Q function should be inference mode for stability
         self._modules.q_funcs.eval()
-
         self._modules.actor_optim.zero_grad()
-
-        loss = self.compute_actor_loss(batch)
-
-        loss.backward()
+        loss = self.compute_actor_loss(batch, action)
+        loss.actor_loss.backward()
         self._modules.actor_optim.step()
-
-        return {"actor_loss": float(loss.cpu().detach().numpy())}
+        return asdict_as_float(loss)
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
     ) -> Dict[str, float]:
         metrics = {}
+        action = self._modules.policy(batch.observations)
         metrics.update(self.update_critic(batch))
-        metrics.update(self.update_actor(batch))
+        metrics.update(self.update_actor(batch, action))
         self.update_critic_target()
         return metrics
 
     @abstractmethod
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> DDPGBaseActorLoss:
         pass
 
     @abstractmethod
@@ -168,12 +188,13 @@ class DDPGImpl(DDPGBaseImpl):
         )
         hard_sync(self._modules.targ_policy, self._modules.policy)
 
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        action = self._modules.policy(batch.observations)
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> DDPGBaseActorLoss:
         q_t = self._q_func_forwarder.compute_expected_q(
             batch.observations, action.squashed_mu, "none"
         )[0]
-        return -q_t.mean()
+        return DDPGBaseActorLoss(-q_t.mean())
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():

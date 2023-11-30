@@ -1,9 +1,9 @@
 import dataclasses
-from typing import Dict
 
 import torch
 
 from ....models.torch import (
+    ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
     NormalPolicy,
     ValueFunction,
@@ -11,7 +11,12 @@ from ....models.torch import (
 )
 from ....torch_utility import TorchMiniBatch
 from ....types import Shape
-from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
+from .ddpg_impl import (
+    DDPGBaseActorLoss,
+    DDPGBaseCriticLoss,
+    DDPGBaseImpl,
+    DDPGBaseModules,
+)
 
 __all__ = ["IQLImpl", "IQLModules"]
 
@@ -20,6 +25,12 @@ __all__ = ["IQLImpl", "IQLModules"]
 class IQLModules(DDPGBaseModules):
     policy: NormalPolicy
     value_func: ValueFunction
+
+
+@dataclasses.dataclass(frozen=True)
+class IQLCriticLoss(DDPGBaseCriticLoss):
+    q_loss: torch.Tensor
+    v_loss: torch.Tensor
 
 
 class IQLImpl(DDPGBaseImpl):
@@ -58,8 +69,8 @@ class IQLImpl(DDPGBaseImpl):
 
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
-    ) -> torch.Tensor:
-        return self._q_func_forwarder.compute_error(
+    ) -> IQLCriticLoss:
+        q_loss = self._q_func_forwarder.compute_error(
             observations=batch.observations,
             actions=batch.actions,
             rewards=batch.rewards,
@@ -67,23 +78,27 @@ class IQLImpl(DDPGBaseImpl):
             terminals=batch.terminals,
             gamma=self._gamma**batch.intervals,
         )
+        v_loss = self.compute_value_loss(batch)
+        return IQLCriticLoss(
+            critic_loss=q_loss + v_loss,
+            q_loss=q_loss,
+            v_loss=v_loss,
+        )
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
             return self._modules.value_func(batch.next_observations)
 
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> DDPGBaseActorLoss:
         # compute log probability
-        dist = build_gaussian_distribution(
-            self._modules.policy(batch.observations)
-        )
+        dist = build_gaussian_distribution(action)
         log_probs = dist.log_prob(batch.actions)
-
         # compute weight
         with torch.no_grad():
             weight = self._compute_weight(batch)
-
-        return -(weight * log_probs).mean()
+        return DDPGBaseActorLoss(-(weight * log_probs).mean())
 
     def _compute_weight(self, batch: TorchMiniBatch) -> torch.Tensor:
         q_t = self._targ_q_func_forwarder.compute_expected_q(
@@ -102,37 +117,6 @@ class IQLImpl(DDPGBaseImpl):
         weight = (self._expectile - (diff < 0.0).float()).abs().detach()
         return (weight * (diff**2)).mean()
 
-    def update_critic_and_state_value(
-        self, batch: TorchMiniBatch
-    ) -> Dict[str, float]:
-        self._modules.critic_optim.zero_grad()
-
-        # compute Q-function loss
-        q_tpn = self.compute_target(batch)
-        q_loss = self.compute_critic_loss(batch, q_tpn)
-
-        # compute value function loss
-        v_loss = self.compute_value_loss(batch)
-
-        loss = q_loss + v_loss
-
-        loss.backward()
-        self._modules.critic_optim.step()
-
-        return {
-            "critic_loss": float(q_loss.cpu().detach().numpy()),
-            "v_loss": float(v_loss.cpu().detach().numpy()),
-        }
-
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         dist = build_gaussian_distribution(self._modules.policy(x))
         return dist.sample()
-
-    def inner_update(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
-        metrics = {}
-        metrics.update(self.update_critic_and_state_value(batch))
-        metrics.update(self.update_actor(batch))
-        self.update_critic_target()
-        return metrics

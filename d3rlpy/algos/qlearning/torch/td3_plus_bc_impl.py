@@ -1,14 +1,20 @@
 # pylint: disable=too-many-ancestors
+import dataclasses
 
 import torch
 
-from ....models.torch import ContinuousEnsembleQFunctionForwarder
+from ....models.torch import ActionOutput, ContinuousEnsembleQFunctionForwarder
 from ....torch_utility import TorchMiniBatch
 from ....types import Shape
-from .ddpg_impl import DDPGModules
+from .ddpg_impl import DDPGBaseActorLoss, DDPGModules
 from .td3_impl import TD3Impl
 
 __all__ = ["TD3PlusBCImpl"]
+
+
+@dataclasses.dataclass(frozen=True)
+class TD3PlusBCActorLoss(DDPGBaseActorLoss):
+    bc_loss: torch.Tensor
 
 
 class TD3PlusBCImpl(TD3Impl):
@@ -44,10 +50,14 @@ class TD3PlusBCImpl(TD3Impl):
         )
         self._alpha = alpha
 
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        action = self._modules.policy(batch.observations).squashed_mu
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> TD3PlusBCActorLoss:
         q_t = self._q_func_forwarder.compute_expected_q(
-            batch.observations, action, "none"
+            batch.observations, action.squashed_mu, "none"
         )[0]
         lam = self._alpha / (q_t.abs().mean()).detach()
-        return lam * -q_t.mean() + ((batch.actions - action) ** 2).mean()
+        bc_loss = ((batch.actions - action.squashed_mu) ** 2).mean()
+        return TD3PlusBCActorLoss(
+            actor_loss=lam * -q_t.mean() + bc_loss, bc_loss=bc_loss
+        )

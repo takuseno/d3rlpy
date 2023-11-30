@@ -69,7 +69,8 @@ class TD3Impl(DDPGImpl):
 
         # delayed policy update
         if grad_step % self._update_actor_interval == 0:
-            metrics.update(self.update_actor(batch))
+            action = self._modules.policy(batch.observations)
+            metrics.update(self.update_actor(batch, action))
             self.update_critic_target()
             self.update_actor_target()
 

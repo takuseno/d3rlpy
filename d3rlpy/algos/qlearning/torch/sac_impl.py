@@ -8,6 +8,7 @@ from torch import nn
 from torch.optim import Optimizer
 
 from ....models.torch import (
+    ActionOutput,
     CategoricalPolicy,
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
@@ -19,10 +20,16 @@ from ....models.torch import (
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync
 from ....types import Shape
 from ..base import QLearningAlgoImplBase
-from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
+from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
 from .utility import DiscreteQFunctionMixin
 
-__all__ = ["SACImpl", "DiscreteSACImpl", "SACModules", "DiscreteSACModules"]
+__all__ = [
+    "SACImpl",
+    "DiscreteSACImpl",
+    "SACModules",
+    "DiscreteSACModules",
+    "SACActorLoss",
+]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -30,6 +37,12 @@ class SACModules(DDPGBaseModules):
     policy: NormalPolicy
     log_temp: Parameter
     temp_optim: Optional[Optimizer]
+
+
+@dataclasses.dataclass(frozen=True)
+class SACActorLoss(DDPGBaseActorLoss):
+    temp: torch.Tensor
+    temp_loss: torch.Tensor
 
 
 class SACImpl(DDPGBaseImpl):
@@ -57,40 +70,38 @@ class SACImpl(DDPGBaseImpl):
             device=device,
         )
 
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        dist = build_squashed_gaussian_distribution(
-            self._modules.policy(batch.observations)
-        )
-        action, log_prob = dist.sample_with_log_prob()
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> SACActorLoss:
+        dist = build_squashed_gaussian_distribution(action)
+        sampled_action, log_prob = dist.sample_with_log_prob()
+
+        if self._modules.temp_optim:
+            temp_loss = self.update_temp(log_prob)
+        else:
+            temp_loss = torch.tensor(
+                0.0, dtype=torch.float32, device=sampled_action.device
+            )
+
         entropy = self._modules.log_temp().exp() * log_prob
         q_t = self._q_func_forwarder.compute_expected_q(
-            batch.observations, action, "min"
+            batch.observations, sampled_action, "min"
         )
-        return (entropy - q_t).mean()
+        return SACActorLoss(
+            actor_loss=(entropy - q_t).mean(),
+            temp_loss=temp_loss,
+            temp=self._modules.log_temp().exp(),
+        )
 
-    def update_temp(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_temp(self, log_prob: torch.Tensor) -> torch.Tensor:
         assert self._modules.temp_optim
         self._modules.temp_optim.zero_grad()
-
         with torch.no_grad():
-            dist = build_squashed_gaussian_distribution(
-                self._modules.policy(batch.observations)
-            )
-            _, log_prob = dist.sample_with_log_prob()
             targ_temp = log_prob - self._action_size
-
         loss = -(self._modules.log_temp().exp() * targ_temp).mean()
-
         loss.backward()
         self._modules.temp_optim.step()
-
-        # current temperature value
-        cur_temp = self._modules.log_temp().exp().cpu().detach().numpy()[0][0]
-
-        return {
-            "temp_loss": float(loss.cpu().detach().numpy()),
-            "temp": float(cur_temp),
-        }
+        return loss
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
@@ -105,15 +116,6 @@ class SACImpl(DDPGBaseImpl):
                 reduction="min",
             )
             return target - entropy
-
-    def inner_update(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
-        metrics = {}
-        if self._modules.temp_optim:
-            metrics.update(self.update_temp(batch))
-        metrics.update(super().inner_update(batch, grad_step))
-        return metrics
 
     def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
         dist = build_squashed_gaussian_distribution(self._modules.policy(x))

@@ -2,12 +2,13 @@ import torch
 import torch.nn.functional as F
 
 from ....models.torch import (
+    ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
     build_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch
 from ....types import Shape
-from .sac_impl import SACImpl, SACModules
+from .sac_impl import SACActorLoss, SACImpl, SACModules
 
 __all__ = ["AWACImpl"]
 
@@ -42,17 +43,22 @@ class AWACImpl(SACImpl):
         self._lam = lam
         self._n_action_samples = n_action_samples
 
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> SACActorLoss:
         # compute log probability
-        dist = build_gaussian_distribution(
-            self._modules.policy(batch.observations)
-        )
+        dist = build_gaussian_distribution(action)
         log_probs = dist.log_prob(batch.actions)
-
         # compute exponential weight
         weights = self._compute_weights(batch.observations, batch.actions)
-
-        return -(log_probs * weights).sum()
+        loss = -(log_probs * weights).sum()
+        return SACActorLoss(
+            actor_loss=loss,
+            temp_loss=torch.tensor(
+                0.0, dtype=torch.float32, device=loss.device
+            ),
+            temp=torch.tensor(0.0, dtype=torch.float32, device=loss.device),
+        )
 
     def _compute_weights(
         self, obs_t: torch.Tensor, act_t: torch.Tensor

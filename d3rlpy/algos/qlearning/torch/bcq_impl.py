@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from torch.optim import Optimizer
 
 from ....models.torch import (
+    ActionOutput,
     CategoricalPolicy,
     ConditionalVAE,
     ContinuousEnsembleQFunctionForwarder,
@@ -19,7 +20,7 @@ from ....models.torch import (
 )
 from ....torch_utility import TorchMiniBatch, soft_sync
 from ....types import Shape
-from .ddpg_impl import DDPGBaseImpl, DDPGBaseModules
+from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
 from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 
 __all__ = [
@@ -79,37 +80,24 @@ class BCQImpl(DDPGBaseImpl):
         self._beta = beta
         self._rl_start_step = rl_start_step
 
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        latent = torch.randn(
-            batch.observations.shape[0],
-            2 * self._action_size,
-            device=self._device,
-        )
-        clipped_latent = latent.clamp(-0.5, 0.5)
-        sampled_action = forward_vae_decode(
-            vae=self._modules.imitator,
-            x=batch.observations,
-            latent=clipped_latent,
-        )
-        action = self._modules.policy(batch.observations, sampled_action)
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> DDPGBaseActorLoss:
         value = self._q_func_forwarder.compute_expected_q(
             batch.observations, action.squashed_mu, "none"
         )
-        return -value[0].mean()
+        return DDPGBaseActorLoss(-value[0].mean())
 
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.imitator_optim.zero_grad()
-
         loss = compute_vae_error(
             vae=self._modules.imitator,
             x=batch.observations,
             action=batch.actions,
             beta=self._beta,
         )
-
         loss.backward()
         self._modules.imitator_optim.step()
-
         return {"imitator_loss": float(loss.cpu().detach().numpy())}
 
     def _repeat_observation(self, x: torch.Tensor) -> torch.Tensor:
@@ -188,10 +176,30 @@ class BCQImpl(DDPGBaseImpl):
         self, batch: TorchMiniBatch, grad_step: int
     ) -> Dict[str, float]:
         metrics = {}
+
         metrics.update(self.update_imitator(batch))
-        if grad_step >= self._rl_start_step:
-            metrics.update(super().inner_update(batch, grad_step))
-            self.update_actor_target()
+        if grad_step < self._rl_start_step:
+            return metrics
+
+        # forward policy
+        latent = torch.randn(
+            batch.observations.shape[0],
+            2 * self._action_size,
+            device=self._device,
+        )
+        clipped_latent = latent.clamp(-0.5, 0.5)
+        sampled_action = forward_vae_decode(
+            vae=self._modules.imitator,
+            x=batch.observations,
+            latent=clipped_latent,
+        )
+        action = self._modules.policy(batch.observations, sampled_action)
+
+        # update models
+        metrics.update(self.update_critic(batch))
+        metrics.update(self.update_actor(batch, action))
+        self.update_critic_target()
+        self.update_actor_target()
         return metrics
 
 
