@@ -30,8 +30,16 @@ def test_get_dataset(env_name: str) -> None:
     [
         ("door-cloned-v1", "AdroitHandDoor-v1"),
         ("relocate-expert-v1", "AdroitHandRelocate-v1"),
+        ("kitchen-complete-v1", "FrankaKitchen-v1"),
     ],
 )
 def test_get_minari(dataset_name: str, env_name: str) -> None:
-    _, env = get_minari(dataset_name)
+    dataset, env = get_minari(dataset_name)
     assert env.unwrapped.spec.id == env_name  # type: ignore
+
+    # check shape
+    ref_shape = dataset.episodes[0].observations.shape[1:]  # type: ignore
+    obs, _ = env.reset()
+    assert obs.shape == ref_shape
+    obs, _, _, _, _ = env.step(env.action_space.sample())
+    assert obs.shape == ref_shape

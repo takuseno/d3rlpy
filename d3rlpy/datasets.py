@@ -508,10 +508,23 @@ def get_minari(
                 _observations = ep.observations
             elif env_type == _MinariEnvType.GOAL_CONDITIONED:
                 assert isinstance(ep.observations, dict)
+                if isinstance(ep.observations["desired_goal"], dict):
+                    sorted_keys = sorted(
+                        list(ep.observations["desired_goal"].keys())
+                    )
+                    goal_obs = np.concatenate(
+                        [
+                            ep.observations["desired_goal"][key]
+                            for key in sorted_keys
+                        ],
+                        axis=-1,
+                    )
+                else:
+                    goal_obs = ep.observations["desired_goal"]
                 _observations = np.concatenate(
                     [
                         ep.observations["observation"],
-                        ep.observations["desired_goal"],
+                        goal_obs,
                     ],
                     axis=-1,
                 )

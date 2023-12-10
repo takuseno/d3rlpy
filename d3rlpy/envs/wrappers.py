@@ -355,6 +355,17 @@ class Atari(gym.Wrapper[NDArray, int]):
         super().__init__(env)
 
 
+def _get_keys_from_observation_space(
+    observation_space: GymnasiumDictSpace,
+) -> Sequence[str]:
+    return sorted(list(observation_space.keys()))
+
+
+def _flat_dict_observation(observation: Dict[str, NDArray]) -> NDArray:
+    sorted_keys = sorted(list(observation.keys()))
+    return np.concatenate([observation[key] for key in sorted_keys])
+
+
 class GoalConcatWrapper(
     gymnasium.Wrapper[NDArray, _ActType, Dict[str, NDArray], _ActType]
 ):
@@ -385,9 +396,32 @@ class GoalConcatWrapper(
         observation_space = env.observation_space[observation_key]
         assert isinstance(observation_space, GymnasiumBox)
         goal_space = env.observation_space[goal_key]
-        assert isinstance(goal_space, GymnasiumBox)
-        low = np.concatenate([observation_space.low, goal_space.low])
-        high = np.concatenate([observation_space.high, goal_space.high])
+        if isinstance(goal_space, GymnasiumBox):
+            goal_space_low = goal_space.low
+            goal_space_high = goal_space.high
+        elif isinstance(goal_space, GymnasiumDictSpace):
+            goal_keys = _get_keys_from_observation_space(goal_space)
+            goal_spaces = [goal_space[key] for key in goal_keys]
+            goal_space_low = np.concatenate(
+                [
+                    [space.low] * space.shape[0]  # type: ignore
+                    if np.isscalar(space.low)  # type: ignore
+                    else space.low  # type: ignore
+                    for space in goal_spaces
+                ]
+            )
+            goal_space_high = np.concatenate(
+                [
+                    [space.high] * space.shape[0]  # type: ignore
+                    if np.isscalar(space.high)  # type: ignore
+                    else space.high  # type: ignore
+                    for space in goal_spaces
+                ]
+            )
+        else:
+            raise ValueError(f"unsupported goal space: {type(goal_space)}")
+        low = np.concatenate([observation_space.low, goal_space_low])
+        high = np.concatenate([observation_space.high, goal_space_high])
         self._observation_space = GymnasiumBox(
             low=low,
             high=high,
@@ -399,19 +433,21 @@ class GoalConcatWrapper(
         self, action: _ActType
     ) -> Tuple[NDArray, SupportsFloat, bool, bool, Dict[str, Any]]:
         obs, rew, terminal, truncate, info = self.env.step(action)
-        concat_obs = np.concatenate(
-            [obs[self._observation_key], obs[self._goal_key]]
-        )
+        goal_obs = obs[self._goal_key]
+        if isinstance(goal_obs, dict):
+            goal_obs = _flat_dict_observation(goal_obs)
+        concat_obs = np.concatenate([obs[self._observation_key], goal_obs])
         return concat_obs, rew, terminal, truncate, info
 
     def reset(
         self,
         *,
         seed: Optional[int] = None,
-        options: Optional[Dict[str, Any]] = None
+        options: Optional[Dict[str, Any]] = None,
     ) -> Tuple[NDArray, Dict[str, Any]]:
         obs, info = self.env.reset(seed=seed, options=options)
-        concat_obs = np.concatenate(
-            [obs[self._observation_key], obs[self._goal_key]]
-        )
+        goal_obs = obs[self._goal_key]
+        if isinstance(goal_obs, dict):
+            goal_obs = _flat_dict_observation(goal_obs)
+        concat_obs = np.concatenate([obs[self._observation_key], goal_obs])
         return concat_obs, info
