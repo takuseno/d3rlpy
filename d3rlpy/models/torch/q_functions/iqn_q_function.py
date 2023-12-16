@@ -1,5 +1,5 @@
 import math
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 from torch import nn
@@ -135,7 +135,7 @@ class DiscreteIQNQFunctionForwarder(DiscreteQFunctionForwarder):
         rewards: torch.Tensor,
         target: torch.Tensor,
         terminals: torch.Tensor,
-        gamma: float = 0.99,
+        gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
         assert target.shape == (observations.shape[0], self._n_quantiles)
@@ -242,7 +242,7 @@ class ContinuousIQNQFunctionForwarder(ContinuousQFunctionForwarder):
         rewards: torch.Tensor,
         target: torch.Tensor,
         terminals: torch.Tensor,
-        gamma: float = 0.99,
+        gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
         assert target.shape == (observations.shape[0], self._n_quantiles)

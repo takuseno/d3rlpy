@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Union
 
 import torch
 from torch import nn
@@ -66,7 +66,7 @@ class ContinuousQFunctionForwarder(metaclass=ABCMeta):
         rewards: torch.Tensor,
         target: torch.Tensor,
         terminals: torch.Tensor,
-        gamma: float = 0.99,
+        gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
         pass
@@ -91,7 +91,7 @@ class DiscreteQFunctionForwarder(metaclass=ABCMeta):
         rewards: torch.Tensor,
         target: torch.Tensor,
         terminals: torch.Tensor,
-        gamma: float = 0.99,
+        gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
         pass

@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Union, cast
 
 import torch
 import torch.nn.functional as F
@@ -58,7 +58,7 @@ def compute_quantile_loss(
     target: torch.Tensor,
     terminals: torch.Tensor,
     taus: torch.Tensor,
-    gamma: float,
+    gamma: Union[float, torch.Tensor],
 ) -> torch.Tensor:
     batch_size, n_quantiles = quantiles.shape
     expanded_quantiles = quantiles.view(batch_size, 1, -1)

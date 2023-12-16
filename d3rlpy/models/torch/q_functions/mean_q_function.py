@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 import torch.nn.functional as F
@@ -61,7 +61,7 @@ class DiscreteMeanQFunctionForwarder(DiscreteQFunctionForwarder):
         rewards: torch.Tensor,
         target: torch.Tensor,
         terminals: torch.Tensor,
-        gamma: float = 0.99,
+        gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
         one_hot = F.one_hot(actions.view(-1), num_classes=self._action_size)
@@ -121,7 +121,7 @@ class ContinuousMeanQFunctionForwarder(ContinuousQFunctionForwarder):
         rewards: torch.Tensor,
         target: torch.Tensor,
         terminals: torch.Tensor,
-        gamma: float = 0.99,
+        gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
         value = self._q_func(observations, actions).q_value

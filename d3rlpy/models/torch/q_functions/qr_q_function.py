@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 from torch import nn
@@ -83,7 +83,7 @@ class DiscreteQRQFunctionForwarder(DiscreteQFunctionForwarder):
         rewards: torch.Tensor,
         target: torch.Tensor,
         terminals: torch.Tensor,
-        gamma: float = 0.99,
+        gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
         assert target.shape == (observations.shape[0], self._n_quantiles)
@@ -165,7 +165,7 @@ class ContinuousQRQFunctionForwarder(ContinuousQFunctionForwarder):
         rewards: torch.Tensor,
         target: torch.Tensor,
         terminals: torch.Tensor,
-        gamma: float = 0.99,
+        gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
         assert target.shape == (observations.shape[0], self._n_quantiles)

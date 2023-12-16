@@ -82,7 +82,7 @@ def compute_ensemble_q_function_error(
     rewards: torch.Tensor,
     target: torch.Tensor,
     terminals: torch.Tensor,
-    gamma: float = 0.99,
+    gamma: Union[float, torch.Tensor] = 0.99,
 ) -> torch.Tensor:
     assert target.ndim == 2
     td_sum = torch.tensor(
@@ -167,7 +167,7 @@ class DiscreteEnsembleQFunctionForwarder:
         rewards: torch.Tensor,
         target: torch.Tensor,
         terminals: torch.Tensor,
-        gamma: float = 0.99,
+        gamma: Union[float, torch.Tensor] = 0.99,
     ) -> torch.Tensor:
         return compute_ensemble_q_function_error(
             forwarders=self._forwarders,
@@ -228,7 +228,7 @@ class ContinuousEnsembleQFunctionForwarder:
         rewards: torch.Tensor,
         target: torch.Tensor,
         terminals: torch.Tensor,
-        gamma: float = 0.99,
+        gamma: Union[float, torch.Tensor] = 0.99,
     ) -> torch.Tensor:
         return compute_ensemble_q_function_error(
             forwarders=self._forwarders,
