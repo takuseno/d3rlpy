@@ -14,10 +14,12 @@ from ..types import (
     ObservationSequence,
 )
 from .utils import (
+    create_zero_observation,
     get_dtype_from_observation,
     get_dtype_from_observation_sequence,
     get_shape_from_observation,
     get_shape_from_observation_sequence,
+    retrieve_observation,
 )
 
 __all__ = [
@@ -173,6 +175,42 @@ class PartialTrajectory:
         return Signature(
             dtype=[self.rewards.dtype],
             shape=[self.rewards.shape[1:]],
+        )
+
+    def get_transition_count(self) -> int:
+        """Returns number of transitions.
+
+        Returns:
+            Number of transitions.
+        """
+        return self.length if bool(self.terminals[-1]) else self.length - 1
+
+    def get_as_transition(self, index: int) -> Transition:
+        """Returns Transition at the specified index.
+
+        Args:
+            index: Index of transition.
+
+        Returns:
+            Transition.
+        """
+        assert index < self.get_transition_count()
+        observation = retrieve_observation(self.observations, index)
+        terminal = float(self.terminals[index])
+        if terminal and index == self.length - 1:
+            next_observation = create_zero_observation(observation)
+        else:
+            next_observation = retrieve_observation(
+                self.observations, index + 1
+            )
+        return Transition(
+            observation=observation,
+            action=self.actions[index],
+            reward=self.rewards[index],
+            next_observation=next_observation,
+            return_to_go=self.returns_to_go[index],
+            terminal=terminal,
+            interval=1,
         )
 
     def __len__(self) -> int:
