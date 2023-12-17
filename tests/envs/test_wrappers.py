@@ -99,9 +99,10 @@ def test_atari(is_eval: bool) -> None:
     assert observation.shape == (1, 84, 84)  # type: ignore
 
 
-def test_goal_concat_wrapper() -> None:
+@pytest.mark.parametrize("tuple_observation", [True, False])
+def test_goal_concat_wrapper(tuple_observation: bool) -> None:
     raw_env = gymnasium.make("AntMaze_UMaze-v4")
-    env = GoalConcatWrapper(raw_env)
+    env = GoalConcatWrapper(raw_env, tuple_observation=tuple_observation)
 
     assert isinstance(raw_env.observation_space, GymnasiumDictSpace)
 
@@ -117,8 +118,16 @@ def test_goal_concat_wrapper() -> None:
 
     # check reset
     observation, _ = env.reset()
-    assert observation.shape == concat_shape  # type: ignore
+    if tuple_observation:
+        assert observation[0].shape == observation_shape
+        assert observation[1].shape == goal_shape
+    else:
+        assert observation.shape == concat_shape  # type: ignore
 
     # check step
     observation, _, _, _, _ = env.step(env.action_space.sample())
-    assert observation.shape == concat_shape  # type: ignore
+    if tuple_observation:
+        assert observation[0].shape == observation_shape
+        assert observation[1].shape == goal_shape
+    else:
+        assert observation.shape == concat_shape  # type: ignore

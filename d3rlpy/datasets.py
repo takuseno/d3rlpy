@@ -457,6 +457,7 @@ def get_minari(
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     render_mode: Optional[str] = None,
+    tuple_observation: bool = False,
 ) -> Tuple[ReplayBuffer, gymnasium.Env[Any, Any]]:
     """Returns minari dataset and envrironment.
 
@@ -471,6 +472,7 @@ def get_minari(
         transition_picker: TransitionPickerProtocol object.
         trajectory_slicer: TrajectorySlicerProtocol object.
         render_mode: Mode of rendering (``human``, ``rgb_array``).
+        tuple_observation: Flag to include goals as tuple element.
 
     Returns:
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
@@ -491,7 +493,9 @@ def get_minari(
             and "desired_goal" in env.observation_space.spaces
         ):
             env_type = _MinariEnvType.GOAL_CONDITIONED
-            unwrapped_env = GoalConcatWrapper(unwrapped_env)
+            unwrapped_env = GoalConcatWrapper(
+                unwrapped_env, tuple_observation=tuple_observation
+            )
         else:
             raise ValueError(
                 f"Unsupported observation space: {env.observation_space}"
@@ -521,13 +525,16 @@ def get_minari(
                     )
                 else:
                     goal_obs = ep.observations["desired_goal"]
-                _observations = np.concatenate(
-                    [
-                        ep.observations["observation"],
-                        goal_obs,
-                    ],
-                    axis=-1,
-                )
+                if tuple_observation:
+                    _observations = (ep.observations["observation"], goal_obs)
+                else:
+                    _observations = np.concatenate(
+                        [
+                            ep.observations["observation"],
+                            goal_obs,
+                        ],
+                        axis=-1,
+                    )
             else:
                 raise ValueError("Unsupported observation format.")
             observations.append(_observations)
@@ -536,8 +543,16 @@ def get_minari(
             terminals.append(ep.terminations)
             timeouts.append(ep.truncations)
 
+        if tuple_observation:
+            stacked_observations = tuple(
+                np.concatenate([observation[i] for observation in observations])
+                for i in range(2)
+            )
+        else:
+            stacked_observations = np.concatenate(observations)
+
         dataset = MDPDataset(
-            observations=np.concatenate(observations),
+            observations=stacked_observations,
             actions=np.concatenate(actions),
             rewards=np.concatenate(rewards),
             terminals=np.concatenate(terminals),

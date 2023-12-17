@@ -8,6 +8,7 @@ from typing import (
     SupportsFloat,
     Tuple,
     TypeVar,
+    Union,
 )
 
 import gym
@@ -23,6 +24,7 @@ from gym.spaces import Box
 from gym.wrappers.transform_reward import TransformReward
 from gymnasium.spaces import Box as GymnasiumBox
 from gymnasium.spaces import Dict as GymnasiumDictSpace
+from gymnasium.spaces import Tuple as GymnasiumTuple
 
 from ..types import NDArray
 
@@ -367,7 +369,12 @@ def _flat_dict_observation(observation: Dict[str, NDArray]) -> NDArray:
 
 
 class GoalConcatWrapper(
-    gymnasium.Wrapper[NDArray, _ActType, Dict[str, NDArray], _ActType]
+    gymnasium.Wrapper[
+        Union[NDArray, Tuple[NDArray, NDArray]],
+        _ActType,
+        Dict[str, NDArray],
+        _ActType,
+    ]
 ):
     r"""GaolConcatWrapper class for goal-conditioned environments.
 
@@ -379,20 +386,25 @@ class GoalConcatWrapper(
         env (Union[gym.Env, gymnasium.Env]): Goal-conditioned environment.
         observation_key (str): String key of the main observation.
         goal_key (str): String key of the goal observation.
+        tuple_observation (bool): Flag to include goals as tuple element.
     """
+    _observation_space: Union[GymnasiumBox, GymnasiumTuple]  # type: ignore
     _observation_key: str
     _goal_key: str
+    _tuple_observation: bool
 
     def __init__(
         self,
         env: gymnasium.Env[Dict[str, NDArray], _ActType],
         observation_key: str = "observation",
         goal_key: str = "desired_goal",
+        tuple_observation: bool = False,
     ):
         super().__init__(env)
         assert isinstance(env.observation_space, GymnasiumDictSpace)
         self._observation_key = observation_key
         self._goal_key = goal_key
+        self._tuple_observation = tuple_observation
         observation_space = env.observation_space[observation_key]
         assert isinstance(observation_space, GymnasiumBox)
         goal_space = env.observation_space[goal_key]
@@ -420,23 +432,38 @@ class GoalConcatWrapper(
             )
         else:
             raise ValueError(f"unsupported goal space: {type(goal_space)}")
-        low = np.concatenate([observation_space.low, goal_space_low])
-        high = np.concatenate([observation_space.high, goal_space_high])
-        self._observation_space = GymnasiumBox(
-            low=low,
-            high=high,
-            shape=low.shape,
-            dtype=observation_space.dtype,  # type: ignore
-        )
+        if tuple_observation:
+            self._observation_space = GymnasiumTuple(
+                [observation_space, goal_space]
+            )
+        else:
+            low = np.concatenate([observation_space.low, goal_space_low])
+            high = np.concatenate([observation_space.high, goal_space_high])
+            self._observation_space = GymnasiumBox(
+                low=low,
+                high=high,
+                shape=low.shape,
+                dtype=observation_space.dtype,  # type: ignore
+            )
 
     def step(
         self, action: _ActType
-    ) -> Tuple[NDArray, SupportsFloat, bool, bool, Dict[str, Any]]:
+    ) -> Tuple[
+        Union[NDArray, Tuple[NDArray, NDArray]],
+        SupportsFloat,
+        bool,
+        bool,
+        Dict[str, Any],
+    ]:
         obs, rew, terminal, truncate, info = self.env.step(action)
         goal_obs = obs[self._goal_key]
         if isinstance(goal_obs, dict):
             goal_obs = _flat_dict_observation(goal_obs)
-        concat_obs = np.concatenate([obs[self._observation_key], goal_obs])
+        concat_obs: Union[NDArray, Tuple[NDArray, NDArray]]
+        if self._tuple_observation:
+            concat_obs = (obs[self._observation_key], goal_obs)
+        else:
+            concat_obs = np.concatenate([obs[self._observation_key], goal_obs])
         return concat_obs, rew, terminal, truncate, info
 
     def reset(
@@ -444,10 +471,14 @@ class GoalConcatWrapper(
         *,
         seed: Optional[int] = None,
         options: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[NDArray, Dict[str, Any]]:
+    ) -> Tuple[Union[NDArray, Tuple[NDArray, NDArray]], Dict[str, Any]]:
         obs, info = self.env.reset(seed=seed, options=options)
         goal_obs = obs[self._goal_key]
         if isinstance(goal_obs, dict):
             goal_obs = _flat_dict_observation(goal_obs)
-        concat_obs = np.concatenate([obs[self._observation_key], goal_obs])
+        concat_obs: Union[NDArray, Tuple[NDArray, NDArray]]
+        if self._tuple_observation:
+            concat_obs = (obs[self._observation_key], goal_obs)
+        else:
+            concat_obs = np.concatenate([obs[self._observation_key], goal_obs])
         return concat_obs, info
