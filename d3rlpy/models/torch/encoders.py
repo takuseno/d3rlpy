@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from ...itertools import last_flag
-from ...types import Shape
+from ...types import Shape, TorchObservation
 
 __all__ = [
     "Encoder",
@@ -21,19 +21,23 @@ __all__ = [
 
 class Encoder(nn.Module, metaclass=ABCMeta):  # type: ignore
     @abstractmethod
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: TorchObservation) -> torch.Tensor:
         pass
 
-    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+    def __call__(self, x: TorchObservation) -> torch.Tensor:
         return super().__call__(x)
 
 
 class EncoderWithAction(nn.Module, metaclass=ABCMeta):  # type: ignore
     @abstractmethod
-    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor:
         pass
 
-    def __call__(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+    def __call__(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor:
         return super().__call__(x, action)
 
 
@@ -96,7 +100,8 @@ class PixelEncoder(Encoder):
 
         self._last_layers = nn.Sequential(*layers)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: TorchObservation) -> torch.Tensor:
+        assert isinstance(x, torch.Tensor)
         h = self._cnn_layers(x)
         return self._last_layers(h.reshape(x.shape[0], -1))
 
@@ -165,7 +170,10 @@ class PixelEncoderWithAction(EncoderWithAction):
             layers.append(nn.Dropout(dropout_rate))
         self._last_layers = nn.Sequential(*layers)
 
-    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor:
+        assert isinstance(x, torch.Tensor)
         h = self._cnn_layers(x)
 
         if self._discrete_action:
@@ -210,7 +218,8 @@ class VectorEncoder(Encoder):
                 layers.append(nn.Dropout(dropout_rate))
         self._layers = nn.Sequential(*layers)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: TorchObservation) -> torch.Tensor:
+        assert isinstance(x, torch.Tensor)
         return self._layers(x)
 
 
@@ -253,7 +262,10 @@ class VectorEncoderWithAction(EncoderWithAction):
                 layers.append(nn.Dropout(dropout_rate))
         self._layers = nn.Sequential(*layers)
 
-    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor:
+        assert isinstance(x, torch.Tensor)
         if self._discrete_action:
             action = F.one_hot(
                 action.view(-1).long(), num_classes=self._action_size

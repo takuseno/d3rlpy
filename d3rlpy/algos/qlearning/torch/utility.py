@@ -5,6 +5,7 @@ from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
 )
+from ....types import TorchObservation
 
 __all__ = ["DiscreteQFunctionMixin", "ContinuousQFunctionMixin"]
 
@@ -19,17 +20,19 @@ class _ContinuousQFunctionProtocol(Protocol):
 
 class DiscreteQFunctionMixin:
     def inner_predict_value(
-        self: _DiscreteQFunctionProtocol, x: torch.Tensor, action: torch.Tensor
+        self: _DiscreteQFunctionProtocol,
+        x: TorchObservation,
+        action: torch.Tensor,
     ) -> torch.Tensor:
         values = self._q_func_forwarder.compute_expected_q(x, reduction="mean")
         flat_action = action.reshape(-1)
-        return values[torch.arange(0, x.size(0)), flat_action].reshape(-1)
+        return values[torch.arange(0, values.size(0)), flat_action].reshape(-1)
 
 
 class ContinuousQFunctionMixin:
     def inner_predict_value(
         self: _ContinuousQFunctionProtocol,
-        x: torch.Tensor,
+        x: TorchObservation,
         action: torch.Tensor,
     ) -> torch.Tensor:
         return self._q_func_forwarder.compute_expected_q(

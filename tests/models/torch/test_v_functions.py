@@ -6,18 +6,20 @@ from d3rlpy.models.torch.v_functions import (
     ValueFunction,
     compute_v_function_error,
 )
+from d3rlpy.types import Shape
 
+from ...testing_utils import create_torch_observations
 from .model_test import DummyEncoder, check_parameter_updates
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("batch_size", [32])
-def test_value_function(feature_size: int, batch_size: int) -> None:
-    encoder = DummyEncoder(feature_size)
-    v_func = ValueFunction(encoder, feature_size)
+def test_value_function(observation_shape: Shape, batch_size: int) -> None:
+    encoder = DummyEncoder(observation_shape)
+    v_func = ValueFunction(encoder, encoder.get_feature_size())
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     y = v_func(x)
     assert y.shape == (batch_size, 1)
 

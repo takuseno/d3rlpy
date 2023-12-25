@@ -210,19 +210,22 @@ def create_conditional_vae(
     decoder_encoder = encoder_factory.create_with_action(
         observation_shape, latent_size
     )
-    hidden_size = compute_output_size(
+    encoder_hidden_size = compute_output_size(
         [observation_shape, (action_size,)], encoder_encoder
+    )
+    decoder_hidden_size = compute_output_size(
+        [observation_shape, (latent_size,)], decoder_encoder
     )
     encoder = VAEEncoder(
         encoder=encoder_encoder,
-        hidden_size=hidden_size,
+        hidden_size=encoder_hidden_size,
         latent_size=latent_size,
         min_logstd=min_logstd,
         max_logstd=max_logstd,
     )
     decoder = VAEDecoder(
         encoder=decoder_encoder,
-        hidden_size=hidden_size,
+        hidden_size=decoder_hidden_size,
         action_size=action_size,
     )
     policy = ConditionalVAE(encoder=encoder, decoder=decoder)

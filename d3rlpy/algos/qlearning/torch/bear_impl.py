@@ -14,8 +14,13 @@ from ....models.torch import (
     compute_vae_error,
     forward_vae_sample_n,
 )
-from ....torch_utility import TorchMiniBatch
-from ....types import Shape
+from ....torch_utility import (
+    TorchMiniBatch,
+    expand_and_repeat_recursively,
+    flatten_left_recursively,
+    get_batch_size,
+)
+from ....types import Shape, TorchObservation
 from .sac_impl import SACActorLoss, SACImpl, SACModules
 
 __all__ = ["BEARImpl", "BEARModules"]
@@ -123,7 +128,7 @@ class BEARImpl(SACImpl):
         self._modules.actor_optim.step()
         return {"actor_loss": float(loss.cpu().detach().numpy())}
 
-    def _compute_mmd_loss(self, obs_t: torch.Tensor) -> torch.Tensor:
+    def _compute_mmd_loss(self, obs_t: TorchObservation) -> torch.Tensor:
         mmd = self._compute_mmd(obs_t)
         alpha = self._modules.log_alpha().exp()
         return (alpha * (mmd - self._alpha_threshold)).mean()
@@ -152,7 +157,7 @@ class BEARImpl(SACImpl):
         # clip for stability
         self._modules.log_alpha.data.clamp_(-5.0, 10.0)
 
-    def _compute_mmd(self, x: torch.Tensor) -> torch.Tensor:
+    def _compute_mmd(self, x: TorchObservation) -> torch.Tensor:
         with torch.no_grad():
             behavior_actions = forward_vae_sample_n(
                 self._modules.imitator,
@@ -173,18 +178,21 @@ class BEARImpl(SACImpl):
             raise ValueError(f"Invalid kernel type: {self._mmd_kernel}")
 
         # (batch, n, action) -> (batch, n, 1, action)
+        batch_size = (
+            x.shape[0] if isinstance(x, torch.Tensor) else x[0].shape[0]
+        )
         behavior_actions = behavior_actions.reshape(
-            x.shape[0], -1, 1, self.action_size
+            batch_size, -1, 1, self.action_size
         )
         policy_actions = policy_actions.reshape(
-            x.shape[0], -1, 1, self.action_size
+            batch_size, -1, 1, self.action_size
         )
         # (batch, n, action) -> (batch, 1, n, action)
         behavior_actions_T = behavior_actions.reshape(
-            x.shape[0], 1, -1, self.action_size
+            batch_size, 1, -1, self.action_size
         )
         policy_actions_T = policy_actions.reshape(
-            x.shape[0], 1, -1, self.action_size
+            batch_size, 1, -1, self.action_size
         )
 
         # 1 / N^2 \sum k(a_\pi, a_\pi)
@@ -220,12 +228,15 @@ class BEARImpl(SACImpl):
             )
 
             # (batch, n, 1) -> (batch, 1)
-            batch_size = batch.observations.shape[0]
+            batch_size = get_batch_size(batch.observations)
             max_log_prob = log_probs[torch.arange(batch_size), indices]
 
             return values - self._modules.log_temp().exp() * max_log_prob
 
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
+        batch_size = (
+            x.shape[0] if isinstance(x, torch.Tensor) else x[0].shape[0]
+        )
         with torch.no_grad():
             # (batch, n, action)
             dist = build_squashed_gaussian_distribution(self._modules.policy(x))
@@ -233,14 +244,12 @@ class BEARImpl(SACImpl):
             # (batch, n, action) -> (batch * n, action)
             flat_actions = actions.reshape(-1, self._action_size)
 
-            # (batch, observation) -> (batch, 1, observation)
-            expanded_x = x.view(x.shape[0], 1, *x.shape[1:])
-            # (batch, 1, observation) -> (batch, n, observation)
-            repeated_x = expanded_x.expand(
-                x.shape[0], self._n_action_samples, *x.shape[1:]
+            # (batch, observation) -> (batch, n, observation)
+            repeated_x = expand_and_repeat_recursively(
+                x, self._n_action_samples
             )
             # (batch, n, observation) -> (batch * n, observation)
-            flat_x = repeated_x.reshape(-1, *x.shape[1:])
+            flat_x = flatten_left_recursively(repeated_x, dim=1)
 
             # (batch * n, 1)
             flat_values = self._q_func_forwarder.compute_expected_q(
@@ -248,12 +257,12 @@ class BEARImpl(SACImpl):
             )[0]
 
             # (batch, n)
-            values = flat_values.view(x.shape[0], self._n_action_samples)
+            values = flat_values.view(-1, self._n_action_samples)
 
             # (batch, n) -> (batch,)
             max_indices = torch.argmax(values, dim=1)
 
-            return actions[torch.arange(x.shape[0]), max_indices]
+            return actions[torch.arange(batch_size), max_indices]
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int

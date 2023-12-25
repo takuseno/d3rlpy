@@ -21,7 +21,7 @@ from typing_extensions import Self
 from .dataclass_utils import asdict_without_copy
 from .dataset import TrajectoryMiniBatch, TransitionMiniBatch
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from .types import NDArray
+from .types import NDArray, TorchObservation
 
 __all__ = [
     "soft_sync",
@@ -34,6 +34,11 @@ __all__ = [
     "Modules",
     "convert_to_torch",
     "convert_to_torch_recursively",
+    "convert_to_numpy_recursively",
+    "get_device",
+    "get_batch_size",
+    "expand_and_repeat_recursively",
+    "flatten_left_recursively",
     "eval_api",
     "train_api",
     "View",
@@ -103,12 +108,59 @@ def convert_to_torch_recursively(
         raise ValueError(f"invalid array type: {type(array)}")
 
 
+def convert_to_numpy_recursively(
+    array: Union[torch.Tensor, Sequence[torch.Tensor]]
+) -> Union[NDArray, Sequence[NDArray]]:
+    if isinstance(array, (list, tuple)):
+        return [data.numpy() for data in array]
+    elif isinstance(array, torch.Tensor):
+        return array.numpy()  # type: ignore
+    else:
+        raise ValueError(f"invalid array type: {type(array)}")
+
+
+def get_device(x: Union[torch.Tensor, Sequence[torch.Tensor]]) -> str:
+    if isinstance(x, torch.Tensor):
+        return str(x.device)
+    else:
+        return str(x[0].device)
+
+
+def get_batch_size(x: Union[torch.Tensor, Sequence[torch.Tensor]]) -> int:
+    if isinstance(x, torch.Tensor):
+        return int(x.shape[0])
+    else:
+        return int(x[0].shape[0])
+
+
+def flatten_left_recursively(
+    x: Union[torch.Tensor, Sequence[torch.Tensor]], dim: int
+) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
+    if isinstance(x, torch.Tensor):
+        return x.reshape([-1, *x.shape[dim + 1 :]])
+    else:
+        return [flatten_left_recursively(_x, dim) for _x in x]
+
+
+def expand_and_repeat_recursively(
+    x: Union[torch.Tensor, Sequence[torch.Tensor]], n: int
+) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
+    if isinstance(x, torch.Tensor):
+        # repeat observation
+        # (batch_size, M) -> (batch_size, 1, M)
+        reshaped_x = x.view(x.shape[0], 1, *x.shape[1:])
+        # (batch_sie, 1, M) -> (batch_size, N, M)
+        return reshaped_x.expand(x.shape[0], n, *x.shape[1:])
+    else:
+        return [expand_and_repeat_recursively(_x, n) for _x in x]
+
+
 @dataclasses.dataclass(frozen=True)
 class TorchMiniBatch:
-    observations: torch.Tensor
+    observations: TorchObservation
     actions: torch.Tensor
     rewards: torch.Tensor
-    next_observations: torch.Tensor
+    next_observations: TorchObservation
     returns_to_go: torch.Tensor
     terminals: torch.Tensor
     intervals: torch.Tensor
@@ -134,10 +186,6 @@ class TorchMiniBatch:
         returns_to_go = convert_to_torch(batch.returns_to_go, device)
         terminals = convert_to_torch(batch.terminals, device)
         intervals = convert_to_torch(batch.intervals, device)
-
-        # TODO: support tuple observation
-        assert isinstance(observations, torch.Tensor)
-        assert isinstance(next_observations, torch.Tensor)
 
         # apply scaler
         if observation_scaler:
@@ -165,7 +213,7 @@ class TorchMiniBatch:
 
 @dataclasses.dataclass(frozen=True)
 class TorchTrajectoryMiniBatch:
-    observations: torch.Tensor  # (B, L, ...)
+    observations: TorchObservation  # (B, L, ...)
     actions: torch.Tensor  # (B, L, ...)
     rewards: torch.Tensor  # (B, L, 1)
     returns_to_go: torch.Tensor  # (B, L, 1)
@@ -192,9 +240,6 @@ class TorchTrajectoryMiniBatch:
         terminals = convert_to_torch(batch.terminals, device)
         timesteps = convert_to_torch(batch.timesteps, device).long()
         masks = convert_to_torch(batch.masks, device)
-
-        # TODO: support tuple observation
-        assert isinstance(observations, torch.Tensor)
 
         # apply scaler
         if observation_scaler:

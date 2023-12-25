@@ -11,7 +11,9 @@ from d3rlpy.models.torch.transformers import (
     GlobalPositionEncoding,
     SimplePositionEncoding,
 )
+from d3rlpy.types import Shape
 
+from ...testing_utils import create_torch_batched_observations
 from .model_test import DummyEncoder, check_parameter_updates
 
 
@@ -189,7 +191,7 @@ def test_gpt2(
     check_parameter_updates(model, (x,))
 
 
-@pytest.mark.parametrize("hidden_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("num_heads", [2])
 @pytest.mark.parametrize("num_layers", [3])
@@ -198,7 +200,7 @@ def test_gpt2(
 @pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_continuous_decision_transformer(
-    hidden_size: int,
+    observation_shape: Shape,
     action_size: int,
     num_heads: int,
     num_layers: int,
@@ -207,12 +209,14 @@ def test_continuous_decision_transformer(
     dropout: float,
     batch_size: int,
 ) -> None:
-    encoder = DummyEncoder(hidden_size)
+    encoder = DummyEncoder(observation_shape)
 
     model = ContinuousDecisionTransformer(
         encoder=encoder,
-        feature_size=hidden_size,
-        position_encoding=SimplePositionEncoding(hidden_size, max_timestep),
+        feature_size=encoder.get_feature_size(),
+        position_encoding=SimplePositionEncoding(
+            encoder.get_feature_size(), max_timestep
+        ),
         action_size=action_size,
         num_heads=num_heads,
         num_layers=num_layers,
@@ -223,7 +227,9 @@ def test_continuous_decision_transformer(
         activation=torch.nn.ReLU(),
     )
 
-    x = torch.rand(batch_size, context_size, hidden_size)
+    x = create_torch_batched_observations(
+        observation_shape, batch_size, context_size
+    )
     action = torch.rand(batch_size, context_size, action_size)
     rtg = torch.rand(batch_size, context_size, 1)
     timesteps = torch.randint(0, max_timestep, size=(batch_size, context_size))
@@ -236,7 +242,7 @@ def test_continuous_decision_transformer(
     check_parameter_updates(model, (x, action, rtg, timesteps))
 
 
-@pytest.mark.parametrize("hidden_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("num_heads", [2])
 @pytest.mark.parametrize("num_layers", [3])
@@ -245,7 +251,7 @@ def test_continuous_decision_transformer(
 @pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_discrete_decision_transformer(
-    hidden_size: int,
+    observation_shape: Shape,
     action_size: int,
     num_heads: int,
     num_layers: int,
@@ -254,12 +260,14 @@ def test_discrete_decision_transformer(
     dropout: float,
     batch_size: int,
 ) -> None:
-    encoder = DummyEncoder(hidden_size)
+    encoder = DummyEncoder(observation_shape)
 
     model = DiscreteDecisionTransformer(
         encoder=encoder,
-        feature_size=hidden_size,
-        position_encoding=SimplePositionEncoding(hidden_size, max_timestep),
+        feature_size=encoder.get_feature_size(),
+        position_encoding=SimplePositionEncoding(
+            encoder.get_feature_size(), max_timestep
+        ),
         action_size=action_size,
         num_heads=num_heads,
         num_layers=num_layers,
@@ -271,7 +279,9 @@ def test_discrete_decision_transformer(
         embed_activation=torch.nn.Tanh(),
     )
 
-    x = torch.rand(batch_size, context_size, hidden_size)
+    x = create_torch_batched_observations(
+        observation_shape, batch_size, context_size
+    )
     action = torch.randint(0, action_size, size=(batch_size, context_size))
     rtg = torch.rand(batch_size, context_size, 1)
     timesteps = torch.randint(0, max_timestep, size=(batch_size, context_size))

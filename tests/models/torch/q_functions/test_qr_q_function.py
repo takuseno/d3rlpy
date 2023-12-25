@@ -12,7 +12,9 @@ from d3rlpy.models.torch import (
 from d3rlpy.models.torch.q_functions.utility import (
     pick_quantile_value_by_action,
 )
+from d3rlpy.types import Shape
 
+from ....testing_utils import create_torch_observations
 from ..model_test import (
     DummyEncoder,
     DummyEncoderWithAction,
@@ -21,23 +23,23 @@ from ..model_test import (
 )
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("batch_size", [32])
 def test_discrete_qr_q_function(
-    feature_size: int,
+    observation_shape: Shape,
     action_size: int,
     n_quantiles: int,
     batch_size: int,
 ) -> None:
-    encoder = DummyEncoder(feature_size)
+    encoder = DummyEncoder(observation_shape)
     q_func = DiscreteQRQFunction(
-        encoder, feature_size, action_size, n_quantiles
+        encoder, encoder.get_feature_size(), action_size, n_quantiles
     )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     y = q_func(x)
     assert y.q_value.shape == (batch_size, action_size)
     assert y.quantiles is not None and y.taus is not None
@@ -54,26 +56,26 @@ def test_discrete_qr_q_function(
     check_parameter_updates(q_func, (x,))
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("gamma", [0.99])
 def test_discrete_qr_q_function_forwarder(
-    feature_size: int,
+    observation_shape: Shape,
     action_size: int,
     n_quantiles: int,
     batch_size: int,
     gamma: float,
 ) -> None:
-    encoder = DummyEncoder(feature_size)
+    encoder = DummyEncoder(observation_shape)
     q_func = DiscreteQRQFunction(
-        encoder, feature_size, action_size, n_quantiles
+        encoder, encoder.get_feature_size(), action_size, n_quantiles
     )
     forwarder = DiscreteQRQFunctionForwarder(q_func, n_quantiles)
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     y = forwarder.compute_expected_q(x)
     assert y.shape == (batch_size, action_size)
 
@@ -87,7 +89,7 @@ def test_discrete_qr_q_function_forwarder(
     assert targets.shape == (batch_size, action_size, n_quantiles)
 
     # check quantile huber loss
-    obs_t = torch.rand(batch_size, feature_size)
+    obs_t = create_torch_observations(observation_shape, batch_size)
     act_t = torch.randint(action_size, size=(batch_size,))
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)
@@ -129,21 +131,23 @@ def test_discrete_qr_q_function_forwarder(
     assert np.allclose(loss.cpu().detach(), ref_loss.mean())
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("batch_size", [32])
 def test_continuous_qr_q_function(
-    feature_size: int,
+    observation_shape: Shape,
     action_size: int,
     n_quantiles: int,
     batch_size: int,
 ) -> None:
-    encoder = DummyEncoderWithAction(feature_size, action_size)
-    q_func = ContinuousQRQFunction(encoder, feature_size, n_quantiles)
+    encoder = DummyEncoderWithAction(observation_shape, action_size)
+    q_func = ContinuousQRQFunction(
+        encoder, encoder.get_feature_size(), n_quantiles
+    )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     action = torch.rand(batch_size, action_size)
     y = q_func(x, action)
     assert y.q_value.shape == (batch_size, 1)
@@ -162,24 +166,26 @@ def test_continuous_qr_q_function(
     check_parameter_updates(q_func, (x, action))
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("gamma", [0.99])
 def test_continuous_qr_q_function_forwarder(
-    feature_size: int,
+    observation_shape: Shape,
     action_size: int,
     n_quantiles: int,
     batch_size: int,
     gamma: float,
 ) -> None:
-    encoder = DummyEncoderWithAction(feature_size, action_size)
-    q_func = ContinuousQRQFunction(encoder, feature_size, n_quantiles)
+    encoder = DummyEncoderWithAction(observation_shape, action_size)
+    q_func = ContinuousQRQFunction(
+        encoder, encoder.get_feature_size(), n_quantiles
+    )
     forwarder = ContinuousQRQFunctionForwarder(q_func, n_quantiles)
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     action = torch.rand(batch_size, action_size)
     y = forwarder.compute_expected_q(x, action)
     assert y.shape == (batch_size, 1)
@@ -188,7 +194,7 @@ def test_continuous_qr_q_function_forwarder(
     assert target.shape == (batch_size, n_quantiles)
 
     # check quantile huber loss
-    obs_t = torch.rand(batch_size, feature_size)
+    obs_t = create_torch_observations(observation_shape, batch_size)
     act_t = torch.rand(batch_size, action_size)
     rew_tp1 = torch.rand(batch_size, 1)
     q_tp1 = torch.rand(batch_size, n_quantiles)

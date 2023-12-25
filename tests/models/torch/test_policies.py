@@ -14,7 +14,9 @@ from d3rlpy.models.torch.policies import (
     build_gaussian_distribution,
     build_squashed_gaussian_distribution,
 )
+from d3rlpy.types import Shape
 
+from ...testing_utils import create_torch_observations
 from .model_test import (
     DummyEncoder,
     DummyEncoderWithAction,
@@ -22,21 +24,21 @@ from .model_test import (
 )
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 def test_deterministic_policy(
-    feature_size: int, action_size: int, batch_size: int
+    observation_shape: Shape, action_size: int, batch_size: int
 ) -> None:
-    encoder = DummyEncoder(feature_size)
+    encoder = DummyEncoder(observation_shape)
     policy = DeterministicPolicy(
         encoder=encoder,
-        hidden_size=feature_size,
+        hidden_size=encoder.get_feature_size(),
         action_size=action_size,
     )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     y = policy(x)
     assert y.mu.shape == (batch_size, action_size)
     assert y.squashed_mu.shape == (batch_size, action_size)
@@ -49,23 +51,23 @@ def test_deterministic_policy(
     check_parameter_updates(policy, (x,))
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("scale", [0.05])
 @pytest.mark.parametrize("batch_size", [32])
 def test_deterministic_residual_policy(
-    feature_size: int, action_size: int, scale: float, batch_size: int
+    observation_shape: Shape, action_size: int, scale: float, batch_size: int
 ) -> None:
-    encoder = DummyEncoderWithAction(feature_size, action_size)
+    encoder = DummyEncoderWithAction(observation_shape, action_size)
     policy = DeterministicResidualPolicy(
         encoder=encoder,
-        hidden_size=feature_size,
+        hidden_size=encoder.get_feature_size(),
         action_size=action_size,
         scale=scale,
     )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     action = torch.rand(batch_size, action_size)
     y = policy(x, action)
     assert y.mu.shape == (batch_size, action_size)
@@ -83,7 +85,7 @@ def test_deterministic_residual_policy(
     check_parameter_updates(policy, (x, action))
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("min_logstd", [-20.0])
@@ -91,7 +93,7 @@ def test_deterministic_residual_policy(
 @pytest.mark.parametrize("use_std_parameter", [True, False])
 @pytest.mark.parametrize("n", [10])
 def test_normal_policy(
-    feature_size: int,
+    observation_shape: Shape,
     action_size: int,
     batch_size: int,
     min_logstd: float,
@@ -99,10 +101,10 @@ def test_normal_policy(
     use_std_parameter: bool,
     n: int,
 ) -> None:
-    encoder = DummyEncoder(feature_size)
+    encoder = DummyEncoder(observation_shape)
     policy = NormalPolicy(
         encoder=encoder,
-        hidden_size=feature_size,
+        hidden_size=encoder.get_feature_size(),
         action_size=action_size,
         min_logstd=min_logstd,
         max_logstd=max_logstd,
@@ -110,7 +112,7 @@ def test_normal_policy(
     )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     y = policy(x)
     assert y.mu.shape == (batch_size, action_size)
     assert y.squashed_mu.shape == (batch_size, action_size)
@@ -119,22 +121,22 @@ def test_normal_policy(
     check_parameter_updates(policy, (x,))
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("n", [10])
 def test_categorical_policy(
-    feature_size: int, action_size: int, batch_size: int, n: int
+    observation_shape: Shape, action_size: int, batch_size: int, n: int
 ) -> None:
-    encoder = DummyEncoder(feature_size)
+    encoder = DummyEncoder(observation_shape)
     policy = CategoricalPolicy(
         encoder=encoder,
-        hidden_size=feature_size,
+        hidden_size=encoder.get_feature_size(),
         action_size=action_size,
     )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     dist = policy(x)
     assert dist.probs.shape == (batch_size, action_size)
     assert dist.sample().shape == (batch_size,)

@@ -19,7 +19,9 @@ from d3rlpy.models.torch.policies import (
     DeterministicPolicy,
     NormalPolicy,
 )
+from d3rlpy.types import Shape
 
+from ...testing_utils import create_torch_observations
 from .model_test import (
     DummyEncoder,
     DummyEncoderWithAction,
@@ -27,49 +29,49 @@ from .model_test import (
 )
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("latent_size", [32])
 @pytest.mark.parametrize("batch_size", [32])
 def test_vae_encoder(
-    feature_size: int,
+    observation_shape: Shape,
     action_size: int,
     latent_size: int,
     batch_size: int,
 ) -> None:
-    encoder = DummyEncoderWithAction(feature_size, action_size)
+    encoder = DummyEncoderWithAction(observation_shape, action_size)
     vae_encoder = VAEEncoder(
         encoder=encoder,
-        hidden_size=feature_size,
+        hidden_size=encoder.get_feature_size(),
         latent_size=latent_size,
     )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     action = torch.rand(batch_size, action_size)
     dist = vae_encoder(x, action)
     assert dist.mean.shape == (batch_size, latent_size)
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("latent_size", [32])
 @pytest.mark.parametrize("batch_size", [32])
 def test_vae_decoder(
-    feature_size: int,
+    observation_shape: Shape,
     action_size: int,
     latent_size: int,
     batch_size: int,
 ) -> None:
-    encoder = DummyEncoderWithAction(feature_size, latent_size)
+    encoder = DummyEncoderWithAction(observation_shape, latent_size)
     vae_decoder = VAEDecoder(
         encoder=encoder,
-        hidden_size=feature_size,
+        hidden_size=encoder.get_feature_size(),
         action_size=action_size,
     )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     latent = torch.rand(batch_size, latent_size)
     action = vae_decoder(x, latent)
     assert action.shape == (batch_size, action_size)
@@ -78,30 +80,30 @@ def test_vae_decoder(
     check_parameter_updates(vae_decoder, (x, latent))
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("latent_size", [32])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("n", [100])
 @pytest.mark.parametrize("beta", [0.5])
 def test_conditional_vae(
-    feature_size: int,
+    observation_shape: Shape,
     action_size: int,
     latent_size: int,
     batch_size: int,
     n: int,
     beta: float,
 ) -> None:
-    encoder_encoder = DummyEncoderWithAction(feature_size, action_size)
-    decoder_encoder = DummyEncoderWithAction(feature_size, latent_size)
+    encoder_encoder = DummyEncoderWithAction(observation_shape, action_size)
+    decoder_encoder = DummyEncoderWithAction(observation_shape, latent_size)
     vae_encoder = VAEEncoder(
         encoder=encoder_encoder,
-        hidden_size=feature_size,
+        hidden_size=encoder_encoder.get_feature_size(),
         latent_size=latent_size,
     )
     vae_decoder = VAEDecoder(
         encoder=decoder_encoder,
-        hidden_size=feature_size,
+        hidden_size=decoder_encoder.get_feature_size(),
         action_size=action_size,
     )
     vae = ConditionalVAE(
@@ -110,7 +112,7 @@ def test_conditional_vae(
     )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     action = torch.rand(batch_size, action_size)
     y = vae(x, action)
     assert y.shape == (batch_size, action_size)
@@ -139,66 +141,66 @@ def test_conditional_vae(
     check_parameter_updates(vae, (x, action))
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("beta", [0.5])
 def test_compute_discrete_imitation_loss(
-    feature_size: int, action_size: int, batch_size: int, beta: float
+    observation_shape: Shape, action_size: int, batch_size: int, beta: float
 ) -> None:
-    encoder = DummyEncoder(feature_size)
+    encoder = DummyEncoder(observation_shape)
     policy = CategoricalPolicy(
         encoder=encoder,
-        hidden_size=feature_size,
+        hidden_size=encoder.get_feature_size(),
         action_size=action_size,
     )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     action = torch.randint(low=0, high=action_size, size=(batch_size,))
     loss = compute_discrete_imitation_loss(policy, x, action, beta)
     assert loss.ndim == 0
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 def test_compute_deterministic_imitation_loss(
-    feature_size: int, action_size: int, batch_size: int
+    observation_shape: Shape, action_size: int, batch_size: int
 ) -> None:
-    encoder = DummyEncoder(feature_size)
+    encoder = DummyEncoder(observation_shape)
     policy = DeterministicPolicy(
         encoder=encoder,
-        hidden_size=feature_size,
+        hidden_size=encoder.get_feature_size(),
         action_size=action_size,
     )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     action = torch.rand(batch_size, action_size)
     loss = compute_deterministic_imitation_loss(policy, x, action)
     assert loss.ndim == 0
     assert loss == ((policy(x).squashed_mu - action) ** 2).mean()
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("min_logstd", [-20.0])
 @pytest.mark.parametrize("max_logstd", [2.0])
 @pytest.mark.parametrize("use_std_parameter", [True, False])
 def test_compute_stochastic_imitation_loss(
-    feature_size: int,
+    observation_shape: Shape,
     action_size: int,
     batch_size: int,
     min_logstd: float,
     max_logstd: float,
     use_std_parameter: bool,
 ) -> None:
-    encoder = DummyEncoder(feature_size)
+    encoder = DummyEncoder(observation_shape)
     policy = NormalPolicy(
         encoder=encoder,
-        hidden_size=feature_size,
+        hidden_size=encoder.get_feature_size(),
         action_size=action_size,
         min_logstd=min_logstd,
         max_logstd=max_logstd,
@@ -206,7 +208,7 @@ def test_compute_stochastic_imitation_loss(
     )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     action = torch.rand(batch_size, action_size)
     loss = compute_stochastic_imitation_loss(policy, x, action)
     assert loss.ndim == 0

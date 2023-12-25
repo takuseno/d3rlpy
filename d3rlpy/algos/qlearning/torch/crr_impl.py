@@ -10,8 +10,14 @@ from ....models.torch import (
     NormalPolicy,
     build_gaussian_distribution,
 )
-from ....torch_utility import TorchMiniBatch, hard_sync, soft_sync
-from ....types import Shape
+from ....torch_utility import (
+    TorchMiniBatch,
+    expand_and_repeat_recursively,
+    flatten_left_recursively,
+    hard_sync,
+    soft_sync,
+)
+from ....types import Shape, TorchObservation
 from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
 
 __all__ = ["CRRImpl", "CRRModules"]
@@ -79,7 +85,7 @@ class CRRImpl(DDPGBaseImpl):
         return DDPGBaseActorLoss(-(log_probs * weight).mean())
 
     def _compute_weight(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
+        self, obs_t: TorchObservation, act_t: torch.Tensor
     ) -> torch.Tensor:
         advantages = self._compute_advantage(obs_t, act_t)
         if self._weight_type == "binary":
@@ -89,30 +95,26 @@ class CRRImpl(DDPGBaseImpl):
         raise ValueError(f"invalid weight type: {self._weight_type}.")
 
     def _compute_advantage(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
+        self, obs_t: TorchObservation, act_t: torch.Tensor
     ) -> torch.Tensor:
         with torch.no_grad():
-            batch_size = obs_t.shape[0]
-
             # (batch_size, N, action)
             dist = build_gaussian_distribution(self._modules.policy(obs_t))
             policy_actions = dist.sample_n(self._n_action_samples)
             flat_actions = policy_actions.reshape(-1, self._action_size)
 
             # repeat observation
-            # (batch_size, obs_size) -> (batch_size, 1, obs_size)
-            reshaped_obs_t = obs_t.view(batch_size, 1, *obs_t.shape[1:])
-            # (batch_sie, 1, obs_size) -> (batch_size, N, obs_size)
-            repeated_obs_t = reshaped_obs_t.expand(
-                batch_size, self._n_action_samples, *obs_t.shape[1:]
+            # (batch_size, obs_size) -> (batch_size, N, obs_size)
+            repeated_obs_t = expand_and_repeat_recursively(
+                obs_t, self._n_action_samples
             )
             # (batch_size, N, obs_size) -> (batch_size * N, obs_size)
-            flat_obs_t = repeated_obs_t.reshape(-1, *obs_t.shape[1:])
+            flat_obs_t = flatten_left_recursively(repeated_obs_t, dim=1)
 
             flat_values = self._q_func_forwarder.compute_expected_q(
                 flat_obs_t, flat_actions
             )
-            reshaped_values = flat_values.view(obs_t.shape[0], -1, 1)
+            reshaped_values = flat_values.view(-1, self._n_action_samples, 1)
 
             if self._advantage_type == "mean":
                 values = reshaped_values.mean(dim=1)
@@ -138,7 +140,7 @@ class CRRImpl(DDPGBaseImpl):
                 reduction="min",
             )
 
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         # compute CWP
 
         dist = build_gaussian_distribution(self._modules.policy(x))
@@ -147,29 +149,27 @@ class CRRImpl(DDPGBaseImpl):
         flat_actions = actions.reshape(-1, self._action_size)
 
         # repeat observation
-        # (batch_size, obs_size) -> (batch_size, 1, obs_size)
-        reshaped_obs_t = x.view(x.shape[0], 1, *x.shape[1:])
-        # (batch_size, 1, obs_size) -> (batch_size, N, obs_size)
-        repeated_obs_t = reshaped_obs_t.expand(
-            x.shape[0], self._n_action_samples, *x.shape[1:]
+        # (batch_size, obs_size) -> (batch_size, N, obs_size)
+        repeated_obs_t = expand_and_repeat_recursively(
+            x, self._n_action_samples
         )
         # (batch_size, N, obs_size) -> (batch_size * N, obs_size)
-        flat_obs_t = repeated_obs_t.reshape(-1, *x.shape[1:])
+        flat_obs_t = flatten_left_recursively(repeated_obs_t, dim=1)
 
         # (batch_size * N, 1)
         flat_values = self._q_func_forwarder.compute_expected_q(
             flat_obs_t, flat_actions
         )
         # (batch_size * N, 1) -> (batch_size, N)
-        reshaped_values = flat_values.view(x.shape[0], -1)
+        reshaped_values = flat_values.view(-1, self._n_action_samples)
 
         # re-sampling
         probs = F.softmax(reshaped_values, dim=1)
         indices = torch.multinomial(probs, 1, replacement=True)
 
-        return actions[torch.arange(x.shape[0]), indices.view(-1)]
+        return actions[torch.arange(probs.shape[0]), indices.view(-1)]
 
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         dist = build_gaussian_distribution(self._modules.policy(x))
         return dist.sample()
 

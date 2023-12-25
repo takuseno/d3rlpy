@@ -5,6 +5,7 @@ import torch
 from torch import nn
 from torch.distributions import Categorical
 
+from ...types import TorchObservation
 from .distributions import GaussianDistribution, SquashedGaussianDistribution
 from .encoders import Encoder, EncoderWithAction
 
@@ -42,10 +43,10 @@ def build_squashed_gaussian_distribution(
 
 class Policy(nn.Module, metaclass=ABCMeta):  # type: ignore
     @abstractmethod
-    def forward(self, x: torch.Tensor, *args: Any) -> ActionOutput:
+    def forward(self, x: TorchObservation, *args: Any) -> ActionOutput:
         pass
 
-    def __call__(self, x: torch.Tensor, *args: Any) -> ActionOutput:
+    def __call__(self, x: TorchObservation, *args: Any) -> ActionOutput:
         return super().__call__(x, *args)  # type: ignore
 
 
@@ -58,7 +59,7 @@ class DeterministicPolicy(Policy):
         self._encoder = encoder
         self._fc = nn.Linear(hidden_size, action_size)
 
-    def forward(self, x: torch.Tensor, *args: Any) -> ActionOutput:
+    def forward(self, x: TorchObservation, *args: Any) -> ActionOutput:
         h = self._encoder(x)
         mu = self._fc(h)
         return ActionOutput(mu, torch.tanh(mu), logstd=None)
@@ -81,7 +82,7 @@ class DeterministicResidualPolicy(Policy):
         self._encoder = encoder
         self._fc = nn.Linear(hidden_size, action_size)
 
-    def forward(self, x: torch.Tensor, *args: Any) -> ActionOutput:
+    def forward(self, x: TorchObservation, *args: Any) -> ActionOutput:
         action = args[0]
         h = self._encoder(x, action)
         residual_action = self._scale * torch.tanh(self._fc(h))
@@ -120,7 +121,7 @@ class NormalPolicy(Policy):
         else:
             self._logstd = nn.Linear(hidden_size, action_size)
 
-    def forward(self, x: torch.Tensor, *args: Any) -> ActionOutput:
+    def forward(self, x: TorchObservation, *args: Any) -> ActionOutput:
         h = self._encoder(x)
         mu = self._mu(h)
 
@@ -146,8 +147,8 @@ class CategoricalPolicy(nn.Module):  # type: ignore
         self._encoder = encoder
         self._fc = nn.Linear(hidden_size, action_size)
 
-    def forward(self, x: torch.Tensor) -> Categorical:
+    def forward(self, x: TorchObservation) -> Categorical:
         return Categorical(logits=self._fc(self._encoder(x)))
 
-    def __call__(self, x: torch.Tensor) -> Categorical:
+    def __call__(self, x: TorchObservation) -> Categorical:
         return super().__call__(x)

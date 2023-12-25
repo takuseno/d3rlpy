@@ -13,10 +13,13 @@ from d3rlpy.preprocessing import (
     MinMaxObservationScaler,
     PixelObservationScaler,
     StandardObservationScaler,
+    TupleObservationScaler,
 )
-from d3rlpy.types import Float32NDArray
+from d3rlpy.torch_utility import convert_to_torch_recursively
+from d3rlpy.types import Float32NDArray, Shape
 
 from ..dummy_env import DummyAtari
+from ..testing_utils import create_observations
 
 
 @pytest.mark.parametrize("observation_shape", [(4, 84, 84)])
@@ -256,3 +259,107 @@ def test_standard_observation_scaler_with_trajectory_slicer(
     assert scaler.mean is not None and scaler.std is not None
     assert np.allclose(scaler.mean, mean)
     assert np.allclose(scaler.std, std)
+
+
+@pytest.mark.parametrize("observation_shape", [((100,), (200,))])
+@pytest.mark.parametrize("batch_size", [32])
+def test_tuple_observation_scaler_with_transition_picker(
+    observation_shape: Shape, batch_size: int
+) -> None:
+    observations = create_observations(observation_shape, batch_size)
+    actions = np.random.random((batch_size, 1))
+    rewards: Float32NDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: Float32NDArray = np.zeros(batch_size, dtype=np.float32)
+    terminals[-1] = 1.0
+
+    episodes = EpisodeGenerator(
+        observations=observations,
+        actions=actions,
+        rewards=rewards,
+        terminals=terminals,
+    )()
+
+    scaler = TupleObservationScaler(
+        [MinMaxObservationScaler(), MinMaxObservationScaler()]
+    )
+
+    assert not scaler.built
+    scaler.fit_with_transition_picker(episodes, BasicTransitionPicker())
+    assert scaler.built
+
+    TupleObservationScaler.deserialize_from_dict(scaler.serialize_to_dict())
+
+    # check transform
+    torch_observations = convert_to_torch_recursively(observations, "cpu")
+    transformed_observations = scaler.transform(torch_observations)
+    transformed_observations_numpy = scaler.transform_numpy(observations)
+    for i in range(len(observation_shape)):
+        assert torch.allclose(
+            transformed_observations[i],
+            scaler.observation_scalers[i].transform(torch_observations[i]),
+        )
+        assert np.allclose(
+            transformed_observations_numpy[i],
+            scaler.observation_scalers[i].transform_numpy(observations[i]),
+        )
+
+    # check reverse
+    reversed_observations = scaler.reverse_transform(transformed_observations)
+    reversed_observations_numpy = scaler.reverse_transform_numpy(
+        transformed_observations_numpy
+    )
+    for i in range(len(observation_shape)):
+        assert torch.allclose(reversed_observations[i], torch_observations[i])
+        assert np.allclose(reversed_observations_numpy[i], observations[i])
+
+
+@pytest.mark.parametrize("observation_shape", [((100,), (200,))])
+@pytest.mark.parametrize("batch_size", [32])
+def test_tuple_observation_scaler_with_trajectory_slicer(
+    observation_shape: Shape, batch_size: int
+) -> None:
+    observations = create_observations(observation_shape, batch_size)
+    actions = np.random.random((batch_size, 1))
+    rewards: Float32NDArray = np.random.random(batch_size).astype(np.float32)
+    terminals: Float32NDArray = np.zeros(batch_size, dtype=np.float32)
+    terminals[-1] = 1.0
+
+    episodes = EpisodeGenerator(
+        observations=observations,
+        actions=actions,
+        rewards=rewards,
+        terminals=terminals,
+    )()
+
+    scaler = TupleObservationScaler(
+        [MinMaxObservationScaler(), MinMaxObservationScaler()]
+    )
+
+    assert not scaler.built
+    scaler.fit_with_trajectory_slicer(episodes, BasicTrajectorySlicer())
+    assert scaler.built
+
+    TupleObservationScaler.deserialize_from_dict(scaler.serialize_to_dict())
+
+    # check transform
+    torch_observations = convert_to_torch_recursively(observations, "cpu")
+    transformed_observations = scaler.transform(torch_observations)
+    transformed_observations_numpy = scaler.transform_numpy(observations)
+    for i in range(len(observation_shape)):
+        assert torch.allclose(
+            transformed_observations[i],
+            scaler.observation_scalers[i].transform(torch_observations[i]),
+        )
+        assert np.allclose(
+            transformed_observations_numpy[i],
+            scaler.observation_scalers[i].transform_numpy(observations[i]),
+        )
+
+    # check reverse
+    reversed_observations = scaler.reverse_transform(transformed_observations)
+    reversed_observations_numpy = scaler.reverse_transform_numpy(
+        transformed_observations_numpy
+    )
+    for i in range(len(observation_shape)):
+        assert torch.allclose(reversed_observations[i], torch_observations[i])
+        assert np.allclose(reversed_observations_numpy[i], observations[i])

@@ -8,8 +8,9 @@ from d3rlpy.models.torch import (
     DiscreteMeanQFunction,
     DiscreteMeanQFunctionForwarder,
 )
-from d3rlpy.types import NDArray
+from d3rlpy.types import NDArray, Shape
 
+from ....testing_utils import create_torch_observations
 from ..model_test import (
     DummyEncoder,
     DummyEncoderWithAction,
@@ -25,17 +26,19 @@ def filter_by_action(
     return (value * act_one_hot).sum(axis=1)  # type: ignore
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 def test_discrete_mean_q_function(
-    feature_size: int, action_size: int, batch_size: int
+    observation_shape: Shape, action_size: int, batch_size: int
 ) -> None:
-    encoder = DummyEncoder(feature_size)
-    q_func = DiscreteMeanQFunction(encoder, feature_size, action_size)
+    encoder = DummyEncoder(observation_shape)
+    q_func = DiscreteMeanQFunction(
+        encoder, encoder.get_feature_size(), action_size
+    )
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     y = q_func(x)
     assert y.q_value.shape == (batch_size, action_size)
     assert y.quantiles is None
@@ -45,19 +48,21 @@ def test_discrete_mean_q_function(
     check_parameter_updates(q_func, (x,))
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("gamma", [0.99])
 def test_discrete_mean_q_function_forwarder(
-    feature_size: int, action_size: int, batch_size: int, gamma: float
+    observation_shape: Shape, action_size: int, batch_size: int, gamma: float
 ) -> None:
-    encoder = DummyEncoder(feature_size)
-    q_func = DiscreteMeanQFunction(encoder, feature_size, action_size)
+    encoder = DummyEncoder(observation_shape)
+    q_func = DiscreteMeanQFunction(
+        encoder, encoder.get_feature_size(), action_size
+    )
     forwarder = DiscreteMeanQFunctionForwarder(q_func, action_size)
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     y = forwarder.compute_expected_q(x)
     assert y.shape == (batch_size, action_size)
 
@@ -78,7 +83,7 @@ def test_discrete_mean_q_function_forwarder(
     ter_tp1 = np.random.randint(2, size=(batch_size, 1))
     target = rew_tp1 + gamma * q_tp1 * (1 - ter_tp1)
 
-    obs_t = torch.rand(batch_size, feature_size)
+    obs_t = create_torch_observations(observation_shape, batch_size)
     act_t = np.random.randint(action_size, size=(batch_size, 1))
     q_t = filter_by_action(
         q_func(obs_t).q_value.detach().numpy(), act_t, action_size
@@ -100,19 +105,19 @@ def test_discrete_mean_q_function_forwarder(
     assert np.allclose(loss.detach().numpy(), ref_loss)
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 def test_continuous_mean_q_function(
-    feature_size: int,
+    observation_shape: Shape,
     action_size: int,
     batch_size: int,
 ) -> None:
-    encoder = DummyEncoderWithAction(feature_size, action_size)
-    q_func = ContinuousMeanQFunction(encoder, feature_size)
+    encoder = DummyEncoderWithAction(observation_shape, action_size)
+    q_func = ContinuousMeanQFunction(encoder, encoder.get_feature_size())
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     action = torch.rand(batch_size, action_size)
     y = q_func(x, action)
     assert y.q_value.shape == (batch_size, 1)
@@ -123,22 +128,22 @@ def test_continuous_mean_q_function(
     check_parameter_updates(q_func, (x, action))
 
 
-@pytest.mark.parametrize("feature_size", [100])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("gamma", [0.99])
 def test_continuous_mean_q_function_forwarder(
-    feature_size: int,
+    observation_shape: Shape,
     action_size: int,
     batch_size: int,
     gamma: float,
 ) -> None:
-    encoder = DummyEncoderWithAction(feature_size, action_size)
-    q_func = ContinuousMeanQFunction(encoder, feature_size)
+    encoder = DummyEncoderWithAction(observation_shape, action_size)
+    q_func = ContinuousMeanQFunction(encoder, encoder.get_feature_size())
     forwarder = ContinuousMeanQFunctionForwarder(q_func)
 
     # check output shape
-    x = torch.rand(batch_size, feature_size)
+    x = create_torch_observations(observation_shape, batch_size)
     action = torch.rand(batch_size, action_size)
     y = forwarder.compute_expected_q(x, action)
     assert y.shape == (batch_size, 1)
@@ -154,7 +159,7 @@ def test_continuous_mean_q_function_forwarder(
     ter_tp1 = np.random.randint(2, size=(batch_size, 1))
     target = rew_tp1 + gamma * q_tp1 * (1 - ter_tp1)
 
-    obs_t = torch.rand(batch_size, feature_size)
+    obs_t = create_torch_observations(observation_shape, batch_size)
     act_t = torch.rand(batch_size, action_size)
     q_t = q_func(obs_t, act_t).q_value.detach().numpy()
     ref_loss = ((q_t - target) ** 2).mean()

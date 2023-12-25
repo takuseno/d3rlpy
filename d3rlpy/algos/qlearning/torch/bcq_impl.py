@@ -18,8 +18,14 @@ from ....models.torch import (
     compute_vae_error,
     forward_vae_decode,
 )
-from ....torch_utility import TorchMiniBatch, soft_sync
-from ....types import Shape
+from ....torch_utility import (
+    TorchMiniBatch,
+    expand_and_repeat_recursively,
+    flatten_left_recursively,
+    get_batch_size,
+    soft_sync,
+)
+from ....types import Shape, TorchObservation
 from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
 from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 
@@ -100,20 +106,23 @@ class BCQImpl(DDPGBaseImpl):
         self._modules.imitator_optim.step()
         return {"imitator_loss": float(loss.cpu().detach().numpy())}
 
-    def _repeat_observation(self, x: torch.Tensor) -> torch.Tensor:
+    def _repeat_observation(self, x: TorchObservation) -> TorchObservation:
         # (batch_size, *obs_shape) -> (batch_size, n, *obs_shape)
-        repeat_shape = (x.shape[0], self._n_action_samples, *x.shape[1:])
-        repeated_x = x.view(x.shape[0], 1, *x.shape[1:]).expand(repeat_shape)
-        return repeated_x
+        return expand_and_repeat_recursively(x, self._n_action_samples)
 
     def _sample_repeated_action(
-        self, repeated_x: torch.Tensor, target: bool = False
+        self, repeated_x: TorchObservation, target: bool = False
     ) -> torch.Tensor:
         # TODO: this seems to be slow with image observation
-        flattened_x = repeated_x.reshape(-1, *self.observation_shape)
+        flattened_x = flatten_left_recursively(repeated_x, dim=1)
+        flattened_batch_size = (
+            flattened_x.shape[0]
+            if isinstance(flattened_x, torch.Tensor)
+            else flattened_x[0].shape[0]
+        )
         # sample latent variable
         latent = torch.randn(
-            flattened_x.shape[0], 2 * self._action_size, device=self._device
+            flattened_batch_size, 2 * self._action_size, device=self._device
         )
         clipped_latent = latent.clamp(-0.5, 0.5)
         # sample action
@@ -131,12 +140,12 @@ class BCQImpl(DDPGBaseImpl):
 
     def _predict_value(
         self,
-        repeated_x: torch.Tensor,
+        repeated_x: TorchObservation,
         action: torch.Tensor,
     ) -> torch.Tensor:
         # TODO: this seems to be slow with image observation
         # (batch_size, n, *obs_shape) -> (batch_size * n, *obs_shape)
-        flattened_x = repeated_x.reshape(-1, *self.observation_shape)
+        flattened_x = flatten_left_recursively(repeated_x, dim=1)
         # (batch_size, n, action_size) -> (batch_size * n, action_size)
         flattend_action = action.view(-1, self.action_size)
         # estimate values
@@ -144,7 +153,7 @@ class BCQImpl(DDPGBaseImpl):
             flattened_x, flattend_action, "none"
         )
 
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         # TODO: this seems to be slow with image observation
         repeated_x = self._repeat_observation(x)
         action = self._sample_repeated_action(repeated_x)
@@ -153,7 +162,7 @@ class BCQImpl(DDPGBaseImpl):
         index = values.view(-1, self._n_action_samples).argmax(dim=1)
         return action[torch.arange(action.shape[0]), index]
 
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
@@ -182,10 +191,9 @@ class BCQImpl(DDPGBaseImpl):
             return metrics
 
         # forward policy
+        batch_size = get_batch_size(batch.observations)
         latent = torch.randn(
-            batch.observations.shape[0],
-            2 * self._action_size,
-            device=self._device,
+            batch_size, 2 * self._action_size, device=self._device
         )
         clipped_latent = latent.clamp(-0.5, 0.5)
         sampled_action = forward_vae_decode(

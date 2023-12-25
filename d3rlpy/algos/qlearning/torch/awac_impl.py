@@ -6,8 +6,13 @@ from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     build_gaussian_distribution,
 )
-from ....torch_utility import TorchMiniBatch
-from ....types import Shape
+from ....torch_utility import (
+    TorchMiniBatch,
+    expand_and_repeat_recursively,
+    flatten_left_recursively,
+    get_batch_size,
+)
+from ....types import Shape, TorchObservation
 from .sac_impl import SACActorLoss, SACImpl, SACModules
 
 __all__ = ["AWACImpl"]
@@ -61,10 +66,10 @@ class AWACImpl(SACImpl):
         )
 
     def _compute_weights(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
+        self, obs_t: TorchObservation, act_t: torch.Tensor
     ) -> torch.Tensor:
         with torch.no_grad():
-            batch_size = obs_t.shape[0]
+            batch_size = get_batch_size(obs_t)
 
             # compute action-value
             q_values = self._q_func_forwarder.compute_expected_q(
@@ -78,20 +83,18 @@ class AWACImpl(SACImpl):
             flat_actions = policy_actions.reshape(-1, self.action_size)
 
             # repeat observation
-            # (batch_size, obs_size) -> (batch_size, 1, obs_size)
-            reshaped_obs_t = obs_t.view(batch_size, 1, *obs_t.shape[1:])
-            # (batch_sie, 1, obs_size) -> (batch_size, N, obs_size)
-            repeated_obs_t = reshaped_obs_t.expand(
-                batch_size, self._n_action_samples, *obs_t.shape[1:]
+            # (batch_size, obs_size) -> (batch_size, N, obs_size)
+            repeated_obs_t = expand_and_repeat_recursively(
+                obs_t, self._n_action_samples
             )
             # (batch_size, N, obs_size) -> (batch_size * N, obs_size)
-            flat_obs_t = repeated_obs_t.reshape(-1, *obs_t.shape[1:])
+            flat_obs_t = flatten_left_recursively(repeated_obs_t, dim=1)
 
             # compute state-value
             flat_v_values = self._q_func_forwarder.compute_expected_q(
                 flat_obs_t, flat_actions, "min"
             )
-            reshaped_v_values = flat_v_values.view(obs_t.shape[0], -1, 1)
+            reshaped_v_values = flat_v_values.view(batch_size, -1, 1)
             v_values = reshaped_v_values.mean(dim=1)
 
             # compute normalized weight

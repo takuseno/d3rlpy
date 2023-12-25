@@ -192,14 +192,12 @@ class QLearningAlgoBase(
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         if is_tuple_shape(self._impl.observation_shape):
-            dummy_x = [
-                torch.rand(1, *shape, device=self._device)
-                for shape in self._impl.observation_shape
-            ]
-        else:
-            dummy_x = torch.rand(
-                1, *self._impl.observation_shape, device=self._device
+            raise NotImplementedError(
+                "save_policy method does not support tuple observation yet."
             )
+        dummy_x = torch.rand(
+            1, *self._impl.observation_shape, device=self._device
+        )
 
         # workaround until version 1.6
         self._impl.modules.freeze()
@@ -496,8 +494,10 @@ class QLearningAlgoBase(
             LOG.debug("Building models...")
             action_size = dataset.dataset_info.action_size
             observation_shape = (
-                dataset.sample_transition().observation_signature.shape[0]
+                dataset.sample_transition().observation_signature.shape
             )
+            if len(observation_shape) == 1:
+                observation_shape = observation_shape[0]  # type: ignore
             self.create_impl(observation_shape, action_size)
             LOG.debug("Models have been built.")
         else:

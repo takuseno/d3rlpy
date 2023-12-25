@@ -4,6 +4,8 @@ from typing import Optional, Union
 import torch
 from torch import nn
 
+from ....torch_utility import get_batch_size, get_device
+from ....types import TorchObservation
 from ..encoders import Encoder, EncoderWithAction
 from .base import (
     ContinuousQFunction,
@@ -87,7 +89,7 @@ class DiscreteIQNQFunction(DiscreteQFunction):
         self._embed_size = embed_size
         self._embed = nn.Linear(embed_size, hidden_size)
 
-    def forward(self, x: torch.Tensor) -> QFunctionOutput:
+    def forward(self, x: TorchObservation) -> QFunctionOutput:
         h = self._encoder(x)
 
         if self.training:
@@ -95,10 +97,10 @@ class DiscreteIQNQFunction(DiscreteQFunction):
         else:
             n_quantiles = self._n_greedy_quantiles
         taus = _make_taus(
-            batch_size=x.shape[0],
+            batch_size=get_batch_size(x),
             n_quantiles=n_quantiles,
             training=self.training,
-            device=x.device,
+            device=torch.device(get_device(x)),
         )
 
         # (batch, quantile, feature)
@@ -125,12 +127,12 @@ class DiscreteIQNQFunctionForwarder(DiscreteQFunctionForwarder):
         self._q_func = q_func
         self._n_quantiles = n_quantiles
 
-    def compute_expected_q(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_expected_q(self, x: TorchObservation) -> torch.Tensor:
         return self._q_func(x).q_value
 
     def compute_error(
         self,
-        observations: torch.Tensor,
+        observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
         target: torch.Tensor,
@@ -138,7 +140,8 @@ class DiscreteIQNQFunctionForwarder(DiscreteQFunctionForwarder):
         gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
-        assert target.shape == (observations.shape[0], self._n_quantiles)
+        batch_size = get_batch_size(observations)
+        assert target.shape == (batch_size, self._n_quantiles)
 
         # extraect quantiles corresponding to act_t
         output = self._q_func(observations)
@@ -159,7 +162,7 @@ class DiscreteIQNQFunctionForwarder(DiscreteQFunctionForwarder):
         return compute_reduce(loss, reduction)
 
     def compute_target(
-        self, x: torch.Tensor, action: Optional[torch.Tensor] = None
+        self, x: TorchObservation, action: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         quantiles = self._q_func(x).quantiles
         assert quantiles is not None
@@ -192,7 +195,9 @@ class ContinuousIQNQFunction(ContinuousQFunction, nn.Module):  # type: ignore
         self._embed_size = embed_size
         self._embed = nn.Linear(embed_size, hidden_size)
 
-    def forward(self, x: torch.Tensor, action: torch.Tensor) -> QFunctionOutput:
+    def forward(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> QFunctionOutput:
         h = self._encoder(x, action)
 
         if self.training:
@@ -200,10 +205,10 @@ class ContinuousIQNQFunction(ContinuousQFunction, nn.Module):  # type: ignore
         else:
             n_quantiles = self._n_greedy_quantiles
         taus = _make_taus(
-            batch_size=x.shape[0],
+            batch_size=get_batch_size(x),
             n_quantiles=n_quantiles,
             training=self.training,
-            device=x.device,
+            device=torch.device(get_device(x)),
         )
 
         # element-wise product on feature and phi (batch, quantile, feature)
@@ -231,13 +236,13 @@ class ContinuousIQNQFunctionForwarder(ContinuousQFunctionForwarder):
         self._n_quantiles = n_quantiles
 
     def compute_expected_q(
-        self, x: torch.Tensor, action: torch.Tensor
+        self, x: TorchObservation, action: torch.Tensor
     ) -> torch.Tensor:
         return self._q_func(x, action).q_value
 
     def compute_error(
         self,
-        observations: torch.Tensor,
+        observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
         target: torch.Tensor,
@@ -245,7 +250,8 @@ class ContinuousIQNQFunctionForwarder(ContinuousQFunctionForwarder):
         gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
-        assert target.shape == (observations.shape[0], self._n_quantiles)
+        batch_size = get_batch_size(observations)
+        assert target.shape == (batch_size, self._n_quantiles)
 
         output = self._q_func(observations, actions)
         taus = output.taus
@@ -264,7 +270,7 @@ class ContinuousIQNQFunctionForwarder(ContinuousQFunctionForwarder):
         return compute_reduce(loss, reduction)
 
     def compute_target(
-        self, x: torch.Tensor, action: torch.Tensor
+        self, x: TorchObservation, action: torch.Tensor
     ) -> torch.Tensor:
         quantiles = self._q_func(x, action).quantiles
         assert quantiles is not None

@@ -1,8 +1,14 @@
 from typing import Optional, Sequence, Tuple, cast, overload
 
 import numpy as np
+import torch
 
-from d3rlpy.dataset import Episode, PartialTrajectory, Transition
+from d3rlpy.dataset import (
+    Episode,
+    PartialTrajectory,
+    Transition,
+    is_tuple_shape,
+)
 from d3rlpy.preprocessing import (
     ActionScaler,
     MinMaxActionScaler,
@@ -10,7 +16,9 @@ from d3rlpy.preprocessing import (
     MinMaxRewardScaler,
     ObservationScaler,
     RewardScaler,
+    TupleObservationScaler,
 )
+from d3rlpy.torch_utility import convert_to_torch_recursively
 from d3rlpy.types import (
     DType,
     Float32NDArray,
@@ -18,6 +26,7 @@ from d3rlpy.types import (
     Observation,
     ObservationSequence,
     Shape,
+    TorchObservation,
 )
 
 
@@ -46,6 +55,28 @@ def create_observation(
     else:
         observation = np.random.random(observation_shape).astype(dtype)
     return observation
+
+
+@overload
+def create_torch_observation(
+    observation_shape: Sequence[int], dtype: DType = np.float32
+) -> torch.Tensor:
+    ...
+
+
+@overload
+def create_torch_observation(
+    observation_shape: Sequence[Sequence[int]], dtype: DType = np.float32
+) -> Sequence[torch.Tensor]:
+    ...
+
+
+def create_torch_observation(
+    observation_shape: Shape, dtype: DType = np.float32
+) -> TorchObservation:
+    return convert_to_torch_recursively(
+        create_observation(observation_shape, dtype), "cpu"
+    )
 
 
 @overload
@@ -78,6 +109,69 @@ def create_observations(
             dtype
         )
     return observations
+
+
+@overload
+def create_torch_observations(
+    observation_shape: Sequence[int], length: int, dtype: DType = np.float32
+) -> torch.Tensor:
+    ...
+
+
+@overload
+def create_torch_observations(
+    observation_shape: Sequence[Sequence[int]],
+    length: int,
+    dtype: DType = np.float32,
+) -> Sequence[torch.Tensor]:
+    ...
+
+
+def create_torch_observations(
+    observation_shape: Shape, length: int, dtype: DType = np.float32
+) -> TorchObservation:
+    return convert_to_torch_recursively(
+        create_observations(observation_shape, length, dtype), "cpu"
+    )
+
+
+@overload
+def create_torch_batched_observations(
+    observation_shape: Sequence[int],
+    batch_size: int,
+    length: int,
+    dtype: DType = np.float32,
+) -> torch.Tensor:
+    ...
+
+
+@overload
+def create_torch_batched_observations(
+    observation_shape: Sequence[Sequence[int]],
+    batch_size: int,
+    length: int,
+    dtype: DType = np.float32,
+) -> Sequence[torch.Tensor]:
+    ...
+
+
+def create_torch_batched_observations(
+    observation_shape: Shape,
+    batch_size: int,
+    length: int,
+    dtype: DType = np.float32,
+) -> TorchObservation:
+    observations = convert_to_torch_recursively(
+        create_observations(observation_shape, batch_size * length, dtype),
+        "cpu",
+    )
+    if isinstance(observations, torch.Tensor):
+        return observations.view(batch_size, length, *observation_shape)
+    else:
+        return [
+            o.view(batch_size, length, *s)
+            for o, s in zip(observations, observation_shape)
+        ]
 
 
 def create_episode(
@@ -173,9 +267,17 @@ def create_partial_trajectory(
 
 def create_scaler_tuple(
     name: Optional[str],
+    observation_shape: Shape,
 ) -> Tuple[
     Optional[ObservationScaler], Optional[ActionScaler], Optional[RewardScaler]
 ]:
     if name is None:
         return None, None, None
-    return MinMaxObservationScaler(), MinMaxActionScaler(), MinMaxRewardScaler()
+    observation_scaler: ObservationScaler
+    if is_tuple_shape(observation_shape):
+        observation_scaler = TupleObservationScaler(
+            [MinMaxObservationScaler() for _ in range(len(observation_shape))]
+        )
+    else:
+        observation_scaler = MinMaxObservationScaler()
+    return observation_scaler, MinMaxActionScaler(), MinMaxRewardScaler()

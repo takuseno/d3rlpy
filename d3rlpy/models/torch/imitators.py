@@ -6,6 +6,8 @@ from torch import nn
 from torch.distributions import Normal
 from torch.distributions.kl import kl_divergence
 
+from ...torch_utility import get_batch_size, get_device
+from ...types import TorchObservation
 from .encoders import EncoderWithAction
 from .policies import (
     CategoricalPolicy,
@@ -53,14 +55,14 @@ class VAEEncoder(nn.Module):  # type: ignore
         self._max_logstd = max_logstd
         self._latent_size = latent_size
 
-    def forward(self, x: torch.Tensor, action: torch.Tensor) -> Normal:
+    def forward(self, x: TorchObservation, action: torch.Tensor) -> Normal:
         h = self._encoder(x, action)
         mu = self._mu(h)
         logstd = self._logstd(h)
         clipped_logstd = logstd.clamp(self._min_logstd, self._max_logstd)
         return Normal(mu, clipped_logstd.exp())
 
-    def __call__(self, x: torch.Tensor, action: torch.Tensor) -> Normal:
+    def __call__(self, x: TorchObservation, action: torch.Tensor) -> Normal:
         return super().__call__(x, action)
 
     @property
@@ -82,7 +84,7 @@ class VAEDecoder(nn.Module):  # type: ignore
         self._action_size = action_size
 
     def forward(
-        self, x: torch.Tensor, latent: torch.Tensor, with_squash: bool
+        self, x: TorchObservation, latent: torch.Tensor, with_squash: bool
     ) -> torch.Tensor:
         h = self._encoder(x, latent)
         if with_squash:
@@ -90,7 +92,10 @@ class VAEDecoder(nn.Module):  # type: ignore
         return torch.tanh(self._fc(h))
 
     def __call__(
-        self, x: torch.Tensor, latent: torch.Tensor, with_squash: bool = True
+        self,
+        x: TorchObservation,
+        latent: torch.Tensor,
+        with_squash: bool = True,
     ) -> torch.Tensor:
         return super().__call__(x, latent, with_squash)
 
@@ -109,11 +114,15 @@ class ConditionalVAE(nn.Module):  # type: ignore
         self._encoder = encoder
         self._decoder = decoder
 
-    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor:
         dist = self._encoder(x, action)
         return self._decoder(x, dist.rsample())
 
-    def __call__(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+    def __call__(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor:
         return cast(torch.Tensor, super().__call__(x, action))
 
     @property
@@ -126,49 +135,59 @@ class ConditionalVAE(nn.Module):  # type: ignore
 
 
 def forward_vae_encode(
-    vae: ConditionalVAE, x: torch.Tensor, action: torch.Tensor
+    vae: ConditionalVAE, x: TorchObservation, action: torch.Tensor
 ) -> Normal:
     return vae.encoder(x, action)
 
 
 def forward_vae_decode(
-    vae: ConditionalVAE, x: torch.Tensor, latent: torch.Tensor
+    vae: ConditionalVAE, x: TorchObservation, latent: torch.Tensor
 ) -> torch.Tensor:
     return vae.decoder(x, latent)
 
 
 def forward_vae_sample(
-    vae: ConditionalVAE, x: torch.Tensor, with_squash: bool = True
+    vae: ConditionalVAE, x: TorchObservation, with_squash: bool = True
 ) -> torch.Tensor:
-    latent = torch.randn((x.shape[0], vae.encoder.latent_size), device=x.device)
+    batch_size = get_batch_size(x)
+    latent = torch.randn(
+        (batch_size, vae.encoder.latent_size), device=get_device(x)
+    )
     # to prevent extreme numbers
     return vae.decoder(x, latent.clamp(-0.5, 0.5), with_squash=with_squash)
 
 
 def forward_vae_sample_n(
-    vae: ConditionalVAE, x: torch.Tensor, n: int, with_squash: bool = True
+    vae: ConditionalVAE, x: TorchObservation, n: int, with_squash: bool = True
 ) -> torch.Tensor:
-    flat_latent_shape = (n * x.shape[0], vae.encoder.latent_size)
-    flat_latent = torch.randn(flat_latent_shape, device=x.device)
+    batch_size = get_batch_size(x)
+    flat_latent_shape = (n * batch_size, vae.encoder.latent_size)
+    flat_latent = torch.randn(flat_latent_shape, device=get_device(x))
     # to prevent extreme numbers
     clipped_latent = flat_latent.clamp(-0.5, 0.5)
 
-    # (batch, obs) -> (n, batch, obs)
-    repeated_x = x.expand((n, *x.shape))
-    # (n, batch, obs) -> (n *  batch, obs)
-    flat_x = repeated_x.reshape(-1, *x.shape[1:])
+    if isinstance(x, torch.Tensor):
+        # (batch, obs) -> (n, batch, obs)
+        repeated_x = x.expand((n, *x.shape))
+        # (n, batch, obs) -> (n *  batch, obs)
+        flat_x = repeated_x.reshape(-1, *x.shape[1:])
+    else:
+        # (batch, obs) -> (n, batch, obs)
+        repeated_x = [_x.expand((n, *_x.shape)) for _x in x]
+        # (n, batch, obs) -> (n *  batch, obs)
+        flat_x = [_x.reshape(-1, *_x.shape[2:]) for _x in repeated_x]
 
     flat_actions = vae.decoder(flat_x, clipped_latent, with_squash=with_squash)
 
     # (n * batch, action) -> (n, batch, action)
-    actions = flat_actions.view(n, x.shape[0], -1)
+    actions = flat_actions.view(n, batch_size, -1)
 
     # (n, batch, action) -> (batch, n, action)
     return actions.transpose(0, 1)
 
 
 def compute_vae_error(
-    vae: ConditionalVAE, x: torch.Tensor, action: torch.Tensor, beta: float
+    vae: ConditionalVAE, x: TorchObservation, action: torch.Tensor, beta: float
 ) -> torch.Tensor:
     dist = vae.encoder(x, action)
     kl_loss = kl_divergence(dist, Normal(0.0, 1.0)).mean()
@@ -178,7 +197,7 @@ def compute_vae_error(
 
 def compute_discrete_imitation_loss(
     policy: CategoricalPolicy,
-    x: torch.Tensor,
+    x: TorchObservation,
     action: torch.Tensor,
     beta: float,
 ) -> torch.Tensor:
@@ -189,13 +208,13 @@ def compute_discrete_imitation_loss(
 
 
 def compute_deterministic_imitation_loss(
-    policy: DeterministicPolicy, x: torch.Tensor, action: torch.Tensor
+    policy: DeterministicPolicy, x: TorchObservation, action: torch.Tensor
 ) -> torch.Tensor:
     return F.mse_loss(policy(x).squashed_mu, action)
 
 
 def compute_stochastic_imitation_loss(
-    policy: NormalPolicy, x: torch.Tensor, action: torch.Tensor
+    policy: NormalPolicy, x: TorchObservation, action: torch.Tensor
 ) -> torch.Tensor:
     dist = build_gaussian_distribution(policy(x))
     return F.mse_loss(dist.sample(), action)

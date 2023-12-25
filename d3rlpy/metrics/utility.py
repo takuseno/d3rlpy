@@ -50,7 +50,17 @@ def evaluate_qlearning_with_environment(
             if np.random.random() < epsilon:
                 action = env.action_space.sample()
             else:
-                action = algo.predict(np.expand_dims(observation, axis=0))[0]
+                if isinstance(observation, np.ndarray):
+                    observation = np.expand_dims(observation, axis=0)
+                elif isinstance(observation, (tuple, list)):
+                    observation = [
+                        np.expand_dims(o, axis=0) for o in observation
+                    ]
+                else:
+                    raise ValueError(
+                        f"Unsupported observation type: {type(observation)}"
+                    )
+                action = algo.predict(observation)[0]
 
             observation, reward, done, truncated, _ = env.step(action)
             episode_reward += float(reward)

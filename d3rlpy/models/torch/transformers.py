@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from ...types import TorchObservation
 from .encoders import Encoder
 from .parameters import Parameter
 
@@ -292,7 +293,7 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
 
     def forward(
         self,
-        x: torch.Tensor,
+        x: TorchObservation,
         action: torch.Tensor,
         return_to_go: torch.Tensor,
         timesteps: torch.Tensor,
@@ -300,7 +301,10 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         batch_size, context_size, _ = return_to_go.shape
         position_embedding = self._position_encoding(timesteps)
 
-        flat_x = x.view(-1, *x.shape[2:])
+        if isinstance(x, torch.Tensor):
+            flat_x = x.view(-1, *x.shape[2:])
+        else:
+            flat_x = [_x.view(-1, *_x.shape[2:]) for _x in x]
         flat_state_embedding = self._encoder(flat_x)
         state_embedding = flat_state_embedding.view(
             batch_size, context_size, -1
@@ -372,7 +376,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
 
     def forward(
         self,
-        x: torch.Tensor,
+        x: TorchObservation,
         action: torch.Tensor,
         return_to_go: torch.Tensor,
         timesteps: torch.Tensor,
@@ -380,7 +384,10 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         batch_size, context_size, _ = return_to_go.shape
         position_embedding = self._position_encoding(timesteps)
 
-        flat_x = x.reshape(-1, *x.shape[2:])
+        if isinstance(x, torch.Tensor):
+            flat_x = x.reshape(-1, *x.shape[2:])
+        else:
+            flat_x = [_x.reshape(-1, *_x.shape[2:]) for _x in x]
         flat_state_embedding = self._encoder(flat_x)
         state_embedding = flat_state_embedding.view(
             batch_size, context_size, -1

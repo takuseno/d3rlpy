@@ -12,7 +12,13 @@ from ...dataset import (
 )
 from ...preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from ...torch_utility import convert_to_torch, convert_to_torch_recursively
-from ...types import Float32NDArray, Int32NDArray, NDArray, ObservationSequence
+from ...types import (
+    Float32NDArray,
+    Int32NDArray,
+    NDArray,
+    ObservationSequence,
+    TorchObservation,
+)
 
 __all__ = ["TransformerInput", "TorchTransformerInput"]
 
@@ -40,7 +46,7 @@ class TransformerInput:
 
 @dataclasses.dataclass(frozen=True)
 class TorchTransformerInput:
-    observations: torch.Tensor  # (1, L, ...)
+    observations: TorchObservation  # (1, L, ...)
     actions: torch.Tensor  # (1, L, ...)
     rewards: torch.Tensor  # (1, L, 1)
     returns_to_go: torch.Tensor  # (1, L, 1)
@@ -87,9 +93,6 @@ class TorchTransformerInput:
         timesteps_pt = convert_to_torch(timesteps, device).long()
         masks_pt = convert_to_torch(masks, device)
 
-        # TODO: support tuple observation
-        assert isinstance(observations_pt, torch.Tensor)
-
         # apply scaler
         if observation_scaler:
             observations_pt = observation_scaler.transform(observations_pt)
@@ -99,8 +102,13 @@ class TorchTransformerInput:
             rewards_pt = reward_scaler.transform(rewards_pt)
             returns_to_go_pt = reward_scaler.transform(returns_to_go_pt)
 
+        if isinstance(observations_pt, torch.Tensor):
+            unsqueezed_observation = observations_pt.unsqueeze(0)
+        else:
+            unsqueezed_observation = [o.unsqueeze(0) for o in observations_pt]
+
         return TorchTransformerInput(
-            observations=observations_pt.unsqueeze(0),
+            observations=unsqueezed_observation,
             actions=actions_pt.unsqueeze(0),
             rewards=rewards_pt.unsqueeze(0),
             returns_to_go=returns_to_go_pt.unsqueeze(0),

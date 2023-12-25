@@ -1,5 +1,4 @@
 import os
-from typing import Sequence
 from unittest.mock import Mock
 
 import numpy as np
@@ -21,13 +20,15 @@ from d3rlpy.dataset import (
     create_infinite_replay_buffer,
 )
 from d3rlpy.logging import NoopAdapterFactory
-from d3rlpy.types import Float32NDArray, NDArray
-from tests.base_test import from_json_tester, load_learnable_tester
+from d3rlpy.types import Float32NDArray, NDArray, Shape
+
+from ...base_test import from_json_tester, load_learnable_tester
+from ...testing_utils import create_observation, create_observations
 
 
 def algo_tester(
     algo: TransformerAlgoBase[TransformerAlgoImplBase, TransformerConfig],
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int = 2,
 ) -> None:
     fit_tester(algo, observation_shape, action_size)
@@ -41,7 +42,7 @@ def algo_tester(
 
 def fit_tester(
     algo: TransformerAlgoBase[TransformerAlgoImplBase, TransformerConfig],
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
 ) -> None:
     update_backup = algo.update
@@ -53,13 +54,8 @@ def fit_tester(
     n_steps = 10
     n_steps_per_epoch = 5
     data_size = n_episodes * episode_length
-    shape = (data_size, *observation_shape)
 
-    observations: NDArray
-    if len(observation_shape) == 3:
-        observations = np.random.randint(256, size=shape, dtype=np.uint8)
-    else:
-        observations = np.random.random(shape).astype("f4")
+    observations = create_observations(observation_shape, data_size)
 
     actions: NDArray
     if algo.get_action_type() == ActionSpace.CONTINUOUS:
@@ -98,7 +94,7 @@ def fit_tester(
 
 def predict_tester(
     algo: TransformerAlgoBase[TransformerAlgoImplBase, TransformerConfig],
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
 ) -> None:
     algo.create_impl(observation_shape, action_size)
@@ -111,7 +107,7 @@ def predict_tester(
         actions = np.random.random((context_size, action_size))
 
     inpt = TransformerInput(
-        observations=np.random.random((context_size, *observation_shape)),
+        observations=create_observations(observation_shape, context_size),
         actions=actions,
         rewards=np.random.random((context_size, 1)).astype(np.float32),
         returns_to_go=np.random.random((context_size, 1)).astype(np.float32),
@@ -126,7 +122,7 @@ def predict_tester(
 
 def save_and_load_tester(
     algo: TransformerAlgoBase[TransformerAlgoImplBase, TransformerConfig],
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
 ) -> None:
     algo.create_impl(observation_shape, action_size)
@@ -145,7 +141,7 @@ def save_and_load_tester(
     actor1 = algo.as_stateful_wrapper(0, action_sampler)
     actor2 = algo2.as_stateful_wrapper(0, action_sampler)
 
-    observation = np.random.random(observation_shape)
+    observation = create_observation(observation_shape)
     action1 = actor1.predict(observation, 0)
     action2 = actor2.predict(observation, 0)
     assert np.all(action1 == action2)
@@ -153,21 +149,14 @@ def save_and_load_tester(
 
 def update_tester(
     algo: TransformerAlgoBase[TransformerAlgoImplBase, TransformerConfig],
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
 ) -> None:
     context_size = algo.config.context_size
     # make mini-batch
     trajectories = []
     for _ in range(algo.config.batch_size):
-        if len(observation_shape) == 3:
-            observations = np.random.randint(
-                256, size=(context_size, *observation_shape), dtype=np.uint8
-            )
-        else:
-            observations = np.random.random(
-                (context_size, *observation_shape)
-            ).astype("f4")
+        observations = create_observations(observation_shape, context_size)
         rewards: Float32NDArray = np.random.random((context_size, 1)).astype(
             np.float32
         )
@@ -206,7 +195,7 @@ def update_tester(
 
 def stateful_wrapper_tester(
     algo: TransformerAlgoBase[TransformerAlgoImplBase, TransformerConfig],
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
 ) -> None:
     algo.create_impl(observation_shape, action_size)
@@ -220,7 +209,7 @@ def stateful_wrapper_tester(
 
     # check predict
     for _ in range(10):
-        observation, reward = np.random.random(observation_shape), 0.0
+        observation, reward = create_observation(observation_shape), 0.0
         action = wrapper.predict(observation, reward)
         if algo.get_action_type() == ActionSpace.DISCRETE:
             assert isinstance(action, int)
@@ -230,9 +219,9 @@ def stateful_wrapper_tester(
     wrapper.reset()
 
     # check reset
-    observation1, reward1 = np.random.random(observation_shape), 0.0
+    observation1, reward1 = create_observation(observation_shape), 0.0
     action1 = wrapper.predict(observation1, reward1)
-    observation, reward = np.random.random(observation_shape), 0.0
+    observation, reward = create_observation(observation_shape), 0.0
     action2 = wrapper.predict(observation, reward)
     # in discrete case, there is high chance that action is the same.
     if algo.get_action_type() == ActionSpace.CONTINUOUS:

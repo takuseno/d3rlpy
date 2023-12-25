@@ -142,8 +142,18 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         self._rewards.append(reward)
         self._returns_to_go.append(self._return_rest - reward)
         self._timesteps.append(self._timestep)
+
+        numpy_observations: Observation
+        if isinstance(x, np.ndarray):
+            numpy_observations = np.array(self._observations)
+        else:
+            numpy_observations = [
+                np.array([o[i] for o in self._observations])
+                for i in range(len(x))
+            ]
+
         inpt = TransformerInput(
-            observations=np.array(self._observations),
+            observations=numpy_observations,
             actions=np.array(self._actions),
             rewards=np.array(self._rewards).reshape((-1, 1)),
             returns_to_go=np.array(self._returns_to_go).reshape((-1, 1)),
@@ -275,8 +285,10 @@ class TransformerAlgoBase(
             LOG.debug("Building models...")
             action_size = dataset.dataset_info.action_size
             observation_shape = (
-                dataset.sample_transition().observation_signature.shape[0]
+                dataset.sample_transition().observation_signature.shape
             )
+            if len(observation_shape) == 1:
+                observation_shape = observation_shape[0]  # type: ignore
             self.create_impl(observation_shape, action_size)
             LOG.debug("Models have been built.")
         else:

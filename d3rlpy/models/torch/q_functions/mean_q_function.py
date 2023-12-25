@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from ....types import TorchObservation
 from ..encoders import Encoder, EncoderWithAction
 from .base import (
     ContinuousQFunction,
@@ -31,7 +32,7 @@ class DiscreteMeanQFunction(DiscreteQFunction):
         self._encoder = encoder
         self._fc = nn.Linear(hidden_size, action_size)
 
-    def forward(self, x: torch.Tensor) -> QFunctionOutput:
+    def forward(self, x: TorchObservation) -> QFunctionOutput:
         return QFunctionOutput(
             q_value=self._fc(self._encoder(x)),
             quantiles=None,
@@ -51,12 +52,12 @@ class DiscreteMeanQFunctionForwarder(DiscreteQFunctionForwarder):
         self._q_func = q_func
         self._action_size = action_size
 
-    def compute_expected_q(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_expected_q(self, x: TorchObservation) -> torch.Tensor:
         return self._q_func(x).q_value
 
     def compute_error(
         self,
-        observations: torch.Tensor,
+        observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
         target: torch.Tensor,
@@ -73,7 +74,7 @@ class DiscreteMeanQFunctionForwarder(DiscreteQFunctionForwarder):
         return compute_reduce(loss, reduction)
 
     def compute_target(
-        self, x: torch.Tensor, action: Optional[torch.Tensor] = None
+        self, x: TorchObservation, action: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         if action is None:
             return self._q_func(x).q_value
@@ -91,7 +92,9 @@ class ContinuousMeanQFunction(ContinuousQFunction):
         self._encoder = encoder
         self._fc = nn.Linear(hidden_size, 1)
 
-    def forward(self, x: torch.Tensor, action: torch.Tensor) -> QFunctionOutput:
+    def forward(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> QFunctionOutput:
         return QFunctionOutput(
             q_value=self._fc(self._encoder(x, action)),
             quantiles=None,
@@ -110,13 +113,13 @@ class ContinuousMeanQFunctionForwarder(ContinuousQFunctionForwarder):
         self._q_func = q_func
 
     def compute_expected_q(
-        self, x: torch.Tensor, action: torch.Tensor
+        self, x: TorchObservation, action: torch.Tensor
     ) -> torch.Tensor:
         return self._q_func(x, action).q_value
 
     def compute_error(
         self,
-        observations: torch.Tensor,
+        observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
         target: torch.Tensor,
@@ -130,6 +133,6 @@ class ContinuousMeanQFunctionForwarder(ContinuousQFunctionForwarder):
         return compute_reduce(loss, reduction)
 
     def compute_target(
-        self, x: torch.Tensor, action: torch.Tensor
+        self, x: TorchObservation, action: torch.Tensor
     ) -> torch.Tensor:
         return self._q_func(x, action).q_value

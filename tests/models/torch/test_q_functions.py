@@ -1,21 +1,23 @@
-from typing import Sequence
-
 import pytest
 import torch
 
 from d3rlpy.models.builders import create_continuous_q_function
-from d3rlpy.models.encoders import DefaultEncoderFactory, EncoderFactory
 from d3rlpy.models.q_functions import (
     MeanQFunctionFactory,
     QFunctionFactory,
     QRQFunctionFactory,
 )
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
+from d3rlpy.types import Shape
+
+from ...testing_utils import create_torch_observations
+from .model_test import DummyEncoderFactory
 
 
-@pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])
+@pytest.mark.parametrize(
+    "observation_shape", [(4, 84, 84), (100,), ((100,), (200,))]
+)
 @pytest.mark.parametrize("action_size", [3])
-@pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
 @pytest.mark.parametrize(
     "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
 )
@@ -24,9 +26,8 @@ from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
 @pytest.mark.parametrize("n_actions", [10])
 @pytest.mark.parametrize("lam", [0.75])
 def test_compute_max_with_n_actions(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
-    encoder_factory: EncoderFactory,
     q_func_factory: QFunctionFactory,
     n_ensembles: int,
     batch_size: int,
@@ -36,12 +37,12 @@ def test_compute_max_with_n_actions(
     _, forwarder = create_continuous_q_function(
         observation_shape,
         action_size,
-        encoder_factory,
+        DummyEncoderFactory(),
         q_func_factory,
         n_ensembles=n_ensembles,
         device="cpu:0",
     )
-    x = torch.rand(batch_size, *observation_shape)
+    x = create_torch_observations(observation_shape, batch_size)
     actions = torch.rand(batch_size, n_actions, action_size)
 
     y = compute_max_with_n_actions(x, actions, forwarder, lam)

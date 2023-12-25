@@ -8,6 +8,7 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
+    Union,
     cast,
 )
 
@@ -23,6 +24,7 @@ __all__ = [
     "generate_optional_config_generation",
     "make_numpy_field",
     "make_optional_numpy_field",
+    "generate_list_config_field",
 ]
 
 
@@ -61,6 +63,23 @@ class DynamicConfig(SerializableConfig):
         raise NotImplementedError
 
 
+@dataclasses.dataclass(frozen=True)
+class ConfigMetadata:
+    base_cls: Type[DynamicConfig]
+    encoder: Callable[[DynamicConfig], Dict[str, Any]]
+    decoder: Callable[
+        [Dict[str, Any]], Union[DynamicConfig, Optional[DynamicConfig]]
+    ]
+    config_list: Dict[str, Type[DynamicConfig]]
+
+    def add_config(self, name: str, new_config: Type[DynamicConfig]) -> None:
+        assert name not in self.config_list, f"{name} is already registered"
+        self.config_list[name] = new_config
+
+
+CONFIG_STORAGE: Dict[Type[DynamicConfig], ConfigMetadata] = {}
+
+
 def generate_config_registration(
     base_cls: Type[TDynamicConfig],
     default_factory: Optional[Callable[[], TDynamicConfig]] = None,
@@ -86,6 +105,14 @@ def generate_config_registration(
         name = dict_config["type"]
         params = dict_config["params"]
         return CONFIG_LIST[name].deserialize_from_dict(params)
+
+    config_metadata = ConfigMetadata(
+        base_cls=base_cls,
+        encoder=_encoder,  # type: ignore
+        decoder=_decoder,
+        config_list=CONFIG_LIST,  # type: ignore
+    )
+    CONFIG_STORAGE[base_cls] = config_metadata
 
     if default_factory is None:
 
@@ -139,6 +166,14 @@ def generate_optional_config_generation(
             return None
         return CONFIG_LIST[name].deserialize_from_dict(params)
 
+    config_metadata = ConfigMetadata(
+        base_cls=base_cls,
+        encoder=_encoder,  # type: ignore
+        decoder=_decoder,
+        config_list=CONFIG_LIST,  # type: ignore
+    )
+    CONFIG_STORAGE[base_cls] = config_metadata
+
     def make_field() -> Optional[TDynamicConfig]:
         return dataclasses.field(
             metadata=config(encoder=_encoder, decoder=_decoder),
@@ -146,6 +181,33 @@ def generate_optional_config_generation(
         )
 
     return register_config, make_field
+
+
+def generate_list_config_field(
+    base_cls: Type[TDynamicConfig],
+) -> Callable[[], Sequence[TDynamicConfig]]:
+    assert base_cls in CONFIG_STORAGE
+
+    config_metadata = CONFIG_STORAGE[base_cls]
+
+    def _encoder(
+        orig_config: Sequence[TDynamicConfig],
+    ) -> Sequence[Dict[str, Any]]:
+        return [config_metadata.encoder(config) for config in orig_config]
+
+    def _decoder(
+        dict_config: Sequence[Dict[str, Any]]
+    ) -> Sequence[TDynamicConfig]:
+        configs = [config_metadata.decoder(config) for config in dict_config]
+        return configs  # type: ignore
+
+    def make_field() -> Sequence[TDynamicConfig]:
+        return dataclasses.field(
+            metadata=config(encoder=_encoder, decoder=_decoder),
+            default_factory=list,
+        )
+
+    return make_field
 
 
 # setup numpy encoder/decoder

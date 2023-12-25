@@ -12,8 +12,12 @@ from ....models.torch import (
     Parameter,
     build_squashed_gaussian_distribution,
 )
-from ....torch_utility import TorchMiniBatch
-from ....types import Shape
+from ....torch_utility import (
+    TorchMiniBatch,
+    expand_and_repeat_recursively,
+    flatten_left_recursively,
+)
+from ....types import Shape, TorchObservation
 from .ddpg_impl import DDPGBaseCriticLoss
 from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 from .sac_impl import SACImpl, SACModules
@@ -94,7 +98,7 @@ class CQLImpl(SACImpl):
         self._modules.alpha_optim.step()
 
     def _compute_policy_is_values(
-        self, policy_obs: torch.Tensor, value_obs: torch.Tensor
+        self, policy_obs: TorchObservation, value_obs: TorchObservation
     ) -> torch.Tensor:
         with torch.no_grad():
             dist = build_squashed_gaussian_distribution(
@@ -104,13 +108,12 @@ class CQLImpl(SACImpl):
                 self._n_action_samples
             )
 
-        obs_shape = value_obs.shape
-
-        repeated_obs = value_obs.expand(self._n_action_samples, *obs_shape)
-        # (n, batch, observation) -> (batch, n, observation)
-        transposed_obs = repeated_obs.transpose(0, 1)
+        # (batch, observation) -> (batch, n, observation)
+        repeated_obs = expand_and_repeat_recursively(
+            value_obs, self._n_action_samples
+        )
         # (batch, n, observation) -> (batch * n, observation)
-        flat_obs = transposed_obs.reshape(-1, *obs_shape[1:])
+        flat_obs = flatten_left_recursively(repeated_obs, dim=1)
         # (batch, n, action) -> (batch * n, action)
         flat_policy_acts = policy_actions.reshape(-1, self.action_size)
 
@@ -118,31 +121,40 @@ class CQLImpl(SACImpl):
         policy_values = self._q_func_forwarder.compute_expected_q(
             flat_obs, flat_policy_acts, "none"
         )
+        batch_size = (
+            policy_obs.shape[0]
+            if isinstance(policy_obs, torch.Tensor)
+            else policy_obs[0].shape[0]
+        )
         policy_values = policy_values.view(
-            -1, obs_shape[0], self._n_action_samples
+            -1, batch_size, self._n_action_samples
         )
         log_probs = n_log_probs.view(1, -1, self._n_action_samples)
 
         # importance sampling
         return policy_values - log_probs
 
-    def _compute_random_is_values(self, obs: torch.Tensor) -> torch.Tensor:
-        repeated_obs = obs.expand(self._n_action_samples, *obs.shape)
-        # (n, batch, observation) -> (batch, n, observation)
-        transposed_obs = repeated_obs.transpose(0, 1)
+    def _compute_random_is_values(self, obs: TorchObservation) -> torch.Tensor:
+        # (batch, observation) -> (batch, n, observation)
+        repeated_obs = expand_and_repeat_recursively(
+            obs, self._n_action_samples
+        )
         # (batch, n, observation) -> (batch * n, observation)
-        flat_obs = transposed_obs.reshape(-1, *obs.shape[1:])
+        flat_obs = flatten_left_recursively(repeated_obs, dim=1)
 
         # estimate action-values for actions from uniform distribution
         # uniform distribution between [-1.0, 1.0]
-        flat_shape = (obs.shape[0] * self._n_action_samples, self._action_size)
+        batch_size = (
+            obs.shape[0] if isinstance(obs, torch.Tensor) else obs[0].shape[0]
+        )
+        flat_shape = (batch_size * self._n_action_samples, self._action_size)
         zero_tensor = torch.zeros(flat_shape, device=self._device)
         random_actions = zero_tensor.uniform_(-1.0, 1.0)
         random_values = self._q_func_forwarder.compute_expected_q(
             flat_obs, random_actions, "none"
         )
         random_values = random_values.view(
-            -1, obs.shape[0], self._n_action_samples
+            -1, batch_size, self._n_action_samples
         )
         random_log_probs = math.log(0.5**self._action_size)
 
@@ -150,7 +162,10 @@ class CQLImpl(SACImpl):
         return random_values - random_log_probs
 
     def _compute_conservative_loss(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor, obs_tp1: torch.Tensor
+        self,
+        obs_t: TorchObservation,
+        act_t: torch.Tensor,
+        obs_tp1: TorchObservation,
     ) -> torch.Tensor:
         policy_values_t = self._compute_policy_is_values(obs_t, obs_t)
         policy_values_tp1 = self._compute_policy_is_values(obs_tp1, obs_t)

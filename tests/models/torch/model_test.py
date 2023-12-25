@@ -1,13 +1,14 @@
 import copy
-from typing import Any, Sequence
+from typing import Any
 
 import numpy as np
 import torch
 from torch.optim import SGD
 
+from d3rlpy.models import EncoderFactory, register_encoder_factory
 from d3rlpy.models.torch import ActionOutput, QFunctionOutput
 from d3rlpy.models.torch.encoders import Encoder, EncoderWithAction
-from d3rlpy.types import Float32NDArray, NDArray
+from d3rlpy.types import Float32NDArray, NDArray, Shape, TorchObservation
 
 
 def check_parameter_updates(
@@ -67,39 +68,72 @@ def ref_quantile_huber_loss(
 
 
 class DummyEncoder(Encoder):
-    def __init__(self, feature_size: int):
+    def __init__(self, input_shape: Shape):
         super().__init__()
-        self.feature_size = feature_size
-        self._observation_shape = (feature_size,)
+        self.input_shape = input_shape
+        self.dummy_parameter = torch.nn.Parameter(
+            torch.rand(1, self.get_feature_size())
+        )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x
-
-    @property
-    def observation_shape(self) -> Sequence[int]:
-        return self._observation_shape
+    def forward(self, x: TorchObservation) -> torch.Tensor:
+        if isinstance(x, torch.Tensor):
+            y = x.view(x.shape[0], -1)
+        else:
+            batch_size = x[0].shape[0]
+            y = torch.cat([_x.view(batch_size, -1) for _x in x], dim=-1)
+        return y + self.dummy_parameter
 
     def get_feature_size(self) -> int:
-        return self.feature_size
+        if isinstance(self.input_shape[0], int):
+            return int(np.cumprod(self.input_shape)[-1])
+        else:
+            return sum([np.cumprod(shape)[-1] for shape in self.input_shape])
 
 
 class DummyEncoderWithAction(EncoderWithAction):
-    def __init__(self, feature_size: int, action_size: int):
+    def __init__(self, input_shape: Shape, action_size: int):
         super().__init__()
-        self.feature_size = feature_size
-        self._observation_shape = (feature_size,)
+        self.input_shape = input_shape
         self._action_size = action_size
+        self.dummy_parameter = torch.nn.Parameter(
+            torch.rand(1, self.get_feature_size())
+        )
 
-    def forward(self, x: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
-        return torch.cat([x[:, : -action.shape[1]], action], dim=1)
+    def forward(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor:
+        if isinstance(x, torch.Tensor):
+            y = x.view(x.shape[0], -1)
+        else:
+            batch_size = x[0].shape[0]
+            y = torch.cat([_x.view(batch_size, -1) for _x in x], dim=-1)
+        return torch.cat([y, action], dim=-1) + self.dummy_parameter
 
     def get_feature_size(self) -> int:
-        return self.feature_size
+        if isinstance(self.input_shape[0], int):
+            feature_size = int(np.cumprod(self.input_shape)[-1])
+        else:
+            feature_size = sum(
+                [np.cumprod(shape)[-1] for shape in self.input_shape]
+            )
+        return feature_size + self._action_size
 
-    @property
-    def observation_shape(self) -> Sequence[int]:
-        return self._observation_shape
 
-    @property
-    def action_size(self) -> int:
-        return self._action_size
+class DummyEncoderFactory(EncoderFactory):
+    def create(self, observation_shape: Shape) -> DummyEncoder:
+        return DummyEncoder(observation_shape)
+
+    def create_with_action(
+        self,
+        observation_shape: Shape,
+        action_size: int,
+        discrete_action: bool = False,
+    ) -> DummyEncoderWithAction:
+        return DummyEncoderWithAction(observation_shape, action_size)
+
+    @staticmethod
+    def get_type() -> str:
+        return "dummy"
+
+
+register_encoder_factory(DummyEncoderFactory)

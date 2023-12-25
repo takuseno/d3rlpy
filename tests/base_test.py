@@ -1,7 +1,6 @@
 # pylint: disable=unidiomatic-typecheck
 import io
 import os
-from typing import Sequence
 
 from d3rlpy.base import (
     ImplBase,
@@ -12,6 +11,7 @@ from d3rlpy.base import (
 )
 from d3rlpy.logging import D3RLPyLogger, FileAdapterFactory
 from d3rlpy.logging.file_adapter import FileAdapter
+from d3rlpy.types import Shape
 
 
 def _check_reconst_algo(
@@ -20,7 +20,15 @@ def _check_reconst_algo(
 ) -> None:
     assert new_algo.impl is not None
     assert type(new_algo) == type(algo)
-    assert tuple(new_algo.impl.observation_shape) == algo.observation_shape
+    assert algo.observation_shape is not None
+    assert new_algo.observation_shape is not None
+    if isinstance(algo.observation_shape[0], int):
+        assert tuple(new_algo.observation_shape) == algo.observation_shape
+    else:
+        for new_algo_shape, algo_shape in zip(
+            new_algo.observation_shape, algo.observation_shape
+        ):
+            assert tuple(new_algo_shape) == algo_shape  # type: ignore
     assert new_algo.impl.action_size == algo.action_size
 
     # check observation scaler
@@ -46,7 +54,7 @@ def _check_reconst_algo(
 
 def from_json_tester(
     algo: LearnableBase[ImplBase, LearnableConfig],
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
 ) -> None:
     algo.create_impl(observation_shape, action_size)
@@ -66,7 +74,7 @@ def from_json_tester(
 
 def load_learnable_tester(
     algo: LearnableBase[ImplBase, LearnableConfig],
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
 ) -> None:
     algo.create_impl(observation_shape, action_size)

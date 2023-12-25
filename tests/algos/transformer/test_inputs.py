@@ -2,6 +2,7 @@ from typing import Sequence
 
 import numpy as np
 import pytest
+import torch
 
 from d3rlpy.algos.transformer.inputs import (
     TorchTransformerInput,
@@ -79,6 +80,7 @@ def test_torch_transformer_input(
         reward_scaler=reward_scaler,
     )
 
+    assert isinstance(torch_inpt.observations, torch.Tensor)
     assert torch_inpt.observations.shape == (
         1,
         context_size,

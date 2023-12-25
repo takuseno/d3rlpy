@@ -17,6 +17,8 @@ from d3rlpy.torch_utility import (
     TorchTrajectoryMiniBatch,
     View,
     eval_api,
+    get_batch_size,
+    get_device,
     hard_sync,
     map_location,
     soft_sync,
@@ -163,6 +165,20 @@ def test_to_cpu() -> None:
     pass
 
 
+def test_get_device() -> None:
+    x = torch.rand(10)
+    assert get_device(x) == "cpu"
+    x = [torch.rand(10), torch.rand(10)]
+    assert get_device(x) == "cpu"
+
+
+def test_get_batch_size() -> None:
+    x = torch.rand(32, 10)
+    assert get_batch_size(x) == 32
+    x = [torch.rand(32, 10), torch.rand(32, 10)]
+    assert get_batch_size(x) == 32
+
+
 @dataclasses.dataclass(frozen=True)
 class DummyModules(Modules):
     fc: torch.nn.Linear
@@ -247,6 +263,8 @@ def test_torch_mini_batch(
 
     assert isinstance(batch.observations, np.ndarray)
     assert isinstance(batch.next_observations, np.ndarray)
+    assert isinstance(torch_batch.observations, torch.Tensor)
+    assert isinstance(torch_batch.next_observations, torch.Tensor)
     if use_observation_scaler:
         assert np.all(
             torch_batch.observations.numpy() == batch.observations + 0.1
@@ -328,6 +346,7 @@ def test_torch_trajectory_mini_batch(
     )
 
     assert isinstance(batch.observations, np.ndarray)
+    assert isinstance(torch_batch.observations, torch.Tensor)
     if use_observation_scaler:
         assert np.all(
             torch_batch.observations.numpy() == batch.observations + 0.1

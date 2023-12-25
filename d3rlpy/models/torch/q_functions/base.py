@@ -4,6 +4,7 @@ from typing import NamedTuple, Optional, Union
 import torch
 from torch import nn
 
+from ....types import TorchObservation
 from ..encoders import Encoder, EncoderWithAction
 
 __all__ = [
@@ -23,11 +24,13 @@ class QFunctionOutput(NamedTuple):
 
 class ContinuousQFunction(nn.Module, metaclass=ABCMeta):  # type: ignore
     @abstractmethod
-    def forward(self, x: torch.Tensor, action: torch.Tensor) -> QFunctionOutput:
+    def forward(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> QFunctionOutput:
         pass
 
     def __call__(
-        self, x: torch.Tensor, action: torch.Tensor
+        self, x: TorchObservation, action: torch.Tensor
     ) -> QFunctionOutput:
         return super().__call__(x, action)  # type: ignore
 
@@ -39,10 +42,10 @@ class ContinuousQFunction(nn.Module, metaclass=ABCMeta):  # type: ignore
 
 class DiscreteQFunction(nn.Module, metaclass=ABCMeta):  # type: ignore
     @abstractmethod
-    def forward(self, x: torch.Tensor) -> QFunctionOutput:
+    def forward(self, x: TorchObservation) -> QFunctionOutput:
         pass
 
-    def __call__(self, x: torch.Tensor) -> QFunctionOutput:
+    def __call__(self, x: TorchObservation) -> QFunctionOutput:
         return super().__call__(x)  # type: ignore
 
     @property
@@ -54,14 +57,14 @@ class DiscreteQFunction(nn.Module, metaclass=ABCMeta):  # type: ignore
 class ContinuousQFunctionForwarder(metaclass=ABCMeta):
     @abstractmethod
     def compute_expected_q(
-        self, x: torch.Tensor, action: torch.Tensor
+        self, x: TorchObservation, action: torch.Tensor
     ) -> torch.Tensor:
         pass
 
     @abstractmethod
     def compute_error(
         self,
-        observations: torch.Tensor,
+        observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
         target: torch.Tensor,
@@ -73,20 +76,20 @@ class ContinuousQFunctionForwarder(metaclass=ABCMeta):
 
     @abstractmethod
     def compute_target(
-        self, x: torch.Tensor, action: torch.Tensor
+        self, x: TorchObservation, action: torch.Tensor
     ) -> torch.Tensor:
         pass
 
 
 class DiscreteQFunctionForwarder(metaclass=ABCMeta):
     @abstractmethod
-    def compute_expected_q(self, x: torch.Tensor) -> torch.Tensor:
+    def compute_expected_q(self, x: TorchObservation) -> torch.Tensor:
         pass
 
     @abstractmethod
     def compute_error(
         self,
-        observations: torch.Tensor,
+        observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
         target: torch.Tensor,
@@ -98,6 +101,6 @@ class DiscreteQFunctionForwarder(metaclass=ABCMeta):
 
     @abstractmethod
     def compute_target(
-        self, x: torch.Tensor, action: Optional[torch.Tensor] = None
+        self, x: TorchObservation, action: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         pass

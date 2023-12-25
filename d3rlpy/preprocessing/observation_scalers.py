@@ -7,15 +7,17 @@ from gym.spaces import Box
 from gymnasium.spaces import Box as GymnasiumBox
 
 from ..dataset import (
+    Episode,
     EpisodeBase,
     TrajectorySlicerProtocol,
     TransitionPickerProtocol,
 )
 from ..serializable_config import (
+    generate_list_config_field,
     generate_optional_config_generation,
     make_optional_numpy_field,
 )
-from ..types import GymEnv, NDArray
+from ..types import GymEnv, NDArray, TorchObservation
 from .base import Scaler, add_leading_dims, add_leading_dims_numpy
 
 __all__ = [
@@ -23,6 +25,7 @@ __all__ = [
     "PixelObservationScaler",
     "MinMaxObservationScaler",
     "StandardObservationScaler",
+    "TupleObservationScaler",
     "register_observation_scaler",
     "make_observation_scaler_field",
 ]
@@ -394,7 +397,109 @@ class StandardObservationScaler(ObservationScaler):
     ObservationScaler  # type: ignore
 )
 
+observation_scaler_list_field = generate_list_config_field(
+    ObservationScaler  # type: ignore
+)
+
+
+@dataclasses.dataclass()
+class TupleObservationScaler(ObservationScaler):
+    """Observation scaler for tuple observations.
+
+    Args:
+        observation_scalers (Sequence[ObservationScaler]):
+            List of observation scalers.
+    """
+
+    observation_scalers: Sequence[
+        ObservationScaler
+    ] = observation_scaler_list_field()
+
+    def fit_with_transition_picker(
+        self,
+        episodes: Sequence[EpisodeBase],
+        transition_picker: TransitionPickerProtocol,
+    ) -> None:
+        episode = episodes[0]
+        for i in range(len(episode.observation_signature.shape)):
+            single_obs_episodes = []
+            for episode in episodes:
+                assert isinstance(episode, Episode)
+                single_obs_episode = Episode(
+                    observations=episode.observations[i],
+                    actions=episode.actions,
+                    rewards=episode.rewards,
+                    terminated=episode.terminated,
+                )
+                single_obs_episodes.append(single_obs_episode)
+            self.observation_scalers[i].fit_with_transition_picker(
+                single_obs_episodes, transition_picker
+            )
+
+    def fit_with_trajectory_slicer(
+        self,
+        episodes: Sequence[EpisodeBase],
+        trajectory_slicer: TrajectorySlicerProtocol,
+    ) -> None:
+        episode = episodes[0]
+        for i in range(len(episode.observation_signature.shape)):
+            single_obs_episodes = []
+            for episode in episodes:
+                assert isinstance(episode, Episode)
+                single_obs_episode = Episode(
+                    observations=episode.observations[i],
+                    actions=episode.actions,
+                    rewards=episode.rewards,
+                    terminated=episode.terminated,
+                )
+                single_obs_episodes.append(single_obs_episode)
+            self.observation_scalers[i].fit_with_trajectory_slicer(
+                single_obs_episodes, trajectory_slicer
+            )
+
+    def fit_with_env(self, env: GymEnv) -> None:
+        raise NotImplementedError("fit_with_env is not supported yet.")
+
+    def transform(self, x: TorchObservation) -> TorchObservation:
+        assert isinstance(x, (list, tuple))
+        return [
+            scaler.transform(tensor)
+            for tensor, scaler in zip(x, self.observation_scalers)
+        ]
+
+    def reverse_transform(self, x: TorchObservation) -> TorchObservation:
+        assert isinstance(x, (list, tuple))
+        return [
+            scaler.reverse_transform(tensor)
+            for tensor, scaler in zip(x, self.observation_scalers)
+        ]
+
+    def transform_numpy(self, x: NDArray) -> NDArray:
+        assert isinstance(x, (list, tuple))
+        transformed_y = [
+            scaler.transform_numpy(tensor)
+            for tensor, scaler in zip(x, self.observation_scalers)
+        ]
+        return transformed_y
+
+    def reverse_transform_numpy(self, x: NDArray) -> NDArray:
+        assert isinstance(x, (list, tuple))
+        transformed_y = [
+            scaler.reverse_transform_numpy(tensor)
+            for tensor, scaler in zip(x, self.observation_scalers)
+        ]
+        return transformed_y
+
+    @staticmethod
+    def get_type() -> str:
+        return "tuple"
+
+    @property
+    def built(self) -> bool:
+        return all(scaler.built for scaler in self.observation_scalers)
+
 
 register_observation_scaler(PixelObservationScaler)
 register_observation_scaler(MinMaxObservationScaler)
 register_observation_scaler(StandardObservationScaler)
+register_observation_scaler(TupleObservationScaler)
