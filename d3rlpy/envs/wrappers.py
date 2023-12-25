@@ -388,7 +388,7 @@ class GoalConcatWrapper(
         goal_key (str): String key of the goal observation.
         tuple_observation (bool): Flag to include goals as tuple element.
     """
-    _observation_space: Union[GymnasiumBox, GymnasiumTuple]  # type: ignore
+    _observation_space: Union[GymnasiumBox, GymnasiumTuple]
     _observation_key: str
     _goal_key: str
     _tuple_observation: bool
