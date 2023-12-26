@@ -8,7 +8,7 @@ from torch.optim import Optimizer
 from ....dataclass_utils import asdict_as_float
 from ....models.torch import DiscreteEnsembleQFunctionForwarder
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync
-from ....types import Shape
+from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
 from .utility import DiscreteQFunctionMixin
 
@@ -101,10 +101,10 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
                 reduction="min",
             )
 
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         return self._q_func_forwarder.compute_expected_q(x).argmax(dim=1)
 
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
     def update_target(self) -> None:

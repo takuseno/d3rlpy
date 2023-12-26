@@ -15,7 +15,7 @@ from ....models.torch import (
     compute_stochastic_imitation_loss,
 )
 from ....torch_utility import Modules, TorchMiniBatch
-from ....types import Shape
+from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
 
 __all__ = ["BCImpl", "DiscreteBCImpl", "BCModules", "DiscreteBCModules"]
@@ -55,15 +55,15 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
     @abstractmethod
     def compute_loss(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
+        self, obs_t: TorchObservation, act_t: torch.Tensor
     ) -> torch.Tensor:
         pass
 
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
     def inner_predict_value(
-        self, x: torch.Tensor, action: torch.Tensor
+        self, x: TorchObservation, action: torch.Tensor
     ) -> torch.Tensor:
         raise NotImplementedError("BC does not support value estimation")
 
@@ -98,11 +98,11 @@ class BCImpl(BCBaseImpl):
         )
         self._policy_type = policy_type
 
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         return self._modules.imitator(x).squashed_mu
 
     def compute_loss(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
+        self, obs_t: TorchObservation, act_t: torch.Tensor
     ) -> torch.Tensor:
         if self._policy_type == "deterministic":
             return compute_deterministic_imitation_loss(
@@ -149,11 +149,11 @@ class DiscreteBCImpl(BCBaseImpl):
         )
         self._beta = beta
 
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         return self._modules.imitator(x).logits.argmax(dim=1)
 
     def compute_loss(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
+        self, obs_t: TorchObservation, act_t: torch.Tensor
     ) -> torch.Tensor:
         return compute_discrete_imitation_loss(
             policy=self._modules.imitator,

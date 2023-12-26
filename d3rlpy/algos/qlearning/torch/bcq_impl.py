@@ -268,7 +268,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             loss=loss, td_loss=td_loss, imitator_loss=imitator_loss
         )
 
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         dist = self._modules.imitator(x)
         log_probs = F.log_softmax(dist.logits, dim=1)
         ratio = log_probs - log_probs.max(dim=1, keepdim=True).values

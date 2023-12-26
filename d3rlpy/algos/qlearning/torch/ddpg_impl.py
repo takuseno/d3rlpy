@@ -13,7 +13,7 @@ from ....models.torch import (
     Policy,
 )
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync, soft_sync
-from ....types import Shape
+from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
 from .utility import ContinuousQFunctionMixin
 
@@ -130,11 +130,11 @@ class DDPGBaseImpl(
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         pass
 
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         return self._modules.policy(x).squashed_mu
 
     @abstractmethod
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         pass
 
     def update_critic_target(self) -> None:
@@ -205,7 +205,7 @@ class DDPGImpl(DDPGBaseImpl):
                 reduction="min",
             )
 
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
     def update_actor_target(self) -> None:

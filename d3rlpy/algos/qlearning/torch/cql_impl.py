@@ -244,7 +244,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         self._alpha = alpha
 
     def _compute_conservative_loss(
-        self, obs_t: torch.Tensor, act_t: torch.Tensor
+        self, obs_t: TorchObservation, act_t: torch.Tensor
     ) -> torch.Tensor:
         # compute logsumexp
         values = self._q_func_forwarder.compute_expected_q(obs_t)

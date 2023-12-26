@@ -10,7 +10,7 @@ from ....models.torch import (
     build_gaussian_distribution,
 )
 from ....torch_utility import TorchMiniBatch
-from ....types import Shape
+from ....types import Shape, TorchObservation
 from .ddpg_impl import (
     DDPGBaseActorLoss,
     DDPGBaseCriticLoss,
@@ -117,6 +117,6 @@ class IQLImpl(DDPGBaseImpl):
         weight = (self._expectile - (diff < 0.0).float()).abs().detach()
         return (weight * (diff**2)).mean()
 
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         dist = build_gaussian_distribution(self._modules.policy(x))
         return dist.sample()

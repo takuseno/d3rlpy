@@ -18,7 +18,7 @@ from ....models.torch import (
     build_squashed_gaussian_distribution,
 )
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync
-from ....types import Shape
+from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
 from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
 from .utility import DiscreteQFunctionMixin
@@ -117,7 +117,7 @@ class SACImpl(DDPGBaseImpl):
             )
             return target - entropy
 
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         dist = build_squashed_gaussian_distribution(self._modules.policy(x))
         return dist.sample()
 
@@ -277,11 +277,11 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
         return metrics
 
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         dist = self._modules.policy(x)
         return dist.probs.argmax(dim=1)
 
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         dist = self._modules.policy(x)
         return dist.sample()
 

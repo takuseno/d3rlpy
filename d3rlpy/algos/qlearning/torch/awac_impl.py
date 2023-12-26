@@ -103,6 +103,6 @@ class AWACImpl(SACImpl):
 
         return weights * adv_values.numel()
 
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         dist = build_gaussian_distribution(self._modules.policy(x))
         return dist.sample()

@@ -14,7 +14,7 @@ from ....models.torch import (
     forward_vae_decode,
 )
 from ....torch_utility import TorchMiniBatch, soft_sync
-from ....types import Shape
+from ....types import Shape, TorchObservation
 from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
 
 __all__ = [
@@ -91,11 +91,11 @@ class PLASImpl(DDPGBaseImpl):
         )[0].mean()
         return DDPGBaseActorLoss(loss)
 
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         latent_actions = 2.0 * self._modules.policy(x).squashed_mu
         return forward_vae_decode(self._modules.imitator, x, latent_actions)
 
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
@@ -186,12 +186,12 @@ class PLASWithPerturbationImpl(PLASImpl):
         )
         return DDPGBaseActorLoss(-q_value[0].mean())
 
-    def inner_predict_best_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         latent_actions = 2.0 * self._modules.policy(x).squashed_mu
         actions = forward_vae_decode(self._modules.imitator, x, latent_actions)
         return self._modules.perturbation(x, actions).squashed_mu
 
-    def inner_sample_action(self, x: torch.Tensor) -> torch.Tensor:
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
