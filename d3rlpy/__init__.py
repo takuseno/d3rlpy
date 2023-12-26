@@ -15,6 +15,7 @@ from . import (
     notebook_utils,
     ope,
     preprocessing,
+    tokenizers,
 )
 from ._version import __version__
 from .base import load_learnable
@@ -33,6 +34,7 @@ __all__ = [
     "notebook_utils",
     "ope",
     "preprocessing",
+    "tokenizers",
     "__version__",
     "load_learnable",
     "ActionSpace",
