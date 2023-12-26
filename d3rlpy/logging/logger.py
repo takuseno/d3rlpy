@@ -17,7 +17,7 @@ __all__ = [
 
 structlog.configure(
     processors=[
-        structlog.threadlocal.merge_threadlocal,
+        structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.StackInfoRenderer(),
         structlog.dev.set_exc_info,
@@ -32,7 +32,7 @@ LOG: structlog.BoundLogger = structlog.get_logger(__name__)
 
 
 def set_log_context(**kwargs: Any) -> None:
-    structlog.threadlocal.bind_threadlocal(**kwargs)
+    structlog.contextvars.bind_contextvars(**kwargs)
 
 
 class SaveProtocol(Protocol):
