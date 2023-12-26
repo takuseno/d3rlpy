@@ -5,7 +5,7 @@ from typing_extensions import Protocol, runtime_checkable
 
 from ..dataset import Episode, EpisodeBase, InfiniteBuffer, ReplayBuffer
 from ..types import Float32NDArray, Int32NDArray, NDArray, Observation
-from .utils import mu_law_encode
+from .utils import mu_law_decode, mu_law_encode
 
 __all__ = [
     "Tokenizer",
@@ -19,6 +19,9 @@ __all__ = [
 @runtime_checkable
 class Tokenizer(Protocol):
     def __call__(self, x: NDArray) -> NDArray:
+        ...
+
+    def decode(self, y: Int32NDArray) -> NDArray:
         ...
 
 
@@ -52,6 +55,12 @@ class FloatTokenizer(Tokenizer):
         if self._use_mu_law_encode:
             x = mu_law_encode(x, self._mu, self._basis)
         return np.digitize(x, self._bins) - 1 + self._token_offset
+
+    def decode(self, y: Int32NDArray) -> NDArray:
+        x = self._bins[y - self._token_offset]
+        if self._use_mu_law_encode:
+            x = mu_law_decode(x, mu=self._mu, basis=self._basis)
+        return x  # type: ignore
 
 
 def tokenize_observation(

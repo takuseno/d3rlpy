@@ -34,6 +34,18 @@ def test_float_tokenizer() -> None:
     assert tokenized_v[0] == 1
     assert tokenized_v[1] == 100
 
+    # check decode
+    tokenizer = FloatTokenizer(num_bins=1000000)
+    v = np.arange(100) - 50
+    decoded_v = tokenizer.decode(tokenizer(v))
+    assert np.allclose(decoded_v, v, atol=1e-3)
+
+    # check decode with multi-dimension
+    v = np.reshape(v, [5, -1])
+    decoded_v = tokenizer.decode(tokenizer(v))
+    assert v.shape == decoded_v.shape
+    assert np.allclose(decoded_v, v, atol=1e-3)
+
 
 def test_tokenize_observation() -> None:
     tokenizer = FloatTokenizer(num_bins=100)
