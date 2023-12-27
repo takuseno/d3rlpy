@@ -17,34 +17,31 @@ from ...testing_utils import create_torch_batched_observations
 from .model_test import DummyEncoder, check_parameter_updates
 
 
-@pytest.mark.parametrize("in_size", [100])
-@pytest.mark.parametrize("out_size", [100])
+@pytest.mark.parametrize("embed_size", [100])
 @pytest.mark.parametrize("num_heads", [2])
 @pytest.mark.parametrize("context_size", [10])
 @pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_causal_self_attention(
-    in_size: int,
-    out_size: int,
+    embed_size: int,
     num_heads: int,
     context_size: int,
     dropout: float,
     batch_size: int,
 ) -> None:
     model = CausalSelfAttention(
-        in_size=in_size,
-        out_size=out_size,
+        embed_size=embed_size,
         num_heads=num_heads,
         context_size=context_size,
         attn_dropout=dropout,
         resid_dropout=dropout,
     )
 
-    x = torch.rand(batch_size, context_size, in_size)
+    x = torch.rand(batch_size, context_size, embed_size)
     y = model(x)
 
     # check shape
-    assert y.shape == (batch_size, context_size, out_size)
+    assert y.shape == (batch_size, context_size, embed_size)
 
     # check layer connections
     check_parameter_updates(model, (x,))
@@ -52,12 +49,14 @@ def test_causal_self_attention(
 
 @pytest.mark.parametrize("in_size", [100])
 @pytest.mark.parametrize("out_size", [100])
+@pytest.mark.parametrize("hidden_size", [200])
 @pytest.mark.parametrize("context_size", [10])
 @pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_mlp(
     in_size: int,
     out_size: int,
+    hidden_size: int,
     context_size: int,
     dropout: float,
     batch_size: int,
@@ -65,6 +64,8 @@ def test_mlp(
     model = MLP(
         in_size=in_size,
         out_size=out_size,
+        pre_activation_hidden_size=hidden_size,
+        post_activation_hidden_size=hidden_size,
         dropout=dropout,
         activation=torch.nn.ReLU(),
     )
@@ -79,23 +80,24 @@ def test_mlp(
     check_parameter_updates(model, (x,))
 
 
-@pytest.mark.parametrize("in_size", [100])
-@pytest.mark.parametrize("out_size", [100])
+@pytest.mark.parametrize("layer_width", [100])
+@pytest.mark.parametrize("ff_hidden_size", [200])
 @pytest.mark.parametrize("num_heads", [2])
 @pytest.mark.parametrize("context_size", [10])
 @pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_block(
-    in_size: int,
-    out_size: int,
+    layer_width: int,
+    ff_hidden_size: int,
     num_heads: int,
     context_size: int,
     dropout: float,
     batch_size: int,
 ) -> None:
     model = Block(
-        in_size=in_size,
-        out_size=out_size,
+        layer_width=layer_width,
+        pre_activation_ff_hidden_size=ff_hidden_size,
+        post_activation_ff_hidden_size=ff_hidden_size,
         num_heads=num_heads,
         context_size=context_size,
         attn_dropout=dropout,
@@ -103,11 +105,11 @@ def test_block(
         activation=torch.nn.ReLU(),
     )
 
-    x = torch.rand(batch_size, context_size, in_size)
+    x = torch.rand(batch_size, context_size, layer_width)
     y = model(x)
 
     # check shape
-    assert y.shape == (batch_size, context_size, out_size)
+    assert y.shape == (batch_size, context_size, layer_width)
 
     # check layer connections
     check_parameter_updates(model, (x,))
@@ -156,14 +158,16 @@ def test_global_position_encoding(
     assert y.shape == (batch_size, 3 * context_size, embed_dim)
 
 
-@pytest.mark.parametrize("hidden_size", [100])
+@pytest.mark.parametrize("layer_width", [100])
+@pytest.mark.parametrize("ff_hidden_size", [200])
 @pytest.mark.parametrize("num_heads", [2])
 @pytest.mark.parametrize("num_layers", [3])
 @pytest.mark.parametrize("context_size", [10])
 @pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("batch_size", [32])
 def test_gpt2(
-    hidden_size: int,
+    layer_width: int,
+    ff_hidden_size: int,
     num_heads: int,
     num_layers: int,
     context_size: int,
@@ -171,7 +175,9 @@ def test_gpt2(
     batch_size: int,
 ) -> None:
     model = GPT2(
-        hidden_size=hidden_size,
+        layer_width=layer_width,
+        pre_activation_ff_hidden_size=ff_hidden_size,
+        post_activation_ff_hidden_size=ff_hidden_size,
         num_heads=num_heads,
         num_layers=num_layers,
         context_size=context_size,
@@ -181,11 +187,11 @@ def test_gpt2(
         activation=torch.nn.ReLU(),
     )
 
-    x = torch.rand(batch_size, context_size, hidden_size)
+    x = torch.rand(batch_size, context_size, layer_width)
     y = model(x)
 
     # check shape
-    assert y.shape == (batch_size, context_size, hidden_size)
+    assert y.shape == (batch_size, context_size, layer_width)
 
     # check layer connections
     check_parameter_updates(model, (x,))
@@ -213,7 +219,7 @@ def test_continuous_decision_transformer(
 
     model = ContinuousDecisionTransformer(
         encoder=encoder,
-        feature_size=encoder.get_feature_size(),
+        embed_size=encoder.get_feature_size(),
         position_encoding=SimplePositionEncoding(
             encoder.get_feature_size(), max_timestep
         ),
@@ -264,7 +270,7 @@ def test_discrete_decision_transformer(
 
     model = DiscreteDecisionTransformer(
         encoder=encoder,
-        feature_size=encoder.get_feature_size(),
+        embed_size=encoder.get_feature_size(),
         position_encoding=SimplePositionEncoding(
             encoder.get_feature_size(), max_timestep
         ),

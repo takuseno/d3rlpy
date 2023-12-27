@@ -298,7 +298,7 @@ def create_continuous_decision_transformer(
 
     transformer = ContinuousDecisionTransformer(
         encoder=encoder,
-        feature_size=hidden_size,
+        embed_size=hidden_size,
         position_encoding=position_encoding,
         action_size=action_size,
         num_heads=num_heads,
@@ -341,7 +341,7 @@ def create_discrete_decision_transformer(
 
     transformer = DiscreteDecisionTransformer(
         encoder=encoder,
-        feature_size=hidden_size,
+        embed_size=hidden_size,
         position_encoding=position_encoding,
         action_size=action_size,
         num_heads=num_heads,

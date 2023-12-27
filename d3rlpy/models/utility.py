@@ -1,6 +1,6 @@
 from torch import nn
 
-from ..torch_utility import Swish
+from ..torch_utility import GEGLU, Swish
 
 __all__ = ["create_activation"]
 
@@ -16,4 +16,6 @@ def create_activation(activation_type: str) -> nn.Module:
         return Swish()
     elif activation_type == "none":
         return nn.Identity()
+    elif activation_type == "geglu":
+        return GEGLU()
     raise ValueError("invalid activation_type.")

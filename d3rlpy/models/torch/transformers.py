@@ -37,8 +37,7 @@ class CausalSelfAttention(nn.Module):  # type: ignore
 
     def __init__(
         self,
-        in_size: int,
-        out_size: int,
+        embed_size: int,
         num_heads: int,
         context_size: int,
         attn_dropout: float,
@@ -47,10 +46,10 @@ class CausalSelfAttention(nn.Module):  # type: ignore
         super().__init__()
         self._num_heads = num_heads
         self._context_size = context_size
-        self._k = nn.Linear(in_size, out_size)
-        self._q = nn.Linear(in_size, out_size)
-        self._v = nn.Linear(in_size, out_size)
-        self._proj = nn.Linear(out_size, out_size)
+        self._k = nn.Linear(embed_size, embed_size)
+        self._q = nn.Linear(embed_size, embed_size)
+        self._v = nn.Linear(embed_size, embed_size)
+        self._proj = nn.Linear(embed_size, embed_size)
         self._attn_dropout = nn.Dropout(attn_dropout)
         self._proj_dropout = nn.Dropout(resid_dropout)
         mask = create_attention_mask(context_size)
@@ -91,11 +90,17 @@ class MLP(nn.Module):  # type: ignore
     _activation: nn.Module
 
     def __init__(
-        self, in_size: int, out_size: int, dropout: float, activation: nn.Module
+        self,
+        in_size: int,
+        out_size: int,
+        pre_activation_hidden_size: int,
+        post_activation_hidden_size: int,
+        dropout: float,
+        activation: nn.Module,
     ):
         super().__init__()
-        self._l1 = nn.Linear(in_size, 4 * out_size)
-        self._l2 = nn.Linear(4 * out_size, out_size)
+        self._l1 = nn.Linear(in_size, pre_activation_hidden_size)
+        self._l2 = nn.Linear(post_activation_hidden_size, out_size)
         self._dropout = nn.Dropout(dropout)
         self._activation = activation
 
@@ -113,8 +118,9 @@ class Block(nn.Module):  # type: ignore
 
     def __init__(
         self,
-        in_size: int,
-        out_size: int,
+        layer_width: int,
+        pre_activation_ff_hidden_size: int,
+        post_activation_ff_hidden_size: int,
         num_heads: int,
         context_size: int,
         attn_dropout: float,
@@ -123,21 +129,22 @@ class Block(nn.Module):  # type: ignore
     ):
         super().__init__()
         self._attention = CausalSelfAttention(
-            in_size=in_size,
-            out_size=out_size,
+            embed_size=layer_width,
             num_heads=num_heads,
             context_size=context_size,
             attn_dropout=attn_dropout,
             resid_dropout=resid_dropout,
         )
         self._mlp = MLP(
-            in_size=out_size,
-            out_size=out_size,
+            in_size=layer_width,
+            out_size=layer_width,
+            pre_activation_hidden_size=pre_activation_ff_hidden_size,
+            post_activation_hidden_size=post_activation_ff_hidden_size,
             dropout=resid_dropout,
             activation=activation,
         )
-        self._layer_norm1 = nn.LayerNorm(out_size, eps=0.003)
-        self._layer_norm2 = nn.LayerNorm(out_size, eps=0.003)
+        self._layer_norm1 = nn.LayerNorm(layer_width, eps=0.003)
+        self._layer_norm2 = nn.LayerNorm(layer_width, eps=0.003)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         norm_x = self._layer_norm1(x)
@@ -206,7 +213,9 @@ class GPT2(nn.Module):  # type: ignore
 
     def __init__(
         self,
-        hidden_size: int,
+        layer_width: int,
+        pre_activation_ff_hidden_size: int,
+        post_activation_ff_hidden_size: int,
         num_heads: int,
         context_size: int,
         num_layers: int,
@@ -218,8 +227,9 @@ class GPT2(nn.Module):  # type: ignore
         super().__init__()
         blocks = [
             Block(
-                in_size=hidden_size,
-                out_size=hidden_size,
+                layer_width=layer_width,
+                pre_activation_ff_hidden_size=pre_activation_ff_hidden_size,
+                post_activation_ff_hidden_size=post_activation_ff_hidden_size,
                 num_heads=num_heads,
                 context_size=context_size,
                 attn_dropout=attn_dropout,
@@ -229,7 +239,7 @@ class GPT2(nn.Module):  # type: ignore
             for _ in range(num_layers)
         ]
         self._transformer = nn.Sequential(*blocks)
-        self._layer_norm = nn.LayerNorm(hidden_size, eps=0.003)
+        self._layer_norm = nn.LayerNorm(layer_width, eps=0.003)
         self._dropout = nn.Dropout(embed_dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -260,7 +270,7 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
     def __init__(
         self,
         encoder: Encoder,
-        feature_size: int,
+        embed_size: int,
         position_encoding: PositionEncoding,
         action_size: int,
         num_heads: int,
@@ -273,9 +283,11 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
     ):
         super().__init__()
         self._position_encoding = position_encoding
-        self._embed_ln = nn.LayerNorm(feature_size)
+        self._embed_ln = nn.LayerNorm(embed_size)
         self._gpt2 = GPT2(
-            hidden_size=feature_size,
+            layer_width=embed_size,
+            pre_activation_ff_hidden_size=4 * embed_size,
+            post_activation_ff_hidden_size=4 * embed_size,
             num_heads=num_heads,
             context_size=3 * context_size,
             num_layers=num_layers,
@@ -287,9 +299,9 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         self.apply(_init_weights)
 
         self._encoder = encoder
-        self._rtg_embed = nn.Linear(1, feature_size)
-        self._action_embed = nn.Linear(action_size, feature_size)
-        self._output = nn.Linear(feature_size, action_size)
+        self._rtg_embed = nn.Linear(1, embed_size)
+        self._action_embed = nn.Linear(action_size, embed_size)
+        self._output = nn.Linear(embed_size, action_size)
 
     def forward(
         self,
@@ -342,7 +354,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
     def __init__(
         self,
         encoder: Encoder,
-        feature_size: int,
+        embed_size: int,
         position_encoding: PositionEncoding,
         action_size: int,
         num_heads: int,
@@ -357,7 +369,9 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         super().__init__()
         self._position_encoding = position_encoding
         self._gpt2 = GPT2(
-            hidden_size=feature_size,
+            layer_width=embed_size,
+            pre_activation_ff_hidden_size=4 * embed_size,
+            post_activation_ff_hidden_size=4 * embed_size,
             num_heads=num_heads,
             context_size=3 * context_size,
             num_layers=num_layers,
@@ -366,12 +380,12 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
             embed_dropout=embed_dropout,
             activation=activation,
         )
-        self._output = nn.Linear(feature_size, action_size, bias=False)
-        self._action_embed = nn.Embedding(action_size, feature_size)
+        self._output = nn.Linear(embed_size, action_size, bias=False)
+        self._action_embed = nn.Embedding(action_size, embed_size)
         self.apply(_init_weights)
 
         self._encoder = encoder
-        self._rtg_embed = nn.Linear(1, feature_size)
+        self._rtg_embed = nn.Linear(1, embed_size)
         self._embed_activation = embed_activation
 
     def forward(

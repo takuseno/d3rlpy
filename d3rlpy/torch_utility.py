@@ -13,6 +13,7 @@ from typing import (
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
@@ -380,3 +381,10 @@ class View(nn.Module):  # type: ignore
 class Swish(nn.Module):  # type: ignore
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x * torch.sigmoid(x)
+
+
+class GEGLU(nn.Module):  # type: ignore
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        assert x.shape[-1] % 2 == 0
+        a, b = x.chunk(2, dim=-1)
+        return a * F.gelu(b)

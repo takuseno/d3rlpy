@@ -10,6 +10,7 @@ import torch
 
 from d3rlpy.dataset import TrajectoryMiniBatch, Transition, TransitionMiniBatch
 from d3rlpy.torch_utility import (
+    GEGLU,
     Checkpointer,
     Modules,
     Swish,
@@ -444,3 +445,13 @@ def test_swish(in_shape: Sequence[int]) -> None:
     y = swish(x)
     assert y.shape == in_shape
     assert torch.allclose(y, x * torch.sigmoid(x))
+
+
+@pytest.mark.parametrize("in_shape", [(1, 2, 4)])
+def test_geglu(in_shape: Sequence[int]) -> None:
+    x = torch.rand(in_shape)
+    geglu = GEGLU()
+    y = geglu(x)
+    ref_shape = list(in_shape)
+    ref_shape[-1] = ref_shape[-1] // 2
+    assert y.shape == tuple(ref_shape)
