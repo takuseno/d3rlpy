@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from ...torch_utility import GEGLU
 from ...types import TorchObservation
 from .encoders import Encoder
 from .parameters import Parameter
@@ -16,6 +17,7 @@ __all__ = [
     "PositionEncoding",
     "SimplePositionEncoding",
     "GlobalPositionEncoding",
+    "GatoTransformer",
 ]
 
 
@@ -427,5 +429,88 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
 
         # use state embeddings as input
         logits = self._output(h[:, 1::3, :])
+
+        return F.softmax(logits, dim=-1), logits
+
+
+class GatoTransformer(nn.Module):  # type: ignore
+    _gpt2: GPT2
+    _token_embed: nn.Embedding
+    _observation_pos_embed: nn.Embedding
+    _action_pos_embed: Parameter
+    _output: nn.Linear
+    _embed_activation: nn.Module
+
+    def __init__(
+        self,
+        layer_width: int,
+        ff_hidden_size: int,
+        max_observation_length: int,
+        vocab_size: int,
+        num_heads: int,
+        context_size: int,
+        num_layers: int,
+        attn_dropout: float,
+        resid_dropout: float,
+        embed_dropout: float,
+        embed_activation: nn.Module,
+    ):
+        super().__init__()
+        self._gpt2 = GPT2(
+            layer_width=layer_width,
+            pre_activation_ff_hidden_size=2 * ff_hidden_size,
+            post_activation_ff_hidden_size=ff_hidden_size,
+            num_heads=num_heads,
+            context_size=context_size,
+            num_layers=num_layers,
+            attn_dropout=attn_dropout,
+            resid_dropout=resid_dropout,
+            embed_dropout=embed_dropout,
+            activation=GEGLU(),
+        )
+        self._output = nn.Linear(layer_width, vocab_size, bias=False)
+        # +1 for separator token
+        self._token_embed = nn.Embedding(vocab_size + 1, layer_width)
+        self._observation_pos_embed = nn.Embedding(
+            max_observation_length, layer_width
+        )
+        self._action_pos_embed = Parameter(
+            torch.zeros(1, 1, layer_width, dtype=torch.float32)
+        )
+        self.apply(_init_weights)
+        self._embed_activation = embed_activation
+
+    def forward(
+        self,
+        tokens: torch.Tensor,
+        observation_masks: torch.Tensor,
+        observation_positions: torch.Tensor,
+        action_masks: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        # TODO: Support text and patch tokens
+        assert tokens.ndim == 2
+        batch_size, context_size = tokens.shape
+        assert observation_masks.shape == (batch_size, context_size, 1)
+        assert observation_positions.shape == (batch_size, context_size)
+        assert action_masks.shape == (batch_size, context_size, 1)
+
+        # (B, T, N)
+        embeddings = self._embed_activation(self._token_embed(tokens))
+
+        # add local observation embedding
+        embeddings = (
+            embeddings
+            + observation_masks
+            * self._observation_pos_embed(observation_positions)
+        )
+
+        # add action embedding
+        embeddings = embeddings + action_masks * self._action_pos_embed()
+
+        # (B, T, N) -> (B, T, N)
+        h = self._gpt2(embeddings)
+
+        # (B, T, N) -> (B, vocab)
+        logits = self._output(h[:, -1, :])
 
         return F.softmax(logits, dim=-1), logits
