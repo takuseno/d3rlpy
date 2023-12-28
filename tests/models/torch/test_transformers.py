@@ -354,8 +354,8 @@ def test_gato_transformer(
     )
 
     # check shape
-    assert probs.shape == (batch_size, vocab_size)
-    assert logits.shape == (batch_size, vocab_size)
+    assert probs.shape == (batch_size, context_size, vocab_size)
+    assert logits.shape == (batch_size, context_size, vocab_size)
 
     # check layer connections
     check_parameter_updates(

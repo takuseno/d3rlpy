@@ -510,7 +510,7 @@ class GatoTransformer(nn.Module):  # type: ignore
         # (B, T, N) -> (B, T, N)
         h = self._gpt2(embeddings)
 
-        # (B, T, N) -> (B, vocab)
-        logits = self._output(h[:, -1, :])
+        # (B, T, N) -> (B, T, vocab)
+        logits = self._output(h)
 
         return F.softmax(logits, dim=-1), logits
