@@ -444,7 +444,6 @@ class GatoTransformer(nn.Module):  # type: ignore
     def __init__(
         self,
         layer_width: int,
-        ff_hidden_size: int,
         max_observation_length: int,
         vocab_size: int,
         num_heads: int,
@@ -458,8 +457,8 @@ class GatoTransformer(nn.Module):  # type: ignore
         super().__init__()
         self._gpt2 = GPT2(
             layer_width=layer_width,
-            pre_activation_ff_hidden_size=2 * ff_hidden_size,
-            post_activation_ff_hidden_size=ff_hidden_size,
+            pre_activation_ff_hidden_size=2 * 4 * layer_width,
+            post_activation_ff_hidden_size=4 * layer_width,
             num_heads=num_heads,
             context_size=context_size,
             num_layers=num_layers,

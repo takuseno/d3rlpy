@@ -303,7 +303,6 @@ def test_discrete_decision_transformer(
 
 
 @pytest.mark.parametrize("layer_width", [100])
-@pytest.mark.parametrize("ff_hidden_size", [200])
 @pytest.mark.parametrize("max_observation_length", [10])
 @pytest.mark.parametrize("vocab_size", [64])
 @pytest.mark.parametrize("num_heads", [2])
@@ -313,7 +312,6 @@ def test_discrete_decision_transformer(
 @pytest.mark.parametrize("batch_size", [32])
 def test_gato_transformer(
     layer_width: int,
-    ff_hidden_size: int,
     max_observation_length: int,
     vocab_size: int,
     num_heads: int,
@@ -324,7 +322,6 @@ def test_gato_transformer(
 ) -> None:
     model = GatoTransformer(
         layer_width=layer_width,
-        ff_hidden_size=ff_hidden_size,
         max_observation_length=max_observation_length,
         vocab_size=vocab_size,
         num_heads=num_heads,
