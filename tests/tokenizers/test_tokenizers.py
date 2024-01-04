@@ -1,15 +1,7 @@
 import numpy as np
 
-from d3rlpy.dataset import InfiniteBuffer, ReplayBuffer
-from d3rlpy.tokenizers import (
-    FloatTokenizer,
-    tokenize_action,
-    tokenize_observation,
-    tokenize_replay_buffer,
-)
+from d3rlpy.tokenizers import FloatTokenizer
 from d3rlpy.types import NDArray
-
-from ..testing_utils import create_episode
 
 
 def test_float_tokenizer() -> None:
@@ -45,71 +37,3 @@ def test_float_tokenizer() -> None:
     decoded_v = tokenizer.decode(tokenizer(v))
     assert v.shape == decoded_v.shape
     assert np.allclose(decoded_v, v, atol=1e-3)
-
-
-def test_tokenize_observation() -> None:
-    tokenizer = FloatTokenizer(num_bins=100)
-    episode = create_episode(
-        observation_shape=(100,), action_size=2, length=100
-    )
-    assert isinstance(episode.observations, np.ndarray)
-    ref_observations = tokenizer(episode.observations)
-    tokenized_episode = tokenize_observation(episode, tokenizer)
-    assert np.all(tokenized_episode.observations == ref_observations)
-    assert np.all(tokenized_episode.actions == episode.actions)
-    assert np.all(tokenized_episode.rewards == episode.rewards)
-    assert tokenized_episode.terminated == episode.terminated
-
-    # check tuple observation
-    episode = create_episode(
-        observation_shape=((100,), (200,)), action_size=2, length=100
-    )
-    ref_tuple_observations = []
-    for i in range(2):
-        ref_tuple_observations.append(tokenizer(episode.observations[i]))
-    tokenized_episode = tokenize_observation(episode, [tokenizer, tokenizer])
-    for i in range(2):
-        assert np.all(
-            ref_tuple_observations[i] == tokenized_episode.observations[i]
-        )
-
-
-def test_tokenize_action() -> None:
-    tokenizer = FloatTokenizer(num_bins=100)
-    episode = create_episode(
-        observation_shape=(100,), action_size=2, length=100
-    )
-    ref_actions = tokenizer(episode.actions)
-    tokenized_episode = tokenize_action(episode, tokenizer)
-    assert np.all(tokenized_episode.observations == episode.observations)
-    assert np.all(tokenized_episode.actions == ref_actions)
-    assert np.all(tokenized_episode.rewards == episode.rewards)
-    assert tokenized_episode.terminated == episode.terminated
-
-
-def test_tokenize_replay_buffer() -> None:
-    tokenizer = FloatTokenizer(num_bins=100)
-    episode1 = create_episode(
-        observation_shape=(100,), action_size=2, length=100
-    )
-    episode2 = create_episode(
-        observation_shape=(100,), action_size=2, length=100
-    )
-    replay_buffer = ReplayBuffer(
-        InfiniteBuffer(), episodes=[episode1, episode2]
-    )
-
-    tokenized_replay_buffer = tokenize_replay_buffer(
-        replay_buffer,
-        observation_tokenizer=tokenizer,
-        action_tokenizer=tokenizer,
-    )
-
-    for ep, tokenized_ep in zip(
-        replay_buffer.episodes, tokenized_replay_buffer.episodes
-    ):
-        assert isinstance(ep.observations, np.ndarray)
-        assert np.all(tokenizer(ep.observations) == tokenized_ep.observations)
-        assert np.all(tokenizer(ep.actions) == tokenized_ep.actions)
-        assert np.all(ep.rewards == tokenized_ep.rewards)
-        assert np.all(ep.terminated == tokenized_ep.terminated)
