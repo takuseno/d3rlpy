@@ -18,7 +18,7 @@ from ...logging import (
     LoggerAdapterFactory,
 )
 from ...metrics import evaluate_transformer_with_environment
-from ...torch_utility import TorchTrajectoryMiniBatch, train_api
+from ...torch_utility import TorchTrajectoryMiniBatch, eval_api, train_api
 from ...types import GymEnv, NDArray, Observation
 from ..utility import (
     assert_action_space_with_dataset,
@@ -40,8 +40,12 @@ __all__ = [
 
 
 class TransformerAlgoImplBase(ImplBase):
-    @abstractmethod
+    @eval_api
     def predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
+        return self.inner_predict(inpt)
+
+    @abstractmethod
+    def inner_predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
         ...
 
     @train_api
@@ -383,7 +387,7 @@ class TransformerAlgoBase(
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
         )
-        loss = self._impl.inner_update(torch_batch, self._grad_step)
+        loss = self._impl.update(torch_batch, self._grad_step)
         self._grad_step += 1
         return loss
 

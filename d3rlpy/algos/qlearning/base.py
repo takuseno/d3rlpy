@@ -825,7 +825,7 @@ class QLearningAlgoBase(
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
         )
-        loss = self._impl.inner_update(torch_batch, self._grad_step)
+        loss = self._impl.update(torch_batch, self._grad_step)
         self._grad_step += 1
         return loss
 

@@ -10,7 +10,7 @@ from ....models.torch import (
     ContinuousDecisionTransformer,
     DiscreteDecisionTransformer,
 )
-from ....torch_utility import Modules, TorchTrajectoryMiniBatch, eval_api
+from ....torch_utility import Modules, TorchTrajectoryMiniBatch
 from ....types import Shape
 from ..base import TransformerAlgoImplBase
 from ..inputs import TorchTransformerInput
@@ -52,8 +52,7 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         self._scheduler = scheduler
         self._clip_grad_norm = clip_grad_norm
 
-    @eval_api
-    def predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
+    def inner_predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
         # (1, T, A)
         action = self._modules.transformer(
             inpt.observations, inpt.actions, inpt.returns_to_go, inpt.timesteps
@@ -127,8 +126,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
         # TODO: Include stateful information in checkpoint.
         self._tokens = 0
 
-    @eval_api
-    def predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
+    def inner_predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
         # (1, T, A)
         _, logits = self._modules.transformer(
             inpt.observations, inpt.actions, inpt.returns_to_go, inpt.timesteps
