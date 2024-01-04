@@ -78,7 +78,7 @@ def load(episode_cls: Type[_TEpisode], f: BinaryIO) -> Sequence[_TEpisode]:
                     data[key] = tuple_data
             episode = episode_cls.deserialize(data)
             episodes.append(episode)
-    return episodes
+    return episodes  # type: ignore
 
 
 def load_v1(f: BinaryIO) -> Sequence[Episode]:
