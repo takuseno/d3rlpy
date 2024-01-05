@@ -20,6 +20,8 @@ class Tokenizer(Protocol):
 
 
 class FloatTokenizer(Tokenizer):
+    _maximum: float
+    _minimum: float
     _bins: Float32NDArray
     _use_mu_law_encode: bool
     _mu: float
@@ -36,6 +38,8 @@ class FloatTokenizer(Tokenizer):
         basis: float = 256.0,
         token_offset: int = 0,
     ):
+        self._maximum = maximum
+        self._minimum = minimum
         self._bins = np.array(
             (maximum - minimum) * np.arange(num_bins) / num_bins + minimum,
             dtype=np.float32,
@@ -48,6 +52,8 @@ class FloatTokenizer(Tokenizer):
     def __call__(self, x: NDArray) -> Int32NDArray:
         if self._use_mu_law_encode:
             x = mu_law_encode(x, self._mu, self._basis)
+        else:
+            x = np.clip(x, self._minimum, self._maximum)
         return np.digitize(x, self._bins) - 1 + self._token_offset
 
     def decode(self, y: Int32NDArray) -> NDArray:
