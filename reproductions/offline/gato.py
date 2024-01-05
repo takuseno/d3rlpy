@@ -26,7 +26,7 @@ def main() -> None:
         embedding_modules={
             "discrete": d3rlpy.models.DiscreteTokenEmbeddingModuleFactory(
                 vocab_size=1024,
-                embed_size=256,
+                embed_size=512,
             ),
         },
         token_embeddings={
@@ -43,14 +43,14 @@ def main() -> None:
                 use_mu_law_encode=False,
             ),
         },
-        layer_width=256,
-        batch_size=64,
+        layer_width=512,
+        batch_size=128,
         learning_rate=1e-4,
         optim_factory=d3rlpy.models.AdamWFactory(weight_decay=1e-4),
         action_vocab_size=1024,
-        context_size=128,
-        num_heads=1,
-        num_layers=3,
+        context_size=256,
+        num_heads=4,
+        num_layers=4,
     ).create(device=args.gpu)
 
     gato.fit(
