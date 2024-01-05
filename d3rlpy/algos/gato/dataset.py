@@ -13,11 +13,12 @@ from ...dataset import (
 )
 from ...models.torch import TokenEmbedding
 from ...torch_utility import torch_batch_pad_array
-from ...types import NDArray
+from ...types import NDArray, Observation
 
 __all__ = [
     "GatoTokenEpisode",
-    "GatoEmbeddingSequence",
+    "GatoInputEmbedding",
+    "GatoTrainingInputEmbedding",
     "GatoTokenSlicer",
     "GatoEmbeddingMiniBatch",
     "ReplayBufferWithEmbeddingKeys",
@@ -81,12 +82,107 @@ class GatoTokenEpisode(Episode):
         )
 
 
+def convert_observations_to_embeddings(
+    observations: Observation,
+    observation_to_embedding_keys: Union[str, Sequence[str]],
+    token_embeddings: Dict[str, TokenEmbedding],
+) -> torch.Tensor:
+    if isinstance(observations, np.ndarray):
+        token_embedding = token_embeddings[observation_to_embedding_keys[0]]
+        # (T, obs_num_tokens, N)
+        observation_embeddings = [token_embedding(observations)]
+    else:
+        observation_embeddings = []
+        for key, observation in zip(
+            observation_to_embedding_keys, observations
+        ):
+            token_embedding = token_embeddings[key]
+            observation_embeddings.append(token_embedding(observation))
+    # (T, total_obs_num_tokens, N)
+    return torch.cat(observation_embeddings, dim=1)
+
+
 @dataclasses.dataclass(frozen=True)
-class GatoEmbeddingSequence:
+class GatoEmbeddingMetaData:
+    observation_positions: torch.Tensor  # (T, S)
+    observation_masks: torch.Tensor  # (T, S, 1)
+    action_masks: torch.Tensor  # (T, S, 1)
+
+
+def create_embedding_metadata(
+    observation_embeddings: torch.Tensor, action_embeddings: torch.Tensor
+) -> GatoEmbeddingMetaData:
+    num_steps, observation_token_size, _ = observation_embeddings.shape
+    action_token_size = action_embeddings.shape[1]
+    device = observation_embeddings.device
+
+    # (T, total_obs_num_tokens)
+    observation_positions = (
+        torch.arange(observation_token_size, device=device)
+        .view(1, observation_token_size)
+        .tile([num_steps, 1])
+    )
+    # (T, S)
+    observation_positions = torch.cat(
+        [
+            observation_positions,
+            torch.zeros(
+                (num_steps, action_token_size),
+                device=device,
+                dtype=torch.int32,
+            ),
+        ],
+        dim=1,
+    )
+    # (T, S, 1)
+    observation_masks = torch.cat(
+        [
+            torch.ones(
+                (num_steps, observation_token_size, 1),
+                device=device,
+                dtype=torch.float32,
+            ),
+            torch.zeros(
+                (num_steps, action_token_size, 1),
+                device=device,
+                dtype=torch.float32,
+            ),
+        ],
+        dim=1,
+    )
+    # (T, S, 1)
+    action_masks = torch.cat(
+        [
+            torch.zeros(
+                (num_steps, observation_token_size, 1),
+                device=device,
+                dtype=torch.float32,
+            ),
+            torch.ones(
+                (num_steps, action_token_size, 1),
+                device=device,
+                dtype=torch.float32,
+            ),
+        ],
+        dim=1,
+    )
+    return GatoEmbeddingMetaData(
+        observation_positions=observation_positions,
+        observation_masks=observation_masks,
+        action_masks=action_masks,
+    )
+
+
+@dataclasses.dataclass(frozen=True)
+class GatoInputEmbedding:
     embeddings: torch.Tensor  # (T, N)
     observation_positions: torch.Tensor  # (T,)
     observation_masks: torch.Tensor  # (T, 1)
     action_masks: torch.Tensor  # (T, 1)
+
+
+@dataclasses.dataclass(frozen=True)
+class GatoTrainingInputEmbedding(GatoInputEmbedding):
     action_tokens: torch.Tensor  # (T,)
     masks: torch.Tensor  # (T, 1)
 
@@ -103,7 +199,7 @@ class GatoTokenSlicer:
         end_step: int,
         token_size: int,
         token_embeddings: Dict[str, TokenEmbedding],
-    ) -> GatoEmbeddingSequence:
+    ) -> GatoTrainingInputEmbedding:
         num_steps = token_size // episode.one_step_block_size
         end_step = end_step + 1
         start_step = max(end_step - num_steps, 0)
@@ -113,29 +209,14 @@ class GatoTokenSlicer:
         observations = slice_observations(
             episode.observations, start_step, end_step
         )
-        if isinstance(observations, np.ndarray):
-            token_embedding = token_embeddings[
-                episode.observation_to_embedding_keys[0]
-            ]
-            # (T, obs_num_tokens, N)
-            observation_embeddings = [token_embedding(observations)]
-        else:
-            observation_embeddings = []
-            for key, observation in zip(
-                episode.observation_to_embedding_keys, episode.observations
-            ):
-                token_embedding = token_embeddings[key]
-                observation_embeddings.append(token_embedding(observation))
         # (T, total_obs_num_tokens, N)
-        concat_observation_embeddings = torch.cat(observation_embeddings, dim=1)
+        concat_observation_embeddings = convert_observations_to_embeddings(
+            observations=observations,
+            observation_to_embedding_keys=episode.observation_to_embedding_keys,
+            token_embeddings=token_embeddings,
+        )
         observation_token_size = concat_observation_embeddings.shape[1]
         device = concat_observation_embeddings.device
-        # (T, total_obs_num_tokens)
-        observation_positions = (
-            torch.arange(observation_token_size, device=device)
-            .view(1, observation_token_size)
-            .tile([actual_num_steps, 1])
-        )
 
         # slice actions
         actions = episode.actions[start_step:end_step]
@@ -148,7 +229,6 @@ class GatoTokenSlicer:
             device=device,
             dtype=torch.int32,
         )
-        action_token_size = action_embedding.shape[1]
 
         # concat observations and actions
         # S = total_obs_num_tokens + action_num_tokens
@@ -156,65 +236,15 @@ class GatoTokenSlicer:
         concat_embeddings = torch.cat(
             [concat_observation_embeddings, action_embedding], dim=1
         )
-        # (T, S)
-        observation_positions = torch.cat(
-            [
-                observation_positions,
-                torch.zeros(
-                    actual_num_steps,
-                    action_token_size,
-                    device=device,
-                    dtype=torch.int32,
-                ),
-            ],
-            dim=1,
-        )
-        # (T, S, 1)
-        observation_masks = torch.cat(
-            [
-                torch.ones(
-                    actual_num_steps,
-                    observation_token_size,
-                    1,
-                    device=device,
-                    dtype=torch.float32,
-                ),
-                torch.zeros(
-                    actual_num_steps,
-                    action_token_size,
-                    1,
-                    device=device,
-                    dtype=torch.float32,
-                ),
-            ],
-            dim=1,
-        )
-        # (T, S, 1)
-        action_masks = torch.cat(
-            [
-                torch.zeros(
-                    actual_num_steps,
-                    observation_token_size,
-                    1,
-                    device=device,
-                    dtype=torch.float32,
-                ),
-                torch.ones(
-                    actual_num_steps,
-                    action_token_size,
-                    1,
-                    device=device,
-                    dtype=torch.float32,
-                ),
-            ],
-            dim=1,
+        metadata = create_embedding_metadata(
+            observation_embeddings=concat_observation_embeddings,
+            action_embeddings=action_embedding,
         )
         # (T, S)
         action_tokens = torch.cat(
             [
                 torch.zeros(
-                    actual_num_steps,
-                    observation_token_size,
+                    (actual_num_steps, observation_token_size),
                     device=device,
                     dtype=torch.int32,
                 ),
@@ -228,11 +258,11 @@ class GatoTokenSlicer:
         embed_size = concat_embeddings.shape[2]
         flatten_embeddings = concat_embeddings.view(-1, embed_size)
         # (T, S) -> (T * S)
-        flatten_observation_positions = observation_positions.view(-1)
+        flatten_observation_positions = metadata.observation_positions.view(-1)
         flatten_action_tokens = action_tokens.view(-1)
         # (T, S, 1) -> (T * S, 1)
-        flatten_observation_masks = observation_masks.view(-1, 1)
-        flatten_action_masks = action_masks.view(-1, 1)
+        flatten_observation_masks = metadata.observation_masks.view(-1, 1)
+        flatten_action_masks = metadata.action_masks.view(-1, 1)
 
         masks = torch.ones_like(flatten_observation_masks)
 
@@ -240,7 +270,7 @@ class GatoTokenSlicer:
         pad_size = token_size - actual_num_steps * episode.one_step_block_size
 
         if pad_size == 0:
-            return GatoEmbeddingSequence(
+            return GatoTrainingInputEmbedding(
                 embeddings=flatten_embeddings,
                 observation_positions=flatten_observation_positions,
                 observation_masks=flatten_observation_masks,
@@ -249,7 +279,7 @@ class GatoTokenSlicer:
                 masks=masks,
             )
 
-        return GatoEmbeddingSequence(
+        return GatoTrainingInputEmbedding(
             embeddings=torch_batch_pad_array(flatten_embeddings, pad_size),
             observation_positions=torch_batch_pad_array(
                 flatten_observation_positions, pad_size
@@ -276,7 +306,7 @@ class GatoEmbeddingMiniBatch:
 
     @classmethod
     def from_sequences(
-        cls, sequences: Sequence[GatoEmbeddingSequence]
+        cls, sequences: Sequence[GatoTrainingInputEmbedding]
     ) -> "GatoEmbeddingMiniBatch":
         embeddings = torch.stack(
             [embedding.embeddings for embedding in sequences], dim=0
@@ -343,7 +373,9 @@ class GatoReplayBuffer:
         self._episodes.append(episode)
         self._episodes_per_task[episode.task_id].append(episode)
 
-    def sample_embedding_sequence(self, length: int) -> GatoEmbeddingSequence:
+    def sample_embedding_sequence(
+        self, length: int
+    ) -> GatoTrainingInputEmbedding:
         episode = self._episodes[int(np.random.randint(len(self._episodes)))]
         end_step = int(np.random.randint(episode.size()))
         return self._token_slicer(

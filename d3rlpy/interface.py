@@ -5,7 +5,11 @@ from typing_extensions import Protocol
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from .types import NDArray, Observation
 
-__all__ = ["QLearningAlgoProtocol", "StatefulTransformerAlgoProtocol"]
+__all__ = [
+    "QLearningAlgoProtocol",
+    "StatefulTransformerAlgoProtocol",
+    "StatefulGatoAlgoProtocol",
+]
 
 
 class QLearningAlgoProtocol(Protocol):
@@ -41,6 +45,14 @@ class QLearningAlgoProtocol(Protocol):
 
 class StatefulTransformerAlgoProtocol(Protocol):
     def predict(self, x: Observation, reward: float) -> Union[NDArray, int]:
+        ...
+
+    def reset(self) -> None:
+        ...
+
+
+class StatefulGatoAlgoProtocol(Protocol):
+    def predict(self, x: Observation) -> Union[NDArray, int]:
         ...
 
     def reset(self) -> None:

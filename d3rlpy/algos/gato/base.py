@@ -1,9 +1,19 @@
 import dataclasses
 from abc import abstractmethod
-from collections import defaultdict
-from typing import Callable, Dict, Generic, Optional, Sequence, TypeVar
+from collections import defaultdict, deque
+from typing import (
+    Callable,
+    Deque,
+    Dict,
+    Generic,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
+import torch
 from tqdm.auto import tqdm
 from typing_extensions import Self
 
@@ -15,12 +25,15 @@ from ...logging import (
     FileAdapterFactory,
     LoggerAdapterFactory,
 )
+from ...metrics import evaluate_gato_with_environment
 from ...models import EmbeddingModuleFactory, TokenEmbeddingFactory
 from ...models.torch import TokenEmbedding
 from ...serializable_config import generate_dict_config_field
-from ...torch_utility import train_api
+from ...torch_utility import eval_api, train_api
+from ...types import GymEnv, NDArray, Observation
 from .dataset import (
     GatoEmbeddingMiniBatch,
+    GatoInputEmbedding,
     GatoReplayBuffer,
     ReplayBufferWithEmbeddingKeys,
 )
@@ -28,11 +41,21 @@ from .dataset import (
 __all__ = [
     "GatoAlgoImplBase",
     "GatoBaseConfig",
+    "StatefulGatoWrapper",
     "GatoAlgoBase",
+    "GatoEnvironmentEvaluator",
 ]
 
 
 class GatoAlgoImplBase(ImplBase):
+    @eval_api
+    def predict(self, inpt: GatoInputEmbedding) -> int:
+        return self.inner_predict(inpt)
+
+    @abstractmethod
+    def inner_predict(self, inpt: GatoInputEmbedding) -> int:
+        pass
+
     @train_api
     def update(
         self, batch: GatoEmbeddingMiniBatch, grad_step: int
@@ -66,6 +89,170 @@ TGatoImpl = TypeVar("TGatoImpl", bound=GatoAlgoImplBase)
 TGatoConfig = TypeVar("TGatoConfig", bound=GatoBaseConfig)
 
 
+class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
+    r"""A stateful wrapper for inference of Gato-based algorithms."""
+    _algo: "GatoAlgoBase[TGatoImpl, TGatoConfig]"
+    _embeddings: Deque[torch.Tensor]
+    _observation_positions: Deque[int]
+    _observation_masks: Deque[int]
+    _action_masks: Deque[int]
+    _observation_to_embedding_keys: Union[str, Sequence[str]]
+    _action_embedding_key: str
+    _action_token_size: int
+    _return_integer: bool
+
+    def __init__(
+        self,
+        algo: "GatoAlgoBase[TGatoImpl, TGatoConfig]",
+        observation_to_embedding_keys: Union[str, Sequence[str]],
+        action_embedding_key: str,
+        action_token_size: int,
+        return_integer: bool,
+    ):
+        assert algo.impl, "algo must be built."
+        self._algo = algo
+        self._observation_to_embedding_keys = observation_to_embedding_keys
+        self._action_embedding_key = action_embedding_key
+        self._action_token_size = action_token_size
+        self._return_integer = return_integer
+        context_size = algo.config.context_size
+        self._embeddings = deque([], maxlen=context_size)
+        self._observation_positions = deque([], maxlen=context_size)
+        self._observation_masks = deque([], maxlen=context_size)
+        self._action_masks = deque([], maxlen=context_size)
+
+    def predict(self, x: Observation) -> Union[NDArray, int]:
+        r"""Returns action.
+
+        Args:
+            x: Observation.
+            reward: Last reward.
+
+        Returns:
+            Action.
+        """
+        assert self._algo.impl
+        token_embeddings = self._algo.impl.token_embeddings
+
+        if isinstance(x, np.ndarray):
+            assert isinstance(self._observation_to_embedding_keys, str)
+            token_embedding = token_embeddings[
+                self._observation_to_embedding_keys
+            ]
+            embedding = token_embedding(np.expand_dims(x, axis=0))[0]
+            for i in range(embedding.shape[0]):
+                self._embeddings.append(embedding[i])
+                self._observation_positions.append(i)
+                self._observation_masks.append(1)
+                self._action_masks.append(0)
+        else:
+            assert isinstance(
+                self._observation_to_embedding_keys, (list, tuple)
+            )
+            observation_position = 0
+            for key, obs in zip(self._observation_to_embedding_keys, x):
+                token_embedding = token_embeddings[key]
+                embedding = token_embedding(np.expand_dims(obs, axis=0))[0]
+                for i in range(embedding.shape[0]):
+                    self._embeddings.append(embedding[i])
+                    self._observation_positions.append(observation_position)
+                    self._observation_masks.append(1)
+                    self._action_masks.append(0)
+                    observation_position += 1
+
+        action_token_embedding = token_embeddings[self._action_embedding_key]
+        action_values = []
+        for i in range(self._action_token_size):
+            inpt = GatoInputEmbedding(
+                embeddings=torch.stack(list(self._embeddings), dim=0),
+                observation_positions=torch.tensor(
+                    list(self._observation_positions),
+                    dtype=torch.int32,
+                    device=self._algo.impl.device,
+                ),
+                observation_masks=torch.tensor(
+                    list(self._observation_masks),
+                    dtype=torch.float32,
+                    device=self._algo.impl.device,
+                ).unsqueeze(dim=1),
+                action_masks=torch.tensor(
+                    list(self._action_masks),
+                    dtype=torch.float32,
+                    device=self._algo.impl.device,
+                ).unsqueeze(dim=1),
+            )
+            action_token = self._algo.impl.predict(inpt)
+            action_value = action_token_embedding.decode(
+                np.array([[action_token]])
+            )
+            action_values.append(action_value[0][0])
+            # append action embedding
+            action_embedding = action_token_embedding(action_value)[0][0]
+            self._embeddings.append(action_embedding)
+            self._observation_positions.append(0)
+            self._observation_masks.append(0)
+            self._action_masks.append(1)
+
+        ret: Union[NDArray, int]
+        if self._return_integer:
+            assert self._action_token_size == 1
+            ret = int(action_values[0])
+        else:
+            ret = np.array(action_values, dtype=np.float32)
+
+        return ret
+
+    def reset(self) -> None:
+        """Clears stateful information."""
+        self._embeddings.clear()
+        self._observation_positions.clear()
+        self._observation_masks.clear()
+        self._action_masks.clear()
+
+
+class GatoEnvironmentEvaluator:
+    _env: GymEnv
+    _return_integer: bool
+    _observation_to_embedding_keys: Union[str, Sequence[str]]
+    _action_embedding_key: str
+    _action_token_size: int
+    _n_trials: int
+
+    def __init__(
+        self,
+        env: GymEnv,
+        return_integer: bool,
+        observation_to_embedding_keys: Union[str, Sequence[str]],
+        action_embedding_key: str,
+        n_trials: int = 10,
+    ):
+        self._env = env
+        self._return_integer = return_integer
+        self._observation_to_embedding_keys = observation_to_embedding_keys
+        self._action_embedding = action_embedding_key
+        if return_integer:
+            self._action_token_size = 1
+        else:
+            self._action_token_size = env.action_space.shape[0]  # type: ignore
+        self._n_trials = n_trials
+
+    def __call__(
+        self, algo: "GatoAlgoBase[GatoAlgoImplBase, GatoBaseConfig]"
+    ) -> float:
+        wrapper = StatefulGatoWrapper(
+            algo=algo,
+            observation_to_embedding_keys=self._observation_to_embedding_keys,
+            action_embedding_key=self._action_embedding,
+            return_integer=self._return_integer,
+            action_token_size=self._action_token_size,
+        )
+        return evaluate_gato_with_environment(
+            algo=wrapper,
+            env=self._env,
+            n_trials=self._n_trials,
+        )
+
+
 class GatoAlgoBase(
     Generic[TGatoImpl, TGatoConfig],
     LearnableBase[TGatoImpl, TGatoConfig],
@@ -80,6 +267,7 @@ class GatoAlgoBase(
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
         save_interval: int = 1,
+        evaluators: Optional[Dict[str, GatoEnvironmentEvaluator]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
         enable_ddp: bool = False,
     ) -> None:
@@ -174,6 +362,11 @@ class GatoAlgoBase(
                 # call callback if given
                 if callback:
                     callback(self, epoch, total_step)
+
+            if evaluators:
+                for name, evaluator in evaluators.items():
+                    eval_score = evaluator(self)  # type: ignore
+                    logger.add_metric(name, eval_score)
 
             # save metrics
             logger.commit(epoch, total_step)

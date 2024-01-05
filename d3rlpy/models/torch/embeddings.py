@@ -16,6 +16,9 @@ class TokenEmbedding(nn.Module):  # type: ignore
     def get_tokens(self, x: NDArray) -> Int32NDArray:
         raise NotImplementedError
 
+    def decode(self, x: Int32NDArray) -> NDArray:
+        raise NotImplementedError
+
 
 class TokenEmbeddingWithTokenizer(TokenEmbedding):
     _embed: nn.Embedding
@@ -40,3 +43,6 @@ class TokenEmbeddingWithTokenizer(TokenEmbedding):
 
     def get_tokens(self, x: NDArray) -> Int32NDArray:
         return self._tokenizer(x)
+
+    def decode(self, x: Int32NDArray) -> NDArray:
+        return self._tokenizer.decode(x)

@@ -1,6 +1,7 @@
 import dataclasses
 from typing import Dict
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -9,7 +10,7 @@ from torch.optim import Optimizer
 from ....models.torch import GatoTransformer, TokenEmbedding
 from ....torch_utility import Modules
 from ..base import GatoAlgoImplBase
-from ..dataset import GatoEmbeddingMiniBatch
+from ..dataset import GatoEmbeddingMiniBatch, GatoInputEmbedding
 
 __all__ = ["GatoModules", "GatoImpl"]
 
@@ -39,16 +40,22 @@ class GatoImpl(GatoAlgoImplBase):
         )
         self._token_embeddings = token_embeddings
 
+    def inner_predict(self, inpt: GatoInputEmbedding) -> int:
+        _, logits = self._modules.transformer(
+            torch.unsqueeze(inpt.embeddings, dim=0),
+            torch.unsqueeze(inpt.observation_masks, dim=0),
+            torch.unsqueeze(inpt.observation_positions, dim=0),
+            torch.unsqueeze(inpt.action_masks, dim=0),
+        )
+        return int(np.argmax(logits[0][-1].cpu().detach().numpy()))
+
     def inner_update(
         self, batch: GatoEmbeddingMiniBatch, grad_step: int
     ) -> Dict[str, float]:
         self._modules.optim.zero_grad()
-
         loss = self.compute_loss(batch)
-
         loss.backward()
         self._modules.optim.step()
-
         return {"loss": float(loss.cpu().detach().numpy())}
 
     def compute_loss(self, batch: GatoEmbeddingMiniBatch) -> torch.Tensor:

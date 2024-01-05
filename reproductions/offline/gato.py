@@ -15,7 +15,7 @@ def main() -> None:
         replay_buffer=dataset,
         observation_to_embedding_keys="normalized_float",
         action_embedding_key="float",
-        task_id="hopper",
+        task_id="main",
     )
 
     # fix seed
@@ -58,6 +58,14 @@ def main() -> None:
         n_steps=100000,
         n_steps_per_epoch=1000,
         save_interval=10,
+        evaluators={
+            "environment": d3rlpy.algos.GatoEnvironmentEvaluator(
+                env=env,
+                return_integer=False,
+                observation_to_embedding_keys="normalized_float",
+                action_embedding_key="float",
+            )
+        },
         experiment_name=f"Gato_{args.dataset}_{args.seed}",
     )
 
