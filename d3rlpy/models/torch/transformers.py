@@ -445,7 +445,7 @@ class GatoTransformer(nn.Module):  # type: ignore
         self,
         layer_width: int,
         max_observation_length: int,
-        vocab_size: int,
+        action_vocab_size: int,
         num_heads: int,
         context_size: int,
         num_layers: int,
@@ -467,9 +467,7 @@ class GatoTransformer(nn.Module):  # type: ignore
             embed_dropout=embed_dropout,
             activation=GEGLU(),
         )
-        self._output = nn.Linear(layer_width, vocab_size, bias=False)
-        # +1 for separator token
-        self._token_embed = nn.Embedding(vocab_size + 1, layer_width)
+        self._output = nn.Linear(layer_width, action_vocab_size, bias=False)
         self._observation_pos_embed = nn.Embedding(
             max_observation_length, layer_width
         )
@@ -481,20 +479,17 @@ class GatoTransformer(nn.Module):  # type: ignore
 
     def forward(
         self,
-        tokens: torch.Tensor,
+        embeddings: torch.Tensor,
         observation_masks: torch.Tensor,
         observation_positions: torch.Tensor,
         action_masks: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # TODO: Support text and patch tokens
-        assert tokens.ndim == 2
-        batch_size, context_size = tokens.shape
+        assert embeddings.ndim == 3
+        batch_size, context_size, _ = embeddings.shape
         assert observation_masks.shape == (batch_size, context_size, 1)
         assert observation_positions.shape == (batch_size, context_size)
         assert action_masks.shape == (batch_size, context_size, 1)
-
-        # (B, T, N)
-        embeddings = self._embed_activation(self._token_embed(tokens))
 
         # add local observation embedding
         embeddings = (

@@ -42,6 +42,7 @@ class ActionSpace(Enum):
     CONTINUOUS = 1
     DISCRETE = 2
     BOTH = 3
+    TOKEN = 4
 
 
 class PositionEncodingType(Enum):

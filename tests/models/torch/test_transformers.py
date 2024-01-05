@@ -304,7 +304,7 @@ def test_discrete_decision_transformer(
 
 @pytest.mark.parametrize("layer_width", [100])
 @pytest.mark.parametrize("max_observation_length", [10])
-@pytest.mark.parametrize("vocab_size", [64])
+@pytest.mark.parametrize("action_vocab_size", [64])
 @pytest.mark.parametrize("num_heads", [2])
 @pytest.mark.parametrize("num_layers", [3])
 @pytest.mark.parametrize("context_size", [10])
@@ -313,7 +313,7 @@ def test_discrete_decision_transformer(
 def test_gato_transformer(
     layer_width: int,
     max_observation_length: int,
-    vocab_size: int,
+    action_vocab_size: int,
     num_heads: int,
     num_layers: int,
     context_size: int,
@@ -323,7 +323,7 @@ def test_gato_transformer(
     model = GatoTransformer(
         layer_width=layer_width,
         max_observation_length=max_observation_length,
-        vocab_size=vocab_size,
+        action_vocab_size=action_vocab_size,
         num_heads=num_heads,
         num_layers=num_layers,
         context_size=context_size,
@@ -334,7 +334,7 @@ def test_gato_transformer(
     )
 
     tokens = torch.randint(
-        low=0, high=vocab_size + 1, size=(batch_size, context_size)
+        low=0, high=action_vocab_size + 1, size=(batch_size, context_size)
     )
     observation_masks = torch.randint(
         low=0, high=2, size=(batch_size, context_size, 1), dtype=torch.float32
@@ -351,8 +351,8 @@ def test_gato_transformer(
     )
 
     # check shape
-    assert probs.shape == (batch_size, context_size, vocab_size)
-    assert logits.shape == (batch_size, context_size, vocab_size)
+    assert probs.shape == (batch_size, context_size, action_vocab_size)
+    assert logits.shape == (batch_size, context_size, action_vocab_size)
 
     # check layer connections
     check_parameter_updates(

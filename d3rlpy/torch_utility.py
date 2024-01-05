@@ -39,6 +39,7 @@ __all__ = [
     "get_device",
     "get_batch_size",
     "expand_and_repeat_recursively",
+    "torch_batch_pad_array",
     "flatten_left_recursively",
     "eval_api",
     "train_api",
@@ -154,6 +155,14 @@ def expand_and_repeat_recursively(
         return reshaped_x.expand(x.shape[0], n, *x.shape[1:])
     else:
         return [expand_and_repeat_recursively(_x, n) for _x in x]
+
+
+def torch_batch_pad_array(array: torch.Tensor, pad_size: int) -> torch.Tensor:
+    shape = array.shape[1:]
+    padding = torch.zeros(
+        (pad_size, *shape), device=array.device, dtype=array.dtype
+    )
+    return torch.cat([padding, array], dim=0)
 
 
 @dataclasses.dataclass(frozen=True)

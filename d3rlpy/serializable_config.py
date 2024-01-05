@@ -25,6 +25,7 @@ __all__ = [
     "make_numpy_field",
     "make_optional_numpy_field",
     "generate_list_config_field",
+    "generate_dict_config_field",
 ]
 
 
@@ -205,6 +206,39 @@ def generate_list_config_field(
         return dataclasses.field(
             metadata=config(encoder=_encoder, decoder=_decoder),
             default_factory=list,
+        )
+
+    return make_field
+
+
+def generate_dict_config_field(
+    base_cls: Type[TDynamicConfig],
+) -> Callable[[], Dict[str, TDynamicConfig]]:
+    assert base_cls in CONFIG_STORAGE
+
+    config_metadata = CONFIG_STORAGE[base_cls]
+
+    def _encoder(
+        orig_config: Dict[str, TDynamicConfig],
+    ) -> Dict[str, Dict[str, Any]]:
+        return {
+            key: config_metadata.encoder(config)
+            for key, config in orig_config.items()
+        }
+
+    def _decoder(
+        dict_config: Dict[str, Dict[str, Any]]
+    ) -> Dict[str, TDynamicConfig]:
+        configs = {
+            key: config_metadata.decoder(config)
+            for key, config in dict_config.items()
+        }
+        return configs  # type: ignore
+
+    def make_field() -> Dict[str, TDynamicConfig]:
+        return dataclasses.field(
+            metadata=config(encoder=_encoder, decoder=_decoder),
+            default_factory=dict,
         )
 
     return make_field

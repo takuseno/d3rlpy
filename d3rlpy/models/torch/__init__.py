@@ -1,4 +1,5 @@
 from .distributions import *
+from .embeddings import *
 from .encoders import *
 from .imitators import *
 from .parameters import *

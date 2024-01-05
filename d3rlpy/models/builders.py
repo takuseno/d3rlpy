@@ -16,6 +16,7 @@ from .torch import (
     DeterministicResidualPolicy,
     DiscreteDecisionTransformer,
     DiscreteEnsembleQFunctionForwarder,
+    GatoTransformer,
     GlobalPositionEncoding,
     NormalPolicy,
     Parameter,
@@ -40,6 +41,7 @@ __all__ = [
     "create_parameter",
     "create_continuous_decision_transformer",
     "create_discrete_decision_transformer",
+    "create_gato_transformer",
 ]
 
 
@@ -351,6 +353,35 @@ def create_discrete_decision_transformer(
         resid_dropout=resid_dropout,
         embed_dropout=embed_dropout,
         activation=create_activation(activation_type),
+        embed_activation=create_activation(embed_activation_type),
+    )
+    transformer.to(device)
+    return transformer
+
+
+def create_gato_transformer(
+    layer_width: int,
+    max_observation_length: int,
+    action_vocab_size: int,
+    num_heads: int,
+    num_layers: int,
+    context_size: int,
+    attn_dropout: float,
+    resid_dropout: float,
+    embed_dropout: float,
+    embed_activation_type: str,
+    device: str,
+) -> GatoTransformer:
+    transformer = GatoTransformer(
+        layer_width=layer_width,
+        max_observation_length=max_observation_length,
+        action_vocab_size=action_vocab_size,
+        num_heads=num_heads,
+        context_size=context_size,
+        num_layers=num_layers,
+        attn_dropout=attn_dropout,
+        resid_dropout=resid_dropout,
+        embed_dropout=embed_dropout,
         embed_activation=create_activation(embed_activation_type),
     )
     transformer.to(device)
