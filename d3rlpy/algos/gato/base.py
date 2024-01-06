@@ -100,6 +100,7 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
     _action_embedding_key: str
     _action_token_size: int
     _return_integer: bool
+    _context_size: int
 
     def __init__(
         self,
@@ -115,18 +116,17 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
         self._action_embedding_key = action_embedding_key
         self._action_token_size = action_token_size
         self._return_integer = return_integer
-        context_size = algo.config.context_size
-        self._embeddings = deque([], maxlen=context_size)
-        self._observation_positions = deque([], maxlen=context_size)
-        self._observation_masks = deque([], maxlen=context_size)
-        self._action_masks = deque([], maxlen=context_size)
+        self._context_size = algo.config.context_size
+        self._embeddings = deque([], maxlen=self._context_size)
+        self._observation_positions = deque([], maxlen=self._context_size)
+        self._observation_masks = deque([], maxlen=self._context_size)
+        self._action_masks = deque([], maxlen=self._context_size)
 
     def predict(self, x: Observation) -> Union[NDArray, int]:
         r"""Returns action.
 
         Args:
             x: Observation.
-            reward: Last reward.
 
         Returns:
             Action.
@@ -141,24 +141,18 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
             ]
             embedding = token_embedding(np.expand_dims(x, axis=0))[0]
             for i in range(embedding.shape[0]):
-                self._embeddings.append(embedding[i])
-                self._observation_positions.append(i)
-                self._observation_masks.append(1)
-                self._action_masks.append(0)
+                self._append_observation_embedding(embedding[i], i)
         else:
             assert isinstance(
                 self._observation_to_embedding_keys, (list, tuple)
             )
-            observation_position = 0
+            position = 0
             for key, obs in zip(self._observation_to_embedding_keys, x):
                 token_embedding = token_embeddings[key]
                 embedding = token_embedding(np.expand_dims(obs, axis=0))[0]
                 for i in range(embedding.shape[0]):
-                    self._embeddings.append(embedding[i])
-                    self._observation_positions.append(observation_position)
-                    self._observation_masks.append(1)
-                    self._action_masks.append(0)
-                    observation_position += 1
+                    self._append_observation_embedding(embedding[i], position)
+                    position += 1
 
         action_token_embedding = token_embeddings[self._action_embedding_key]
         action_values = []
@@ -186,12 +180,8 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
                 np.array([[action_token]])
             )
             action_values.append(action_value[0][0])
-            # append action embedding
             action_embedding = action_token_embedding(action_value)[0][0]
-            self._embeddings.append(action_embedding)
-            self._observation_positions.append(0)
-            self._observation_masks.append(0)
-            self._action_masks.append(1)
+            self._append_action_embedding(action_embedding)
 
         ret: Union[NDArray, int]
         if self._return_integer:
@@ -201,6 +191,27 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
             ret = np.array(action_values, dtype=np.float32)
 
         return ret
+
+    def _append_observation_embedding(
+        self, embedding: torch.Tensor, position: int
+    ) -> None:
+        if len(self._embeddings) == 0:
+            # fill history with paddings
+            for _ in range(self._context_size):
+                self._embeddings.append(torch.zeros_like(embedding))
+                self._observation_positions.append(0)
+                self._observation_masks.append(0)
+                self._action_masks.append(0)
+        self._embeddings.append(embedding)
+        self._observation_positions.append(position)
+        self._observation_masks.append(1)
+        self._action_masks.append(0)
+
+    def _append_action_embedding(self, embedding: torch.Tensor) -> None:
+        self._embeddings.append(embedding)
+        self._observation_positions.append(0)
+        self._observation_masks.append(0)
+        self._action_masks.append(1)
 
     def reset(self) -> None:
         """Clears stateful information."""

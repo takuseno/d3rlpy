@@ -45,12 +45,18 @@ def main() -> None:
         },
         layer_width=512,
         batch_size=128,
-        learning_rate=1e-4,
-        optim_factory=d3rlpy.models.AdamWFactory(weight_decay=1e-4),
+        clip_grad_norm=1.0,
+        initial_learning_rate=1e-7,
+        maximum_learning_rate=1e-4,
+        warmup_steps=15000,
+        final_steps=100000,
+        optim_factory=d3rlpy.models.AdamWFactory(
+            weight_decay=0.1, betas=(0.9, 0.95)
+        ),
         action_vocab_size=1024,
         context_size=256,
         num_heads=4,
-        num_layers=4,
+        num_layers=3,
     ).create(device=args.gpu)
 
     gato.fit(

@@ -16,7 +16,8 @@ __all__ = ["GatoConfig", "Gato"]
 @dataclasses.dataclass()
 class GatoConfig(GatoBaseConfig):
     optim_factory: OptimizerFactory = make_optimizer_field()
-    learning_rate: float = 1e-7
+    initial_learning_rate: float = 1e-7
+    maximum_learning_rate: float = 1e-4
     layer_width: int = 3072
     max_observation_length: int = 512
     action_vocab_size: int = 32
@@ -27,6 +28,9 @@ class GatoConfig(GatoBaseConfig):
     resid_dropout: float = 0.1
     embed_dropout: float = 0.1
     embed_activation_type: str = "tanh"
+    clip_grad_norm: float = 1.0
+    warmup_steps: int = 15000
+    final_steps: int = 1000000
 
     def create(self, device: DeviceArg = False) -> "Gato":
         return Gato(self, device)
@@ -73,7 +77,7 @@ class Gato(GatoAlgoBase[GatoImpl, GatoConfig]):
         optim = self._config.optim_factory.create(
             list(transformer.named_modules())
             + list(embedding_modules.named_modules()),
-            lr=self._config.learning_rate,
+            lr=self._config.initial_learning_rate,
         )
 
         modules = GatoModules(
@@ -85,6 +89,11 @@ class Gato(GatoAlgoBase[GatoImpl, GatoConfig]):
         self._impl = GatoImpl(
             modules=modules,
             token_embeddings=token_embeddings,
+            clip_grad_norm=self._config.clip_grad_norm,
+            warmup_steps=self._config.warmup_steps,
+            final_steps=self._config.final_steps,
+            initial_learning_rate=self._config.initial_learning_rate,
+            maximum_learning_rate=self._config.maximum_learning_rate,
             device=self._device,
         )
 
