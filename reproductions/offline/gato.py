@@ -57,6 +57,7 @@ def main() -> None:
         context_size=256,
         num_heads=4,
         num_layers=3,
+        embed_activation_type="tanh",
     ).create(device=args.gpu)
 
     gato.fit(

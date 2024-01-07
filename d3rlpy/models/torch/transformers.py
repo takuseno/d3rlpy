@@ -491,6 +491,8 @@ class GatoTransformer(nn.Module):  # type: ignore
         assert observation_positions.shape == (batch_size, context_size)
         assert action_masks.shape == (batch_size, context_size, 1)
 
+        embeddings = self._embed_activation(embeddings)
+
         # add local observation embedding
         embeddings = (
             embeddings
