@@ -6,6 +6,7 @@ from ...base import DeviceArg, register_learnable
 from ...constants import ActionSpace
 from ...models.builders import create_gato_transformer
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
+from ...models.torch import SeparatorTokenEmbedding
 from ...types import Shape
 from .base import GatoAlgoBase, GatoBaseConfig
 from .torch import GatoImpl, GatoModules
@@ -74,15 +75,22 @@ class Gato(GatoAlgoBase[GatoImpl, GatoConfig]):
             for key, factory in self._config.token_embeddings.items()
         }
 
+        # create separator token embedding
+        separator_token_embedding = SeparatorTokenEmbedding(
+            self._config.layer_width
+        )
+
         optim = self._config.optim_factory.create(
             list(transformer.named_modules())
-            + list(embedding_modules.named_modules()),
+            + list(embedding_modules.named_modules())
+            + list(separator_token_embedding.named_modules()),
             lr=self._config.initial_learning_rate,
         )
 
         modules = GatoModules(
             transformer=transformer,
             embedding_modules=embedding_modules,
+            separator_token_embedding=separator_token_embedding,
             optim=optim,
         )
 

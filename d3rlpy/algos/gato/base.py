@@ -27,7 +27,7 @@ from ...logging import (
 )
 from ...metrics import evaluate_gato_with_environment
 from ...models import EmbeddingModuleFactory, TokenEmbeddingFactory
-from ...models.torch import TokenEmbedding
+from ...models.torch import SeparatorTokenEmbedding, TokenEmbedding
 from ...serializable_config import generate_dict_config_field
 from ...torch_utility import eval_api, train_api
 from ...types import GymEnv, NDArray, Observation
@@ -71,6 +71,11 @@ class GatoAlgoImplBase(ImplBase):
     @property
     @abstractmethod
     def token_embeddings(self) -> Dict[str, TokenEmbedding]:
+        pass
+
+    @property
+    @abstractmethod
+    def separator_token_embedding(self) -> SeparatorTokenEmbedding:
         pass
 
 
@@ -154,6 +159,8 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
                     self._append_observation_embedding(embedding[i], position)
                     position += 1
 
+        self._append_separator_embedding()
+
         action_token_embedding = token_embeddings[self._action_embedding_key]
         action_values = []
         for i in range(self._action_token_size):
@@ -212,6 +219,13 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
         self._observation_positions.append(0)
         self._observation_masks.append(0)
         self._action_masks.append(1)
+
+    def _append_separator_embedding(self) -> None:
+        assert self._algo.impl
+        self._embeddings.append(self._algo.impl.separator_token_embedding.data)
+        self._observation_positions.append(0)
+        self._observation_masks.append(0)
+        self._action_masks.append(0)
 
     def reset(self) -> None:
         """Clears stateful information."""
@@ -325,7 +339,11 @@ class GatoAlgoBase(
             self._impl.wrap_models_by_ddp()
 
         # create GatoReplayBuffer
-        replay_buffer = GatoReplayBuffer(datasets, self._impl.token_embeddings)
+        replay_buffer = GatoReplayBuffer(
+            replay_buffers=datasets,
+            token_embeddings=self._impl.token_embeddings,
+            separator_token_embedding=self._impl.separator_token_embedding,
+        )
 
         # save hyperparameters
         save_config(self, logger)

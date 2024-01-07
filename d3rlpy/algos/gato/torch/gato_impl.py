@@ -8,7 +8,11 @@ import torch.nn.functional as F
 from torch import nn
 from torch.optim import Optimizer
 
-from ....models.torch import GatoTransformer, TokenEmbedding
+from ....models.torch import (
+    GatoTransformer,
+    SeparatorTokenEmbedding,
+    TokenEmbedding,
+)
 from ....torch_utility import Modules
 from ..base import GatoAlgoImplBase
 from ..dataset import GatoEmbeddingMiniBatch, GatoInputEmbedding
@@ -20,6 +24,7 @@ __all__ = ["GatoModules", "GatoImpl"]
 class GatoModules(Modules):
     transformer: GatoTransformer
     embedding_modules: nn.ModuleDict
+    separator_token_embedding: SeparatorTokenEmbedding
     optim: Optimizer
 
 
@@ -74,7 +79,8 @@ class GatoImpl(GatoAlgoImplBase):
 
         torch.nn.utils.clip_grad_norm_(
             list(self._modules.transformer.parameters())
-            + list(self._modules.embedding_modules.parameters()),
+            + list(self._modules.embedding_modules.parameters())
+            + list(self._modules.separator_token_embedding.parameters()),
             self._clip_grad_norm,
         )
 
@@ -118,3 +124,7 @@ class GatoImpl(GatoAlgoImplBase):
     @property
     def token_embeddings(self) -> Dict[str, TokenEmbedding]:
         return self._token_embeddings
+
+    @property
+    def separator_token_embedding(self) -> SeparatorTokenEmbedding:
+        return self._modules.separator_token_embedding

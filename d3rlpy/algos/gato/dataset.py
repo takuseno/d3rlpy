@@ -11,7 +11,7 @@ from ...dataset import (
     ReplayBufferBase,
     slice_observations,
 )
-from ...models.torch import TokenEmbedding
+from ...models.torch import SeparatorTokenEmbedding, TokenEmbedding
 from ...torch_utility import torch_batch_pad_array
 from ...types import NDArray, Observation
 
@@ -42,7 +42,7 @@ class GatoTokenEpisode(Episode):
         token_embeddings: Dict[str, TokenEmbedding],
         task_id: str,
     ) -> "GatoTokenEpisode":
-        block_size = 0
+        block_size = 1  # +1 for separator token
 
         observations: List[NDArray]
         if isinstance(observation_to_embedding_keys, str):
@@ -127,7 +127,7 @@ def create_embedding_metadata(
         [
             observation_positions,
             torch.zeros(
-                (num_steps, action_token_size),
+                (num_steps, action_token_size + 1),  # +1 for separator
                 device=device,
                 dtype=torch.int32,
             ),
@@ -143,7 +143,7 @@ def create_embedding_metadata(
                 dtype=torch.float32,
             ),
             torch.zeros(
-                (num_steps, action_token_size, 1),
+                (num_steps, action_token_size + 1, 1),  # +1 for separator
                 device=device,
                 dtype=torch.float32,
             ),
@@ -154,7 +154,7 @@ def create_embedding_metadata(
     action_masks = torch.cat(
         [
             torch.zeros(
-                (num_steps, observation_token_size, 1),
+                (num_steps, observation_token_size + 1, 1),  # +1 for separator
                 device=device,
                 dtype=torch.float32,
             ),
@@ -199,6 +199,7 @@ class GatoTokenSlicer:
         end_step: int,
         token_size: int,
         token_embeddings: Dict[str, TokenEmbedding],
+        separator_token_embedding: SeparatorTokenEmbedding,
     ) -> GatoTrainingInputEmbedding:
         num_steps = token_size // episode.one_step_block_size
         end_step = end_step + 1
@@ -230,11 +231,20 @@ class GatoTokenSlicer:
             dtype=torch.int32,
         )
 
+        # create separator token
+        # (T, 1, N)
+        separator_embeddings = separator_token_embedding(action_embedding)
+
         # concat observations and actions
         # S = total_obs_num_tokens + action_num_tokens
         # (T, S, N)
         concat_embeddings = torch.cat(
-            [concat_observation_embeddings, action_embedding], dim=1
+            [
+                concat_observation_embeddings,
+                separator_embeddings,
+                action_embedding,
+            ],
+            dim=1,
         )
         metadata = create_embedding_metadata(
             observation_embeddings=concat_observation_embeddings,
@@ -244,7 +254,10 @@ class GatoTokenSlicer:
         action_tokens = torch.cat(
             [
                 torch.zeros(
-                    (actual_num_steps, observation_token_size),
+                    (
+                        actual_num_steps,
+                        observation_token_size + 1,
+                    ),  # +1 for separator
                     device=device,
                     dtype=torch.int32,
                 ),
@@ -348,14 +361,17 @@ class GatoReplayBuffer:
     _episodes_per_task: DefaultDict[str, List[GatoTokenEpisode]]
     _token_slicer: GatoTokenSlicer
     _token_embeddings: Dict[str, TokenEmbedding]
+    _separator_token_embedding: SeparatorTokenEmbedding
 
     def __init__(
         self,
         replay_buffers: Sequence[ReplayBufferWithEmbeddingKeys],
         token_embeddings: Dict[str, TokenEmbedding],
+        separator_token_embedding: SeparatorTokenEmbedding,
     ):
         self._token_slicer = GatoTokenSlicer()
         self._token_embeddings = token_embeddings
+        self._separator_token_embedding = separator_token_embedding
         self._episodes = []
         self._episodes_per_task = defaultdict(list)
         for replay_buffer in replay_buffers:
@@ -383,6 +399,7 @@ class GatoReplayBuffer:
             end_step=end_step,
             token_size=length,
             token_embeddings=self._token_embeddings,
+            separator_token_embedding=self._separator_token_embedding,
         )
 
     def sample_embedding_mini_batch(

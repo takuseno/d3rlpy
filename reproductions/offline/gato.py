@@ -50,7 +50,7 @@ def main() -> None:
         maximum_learning_rate=1e-4,
         warmup_steps=15000,
         final_steps=100000,
-        optim_factory=d3rlpy.models.AdamWFactory(
+        optim_factory=d3rlpy.models.GPTAdamWFactory(
             weight_decay=0.1, betas=(0.9, 0.95)
         ),
         action_vocab_size=1024,
