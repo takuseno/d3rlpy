@@ -79,6 +79,7 @@ class Gato(GatoAlgoBase[GatoImpl, GatoConfig]):
         separator_token_embedding = SeparatorTokenEmbedding(
             self._config.layer_width
         )
+        separator_token_embedding.to(self._device)
 
         optim = self._config.optim_factory.create(
             list(transformer.named_modules())
