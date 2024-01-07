@@ -1,4 +1,5 @@
 import dataclasses
+import math
 from abc import abstractmethod
 from collections import defaultdict, deque
 from typing import (
@@ -19,6 +20,7 @@ from typing_extensions import Self
 
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
 from ...constants import IMPL_NOT_INITIALIZED_ERROR
+from ...dataset import EpisodeBase
 from ...logging import (
     LOG,
     D3RLPyLogger,
@@ -35,6 +37,8 @@ from .dataset import (
     GatoEmbeddingMiniBatch,
     GatoInputEmbedding,
     GatoReplayBuffer,
+    GatoTokenEpisode,
+    GatoTokenSlicer,
     ReplayBufferWithEmbeddingKeys,
 )
 
@@ -106,6 +110,7 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
     _action_token_size: int
     _return_integer: bool
     _context_size: int
+    _demonstration: Optional[GatoTokenEpisode]
 
     def __init__(
         self,
@@ -114,6 +119,7 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
         action_embedding_key: str,
         action_token_size: int,
         return_integer: bool,
+        demonstration: Optional[EpisodeBase] = None,
     ):
         assert algo.impl, "algo must be built."
         self._algo = algo
@@ -126,6 +132,16 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
         self._observation_positions = deque([], maxlen=self._context_size)
         self._observation_masks = deque([], maxlen=self._context_size)
         self._action_masks = deque([], maxlen=self._context_size)
+        if demonstration:
+            self._demonstration = GatoTokenEpisode.from_episode(
+                episode=demonstration,
+                observation_to_embedding_keys=observation_to_embedding_keys,
+                action_embedding_key=action_embedding_key,
+                token_embeddings=algo.impl.token_embeddings,
+                task_id="demonstration",
+            )
+        else:
+            self._demonstration = None
 
     def predict(self, x: Observation) -> Union[NDArray, int]:
         r"""Returns action.
@@ -203,12 +219,10 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
         self, embedding: torch.Tensor, position: int
     ) -> None:
         if len(self._embeddings) == 0:
-            # fill history with paddings
-            for _ in range(self._context_size):
-                self._embeddings.append(torch.zeros_like(embedding))
-                self._observation_positions.append(0)
-                self._observation_masks.append(0)
-                self._action_masks.append(0)
+            if self._demonstration:
+                self._fill_with_demonstration()
+            else:
+                self._fill_with_padding(embedding)
         self._embeddings.append(embedding)
         self._observation_positions.append(position)
         self._observation_masks.append(1)
@@ -227,6 +241,34 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
         self._observation_masks.append(0)
         self._action_masks.append(0)
 
+    def _fill_with_padding(self, embedding: torch.Tensor) -> None:
+        for _ in range(self._context_size):
+            self._embeddings.append(torch.zeros_like(embedding))
+            self._observation_positions.append(0)
+            self._observation_masks.append(0)
+            self._action_masks.append(0)
+
+    def _fill_with_demonstration(self) -> None:
+        assert self._demonstration
+        assert self._algo.impl
+        end_step = math.ceil(
+            self._context_size / self._demonstration.one_step_block_size
+        )
+        inpt = GatoTokenSlicer()(
+            episode=self._demonstration,
+            end_step=end_step,
+            token_size=self._context_size,
+            token_embeddings=self._algo.impl.token_embeddings,
+            separator_token_embedding=self._algo.impl.separator_token_embedding,
+        )
+        for i in range(self._context_size):
+            self._embeddings.append(inpt.embeddings[i])
+            self._observation_positions.append(
+                int(inpt.observation_positions[0])
+            )
+            self._observation_masks.append(int(inpt.observation_masks[0][0]))
+            self._action_masks.append(int(inpt.action_masks[0][0]))
+
     def reset(self) -> None:
         """Clears stateful information."""
         self._embeddings.clear()
@@ -242,6 +284,7 @@ class GatoEnvironmentEvaluator:
     _action_embedding_key: str
     _action_token_size: int
     _n_trials: int
+    _demonstration: Optional[EpisodeBase]
 
     def __init__(
         self,
@@ -250,6 +293,7 @@ class GatoEnvironmentEvaluator:
         observation_to_embedding_keys: Union[str, Sequence[str]],
         action_embedding_key: str,
         n_trials: int = 10,
+        demonstration: Optional[EpisodeBase] = None,
     ):
         self._env = env
         self._return_integer = return_integer
@@ -260,6 +304,7 @@ class GatoEnvironmentEvaluator:
         else:
             self._action_token_size = env.action_space.shape[0]  # type: ignore
         self._n_trials = n_trials
+        self._demonstration = demonstration
 
     def __call__(
         self, algo: "GatoAlgoBase[GatoAlgoImplBase, GatoBaseConfig]"
@@ -270,6 +315,7 @@ class GatoEnvironmentEvaluator:
             action_embedding_key=self._action_embedding,
             return_integer=self._return_integer,
             action_token_size=self._action_token_size,
+            demonstration=self._demonstration,
         )
         return evaluate_gato_with_environment(
             algo=wrapper,
