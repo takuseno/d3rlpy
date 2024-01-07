@@ -1,26 +1,40 @@
 import argparse
+import dataclasses
+from typing import Any
+
+import gym
 
 import d3rlpy
 
 
+@dataclasses.dataclass(frozen=True)
+class Task:
+    env: gym.Env[Any, Any]
+    dataset: d3rlpy.algos.ReplayBufferWithEmbeddingKeys
+    demonstration: d3rlpy.dataset.EpisodeBase
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="hopper-medium-v0")
-    parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--gpu", type=int)
     args = parser.parse_args()
 
-    dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
-    dataset_with_keys = d3rlpy.algos.ReplayBufferWithEmbeddingKeys(
-        replay_buffer=dataset,
-        observation_to_embedding_keys="normalized_float",
-        action_embedding_key="float",
-        task_id="main",
-    )
-
-    # fix seed
-    d3rlpy.seed(args.seed)
-    d3rlpy.envs.seed_env(env, args.seed)
+    task_names = ["hopper", "walker2d", "halfcheetah"]
+    tasks = {}
+    for name in task_names:
+        dataset, env = d3rlpy.datasets.get_dataset(f"{name}-expert-v2")
+        dataset_with_keys = d3rlpy.algos.ReplayBufferWithEmbeddingKeys(
+            replay_buffer=dataset,
+            observation_to_embedding_keys="normalized_float",
+            action_embedding_key="float",
+            task_id=name,
+        )
+        task = Task(
+            env=env,
+            dataset=dataset_with_keys,
+            demonstration=dataset.episodes[0],
+        )
+        tasks[name] = task
 
     gato = d3rlpy.algos.GatoConfig(
         embedding_modules={
@@ -49,7 +63,7 @@ def main() -> None:
         initial_learning_rate=1e-7,
         maximum_learning_rate=1e-4,
         warmup_steps=15000,
-        final_steps=100000,
+        final_steps=1000000,
         optim_factory=d3rlpy.models.GPTAdamWFactory(
             weight_decay=0.1, betas=(0.9, 0.95)
         ),
@@ -61,19 +75,20 @@ def main() -> None:
     ).create(device=args.gpu)
 
     gato.fit(
-        [dataset_with_keys],
-        n_steps=100000,
+        [task.dataset for task in tasks.values()],
+        n_steps=1000000,
         n_steps_per_epoch=1000,
         save_interval=10,
         evaluators={
-            "environment": d3rlpy.algos.GatoEnvironmentEvaluator(
-                env=env,
+            name: d3rlpy.algos.GatoEnvironmentEvaluator(
+                env=task.env,
                 return_integer=False,
                 observation_to_embedding_keys="normalized_float",
                 action_embedding_key="float",
+                demonstration=task.demonstration,
             )
+            for name, task in tasks.items()
         },
-        experiment_name=f"Gato_{args.dataset}_{args.seed}",
     )
 
 
