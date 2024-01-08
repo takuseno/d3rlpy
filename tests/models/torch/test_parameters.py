@@ -11,5 +11,5 @@ def test_parameter(shape: Sequence[int]) -> None:
     data = torch.rand(shape)
     parameter = Parameter(data)
 
-    assert parameter().shape == shape
-    assert torch.all(parameter() == data)
+    assert parameter.data.shape == shape
+    assert torch.all(parameter.data == data)

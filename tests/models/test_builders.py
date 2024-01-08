@@ -259,7 +259,7 @@ def test_create_parameter(shape: Sequence[int]) -> None:
     parameter = create_parameter(shape, x, device="cpu:0")
 
     assert len(list(parameter.parameters())) == 1
-    assert np.allclose(parameter().detach().numpy(), x)
+    assert np.allclose(parameter.data.detach().numpy(), x)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])

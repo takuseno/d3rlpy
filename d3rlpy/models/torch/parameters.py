@@ -1,3 +1,5 @@
+from typing import NoReturn
+
 import torch
 from torch import nn
 
@@ -11,11 +13,19 @@ class Parameter(nn.Module):  # type: ignore
         super().__init__()
         self._parameter = nn.Parameter(data)
 
-    def forward(self) -> torch.Tensor:
-        return self._parameter
+    def forward(self) -> NoReturn:
+        raise NotImplementedError(
+            "Parameter does not support __call__. Use parameter property instead."
+        )
 
-    def __call__(self) -> torch.Tensor:
-        return super().__call__()
+    def __call__(self) -> NoReturn:
+        raise NotImplementedError(
+            "Parameter does not support __call__. Use parameter property instead."
+        )
+
+    @property
+    def parameter(self) -> nn.Parameter:
+        return self._parameter
 
     @property
     def data(self) -> torch.Tensor:

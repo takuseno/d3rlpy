@@ -194,7 +194,7 @@ class GlobalPositionEncoding(PositionEncoding):
         )
         # (1, Tmax, N) -> (B, Tmax, N)
         batched_global_embedding = torch.repeat_interleave(
-            self._global_position_embedding(),
+            self._global_position_embedding.parameter,
             batch_size,
             dim=0,
         )
@@ -202,7 +202,9 @@ class GlobalPositionEncoding(PositionEncoding):
         global_embedding = torch.gather(batched_global_embedding, 1, last_t)
 
         # (1, 3 * Cmax, N) -> (1, T, N)
-        block_embedding = self._block_position_embedding()[:, :context_size, :]
+        block_embedding = self._block_position_embedding.parameter[
+            :, :context_size, :
+        ]
 
         # (B, 1, N) + (1, T, N) -> (B, T, N)
         return global_embedding + block_embedding
@@ -504,7 +506,9 @@ class GatoTransformer(nn.Module):  # type: ignore
         )
 
         # add action embedding
-        embeddings = embeddings + action_masks * self._action_pos_embed()
+        embeddings = (
+            embeddings + action_masks * self._action_pos_embed.parameter
+        )
 
         # (B, T, N) -> (B, T, N)
         h = self._gpt2(embeddings)

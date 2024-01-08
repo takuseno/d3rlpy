@@ -86,7 +86,7 @@ class CQLImpl(SACImpl):
         return CQLCriticLoss(
             critic_loss=loss.critic_loss + conservative_loss,
             conservative_loss=conservative_loss,
-            alpha=self._modules.log_alpha().exp(),
+            alpha=self._modules.log_alpha.parameter.exp(),
         )
 
     def update_alpha(self, conservative_loss: torch.Tensor) -> None:
@@ -187,7 +187,9 @@ class CQLImpl(SACImpl):
         scaled_loss = self._conservative_weight * loss
 
         # clip for stability
-        clipped_alpha = self._modules.log_alpha().exp().clamp(0, 1e6)[0][0]
+        clipped_alpha = self._modules.log_alpha.parameter.exp().clamp(0, 1e6)[
+            0
+        ][0]
 
         return clipped_alpha * (scaled_loss - self._alpha_threshold)
 
