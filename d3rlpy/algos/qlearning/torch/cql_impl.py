@@ -11,6 +11,7 @@ from ....models.torch import (
     DiscreteEnsembleQFunctionForwarder,
     Parameter,
     build_squashed_gaussian_distribution,
+    get_parameter,
 )
 from ....torch_utility import (
     TorchMiniBatch,
@@ -86,7 +87,7 @@ class CQLImpl(SACImpl):
         return CQLCriticLoss(
             critic_loss=loss.critic_loss + conservative_loss,
             conservative_loss=conservative_loss,
-            alpha=self._modules.log_alpha().exp(),
+            alpha=get_parameter(self._modules.log_alpha).exp(),
         )
 
     def update_alpha(self, conservative_loss: torch.Tensor) -> None:
@@ -187,7 +188,8 @@ class CQLImpl(SACImpl):
         scaled_loss = self._conservative_weight * loss
 
         # clip for stability
-        clipped_alpha = self._modules.log_alpha().exp().clamp(0, 1e6)[0][0]
+        log_alpha = get_parameter(self._modules.log_alpha)
+        clipped_alpha = log_alpha.exp().clamp(0, 1e6)[0][0]
 
         return clipped_alpha * (scaled_loss - self._alpha_threshold)
 

@@ -13,6 +13,7 @@ from ....models.torch import (
     compute_max_with_n_actions_and_indices,
     compute_vae_error,
     forward_vae_sample_n,
+    get_parameter,
 )
 from ....torch_utility import (
     TorchMiniBatch,
@@ -118,7 +119,7 @@ class BEARImpl(SACImpl):
             temp_loss=loss.temp_loss,
             temp=loss.temp,
             mmd_loss=mmd_loss,
-            alpha=self._modules.log_alpha().exp(),
+            alpha=get_parameter(self._modules.log_alpha).exp(),
         )
 
     def warmup_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
@@ -130,7 +131,7 @@ class BEARImpl(SACImpl):
 
     def _compute_mmd_loss(self, obs_t: TorchObservation) -> torch.Tensor:
         mmd = self._compute_mmd(obs_t)
-        alpha = self._modules.log_alpha().exp()
+        alpha = get_parameter(self._modules.log_alpha).exp()
         return (alpha * (mmd - self._alpha_threshold)).mean()
 
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
@@ -155,7 +156,7 @@ class BEARImpl(SACImpl):
         loss.backward(retain_graph=True)
         self._modules.alpha_optim.step()
         # clip for stability
-        self._modules.log_alpha.data.clamp_(-5.0, 10.0)
+        get_parameter(self._modules.log_alpha).data.clamp_(-5.0, 10.0)
 
     def _compute_mmd(self, x: TorchObservation) -> torch.Tensor:
         with torch.no_grad():
@@ -231,7 +232,8 @@ class BEARImpl(SACImpl):
             batch_size = get_batch_size(batch.observations)
             max_log_prob = log_probs[torch.arange(batch_size), indices]
 
-            return values - self._modules.log_temp().exp() * max_log_prob
+            log_temp = get_parameter(self._modules.log_temp)
+            return values - log_temp.exp() * max_log_prob
 
     def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         batch_size = (

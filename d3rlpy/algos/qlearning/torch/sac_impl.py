@@ -16,6 +16,7 @@ from ....models.torch import (
     Parameter,
     Policy,
     build_squashed_gaussian_distribution,
+    get_parameter,
 )
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync
 from ....types import Shape, TorchObservation
@@ -83,14 +84,14 @@ class SACImpl(DDPGBaseImpl):
                 0.0, dtype=torch.float32, device=sampled_action.device
             )
 
-        entropy = self._modules.log_temp().exp() * log_prob
+        entropy = get_parameter(self._modules.log_temp).exp() * log_prob
         q_t = self._q_func_forwarder.compute_expected_q(
             batch.observations, sampled_action, "min"
         )
         return SACActorLoss(
             actor_loss=(entropy - q_t).mean(),
             temp_loss=temp_loss,
-            temp=self._modules.log_temp().exp(),
+            temp=get_parameter(self._modules.log_temp).exp(),
         )
 
     def update_temp(self, log_prob: torch.Tensor) -> torch.Tensor:
@@ -98,7 +99,7 @@ class SACImpl(DDPGBaseImpl):
         self._modules.temp_optim.zero_grad()
         with torch.no_grad():
             targ_temp = log_prob - self._action_size
-        loss = -(self._modules.log_temp().exp() * targ_temp).mean()
+        loss = -(get_parameter(self._modules.log_temp).exp() * targ_temp).mean()
         loss.backward()
         self._modules.temp_optim.step()
         return loss
@@ -109,7 +110,7 @@ class SACImpl(DDPGBaseImpl):
                 self._modules.policy(batch.next_observations)
             )
             action, log_prob = dist.sample_with_log_prob()
-            entropy = self._modules.log_temp().exp() * log_prob
+            entropy = get_parameter(self._modules.log_temp).exp() * log_prob
             target = self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 action,
@@ -181,7 +182,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             if self._modules.log_temp is None:
                 temp = torch.zeros_like(log_probs)
             else:
-                temp = self._modules.log_temp().exp()
+                temp = get_parameter(self._modules.log_temp).exp()
             entropy = temp * log_probs
             target = self._targ_q_func_forwarder.compute_target(
                 batch.next_observations
@@ -231,7 +232,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         if self._modules.log_temp is None:
             temp = torch.zeros_like(log_probs)
         else:
-            temp = self._modules.log_temp().exp()
+            temp = get_parameter(self._modules.log_temp).exp()
         entropy = temp * log_probs
         return (probs * (entropy - q_t)).sum(dim=1).mean()
 
@@ -248,13 +249,14 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             entropy_target = 0.98 * (-math.log(1 / self.action_size))
             targ_temp = expct_log_probs + entropy_target
 
-        loss = -(self._modules.log_temp().exp() * targ_temp).mean()
+        loss = -(get_parameter(self._modules.log_temp).exp() * targ_temp).mean()
 
         loss.backward()
         self._modules.temp_optim.step()
 
         # current temperature value
-        cur_temp = self._modules.log_temp().exp().cpu().detach().numpy()[0][0]
+        log_temp = get_parameter(self._modules.log_temp)
+        cur_temp = log_temp.exp().cpu().detach().numpy()[0][0]
 
         return {
             "temp_loss": float(loss.cpu().detach().numpy()),
