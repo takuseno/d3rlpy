@@ -3,7 +3,7 @@ from typing import NoReturn
 import torch
 from torch import nn
 
-__all__ = ["Parameter"]
+__all__ = ["Parameter", "get_parameter"]
 
 
 class Parameter(nn.Module):  # type: ignore
@@ -23,10 +23,6 @@ class Parameter(nn.Module):  # type: ignore
             "Parameter does not support __call__. Use parameter property instead."
         )
 
-    @property
-    def parameter(self) -> nn.Parameter:
-        return self._parameter
 
-    @property
-    def data(self) -> torch.Tensor:
-        return self._parameter.data
+def get_parameter(parameter: Parameter) -> nn.Parameter:
+    return next(parameter.parameters())

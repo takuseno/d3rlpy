@@ -9,7 +9,7 @@ from torch import nn
 from ...torch_utility import GEGLU
 from ...types import TorchObservation
 from .encoders import Encoder
-from .parameters import Parameter
+from .parameters import Parameter, get_parameter
 
 __all__ = [
     "ContinuousDecisionTransformer",
@@ -194,7 +194,7 @@ class GlobalPositionEncoding(PositionEncoding):
         )
         # (1, Tmax, N) -> (B, Tmax, N)
         batched_global_embedding = torch.repeat_interleave(
-            self._global_position_embedding.parameter,
+            get_parameter(self._global_position_embedding),
             batch_size,
             dim=0,
         )
@@ -202,7 +202,7 @@ class GlobalPositionEncoding(PositionEncoding):
         global_embedding = torch.gather(batched_global_embedding, 1, last_t)
 
         # (1, 3 * Cmax, N) -> (1, T, N)
-        block_embedding = self._block_position_embedding.parameter[
+        block_embedding = get_parameter(self._block_position_embedding)[
             :, :context_size, :
         ]
 
@@ -506,8 +506,8 @@ class GatoTransformer(nn.Module):  # type: ignore
         )
 
         # add action embedding
-        embeddings = (
-            embeddings + action_masks * self._action_pos_embed.parameter
+        embeddings = embeddings + action_masks * get_parameter(
+            self._action_pos_embed
         )
 
         # (B, T, N) -> (B, T, N)

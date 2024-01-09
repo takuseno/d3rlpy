@@ -23,6 +23,7 @@ from d3rlpy.models.q_functions import MeanQFunctionFactory
 from d3rlpy.models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
+    get_parameter,
 )
 from d3rlpy.models.torch.imitators import ConditionalVAE
 from d3rlpy.models.torch.policies import (
@@ -259,7 +260,7 @@ def test_create_parameter(shape: Sequence[int]) -> None:
     parameter = create_parameter(shape, x, device="cpu:0")
 
     assert len(list(parameter.parameters())) == 1
-    assert np.allclose(parameter.data.detach().numpy(), x)
+    assert np.allclose(get_parameter(parameter).detach().numpy(), x)
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), (4, 84, 84)])
