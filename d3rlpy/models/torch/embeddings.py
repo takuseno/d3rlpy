@@ -4,7 +4,7 @@ from torch import nn
 
 from ...tokenizers import Tokenizer
 from ...types import Int32NDArray, NDArray
-from .parameters import Parameter
+from .parameters import Parameter, get_parameter
 
 __all__ = [
     "TokenEmbedding",
@@ -65,10 +65,6 @@ class SeparatorTokenEmbedding(nn.Module):  # type: ignore
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         assert x.ndim == 3
-        assert x.shape[-1] == self._data.data.shape[0]
-        data = self._data.data.view(1, 1, -1)
+        assert x.shape[-1] == get_parameter(self._data).shape[0]
+        data = get_parameter(self._data).view(1, 1, -1)
         return torch.tile(data, [x.shape[0], 1, 1])
-
-    @property
-    def data(self) -> torch.Tensor:
-        return self._data.data

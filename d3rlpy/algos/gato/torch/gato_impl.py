@@ -119,7 +119,8 @@ class GatoImpl(GatoAlgoImplBase):
             batch.action_tokens[:, 1:].reshape(-1).long(),
             reduction="none",
         )
-        return (loss * batch.action_masks[:, 1:, :].reshape(-1)).mean()
+        masks = batch.masks[:, 1:, :] * batch.action_masks[:, 1:, :]
+        return (loss * masks.reshape(-1)).mean()
 
     @property
     def token_embeddings(self) -> Dict[str, TokenEmbedding]:

@@ -1,6 +1,6 @@
 import dataclasses
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Sequence, Union
+from typing import DefaultDict, Dict, List, Sequence, Union, Optional
 
 import numpy as np
 import torch
@@ -200,6 +200,7 @@ class GatoTokenSlicer:
         token_size: int,
         token_embeddings: Dict[str, TokenEmbedding],
         separator_token_embedding: SeparatorTokenEmbedding,
+        prompt_episode: Optional[GatoTokenEpisode] = None,
     ) -> GatoTrainingInputEmbedding:
         num_steps = token_size // episode.one_step_block_size
         end_step = end_step + 1
@@ -236,7 +237,7 @@ class GatoTokenSlicer:
         separator_embeddings = separator_token_embedding(action_embedding)
 
         # concat observations and actions
-        # S = total_obs_num_tokens + action_num_tokens
+        # S = total_obs_num_tokens + action_num_tokens + 1
         # (T, S, N)
         concat_embeddings = torch.cat(
             [
@@ -281,6 +282,23 @@ class GatoTokenSlicer:
 
         # compute backward padding size
         pad_size = token_size - actual_num_steps * episode.one_step_block_size
+
+        if pad_size > 0 and prompt_episode:
+            prompt = self.__call__(
+                episode=prompt_episode,
+                end_step=prompt_episode.size() - 1,
+                token_size=pad_size,
+                token_embeddings=token_embeddings,
+                separator_token_embedding=separator_token_embedding,
+            )
+            return GatoTrainingInputEmbedding(
+                embeddings=torch.cat([prompt.embeddings, flatten_embeddings], dim=0),
+                observation_positions=torch.cat([prompt.observation_positions, flatten_observation_positions], dim=0),
+                observation_masks=torch.cat([prompt.observation_masks, flatten_observation_masks], dim=0),
+                action_masks=torch.cat([prompt.action_masks, flatten_action_masks], dim=0),
+                action_tokens=torch.cat([prompt.action_tokens, flatten_action_tokens], dim=0),
+                masks=torch.cat([torch.zeros_like(prompt.masks), masks], dim=0),
+            )
 
         if pad_size == 0:
             return GatoTrainingInputEmbedding(
@@ -362,16 +380,19 @@ class GatoReplayBuffer:
     _token_slicer: GatoTokenSlicer
     _token_embeddings: Dict[str, TokenEmbedding]
     _separator_token_embedding: SeparatorTokenEmbedding
+    _prompt_probability: float
 
     def __init__(
         self,
         replay_buffers: Sequence[ReplayBufferWithEmbeddingKeys],
         token_embeddings: Dict[str, TokenEmbedding],
         separator_token_embedding: SeparatorTokenEmbedding,
+        prompt_probability: float,
     ):
         self._token_slicer = GatoTokenSlicer()
         self._token_embeddings = token_embeddings
         self._separator_token_embedding = separator_token_embedding
+        self._prompt_probability = prompt_probability
         self._episodes = []
         self._episodes_per_task = defaultdict(list)
         for replay_buffer in replay_buffers:
@@ -394,12 +415,20 @@ class GatoReplayBuffer:
     ) -> GatoTrainingInputEmbedding:
         episode = self._episodes[int(np.random.randint(len(self._episodes)))]
         end_step = int(np.random.randint(episode.size()))
+        if np.random.random() < self._prompt_probability:
+            task_id = episode.task_id
+            num_episodes = len(self._episodes_per_task[task_id])
+            prompt_index = np.random.randint(num_episodes)
+            prompt_episode = self._episodes_per_task[task_id][prompt_index]
+        else:
+            prompt_episode = None
         return self._token_slicer(
             episode=episode,
             end_step=end_step,
             token_size=length,
             token_embeddings=self._token_embeddings,
             separator_token_embedding=self._separator_token_embedding,
+            prompt_episode=prompt_episode,
         )
 
     def sample_embedding_mini_batch(
