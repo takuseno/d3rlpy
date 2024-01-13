@@ -3,10 +3,11 @@ import dataclasses
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
 from ...models.builders import (
-    create_conditional_vae,
     create_continuous_q_function,
     create_deterministic_policy,
     create_deterministic_residual_policy,
+    create_vae_decoder,
+    create_vae_encoder,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
@@ -135,12 +136,19 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             n_ensembles=self._config.n_critics,
             device=self._device,
         )
-        imitator = create_conditional_vae(
+        vae_encoder = create_vae_encoder(
             observation_shape=observation_shape,
             action_size=action_size,
             latent_size=2 * action_size,
             min_logstd=-4.0,
             max_logstd=15.0,
+            encoder_factory=self._config.imitator_encoder_factory,
+            device=self._device,
+        )
+        vae_decoder = create_vae_decoder(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            latent_size=2 * action_size,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
         )
@@ -151,8 +159,10 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(), lr=self._config.critic_learning_rate
         )
-        imitator_optim = self._config.critic_optim_factory.create(
-            imitator.named_modules(), lr=self._config.imitator_learning_rate
+        vae_optim = self._config.critic_optim_factory.create(
+            list(vae_encoder.named_modules())
+            + list(vae_decoder.named_modules()),
+            lr=self._config.imitator_learning_rate,
         )
 
         modules = PLASModules(
@@ -160,10 +170,11 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             targ_policy=targ_policy,
             q_funcs=q_funcs,
             targ_q_funcs=targ_q_funcs,
-            imitator=imitator,
+            vae_encoder=vae_encoder,
+            vae_decoder=vae_decoder,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
-            imitator_optim=imitator_optim,
+            vae_optim=vae_optim,
         )
 
         self._impl = PLASImpl(
@@ -272,12 +283,19 @@ class PLASWithPerturbation(PLAS):
             n_ensembles=self._config.n_critics,
             device=self._device,
         )
-        imitator = create_conditional_vae(
+        vae_encoder = create_vae_encoder(
             observation_shape=observation_shape,
             action_size=action_size,
             latent_size=2 * action_size,
             min_logstd=-4.0,
             max_logstd=15.0,
+            encoder_factory=self._config.imitator_encoder_factory,
+            device=self._device,
+        )
+        vae_decoder = create_vae_decoder(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            latent_size=2 * action_size,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
         )
@@ -304,8 +322,10 @@ class PLASWithPerturbation(PLAS):
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(), lr=self._config.critic_learning_rate
         )
-        imitator_optim = self._config.critic_optim_factory.create(
-            imitator.named_modules(), lr=self._config.imitator_learning_rate
+        vae_optim = self._config.critic_optim_factory.create(
+            list(vae_encoder.named_modules())
+            + list(vae_decoder.named_modules()),
+            lr=self._config.imitator_learning_rate,
         )
 
         modules = PLASWithPerturbationModules(
@@ -313,12 +333,13 @@ class PLASWithPerturbation(PLAS):
             targ_policy=targ_policy,
             q_funcs=q_funcs,
             targ_q_funcs=targ_q_funcs,
-            imitator=imitator,
+            vae_encoder=vae_encoder,
+            vae_decoder=vae_decoder,
             perturbation=perturbation,
             targ_perturbation=targ_perturbation,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
-            imitator_optim=imitator_optim,
+            vae_optim=vae_optim,
         )
 
         self._impl = PLASWithPerturbationImpl(

@@ -16,7 +16,7 @@ def main() -> None:
     d3rlpy.seed(args.seed)
     d3rlpy.envs.seed_env(env, args.seed)
 
-    if "medium-replay" in env.unwrapped.spec.id.lower():
+    if "medium-replay" in args.dataset:
         vae_encoder = d3rlpy.models.encoders.VectorEncoderFactory([128, 128])
     else:
         vae_encoder = d3rlpy.models.encoders.VectorEncoderFactory([750, 750])

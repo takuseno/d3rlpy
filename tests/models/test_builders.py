@@ -7,7 +7,6 @@ import torch
 from d3rlpy.constants import PositionEncodingType
 from d3rlpy.models.builders import (
     create_categorical_policy,
-    create_conditional_vae,
     create_continuous_decision_transformer,
     create_continuous_q_function,
     create_deterministic_policy,
@@ -16,6 +15,8 @@ from d3rlpy.models.builders import (
     create_discrete_q_function,
     create_normal_policy,
     create_parameter,
+    create_vae_decoder,
+    create_vae_encoder,
     create_value_function,
 )
 from d3rlpy.models.encoders import DefaultEncoderFactory, EncoderFactory
@@ -25,7 +26,7 @@ from d3rlpy.models.torch import (
     DiscreteEnsembleQFunctionForwarder,
     get_parameter,
 )
-from d3rlpy.models.torch.imitators import ConditionalVAE
+from d3rlpy.models.torch.imitators import VAEDecoder, VAEEncoder
 from d3rlpy.models.torch.policies import (
     CategoricalPolicy,
     DeterministicPolicy,
@@ -212,14 +213,14 @@ def test_create_continuous_q_function(
 @pytest.mark.parametrize("latent_size", [32])
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
-def test_create_conditional_vae(
+def test_create_vae_encoder(
     observation_shape: Sequence[int],
     action_size: int,
     latent_size: int,
     batch_size: int,
     encoder_factory: EncoderFactory,
 ) -> None:
-    vae = create_conditional_vae(
+    vae_encoder = create_vae_encoder(
         observation_shape,
         action_size,
         latent_size,
@@ -227,11 +228,39 @@ def test_create_conditional_vae(
         device="cpu:0",
     )
 
-    assert isinstance(vae, ConditionalVAE)
+    assert isinstance(vae_encoder, VAEEncoder)
 
     x = torch.rand((batch_size, *observation_shape))
     action = torch.rand(batch_size, action_size)
-    y = vae(x, action)
+    dist = vae_encoder(x, action)
+    assert dist.mean.shape == (batch_size, latent_size)
+
+
+@pytest.mark.parametrize("observation_shape", [(4, 84, 84), (100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("latent_size", [32])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("encoder_factory", [DefaultEncoderFactory()])
+def test_create_vae_decoder(
+    observation_shape: Sequence[int],
+    action_size: int,
+    latent_size: int,
+    batch_size: int,
+    encoder_factory: EncoderFactory,
+) -> None:
+    vae_decoder = create_vae_decoder(
+        observation_shape,
+        action_size,
+        latent_size,
+        encoder_factory,
+        device="cpu:0",
+    )
+
+    assert isinstance(vae_decoder, VAEDecoder)
+
+    x = torch.rand((batch_size, *observation_shape))
+    latent = torch.rand(batch_size, latent_size)
+    y = vae_decoder(x, latent)
     assert y.shape == (batch_size, action_size)
 
 

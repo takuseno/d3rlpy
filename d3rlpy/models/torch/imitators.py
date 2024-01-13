@@ -19,9 +19,6 @@ from .policies import (
 __all__ = [
     "VAEEncoder",
     "VAEDecoder",
-    "ConditionalVAE",
-    "forward_vae_encode",
-    "forward_vae_decode",
     "forward_vae_sample",
     "forward_vae_sample_n",
     "compute_vae_error",
@@ -104,64 +101,27 @@ class VAEDecoder(nn.Module):  # type: ignore
         return self._action_size
 
 
-class ConditionalVAE(nn.Module):  # type: ignore
-    _encoder: VAEEncoder
-    _decoder: VAEDecoder
-    _beta: float
-
-    def __init__(self, encoder: VAEEncoder, decoder: VAEDecoder):
-        super().__init__()
-        self._encoder = encoder
-        self._decoder = decoder
-
-    def forward(
-        self, x: TorchObservation, action: torch.Tensor
-    ) -> torch.Tensor:
-        dist = self._encoder(x, action)
-        return self._decoder(x, dist.rsample())
-
-    def __call__(
-        self, x: TorchObservation, action: torch.Tensor
-    ) -> torch.Tensor:
-        return cast(torch.Tensor, super().__call__(x, action))
-
-    @property
-    def encoder(self) -> VAEEncoder:
-        return self._encoder
-
-    @property
-    def decoder(self) -> VAEDecoder:
-        return self._decoder
-
-
-def forward_vae_encode(
-    vae: ConditionalVAE, x: TorchObservation, action: torch.Tensor
-) -> Normal:
-    return vae.encoder(x, action)
-
-
-def forward_vae_decode(
-    vae: ConditionalVAE, x: TorchObservation, latent: torch.Tensor
-) -> torch.Tensor:
-    return vae.decoder(x, latent)
-
-
 def forward_vae_sample(
-    vae: ConditionalVAE, x: TorchObservation, with_squash: bool = True
+    vae_decoder: VAEDecoder,
+    x: TorchObservation,
+    latent_size: int,
+    with_squash: bool = True,
 ) -> torch.Tensor:
     batch_size = get_batch_size(x)
-    latent = torch.randn(
-        (batch_size, vae.encoder.latent_size), device=get_device(x)
-    )
+    latent = torch.randn((batch_size, latent_size), device=get_device(x))
     # to prevent extreme numbers
-    return vae.decoder(x, latent.clamp(-0.5, 0.5), with_squash=with_squash)
+    return vae_decoder(x, latent.clamp(-0.5, 0.5), with_squash=with_squash)
 
 
 def forward_vae_sample_n(
-    vae: ConditionalVAE, x: TorchObservation, n: int, with_squash: bool = True
+    vae_decoder: VAEDecoder,
+    x: TorchObservation,
+    latent_size: int,
+    n: int,
+    with_squash: bool = True,
 ) -> torch.Tensor:
     batch_size = get_batch_size(x)
-    flat_latent_shape = (n * batch_size, vae.encoder.latent_size)
+    flat_latent_shape = (n * batch_size, latent_size)
     flat_latent = torch.randn(flat_latent_shape, device=get_device(x))
     # to prevent extreme numbers
     clipped_latent = flat_latent.clamp(-0.5, 0.5)
@@ -177,7 +137,7 @@ def forward_vae_sample_n(
         # (n, batch, obs) -> (n *  batch, obs)
         flat_x = [_x.reshape(-1, *_x.shape[2:]) for _x in repeated_x]
 
-    flat_actions = vae.decoder(flat_x, clipped_latent, with_squash=with_squash)
+    flat_actions = vae_decoder(flat_x, clipped_latent, with_squash=with_squash)
 
     # (n * batch, action) -> (n, batch, action)
     actions = flat_actions.view(n, batch_size, -1)
@@ -187,11 +147,15 @@ def forward_vae_sample_n(
 
 
 def compute_vae_error(
-    vae: ConditionalVAE, x: TorchObservation, action: torch.Tensor, beta: float
+    vae_encoder: VAEEncoder,
+    vae_decoder: VAEDecoder,
+    x: TorchObservation,
+    action: torch.Tensor,
+    beta: float,
 ) -> torch.Tensor:
-    dist = vae.encoder(x, action)
+    dist = vae_encoder(x, action)
     kl_loss = kl_divergence(dist, Normal(0.0, 1.0)).mean()
-    y = vae.decoder(x, dist.rsample())
+    y = vae_decoder(x, dist.rsample())
     return F.mse_loss(y, action) + cast(torch.Tensor, beta * kl_loss)
 
 

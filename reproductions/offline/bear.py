@@ -18,7 +18,7 @@ def main() -> None:
 
     vae_encoder = d3rlpy.models.encoders.VectorEncoderFactory([750, 750])
 
-    if "halfcheetah" in env.unwrapped.spec.id.lower():
+    if "halfcheetah" in args.dataset:
         kernel = "gaussian"
     else:
         kernel = "laplacian"

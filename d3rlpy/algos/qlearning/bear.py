@@ -4,10 +4,11 @@ import math
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
 from ...models.builders import (
-    create_conditional_vae,
     create_continuous_q_function,
     create_normal_policy,
     create_parameter,
+    create_vae_decoder,
+    create_vae_encoder,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
@@ -178,12 +179,19 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             n_ensembles=self._config.n_critics,
             device=self._device,
         )
-        imitator = create_conditional_vae(
+        vae_encoder = create_vae_encoder(
             observation_shape=observation_shape,
             action_size=action_size,
             latent_size=2 * action_size,
             min_logstd=-4.0,
             max_logstd=15.0,
+            encoder_factory=self._config.imitator_encoder_factory,
+            device=self._device,
+        )
+        vae_decoder = create_vae_decoder(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            latent_size=2 * action_size,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
         )
@@ -202,8 +210,10 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(), lr=self._config.critic_learning_rate
         )
-        imitator_optim = self._config.imitator_optim_factory.create(
-            imitator.named_modules(), lr=self._config.imitator_learning_rate
+        vae_optim = self._config.imitator_optim_factory.create(
+            list(vae_encoder.named_modules())
+            + list(vae_decoder.named_modules()),
+            lr=self._config.imitator_learning_rate,
         )
         temp_optim = self._config.temp_optim_factory.create(
             log_temp.named_modules(), lr=self._config.temp_learning_rate
@@ -216,12 +226,13 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             policy=policy,
             q_funcs=q_funcs,
             targ_q_funcs=targ_q_funcs,
-            imitator=imitator,
+            vae_encoder=vae_encoder,
+            vae_decoder=vae_decoder,
             log_temp=log_temp,
             log_alpha=log_alpha,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
-            imitator_optim=imitator_optim,
+            vae_optim=vae_optim,
             temp_optim=temp_optim,
             alpha_optim=alpha_optim,
         )
