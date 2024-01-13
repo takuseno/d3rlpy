@@ -4,10 +4,11 @@ from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
 from ...models.builders import (
     create_categorical_policy,
-    create_conditional_vae,
     create_continuous_q_function,
     create_deterministic_residual_policy,
     create_discrete_q_function,
+    create_vae_decoder,
+    create_vae_encoder,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
@@ -200,12 +201,19 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             n_ensembles=self._config.n_critics,
             device=self._device,
         )
-        imitator = create_conditional_vae(
+        vae_encoder = create_vae_encoder(
             observation_shape=observation_shape,
             action_size=action_size,
             latent_size=2 * action_size,
             min_logstd=-4.0,
             max_logstd=15.0,
+            encoder_factory=self._config.imitator_encoder_factory,
+            device=self._device,
+        )
+        vae_decoder = create_vae_decoder(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            latent_size=2 * action_size,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
         )
@@ -216,8 +224,10 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(), lr=self._config.critic_learning_rate
         )
-        imitator_optim = self._config.imitator_optim_factory.create(
-            imitator.named_modules(), lr=self._config.imitator_learning_rate
+        vae_optim = self._config.imitator_optim_factory.create(
+            list(vae_encoder.named_modules())
+            + list(vae_decoder.named_modules()),
+            lr=self._config.imitator_learning_rate,
         )
 
         modules = BCQModules(
@@ -225,10 +235,11 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             targ_policy=targ_policy,
             q_funcs=q_funcs,
             targ_q_funcs=targ_q_funcs,
-            imitator=imitator,
+            vae_encoder=vae_encoder,
+            vae_decoder=vae_decoder,
             actor_optim=actor_optim,
             critic_optim=critic_optim,
-            imitator_optim=imitator_optim,
+            vae_optim=vae_optim,
         )
 
         self._impl = BCQImpl(

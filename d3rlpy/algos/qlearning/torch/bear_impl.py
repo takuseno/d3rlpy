@@ -6,9 +6,10 @@ from torch.optim import Optimizer
 
 from ....models.torch import (
     ActionOutput,
-    ConditionalVAE,
     ContinuousEnsembleQFunctionForwarder,
     Parameter,
+    VAEDecoder,
+    VAEEncoder,
     build_squashed_gaussian_distribution,
     compute_max_with_n_actions_and_indices,
     compute_vae_error,
@@ -43,9 +44,10 @@ def _laplacian_kernel(
 
 @dataclasses.dataclass(frozen=True)
 class BEARModules(SACModules):
-    imitator: ConditionalVAE
+    vae_encoder: VAEEncoder
+    vae_decoder: VAEDecoder
     log_alpha: Parameter
-    imitator_optim: Optimizer
+    vae_optim: Optimizer
     alpha_optim: Optional[Optimizer]
 
 
@@ -135,15 +137,16 @@ class BEARImpl(SACImpl):
         return (alpha * (mmd - self._alpha_threshold)).mean()
 
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        self._modules.imitator_optim.zero_grad()
+        self._modules.vae_optim.zero_grad()
         loss = self.compute_imitator_loss(batch)
         loss.backward()
-        self._modules.imitator_optim.step()
+        self._modules.vae_optim.step()
         return {"imitator_loss": float(loss.cpu().detach().numpy())}
 
     def compute_imitator_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         return compute_vae_error(
-            vae=self._modules.imitator,
+            vae_encoder=self._modules.vae_encoder,
+            vae_decoder=self._modules.vae_decoder,
             x=batch.observations,
             action=batch.actions,
             beta=self._vae_kl_weight,
@@ -161,9 +164,10 @@ class BEARImpl(SACImpl):
     def _compute_mmd(self, x: TorchObservation) -> torch.Tensor:
         with torch.no_grad():
             behavior_actions = forward_vae_sample_n(
-                self._modules.imitator,
-                x,
-                self._n_mmd_action_samples,
+                vae_decoder=self._modules.vae_decoder,
+                x=x,
+                latent_size=2 * self._action_size,
+                n=self._n_mmd_action_samples,
                 with_squash=False,
             )
         dist = build_squashed_gaussian_distribution(self._modules.policy(x))

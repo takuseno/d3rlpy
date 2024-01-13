@@ -9,7 +9,6 @@ from .encoders import EncoderFactory
 from .q_functions import QFunctionFactory
 from .torch import (
     CategoricalPolicy,
-    ConditionalVAE,
     ContinuousDecisionTransformer,
     ContinuousEnsembleQFunctionForwarder,
     DeterministicPolicy,
@@ -36,7 +35,8 @@ __all__ = [
     "create_deterministic_residual_policy",
     "create_categorical_policy",
     "create_normal_policy",
-    "create_conditional_vae",
+    "create_vae_encoder",
+    "create_vae_decoder",
     "create_value_function",
     "create_parameter",
     "create_continuous_decision_transformer",
@@ -197,7 +197,7 @@ def create_categorical_policy(
     return policy
 
 
-def create_conditional_vae(
+def create_vae_encoder(
     observation_shape: Shape,
     action_size: int,
     latent_size: int,
@@ -205,34 +205,40 @@ def create_conditional_vae(
     device: str,
     min_logstd: float = -20.0,
     max_logstd: float = 2.0,
-) -> ConditionalVAE:
-    encoder_encoder = encoder_factory.create_with_action(
-        observation_shape, action_size
-    )
-    decoder_encoder = encoder_factory.create_with_action(
-        observation_shape, latent_size
-    )
+) -> VAEEncoder:
+    encoder = encoder_factory.create_with_action(observation_shape, action_size)
     encoder_hidden_size = compute_output_size(
-        [observation_shape, (action_size,)], encoder_encoder
+        [observation_shape, (action_size,)], encoder
     )
-    decoder_hidden_size = compute_output_size(
-        [observation_shape, (latent_size,)], decoder_encoder
-    )
-    encoder = VAEEncoder(
-        encoder=encoder_encoder,
+    vae_encoder = VAEEncoder(
+        encoder=encoder,
         hidden_size=encoder_hidden_size,
         latent_size=latent_size,
         min_logstd=min_logstd,
         max_logstd=max_logstd,
     )
+    vae_encoder.to(device)
+    return vae_encoder
+
+
+def create_vae_decoder(
+    observation_shape: Shape,
+    action_size: int,
+    latent_size: int,
+    encoder_factory: EncoderFactory,
+    device: str,
+) -> VAEDecoder:
+    encoder = encoder_factory.create_with_action(observation_shape, latent_size)
+    decoder_hidden_size = compute_output_size(
+        [observation_shape, (latent_size,)], encoder
+    )
     decoder = VAEDecoder(
-        encoder=decoder_encoder,
+        encoder=encoder,
         hidden_size=decoder_hidden_size,
         action_size=action_size,
     )
-    policy = ConditionalVAE(encoder=encoder, decoder=decoder)
-    policy.to(device)
-    return policy
+    decoder.to(device)
+    return decoder
 
 
 def create_value_function(

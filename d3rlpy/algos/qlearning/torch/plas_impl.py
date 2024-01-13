@@ -6,12 +6,12 @@ from torch.optim import Optimizer
 
 from ....models.torch import (
     ActionOutput,
-    ConditionalVAE,
     ContinuousEnsembleQFunctionForwarder,
     DeterministicPolicy,
     DeterministicResidualPolicy,
+    VAEDecoder,
+    VAEEncoder,
     compute_vae_error,
-    forward_vae_decode,
 )
 from ....torch_utility import TorchMiniBatch, soft_sync
 from ....types import Shape, TorchObservation
@@ -29,8 +29,9 @@ __all__ = [
 class PLASModules(DDPGBaseModules):
     policy: DeterministicPolicy
     targ_policy: DeterministicPolicy
-    imitator: ConditionalVAE
-    imitator_optim: Optimizer
+    vae_encoder: VAEEncoder
+    vae_decoder: VAEDecoder
+    vae_optim: Optimizer
 
 
 class PLASImpl(DDPGBaseImpl):
@@ -68,24 +69,23 @@ class PLASImpl(DDPGBaseImpl):
         self._warmup_steps = warmup_steps
 
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        self._modules.imitator_optim.zero_grad()
+        self._modules.vae_optim.zero_grad()
         loss = compute_vae_error(
-            vae=self._modules.imitator,
+            vae_encoder=self._modules.vae_encoder,
+            vae_decoder=self._modules.vae_decoder,
             x=batch.observations,
             action=batch.actions,
             beta=self._beta,
         )
         loss.backward()
-        self._modules.imitator_optim.step()
-        return {"imitator_loss": float(loss.cpu().detach().numpy())}
+        self._modules.vae_optim.step()
+        return {"vae_loss": float(loss.cpu().detach().numpy())}
 
     def compute_actor_loss(
         self, batch: TorchMiniBatch, action: ActionOutput
     ) -> DDPGBaseActorLoss:
         latent_actions = 2.0 * action.squashed_mu
-        actions = forward_vae_decode(
-            self._modules.imitator, batch.observations, latent_actions
-        )
+        actions = self._modules.vae_decoder(batch.observations, latent_actions)
         loss = -self._q_func_forwarder.compute_expected_q(
             batch.observations, actions, "none"
         )[0].mean()
@@ -93,7 +93,7 @@ class PLASImpl(DDPGBaseImpl):
 
     def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         latent_actions = 2.0 * self._modules.policy(x).squashed_mu
-        return forward_vae_decode(self._modules.imitator, x, latent_actions)
+        return self._modules.vae_decoder(x, latent_actions)
 
     def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         return self.inner_predict_best_action(x)
@@ -104,8 +104,8 @@ class PLASImpl(DDPGBaseImpl):
                 2.0
                 * self._modules.targ_policy(batch.next_observations).squashed_mu
             )
-            actions = forward_vae_decode(
-                self._modules.imitator, batch.next_observations, latent_actions
+            actions = self._modules.vae_decoder(
+                batch.next_observations, latent_actions
             )
             return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
@@ -175,9 +175,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         self, batch: TorchMiniBatch, action: ActionOutput
     ) -> DDPGBaseActorLoss:
         latent_actions = 2.0 * action.squashed_mu
-        actions = forward_vae_decode(
-            self._modules.imitator, batch.observations, latent_actions
-        )
+        actions = self._modules.vae_decoder(batch.observations, latent_actions)
         residual_actions = self._modules.perturbation(
             batch.observations, actions
         ).squashed_mu
@@ -188,7 +186,7 @@ class PLASWithPerturbationImpl(PLASImpl):
 
     def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         latent_actions = 2.0 * self._modules.policy(x).squashed_mu
-        actions = forward_vae_decode(self._modules.imitator, x, latent_actions)
+        actions = self._modules.vae_decoder(x, latent_actions)
         return self._modules.perturbation(x, actions).squashed_mu
 
     def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
@@ -200,8 +198,8 @@ class PLASWithPerturbationImpl(PLASImpl):
                 2.0
                 * self._modules.targ_policy(batch.next_observations).squashed_mu
             )
-            actions = forward_vae_decode(
-                self._modules.imitator, batch.next_observations, latent_actions
+            actions = self._modules.vae_decoder(
+                batch.next_observations, latent_actions
             )
             residual_actions = self._modules.targ_perturbation(
                 batch.next_observations, actions

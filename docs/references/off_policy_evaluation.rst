@@ -23,7 +23,7 @@ performance only with offline datasets.
    fqe.fit(
       dataset,
       n_steps=100000,
-      scorers={
+      evaluators={
          'init_value': d3rlpy.metrics.InitialStateValueEstimationEvaluator(),
          'soft_opc': d3rlpy.metrics.SoftOPCEvaluator(return_threshold=-300),
       },

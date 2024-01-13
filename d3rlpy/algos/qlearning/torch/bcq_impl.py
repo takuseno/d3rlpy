@@ -9,14 +9,14 @@ from torch.optim import Optimizer
 from ....models.torch import (
     ActionOutput,
     CategoricalPolicy,
-    ConditionalVAE,
     ContinuousEnsembleQFunctionForwarder,
     DeterministicResidualPolicy,
     DiscreteEnsembleQFunctionForwarder,
+    VAEDecoder,
+    VAEEncoder,
     compute_discrete_imitation_loss,
     compute_max_with_n_actions,
     compute_vae_error,
-    forward_vae_decode,
 )
 from ....torch_utility import (
     TorchMiniBatch,
@@ -42,8 +42,9 @@ __all__ = [
 class BCQModules(DDPGBaseModules):
     policy: DeterministicResidualPolicy
     targ_policy: DeterministicResidualPolicy
-    imitator: ConditionalVAE
-    imitator_optim: Optimizer
+    vae_encoder: VAEEncoder
+    vae_decoder: VAEDecoder
+    vae_optim: Optimizer
 
 
 class BCQImpl(DDPGBaseImpl):
@@ -95,16 +96,17 @@ class BCQImpl(DDPGBaseImpl):
         return DDPGBaseActorLoss(-value[0].mean())
 
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
-        self._modules.imitator_optim.zero_grad()
+        self._modules.vae_optim.zero_grad()
         loss = compute_vae_error(
-            vae=self._modules.imitator,
+            vae_encoder=self._modules.vae_encoder,
+            vae_decoder=self._modules.vae_decoder,
             x=batch.observations,
             action=batch.actions,
             beta=self._beta,
         )
         loss.backward()
-        self._modules.imitator_optim.step()
-        return {"imitator_loss": float(loss.cpu().detach().numpy())}
+        self._modules.vae_optim.step()
+        return {"vae_loss": float(loss.cpu().detach().numpy())}
 
     def _repeat_observation(self, x: TorchObservation) -> TorchObservation:
         # (batch_size, *obs_shape) -> (batch_size, n, *obs_shape)
@@ -126,11 +128,7 @@ class BCQImpl(DDPGBaseImpl):
         )
         clipped_latent = latent.clamp(-0.5, 0.5)
         # sample action
-        sampled_action = forward_vae_decode(
-            vae=self._modules.imitator,
-            x=flattened_x,
-            latent=clipped_latent,
-        )
+        sampled_action = self._modules.vae_decoder(flattened_x, clipped_latent)
         # add residual action
         policy = self._modules.targ_policy if target else self._modules.policy
         action = policy(flattened_x, sampled_action)
@@ -196,8 +194,7 @@ class BCQImpl(DDPGBaseImpl):
             batch_size, 2 * self._action_size, device=self._device
         )
         clipped_latent = latent.clamp(-0.5, 0.5)
-        sampled_action = forward_vae_decode(
-            vae=self._modules.imitator,
+        sampled_action = self._modules.vae_decoder(
             x=batch.observations,
             latent=clipped_latent,
         )
