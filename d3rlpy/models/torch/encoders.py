@@ -282,8 +282,8 @@ def compute_output_size(
         inputs = []
         for shape in input_shapes:
             if isinstance(shape[0], (list, tuple)):
-                inputs.append([torch.rand(1, *s, device=device) for s in shape])
+                inputs.append([torch.rand(2, *s, device=device) for s in shape])
             else:
-                inputs.append(torch.rand(1, *shape, device=device))
+                inputs.append(torch.rand(2, *shape, device=device))
         y = encoder(*inputs)
     return int(y.shape[1])
