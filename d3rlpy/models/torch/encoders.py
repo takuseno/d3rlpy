@@ -54,6 +54,7 @@ class PixelEncoder(Encoder):
         dropout_rate: Optional[float] = False,
         activation: nn.Module = nn.ReLU(),
         exclude_last_activation: bool = False,
+        last_activation: Optional[nn.Module] = None,
     ):
         super().__init__()
 
@@ -92,7 +93,7 @@ class PixelEncoder(Encoder):
         layers: List[nn.Module] = []
         layers.append(nn.Linear(cnn_output_size, feature_size))
         if not exclude_last_activation:
-            layers.append(activation)
+            layers.append(last_activation if last_activation else activation)
         if use_batch_norm:
             layers.append(nn.BatchNorm1d(feature_size))
         if dropout_rate is not None:
@@ -123,6 +124,7 @@ class PixelEncoderWithAction(EncoderWithAction):
         discrete_action: bool = False,
         activation: nn.Module = nn.ReLU(),
         exclude_last_activation: bool = False,
+        last_activation: Optional[nn.Module] = None,
     ):
         super().__init__()
         self._discrete_action = discrete_action
@@ -163,7 +165,7 @@ class PixelEncoderWithAction(EncoderWithAction):
         layers: List[nn.Module] = []
         layers.append(nn.Linear(cnn_output_size + action_size, feature_size))
         if not exclude_last_activation:
-            layers.append(activation)
+            layers.append(last_activation if last_activation else activation)
         if use_batch_norm:
             layers.append(nn.BatchNorm1d(feature_size))
         if dropout_rate is not None:
@@ -198,6 +200,7 @@ class VectorEncoder(Encoder):
         dropout_rate: Optional[float] = None,
         activation: nn.Module = nn.ReLU(),
         exclude_last_activation: bool = False,
+        last_activation: Optional[nn.Module] = None,
     ):
         super().__init__()
 
@@ -211,7 +214,10 @@ class VectorEncoder(Encoder):
         ):
             layers.append(nn.Linear(in_unit, out_unit))
             if not is_last or not exclude_last_activation:
-                layers.append(activation)
+                if is_last and last_activation:
+                    layers.append(last_activation)
+                else:
+                    layers.append(activation)
             if use_batch_norm:
                 layers.append(nn.BatchNorm1d(out_unit))
             if dropout_rate is not None:
@@ -238,6 +244,7 @@ class VectorEncoderWithAction(EncoderWithAction):
         discrete_action: bool = False,
         activation: nn.Module = nn.ReLU(),
         exclude_last_activation: bool = False,
+        last_activation: Optional[nn.Module] = None,
     ):
         super().__init__()
         self._action_size = action_size
@@ -255,7 +262,10 @@ class VectorEncoderWithAction(EncoderWithAction):
         ):
             layers.append(nn.Linear(in_unit, out_unit))
             if not is_last or not exclude_last_activation:
-                layers.append(activation)
+                if is_last and last_activation:
+                    layers.append(last_activation)
+                else:
+                    layers.append(activation)
             if use_batch_norm:
                 layers.append(nn.BatchNorm1d(out_unit))
             if dropout_rate is not None:

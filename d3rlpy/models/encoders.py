@@ -72,6 +72,7 @@ class PixelEncoderFactory(EncoderFactory):
         dropout_rate (float): Dropout probability.
         exclude_last_activation (bool): Flag to exclude activation function at
             the last layer.
+        last_activation (str): Activation function name for the last layer.
     """
 
     filters: List[List[int]] = field(
@@ -82,6 +83,7 @@ class PixelEncoderFactory(EncoderFactory):
     use_batch_norm: bool = False
     dropout_rate: Optional[float] = None
     exclude_last_activation: bool = False
+    last_activation: Optional[str] = None
 
     def create(self, observation_shape: Shape) -> PixelEncoder:
         assert len(observation_shape) == 3
@@ -93,6 +95,9 @@ class PixelEncoderFactory(EncoderFactory):
             dropout_rate=self.dropout_rate,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
+            last_activation=create_activation(self.last_activation)
+            if self.last_activation
+            else None,
         )
 
     def create_with_action(
@@ -112,6 +117,9 @@ class PixelEncoderFactory(EncoderFactory):
             discrete_action=discrete_action,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
+            last_activation=create_activation(self.last_activation)
+            if self.last_activation
+            else None,
         )
 
     @staticmethod
@@ -133,6 +141,7 @@ class VectorEncoderFactory(EncoderFactory):
         dropout_rate (float): Dropout probability.
         exclude_last_activation (bool): Flag to exclude activation function at
             the last layer.
+        last_activation (str): Activation function name for the last layer.
     """
 
     hidden_units: List[int] = field(default_factory=lambda: [256, 256])
@@ -140,6 +149,7 @@ class VectorEncoderFactory(EncoderFactory):
     use_batch_norm: bool = False
     dropout_rate: Optional[float] = None
     exclude_last_activation: bool = False
+    last_activation: Optional[str] = None
 
     def create(self, observation_shape: Shape) -> VectorEncoder:
         assert len(observation_shape) == 1
@@ -150,6 +160,9 @@ class VectorEncoderFactory(EncoderFactory):
             dropout_rate=self.dropout_rate,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
+            last_activation=create_activation(self.last_activation)
+            if self.last_activation
+            else None,
         )
 
     def create_with_action(
@@ -168,6 +181,9 @@ class VectorEncoderFactory(EncoderFactory):
             discrete_action=discrete_action,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
+            last_activation=create_activation(self.last_activation)
+            if self.last_activation
+            else None,
         )
 
     @staticmethod
