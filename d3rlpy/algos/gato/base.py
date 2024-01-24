@@ -28,8 +28,13 @@ from ...logging import (
     LoggerAdapterFactory,
 )
 from ...metrics import evaluate_gato_with_environment
+from ...mixed_precision import NoCastPrecisionScaler, PrecisionScaler
 from ...models import EmbeddingModuleFactory, TokenEmbeddingFactory
-from ...models.torch import SeparatorTokenEmbedding, TokenEmbedding, get_parameter
+from ...models.torch import (
+    SeparatorTokenEmbedding,
+    TokenEmbedding,
+    get_parameter,
+)
 from ...serializable_config import generate_dict_config_field
 from ...torch_utility import eval_api, train_api
 from ...types import GymEnv, NDArray, Observation
@@ -62,13 +67,19 @@ class GatoAlgoImplBase(ImplBase):
 
     @train_api
     def update(
-        self, batch: GatoEmbeddingMiniBatch, grad_step: int
+        self,
+        batch: GatoEmbeddingMiniBatch,
+        grad_step: int,
+        precision_scaler: PrecisionScaler,
     ) -> Dict[str, float]:
-        return self.inner_update(batch, grad_step)
+        return self.inner_update(batch, grad_step, precision_scaler)
 
     @abstractmethod
     def inner_update(
-        self, batch: GatoEmbeddingMiniBatch, grad_step: int
+        self,
+        batch: GatoEmbeddingMiniBatch,
+        grad_step: int,
+        precision_scaler: PrecisionScaler,
     ) -> Dict[str, float]:
         pass
 
@@ -236,7 +247,9 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
 
     def _append_separator_embedding(self) -> None:
         assert self._algo.impl
-        self._embeddings.append(get_parameter(self._algo.impl.separator_token_embedding))
+        self._embeddings.append(
+            get_parameter(self._algo.impl.separator_token_embedding)
+        )
         self._observation_positions.append(0)
         self._observation_masks.append(0)
         self._action_masks.append(0)
@@ -341,6 +354,7 @@ class GatoAlgoBase(
         evaluators: Optional[Dict[str, GatoEnvironmentEvaluator]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
         enable_ddp: bool = False,
+        precision_scaler: PrecisionScaler = NoCastPrecisionScaler(),
     ) -> None:
         """Trains with given dataset.
 
@@ -359,6 +373,7 @@ class GatoAlgoBase(
             callback: Callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
             enable_ddp: Flag to wrap models with DataDistributedParallel.
+            precision_scaler: Precision scaler for mixed precision training.
         """
 
         # setup logger
@@ -419,7 +434,7 @@ class GatoAlgoBase(
 
                     # update parameters
                     with logger.measure_time("algorithm_update"):
-                        loss = self.update(batch)
+                        loss = self.update(batch, precision_scaler)
 
                     # record metrics
                     for name, val in loss.items():
@@ -453,7 +468,9 @@ class GatoAlgoBase(
 
         logger.close()
 
-    def update(self, batch: GatoEmbeddingMiniBatch) -> Dict[str, float]:
+    def update(
+        self, batch: GatoEmbeddingMiniBatch, precision_scaler: PrecisionScaler
+    ) -> Dict[str, float]:
         """Update parameters with mini-batch of data.
 
         Args:
@@ -463,6 +480,6 @@ class GatoAlgoBase(
             Dictionary of metrics.
         """
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
-        loss = self._impl.update(batch, self._grad_step)
+        loss = self._impl.update(batch, self._grad_step, precision_scaler)
         self._grad_step += 1
         return loss

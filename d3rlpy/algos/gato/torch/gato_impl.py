@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.optim import Optimizer
 
+from ....mixed_precision import PrecisionScaler
 from ....models.torch import (
     GatoTransformer,
     SeparatorTokenEmbedding,
@@ -71,11 +72,15 @@ class GatoImpl(GatoAlgoImplBase):
         return int(np.argmax(logits[0][-1].cpu().detach().numpy()))
 
     def inner_update(
-        self, batch: GatoEmbeddingMiniBatch, grad_step: int
+        self,
+        batch: GatoEmbeddingMiniBatch,
+        grad_step: int,
+        precision_scaler: PrecisionScaler,
     ) -> Dict[str, float]:
         self._modules.optim.zero_grad()
-        loss = self.compute_loss(batch)
-        loss.backward()
+        with precision_scaler.autocast():
+            loss = self.compute_loss(batch)
+        precision_scaler.scale_and_backward(self._modules.optim, loss)
 
         torch.nn.utils.clip_grad_norm_(
             list(self._modules.transformer.parameters())
@@ -84,7 +89,7 @@ class GatoImpl(GatoAlgoImplBase):
             self._clip_grad_norm,
         )
 
-        self._modules.optim.step()
+        precision_scaler.step(self._modules.optim)
 
         # schedule learning rate
         # linear warmup
