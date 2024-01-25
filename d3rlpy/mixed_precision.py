@@ -59,4 +59,9 @@ class MixedPrecisionScaler(PrecisionScaler):
 
     @contextmanager
     def autocast(self) -> Generator[Any, None, None]:
-        yield autocast("cuda", dtype=torch.float16)
+        ctx = autocast("cuda", dtype=torch.float16)
+        ctx.__enter__()
+        try:
+            yield None
+        finally:
+            del ctx
