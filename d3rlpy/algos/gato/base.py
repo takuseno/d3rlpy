@@ -30,7 +30,11 @@ from ...logging import (
 from ...metrics import evaluate_gato_with_environment
 from ...mixed_precision import NoCastPrecisionScaler, PrecisionScaler
 from ...models import EmbeddingModuleFactory, TokenEmbeddingFactory
-from ...models.torch import SeparatorTokenEmbedding, TokenEmbedding
+from ...models.torch import (
+    SeparatorTokenEmbedding,
+    TokenEmbedding,
+    get_parameter,
+)
 from ...serializable_config import generate_dict_config_field
 from ...torch_utility import eval_api, train_api
 from ...types import GymEnv, NDArray, Observation
@@ -243,7 +247,9 @@ class StatefulGatoWrapper(Generic[TGatoImpl, TGatoConfig]):
 
     def _append_separator_embedding(self) -> None:
         assert self._algo.impl
-        self._embeddings.append(self._algo.impl.separator_token_embedding.data)
+        self._embeddings.append(
+            get_parameter(self._algo.impl.separator_token_embedding)
+        )
         self._observation_positions.append(0)
         self._observation_masks.append(0)
         self._action_masks.append(0)
