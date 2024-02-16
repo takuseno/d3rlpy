@@ -360,6 +360,8 @@ class QLearningAlgoBase(
         n_steps_per_epoch: int = 10000,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
+        logging_steps: int = 500,
+        logging_strategy: str = "epoch",
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
         save_interval: int = 1,
@@ -404,6 +406,8 @@ class QLearningAlgoBase(
                 n_steps_per_epoch=n_steps_per_epoch,
                 experiment_name=experiment_name,
                 with_timestamp=with_timestamp,
+                logging_steps=logging_steps,
+                logging_strategy=logging_strategy,
                 logger_adapter=logger_adapter,
                 show_progress=show_progress,
                 save_interval=save_interval,
@@ -420,6 +424,8 @@ class QLearningAlgoBase(
         dataset: ReplayBuffer,
         n_steps: int,
         n_steps_per_epoch: int = 10000,
+        logging_steps: int = 500,
+        logging_strategy: str = "epoch",
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
@@ -466,6 +472,8 @@ class QLearningAlgoBase(
 
         # check action space
         assert_action_space_with_dataset(self, dataset.dataset_info)
+
+        assert logging_strategy in ['steps', 'epoch'], 'Logging strategy invalid'
 
         # initialize scalers
         build_scalers_with_transition_picker(self, dataset)
@@ -540,6 +548,9 @@ class QLearningAlgoBase(
 
                 total_step += 1
 
+                if logging_strategy == 'steps' and total_step % logging_steps == 0:
+                    metrics = logger.commit(epoch, total_step)
+
                 # call callback if given
                 if callback:
                     callback(self, epoch, total_step)
@@ -554,7 +565,8 @@ class QLearningAlgoBase(
                     logger.add_metric(name, test_score)
 
             # save metrics
-            metrics = logger.commit(epoch, total_step)
+            if logging_strategy == 'epoch':
+                metrics = logger.commit(epoch, total_step)
 
             # save model parameters
             if epoch % save_interval == 0:
