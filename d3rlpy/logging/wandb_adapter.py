@@ -1,6 +1,8 @@
-import wandb
 from typing import Any, Dict, Optional
 from .logger import LoggerAdapter, LoggerAdapterFactory, SaveProtocol
+
+
+__all__ = ["LoggerWanDBAdapter", "WanDBAdapterFactory"]
 
 
 class LoggerWanDBAdapter(LoggerAdapter):
@@ -13,6 +15,10 @@ class LoggerWanDBAdapter(LoggerAdapter):
     """
 
     def __init__(self, project: Optional[str] = None, experiment_name: Optional[str] = None):
+        try:
+            import wandb
+        except ImportError as e:
+            raise ImportError("Please install wandb") from e
         self.run = wandb.init(project=project, name=experiment_name)
 
     def write_params(self, params: Dict[str, Any]) -> None:

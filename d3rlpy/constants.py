@@ -47,3 +47,8 @@ class ActionSpace(Enum):
 class PositionEncodingType(Enum):
     SIMPLE = "simple"
     GLOBAL = "global"
+
+
+class LoggingStrategyEnum(Enum):
+    STEPS = "steps"
+    EPOCH = "epoch"

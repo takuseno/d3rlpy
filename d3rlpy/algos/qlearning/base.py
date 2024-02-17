@@ -18,7 +18,7 @@ from tqdm.auto import tqdm, trange
 from typing_extensions import Self
 
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace, LoggingStrategyEnum
 from ...dataset import (
     ReplayBuffer,
     TransitionMiniBatch,
@@ -361,7 +361,7 @@ class QLearningAlgoBase(
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
         logging_steps: int = 500,
-        logging_strategy: str = "epoch",
+        logging_strategy: LoggingStrategyEnum = LoggingStrategyEnum.EPOCH,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
         save_interval: int = 1,
@@ -385,6 +385,8 @@ class QLearningAlgoBase(
                 the directory name will be `{class name}_{timestamp}`.
             with_timestamp: Flag to add timestamp string to the last of
                 directory name.
+            logging_steps: number of steps to log metrics.
+            logging_strategy: what logging strategy to use.
             logger_adapter: LoggerAdapterFactory object.
             show_progress: Flag to show progress bar for iterations.
             save_interval: Interval to save parameters.
@@ -425,7 +427,7 @@ class QLearningAlgoBase(
         n_steps: int,
         n_steps_per_epoch: int = 10000,
         logging_steps: int = 500,
-        logging_strategy: str = "epoch",
+        logging_strategy: LoggingStrategyEnum = LoggingStrategyEnum.EPOCH,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
@@ -454,6 +456,8 @@ class QLearningAlgoBase(
                 the directory name will be `{class name}_{timestamp}`.
             with_timestamp: Flag to add timestamp string to the last of
                 directory name.
+            logging_steps: number of steps to log metrics.
+            logging_strategy: what logging strategy to use.
             logger_adapter: LoggerAdapterFactory object.
             show_progress: Flag to show progress bar for iterations.
             save_interval: Interval to save parameters.
@@ -472,8 +476,6 @@ class QLearningAlgoBase(
 
         # check action space
         assert_action_space_with_dataset(self, dataset.dataset_info)
-
-        assert logging_strategy in ['steps', 'epoch'], 'Logging strategy invalid'
 
         # initialize scalers
         build_scalers_with_transition_picker(self, dataset)
@@ -548,7 +550,7 @@ class QLearningAlgoBase(
 
                 total_step += 1
 
-                if logging_strategy == 'steps' and total_step % logging_steps == 0:
+                if logging_strategy == LoggingStrategyEnum.STEPS and total_step % logging_steps == 0:
                     metrics = logger.commit(epoch, total_step)
 
                 # call callback if given
@@ -565,7 +567,7 @@ class QLearningAlgoBase(
                     logger.add_metric(name, test_score)
 
             # save metrics
-            if logging_strategy == 'epoch':
+            if logging_strategy == LoggingStrategyEnum.EPOCH:
                 metrics = logger.commit(epoch, total_step)
 
             # save model parameters
