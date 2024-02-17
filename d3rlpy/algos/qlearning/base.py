@@ -21,7 +21,7 @@ from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
 from ...constants import (
     IMPL_NOT_INITIALIZED_ERROR,
     ActionSpace,
-    LoggingStrategyEnum,
+    LoggingStrategy,
 )
 from ...dataset import (
     ReplayBuffer,
@@ -365,7 +365,7 @@ class QLearningAlgoBase(
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
         logging_steps: int = 500,
-        logging_strategy: LoggingStrategyEnum = LoggingStrategyEnum.EPOCH,
+        logging_strategy: LoggingStrategy = LoggingStrategy.EPOCH,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
         save_interval: int = 1,
@@ -431,7 +431,7 @@ class QLearningAlgoBase(
         n_steps: int,
         n_steps_per_epoch: int = 10000,
         logging_steps: int = 500,
-        logging_strategy: LoggingStrategyEnum = LoggingStrategyEnum.EPOCH,
+        logging_strategy: LoggingStrategy = LoggingStrategy.EPOCH,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
@@ -555,7 +555,7 @@ class QLearningAlgoBase(
                 total_step += 1
 
                 if (
-                    logging_strategy == LoggingStrategyEnum.STEPS
+                    logging_strategy == LoggingStrategy.STEPS
                     and total_step % logging_steps == 0
                 ):
                     metrics = logger.commit(epoch, total_step)
@@ -574,7 +574,7 @@ class QLearningAlgoBase(
                     logger.add_metric(name, test_score)
 
             # save metrics
-            if logging_strategy == LoggingStrategyEnum.EPOCH:
+            if logging_strategy == LoggingStrategy.EPOCH:
                 metrics = logger.commit(epoch, total_step)
 
             # save model parameters

@@ -49,6 +49,6 @@ class PositionEncodingType(Enum):
     GLOBAL = "global"
 
 
-class LoggingStrategyEnum(Enum):
+class LoggingStrategy(Enum):
     STEPS = "steps"
     EPOCH = "epoch"
