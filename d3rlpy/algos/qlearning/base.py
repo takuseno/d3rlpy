@@ -18,7 +18,11 @@ from tqdm.auto import tqdm, trange
 from typing_extensions import Self
 
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace, LoggingStrategyEnum
+from ...constants import (
+    IMPL_NOT_INITIALIZED_ERROR,
+    ActionSpace,
+    LoggingStrategyEnum,
+)
 from ...dataset import (
     ReplayBuffer,
     TransitionMiniBatch,
@@ -550,7 +554,10 @@ class QLearningAlgoBase(
 
                 total_step += 1
 
-                if logging_strategy == LoggingStrategyEnum.STEPS and total_step % logging_steps == 0:
+                if (
+                    logging_strategy == LoggingStrategyEnum.STEPS
+                    and total_step % logging_steps == 0
+                ):
                     metrics = logger.commit(epoch, total_step)
 
                 # call callback if given
