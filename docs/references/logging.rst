@@ -78,6 +78,7 @@ You can implement your own ``LoggerAdapter`` for 3rd-party visualizers.
    d3rlpy.logging.LoggerAdapter
    d3rlpy.logging.FileAdapter
    d3rlpy.logging.TensorboardAdapter
+   d3rlpy.logging.WanDBAdapter
    d3rlpy.logging.NoopAdapter
    d3rlpy.logging.CombineAdapter
 
@@ -103,5 +104,6 @@ You can implement your own ``LoggerAdapterFactory`` for 3rd-party visualizers.
    d3rlpy.logging.LoggerAdapterFactory
    d3rlpy.logging.FileAdapterFactory
    d3rlpy.logging.TensorboardAdapterFactory
+   d3rlpy.logging.WanDBAdapterFactory
    d3rlpy.logging.NoopAdapterFactory
    d3rlpy.logging.CombineAdapterFactory

@@ -2,10 +2,10 @@ from typing import Any, Dict, Optional
 
 from .logger import LoggerAdapter, LoggerAdapterFactory, SaveProtocol
 
-__all__ = ["LoggerWanDBAdapter", "WanDBAdapterFactory"]
+__all__ = ["WanDBAdapter", "WanDBAdapterFactory"]
 
 
-class LoggerWanDBAdapter(LoggerAdapter):
+class WanDBAdapter(LoggerAdapter):
     r"""WandB Logger Adapter class.
 
     This class logs data to Weights & Biases (WandB) for experiment tracking.
