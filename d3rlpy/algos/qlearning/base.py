@@ -461,8 +461,9 @@ class QLearningAlgoBase(
                 the directory name will be `{class name}_{timestamp}`.
             with_timestamp: Flag to add timestamp string to the last of
                 directory name.
-            logging_steps: number of steps to log metrics.
-            logging_strategy: what logging strategy to use.
+            logging_steps: Number of steps to log metrics. This will be ignored
+                if loggig_strategy is EPOCH.
+            logging_strategy: Logging strategy to use.
             logger_adapter: LoggerAdapterFactory object.
             show_progress: Flag to show progress bar for iterations.
             save_interval: Interval to save parameters.
@@ -601,6 +602,8 @@ class QLearningAlgoBase(
         save_interval: int = 1,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
+        logging_steps: int = 500,
+        logging_strategy: LoggingStrategy = LoggingStrategy.EPOCH,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
         callback: Optional[Callable[[Self, int, int], None]] = None,
@@ -623,6 +626,9 @@ class QLearningAlgoBase(
                 the directory name will be ``{class name}_online_{timestamp}``.
             with_timestamp: Flag to add timestamp string to the last of
                 directory name.
+            logging_steps: Number of steps to log metrics. This will be ignored
+                if logging_strategy is EPOCH.
+            logging_strategy: Logging strategy to use.
             logger_adapter: LoggerAdapterFactory object.
             show_progress: Flag to show progress bar for iterations.
             callback: Callable function that takes ``(algo, epoch, total_step)``
@@ -726,6 +732,12 @@ class QLearningAlgoBase(
                         for name, val in loss.items():
                             logger.add_metric(name, val)
 
+                        if (
+                            logging_strategy == LoggingStrategy.STEPS
+                            and total_step % logging_steps == 0
+                        ):
+                            logger.commit(epoch, total_step)
+
                 # call callback if given
                 if callback:
                     callback(self, epoch, total_step)
@@ -742,7 +754,8 @@ class QLearningAlgoBase(
                     logger.save_model(total_step, self)
 
                 # save metrics
-                logger.commit(epoch, total_step)
+                if logging_strategy == LoggingStrategy.EPOCH:
+                    logger.commit(epoch, total_step)
 
         # clip the last episode
         buffer.clip_episode(False)

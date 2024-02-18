@@ -77,7 +77,7 @@ class WanDBAdapterFactory(LoggerAdapterFactory):
             experiment_name (str): Name of the experiment.
 
         Returns:
-            LoggerAdapter: Instance of the WandB Logger Adapter.
+            Instance of the WandB Logger Adapter.
         """
         return WanDBAdapter(
             experiment_name=experiment_name,
