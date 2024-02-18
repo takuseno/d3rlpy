@@ -18,7 +18,11 @@ from tqdm.auto import tqdm, trange
 from typing_extensions import Self
 
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import (
+    IMPL_NOT_INITIALIZED_ERROR,
+    ActionSpace,
+    LoggingStrategy,
+)
 from ...dataset import (
     ReplayBuffer,
     TransitionMiniBatch,
@@ -360,6 +364,8 @@ class QLearningAlgoBase(
         n_steps_per_epoch: int = 10000,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
+        logging_steps: int = 500,
+        logging_strategy: LoggingStrategy = LoggingStrategy.EPOCH,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
         save_interval: int = 1,
@@ -383,6 +389,8 @@ class QLearningAlgoBase(
                 the directory name will be `{class name}_{timestamp}`.
             with_timestamp: Flag to add timestamp string to the last of
                 directory name.
+            logging_steps: number of steps to log metrics.
+            logging_strategy: what logging strategy to use.
             logger_adapter: LoggerAdapterFactory object.
             show_progress: Flag to show progress bar for iterations.
             save_interval: Interval to save parameters.
@@ -404,6 +412,8 @@ class QLearningAlgoBase(
                 n_steps_per_epoch=n_steps_per_epoch,
                 experiment_name=experiment_name,
                 with_timestamp=with_timestamp,
+                logging_steps=logging_steps,
+                logging_strategy=logging_strategy,
                 logger_adapter=logger_adapter,
                 show_progress=show_progress,
                 save_interval=save_interval,
@@ -420,6 +430,8 @@ class QLearningAlgoBase(
         dataset: ReplayBuffer,
         n_steps: int,
         n_steps_per_epoch: int = 10000,
+        logging_steps: int = 500,
+        logging_strategy: LoggingStrategy = LoggingStrategy.EPOCH,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
@@ -448,6 +460,8 @@ class QLearningAlgoBase(
                 the directory name will be `{class name}_{timestamp}`.
             with_timestamp: Flag to add timestamp string to the last of
                 directory name.
+            logging_steps: number of steps to log metrics.
+            logging_strategy: what logging strategy to use.
             logger_adapter: LoggerAdapterFactory object.
             show_progress: Flag to show progress bar for iterations.
             save_interval: Interval to save parameters.
@@ -540,6 +554,12 @@ class QLearningAlgoBase(
 
                 total_step += 1
 
+                if (
+                    logging_strategy == LoggingStrategy.STEPS
+                    and total_step % logging_steps == 0
+                ):
+                    metrics = logger.commit(epoch, total_step)
+
                 # call callback if given
                 if callback:
                     callback(self, epoch, total_step)
@@ -554,7 +574,8 @@ class QLearningAlgoBase(
                     logger.add_metric(name, test_score)
 
             # save metrics
-            metrics = logger.commit(epoch, total_step)
+            if logging_strategy == LoggingStrategy.EPOCH:
+                metrics = logger.commit(epoch, total_step)
 
             # save model parameters
             if epoch % save_interval == 0:
