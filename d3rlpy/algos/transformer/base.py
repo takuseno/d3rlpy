@@ -46,7 +46,7 @@ class TransformerAlgoImplBase(ImplBase):
 
     @abstractmethod
     def inner_predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
-        ...
+        raise NotImplementedError
 
     @train_api
     def update(
@@ -58,7 +58,7 @@ class TransformerAlgoImplBase(ImplBase):
     def inner_update(
         self, batch: TorchTrajectoryMiniBatch, grad_step: int
     ) -> Dict[str, float]:
-        pass
+        raise NotImplementedError
 
 
 @dataclasses.dataclass()
@@ -101,6 +101,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         target_return (float): Target return.
         action_sampler (d3rlpy.algos.TransformerActionSampler): Action sampler.
     """
+
     _algo: "TransformerAlgoBase[TTransformerImpl, TTransformerConfig]"
     _target_return: float
     _action_sampler: TransformerActionSampler

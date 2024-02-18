@@ -119,6 +119,7 @@ class MinMaxObservationScaler(ObservationScaler):
         minimum (numpy.ndarray): Minimum values at each entry.
         maximum (numpy.ndarray): Maximum values at each entry.
     """
+
     minimum: Optional[NDArray] = make_optional_numpy_field()
     maximum: Optional[NDArray] = make_optional_numpy_field()
 
@@ -265,6 +266,7 @@ class StandardObservationScaler(ObservationScaler):
         std (numpy.ndarray): Standard deviation at each entry.
         eps (float): Small constant value to avoid zero-division.
     """
+
     mean: Optional[NDArray] = make_optional_numpy_field()
     std: Optional[NDArray] = make_optional_numpy_field()
     eps: float = 1e-3
@@ -411,9 +413,9 @@ class TupleObservationScaler(ObservationScaler):
             List of observation scalers.
     """
 
-    observation_scalers: Sequence[
-        ObservationScaler
-    ] = observation_scaler_list_field()
+    observation_scalers: Sequence[ObservationScaler] = (
+        observation_scaler_list_field()
+    )
 
     def fit_with_transition_picker(
         self,

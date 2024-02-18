@@ -31,6 +31,7 @@ class RandomPolicyConfig(LearnableConfig):
         normal_std (float): Standard deviation of the normal distribution. This
             is only used when ``distribution='normal'``.
     """
+
     distribution: str = "uniform"
     normal_std: float = 1.0
 

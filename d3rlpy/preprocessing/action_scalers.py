@@ -58,6 +58,7 @@ class MinMaxActionScaler(ActionScaler):
         minimum (numpy.ndarray): Minimum values at each entry.
         maximum (numpy.ndarray): Maximum values at each entry.
     """
+
     minimum: Optional[NDArray] = make_optional_numpy_field()
     maximum: Optional[NDArray] = make_optional_numpy_field()
 

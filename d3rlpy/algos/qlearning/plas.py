@@ -78,6 +78,7 @@ class PLASConfig(LearnableConfig):
         warmup_steps (int): Number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
     """
+
     actor_learning_rate: float = 1e-4
     critic_learning_rate: float = 1e-3
     imitator_learning_rate: float = 1e-4
@@ -239,6 +240,7 @@ class PLASWithPerturbationConfig(PLASConfig):
         warmup_steps (int): Number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
     """
+
     action_flexibility: float = 0.05
 
     def create(self, device: DeviceArg = False) -> "PLASWithPerturbation":

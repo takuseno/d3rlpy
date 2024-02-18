@@ -71,6 +71,7 @@ class AWACConfig(LearnableConfig):
             :math:`A^\pi(s_t, a_t)`.
         n_critics (int): Number of Q functions for ensemble.
     """
+
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4
     actor_optim_factory: OptimizerFactory = make_optimizer_field()

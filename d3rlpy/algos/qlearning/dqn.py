@@ -45,6 +45,7 @@ class DQNConfig(LearnableConfig):
         n_critics (int): Number of Q functions for ensemble.
         target_update_interval (int): Interval to update the target network.
     """
+
     batch_size: int = 32
     learning_rate: float = 6.25e-5
     optim_factory: OptimizerFactory = make_optimizer_field()
@@ -147,6 +148,7 @@ class DoubleDQNConfig(DQNConfig):
         target_update_interval (int): Interval to synchronize the target
             network.
     """
+
     batch_size: int = 32
     learning_rate: float = 6.25e-5
     optim_factory: OptimizerFactory = make_optimizer_field()

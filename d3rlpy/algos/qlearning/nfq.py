@@ -48,6 +48,7 @@ class NFQConfig(LearnableConfig):
         gamma (float): Discount factor.
         n_critics (int): Number of Q functions for ensemble.
     """
+
     learning_rate: float = 6.25e-5
     optim_factory: OptimizerFactory = make_optimizer_field()
     encoder_factory: EncoderFactory = make_encoder_field()

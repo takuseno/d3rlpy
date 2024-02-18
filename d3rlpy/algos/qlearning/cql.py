@@ -100,6 +100,7 @@ class CQLConfig(LearnableConfig):
             :math:`\log{\sum_a \exp{Q(s, a)}}`.
         soft_q_backup (bool): Flag to use SAC-style backup.
     """
+
     actor_learning_rate: float = 1e-4
     critic_learning_rate: float = 3e-4
     temp_learning_rate: float = 1e-4
@@ -256,6 +257,7 @@ class DiscreteCQLConfig(LearnableConfig):
             network.
         alpha (float): math:`\alpha` value above.
     """
+
     learning_rate: float = 6.25e-5
     optim_factory: OptimizerFactory = make_optimizer_field()
     encoder_factory: EncoderFactory = make_encoder_field()

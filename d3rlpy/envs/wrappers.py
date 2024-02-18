@@ -188,6 +188,7 @@ class AtariPreprocessing(gym.Wrapper[NDArray, int]):
             FrameStack Wrapper.
 
     """
+
     _obs_buffer: Sequence[NDArray]
 
     def __init__(
@@ -388,6 +389,7 @@ class GoalConcatWrapper(
         goal_key (str): String key of the goal observation.
         tuple_observation (bool): Flag to include goals as tuple element.
     """
+
     _observation_space: Union[GymnasiumBox, GymnasiumTuple]
     _observation_key: str
     _goal_key: str
@@ -416,17 +418,21 @@ class GoalConcatWrapper(
             goal_spaces = [goal_space[key] for key in goal_keys]
             goal_space_low = np.concatenate(
                 [
-                    [space.low] * space.shape[0]  # type: ignore
-                    if np.isscalar(space.low)  # type: ignore
-                    else space.low  # type: ignore
+                    (
+                        [space.low] * space.shape[0]  # type: ignore
+                        if np.isscalar(space.low)  # type: ignore
+                        else space.low  # type: ignore
+                    )
                     for space in goal_spaces
                 ]
             )
             goal_space_high = np.concatenate(
                 [
-                    [space.high] * space.shape[0]  # type: ignore
-                    if np.isscalar(space.high)  # type: ignore
-                    else space.high  # type: ignore
+                    (
+                        [space.high] * space.shape[0]  # type: ignore
+                        if np.isscalar(space.high)  # type: ignore
+                        else space.high  # type: ignore
+                    )
                     for space in goal_spaces
                 ]
             )
@@ -446,9 +452,7 @@ class GoalConcatWrapper(
                 dtype=observation_space.dtype,  # type: ignore
             )
 
-    def step(
-        self, action: _ActType
-    ) -> Tuple[
+    def step(self, action: _ActType) -> Tuple[
         Union[NDArray, Tuple[NDArray, NDArray]],
         SupportsFloat,
         bool,

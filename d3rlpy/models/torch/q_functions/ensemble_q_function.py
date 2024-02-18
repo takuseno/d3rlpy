@@ -163,9 +163,11 @@ class DiscreteEnsembleQFunctionForwarder:
             values.append(
                 value.view(
                     1,
-                    x[0].shape[0]
-                    if isinstance(x, (list, tuple))
-                    else x.shape[0],  # type: ignore
+                    (
+                        x[0].shape[0]
+                        if isinstance(x, (list, tuple))
+                        else x.shape[0]  # type: ignore
+                    ),
                     self._action_size,
                 )
             )
@@ -232,9 +234,11 @@ class ContinuousEnsembleQFunctionForwarder:
             values.append(
                 value.view(
                     1,
-                    x[0].shape[0]
-                    if isinstance(x, (list, tuple))
-                    else x.shape[0],  # type: ignore
+                    (
+                        x[0].shape[0]
+                        if isinstance(x, (list, tuple))
+                        else x.shape[0]  # type: ignore
+                    ),
                     1,
                 )
             )

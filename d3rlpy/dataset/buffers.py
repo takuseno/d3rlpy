@@ -44,6 +44,7 @@ class BufferProtocol(Protocol):
 
 class InfiniteBuffer(BufferProtocol):
     r"""Buffer with unlimited capacity."""
+
     _transitions: List[Tuple[EpisodeBase, int]]
     _episodes: List[EpisodeBase]
 
@@ -78,6 +79,7 @@ class FIFOBuffer(BufferProtocol):
     Args:
         limit (int): buffer capacity.
     """
+
     _transitions: Deque[Tuple[EpisodeBase, int]]
     _episodes: List[EpisodeBase]
     _limit: int

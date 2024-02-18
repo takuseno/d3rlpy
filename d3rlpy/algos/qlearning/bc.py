@@ -50,6 +50,7 @@ class BCConfig(LearnableConfig):
             Observation preprocessor.
         action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
     """
+
     batch_size: int = 100
     learning_rate: float = 1e-3
     policy_type: str = "deterministic"
@@ -133,6 +134,7 @@ class DiscreteBCConfig(LearnableConfig):
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
             Observation preprocessor.
     """
+
     batch_size: int = 100
     learning_rate: float = 1e-3
     optim_factory: OptimizerFactory = make_optimizer_field()

@@ -12,11 +12,9 @@ __all__ = [
 
 @runtime_checkable
 class Tokenizer(Protocol):
-    def __call__(self, x: NDArray) -> NDArray:
-        ...
+    def __call__(self, x: NDArray) -> NDArray: ...
 
-    def decode(self, y: Int32NDArray) -> NDArray:
-        ...
+    def decode(self, y: Int32NDArray) -> NDArray: ...
 
 
 class FloatTokenizer(Tokenizer):

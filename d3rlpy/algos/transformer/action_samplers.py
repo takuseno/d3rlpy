@@ -48,6 +48,7 @@ class SoftmaxTransformerActionSampler(TransformerActionSampler):
     Args:
         temperature (int): Softmax temperature.
     """
+
     _temperature: float
 
     def __init__(self, temperature: float = 1.0):

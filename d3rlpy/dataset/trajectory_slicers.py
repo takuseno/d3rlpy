@@ -116,6 +116,7 @@ class FrameStackTrajectorySlicer(TrajectorySlicerProtocol):
     Args:
         n_frames: Number of frames to stack.
     """
+
     _n_frames: int
 
     def __init__(self, n_frames: int):

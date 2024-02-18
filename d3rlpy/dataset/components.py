@@ -40,6 +40,7 @@ class Signature:
         dtype: List of numpy data types.
         shape: List of array shapes.
     """
+
     dtype: Sequence[DType]
     shape: Sequence[Sequence[int]]
 
@@ -69,6 +70,7 @@ class Transition:
         terminal: Flag of environment termination.
         interval: Timesteps between ``observation`` and ``next_observation``.
     """
+
     observation: Observation  # (...)
     action: NDArray  # (...)
     reward: Float32NDArray  # (1,)
@@ -130,6 +132,7 @@ class PartialTrajectory:
         masks: Sequence of masks that represent padding.
         length: Sequence length.
     """
+
     observations: ObservationSequence  # (L, ...)
     actions: NDArray  # (L, ...)
     rewards: Float32NDArray  # (L, 1)
@@ -350,6 +353,7 @@ class Episode:
         rewards: Sequence of rewards.
         terminated: Flag of environment termination.
     """
+
     observations: ObservationSequence
     actions: NDArray
     rewards: Float32NDArray
@@ -422,6 +426,7 @@ class DatasetInfo:
             this represents dimension of action vectors. For discrete
             action-space, this represents the number of discrete actions.
     """
+
     observation_signature: Signature
     action_signature: Signature
     reward_signature: Signature

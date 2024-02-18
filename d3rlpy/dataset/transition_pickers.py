@@ -103,6 +103,7 @@ class FrameStackTransitionPicker(TransitionPickerProtocol):
         n_frames (int): Number of frames to stack.
         gamma (float): Discount factor to compute return-to-go.
     """
+
     _n_frames: int
     _gamma: float
 
@@ -152,6 +153,7 @@ class MultiStepTransitionPicker(TransitionPickerProtocol):
             ``net_observation``.
         gamma: Discount factor to compute a multi-step return.
     """
+
     _n_steps: int
     _gamma: float
 

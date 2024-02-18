@@ -54,6 +54,7 @@ class CombineAdapterFactory(LoggerAdapterFactory):
         adapter_factories (Sequence[LoggerAdapterFactory]):
             List of LoggerAdapterFactory.
     """
+
     _adapter_factories: Sequence[LoggerAdapterFactory]
 
     def __init__(self, adapter_factories: Sequence[LoggerAdapterFactory]):

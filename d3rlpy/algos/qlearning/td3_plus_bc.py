@@ -66,6 +66,7 @@ class TD3PlusBCConfig(LearnableConfig):
         update_actor_interval (int): Interval to update policy function
             described as `delayed policy update` in the paper.
     """
+
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4
     actor_optim_factory: OptimizerFactory = make_optimizer_field()

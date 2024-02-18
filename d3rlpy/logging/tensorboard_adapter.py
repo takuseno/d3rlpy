@@ -21,6 +21,7 @@ class TensorboardAdapter(LoggerAdapter):
         root_dir (str): Top-level log directory.
         experiment_name (str): Experiment name.
     """
+
     _experiment_name: str
     _params: Dict[str, Any]
     _metrics: Dict[str, float]
@@ -73,6 +74,7 @@ class TensorboardAdapterFactory(LoggerAdapterFactory):
     Args:
         root_dir (str): Top-level log directory.
     """
+
     _root_dir: str
 
     def __init__(self, root_dir: str = "tensorboard_logs"):

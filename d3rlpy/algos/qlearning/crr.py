@@ -100,6 +100,7 @@ class CRRConfig(LearnableConfig):
         update_actor_interval (int): Interval to update policy function used
             with ``hard`` target update.
     """
+
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4
     actor_optim_factory: OptimizerFactory = make_optimizer_field()

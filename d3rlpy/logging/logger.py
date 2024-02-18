@@ -36,8 +36,7 @@ def set_log_context(**kwargs: Any) -> None:
 
 
 class SaveProtocol(Protocol):
-    def save(self, fname: str) -> None:
-        ...
+    def save(self, fname: str) -> None: ...
 
 
 class LoggerAdapter(Protocol):

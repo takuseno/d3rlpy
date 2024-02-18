@@ -49,6 +49,7 @@ class MultiplyRewardScaler(RewardScaler):
     Args:
         multiplier (float): Constant multiplication value.
     """
+
     multiplier: float = 1.0
 
     def fit_with_transition_picker(
@@ -104,6 +105,7 @@ class ClipRewardScaler(RewardScaler):
         high (Optional[float]): Maximum value to clip.
         multiplier (float): Constant multiplication value.
     """
+
     low: Optional[float] = None
     high: Optional[float] = None
     multiplier: float = 1.0
@@ -170,6 +172,7 @@ class MinMaxRewardScaler(RewardScaler):
         maximum (float): Maximum value.
         multiplier (float): Constant multiplication value.
     """
+
     minimum: Optional[float] = None
     maximum: Optional[float] = None
     multiplier: float = 1.0
@@ -262,6 +265,7 @@ class StandardRewardScaler(RewardScaler):
         eps (float): Constant value to avoid zero-division.
         multiplier (float): Constant multiplication value
     """
+
     mean: Optional[float] = None
     std: Optional[float] = None
     eps: float = 1e-3
@@ -359,6 +363,7 @@ class ReturnBasedRewardScaler(RewardScaler):
         return_min (float): Standard deviation value.
         multiplier (float): Constant multiplication value
     """
+
     return_max: Optional[float] = None
     return_min: Optional[float] = None
     multiplier: float = 1.0
@@ -448,6 +453,7 @@ class ConstantShiftRewardScaler(RewardScaler):
     Args:
         shift (float): Constant shift value
     """
+
     shift: float
 
     def fit_with_transition_picker(

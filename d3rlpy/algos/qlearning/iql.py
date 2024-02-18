@@ -81,6 +81,7 @@ class IQLConfig(LearnableConfig):
             :math:`\beta`.
         max_weight (float): Maximum advantage weight value to clip.
     """
+
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4
     actor_optim_factory: OptimizerFactory = make_optimizer_field()

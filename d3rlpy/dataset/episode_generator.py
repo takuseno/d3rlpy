@@ -32,6 +32,7 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
         terminals: Sequence of environment terminal flags.
         timeouts: Sequence of timeout flags.
     """
+
     _observations: ObservationSequence
     _actions: NDArray
     _rewards: Float32NDArray

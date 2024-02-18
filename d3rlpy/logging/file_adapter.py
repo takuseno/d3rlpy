@@ -32,6 +32,7 @@ class FileAdapter(LoggerAdapter):
     Args:
         logdir (str): Log directory.
     """
+
     _logdir: str
 
     def __init__(self, logdir: str):
@@ -85,6 +86,7 @@ class FileAdapterFactory(LoggerAdapterFactory):
     Args:
         root_dir (str): Top-level log directory.
     """
+
     _root_dir: str
 
     def __init__(self, root_dir: str = "d3rlpy_logs"):

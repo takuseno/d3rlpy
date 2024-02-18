@@ -70,6 +70,7 @@ class DDPGConfig(LearnableConfig):
         tau (float): Target network synchronization coefficiency.
         n_critics (int): Number of Q functions for ensemble.
     """
+
     batch_size: int = 256
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4

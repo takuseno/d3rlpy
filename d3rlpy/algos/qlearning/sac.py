@@ -95,6 +95,7 @@ class SACConfig(LearnableConfig):
         n_critics (int): Number of Q functions for ensemble.
         initial_temperature (float): Initial temperature value.
     """
+
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4
     temp_learning_rate: float = 3e-4
@@ -243,6 +244,7 @@ class DiscreteSACConfig(LearnableConfig):
         n_critics (int): Number of Q functions for ensemble.
         initial_temperature (float): Initial temperature value.
     """
+
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4
     temp_learning_rate: float = 3e-4

@@ -30,6 +30,7 @@ class TransitionMiniBatch:
         intervals: Batched timesteps between observations and next
             observations.
     """
+
     observations: Union[Float32NDArray, Sequence[Float32NDArray]]  # (B, ...)
     actions: Float32NDArray  # (B, ...)
     rewards: Float32NDArray  # (B, 1)
@@ -146,6 +147,7 @@ class TrajectoryMiniBatch:
         masks: Batched masks that represent padding.
         length: Length of trajectories.
     """
+
     observations: Union[Float32NDArray, Sequence[Float32NDArray]]  # (B, L, ...)
     actions: Float32NDArray  # (B, L, ...)
     rewards: Float32NDArray  # (B, L, 1)

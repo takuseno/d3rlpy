@@ -43,15 +43,13 @@ __all__ = [
 
 
 @overload
-def retrieve_observation(observations: NDArray, index: int) -> NDArray:
-    ...
+def retrieve_observation(observations: NDArray, index: int) -> NDArray: ...
 
 
 @overload
 def retrieve_observation(
     observations: Sequence[NDArray], index: int
-) -> Sequence[NDArray]:
-    ...
+) -> Sequence[NDArray]: ...
 
 
 def retrieve_observation(
@@ -66,15 +64,13 @@ def retrieve_observation(
 
 
 @overload
-def create_zero_observation(observation: NDArray) -> NDArray:
-    ...
+def create_zero_observation(observation: NDArray) -> NDArray: ...
 
 
 @overload
 def create_zero_observation(
     observation: Sequence[NDArray],
-) -> Sequence[NDArray]:
-    ...
+) -> Sequence[NDArray]: ...
 
 
 def create_zero_observation(observation: Observation) -> Observation:
@@ -87,15 +83,15 @@ def create_zero_observation(observation: Observation) -> Observation:
 
 
 @overload
-def slice_observations(observations: NDArray, start: int, end: int) -> NDArray:
-    ...
+def slice_observations(
+    observations: NDArray, start: int, end: int
+) -> NDArray: ...
 
 
 @overload
 def slice_observations(
     observations: Sequence[NDArray], start: int, end: int
-) -> Sequence[NDArray]:
-    ...
+) -> Sequence[NDArray]: ...
 
 
 def slice_observations(
@@ -123,15 +119,13 @@ def batch_pad_array(
 
 
 @overload
-def batch_pad_observations(observations: NDArray, pad_size: int) -> NDArray:
-    ...
+def batch_pad_observations(observations: NDArray, pad_size: int) -> NDArray: ...
 
 
 @overload
 def batch_pad_observations(
     observations: Sequence[NDArray], pad_size: int
-) -> Sequence[NDArray]:
-    ...
+) -> Sequence[NDArray]: ...
 
 
 def batch_pad_observations(
@@ -151,15 +145,13 @@ def batch_pad_observations(
 @overload
 def stack_recent_observations(
     observations: NDArray, index: int, n_frames: int
-) -> NDArray:
-    ...
+) -> NDArray: ...
 
 
 @overload
 def stack_recent_observations(
     observations: Sequence[NDArray], index: int, n_frames: int
-) -> Sequence[NDArray]:
-    ...
+) -> Sequence[NDArray]: ...
 
 
 def stack_recent_observations(
@@ -191,20 +183,17 @@ def stack_recent_observations(
 
 
 @overload
-def stack_observations(observations: Sequence[NDArray]) -> NDArray:
-    ...
+def stack_observations(observations: Sequence[NDArray]) -> NDArray: ...
 
 
 @overload
 def stack_observations(
     observations: Sequence[Sequence[NDArray]],
-) -> Sequence[NDArray]:
-    ...
+) -> Sequence[NDArray]: ...
 
 
 @overload
-def stack_observations(observations: Sequence[Observation]) -> Observation:
-    ...
+def stack_observations(observations: Sequence[Observation]) -> Observation: ...
 
 
 def stack_observations(observations: Sequence[Observation]) -> Observation:
@@ -221,15 +210,13 @@ def stack_observations(observations: Sequence[Observation]) -> Observation:
 
 
 @overload
-def get_shape_from_observation(observation: NDArray) -> Sequence[int]:
-    ...
+def get_shape_from_observation(observation: NDArray) -> Sequence[int]: ...
 
 
 @overload
 def get_shape_from_observation(
     observation: Sequence[NDArray],
-) -> Sequence[Sequence[int]]:
-    ...
+) -> Sequence[Sequence[int]]: ...
 
 
 def get_shape_from_observation(observation: Observation) -> Shape:
@@ -244,15 +231,13 @@ def get_shape_from_observation(observation: Observation) -> Shape:
 @overload
 def get_shape_from_observation_sequence(
     observations: NDArray,
-) -> Sequence[int]:
-    ...
+) -> Sequence[int]: ...
 
 
 @overload
 def get_shape_from_observation_sequence(
     observations: Sequence[NDArray],
-) -> Sequence[Sequence[int]]:
-    ...
+) -> Sequence[Sequence[int]]: ...
 
 
 def get_shape_from_observation_sequence(
@@ -267,15 +252,13 @@ def get_shape_from_observation_sequence(
 
 
 @overload
-def get_dtype_from_observation(observation: NDArray) -> DType:
-    ...
+def get_dtype_from_observation(observation: NDArray) -> DType: ...
 
 
 @overload
 def get_dtype_from_observation(
     observation: Sequence[NDArray],
-) -> Sequence[DType]:
-    ...
+) -> Sequence[DType]: ...
 
 
 def get_dtype_from_observation(
@@ -292,15 +275,13 @@ def get_dtype_from_observation(
 @overload
 def get_dtype_from_observation_sequence(
     observations: NDArray,
-) -> DType:
-    ...
+) -> DType: ...
 
 
 @overload
 def get_dtype_from_observation_sequence(
     observations: Sequence[NDArray],
-) -> Sequence[DType]:
-    ...
+) -> Sequence[DType]: ...
 
 
 def get_dtype_from_observation_sequence(
@@ -335,15 +316,13 @@ def check_non_1d_array(array: Union[NDArray, Sequence[NDArray]]) -> bool:
 @overload
 def cast_recursively(
     array: NDArray, dtype: Type[_TDType]
-) -> npt.NDArray[_TDType]:
-    ...
+) -> npt.NDArray[_TDType]: ...
 
 
 @overload
 def cast_recursively(
     array: Sequence[NDArray], dtype: Type[_TDType]
-) -> Sequence[npt.NDArray[_TDType]]:
-    ...
+) -> Sequence[npt.NDArray[_TDType]]: ...
 
 
 def cast_recursively(

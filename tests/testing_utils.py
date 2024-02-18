@@ -33,15 +33,13 @@ from d3rlpy.types import (
 @overload
 def create_observation(
     observation_shape: Sequence[int], dtype: DType = np.float32
-) -> NDArray:
-    ...
+) -> NDArray: ...
 
 
 @overload
 def create_observation(
     observation_shape: Sequence[Sequence[int]], dtype: DType = np.float32
-) -> Sequence[NDArray]:
-    ...
+) -> Sequence[NDArray]: ...
 
 
 def create_observation(
@@ -60,15 +58,13 @@ def create_observation(
 @overload
 def create_torch_observation(
     observation_shape: Sequence[int], dtype: DType = np.float32
-) -> torch.Tensor:
-    ...
+) -> torch.Tensor: ...
 
 
 @overload
 def create_torch_observation(
     observation_shape: Sequence[Sequence[int]], dtype: DType = np.float32
-) -> Sequence[torch.Tensor]:
-    ...
+) -> Sequence[torch.Tensor]: ...
 
 
 def create_torch_observation(
@@ -82,8 +78,7 @@ def create_torch_observation(
 @overload
 def create_observations(
     observation_shape: Sequence[int], length: int, dtype: DType = np.float32
-) -> NDArray:
-    ...
+) -> NDArray: ...
 
 
 @overload
@@ -91,8 +86,7 @@ def create_observations(
     observation_shape: Sequence[Sequence[int]],
     length: int,
     dtype: DType = np.float32,
-) -> Sequence[NDArray]:
-    ...
+) -> Sequence[NDArray]: ...
 
 
 def create_observations(
@@ -114,8 +108,7 @@ def create_observations(
 @overload
 def create_torch_observations(
     observation_shape: Sequence[int], length: int, dtype: DType = np.float32
-) -> torch.Tensor:
-    ...
+) -> torch.Tensor: ...
 
 
 @overload
@@ -123,8 +116,7 @@ def create_torch_observations(
     observation_shape: Sequence[Sequence[int]],
     length: int,
     dtype: DType = np.float32,
-) -> Sequence[torch.Tensor]:
-    ...
+) -> Sequence[torch.Tensor]: ...
 
 
 def create_torch_observations(
@@ -141,8 +133,7 @@ def create_torch_batched_observations(
     batch_size: int,
     length: int,
     dtype: DType = np.float32,
-) -> torch.Tensor:
-    ...
+) -> torch.Tensor: ...
 
 
 @overload
@@ -151,8 +142,7 @@ def create_torch_batched_observations(
     batch_size: int,
     length: int,
     dtype: DType = np.float32,
-) -> Sequence[torch.Tensor]:
-    ...
+) -> Sequence[torch.Tensor]: ...
 
 
 def create_torch_batched_observations(

@@ -115,6 +115,7 @@ class BEARConfig(LearnableConfig):
         warmup_steps (int): Number of steps to warmup the policy
             function.
     """
+
     actor_learning_rate: float = 1e-4
     critic_learning_rate: float = 3e-4
     imitator_learning_rate: float = 3e-4

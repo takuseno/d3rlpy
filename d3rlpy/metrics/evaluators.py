@@ -85,6 +85,7 @@ class TDErrorEvaluator(EvaluatorProtocol):
         episodes: Optional evaluation episodes. If it's not given, dataset
             used in training will be used.
     """
+
     _episodes: Optional[Sequence[EpisodeBase]]
 
     def __init__(self, episodes: Optional[Sequence[EpisodeBase]] = None):
@@ -145,6 +146,7 @@ class DiscountedSumOfAdvantageEvaluator(EvaluatorProtocol):
         episodes: Optional evaluation episodes. If it's not given, dataset
             used in training will be used.
     """
+
     _episodes: Optional[Sequence[EpisodeBase]]
 
     def __init__(self, episodes: Optional[Sequence[EpisodeBase]] = None):
@@ -202,6 +204,7 @@ class AverageValueEstimationEvaluator(EvaluatorProtocol):
         episodes: Optional evaluation episodes. If it's not given, dataset
             used in training will be used.
     """
+
     _episodes: Optional[Sequence[EpisodeBase]]
 
     def __init__(self, episodes: Optional[Sequence[EpisodeBase]] = None):
@@ -293,6 +296,7 @@ class SoftOPCEvaluator(EvaluatorProtocol):
         episodes: Optional evaluation episodes. If it's not given, dataset
             used in training will be used.
     """
+
     _return_threshold: float
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -340,6 +344,7 @@ class ContinuousActionDiffEvaluator(EvaluatorProtocol):
         episodes: Optional evaluation episodes. If it's not given, dataset
             used in training will be used.
     """
+
     _episodes: Optional[Sequence[EpisodeBase]]
 
     def __init__(self, episodes: Optional[Sequence[EpisodeBase]] = None):
@@ -379,6 +384,7 @@ class DiscreteActionMatchEvaluator(EvaluatorProtocol):
         episodes: Optional evaluation episodes. If it's not given, dataset
             used in training will be used.
     """
+
     _episodes: Optional[Sequence[EpisodeBase]]
 
     def __init__(self, episodes: Optional[Sequence[EpisodeBase]] = None):
@@ -419,6 +425,7 @@ class CompareContinuousActionDiffEvaluator(EvaluatorProtocol):
         episodes: Optional evaluation episodes. If it's not given, dataset
             used in training will be used.
     """
+
     _base_algo: QLearningAlgoProtocol
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -468,6 +475,7 @@ class CompareDiscreteActionMatchEvaluator(EvaluatorProtocol):
         episodes: Optional evaluation episodes. If it's not given, dataset
             used in training will be used.
     """
+
     _base_algo: QLearningAlgoProtocol
     _episodes: Optional[Sequence[EpisodeBase]]
 
@@ -515,6 +523,7 @@ class EnvironmentEvaluator(EvaluatorProtocol):
         n_trials: Number of episodes to evaluate.
         epsilon: Probability of random action.
     """
+
     _env: GymEnv
     _n_trials: int
     _epsilon: float

@@ -329,6 +329,7 @@ class ReplayBuffer(ReplayBufferBase):
             for online training. ``cache_size`` needs to be greater than the
             maximum possible episode length.
     """
+
     _buffer: BufferProtocol
     _transition_picker: TransitionPickerProtocol
     _trajectory_slicer: TrajectorySlicerProtocol
@@ -587,6 +588,7 @@ class MixedReplayBuffer(ReplayBufferBase):
         secondary_mix_ratio (float): Ratio to sample mini-batches from the
             secondary replay buffer.
     """
+
     _primary_replay_buffer: ReplayBufferBase
     _secondary_replay_buffer: ReplayBufferBase
     _secondary_mix_ratio: float

@@ -61,6 +61,7 @@ class FQEConfig(LearnableConfig):
         action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
         reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
     """
+
     learning_rate: float = 1e-4
     optim_factory: OptimizerFactory = make_optimizer_field()
     encoder_factory: EncoderFactory = make_encoder_field()

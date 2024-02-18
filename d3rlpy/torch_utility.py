@@ -87,15 +87,15 @@ def convert_to_torch(array: NDArray, device: str) -> torch.Tensor:
 
 
 @overload
-def convert_to_torch_recursively(array: NDArray, device: str) -> torch.Tensor:
-    ...
+def convert_to_torch_recursively(
+    array: NDArray, device: str
+) -> torch.Tensor: ...
 
 
 @overload
 def convert_to_torch_recursively(
     array: Sequence[NDArray], device: str
-) -> Sequence[torch.Tensor]:
-    ...
+) -> Sequence[torch.Tensor]: ...
 
 
 def convert_to_torch_recursively(

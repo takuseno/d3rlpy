@@ -95,9 +95,11 @@ class PixelEncoderFactory(EncoderFactory):
             dropout_rate=self.dropout_rate,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
-            last_activation=create_activation(self.last_activation)
-            if self.last_activation
-            else None,
+            last_activation=(
+                create_activation(self.last_activation)
+                if self.last_activation
+                else None
+            ),
         )
 
     def create_with_action(
@@ -117,9 +119,11 @@ class PixelEncoderFactory(EncoderFactory):
             discrete_action=discrete_action,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
-            last_activation=create_activation(self.last_activation)
-            if self.last_activation
-            else None,
+            last_activation=(
+                create_activation(self.last_activation)
+                if self.last_activation
+                else None
+            ),
         )
 
     @staticmethod
@@ -160,9 +164,11 @@ class VectorEncoderFactory(EncoderFactory):
             dropout_rate=self.dropout_rate,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
-            last_activation=create_activation(self.last_activation)
-            if self.last_activation
-            else None,
+            last_activation=(
+                create_activation(self.last_activation)
+                if self.last_activation
+                else None
+            ),
         )
 
     def create_with_action(
@@ -181,9 +187,11 @@ class VectorEncoderFactory(EncoderFactory):
             discrete_action=discrete_action,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
-            last_activation=create_activation(self.last_activation)
-            if self.last_activation
-            else None,
+            last_activation=(
+                create_activation(self.last_activation)
+                if self.last_activation
+                else None
+            ),
         )
 
     @staticmethod

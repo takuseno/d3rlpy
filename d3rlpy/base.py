@@ -97,9 +97,9 @@ class ImplBase(metaclass=ABCMeta):
 class LearnableConfig(DynamicConfig):
     batch_size: int = 256
     gamma: float = 0.99
-    observation_scaler: Optional[
-        ObservationScaler
-    ] = make_observation_scaler_field()
+    observation_scaler: Optional[ObservationScaler] = (
+        make_observation_scaler_field()
+    )
     action_scaler: Optional[ActionScaler] = make_action_scaler_field()
     reward_scaler: Optional[RewardScaler] = make_reward_scaler_field()
 

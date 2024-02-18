@@ -138,6 +138,7 @@ class BCQConfig(LearnableConfig):
             functions. If this is large, RL training would be more stabilized.
         beta (float): KL reguralization term for Conditional VAE.
     """
+
     actor_learning_rate: float = 1e-3
     critic_learning_rate: float = 1e-3
     imitator_learning_rate: float = 1e-3
@@ -323,6 +324,7 @@ class DiscreteBCQConfig(LearnableConfig):
         share_encoder (bool): Flag to share encoder between Q-function and
             imitation models.
     """
+
     learning_rate: float = 6.25e-5
     optim_factory: OptimizerFactory = make_optimizer_field()
     encoder_factory: EncoderFactory = make_encoder_field()
