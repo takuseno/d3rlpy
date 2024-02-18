@@ -4,6 +4,7 @@ onnxruntime
 onnx
 matplotlib
 tensorboardX
+wandb
 black
 mypy
 pylint==2.13.5

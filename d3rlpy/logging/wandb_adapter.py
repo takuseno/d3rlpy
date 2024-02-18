@@ -16,8 +16,8 @@ class WanDBAdapter(LoggerAdapter):
 
     def __init__(
         self,
+        experiment_name: str,
         project: Optional[str] = None,
-        experiment_name: Optional[str] = None,
     ):
         try:
             import wandb
@@ -31,7 +31,6 @@ class WanDBAdapter(LoggerAdapter):
 
     def before_write_metric(self, epoch: int, step: int) -> None:
         """Callback executed before writing metric."""
-        pass
 
     def write_metric(
         self, epoch: int, step: int, name: str, value: float
@@ -41,7 +40,6 @@ class WanDBAdapter(LoggerAdapter):
 
     def after_write_metric(self, epoch: int, step: int) -> None:
         """Callback executed after writing metric."""
-        pass
 
     def save_model(self, epoch: int, algo: SaveProtocol) -> None:
         """Saves models to Weights & Biases.
@@ -49,7 +47,6 @@ class WanDBAdapter(LoggerAdapter):
         Not implemented for WandB.
         """
         # Implement saving model to wandb if needed
-        pass
 
     def close(self) -> None:
         """Closes the logger and finishes the WandB run."""
@@ -63,7 +60,7 @@ class WanDBAdapterFactory(LoggerAdapterFactory):
     tracking.
     """
 
-    _project: str
+    _project: Optional[str]
 
     def __init__(self, project: Optional[str] = None) -> None:
         """Initialize the WandB Logger Adapter Factory.
@@ -71,7 +68,6 @@ class WanDBAdapterFactory(LoggerAdapterFactory):
         Args:
             project (Optional[str], optional): The name of the WandB project. Defaults to None.
         """
-        super().__init__()
         self._project = project
 
     def create(self, experiment_name: str) -> LoggerAdapter:
@@ -83,6 +79,7 @@ class WanDBAdapterFactory(LoggerAdapterFactory):
         Returns:
             LoggerAdapter: Instance of the WandB Logger Adapter.
         """
-        return LoggerWanDBAdapter(
-            project=self._project, experiment_name=experiment_name
+        return WanDBAdapter(
+            experiment_name=experiment_name,
+            project=self._project,
         )
