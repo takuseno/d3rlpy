@@ -389,8 +389,9 @@ class QLearningAlgoBase(
                 the directory name will be `{class name}_{timestamp}`.
             with_timestamp: Flag to add timestamp string to the last of
                 directory name.
-            logging_steps: number of steps to log metrics.
-            logging_strategy: what logging strategy to use.
+            logging_steps: Number of steps to log metrics. This will be ignored
+                if logging_strategy is EPOCH.
+            logging_strategy: Logging strategy to use.
             logger_adapter: LoggerAdapterFactory object.
             show_progress: Flag to show progress bar for iterations.
             save_interval: Interval to save parameters.
