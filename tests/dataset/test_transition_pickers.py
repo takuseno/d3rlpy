@@ -62,14 +62,14 @@ def test_basic_transition_picker(
     transition = picker(episode, length - 1)
     if isinstance(observation_shape[0], tuple):
         for i, shape in enumerate(observation_shape):
-            dummy_observation = np.zeros(shape)
+            dummy_observation = np.zeros(shape)  # type: ignore
             assert transition.observation_signature.shape[i] == shape
             assert np.all(
                 transition.observation[i] == episode.observations[i][-1]
             )
             assert np.all(transition.next_observation[i] == dummy_observation)
     else:
-        dummy_observation = np.zeros(observation_shape)
+        dummy_observation = np.zeros(observation_shape)  # type: ignore
         assert transition.observation_signature.shape[0] == observation_shape
         assert np.all(transition.observation == episode.observations[-1])
         assert np.all(transition.next_observation == dummy_observation)
@@ -188,14 +188,14 @@ def test_multi_step_transition_picker(
     transition = picker(episode, length - n_steps)
     if isinstance(observation_shape[0], tuple):
         for i, shape in enumerate(observation_shape):
-            dummy_observation = np.zeros(shape)
+            dummy_observation = np.zeros(shape)  # type: ignore
             assert transition.observation_signature.shape[i] == shape
             assert np.all(
                 transition.observation[i] == episode.observations[i][-n_steps]
             )
             assert np.all(transition.next_observation[i] == dummy_observation)
     else:
-        dummy_observation = np.zeros(observation_shape)
+        dummy_observation = np.zeros(observation_shape)  # type: ignore
         assert transition.observation_signature.shape[0] == observation_shape
         assert np.all(transition.observation == episode.observations[-n_steps])
         assert np.all(transition.next_observation == dummy_observation)

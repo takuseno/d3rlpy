@@ -51,7 +51,8 @@ def create_observation(
             np.random.random(shape).astype(dtype) for shape in observation_shape
         ]
     else:
-        observation = np.random.random(observation_shape).astype(dtype)
+        observation = np.random.random(observation_shape)  # type: ignore
+        observation = observation.astype(dtype)
     return observation
 
 
@@ -205,10 +206,10 @@ def create_transition(
             for shape in observation_shape
         ]
     else:
-        observation = np.random.random(observation_shape).astype(np.float32)
-        next_observation = np.random.random(observation_shape).astype(
-            np.float32
-        )
+        observation = np.random.random(observation_shape)  # type: ignore
+        observation = observation.astype(np.float32)
+        next_observation = np.random.random(observation_shape)  # type: ignore
+        next_observation = next_observation.astype(np.float32)
 
     action: NDArray
     if discrete_action:

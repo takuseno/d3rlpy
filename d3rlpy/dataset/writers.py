@@ -157,6 +157,7 @@ class _ActiveEpisode(EpisodeBase):
         self._cursor += 1
 
     def to_episode(self, terminated: bool) -> Episode:
+        observations: ObservationSequence
         if len(self._observations) == 1:
             observations = self._observations[0][: self._cursor].copy()
         else:
@@ -187,17 +188,17 @@ class _ActiveEpisode(EpisodeBase):
     @property
     def observations(self) -> ObservationSequence:
         if len(self._observations) == 1:
-            return self._observations[0][: self._cursor]  # type: ignore
+            return self._observations[0][: self._cursor]
         else:
             return [obs[: self._cursor] for obs in self._observations]
 
     @property
     def actions(self) -> NDArray:
-        return self._actions[: self._cursor]  # type: ignore
+        return self._actions[: self._cursor]
 
     @property
     def rewards(self) -> NDArray:
-        return self._rewards[: self._cursor]  # type: ignore
+        return self._rewards[: self._cursor]
 
     @property
     def terminated(self) -> bool:

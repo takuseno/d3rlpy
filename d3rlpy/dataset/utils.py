@@ -98,7 +98,7 @@ def slice_observations(
     observations: ObservationSequence, start: int, end: int
 ) -> ObservationSequence:
     if isinstance(observations, np.ndarray):
-        return observations[start:end]  # type: ignore
+        return observations[start:end]
     elif isinstance(observations, (list, tuple)):
         return [obs[start:end] for obs in observations]
     else:
