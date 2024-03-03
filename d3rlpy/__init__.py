@@ -38,6 +38,7 @@ __all__ = [
     "__version__",
     "load_learnable",
     "ActionSpace",
+    "LoggingStrategy",
     "PositionEncodingType",
     "seed",
 ]
