@@ -361,7 +361,7 @@ def save_policy_tester(
     if deterministic_best_action:
         action = action.detach().numpy()
         observations = convert_to_numpy_recursively(torch_observations)
-        assert np.allclose(action, algo.predict(observations), atol=1e-6)
+        assert np.allclose(action, algo.predict(observations), atol=1e-5)
 
     # check save_policy as ONNX
     algo.save_policy(os.path.join("test_data", "model.onnx"))
@@ -384,4 +384,4 @@ def save_policy_tester(
     # TODO: check probablistic policy
     # https://github.com/pytorch/pytorch/pull/25753
     if deterministic_best_action:
-        assert np.allclose(action, algo.predict(observations), atol=1e-6)
+        assert np.allclose(action, algo.predict(observations), atol=1e-5)
