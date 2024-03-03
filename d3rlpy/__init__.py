@@ -19,7 +19,7 @@ from . import (
 )
 from ._version import __version__
 from .base import load_learnable
-from .constants import ActionSpace, PositionEncodingType
+from .constants import ActionSpace, LoggingStrategy, PositionEncodingType
 from .healthcheck import run_healthcheck
 
 __all__ = [
