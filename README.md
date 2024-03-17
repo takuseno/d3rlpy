@@ -190,6 +190,9 @@ Please check the [contribution guide](CONTRIBUTING.md).
 |:-|:-|
 | Issues | [GitHub Issues](https://github.com/takuseno/d3rlpy/issues) |
 
+> [!IMPORTANT]
+> Please do NOT email to any contributors including the owner of this project to ask for technical support. Such emails will be ignored without replying to your message. Use GitHub Issues to report your problems.
+
 ## Projects using d3rlpy
 | Project | Description |
 |:-:|:-|
