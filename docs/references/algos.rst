@@ -229,6 +229,18 @@ DiscreteCQL
    :show-inheritance:
 
 
+CalQL
+-----
+
+.. autoclass:: d3rlpy.algos.CalQLConfig
+   :members:
+   :show-inheritance:
+
+.. autoclass:: d3rlpy.algos.CalQL
+   :members:
+   :show-inheritance:
+
+
 AWAC
 ----
 

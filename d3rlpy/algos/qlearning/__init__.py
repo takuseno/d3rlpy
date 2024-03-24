@@ -3,6 +3,7 @@ from .base import *
 from .bc import *
 from .bcq import *
 from .bear import *
+from .cal_ql import *
 from .cql import *
 from .crr import *
 from .ddpg import *
