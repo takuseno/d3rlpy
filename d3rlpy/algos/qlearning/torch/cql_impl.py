@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -80,7 +80,10 @@ class CQLImpl(SACImpl):
     ) -> CQLCriticLoss:
         loss = super().compute_critic_loss(batch, q_tpn)
         conservative_loss = self._compute_conservative_loss(
-            batch.observations, batch.actions, batch.next_observations
+            obs_t=batch.observations,
+            act_t=batch.actions,
+            obs_tp1=batch.next_observations,
+            returns_to_go=batch.returns_to_go,
         )
         if self._modules.alpha_optim:
             self.update_alpha(conservative_loss)
@@ -99,8 +102,11 @@ class CQLImpl(SACImpl):
         self._modules.alpha_optim.step()
 
     def _compute_policy_is_values(
-        self, policy_obs: TorchObservation, value_obs: TorchObservation
-    ) -> torch.Tensor:
+        self,
+        policy_obs: TorchObservation,
+        value_obs: TorchObservation,
+        returns_to_go: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
             dist = build_squashed_gaussian_distribution(
                 self._modules.policy(policy_obs)
@@ -133,9 +139,11 @@ class CQLImpl(SACImpl):
         log_probs = n_log_probs.view(1, -1, self._n_action_samples)
 
         # importance sampling
-        return policy_values - log_probs
+        return policy_values, log_probs
 
-    def _compute_random_is_values(self, obs: TorchObservation) -> torch.Tensor:
+    def _compute_random_is_values(
+        self, obs: TorchObservation
+    ) -> Tuple[torch.Tensor, float]:
         # (batch, observation) -> (batch, n, observation)
         repeated_obs = expand_and_repeat_recursively(
             obs, self._n_action_samples
@@ -160,22 +168,36 @@ class CQLImpl(SACImpl):
         random_log_probs = math.log(0.5**self._action_size)
 
         # importance sampling
-        return random_values - random_log_probs
+        return random_values, random_log_probs
 
     def _compute_conservative_loss(
         self,
         obs_t: TorchObservation,
         act_t: torch.Tensor,
         obs_tp1: TorchObservation,
+        returns_to_go: torch.Tensor,
     ) -> torch.Tensor:
-        policy_values_t = self._compute_policy_is_values(obs_t, obs_t)
-        policy_values_tp1 = self._compute_policy_is_values(obs_tp1, obs_t)
-        random_values = self._compute_random_is_values(obs_t)
+        policy_values_t, log_probs_t = self._compute_policy_is_values(
+            policy_obs=obs_t,
+            value_obs=obs_t,
+            returns_to_go=returns_to_go,
+        )
+        policy_values_tp1, log_probs_tp1 = self._compute_policy_is_values(
+            policy_obs=obs_tp1,
+            value_obs=obs_t,
+            returns_to_go=returns_to_go,
+        )
+        random_values, random_log_probs = self._compute_random_is_values(obs_t)
 
         # compute logsumexp
         # (n critics, batch, 3 * n samples) -> (n critics, batch, 1)
         target_values = torch.cat(
-            [policy_values_t, policy_values_tp1, random_values], dim=2
+            [
+                policy_values_t - log_probs_t,
+                policy_values_tp1 - log_probs_tp1,
+                random_values - random_log_probs,
+            ],
+            dim=2,
         )
         logsumexp = torch.logsumexp(target_values, dim=2, keepdim=True)
 
