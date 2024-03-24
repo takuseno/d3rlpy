@@ -596,6 +596,7 @@ class QLearningAlgoBase(
         n_steps_per_epoch: int = 10000,
         update_interval: int = 1,
         update_start_step: int = 0,
+        utd_ratio: int = 1,
         random_steps: int = 0,
         eval_env: Optional[GymEnv] = None,
         eval_epsilon: float = 0.0,
@@ -618,6 +619,7 @@ class QLearningAlgoBase(
             n_steps_per_epoch: Number of steps per epoch.
             update_interval: Number of steps per update.
             update_start_step: Steps before starting updates.
+            utd_ratio: UTD (update-to-data) ration, the number of updates taken by the agent compared to the number of actual interactions with the environment
             random_steps: Steps for the initial random explortion.
             eval_env: Gym-like environment. If None, evaluation is skipped.
             eval_epsilon: :math:`\\epsilon`-greedy factor during evaluation.
@@ -718,19 +720,20 @@ class QLearningAlgoBase(
                     and buffer.transition_count > self.batch_size
                 ):
                     if total_step % update_interval == 0:
-                        # sample mini-batch
-                        with logger.measure_time("sample_batch"):
-                            batch = buffer.sample_transition_batch(
-                                self.batch_size
-                            )
+                        for _ in range(utd_ratio):
+                            # sample mini-batch
+                            with logger.measure_time("sample_batch"):
+                                batch = buffer.sample_transition_batch(
+                                    self.batch_size
+                                )
 
-                        # update parameters
-                        with logger.measure_time("algorithm_update"):
-                            loss = self.update(batch)
+                            # update parameters
+                            with logger.measure_time("algorithm_update"):
+                                loss = self.update(batch)
 
-                        # record metrics
-                        for name, val in loss.items():
-                            logger.add_metric(name, val)
+                            # record metrics
+                            for name, val in loss.items():
+                                logger.add_metric(name, val)
 
                         if (
                             logging_strategy == LoggingStrategy.STEPS
