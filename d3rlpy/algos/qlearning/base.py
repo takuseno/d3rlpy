@@ -595,6 +595,7 @@ class QLearningAlgoBase(
         n_steps: int = 1000000,
         n_steps_per_epoch: int = 10000,
         update_interval: int = 1,
+        n_updates: int = 1,
         update_start_step: int = 0,
         random_steps: int = 0,
         eval_env: Optional[GymEnv] = None,
@@ -617,6 +618,9 @@ class QLearningAlgoBase(
             n_steps: Number of total steps to train.
             n_steps_per_epoch: Number of steps per epoch.
             update_interval: Number of steps per update.
+            n_updates: Number of gradient steps at a time. The combination of
+                ``update_interval`` and ``n_updates`` controls Update-To-Data
+                (UTD) ratio.
             update_start_step: Steps before starting updates.
             random_steps: Steps for the initial random explortion.
             eval_env: Gym-like environment. If None, evaluation is skipped.
@@ -718,19 +722,20 @@ class QLearningAlgoBase(
                     and buffer.transition_count > self.batch_size
                 ):
                     if total_step % update_interval == 0:
-                        # sample mini-batch
-                        with logger.measure_time("sample_batch"):
-                            batch = buffer.sample_transition_batch(
-                                self.batch_size
-                            )
+                        for _ in range(n_updates):  # controls UTD ratio
+                            # sample mini-batch
+                            with logger.measure_time("sample_batch"):
+                                batch = buffer.sample_transition_batch(
+                                    self.batch_size
+                                )
 
-                        # update parameters
-                        with logger.measure_time("algorithm_update"):
-                            loss = self.update(batch)
+                            # update parameters
+                            with logger.measure_time("algorithm_update"):
+                                loss = self.update(batch)
 
-                        # record metrics
-                        for name, val in loss.items():
-                            logger.add_metric(name, val)
+                            # record metrics
+                            for name, val in loss.items():
+                                logger.add_metric(name, val)
 
                         if (
                             logging_strategy == LoggingStrategy.STEPS
