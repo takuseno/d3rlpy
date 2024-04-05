@@ -10,7 +10,7 @@ from ..constants import (
     DISCRETE_ACTION_SPACE_MISMATCH_ERROR,
     ActionSpace,
 )
-from ..dataset import DatasetInfo, ReplayBuffer
+from ..dataset import DatasetInfo, ReplayBufferBase
 from ..logging import LOG
 from ..types import GymEnv
 
@@ -49,7 +49,7 @@ def assert_action_space_with_env(
 
 
 def build_scalers_with_transition_picker(
-    algo: LearnableBase[Any, Any], dataset: ReplayBuffer
+    algo: LearnableBase[Any, Any], dataset: ReplayBufferBase
 ) -> None:
     # initialize observation scaler
     if algo.observation_scaler and not algo.observation_scaler.built:
@@ -83,7 +83,7 @@ def build_scalers_with_transition_picker(
 
 
 def build_scalers_with_trajectory_slicer(
-    algo: LearnableBase[Any, Any], dataset: ReplayBuffer
+    algo: LearnableBase[Any, Any], dataset: ReplayBufferBase
 ) -> None:
     # initialize observation scaler
     if algo.observation_scaler and not algo.observation_scaler.built:

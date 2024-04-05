@@ -5,7 +5,7 @@ from typing_extensions import Protocol
 
 from ..dataset import (
     EpisodeBase,
-    ReplayBuffer,
+    ReplayBufferBase,
     TransitionMiniBatch,
     TransitionPickerProtocol,
 )
@@ -36,7 +36,7 @@ class EvaluatorProtocol(Protocol):
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        dataset: ReplayBuffer,
+        dataset: ReplayBufferBase,
     ) -> float:
         """Computes metrics.
 
@@ -94,7 +94,7 @@ class TDErrorEvaluator(EvaluatorProtocol):
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        dataset: ReplayBuffer,
+        dataset: ReplayBufferBase,
     ) -> float:
         total_errors = []
         episodes = self._episodes if self._episodes else dataset.episodes
@@ -155,7 +155,7 @@ class DiscountedSumOfAdvantageEvaluator(EvaluatorProtocol):
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        dataset: ReplayBuffer,
+        dataset: ReplayBufferBase,
     ) -> float:
         total_sums = []
         episodes = self._episodes if self._episodes else dataset.episodes
@@ -213,7 +213,7 @@ class AverageValueEstimationEvaluator(EvaluatorProtocol):
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        dataset: ReplayBuffer,
+        dataset: ReplayBufferBase,
     ) -> float:
         total_values = []
         episodes = self._episodes if self._episodes else dataset.episodes
@@ -256,7 +256,7 @@ class InitialStateValueEstimationEvaluator(EvaluatorProtocol):
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        dataset: ReplayBuffer,
+        dataset: ReplayBufferBase,
     ) -> float:
         total_values = []
         episodes = self._episodes if self._episodes else dataset.episodes
@@ -311,7 +311,7 @@ class SoftOPCEvaluator(EvaluatorProtocol):
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        dataset: ReplayBuffer,
+        dataset: ReplayBufferBase,
     ) -> float:
         success_values = []
         all_values = []
@@ -353,7 +353,7 @@ class ContinuousActionDiffEvaluator(EvaluatorProtocol):
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        dataset: ReplayBuffer,
+        dataset: ReplayBufferBase,
     ) -> float:
         total_diffs = []
         episodes = self._episodes if self._episodes else dataset.episodes
@@ -393,7 +393,7 @@ class DiscreteActionMatchEvaluator(EvaluatorProtocol):
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        dataset: ReplayBuffer,
+        dataset: ReplayBufferBase,
     ) -> float:
         total_matches = []
         episodes = self._episodes if self._episodes else dataset.episodes
@@ -440,7 +440,7 @@ class CompareContinuousActionDiffEvaluator(EvaluatorProtocol):
     def __call__(
         self,
         algo: QLearningAlgoProtocol,
-        dataset: ReplayBuffer,
+        dataset: ReplayBufferBase,
     ) -> float:
         total_diffs = []
         episodes = self._episodes if self._episodes else dataset.episodes
@@ -488,7 +488,7 @@ class CompareDiscreteActionMatchEvaluator(EvaluatorProtocol):
         self._episodes = episodes
 
     def __call__(
-        self, algo: QLearningAlgoProtocol, dataset: ReplayBuffer
+        self, algo: QLearningAlgoProtocol, dataset: ReplayBufferBase
     ) -> float:
         total_matches = []
         episodes = self._episodes if self._episodes else dataset.episodes
@@ -539,7 +539,7 @@ class EnvironmentEvaluator(EvaluatorProtocol):
         self._epsilon = epsilon
 
     def __call__(
-        self, algo: QLearningAlgoProtocol, dataset: ReplayBuffer
+        self, algo: QLearningAlgoProtocol, dataset: ReplayBufferBase
     ) -> float:
         return evaluate_qlearning_with_environment(
             algo=algo,

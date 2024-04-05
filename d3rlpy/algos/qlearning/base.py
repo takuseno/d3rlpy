@@ -24,7 +24,7 @@ from ...constants import (
     LoggingStrategy,
 )
 from ...dataset import (
-    ReplayBuffer,
+    ReplayBufferBase,
     TransitionMiniBatch,
     check_non_1d_array,
     create_fifo_replay_buffer,
@@ -359,7 +359,7 @@ class QLearningAlgoBase(
 
     def fit(
         self,
-        dataset: ReplayBuffer,
+        dataset: ReplayBufferBase,
         n_steps: int,
         n_steps_per_epoch: int = 10000,
         experiment_name: Optional[str] = None,
@@ -428,7 +428,7 @@ class QLearningAlgoBase(
 
     def fitter(
         self,
-        dataset: ReplayBuffer,
+        dataset: ReplayBufferBase,
         n_steps: int,
         n_steps_per_epoch: int = 10000,
         logging_steps: int = 500,
@@ -590,7 +590,7 @@ class QLearningAlgoBase(
     def fit_online(
         self,
         env: GymEnv,
-        buffer: Optional[ReplayBuffer] = None,
+        buffer: Optional[ReplayBufferBase] = None,
         explorer: Optional[Explorer] = None,
         n_steps: int = 1000000,
         n_steps_per_epoch: int = 10000,
@@ -771,12 +771,12 @@ class QLearningAlgoBase(
     def collect(
         self,
         env: GymEnv,
-        buffer: Optional[ReplayBuffer] = None,
+        buffer: Optional[ReplayBufferBase] = None,
         explorer: Optional[Explorer] = None,
         deterministic: bool = False,
         n_steps: int = 1000000,
         show_progress: bool = True,
-    ) -> ReplayBuffer:
+    ) -> ReplayBufferBase:
         """Collects data via interaction with environment.
 
         If ``buffer`` is not given, ``ReplayBuffer`` will be internally created.
