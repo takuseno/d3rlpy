@@ -34,7 +34,6 @@ class TensorboardAdapter(LoggerAdapter):
 
         self._experiment_name = experiment_name
         logdir = os.path.join(root_dir, "runs", experiment_name)
-        print(logdir)
         self._writer = SummaryWriter(logdir=logdir)
         self._metrics = {}
 
