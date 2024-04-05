@@ -64,8 +64,13 @@ def test_last_frame_writer_process(observation_shape: Shape) -> None:
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("terminated", [True, False])
+@pytest.mark.parametrize("write_at_termination", [True, False])
 def test_episode_writer(
-    observation_shape: Shape, action_size: int, length: int, terminated: bool
+    observation_shape: Shape,
+    action_size: int,
+    length: int,
+    terminated: bool,
+    write_at_termination: bool,
 ) -> None:
     episode: EpisodeBase = create_episode(
         observation_shape, action_size, length
@@ -77,14 +82,21 @@ def test_episode_writer(
         observation_signature=episode.observation_signature,
         action_signature=episode.action_signature,
         reward_signature=episode.reward_signature,
+        write_at_termination=write_at_termination,
     )
 
-    for _ in range(length):
+    for i in range(length):
         writer.write(
             observation=create_observation(observation_shape),
             action=np.random.random(action_size),
             reward=np.random.random(),
         )
+        if write_at_termination:
+            assert buffer.transition_count == 0
+        elif i == 0:
+            assert buffer.transition_count == 0
+        else:
+            assert buffer.transition_count == i
     writer.clip_episode(terminated)
 
     if terminated:

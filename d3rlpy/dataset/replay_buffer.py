@@ -328,6 +328,8 @@ class ReplayBuffer(ReplayBufferBase):
         cache_size (int): Size of cache to record active episode history used
             for online training. ``cache_size`` needs to be greater than the
             maximum possible episode length.
+        write_at_termination (bool): Flag to write experiences to the buffer at the
+            end of an episode all at once.
     """
 
     _buffer: BufferProtocol
@@ -351,6 +353,7 @@ class ReplayBuffer(ReplayBufferBase):
         action_space: Optional[ActionSpace] = None,
         action_size: Optional[int] = None,
         cache_size: int = 10000,
+        write_at_termination: bool = False,
     ):
         transition_picker = transition_picker or BasicTransitionPicker()
         trajectory_slicer = trajectory_slicer or BasicTrajectorySlicer()
@@ -434,6 +437,7 @@ class ReplayBuffer(ReplayBufferBase):
             action_signature=action_signature,
             reward_signature=reward_signature,
             cache_size=cache_size,
+            write_at_termination=write_at_termination,
         )
         self._transition_picker = transition_picker
         self._trajectory_slicer = trajectory_slicer

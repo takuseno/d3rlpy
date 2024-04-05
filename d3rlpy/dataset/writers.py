@@ -250,11 +250,14 @@ class ExperienceWriter:
         reward_signature: Signature of unprocessed reward.
         cache_size: Size of data in active episode. This needs to be larger
             than the maximum length of episodes.
+        write_at_termination: Flag to write experiences to the buffer at the
+            end of an episode all at once.
     """
 
     _preprocessor: WriterPreprocessProtocol
     _buffer: BufferProtocol
     _cache_size: int
+    _write_at_termination: bool
     _observation_signature: Signature
     _action_signature: Signature
     _reward_signature: Signature
@@ -269,10 +272,12 @@ class ExperienceWriter:
         action_signature: Signature,
         reward_signature: Signature,
         cache_size: int = 10000,
+        write_at_termination: bool = False,
     ):
         self._buffer = buffer
         self._preprocessor = preprocessor
         self._cache_size = cache_size
+        self._write_at_termination = write_at_termination
 
         # preprocessed signatures
         if len(observation_signature.dtype) == 1:
@@ -358,7 +363,10 @@ class ExperienceWriter:
             reward: Reward.
         """
         self._active_episode.append(observation, action, reward)
-        if self._active_episode.transition_count > 0:
+        if (
+            not self._write_at_termination
+            and self._active_episode.transition_count > 0
+        ):
             self._buffer.append(
                 episode=self._active_episode,
                 index=self._active_episode.transition_count - 1,
@@ -372,6 +380,10 @@ class ExperienceWriter:
         """
         if self._active_episode.transition_count == 0:
             return
+
+        if self._write_at_termination:
+            for i in range(self._active_episode.transition_count):
+                self._buffer.append(episode=self._active_episode, index=i)
 
         # shrink heap memory
         self._active_episode.shrink(terminated)
