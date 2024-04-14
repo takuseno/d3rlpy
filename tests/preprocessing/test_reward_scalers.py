@@ -418,16 +418,19 @@ def test_return_based_reward_scaler_with_trajectory_slicer(
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("shift", [-1])
-def test_constant_shift_reward_scaler(batch_size: int, shift: float) -> None:
+@pytest.mark.parametrize("multiplier", [1, 2])
+def test_constant_shift_reward_scaler(
+    batch_size: int, shift: float, multiplier: float
+) -> None:
     rewards = np.random.random(batch_size).astype(np.float32) * 2 - 1
 
-    scaler = ConstantShiftRewardScaler(shift)
+    scaler = ConstantShiftRewardScaler(shift, multiplier)
     assert scaler.built
     assert scaler.get_type() == "shift"
 
     # check trnsform
     y = scaler.transform(torch.tensor(rewards))
-    assert np.allclose(y.numpy(), rewards + shift)
+    assert np.allclose(y.numpy(), (rewards + shift) * multiplier)
 
     # check reverse_transform
     x = scaler.reverse_transform(y)
@@ -435,7 +438,7 @@ def test_constant_shift_reward_scaler(batch_size: int, shift: float) -> None:
 
     # check transform_numpy
     y = scaler.transform_numpy(rewards)
-    assert np.allclose(y, rewards + shift, atol=1e-4)
+    assert np.allclose(y, (rewards + shift) * multiplier, atol=1e-4)
 
     # check reverse_transform_numpy
     assert np.allclose(scaler.reverse_transform_numpy(y), rewards, atol=1e-4)

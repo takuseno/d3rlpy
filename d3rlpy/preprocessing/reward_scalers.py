@@ -452,9 +452,11 @@ class ConstantShiftRewardScaler(RewardScaler):
 
     Args:
         shift (float): Constant shift value
+        multiplier (float): Constant multiplication value.
     """
 
     shift: float
+    multiplier: float = 1.0
 
     def fit_with_transition_picker(
         self,
@@ -471,16 +473,16 @@ class ConstantShiftRewardScaler(RewardScaler):
         pass
 
     def transform(self, x: torch.Tensor) -> torch.Tensor:
-        return self.shift + x
+        return (self.shift + x) * self.multiplier
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
-        return x - self.shift
+        return x / self.multiplier - self.shift
 
     def transform_numpy(self, x: NDArray) -> NDArray:
-        return self.shift + x
+        return (self.shift + x) * self.multiplier
 
     def reverse_transform_numpy(self, x: NDArray) -> NDArray:
-        return x - self.shift
+        return x / self.multiplier - self.shift
 
     @staticmethod
     def get_type() -> str:
