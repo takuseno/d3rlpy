@@ -22,7 +22,7 @@ from typing_extensions import Self
 from .dataclass_utils import asdict_without_copy
 from .dataset import TrajectoryMiniBatch, TransitionMiniBatch
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
-from .types import NDArray, TorchObservation
+from .types import Float32NDArray, NDArray, TorchObservation
 
 __all__ = [
     "soft_sync",
@@ -156,6 +156,23 @@ def expand_and_repeat_recursively(
         return [expand_and_repeat_recursively(_x, n) for _x in x]
 
 
+def _compute_return_to_go(
+    gamma: float,
+    rewards_to_go: Float32NDArray,
+    reward_scaler: Optional[RewardScaler],
+) -> Float32NDArray:
+    rewards = (
+        reward_scaler.transform_numpy(rewards_to_go)
+        if reward_scaler
+        else rewards_to_go
+    )
+    cum_gammas: Float32NDArray = np.array(
+        np.expand_dims(gamma ** np.arange(rewards.shape[0]), axis=1),
+        dtype=np.float32,
+    )
+    return np.sum(cum_gammas * rewards, axis=0)  # type: ignore
+
+
 @dataclasses.dataclass(frozen=True)
 class TorchMiniBatch:
     observations: TorchObservation
@@ -172,6 +189,7 @@ class TorchMiniBatch:
     def from_batch(
         cls,
         batch: TransitionMiniBatch,
+        gamma: float,
         device: str,
         observation_scaler: Optional[ObservationScaler] = None,
         action_scaler: Optional[ActionScaler] = None,
@@ -184,9 +202,22 @@ class TorchMiniBatch:
         next_observations = convert_to_torch_recursively(
             batch.next_observations, device
         )
-        returns_to_go = convert_to_torch(batch.returns_to_go, device)
         terminals = convert_to_torch(batch.terminals, device)
         intervals = convert_to_torch(batch.intervals, device)
+
+        returns_to_go = convert_to_torch(
+            np.array(
+                [
+                    _compute_return_to_go(
+                        gamma=gamma,
+                        rewards_to_go=transition.rewards_to_go,
+                        reward_scaler=reward_scaler,
+                    )
+                    for transition in batch.transitions
+                ]
+            ),
+            device,
+        )
 
         # apply scaler
         if observation_scaler:
@@ -196,8 +227,6 @@ class TorchMiniBatch:
             actions = action_scaler.transform(actions)
         if reward_scaler:
             rewards = reward_scaler.transform(rewards)
-            # NOTE: some operations might be incompatible with returns
-            returns_to_go = reward_scaler.transform(returns_to_go)
 
         return TorchMiniBatch(
             observations=observations,

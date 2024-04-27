@@ -24,7 +24,7 @@ def test_transition(observation_size: int, action_size: int) -> None:
         action=np.random.random(action_size).astype(np.float32),
         reward=np.random.random(1).astype(np.float32),
         next_observation=np.random.random(observation_size).astype(np.float32),
-        return_to_go=np.random.random(1).astype(np.float32),
+        rewards_to_go=np.random.random((10, 1)).astype(np.float32),
         terminal=0.0,
         interval=1,
     )
@@ -57,15 +57,6 @@ def test_partial_trajectory(
     assert trajectory.reward_signature.shape[0] == (1,)
     assert len(trajectory) == data_size
     assert trajectory.get_transition_count() == data_size - 1
-
-    transition = trajectory.get_as_transition(0)
-    assert np.all(transition.observation == trajectory.observations[0])
-    assert np.all(transition.next_observation == trajectory.observations[1])
-    assert np.all(transition.action == trajectory.actions[0])
-    assert np.all(transition.reward == trajectory.rewards[0])
-    assert np.all(transition.return_to_go == trajectory.returns_to_go[0])
-    assert not transition.terminal
-    assert transition.interval == 1
 
 
 @pytest.mark.parametrize("data_size", [100])

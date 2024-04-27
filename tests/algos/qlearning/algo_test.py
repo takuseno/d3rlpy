@@ -280,6 +280,9 @@ def update_tester(
         observation = create_observation(observation_shape)
         next_observation = create_observation(observation_shape)
         reward: Float32NDArray = np.random.random((1,)).astype(np.float32)
+        rewards_to_go: Float32NDArray = np.random.random((10, 1)).astype(
+            np.float32
+        )
         terminal = np.random.randint(2)
         if algo.get_action_type() == ActionSpace.DISCRETE:
             action = np.random.randint(action_size, size=(1,))
@@ -291,7 +294,7 @@ def update_tester(
             action=action,
             reward=reward,
             next_observation=next_observation,
-            return_to_go=reward,
+            rewards_to_go=rewards_to_go,
             terminal=terminal,
             interval=1,
         )

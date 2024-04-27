@@ -860,6 +860,7 @@ class QLearningAlgoBase(
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
         torch_batch = TorchMiniBatch.from_batch(
             batch=batch,
+            gamma=self._config.gamma,
             device=self._device,
             observation_scaler=self._config.observation_scaler,
             action_scaler=self._config.action_scaler,

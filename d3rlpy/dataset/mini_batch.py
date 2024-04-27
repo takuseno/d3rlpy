@@ -29,6 +29,7 @@ class TransitionMiniBatch:
         terminals: Batched environment terminal flags.
         intervals: Batched timesteps between observations and next
             observations.
+        transitions: List of transitions.
     """
 
     observations: Union[Float32NDArray, Sequence[Float32NDArray]]  # (B, ...)
@@ -37,9 +38,9 @@ class TransitionMiniBatch:
     next_observations: Union[
         Float32NDArray, Sequence[Float32NDArray]
     ]  # (B, ...)
-    returns_to_go: Float32NDArray  # (B, 1)
     terminals: Float32NDArray  # (B, 1)
     intervals: Float32NDArray  # (B, 1)
+    transitions: Sequence[Transition]
 
     def __post_init__(self) -> None:
         assert check_non_1d_array(self.observations)
@@ -50,8 +51,6 @@ class TransitionMiniBatch:
         assert check_dtype(self.rewards, np.float32)
         assert check_non_1d_array(self.next_observations)
         assert check_dtype(self.next_observations, np.float32)
-        assert check_non_1d_array(self.returns_to_go)
-        assert check_dtype(self.returns_to_go, np.float32)
         assert check_non_1d_array(self.terminals)
         assert check_dtype(self.terminals, np.float32)
         assert check_non_1d_array(self.intervals)
@@ -81,9 +80,6 @@ class TransitionMiniBatch:
         next_observations = stack_observations(
             [transition.next_observation for transition in transitions]
         )
-        returns_to_go = np.stack(
-            [transition.return_to_go for transition in transitions], axis=0
-        )
         terminals = np.reshape(
             np.array([transition.terminal for transition in transitions]),
             [-1, 1],
@@ -97,9 +93,9 @@ class TransitionMiniBatch:
             actions=cast_recursively(actions, np.float32),
             rewards=cast_recursively(rewards, np.float32),
             next_observations=cast_recursively(next_observations, np.float32),
-            returns_to_go=cast_recursively(returns_to_go, np.float32),
             terminals=cast_recursively(terminals, np.float32),
             intervals=cast_recursively(intervals, np.float32),
+            transitions=transitions,
         )
 
     @property

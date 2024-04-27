@@ -215,6 +215,7 @@ def test_modules() -> None:
 @pytest.mark.parametrize("use_observation_scaler", [False, True])
 @pytest.mark.parametrize("use_action_scaler", [False, True])
 @pytest.mark.parametrize("use_reward_scaler", [False, True])
+@pytest.mark.parametrize("gamma", [0.99])
 def test_torch_mini_batch(
     batch_size: int,
     observation_shape: Sequence[int],
@@ -222,6 +223,7 @@ def test_torch_mini_batch(
     use_observation_scaler: bool,
     use_action_scaler: bool,
     use_reward_scaler: bool,
+    gamma: float,
 ) -> None:
     obs_shape = (batch_size, *observation_shape)
     transitions = []
@@ -231,7 +233,7 @@ def test_torch_mini_batch(
             action=np.random.random(action_size),
             reward=np.random.random((1,)).astype(np.float32),
             next_observation=np.random.random(obs_shape),
-            return_to_go=np.random.random((1,)).astype(np.float32),
+            rewards_to_go=np.random.random((10, 1)).astype(np.float32),
             terminal=0.0,
             interval=1,
         )
@@ -256,11 +258,22 @@ def test_torch_mini_batch(
 
     torch_batch = TorchMiniBatch.from_batch(
         batch=batch,
+        gamma=gamma,
         device="cpu:0",
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     )
+
+    ref_returns_to_go = []
+    for transition in transitions:
+        rewards_to_go = transition.rewards_to_go
+        if reward_scaler:
+            rewards_to_go = reward_scaler.transform(rewards_to_go)
+        R = 0
+        for i, r in enumerate(np.reshape(rewards_to_go, [-1])):
+            R += r * (gamma**i)
+        ref_returns_to_go.append([R])
 
     assert isinstance(batch.observations, np.ndarray)
     assert isinstance(batch.next_observations, np.ndarray)
@@ -287,13 +300,12 @@ def test_torch_mini_batch(
 
     if use_reward_scaler:
         assert np.all(torch_batch.rewards.numpy() == batch.rewards + 0.3)
-        assert np.all(
-            torch_batch.returns_to_go.numpy() == batch.returns_to_go + 0.3
-        )
     else:
         assert np.all(torch_batch.rewards.numpy() == batch.rewards)
-        assert np.all(torch_batch.returns_to_go.numpy() == batch.returns_to_go)
 
+    assert np.allclose(
+        torch_batch.returns_to_go.numpy(), np.array(ref_returns_to_go)
+    )
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
     assert np.all(torch_batch.intervals.numpy() == batch.intervals)
 
