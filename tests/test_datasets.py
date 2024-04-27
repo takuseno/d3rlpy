@@ -28,8 +28,8 @@ def test_get_dataset(env_name: str) -> None:
 @pytest.mark.parametrize(
     "dataset_name, env_name",
     [
-        ("door-cloned-v1", "AdroitHandDoor-v1"),
-        ("relocate-expert-v1", "AdroitHandRelocate-v1"),
+        ("door-cloned-v2", "AdroitHandDoor-v1"),
+        ("relocate-expert-v2", "AdroitHandRelocate-v1"),
         ("kitchen-complete-v1", "FrankaKitchen-v1"),
     ],
 )
