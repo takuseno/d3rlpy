@@ -368,7 +368,7 @@ def install(name: str) -> None:
         install("atari")
         _install_module(["git+https://github.com/takuseno/d4rl-atari"])
     elif name == "d4rl":
-        _install_module(["git+https://github.com/Farama-Foundation/D4RL"])
+        _install_module(["git+https://github.com/takuseno/D4RL"])
         _install_module(["gym"], upgrade=True)
         _uninstall_module(["pybullet"])
     elif name == "minari":
