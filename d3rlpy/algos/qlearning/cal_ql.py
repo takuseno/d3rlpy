@@ -159,5 +159,9 @@ class CalQL(CQL):
             device=self._device,
         )
 
+    @property
+    def need_returns_to_go(self) -> bool:
+        return True
+
 
 register_learnable(CalQLConfig)

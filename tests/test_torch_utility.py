@@ -216,6 +216,7 @@ def test_modules() -> None:
 @pytest.mark.parametrize("use_action_scaler", [False, True])
 @pytest.mark.parametrize("use_reward_scaler", [False, True])
 @pytest.mark.parametrize("gamma", [0.99])
+@pytest.mark.parametrize("compute_returns_to_go", [False, True])
 def test_torch_mini_batch(
     batch_size: int,
     observation_shape: Sequence[int],
@@ -224,6 +225,7 @@ def test_torch_mini_batch(
     use_action_scaler: bool,
     use_reward_scaler: bool,
     gamma: float,
+    compute_returns_to_go: bool,
 ) -> None:
     obs_shape = (batch_size, *observation_shape)
     transitions = []
@@ -259,6 +261,7 @@ def test_torch_mini_batch(
     torch_batch = TorchMiniBatch.from_batch(
         batch=batch,
         gamma=gamma,
+        compute_returns_to_go=compute_returns_to_go,
         device="cpu:0",
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
@@ -266,14 +269,17 @@ def test_torch_mini_batch(
     )
 
     ref_returns_to_go = []
-    for transition in transitions:
-        rewards_to_go = transition.rewards_to_go
-        if reward_scaler:
-            rewards_to_go = reward_scaler.transform(rewards_to_go)
-        R = 0
-        for i, r in enumerate(np.reshape(rewards_to_go, [-1])):
-            R += r * (gamma**i)
-        ref_returns_to_go.append([R])
+    if compute_returns_to_go:
+        for transition in transitions:
+            rewards_to_go = transition.rewards_to_go
+            if reward_scaler:
+                rewards_to_go = reward_scaler.transform(rewards_to_go)
+            R = 0.0
+            for i, r in enumerate(np.reshape(rewards_to_go, [-1])):
+                R += r * (gamma**i)
+            ref_returns_to_go.append([R])
+    else:
+        ref_returns_to_go.extend([[0.0]] * batch_size)
 
     assert isinstance(batch.observations, np.ndarray)
     assert isinstance(batch.next_observations, np.ndarray)

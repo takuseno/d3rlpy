@@ -861,6 +861,7 @@ class QLearningAlgoBase(
         torch_batch = TorchMiniBatch.from_batch(
             batch=batch,
             gamma=self._config.gamma,
+            compute_returns_to_go=self.need_returns_to_go,
             device=self._device,
             observation_scaler=self._config.observation_scaler,
             action_scaler=self._config.action_scaler,
@@ -869,6 +870,10 @@ class QLearningAlgoBase(
         loss = self._impl.update(torch_batch, self._grad_step)
         self._grad_step += 1
         return loss
+
+    @property
+    def need_returns_to_go(self) -> bool:
+        return False
 
     def copy_policy_from(
         self, algo: "QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig]"

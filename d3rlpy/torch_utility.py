@@ -190,6 +190,7 @@ class TorchMiniBatch:
         cls,
         batch: TransitionMiniBatch,
         gamma: float,
+        compute_returns_to_go: bool,
         device: str,
         observation_scaler: Optional[ObservationScaler] = None,
         action_scaler: Optional[ActionScaler] = None,
@@ -205,19 +206,22 @@ class TorchMiniBatch:
         terminals = convert_to_torch(batch.terminals, device)
         intervals = convert_to_torch(batch.intervals, device)
 
-        returns_to_go = convert_to_torch(
-            np.array(
-                [
-                    _compute_return_to_go(
-                        gamma=gamma,
-                        rewards_to_go=transition.rewards_to_go,
-                        reward_scaler=reward_scaler,
-                    )
-                    for transition in batch.transitions
-                ]
-            ),
-            device,
-        )
+        if compute_returns_to_go:
+            returns_to_go = convert_to_torch(
+                np.array(
+                    [
+                        _compute_return_to_go(
+                            gamma=gamma,
+                            rewards_to_go=transition.rewards_to_go,
+                            reward_scaler=reward_scaler,
+                        )
+                        for transition in batch.transitions
+                    ]
+                ),
+                device,
+            )
+        else:
+            returns_to_go = torch.zeros_like(rewards)
 
         # apply scaler
         if observation_scaler:
