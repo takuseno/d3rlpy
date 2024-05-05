@@ -16,11 +16,13 @@ from . import (
     ope,
     preprocessing,
     tokenizers,
+    types,
 )
 from ._version import __version__
 from .base import load_learnable
 from .constants import ActionSpace, LoggingStrategy, PositionEncodingType
 from .healthcheck import run_healthcheck
+from .torch_utility import Modules, TorchMiniBatch
 
 __all__ = [
     "algos",
@@ -35,11 +37,14 @@ __all__ = [
     "ope",
     "preprocessing",
     "tokenizers",
+    "types",
     "__version__",
     "load_learnable",
     "ActionSpace",
     "LoggingStrategy",
     "PositionEncodingType",
+    "Modules",
+    "TorchMiniBatch",
     "seed",
 ]
 
