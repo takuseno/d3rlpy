@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from collections import defaultdict
 from typing import (
+    Any,
     Callable,
     Dict,
     Generator,
@@ -195,19 +196,26 @@ class QLearningAlgoBase(
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         if is_tuple_shape(self._impl.observation_shape):
-            raise NotImplementedError(
-                "save_policy method does not support tuple observation yet."
+            dummy_x = [
+                torch.rand(1, *shape, device=self._device)
+                for shape in self._impl.observation_shape
+            ]
+            num_inputs = len(self._impl.observation_shape)
+        else:
+            dummy_x = torch.rand(
+                1, *self._impl.observation_shape, device=self._device
             )
-        dummy_x = torch.rand(
-            1, *self._impl.observation_shape, device=self._device
-        )
+            num_inputs = 1
 
         # workaround until version 1.6
         self._impl.modules.freeze()
 
         # local function to select best actions
-        def _func(x: torch.Tensor) -> torch.Tensor:
+        def _func(*x: Any) -> torch.Tensor:
             assert self._impl
+
+            if len(x) == 1:
+                x = x[0]
 
             if self._config.observation_scaler:
                 x = self._config.observation_scaler.transform(x)
@@ -229,7 +237,7 @@ class QLearningAlgoBase(
                 fname,
                 export_params=True,
                 opset_version=11,
-                input_names=["input_0"],
+                input_names=[f"input_{i}" for i in range(num_inputs)],
                 output_names=["output_0"],
             )
         elif fname.endswith(".pt"):

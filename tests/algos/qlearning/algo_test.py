@@ -59,10 +59,9 @@ def algo_tester(
         test_policy_optim_copy=test_policy_optim_copy,
         test_q_function_optim_copy=test_q_function_optim_copy,
     )
-    if not is_tuple_shape(observation_shape):
-        save_policy_tester(
-            algo, deterministic_best_action, observation_shape, action_size
-        )
+    save_policy_tester(
+        algo, deterministic_best_action, observation_shape, action_size
+    )
     if test_predict_value:
         predict_value_tester(algo, observation_shape, action_size)
     if test_policy_copy:
@@ -352,7 +351,11 @@ def save_policy_tester(
     algo.save_policy(os.path.join("test_data", "model.pt"))
     policy = torch.jit.load(os.path.join("test_data", "model.pt"))
     torch_observations = create_torch_observations(observation_shape, 100)
-    action = policy(torch_observations)
+    if is_tuple_shape(observation_shape):
+        action = policy(*torch_observations)
+    else:
+        action = policy(torch_observations)
+
     if algo.get_action_type() == ActionSpace.DISCRETE:
         assert action.shape == (100,)
     else:

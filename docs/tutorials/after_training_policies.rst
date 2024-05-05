@@ -106,6 +106,18 @@ Another merit is that the trained policy depends only on PyTorch so that you don
    assert action.shape == (1, 1)
 
 
+If you train your policy with tuple observations, you can feed tuple observations as follows:
+
+.. code-block:: python
+
+   # load TorchScript policy
+   policy = torch.jit.load("tuple_policy.pt")
+
+   # infer the action
+   tuple_observation = [torch.rand(1, 3), torch.rand(1, 5)]
+   action = policy(tuple_observation[0], tuple_observation[1])
+
+
 Export Policies as ONNX
 -----------------------
 
@@ -129,3 +141,15 @@ ONNX is a widely used machine learning model format that is supported by numerou
    # returns greedy action
    action = ort_session.run(None, {'input_0': observation})
    assert action.shape == (1, 1)
+
+
+If you train your policy with tuple observations, you can feed tuple observations as follows:
+
+.. code-block:: python
+
+   # load ONNX policy via onnxruntime
+   ort_session = ort.InferenceSession('tuple_policy.onnx', providers=["CPUExecutionProvider"])
+
+   # infer the action
+   tuple_observation = [np.random.rand(1, 3).astype(np.float32), np.random.rand(1, 5).astype(np.float32)]
+   action = ort_session.run(None, {'input_0': tuple_observation[0], 'input_1': tuple_observation[1]})
