@@ -234,6 +234,8 @@ class TransformerAlgoBase(
             * https://pytorch.org/tutorials/advanced/cpp_export.html (for C++).
             * https://onnx.ai (for ONNX)
 
+        Visit https://d3rlpy.readthedocs.io/en/stable/tutorials/after_training_policies.html#export-policies-as-torchscript for the further usage.
+
         Args:
             fname: Destination file path.
         """
