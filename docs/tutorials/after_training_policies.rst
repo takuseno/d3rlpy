@@ -5,7 +5,7 @@ After Training Policies (Save and Load)
 This page provides answers to frequently asked questions about how to use the trained policies with your environment.
 
 Prepare Pretrained Policies
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -22,7 +22,7 @@ Prepare Pretrained Policies
 
 
 Load Trained Policies
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -55,7 +55,7 @@ Load Trained Policies
 
 
 Inference
----------
+~~~~~~~~~
 
 Now, you can use ``predict`` method to infer the actions. Please note that the observation MUST have the batch dimension.
 
@@ -84,7 +84,10 @@ You can manually make the policy interact with the environment.
 
 
 Export Policies as TorchScript
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Q-learning
+----------
 
 Alternatively, you can export the trained policy as TorchScript format.
 The advantage of the TorchScript format is that the exported policy can be used by not only Python programs, but also C++ programs, which would be useful for robotics integration.
@@ -118,8 +121,61 @@ If you train your policy with tuple observations, you can feed tuple observation
    action = policy(tuple_observation[0], tuple_observation[1])
 
 
+Decision Transformer
+--------------------
+
+Decision Transformer-based algorithms also support TorchScript export.
+
+
+.. code-block:: python
+
+   # export as TorchScript
+   dt.save_policy("policy.pt")
+
+
+   import torch
+
+   # load TorchScript policy
+   policy = torch.jit.load("policy.pt")
+
+   # prepare sequence inputs
+   # context_size == 10, action_size=2
+   observations = torch.rand(10, 3)
+   actions = torch.rand(10, 2)
+   returns_to_go = torch.rand(10, 1)
+   timesteps = torch.zeros(10, dtype=torch.int32)
+
+   # infer the action
+   action = policy(observations, actions, returns_to_go, timesteps)
+   assert action.shape == (2,)
+
+
+Tuple observations are also supported:
+
+
+.. code-block:: python
+
+   # load TorchScript policy
+   policy = torch.jit.load("tuple_policy.pt")
+
+   # prepare sequence inputs
+   # context_size == 10, action_size=2
+   observations1 = torch.rand(10, 3)
+   observations2 = torch.rand(10, 5)
+   actions = torch.rand(10, 2)
+   returns_to_go = torch.rand(10, 1)
+   timesteps = torch.zeros(10, dtype=torch.int32)
+
+   # infer the action
+   action = policy(observations1, observations2, actions, returns_to_go, timesteps)
+   assert action.shape == (2,)
+
+
 Export Policies as ONNX
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Q-learning
+----------
 
 Alternatively, you can also export the trained policy as ONNX.
 ONNX is a widely used machine learning model format that is supported by numerous programming languages.
@@ -139,7 +195,7 @@ ONNX is a widely used machine learning model format that is supported by numerou
    observation = np.random.rand(1, 3).astype(np.float32)
 
    # returns greedy action
-   action = ort_session.run(None, {'input_0': observation})
+   action = ort_session.run(None, {'input_0': observation})[0]
    assert action.shape == (1, 1)
 
 
@@ -152,4 +208,71 @@ If you train your policy with tuple observations, you can feed tuple observation
 
    # infer the action
    tuple_observation = [np.random.rand(1, 3).astype(np.float32), np.random.rand(1, 5).astype(np.float32)]
-   action = ort_session.run(None, {'input_0': tuple_observation[0], 'input_1': tuple_observation[1]})
+   action = ort_session.run(None, {'input_0': tuple_observation[0], 'input_1': tuple_observation[1]})[0]
+
+
+Decision Transformer
+--------------------
+
+Decision Transformer-based algorithms also support ONNX export:
+
+
+.. code-block:: python
+
+   # export as ONNX
+   cql.save_policy("policy.onnx")
+
+
+   import onnxruntime as ort
+
+   # load ONNX policy via onnxruntime
+   ort_session = ort.InferenceSession('policy.onnx', providers=["CPUExecutionProvider"])
+
+   # prepare sequence inputs
+   # context_size == 10, action_size=2
+   observations = np.random.rand(10, 3).astype(np.float32)
+   actions = np.random.rand(10, 2).astype(np.float32)
+   returns_to_go = np.random.rand(10, 1).astype(np.float32)
+   timesteps = np.random.zeros(10, dtype=np.int32)
+
+   # returns greedy action
+   action = ort_session.run(
+       None,
+       {
+           'observation_0': observations,
+           'action': actions,
+           'return_to_go': returns_to_go,
+           'timestep': timesteps,
+       },
+   )
+   assert action.shape == (2,)
+
+
+Tuple observations are also supported:
+
+
+.. code-block:: python
+
+   # load ONNX policy via onnxruntime
+   ort_session = ort.InferenceSession('tuple_policy.onnx', providers=["CPUExecutionProvider"])
+
+   # prepare sequence inputs
+   # context_size == 10, action_size=2
+   observations1 = np.random.rand(10, 3).astype(np.float32)
+   observations2 = np.random.rand(10, 5).astype(np.float32)
+   actions = np.random.rand(10, 2).astype(np.float32)
+   returns_to_go = np.random.rand(10, 1).astype(np.float32)
+   timesteps = np.random.zeros(10, dtype=np.int32)
+
+   # returns greedy action
+   action = ort_session.run(
+       None,
+       {
+           'observation_0': observations1,
+           'observation_1': observations2,
+           'action': actions,
+           'return_to_go': returns_to_go,
+           'timestep': timesteps,
+       },
+   )
+   assert action.shape == (2,)

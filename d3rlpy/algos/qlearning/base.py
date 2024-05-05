@@ -1,13 +1,13 @@
 from abc import abstractmethod
 from collections import defaultdict
 from typing import (
-    Any,
     Callable,
     Dict,
     Generator,
     Generic,
     List,
     Optional,
+    Sequence,
     Tuple,
     TypeVar,
 )
@@ -211,16 +211,19 @@ class QLearningAlgoBase(
         self._impl.modules.freeze()
 
         # local function to select best actions
-        def _func(*x: Any) -> torch.Tensor:
+        def _func(*x: Sequence[torch.Tensor]) -> torch.Tensor:
             assert self._impl
 
-            if len(x) == 1:
-                x = x[0]
+            observation: TorchObservation = x
+            if len(observation) == 1:
+                observation = observation[0]
 
             if self._config.observation_scaler:
-                x = self._config.observation_scaler.transform(x)
+                observation = self._config.observation_scaler.transform(
+                    observation
+                )
 
-            action = self._impl.predict_best_action(x)
+            action = self._impl.predict_best_action(observation)
 
             if self._config.action_scaler:
                 action = self._config.action_scaler.reverse_transform(action)

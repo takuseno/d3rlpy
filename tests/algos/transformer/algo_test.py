@@ -1,7 +1,10 @@
 import os
+from typing import Any, List
 from unittest.mock import Mock
 
 import numpy as np
+import onnxruntime as ort
+import torch
 
 from d3rlpy.algos import (
     GreedyTransformerActionSampler,
@@ -18,12 +21,18 @@ from d3rlpy.dataset import (
     PartialTrajectory,
     TrajectoryMiniBatch,
     create_infinite_replay_buffer,
+    is_tuple_shape,
 )
 from d3rlpy.logging import NoopAdapterFactory
+from d3rlpy.torch_utility import convert_to_numpy_recursively
 from d3rlpy.types import Float32NDArray, NDArray, Shape
 
 from ...base_test import from_json_tester, load_learnable_tester
-from ...testing_utils import create_observation, create_observations
+from ...testing_utils import (
+    create_observation,
+    create_observations,
+    create_torch_observations,
+)
 
 
 def algo_tester(
@@ -38,6 +47,7 @@ def algo_tester(
     save_and_load_tester(algo, observation_shape, action_size)
     update_tester(algo, observation_shape, action_size)
     stateful_wrapper_tester(algo, observation_shape, action_size)
+    save_policy_tester(algo, observation_shape, action_size)
 
 
 def fit_tester(
@@ -229,3 +239,84 @@ def stateful_wrapper_tester(
     wrapper.reset()
     action3 = wrapper.predict(observation1, reward1)
     assert np.all(action1 == action3)
+
+
+def save_policy_tester(
+    algo: TransformerAlgoBase[TransformerAlgoImplBase, TransformerConfig],
+    observation_shape: Shape,
+    action_size: int,
+) -> None:
+    algo.create_impl(observation_shape, action_size)
+
+    # check save_policy as TorchScript
+    algo.save_policy(os.path.join("test_data", "model.pt"))
+    policy = torch.jit.load(os.path.join("test_data", "model.pt"))
+
+    inputs: List[Any] = []
+    torch_observations = create_torch_observations(
+        observation_shape, algo.config.context_size
+    )
+    if is_tuple_shape(observation_shape):
+        inputs.extend(torch_observations)
+        num_observations = len(torch_observations)
+    else:
+        inputs.append(torch_observations)
+        num_observations = 1
+    # action
+    if algo.get_action_type() == ActionSpace.CONTINUOUS:
+        inputs.append(torch.rand(algo.config.context_size, action_size))
+    else:
+        inputs.append(torch.rand(algo.config.context_size, 1))
+    # return-to-go
+    inputs.append(torch.rand(algo.config.context_size, 1))
+    # timestep
+    inputs.append(torch.arange(algo.config.context_size))
+
+    # inference
+    action = policy(*inputs)
+
+    if algo.get_action_type() == ActionSpace.DISCRETE:
+        assert action.shape == tuple()
+    else:
+        assert action.shape == (action_size,)
+
+    action = action.detach().numpy()
+    if num_observations > 1:
+        observations = convert_to_numpy_recursively(inputs[:num_observations])
+    else:
+        observations = inputs[0].numpy()
+    inpt = TransformerInput(
+        observations=observations,
+        actions=inputs[num_observations].numpy(),
+        rewards=inputs[num_observations + 1].numpy(),
+        returns_to_go=inputs[num_observations + 1].numpy(),
+        timesteps=inputs[num_observations + 2].numpy(),
+    )
+    if algo.get_action_type() == ActionSpace.DISCRETE:
+        assert action == algo.predict(inpt).argmax()
+    else:
+        assert np.allclose(action, algo.predict(inpt), atol=1e-4)
+
+    # check save_policy as ONNX
+    algo.save_policy(os.path.join("test_data", "model.onnx"))
+    ort_session = ort.InferenceSession(
+        os.path.join("test_data", "model.onnx"),
+        providers=["CPUExecutionProvider"],
+    )
+    if num_observations > 1:
+        input_dict = {f"observation_{i}": x for i, x in enumerate(observations)}
+    else:
+        input_dict = {"observation_0": observations}
+    input_dict["action"] = inpt.actions
+    input_dict["return_to_go"] = inpt.returns_to_go
+    input_dict["timestep"] = inpt.timesteps
+    action = ort_session.run(None, input_dict)[0]
+    if algo.get_action_type() == ActionSpace.DISCRETE:
+        assert action.shape == tuple()
+    else:
+        assert action.shape == (action_size,)
+
+    if algo.get_action_type() == ActionSpace.DISCRETE:
+        assert action == algo.predict(inpt).argmax()
+    else:
+        assert np.allclose(action, algo.predict(inpt), atol=1e-4)

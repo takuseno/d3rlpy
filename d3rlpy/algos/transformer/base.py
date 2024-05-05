@@ -1,7 +1,16 @@
 import dataclasses
 from abc import abstractmethod
 from collections import defaultdict, deque
-from typing import Callable, Deque, Dict, Generic, Optional, TypeVar, Union
+from typing import (
+    Callable,
+    Deque,
+    Dict,
+    Generic,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 import torch
@@ -10,7 +19,7 @@ from typing_extensions import Self
 
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
 from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
-from ...dataset import ReplayBuffer, TrajectoryMiniBatch
+from ...dataset import ReplayBuffer, TrajectoryMiniBatch, is_tuple_shape
 from ...logging import (
     LOG,
     D3RLPyLogger,
@@ -19,7 +28,7 @@ from ...logging import (
 )
 from ...metrics import evaluate_transformer_with_environment
 from ...torch_utility import TorchTrajectoryMiniBatch, eval_api, train_api
-from ...types import GymEnv, NDArray, Observation
+from ...types import GymEnv, NDArray, Observation, TorchObservation
 from ..utility import (
     assert_action_space_with_dataset,
     build_scalers_with_trajectory_slicer,
@@ -202,6 +211,139 @@ class TransformerAlgoBase(
     Generic[TTransformerImpl, TTransformerConfig],
     LearnableBase[TTransformerImpl, TTransformerConfig],
 ):
+    def save_policy(self, fname: str) -> None:
+        """Save the greedy-policy computational graph as TorchScript or ONNX.
+
+        The format will be automatically detected by the file name.
+
+        .. code-block:: python
+
+            # save as TorchScript
+            algo.save_policy('policy.pt')
+
+            # save as ONNX
+            algo.save_policy('policy.onnx')
+
+        The artifacts saved with this method will work without d3rlpy.
+        This method is especially useful to deploy the learned policy to
+        production environments or embedding systems.
+
+        See also
+
+            * https://pytorch.org/tutorials/beginner/Intro_to_TorchScript_tutorial.html (for Python).
+            * https://pytorch.org/tutorials/advanced/cpp_export.html (for C++).
+            * https://onnx.ai (for ONNX)
+
+        Args:
+            fname: Destination file path.
+        """
+        assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
+
+        context_size = self._config.context_size
+        dummy_x = []
+        if is_tuple_shape(self._impl.observation_shape):
+            dummy_x.extend(
+                [
+                    torch.rand(context_size, *shape, device=self._device)
+                    for shape in self._impl.observation_shape
+                ]
+            )
+            num_observations = len(self._impl.observation_shape)
+        else:
+            dummy_x.append(
+                torch.rand(
+                    context_size,
+                    *self._impl.observation_shape,
+                    device=self._device,
+                )
+            )
+            num_observations = 1
+        # action
+        if self.get_action_type() == ActionSpace.CONTINUOUS:
+            dummy_x.append(
+                torch.rand(
+                    context_size, self._impl.action_size, device=self._device
+                )
+            )
+        else:
+            dummy_x.append(torch.rand(context_size, 1, device=self._device))
+        # return_to_go
+        dummy_x.append(torch.rand(context_size, 1, device=self._device))
+        # timesteps
+        dummy_x.append(torch.arange(context_size, device=self._device))
+
+        # workaround until version 1.6
+        self._impl.modules.freeze()
+
+        # local function to select best actions
+        def _func(*x: Sequence[torch.Tensor]) -> torch.Tensor:
+            assert self._impl
+
+            # add batch dimension
+            x = [v.view(1, *v.shape) for v in x]  # type: ignore
+
+            observations: TorchObservation = x[:-3]
+            actions = x[-3]
+            returns_to_go = x[-2]
+            timesteps = x[-1]
+
+            if len(observations) == 1:
+                observations = observations[0]
+
+            if self._config.observation_scaler:
+                observations = self._config.observation_scaler.transform(
+                    observations
+                )
+            if self._config.action_scaler:
+                actions = self._config.action_scaler.transform(actions)
+
+            inpt = TorchTransformerInput(
+                observations=observations,
+                actions=actions,
+                rewards=torch.zeros_like(returns_to_go),
+                returns_to_go=returns_to_go,
+                timesteps=timesteps,
+                masks=torch.zeros_like(returns_to_go),
+                length=self._config.context_size,
+            )
+
+            action = self._impl.predict(inpt)
+
+            if self._config.action_scaler:
+                action = self._config.action_scaler.reverse_transform(action)
+
+            if self.get_action_type() == ActionSpace.DISCRETE:
+                action = action.argmax()
+
+            return action
+
+        traced_script = torch.jit.trace(_func, dummy_x, check_trace=False)
+
+        if fname.endswith(".onnx"):
+            # currently, PyTorch cannot directly export function as ONNX.
+            torch.onnx.export(
+                traced_script,
+                dummy_x,
+                fname,
+                export_params=True,
+                opset_version=11,
+                input_names=[
+                    f"observation_{i}" for i in range(num_observations)
+                ]
+                + ["action", "return_to_go", "timestep"],
+                output_names=["output_0"],
+            )
+        elif fname.endswith(".pt"):
+            traced_script.save(fname)
+        else:
+            raise ValueError(
+                f"invalid format type: {fname}."
+                " .pt and .onnx extensions are currently supported."
+            )
+
+        # workaround until version 1.6
+        self._impl.modules.unfreeze()
+
     def predict(self, inpt: TransformerInput) -> NDArray:
         """Returns action.
 

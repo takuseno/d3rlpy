@@ -177,29 +177,17 @@ class GlobalPositionEncoding(PositionEncoding):
     def __init__(self, embed_dim: int, max_timestep: int, context_size: int):
         super().__init__()
         self._embed_dim = embed_dim
-        self._global_position_embedding = Parameter(
-            torch.zeros(1, max_timestep, embed_dim, dtype=torch.float32)
-        )
+        self._global_position_embedding = nn.Embedding(max_timestep, embed_dim)
         self._block_position_embedding = Parameter(
             torch.zeros(1, 3 * context_size, embed_dim, dtype=torch.float32)
         )
 
     def forward(self, t: torch.Tensor) -> torch.Tensor:
         assert t.dim() == 2, "Expects (B, T)"
-        batch_size, context_size = t.shape
+        _, context_size = t.shape
 
-        # (B, 1, 1) -> (B, 1, N)
-        last_t = torch.repeat_interleave(
-            t[:, -1].view(-1, 1, 1), self._embed_dim, dim=-1
-        )
-        # (1, Tmax, N) -> (B, Tmax, N)
-        batched_global_embedding = torch.repeat_interleave(
-            get_parameter(self._global_position_embedding),
-            batch_size,
-            dim=0,
-        )
-        # (B, Tmax, N) -> (B, 1, N)
-        global_embedding = torch.gather(batched_global_embedding, 1, last_t)
+        # (B, 1) -> (B, 1, N)
+        global_embedding = self._global_position_embedding(t[:, -1:])
 
         # (1, 3 * Cmax, N) -> (1, T, N)
         block_embedding = get_parameter(self._block_position_embedding)[
