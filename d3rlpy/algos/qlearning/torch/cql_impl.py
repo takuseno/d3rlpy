@@ -10,7 +10,6 @@ from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
     Parameter,
-    build_squashed_gaussian_distribution,
     get_parameter,
 )
 from ....torch_utility import (
@@ -22,6 +21,7 @@ from ....types import Shape, TorchObservation
 from .ddpg_impl import DDPGBaseCriticLoss
 from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
 from .sac_impl import SACImpl, SACModules
+from .utility import sample_q_values_with_policy
 
 __all__ = ["CQLImpl", "DiscreteCQLImpl", "CQLModules", "DiscreteCQLLoss"]
 
@@ -44,6 +44,7 @@ class CQLImpl(SACImpl):
     _conservative_weight: float
     _n_action_samples: int
     _soft_q_backup: bool
+    _max_q_backup: bool
 
     def __init__(
         self,
@@ -58,6 +59,7 @@ class CQLImpl(SACImpl):
         conservative_weight: float,
         n_action_samples: int,
         soft_q_backup: bool,
+        max_q_backup: bool,
         device: str,
     ):
         super().__init__(
@@ -74,6 +76,7 @@ class CQLImpl(SACImpl):
         self._conservative_weight = conservative_weight
         self._n_action_samples = n_action_samples
         self._soft_q_backup = soft_q_backup
+        self._max_q_backup = max_q_backup
 
     def compute_critic_loss(
         self, batch: TorchMiniBatch, q_tpn: torch.Tensor
@@ -88,8 +91,8 @@ class CQLImpl(SACImpl):
         if self._modules.alpha_optim:
             self.update_alpha(conservative_loss)
         return CQLCriticLoss(
-            critic_loss=loss.critic_loss + conservative_loss,
-            conservative_loss=conservative_loss,
+            critic_loss=loss.critic_loss + conservative_loss.sum(),
+            conservative_loss=conservative_loss.sum(),
             alpha=get_parameter(self._modules.log_alpha).exp(),
         )
 
@@ -97,7 +100,7 @@ class CQLImpl(SACImpl):
         assert self._modules.alpha_optim
         self._modules.alpha_optim.zero_grad()
         # the original implementation does scale the loss value
-        loss = -conservative_loss
+        loss = -conservative_loss.mean()
         loss.backward(retain_graph=True)
         self._modules.alpha_optim.step()
 
@@ -107,39 +110,14 @@ class CQLImpl(SACImpl):
         value_obs: TorchObservation,
         returns_to_go: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        with torch.no_grad():
-            dist = build_squashed_gaussian_distribution(
-                self._modules.policy(policy_obs)
-            )
-            policy_actions, n_log_probs = dist.sample_n_with_log_prob(
-                self._n_action_samples
-            )
-
-        # (batch, observation) -> (batch, n, observation)
-        repeated_obs = expand_and_repeat_recursively(
-            value_obs, self._n_action_samples
+        return sample_q_values_with_policy(
+            policy=self._modules.policy,
+            q_func_forwarder=self._q_func_forwarder,
+            policy_observations=policy_obs,
+            value_observations=value_obs,
+            n_action_samples=self._n_action_samples,
+            detach_policy_output=True,
         )
-        # (batch, n, observation) -> (batch * n, observation)
-        flat_obs = flatten_left_recursively(repeated_obs, dim=1)
-        # (batch, n, action) -> (batch * n, action)
-        flat_policy_acts = policy_actions.reshape(-1, self.action_size)
-
-        # estimate action-values for policy actions
-        policy_values = self._q_func_forwarder.compute_expected_q(
-            flat_obs, flat_policy_acts, "none"
-        )
-        batch_size = (
-            policy_obs.shape[0]
-            if isinstance(policy_obs, torch.Tensor)
-            else policy_obs[0].shape[0]
-        )
-        policy_values = policy_values.view(
-            -1, batch_size, self._n_action_samples
-        )
-        log_probs = n_log_probs.view(1, -1, self._n_action_samples)
-
-        # importance sampling
-        return policy_values, log_probs
 
     def _compute_random_is_values(
         self, obs: TorchObservation
@@ -206,26 +184,40 @@ class CQLImpl(SACImpl):
             obs_t, act_t, "none"
         )
 
-        loss = logsumexp.mean(dim=0).mean() - data_values.mean(dim=0).mean()
-        scaled_loss = self._conservative_weight * loss
+        loss = (logsumexp - data_values).mean(dim=[1, 2])
 
         # clip for stability
         log_alpha = get_parameter(self._modules.log_alpha)
         clipped_alpha = log_alpha.exp().clamp(0, 1e6)[0][0]
 
-        return clipped_alpha * (scaled_loss - self._alpha_threshold)
+        return (
+            clipped_alpha
+            * self._conservative_weight
+            * (loss - self._alpha_threshold)
+        )
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         if self._soft_q_backup:
             target_value = super().compute_target(batch)
         else:
-            target_value = self._compute_deterministic_target(batch)
+            with torch.no_grad():
+                target_value = self._compute_deterministic_target(batch)
         return target_value
 
     def _compute_deterministic_target(
         self, batch: TorchMiniBatch
     ) -> torch.Tensor:
-        with torch.no_grad():
+        if self._max_q_backup:
+            q_values, _ = sample_q_values_with_policy(
+                policy=self._modules.policy,
+                q_func_forwarder=self._targ_q_func_forwarder,
+                policy_observations=batch.next_observations,
+                value_observations=batch.next_observations,
+                n_action_samples=self._n_action_samples,
+                detach_policy_output=True,
+            )
+            return q_values.min(dim=0).values.max(dim=1, keepdims=True).values
+        else:
             action = self._modules.policy(batch.next_observations).squashed_mu
             return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,

@@ -99,6 +99,7 @@ class CQLConfig(LearnableConfig):
         n_action_samples (int): Number of sampled actions to compute
             :math:`\log{\sum_a \exp{Q(s, a)}}`.
         soft_q_backup (bool): Flag to use SAC-style backup.
+        max_q_backup (bool): Flag to sample max Q-values for target.
     """
 
     actor_learning_rate: float = 1e-4
@@ -122,6 +123,7 @@ class CQLConfig(LearnableConfig):
     conservative_weight: float = 5.0
     n_action_samples: int = 10
     soft_q_backup: bool = False
+    max_q_backup: bool = False
 
     def create(self, device: DeviceArg = False) -> "CQL":
         return CQL(self, device)
@@ -135,6 +137,10 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        assert not (
+            self._config.soft_q_backup and self._config.max_q_backup
+        ), "soft_q_backup and max_q_backup are mutually exclusive."
+
         policy = create_normal_policy(
             observation_shape,
             action_size,
@@ -209,6 +215,7 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             conservative_weight=self._config.conservative_weight,
             n_action_samples=self._config.n_action_samples,
             soft_q_backup=self._config.soft_q_backup,
+            max_q_backup=self._config.max_q_backup,
             device=self._device,
         )
 
