@@ -88,6 +88,7 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 | [Policy in Latent Action Space (PLAS)](https://arxiv.org/abs/2011.07213) | :no_entry: | :white_check_mark: |
 | [TD3+BC](https://arxiv.org/abs/2106.06860) | :no_entry: | :white_check_mark: |
 | [Implicit Q-Learning (IQL)](https://arxiv.org/abs/2110.06169) | :no_entry: | :white_check_mark: |
+| [Calibrated Q-Learning (Cal-QL)](https://arxiv.org/abs/2303.05479) | :no_entry: | :white_check_mark: |
 | [Decision Transformer](https://arxiv.org/abs/2106.01345) | :white_check_mark: | :white_check_mark: |
 | [Gato](https://arxiv.org/abs/2205.06175) | :construction: | :construction: |
 
