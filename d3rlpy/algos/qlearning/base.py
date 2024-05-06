@@ -654,7 +654,7 @@ class QLearningAlgoBase(
 
         # create default replay buffer
         if buffer is None:
-            buffer = create_fifo_replay_buffer(1000000)
+            buffer = create_fifo_replay_buffer(1000000, env=env)
 
         # check action-space
         assert_action_space_with_env(self, env)
