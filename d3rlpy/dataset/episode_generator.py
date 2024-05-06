@@ -62,6 +62,10 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
         assert (
             np.sum(np.logical_and(terminals, timeouts)) == 0
         ), "terminals and timeouts never become True at the same time"
+        assert (np.sum(terminals) + np.sum(timeouts)) > 0, (
+            "No episode termination was found. Either terminals"
+            " or timeouts must include non-zero values."
+        )
 
         self._observations = observations
         self._actions = actions
