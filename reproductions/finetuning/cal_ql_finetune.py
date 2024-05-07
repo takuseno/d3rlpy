@@ -12,7 +12,13 @@ def main() -> None:
     parser.add_argument("--gpu", type=int)
     args = parser.parse_args()
 
-    dataset, env = d3rlpy.datasets.get_d4rl(args.dataset)
+    dataset, env = d3rlpy.datasets.get_d4rl(
+        args.dataset,
+        transition_picker=d3rlpy.dataset.SparseRewardTransitionPicker(
+            horizon_length=100,
+            step_reward=0,
+        ),
+    )
 
     # fix seed
     d3rlpy.seed(args.seed)

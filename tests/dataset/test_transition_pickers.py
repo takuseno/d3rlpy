@@ -1,3 +1,5 @@
+import dataclasses
+
 import numpy as np
 import pytest
 
@@ -5,6 +7,7 @@ from d3rlpy.dataset import (
     BasicTransitionPicker,
     FrameStackTransitionPicker,
     MultiStepTransitionPicker,
+    SparseRewardTransitionPicker,
 )
 from d3rlpy.types import Shape
 
@@ -185,3 +188,40 @@ def test_multi_step_transition_picker(
     assert np.allclose(transition.rewards_to_go, episode.rewards[-n_steps:])
     assert transition.interval == n_steps
     assert transition.terminal == 1.0
+
+
+@pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("length", [100])
+@pytest.mark.parametrize("horizon_length", [1000])
+@pytest.mark.parametrize("step_reward", [0.0])
+@pytest.mark.parametrize("success", [False, True])
+def test_sparse_reward_transition_picker(
+    observation_shape: Shape,
+    action_size: int,
+    length: int,
+    horizon_length: int,
+    step_reward: float,
+    success: bool,
+) -> None:
+    episode = create_episode(
+        observation_shape, action_size, length, terminated=True
+    )
+    if not success:
+        episode = dataclasses.replace(
+            episode,
+            rewards=np.zeros_like(episode.rewards),
+        )
+
+    picker = SparseRewardTransitionPicker(
+        horizon_length=horizon_length,
+        step_reward=step_reward,
+    )
+
+    transition = picker(episode, 0)
+
+    if success:
+        assert np.all(transition.rewards_to_go == episode.rewards)
+    else:
+        assert transition.rewards_to_go.shape == (horizon_length, 1)
+        assert np.all(transition.rewards_to_go == 0)
