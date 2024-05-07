@@ -12,12 +12,15 @@ def main() -> None:
     parser.add_argument("--gpu", type=int)
     args = parser.parse_args()
 
+    # sparse reward setup requires special treatment for failure trajectories
+    transition_picker = d3rlpy.dataset.SparseRewardTransitionPicker(
+        horizon_length=100,
+        step_reward=0,
+    )
+
     dataset, env = d3rlpy.datasets.get_d4rl(
         args.dataset,
-        transition_picker=d3rlpy.dataset.SparseRewardTransitionPicker(
-            horizon_length=100,
-            step_reward=0,
-        ),
+        transition_picker=transition_picker,
     )
 
     # fix seed
@@ -60,7 +63,11 @@ def main() -> None:
     )
 
     # prepare FIFO buffer filled with dataset episodes
-    buffer = d3rlpy.dataset.create_fifo_replay_buffer(1000000, env=env)
+    buffer = d3rlpy.dataset.create_fifo_replay_buffer(
+        limit=1000000,
+        env=env,
+        transition_picker=transition_picker,
+    )
 
     # sample half from offline dataset and the rest from online buffer
     mixed_buffer = d3rlpy.dataset.MixedReplayBuffer(
