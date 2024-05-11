@@ -75,14 +75,17 @@ class SparseRewardTransitionPicker(TransitionPickerProtocol):
     This class extends BasicTransitionPicker to handle special returns_to_go
     calculation mainly used in AntMaze environments.
 
+    For the failure trajectories, this class sets the constant return value to
+    avoid inconsistent horizon due to time out.
+
     Args:
-        horizon_length (int): Length to repeat rewards_to_go.
+        failure_return (int): Return value for failure trajectories.
         step_reward (float): Immediate step reward value in sparse reward
             setting.
     """
 
-    def __init__(self, horizon_length: int, step_reward: float = 0.0):
-        self._horizon_length = horizon_length
+    def __init__(self, failure_return: float, step_reward: float = 0.0):
+        self._failure_return = failure_return
         self._step_reward = step_reward
         self._transition_picker = BasicTransitionPicker()
 
@@ -90,7 +93,7 @@ class SparseRewardTransitionPicker(TransitionPickerProtocol):
         transition = self._transition_picker(episode, index)
         if np.all(transition.rewards_to_go == self._step_reward):
             extended_rewards_to_go: Float32NDArray = np.array(
-                [[self._step_reward]] * self._horizon_length,
+                [[self._failure_return]],
                 dtype=np.float32,
             )
             transition = dataclasses.replace(

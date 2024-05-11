@@ -14,7 +14,7 @@ def main() -> None:
 
     # sparse reward setup requires special treatment for failure trajectories
     transition_picker = d3rlpy.dataset.SparseRewardTransitionPicker(
-        horizon_length=100,
+        failure_return=-49.5,  # ((-5 / 0.01) + 5) / 10
         step_reward=0,
     )
 

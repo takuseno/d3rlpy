@@ -193,14 +193,14 @@ def test_multi_step_transition_picker(
 @pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("length", [100])
-@pytest.mark.parametrize("horizon_length", [1000])
+@pytest.mark.parametrize("failure_return", [-100])
 @pytest.mark.parametrize("step_reward", [0.0])
 @pytest.mark.parametrize("success", [False, True])
 def test_sparse_reward_transition_picker(
     observation_shape: Shape,
     action_size: int,
     length: int,
-    horizon_length: int,
+    failure_return: int,
     step_reward: float,
     success: bool,
 ) -> None:
@@ -214,7 +214,7 @@ def test_sparse_reward_transition_picker(
         )
 
     picker = SparseRewardTransitionPicker(
-        horizon_length=horizon_length,
+        failure_return=failure_return,
         step_reward=step_reward,
     )
 
@@ -223,5 +223,5 @@ def test_sparse_reward_transition_picker(
     if success:
         assert np.all(transition.rewards_to_go == episode.rewards)
     else:
-        assert transition.rewards_to_go.shape == (horizon_length, 1)
-        assert np.all(transition.rewards_to_go == 0)
+        assert transition.rewards_to_go.shape == (1, 1)
+        assert transition.rewards_to_go[0][0] == failure_return
