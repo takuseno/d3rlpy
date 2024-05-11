@@ -1,4 +1,5 @@
 import argparse
+import math
 
 import d3rlpy
 
@@ -43,7 +44,7 @@ def main() -> None:
         critic_learning_rate=3e-4,
         temp_learning_rate=1e-4,
         alpha_learning_rate=3e-4,
-        initial_alpha=2.72,
+        initial_alpha=math.e,
         batch_size=256,
         conservative_weight=5.0,
         critic_encoder_factory=encoder,
