@@ -193,6 +193,7 @@ You can also implement your own ``TransitionPicker`` for custom experiments.
    d3rlpy.dataset.BasicTransitionPicker
    d3rlpy.dataset.FrameStackTransitionPicker
    d3rlpy.dataset.MultiStepTransitionPicker
+   d3rlpy.dataset.SparseRewardTransitionPicker
 
 
 TrajectorySlicer
