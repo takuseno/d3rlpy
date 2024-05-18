@@ -59,7 +59,9 @@ def main() -> None:
         n_steps=1000000,
         n_steps_per_epoch=1000,
         save_interval=10,
-        evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
+        evaluators={
+            "environment": d3rlpy.metrics.EnvironmentEvaluator(env, n_trials=20)
+        },
         experiment_name=f"CalQL_pretraining_{args.dataset}_{args.seed}",
     )
 
@@ -68,6 +70,7 @@ def main() -> None:
         limit=1000000,
         env=env,
         transition_picker=transition_picker,
+        write_at_termination=True,
     )
 
     # sample half from offline dataset and the rest from online buffer
@@ -90,6 +93,7 @@ def main() -> None:
         n_updates=1000,
         update_interval=1000,
         save_interval=10,
+        eval_n_trials=20,
     )
 
 

@@ -751,6 +751,7 @@ def create_fifo_replay_buffer(
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
     env: Optional[GymEnv] = None,
+    write_at_termination: bool = False,
 ) -> ReplayBuffer:
     """Builds FIFO replay buffer.
 
@@ -770,6 +771,8 @@ def create_fifo_replay_buffer(
             Writer preprocessor implementation. If ``None`` is given,
             ``BasicWriterPreprocess`` is used by default.
         env: Gym environment to extract shapes of observations and action.
+        write_at_termination (bool): Flag to write experiences to the buffer at the
+            end of an episode all at once.
 
     Returns:
         Replay buffer.
@@ -782,6 +785,7 @@ def create_fifo_replay_buffer(
         trajectory_slicer=trajectory_slicer,
         writer_preprocessor=writer_preprocessor,
         env=env,
+        write_at_termination=write_at_termination,
     )
 
 
@@ -791,6 +795,7 @@ def create_infinite_replay_buffer(
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
     env: Optional[GymEnv] = None,
+    write_at_termination: bool = False,
 ) -> ReplayBuffer:
     """Builds infinite replay buffer.
 
@@ -809,6 +814,8 @@ def create_infinite_replay_buffer(
             Writer preprocessor implementation. If ``None`` is given,
             ``BasicWriterPreprocess`` is used by default.
         env: Gym environment to extract shapes of observations and action.
+        write_at_termination (bool): Flag to write experiences to the buffer at the
+            end of an episode all at once.
 
     Returns:
         Replay buffer.
@@ -821,4 +828,5 @@ def create_infinite_replay_buffer(
         trajectory_slicer=trajectory_slicer,
         writer_preprocessor=writer_preprocessor,
         env=env,
+        write_at_termination=write_at_termination,
     )
