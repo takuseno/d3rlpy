@@ -349,13 +349,13 @@ def play(
 
 
 def _install_module(
-    name: list[str], upgrade: bool = False, check: bool = True
+    name: List[str], upgrade: bool = False, check: bool = True
 ) -> None:
     name = ["-U", *name] if upgrade else name
     subprocess.run(["pip3", "install", *name], check=check)
 
 
-def _uninstall_module(name: list[str], check: bool = True) -> None:
+def _uninstall_module(name: List[str], check: bool = True) -> None:
     subprocess.run(["pip3", "uninstall", "-y", *name], check=check)
 
 
