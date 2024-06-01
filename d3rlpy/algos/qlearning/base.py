@@ -613,6 +613,7 @@ class QLearningAlgoBase(
         random_steps: int = 0,
         eval_env: Optional[GymEnv] = None,
         eval_epsilon: float = 0.0,
+        eval_n_trials: int = 10,
         save_interval: int = 1,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
@@ -764,7 +765,10 @@ class QLearningAlgoBase(
                 # evaluation
                 if eval_env:
                     eval_score = evaluate_qlearning_with_environment(
-                        self, eval_env, epsilon=eval_epsilon
+                        self,
+                        eval_env,
+                        n_trials=eval_n_trials,
+                        epsilon=eval_epsilon,
                     )
                     logger.add_metric("evaluation", eval_score)
 
