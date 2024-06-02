@@ -42,6 +42,7 @@ def test_basic_transition_picker(
         assert np.all(transition.observation == episode.observations[0])
         assert np.all(transition.next_observation == episode.observations[1])
     assert np.all(transition.action == episode.actions[0])
+    assert np.all(transition.next_action == episode.actions[1])
     assert np.all(transition.reward == episode.rewards[0])
     assert np.allclose(transition.rewards_to_go, episode.rewards)
     assert transition.interval == 1
@@ -63,6 +64,7 @@ def test_basic_transition_picker(
         assert np.all(transition.observation == episode.observations[-1])
         assert np.all(transition.next_observation == dummy_observation)
     assert np.all(transition.action == episode.actions[-1])
+    assert np.all(transition.next_action == 0)
     assert np.all(transition.reward == episode.rewards[-1])
     assert np.allclose(transition.rewards_to_go, episode.rewards[-1:])
     assert transition.interval == 1
@@ -112,6 +114,7 @@ def test_frame_stack_transition_picker(
             else:
                 assert np.all(next_obs == 0.0)
         assert np.all(transition.action == episode.actions[i])
+        assert np.all(transition.next_action == episode.actions[i + 1])
         assert np.all(transition.reward == episode.rewards[i])
         assert np.allclose(transition.rewards_to_go, episode.rewards[i:])
         assert transition.terminal == 0.0
@@ -162,6 +165,7 @@ def test_multi_step_transition_picker(
     gammas = gamma ** np.arange(n_steps)
     ref_reward = np.sum(gammas * np.reshape(episode.rewards[:n_steps], [-1]))
     assert np.all(transition.action == episode.actions[0])
+    assert np.all(transition.next_action == episode.actions[n_steps])
     assert np.all(transition.reward == np.reshape(ref_reward, [1]))
     assert np.allclose(transition.rewards_to_go, episode.rewards)
     assert transition.interval == n_steps
@@ -183,6 +187,7 @@ def test_multi_step_transition_picker(
         assert np.all(transition.observation == episode.observations[-n_steps])
         assert np.all(transition.next_observation == dummy_observation)
     assert np.all(transition.action == episode.actions[-n_steps])
+    assert np.all(transition.next_action == 0)
     ref_reward = np.sum(gammas * np.reshape(episode.rewards[-n_steps:], [-1]))
     assert np.all(transition.reward == np.reshape(ref_reward, [1]))
     assert np.allclose(transition.rewards_to_go, episode.rewards[-n_steps:])

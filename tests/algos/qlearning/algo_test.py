@@ -285,14 +285,17 @@ def update_tester(
         terminal = np.random.randint(2)
         if algo.get_action_type() == ActionSpace.DISCRETE:
             action = np.random.randint(action_size, size=(1,))
+            next_action = np.random.randint(action_size, size=(1,))
         else:
             action = np.random.random(action_size).astype("f4")
+            next_action = np.random.random(action_size).astype("f4")
 
         transition = Transition(
             observation=observation,
             action=action,
             reward=reward,
             next_observation=next_observation,
+            next_action=next_action,
             rewards_to_go=rewards_to_go,
             terminal=terminal,
             interval=1,

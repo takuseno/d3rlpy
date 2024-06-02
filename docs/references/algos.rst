@@ -289,6 +289,18 @@ TD3+BC
    :show-inheritance:
 
 
+ReBRAC
+------
+
+.. autoclass:: d3rlpy.algos.ReBRACConfig
+   :members:
+   :show-inheritance:
+
+.. autoclass:: d3rlpy.algos.ReBRAC
+   :members:
+   :show-inheritance:
+
+
 IQL
 ---
 

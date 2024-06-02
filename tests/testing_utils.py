@@ -214,14 +214,17 @@ def create_transition(
     action: NDArray
     if discrete_action:
         action = np.random.randint(action_size, size=(1,))
+        next_action = np.random.randint(action_size, size=(1,))
     else:
         action = np.random.random(action_size).astype(np.float32)
+        next_action = np.random.random(action_size).astype(np.float32)
 
     return Transition(
         observation=observation,
         action=action,
         reward=np.random.random(1).astype(np.float32),
         next_observation=next_observation,
+        next_action=next_action,
         rewards_to_go=np.random.random((10, 1)).astype(np.float32),
         terminal=1.0 if terminated else 0.0,
         interval=1,

@@ -13,6 +13,7 @@ from .iql import *
 from .nfq import *
 from .plas import *
 from .random_policy import *
+from .rebrac import *
 from .sac import *
 from .td3 import *
 from .td3_plus_bc import *

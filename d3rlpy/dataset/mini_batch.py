@@ -38,6 +38,7 @@ class TransitionMiniBatch:
     next_observations: Union[
         Float32NDArray, Sequence[Float32NDArray]
     ]  # (B, ...)
+    next_actions: Float32NDArray  # (B, ...)
     terminals: Float32NDArray  # (B, 1)
     intervals: Float32NDArray  # (B, 1)
     transitions: Sequence[Transition]
@@ -47,6 +48,8 @@ class TransitionMiniBatch:
         assert check_dtype(self.observations, np.float32)
         assert check_non_1d_array(self.actions)
         assert check_dtype(self.actions, np.float32)
+        assert check_non_1d_array(self.next_actions)
+        assert check_dtype(self.next_actions, np.float32)
         assert check_non_1d_array(self.rewards)
         assert check_dtype(self.rewards, np.float32)
         assert check_non_1d_array(self.next_observations)
@@ -80,6 +83,9 @@ class TransitionMiniBatch:
         next_observations = stack_observations(
             [transition.next_observation for transition in transitions]
         )
+        next_actions = np.stack(
+            [transition.next_action for transition in transitions], axis=0
+        )
         terminals = np.reshape(
             np.array([transition.terminal for transition in transitions]),
             [-1, 1],
@@ -93,6 +99,7 @@ class TransitionMiniBatch:
             actions=cast_recursively(actions, np.float32),
             rewards=cast_recursively(rewards, np.float32),
             next_observations=cast_recursively(next_observations, np.float32),
+            next_actions=cast_recursively(next_actions, np.float32),
             terminals=cast_recursively(terminals, np.float32),
             intervals=cast_recursively(intervals, np.float32),
             transitions=transitions,

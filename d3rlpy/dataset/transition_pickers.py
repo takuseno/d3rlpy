@@ -53,16 +53,19 @@ class BasicTransitionPicker(TransitionPickerProtocol):
         is_terminal = episode.terminated and index == episode.size() - 1
         if is_terminal:
             next_observation = create_zero_observation(observation)
+            next_action = np.zeros_like(episode.actions[index])
         else:
             next_observation = retrieve_observation(
                 episode.observations, index + 1
             )
+            next_action = episode.actions[index + 1]
 
         return Transition(
             observation=observation,
             action=episode.actions[index],
             reward=episode.rewards[index],
             next_observation=next_observation,
+            next_action=next_action,
             terminal=float(is_terminal),
             interval=1,
             rewards_to_go=episode.rewards[index:],
@@ -143,16 +146,19 @@ class FrameStackTransitionPicker(TransitionPickerProtocol):
         is_terminal = episode.terminated and index == episode.size() - 1
         if is_terminal:
             next_observation = create_zero_observation(observation)
+            next_action = np.zeros_like(episode.actions[index])
         else:
             next_observation = stack_recent_observations(
                 episode.observations, index + 1, self._n_frames
             )
+            next_action = episode.actions[index + 1]
 
         return Transition(
             observation=observation,
             action=episode.actions[index],
             reward=episode.rewards[index],
             next_observation=next_observation,
+            next_action=next_action,
             terminal=float(is_terminal),
             interval=1,
             rewards_to_go=episode.rewards[index:],
@@ -189,16 +195,19 @@ class MultiStepTransitionPicker(TransitionPickerProtocol):
             is_terminal = next_index == episode.size()
             if is_terminal:
                 next_observation = create_zero_observation(observation)
+                next_action = np.zeros_like(episode.actions[index])
             else:
                 next_observation = retrieve_observation(
                     episode.observations, next_index
                 )
+                next_action = episode.actions[next_index]
         else:
             is_terminal = False
             next_index = min(index + self._n_steps, episode.size() - 1)
             next_observation = retrieve_observation(
                 episode.observations, next_index
             )
+            next_action = episode.actions[next_index]
 
         # compute multi-step return
         interval = next_index - index
@@ -210,6 +219,7 @@ class MultiStepTransitionPicker(TransitionPickerProtocol):
             action=episode.actions[index],
             reward=ret,
             next_observation=next_observation,
+            next_action=next_action,
             terminal=float(is_terminal),
             interval=interval,
             rewards_to_go=episode.rewards[index:],

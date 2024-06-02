@@ -9,6 +9,7 @@ from .ddpg_impl import *
 from .dqn_impl import *
 from .iql_impl import *
 from .plas_impl import *
+from .rebrac_impl import *
 from .sac_impl import *
 from .td3_impl import *
 from .td3_plus_bc_impl import *
