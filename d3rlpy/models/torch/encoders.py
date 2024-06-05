@@ -197,6 +197,7 @@ class VectorEncoder(Encoder):
         observation_shape: Sequence[int],
         hidden_units: Optional[Sequence[int]] = None,
         use_batch_norm: bool = False,
+        use_layer_norm: bool = False,
         dropout_rate: Optional[float] = None,
         activation: nn.Module = nn.ReLU(),
         exclude_last_activation: bool = False,
@@ -220,6 +221,8 @@ class VectorEncoder(Encoder):
                     layers.append(activation)
             if use_batch_norm:
                 layers.append(nn.BatchNorm1d(out_unit))
+            if use_layer_norm:
+                layers.append(nn.LayerNorm(out_unit))
             if dropout_rate is not None:
                 layers.append(nn.Dropout(dropout_rate))
         self._layers = nn.Sequential(*layers)
@@ -240,6 +243,7 @@ class VectorEncoderWithAction(EncoderWithAction):
         action_size: int,
         hidden_units: Optional[Sequence[int]] = None,
         use_batch_norm: bool = False,
+        use_layer_norm: bool = False,
         dropout_rate: Optional[float] = None,
         discrete_action: bool = False,
         activation: nn.Module = nn.ReLU(),
@@ -268,6 +272,8 @@ class VectorEncoderWithAction(EncoderWithAction):
                     layers.append(activation)
             if use_batch_norm:
                 layers.append(nn.BatchNorm1d(out_unit))
+            if use_layer_norm:
+                layers.append(nn.LayerNorm(out_unit))
             if dropout_rate is not None:
                 layers.append(nn.Dropout(dropout_rate))
         self._layers = nn.Sequential(*layers)

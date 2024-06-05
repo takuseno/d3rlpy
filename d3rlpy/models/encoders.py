@@ -142,6 +142,7 @@ class VectorEncoderFactory(EncoderFactory):
             standard architecture with ``[256, 256]`` is used.
         activation (str): activation function name.
         use_batch_norm (bool): Flag to insert batch normalization layers.
+        use_layer_norm (bool): Flag to insert layer normalization layers.
         dropout_rate (float): Dropout probability.
         exclude_last_activation (bool): Flag to exclude activation function at
             the last layer.
@@ -151,6 +152,7 @@ class VectorEncoderFactory(EncoderFactory):
     hidden_units: List[int] = field(default_factory=lambda: [256, 256])
     activation: str = "relu"
     use_batch_norm: bool = False
+    use_layer_norm: bool = False
     dropout_rate: Optional[float] = None
     exclude_last_activation: bool = False
     last_activation: Optional[str] = None
@@ -161,6 +163,7 @@ class VectorEncoderFactory(EncoderFactory):
             observation_shape=cast_flat_shape(observation_shape),
             hidden_units=self.hidden_units,
             use_batch_norm=self.use_batch_norm,
+            use_layer_norm=self.use_layer_norm,
             dropout_rate=self.dropout_rate,
             activation=create_activation(self.activation),
             exclude_last_activation=self.exclude_last_activation,
@@ -183,6 +186,7 @@ class VectorEncoderFactory(EncoderFactory):
             action_size=action_size,
             hidden_units=self.hidden_units,
             use_batch_norm=self.use_batch_norm,
+            use_layer_norm=self.use_layer_norm,
             dropout_rate=self.dropout_rate,
             discrete_action=discrete_action,
             activation=create_activation(self.activation),

@@ -38,7 +38,10 @@ def main() -> None:
     d3rlpy.envs.seed_env(env, args.seed)
 
     # deeper network
-    encoder = d3rlpy.models.VectorEncoderFactory([256, 256, 256])
+    actor_encoder = d3rlpy.models.VectorEncoderFactory([256, 256, 256])
+    critic_encoder = d3rlpy.models.VectorEncoderFactory(
+        [256, 256, 256], use_layer_norm=True
+    )
 
     actor_beta, critic_beta = 0.01, 0.01
     for dataset_name, beta_from_paper in BETA_TABLE.items():
@@ -48,11 +51,11 @@ def main() -> None:
 
     rebrac = d3rlpy.algos.ReBRACConfig(
         actor_learning_rate=1e-3,
-        critic_learning_rate=1e-1,
+        critic_learning_rate=1e-3,
         batch_size=1024,
         gamma=0.99,
-        actor_encoder_factory=encoder,
-        critic_encoder_factory=encoder,
+        actor_encoder_factory=actor_encoder,
+        critic_encoder_factory=critic_encoder,
         target_smoothing_sigma=0.2,
         target_smoothing_clip=0.5,
         update_actor_interval=2,
