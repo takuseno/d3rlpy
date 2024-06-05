@@ -38,7 +38,8 @@ You can also build your own encoder factory.
 
    # your own neural network
    class CustomEncoder(nn.Module):
-       def __init__(self, obsevation_shape, feature_size):
+       def __init__(self, observation_shape, feature_size):
+           super().__init__()
            self.feature_size = feature_size
            self.fc1 = nn.Linear(observation_shape[0], 64)
            self.fc2 = nn.Linear(64, feature_size)
@@ -72,7 +73,8 @@ controls.
 .. code-block:: python
 
    class CustomEncoderWithAction(nn.Module):
-       def __init__(self, obsevation_shape, action_size, feature_size):
+       def __init__(self, observation_shape, action_size, feature_size):
+           super().__init__()
            self.feature_size = feature_size
            self.fc1 = nn.Linear(observation_shape[0] + action_size, 64)
            self.fc2 = nn.Linear(64, feature_size)
@@ -90,7 +92,7 @@ controls.
        def create(self, observation_shape):
            return CustomEncoder(observation_shape, self.feature_size)
 
-       def create_with_action(observation_shape, action_size, discrete_action):
+       def create_with_action(self, observation_shape, action_size, discrete_action):
            return CustomEncoderWithAction(observation_shape, action_size, self.feature_size)
 
        @staticmethod

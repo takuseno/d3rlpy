@@ -114,3 +114,20 @@ Now, you can customize actor-critic algorithms.
       actor_encoder_factory=encoder_factory,
       critic_encoder_factory=encoder_factory,
   ).create()
+
+
+Make your models loadable
+-------------------------
+
+If you want ``load_learnable`` method to load the algorithm configuration including
+your encoder configuration, you need to register your encoder factory.
+
+.. code-block:: python
+
+   from d3rlpy.models.encoders import register_encoder_factory
+
+   # register your own encoder factory
+   register_encoder_factory(CustomEncoderFactory)
+
+   # load algorithm from d3
+   dqn = d3rlpy.load_learnable("model.d3")
