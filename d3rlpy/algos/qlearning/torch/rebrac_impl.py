@@ -51,8 +51,10 @@ class ReBRACImpl(TD3Impl):
         self, batch: TorchMiniBatch, action: ActionOutput
     ) -> TD3PlusBCActorLoss:
         q_t = self._q_func_forwarder.compute_expected_q(
-            batch.observations, action.squashed_mu, "none"
-        )[0]
+            batch.observations,
+            action.squashed_mu,
+            reduction="min",
+        )
         lam = 1 / (q_t.abs().mean()).detach()
         bc_loss = ((batch.actions - action.squashed_mu) ** 2).mean()
         return TD3PlusBCActorLoss(
@@ -78,6 +80,8 @@ class ReBRACImpl(TD3Impl):
             )
 
             # BRAC reguralization
-            bc_loss = (clipped_action - batch.next_actions) ** 2
+            bc_penalty = ((clipped_action - batch.next_actions) ** 2).sum(
+                dim=1, keepdim=True
+            )
 
-            return next_q - self._critic_beta * bc_loss.sum(dim=1, keepdim=True)
+            return next_q - self._critic_beta * bc_penalty
