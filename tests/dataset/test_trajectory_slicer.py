@@ -28,10 +28,14 @@ def test_basic_trajectory_slicer(
     episode = create_episode(
         observation_shape, action_size, length, terminated=terminated
     )
-    returns_to_go = np.reshape(
-        np.sum(episode.rewards) - np.cumsum(np.reshape(episode.rewards, [-1])),
-        [-1, 1],
-    )
+
+    R = 0.0
+    ref_returns_to_go_list = []
+    for i in reversed(range(length)):
+        R += float(episode.rewards[i])
+        ref_returns_to_go_list.append(R)
+    ref_returns_to_go_list.reverse()
+    ref_returns_to_go = np.array(ref_returns_to_go_list).reshape((-1, 1))
 
     slicer = BasicTrajectorySlicer()
 
@@ -75,7 +79,9 @@ def test_basic_trajectory_slicer(
         assert np.all(traj.actions[:pad_size] == 0.0)
         assert np.all(traj.rewards[pad_size:] == episode.rewards[start:end])
         assert np.all(traj.rewards[:pad_size] == 0.0)
-        assert np.all(traj.returns_to_go[pad_size:] == returns_to_go[start:end])
+        assert np.allclose(
+            traj.returns_to_go[pad_size:], ref_returns_to_go[start:end]
+        )
         assert np.all(traj.returns_to_go[:pad_size] == 0.0)
         assert np.all(traj.terminals == 0.0)
         assert np.all(traj.timesteps[pad_size:] == np.arange(start, end)) + 1
@@ -109,10 +115,14 @@ def test_frame_stack_trajectory_slicer(
     episode = create_episode(
         observation_shape, action_size, length, terminated=terminated
     )
-    returns_to_go = np.reshape(
-        np.sum(episode.rewards) - np.cumsum(np.reshape(episode.rewards, [-1])),
-        [-1, 1],
-    )
+
+    R = 0.0
+    ref_returns_to_go_list = []
+    for i in reversed(range(length)):
+        R += float(episode.rewards[i])
+        ref_returns_to_go_list.append(R)
+    ref_returns_to_go_list.reverse()
+    ref_returns_to_go = np.array(ref_returns_to_go_list).reshape((-1, 1))
 
     slicer = FrameStackTrajectorySlicer(n_frames)
     stacked_shape = list(observation_shape)
@@ -154,7 +164,9 @@ def test_frame_stack_trajectory_slicer(
         assert np.all(traj.actions[:pad_size] == 0.0)
         assert np.all(traj.rewards[pad_size:] == episode.rewards[start:end])
         assert np.all(traj.rewards[:pad_size] == 0.0)
-        assert np.all(traj.returns_to_go[pad_size:] == returns_to_go[start:end])
+        assert np.allclose(
+            traj.returns_to_go[pad_size:], ref_returns_to_go[start:end]
+        )
         assert np.all(traj.returns_to_go[:pad_size] == 0.0)
         assert np.all(traj.terminals == 0.0)
         assert np.all(traj.timesteps[pad_size:] == np.arange(start, end)) + 1

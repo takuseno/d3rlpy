@@ -58,7 +58,12 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
         actions = episode.actions[start:end]
         rewards = episode.rewards[start:end]
         ret = np.sum(episode.rewards[start:])
-        all_returns_to_go = ret - np.cumsum(episode.rewards[start:], axis=0)
+        # cumsum includes the current timestep
+        all_returns_to_go = (
+            ret
+            - np.cumsum(episode.rewards[start:], axis=0)
+            + episode.rewards[start:]
+        )
         returns_to_go = all_returns_to_go[:actual_size].reshape((-1, 1))
 
         # prepare metadata
@@ -169,7 +174,12 @@ class FrameStackTrajectorySlicer(TrajectorySlicerProtocol):
         actions = episode.actions[start:end]
         rewards = episode.rewards[start:end]
         ret = np.sum(episode.rewards[start:])
-        all_returns_to_go = ret - np.cumsum(episode.rewards[start:], axis=0)
+        # cumsum includes the current timestep
+        all_returns_to_go = (
+            ret
+            - np.cumsum(episode.rewards[start:], axis=0)
+            + episode.rewards[start:]
+        )
         returns_to_go = all_returns_to_go[:actual_size].reshape((-1, 1))
 
         # prepare metadata
