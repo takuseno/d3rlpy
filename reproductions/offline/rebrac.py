@@ -66,7 +66,7 @@ def main() -> None:
 
     rebrac.fit(
         dataset,
-        n_steps=500000,
+        n_steps=1000000,
         n_steps_per_epoch=1000,
         save_interval=10,
         evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
