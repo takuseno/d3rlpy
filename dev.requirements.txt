@@ -8,6 +8,7 @@ wandb
 black
 mypy
 pylint==2.13.5
+numpy<2
 isort
 docformatter
 minari==0.4.2
