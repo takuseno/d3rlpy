@@ -373,5 +373,7 @@ def install(name: str) -> None:
         _uninstall_module(["pybullet"])
     elif name == "minari":
         _install_module(["minari==0.4.2", "gymnasium_robotics"], upgrade=True)
+    elif name == "dm_control":
+        _install_module(["shimmy[dm-control]"], upgrade=True)
     else:
         raise ValueError(f"Unsupported command: {name}")

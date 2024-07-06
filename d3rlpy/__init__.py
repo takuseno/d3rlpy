@@ -1,5 +1,6 @@
 import random
 
+import gymnasium
 import numpy as np
 import torch
 
@@ -64,3 +65,13 @@ def seed(n: int) -> None:
 
 # run healthcheck
 run_healthcheck()
+
+
+# register Shimmy if available
+try:
+    import shimmy
+
+    gymnasium.register_envs(shimmy)
+    logging.LOG.info("Register Shimmy environments.")
+except ImportError:
+    pass
