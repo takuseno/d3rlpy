@@ -42,7 +42,7 @@ if __name__ == "__main__":
             "structlog",
             "colorama",
             "dataclasses-json",
-            "gymnasium>=1.0.0a1",
+            "gymnasium",
         ],
         packages=find_packages(exclude=["tests*"]),
         python_requires=">=3.8.0",

@@ -13,7 +13,7 @@ import numpy as np
 from gym.wrappers.time_limit import TimeLimit
 from gymnasium.spaces import Box as GymnasiumBox
 from gymnasium.spaces import Dict as GymnasiumDictSpace
-from gymnasium.wrappers import TimeLimit as GymnasiumTimeLimit
+from gymnasium.wrappers.time_limit import TimeLimit as GymnasiumTimeLimit
 
 from .dataset import (
     BasicTrajectorySlicer,
