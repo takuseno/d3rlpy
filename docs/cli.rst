@@ -135,6 +135,22 @@ Install additional packages::
 
   $ d3rlpy install <name>
 
+.. list-table:: Available package options
+   :header-rows: 1
+
+   * - option
+     - description
+   * - ``atari``
+     - Atari 2600 environments for Gym.
+   * - ``d4rl_atari``
+     - Datasets for Atari 2600. https://github.com/takuseno/d4rl-atari
+   * - ``d4rl``
+     - D4RL.
+   * - ``minari``
+     - Minari.
+   * - ``dm_control``
+     - DeepMind Control environments via Shimmy.
+
 example::
 
   # Install D4RL package

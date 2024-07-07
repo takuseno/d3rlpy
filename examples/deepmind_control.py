@@ -5,8 +5,8 @@ from gymnasium.wrappers.flatten_observation import FlattenObservation
 
 import d3rlpy
 
-# You need to install dm_control and Shimmy beforehands as follows:
-# $ d3rlpy install dm-control
+# You need to install DeepMind Control and Shimmy beforehands as follows:
+# $ d3rlpy install dm_control
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -15,7 +15,6 @@ def main() -> None:
     parser.add_argument("--gpu", action="store_true")
     args = parser.parse_args()
 
-    # d3rlpy supports both Gym and Gymnasium
     env_id = f"dm_control/{args.env}"
     env = FlattenObservation(gymnasium.make(env_id))
     eval_env = FlattenObservation(gymnasium.make(env_id))
