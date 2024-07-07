@@ -5,8 +5,12 @@ from gymnasium.wrappers.flatten_observation import FlattenObservation
 
 import d3rlpy
 
-# You need to install DeepMind Control and Shimmy beforehands as follows:
+# You need to install DeepMind Control (DMC) and Shimmy beforehands as follows:
+#
 # $ d3rlpy install dm_control
+#
+# After you install the packages, d3rlpy internally registers DMC environments
+# for Gymnasium.
 
 
 def main() -> None:
