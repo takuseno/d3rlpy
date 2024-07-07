@@ -19,6 +19,9 @@ def asdict_as_float(obj: Any) -> Dict[str, float]:
     for field in fields:
         value = getattr(obj, field.name)
         if isinstance(value, torch.Tensor):
+            assert (
+                value.ndim == 0
+            ), f"{field.name} needs to be scalar. {value.shape}."
             ret[field.name] = float(value.cpu().detach().numpy())
         else:
             ret[field.name] = float(value)

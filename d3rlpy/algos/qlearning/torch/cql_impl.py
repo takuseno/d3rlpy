@@ -93,7 +93,7 @@ class CQLImpl(SACImpl):
         return CQLCriticLoss(
             critic_loss=loss.critic_loss + conservative_loss.sum(),
             conservative_loss=conservative_loss.sum(),
-            alpha=get_parameter(self._modules.log_alpha).exp(),
+            alpha=get_parameter(self._modules.log_alpha).exp()[0][0],
         )
 
     def update_alpha(self, conservative_loss: torch.Tensor) -> None:

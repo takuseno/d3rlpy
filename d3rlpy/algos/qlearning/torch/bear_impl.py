@@ -121,7 +121,7 @@ class BEARImpl(SACImpl):
             temp_loss=loss.temp_loss,
             temp=loss.temp,
             mmd_loss=mmd_loss,
-            alpha=get_parameter(self._modules.log_alpha).exp(),
+            alpha=get_parameter(self._modules.log_alpha).exp()[0][0],
         )
 
     def warmup_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:

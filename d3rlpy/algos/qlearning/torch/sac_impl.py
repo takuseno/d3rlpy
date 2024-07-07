@@ -91,7 +91,7 @@ class SACImpl(DDPGBaseImpl):
         return SACActorLoss(
             actor_loss=(entropy - q_t).mean(),
             temp_loss=temp_loss,
-            temp=get_parameter(self._modules.log_temp).exp(),
+            temp=get_parameter(self._modules.log_temp).exp()[0][0],
         )
 
     def update_temp(self, log_prob: torch.Tensor) -> torch.Tensor:
