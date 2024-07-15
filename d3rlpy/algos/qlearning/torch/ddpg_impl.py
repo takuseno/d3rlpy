@@ -242,7 +242,7 @@ class DiscreteDDPGBaseImpl(
         pass
 
     def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
-        return torch.argmax(self._modules.policy(x).mean).unsqueeze(0)
+        return torch.argmax(self._modules.policy(x).probs).unsqueeze(0)
 
     @abstractmethod
     def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
