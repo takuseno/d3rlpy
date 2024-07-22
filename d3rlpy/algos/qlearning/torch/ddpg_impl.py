@@ -10,12 +10,13 @@ from ....dataclass_utils import asdict_as_float
 from ....models.torch import (
     ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
+    DiscreteEnsembleQFunctionForwarder,
     Policy,
 )
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync, soft_sync
 from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
-from .utility import ContinuousQFunctionMixin
+from .utility import ContinuousQFunctionMixin, DiscreteQFunctionMixin
 
 __all__ = [
     "DDPGImpl",
@@ -158,21 +159,21 @@ class DDPGBaseImpl(
 
 
 class DiscreteDDPGBaseImpl(
-    ContinuousQFunctionMixin, QLearningAlgoImplBase, metaclass=ABCMeta
+    DiscreteQFunctionMixin, QLearningAlgoImplBase, metaclass=ABCMeta
 ):
     _modules: DDPGBaseModules
     _gamma: float
     _tau: float
-    _q_func_forwarder: ContinuousEnsembleQFunctionForwarder
-    _targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder
+    _q_func_forwarder: DiscreteEnsembleQFunctionForwarder
+    _targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
         modules: DDPGBaseModules,
-        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         gamma: float,
         tau: float,
         device: str,
@@ -216,7 +217,7 @@ class DiscreteDDPGBaseImpl(
         # Q function should be inference mode for stability
         self._modules.q_funcs.eval()
         self._modules.actor_optim.zero_grad()
-        loss = self.compute_actor_loss(batch, action)
+        loss = self.compute_actor_loss(batch, None)
         loss.actor_loss.backward()
         self._modules.actor_optim.step()
         return asdict_as_float(loss)
@@ -233,7 +234,7 @@ class DiscreteDDPGBaseImpl(
 
     @abstractmethod
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: None
     ) -> DDPGBaseActorLoss:
         pass
 
@@ -266,6 +267,7 @@ class DiscreteDDPGBaseImpl(
     @property
     def q_function_optim(self) -> Optimizer:
         return self._modules.critic_optim
+
 
 @dataclasses.dataclass(frozen=True)
 class DDPGModules(DDPGBaseModules):

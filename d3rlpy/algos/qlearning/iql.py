@@ -3,19 +3,27 @@ import dataclasses
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
 from ...models.builders import (
+    create_categorical_policy,
     create_continuous_q_function,
     create_discrete_q_function,
-    create_categorical_policy,
     create_normal_policy,
     create_value_function,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.optimizers import OptimizerFactory, make_optimizer_field
-from ...models.q_functions import MeanQFunctionFactory
-from ...models.q_functions import QFunctionFactory, make_q_func_field
+from ...models.q_functions import (
+    MeanQFunctionFactory,
+    QFunctionFactory,
+    make_q_func_field,
+)
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.iql_impl import IQLImpl, IQLModules, DiscreteIQLImpl, DiscreteIQLModules
+from .torch.iql_impl import (
+    DiscreteIQLImpl,
+    DiscreteIQLModules,
+    IQLImpl,
+    IQLModules,
+)
 
 __all__ = ["IQLConfig", "IQL", "DiscreteIQLConfig", "DiscreteIQL"]
 
@@ -178,8 +186,72 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.CONTINUOUS
 
+
 @dataclasses.dataclass()
 class DiscreteIQLConfig(LearnableConfig):
+    r"""Implicit Q-Learning algorithm.
+
+    IQL is the offline RL algorithm that avoids ever querying values of unseen
+    actions while still being able to perform multi-step dynamic programming
+    updates.
+
+    There are three functions to train in IQL. First the state-value function
+    is trained via expectile regression.
+
+    .. math::
+
+        L_V(\psi) = \mathbb{E}_{(s, a) \sim D}
+            [L_2^\tau (Q_\theta (s, a) - V_\psi (s))]
+
+    where :math:`L_2^\tau (u) = |\tau - \mathbb{1}(u < 0)|u^2`.
+
+    The Q-function is trained with the state-value function to avoid query the
+    actions.
+
+    .. math::
+
+        L_Q(\theta) = \mathbb{E}_{(s, a, r, s') \sim D}
+            [(r + \gamma V_\psi(s') - Q_\theta(s, a))^2]
+
+    Finally, the policy function is trained by using advantage weighted
+    regression compared with `IQL`, here we use a categorical policy.
+
+    .. math::
+
+        L_\pi (\phi) = \mathbb{E}_{(s, a) \sim D}
+            [\exp(\beta (Q_\theta - V_\psi(s))) \log \pi_\phi(a|s)]
+
+    References:
+        * `Kostrikov et al., Offline Reinforcement Learning with Implicit
+          Q-Learning. <https://arxiv.org/abs/2110.06169>`_
+
+    Args:
+        observation_scaler (d3rlpy.preprocessing.ObservationScaler):
+            Observation preprocessor.
+        action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
+        actor_learning_rate (float): Learning rate for policy function.
+        critic_learning_rate (float): Learning rate for Q functions.
+        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            Optimizer factory for the actor.
+        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+            Optimizer factory for the critic.
+        actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
+            Encoder factory for the actor.
+        critic_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
+            Encoder factory for the critic.
+        value_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
+            Encoder factory for the value function.
+        batch_size (int): Mini-batch size.
+        gamma (float): Discount factor.
+        tau (float): Target network synchronization coefficiency.
+        n_critics (int): Number of Q functions for ensemble.
+        expectile (float): Expectile value for value function training.
+        weight_temp (float): Inverse temperature value represented as
+            :math:`\beta`.
+        max_weight (float): Maximum advantage weight value to clip.
+    """
+
     actor_learning_rate: float = 3e-4
     critic_learning_rate: float = 3e-4
 
@@ -187,10 +259,10 @@ class DiscreteIQLConfig(LearnableConfig):
     encoder_factory: EncoderFactory = make_encoder_field()
     value_encoder_factory: EncoderFactory = make_encoder_field()
     critic_optim_factory: OptimizerFactory = make_optimizer_field()
-    
+
     actor_encoder_factory: EncoderFactory = make_encoder_field()
     actor_optim_factory: OptimizerFactory = make_optimizer_field()
-    
+
     batch_size: int = 256
     gamma: float = 0.99
     tau: float = 0.005
@@ -205,6 +277,7 @@ class DiscreteIQLConfig(LearnableConfig):
     @staticmethod
     def get_type() -> str:
         return "discrete_iql"
+
 
 class DiscreteIQL(QLearningAlgoBase[DiscreteIQLImpl, DiscreteIQLConfig]):
     def inner_create_impl(
@@ -272,6 +345,7 @@ class DiscreteIQL(QLearningAlgoBase[DiscreteIQLImpl, DiscreteIQLConfig]):
 
     def get_action_type(self) -> ActionSpace:
         return ActionSpace.DISCRETE
+
 
 register_learnable(IQLConfig)
 register_learnable(DiscreteIQLConfig)

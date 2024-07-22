@@ -5,10 +5,10 @@ import torch.nn.functional as F
 
 from ....models.torch import (
     ActionOutput,
+    CategoricalPolicy,
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
     NormalPolicy,
-    CategoricalPolicy,
     ValueFunction,
     build_gaussian_distribution,
 )
@@ -18,11 +18,12 @@ from .ddpg_impl import (
     DDPGBaseActorLoss,
     DDPGBaseCriticLoss,
     DDPGBaseImpl,
-    DiscreteDDPGBaseImpl,
     DDPGBaseModules,
+    DiscreteDDPGBaseImpl,
 )
 
 __all__ = ["IQLImpl", "IQLModules", "DiscreteIQLImpl", "DiscreteIQLModules"]
+
 
 @dataclasses.dataclass(frozen=True)
 class IQLModules(DDPGBaseModules):
@@ -193,16 +194,20 @@ class DiscreteIQLImpl(DiscreteDDPGBaseImpl):
         with torch.no_grad():
             return self._modules.value_func(batch.next_observations)
 
-    def compute_actor_loss(self, batch: TorchMiniBatch, action) -> DDPGBaseActorLoss:
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: None
+    ) -> DDPGBaseActorLoss:
         assert self._modules.policy
         # compute weight
         with torch.no_grad():
             v = self._modules.value_func(batch.observations)
-            min_Q = self._targ_q_func_forwarder.compute_target(batch.observations, reduction="min").gather(
-                1, batch.actions.long()
-            )
+            min_Q = self._targ_q_func_forwarder.compute_target(
+                batch.observations, reduction="min"
+            ).gather(1, batch.actions.long())
 
-        exp_a = torch.exp((min_Q - v) * self._weight_temp).clamp(max=self._max_weight)
+        exp_a = torch.exp((min_Q - v) * self._weight_temp).clamp(
+            max=self._max_weight
+        )
         # compute log probability
         dist = self._modules.policy(batch.observations)
         log_probs = dist.log_prob(batch.actions.squeeze(-1)).unsqueeze(1)
@@ -211,7 +216,9 @@ class DiscreteIQLImpl(DiscreteDDPGBaseImpl):
 
     def compute_value_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         q_t = self._targ_q_func_forwarder.compute_expected_q(batch.observations)
-        one_hot = F.one_hot(batch.actions.long().view(-1), num_classes=self.action_size)
+        one_hot = F.one_hot(
+            batch.actions.long().view(-1), num_classes=self.action_size
+        )
         q_t = (q_t * one_hot).sum(dim=1, keepdim=True)
 
         v_t = self._modules.value_func(batch.observations)
