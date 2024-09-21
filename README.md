@@ -46,6 +46,7 @@ actions = sac.predict(x)
 
 ### :rocket: Beyond State-of-the-art
 - **distributional Q function**: d3rlpy is the first library that supports distributional Q functions in the all algorithms. The distributional Q function is known as the very powerful method to achieve the state-of-the-performance.
+- **data-prallel distributed training**: d3rlpy is the first library that supports data-parallel distributed offline RL training, which allows you to scale up offline RL with multiple GPUs or nodes. See [example](examples/distributed_offline_training.py).
 
 
 ## Installation
