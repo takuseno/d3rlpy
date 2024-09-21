@@ -82,6 +82,9 @@ class DiscreteMeanQFunctionForwarder(DiscreteQFunctionForwarder):
             self._q_func(x).q_value, action, keepdim=True
         )
 
+    def set_q_func(self, q_func: DiscreteQFunction) -> None:
+        self._q_func = q_func
+
 
 class ContinuousMeanQFunction(ContinuousQFunction):
     _encoder: EncoderWithAction
@@ -136,3 +139,6 @@ class ContinuousMeanQFunctionForwarder(ContinuousQFunctionForwarder):
         self, x: TorchObservation, action: torch.Tensor
     ) -> torch.Tensor:
         return self._q_func(x, action).q_value
+
+    def set_q_func(self, q_func: ContinuousQFunction) -> None:
+        self._q_func = q_func

@@ -51,7 +51,11 @@ def test_create_deterministic_policy(
     encoder_factory: EncoderFactory,
 ) -> None:
     policy = create_deterministic_policy(
-        observation_shape, action_size, encoder_factory, device="cpu:0"
+        observation_shape,
+        action_size,
+        encoder_factory,
+        device="cpu:0",
+        enable_ddp=False,
     )
 
     assert isinstance(policy, DeterministicPolicy)
@@ -74,7 +78,12 @@ def test_create_deterministic_residual_policy(
     encoder_factory: EncoderFactory,
 ) -> None:
     policy = create_deterministic_residual_policy(
-        observation_shape, action_size, scale, encoder_factory, device="cpu:0"
+        observation_shape,
+        action_size,
+        scale,
+        encoder_factory,
+        device="cpu:0",
+        enable_ddp=False,
     )
 
     assert isinstance(policy, DeterministicResidualPolicy)
@@ -96,7 +105,11 @@ def test_create_normal_policy(
     encoder_factory: EncoderFactory,
 ) -> None:
     policy = create_normal_policy(
-        observation_shape, action_size, encoder_factory, device="cpu:0"
+        observation_shape,
+        action_size,
+        encoder_factory,
+        device="cpu:0",
+        enable_ddp=False,
     )
 
     assert isinstance(policy, NormalPolicy)
@@ -117,7 +130,11 @@ def test_create_categorical_policy(
     encoder_factory: EncoderFactory,
 ) -> None:
     policy = create_categorical_policy(
-        observation_shape, action_size, encoder_factory, device="cpu:0"
+        observation_shape,
+        action_size,
+        encoder_factory,
+        device="cpu:0",
+        enable_ddp=False,
     )
 
     assert isinstance(policy, CategoricalPolicy)
@@ -149,6 +166,7 @@ def test_create_discrete_q_function(
         encoder_factory,
         q_func_factory,
         device="cpu:0",
+        enable_ddp=False,
         n_ensembles=n_ensembles,
     )
 
@@ -189,6 +207,7 @@ def test_create_continuous_q_function(
         encoder_factory,
         q_func_factory,
         device="cpu:0",
+        enable_ddp=False,
         n_ensembles=n_ensembles,
     )
 
@@ -226,6 +245,7 @@ def test_create_vae_encoder(
         latent_size,
         encoder_factory,
         device="cpu:0",
+        enable_ddp=False,
     )
 
     assert isinstance(vae_encoder, VAEEncoder)
@@ -254,6 +274,7 @@ def test_create_vae_decoder(
         latent_size,
         encoder_factory,
         device="cpu:0",
+        enable_ddp=False,
     )
 
     assert isinstance(vae_decoder, VAEDecoder)
@@ -273,7 +294,7 @@ def test_create_value_function(
     batch_size: int,
 ) -> None:
     v_func = create_value_function(
-        observation_shape, encoder_factory, device="cpu:0"
+        observation_shape, encoder_factory, device="cpu:0", enable_ddp=False
     )
 
     assert isinstance(v_func, ValueFunction)
@@ -286,7 +307,7 @@ def test_create_value_function(
 @pytest.mark.parametrize("shape", [(100,)])
 def test_create_parameter(shape: Sequence[int]) -> None:
     x = np.random.random()
-    parameter = create_parameter(shape, x, device="cpu:0")
+    parameter = create_parameter(shape, x, device="cpu:0", enable_ddp=False)
 
     assert len(list(parameter.parameters())) == 1
     assert np.allclose(get_parameter(parameter).detach().numpy(), x)
@@ -333,6 +354,7 @@ def test_create_continuous_decision_transformer(
         activation_type=activation_type,
         position_encoding_type=position_encoding_type,
         device="cpu:0",
+        enable_ddp=False,
     )
 
     assert isinstance(transformer, ContinuousDecisionTransformer)
@@ -388,6 +410,7 @@ def test_create_discrete_decision_transformer(
         embed_activation_type=activation_type,
         position_encoding_type=position_encoding_type,
         device="cpu:0",
+        enable_ddp=False,
     )
 
     assert isinstance(transformer, DiscreteDecisionTransformer)

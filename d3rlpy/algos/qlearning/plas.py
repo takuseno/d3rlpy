@@ -97,8 +97,10 @@ class PLASConfig(LearnableConfig):
     warmup_steps: int = 500000
     beta: float = 0.5
 
-    def create(self, device: DeviceArg = False) -> "PLAS":
-        return PLAS(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "PLAS":
+        return PLAS(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -114,12 +116,14 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             2 * action_size,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_policy = create_deterministic_policy(
             observation_shape,
             2 * action_size,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         q_funcs, q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -128,6 +132,7 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -136,6 +141,7 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         vae_encoder = create_vae_encoder(
             observation_shape=observation_shape,
@@ -145,6 +151,7 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             max_logstd=15.0,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         vae_decoder = create_vae_decoder(
             observation_shape=observation_shape,
@@ -152,6 +159,7 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             latent_size=2 * action_size,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         actor_optim = self._config.actor_optim_factory.create(
@@ -243,8 +251,10 @@ class PLASWithPerturbationConfig(PLASConfig):
 
     action_flexibility: float = 0.05
 
-    def create(self, device: DeviceArg = False) -> "PLASWithPerturbation":
-        return PLASWithPerturbation(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "PLASWithPerturbation":
+        return PLASWithPerturbation(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -262,12 +272,14 @@ class PLASWithPerturbation(PLAS):
             2 * action_size,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_policy = create_deterministic_policy(
             observation_shape,
             2 * action_size,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         q_funcs, q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -276,6 +288,7 @@ class PLASWithPerturbation(PLAS):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -284,6 +297,7 @@ class PLASWithPerturbation(PLAS):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         vae_encoder = create_vae_encoder(
             observation_shape=observation_shape,
@@ -293,6 +307,7 @@ class PLASWithPerturbation(PLAS):
             max_logstd=15.0,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         vae_decoder = create_vae_decoder(
             observation_shape=observation_shape,
@@ -300,6 +315,7 @@ class PLASWithPerturbation(PLAS):
             latent_size=2 * action_size,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         perturbation = create_deterministic_residual_policy(
             observation_shape=observation_shape,
@@ -307,6 +323,7 @@ class PLASWithPerturbation(PLAS):
             scale=self._config.action_flexibility,
             encoder_factory=self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_perturbation = create_deterministic_residual_policy(
             observation_shape=observation_shape,
@@ -314,6 +331,7 @@ class PLASWithPerturbation(PLAS):
             scale=self._config.action_flexibility,
             encoder_factory=self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         named_modules = list(policy.named_modules())

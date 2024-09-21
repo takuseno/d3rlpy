@@ -111,8 +111,10 @@ class SACConfig(LearnableConfig):
     n_critics: int = 2
     initial_temperature: float = 1.0
 
-    def create(self, device: DeviceArg = False) -> "SAC":
-        return SAC(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "SAC":
+        return SAC(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -128,6 +130,7 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
             action_size,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         q_funcs, q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -136,6 +139,7 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -144,11 +148,13 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         log_temp = create_parameter(
             (1, 1),
             math.log(self._config.initial_temperature),
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         actor_optim = self._config.actor_optim_factory.create(
@@ -260,8 +266,10 @@ class DiscreteSACConfig(LearnableConfig):
     initial_temperature: float = 1.0
     target_update_interval: int = 8000
 
-    def create(self, device: DeviceArg = False) -> "DiscreteSAC":
-        return DiscreteSAC(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "DiscreteSAC":
+        return DiscreteSAC(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -279,6 +287,7 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_discrete_q_function(
             observation_shape,
@@ -287,18 +296,21 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         policy = create_categorical_policy(
             observation_shape,
             action_size,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         if self._config.initial_temperature > 0:
             log_temp = create_parameter(
                 (1, 1),
                 math.log(self._config.initial_temperature),
                 device=self._device,
+                enable_ddp=self._enable_ddp,
             )
         else:
             log_temp = None

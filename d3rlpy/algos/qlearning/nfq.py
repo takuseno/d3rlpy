@@ -57,8 +57,10 @@ class NFQConfig(LearnableConfig):
     gamma: float = 0.99
     n_critics: int = 1
 
-    def create(self, device: DeviceArg = False) -> "NFQ":
-        return NFQ(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "NFQ":
+        return NFQ(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -76,6 +78,7 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_discrete_q_function(
             observation_shape,
@@ -84,6 +87,7 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         optim = self._config.optim_factory.create(

@@ -71,8 +71,10 @@ class CalQLConfig(CQLConfig):
         max_q_backup (bool): Flag to sample max Q-values for target.
     """
 
-    def create(self, device: DeviceArg = False) -> "CalQL":
-        return CalQL(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "CalQL":
+        return CalQL(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -92,6 +94,7 @@ class CalQL(CQL):
             action_size,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         q_funcs, q_func_fowarder = create_continuous_q_function(
             observation_shape,
@@ -100,6 +103,7 @@ class CalQL(CQL):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -108,14 +112,19 @@ class CalQL(CQL):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         log_temp = create_parameter(
             (1, 1),
             math.log(self._config.initial_temperature),
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         log_alpha = create_parameter(
-            (1, 1), math.log(self._config.initial_alpha), device=self._device
+            (1, 1),
+            math.log(self._config.initial_alpha),
+            device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         actor_optim = self._config.actor_optim_factory.create(

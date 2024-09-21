@@ -80,6 +80,10 @@ class ContinuousQFunctionForwarder(metaclass=ABCMeta):
     ) -> torch.Tensor:
         pass
 
+    @abstractmethod
+    def set_q_func(self, q_func: ContinuousQFunction) -> None:
+        pass
+
 
 class DiscreteQFunctionForwarder(metaclass=ABCMeta):
     @abstractmethod
@@ -103,4 +107,8 @@ class DiscreteQFunctionForwarder(metaclass=ABCMeta):
     def compute_target(
         self, x: TorchObservation, action: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def set_q_func(self, q_func: DiscreteQFunction) -> None:
         pass

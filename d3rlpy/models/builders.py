@@ -4,6 +4,7 @@ import torch
 from torch import nn
 
 from ..constants import PositionEncodingType
+from ..torch_utility import wrap_model_by_ddp
 from ..types import Shape
 from .encoders import EncoderFactory
 from .q_functions import QFunctionFactory
@@ -49,6 +50,7 @@ def create_discrete_q_function(
     encoder_factory: EncoderFactory,
     q_func_factory: QFunctionFactory,
     device: str,
+    enable_ddp: bool,
     n_ensembles: int = 1,
 ) -> Tuple[nn.ModuleList, DiscreteEnsembleQFunctionForwarder]:
     if q_func_factory.share_encoder:
@@ -67,10 +69,13 @@ def create_discrete_q_function(
         q_func, forwarder = q_func_factory.create_discrete(
             encoder, hidden_size, action_size
         )
+        q_func.to(device)
+        if enable_ddp:
+            q_func = wrap_model_by_ddp(q_func)
+            forwarder.set_q_func(q_func)
         q_funcs.append(q_func)
         forwarders.append(forwarder)
     q_func_modules = nn.ModuleList(q_funcs)
-    q_func_modules.to(device)
     ensemble_forwarder = DiscreteEnsembleQFunctionForwarder(
         forwarders, action_size
     )
@@ -83,6 +88,7 @@ def create_continuous_q_function(
     encoder_factory: EncoderFactory,
     q_func_factory: QFunctionFactory,
     device: str,
+    enable_ddp: bool,
     n_ensembles: int = 1,
 ) -> Tuple[nn.ModuleList, ContinuousEnsembleQFunctionForwarder]:
     if q_func_factory.share_encoder:
@@ -109,10 +115,13 @@ def create_continuous_q_function(
         q_func, forwarder = q_func_factory.create_continuous(
             encoder, hidden_size
         )
+        q_func.to(device)
+        if enable_ddp:
+            q_func = wrap_model_by_ddp(q_func)
+            forwarder.set_q_func(q_func)
         q_funcs.append(q_func)
         forwarders.append(forwarder)
     q_func_modules = nn.ModuleList(q_funcs)
-    q_func_modules.to(device)
     ensemble_forwarder = ContinuousEnsembleQFunctionForwarder(
         forwarders, action_size
     )
@@ -124,6 +133,7 @@ def create_deterministic_policy(
     action_size: int,
     encoder_factory: EncoderFactory,
     device: str,
+    enable_ddp: bool,
 ) -> DeterministicPolicy:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = compute_output_size([observation_shape], encoder)
@@ -133,6 +143,8 @@ def create_deterministic_policy(
         action_size=action_size,
     )
     policy.to(device)
+    if enable_ddp:
+        policy = wrap_model_by_ddp(policy)
     return policy
 
 
@@ -142,6 +154,7 @@ def create_deterministic_residual_policy(
     scale: float,
     encoder_factory: EncoderFactory,
     device: str,
+    enable_ddp: bool,
 ) -> DeterministicResidualPolicy:
     encoder = encoder_factory.create_with_action(observation_shape, action_size)
     hidden_size = compute_output_size(
@@ -154,6 +167,8 @@ def create_deterministic_residual_policy(
         scale=scale,
     )
     policy.to(device)
+    if enable_ddp:
+        policy = wrap_model_by_ddp(policy)
     return policy
 
 
@@ -162,6 +177,7 @@ def create_normal_policy(
     action_size: int,
     encoder_factory: EncoderFactory,
     device: str,
+    enable_ddp: bool,
     min_logstd: float = -20.0,
     max_logstd: float = 2.0,
     use_std_parameter: bool = False,
@@ -177,6 +193,8 @@ def create_normal_policy(
         use_std_parameter=use_std_parameter,
     )
     policy.to(device)
+    if enable_ddp:
+        policy = wrap_model_by_ddp(policy)
     return policy
 
 
@@ -185,6 +203,7 @@ def create_categorical_policy(
     action_size: int,
     encoder_factory: EncoderFactory,
     device: str,
+    enable_ddp: bool,
 ) -> CategoricalPolicy:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = compute_output_size([observation_shape], encoder)
@@ -192,6 +211,8 @@ def create_categorical_policy(
         encoder=encoder, hidden_size=hidden_size, action_size=action_size
     )
     policy.to(device)
+    if enable_ddp:
+        policy = wrap_model_by_ddp(policy)
     return policy
 
 
@@ -201,6 +222,7 @@ def create_vae_encoder(
     latent_size: int,
     encoder_factory: EncoderFactory,
     device: str,
+    enable_ddp: bool,
     min_logstd: float = -20.0,
     max_logstd: float = 2.0,
 ) -> VAEEncoder:
@@ -216,6 +238,8 @@ def create_vae_encoder(
         max_logstd=max_logstd,
     )
     vae_encoder.to(device)
+    if enable_ddp:
+        vae_encoder = wrap_model_by_ddp(vae_encoder)
     return vae_encoder
 
 
@@ -225,6 +249,7 @@ def create_vae_decoder(
     latent_size: int,
     encoder_factory: EncoderFactory,
     device: str,
+    enable_ddp: bool,
 ) -> VAEDecoder:
     encoder = encoder_factory.create_with_action(observation_shape, latent_size)
     decoder_hidden_size = compute_output_size(
@@ -236,25 +261,34 @@ def create_vae_decoder(
         action_size=action_size,
     )
     decoder.to(device)
+    if enable_ddp:
+        decoder = wrap_model_by_ddp(decoder)
     return decoder
 
 
 def create_value_function(
-    observation_shape: Shape, encoder_factory: EncoderFactory, device: str
+    observation_shape: Shape,
+    encoder_factory: EncoderFactory,
+    device: str,
+    enable_ddp: bool,
 ) -> ValueFunction:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = compute_output_size([observation_shape], encoder)
     value_func = ValueFunction(encoder, hidden_size)
     value_func.to(device)
+    if enable_ddp:
+        value_func = wrap_model_by_ddp(value_func)
     return value_func
 
 
 def create_parameter(
-    shape: Sequence[int], initial_value: float, device: str
+    shape: Sequence[int], initial_value: float, device: str, enable_ddp: bool
 ) -> Parameter:
     data = torch.full(shape, initial_value, dtype=torch.float32)
     parameter = Parameter(data)
     parameter.to(device)
+    if enable_ddp:
+        parameter = wrap_model_by_ddp(parameter)
     return parameter
 
 
@@ -291,6 +325,7 @@ def create_continuous_decision_transformer(
     activation_type: str,
     position_encoding_type: PositionEncodingType,
     device: str,
+    enable_ddp: bool,
 ) -> ContinuousDecisionTransformer:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = compute_output_size([observation_shape], encoder)
@@ -316,6 +351,8 @@ def create_continuous_decision_transformer(
         activation=create_activation(activation_type),
     )
     transformer.to(device)
+    if enable_ddp:
+        transformer = wrap_model_by_ddp(transformer)
     return transformer
 
 
@@ -334,6 +371,7 @@ def create_discrete_decision_transformer(
     embed_activation_type: str,
     position_encoding_type: PositionEncodingType,
     device: str,
+    enable_ddp: bool,
 ) -> DiscreteDecisionTransformer:
     encoder = encoder_factory.create(observation_shape)
     hidden_size = compute_output_size([observation_shape], encoder)
@@ -360,4 +398,6 @@ def create_discrete_decision_transformer(
         embed_activation=create_activation(embed_activation_type),
     )
     transformer.to(device)
+    if enable_ddp:
+        transformer = wrap_model_by_ddp(transformer)
     return transformer

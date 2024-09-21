@@ -107,8 +107,10 @@ class CustomAlgoConfig(d3rlpy.base.LearnableConfig):
     target_update_interval: int = 100
     gamma: float = 0.99
 
-    def create(self, device: d3rlpy.base.DeviceArg = False) -> "CustomAlgo":
-        return CustomAlgo(self, device)
+    def create(
+        self, device: d3rlpy.base.DeviceArg = False, enable_ddp: bool = False
+    ) -> "CustomAlgo":
+        return CustomAlgo(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:

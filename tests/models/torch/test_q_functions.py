@@ -41,6 +41,7 @@ def test_compute_max_with_n_actions(
         q_func_factory,
         n_ensembles=n_ensembles,
         device="cpu:0",
+        enable_ddp=False,
     )
     x = create_torch_observations(observation_shape, batch_size)
     actions = torch.rand(batch_size, n_actions, action_size)

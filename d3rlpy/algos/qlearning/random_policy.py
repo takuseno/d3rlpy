@@ -35,7 +35,7 @@ class RandomPolicyConfig(LearnableConfig):
     distribution: str = "uniform"
     normal_std: float = 1.0
 
-    def create(self, device: DeviceArg = False) -> "RandomPolicy":  # type: ignore
+    def create(self, device: DeviceArg = False, enable_ddp: bool = False) -> "RandomPolicy":  # type: ignore
         return RandomPolicy(self)
 
     @staticmethod
@@ -47,7 +47,7 @@ class RandomPolicy(QLearningAlgoBase[None, RandomPolicyConfig]):  # type: ignore
     _action_size: int
 
     def __init__(self, config: RandomPolicyConfig):
-        super().__init__(config, False, None)
+        super().__init__(config, False, False, None)
         self._action_size = 1
 
     def inner_create_impl(
@@ -98,7 +98,7 @@ class DiscreteRandomPolicyConfig(LearnableConfig):
     ``fit`` and ``fit_online`` methods will raise exceptions.
     """
 
-    def create(self, device: DeviceArg = False) -> "DiscreteRandomPolicy":  # type: ignore
+    def create(self, device: DeviceArg = False, enable_ddp: bool = False) -> "DiscreteRandomPolicy":  # type: ignore
         return DiscreteRandomPolicy(self)
 
     @staticmethod
@@ -110,7 +110,7 @@ class DiscreteRandomPolicy(QLearningAlgoBase[None, DiscreteRandomPolicyConfig]):
     _action_size: int
 
     def __init__(self, config: DiscreteRandomPolicyConfig):
-        super().__init__(config, False, None)
+        super().__init__(config, False, False, None)
         self._action_size = 1
 
     def inner_create_impl(

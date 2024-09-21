@@ -83,8 +83,10 @@ class DecisionTransformerConfig(TransformerConfig):
     clip_grad_norm: float = 0.25
     compile: bool = False
 
-    def create(self, device: DeviceArg = False) -> "DecisionTransformer":
-        return DecisionTransformer(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "DecisionTransformer":
+        return DecisionTransformer(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -111,6 +113,7 @@ class DecisionTransformer(
             activation_type=self._config.activation_type,
             position_encoding_type=self._config.position_encoding_type,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         optim = self._config.optim_factory.create(
             transformer.named_modules(), lr=self._config.learning_rate
@@ -198,9 +201,9 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
     compile: bool = False
 
     def create(
-        self, device: DeviceArg = False
+        self, device: DeviceArg = False, enable_ddp: bool = False
     ) -> "DiscreteDecisionTransformer":
-        return DiscreteDecisionTransformer(self, device)
+        return DiscreteDecisionTransformer(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -230,6 +233,7 @@ class DiscreteDecisionTransformer(
             embed_activation_type=self._config.embed_activation_type,
             position_encoding_type=self._config.position_encoding_type,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         optim = self._config.optim_factory.create(
             transformer.named_modules(), lr=self._config.learning_rate

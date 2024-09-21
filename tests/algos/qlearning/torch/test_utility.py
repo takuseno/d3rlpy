@@ -31,6 +31,7 @@ def test_sample_q_values_with_policy(
         action_size=action_size,
         encoder_factory=DummyEncoderFactory(),
         device="cpu:0",
+        enable_ddp=False,
     )
     _, q_func_forwarder = create_continuous_q_function(
         observation_shape=observation_shape,
@@ -39,6 +40,7 @@ def test_sample_q_values_with_policy(
         q_func_factory=MeanQFunctionFactory(),
         n_ensembles=n_critics,
         device="cpu:0",
+        enable_ddp=False,
     )
 
     observations = create_torch_observations(observation_shape, batch_size)

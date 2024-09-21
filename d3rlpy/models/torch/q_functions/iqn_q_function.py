@@ -170,6 +170,9 @@ class DiscreteIQNQFunctionForwarder(DiscreteQFunctionForwarder):
             return quantiles
         return pick_quantile_value_by_action(quantiles, action)
 
+    def set_q_func(self, q_func: DiscreteQFunction) -> None:
+        self._q_func = q_func
+
 
 class ContinuousIQNQFunction(ContinuousQFunction, nn.Module):  # type: ignore
     _encoder: EncoderWithAction
@@ -275,3 +278,6 @@ class ContinuousIQNQFunctionForwarder(ContinuousQFunctionForwarder):
         quantiles = self._q_func(x, action).quantiles
         assert quantiles is not None
         return quantiles
+
+    def set_q_func(self, q_func: ContinuousQFunction) -> None:
+        self._q_func = q_func

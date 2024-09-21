@@ -86,12 +86,6 @@ class ImplBase(metaclass=ABCMeta):
     def modules(self) -> Modules:
         return self._modules
 
-    def wrap_models_by_ddp(self) -> None:
-        self._modules = self._modules.wrap_models_by_ddp()
-
-    def unwrap_models_by_ddp(self) -> None:
-        self._modules = self._modules.unwrap_models_by_ddp()
-
 
 @dataclasses.dataclass()
 class LearnableConfig(DynamicConfig):
@@ -104,7 +98,7 @@ class LearnableConfig(DynamicConfig):
     reward_scaler: Optional[RewardScaler] = make_reward_scaler_field()
 
     def create(
-        self, device: DeviceArg = False
+        self, device: DeviceArg = False, enable_ddp: bool = False
     ) -> "LearnableBase[ImplBase, LearnableConfig]":
         r"""Returns algorithm object.
 
@@ -113,6 +107,8 @@ class LearnableConfig(DynamicConfig):
                 boolean and True, ``cuda:0`` will be used. If the value is
                 integer, ``cuda:<device>`` will be used. If the value is string
                 in torch device style, the specified device will be used.
+            enable_ddp (bool): Flag to wrap models with DDP to enable Data
+                Distributed Parallel training.
 
         Returns:
             algorithm object.
@@ -210,6 +206,7 @@ def load_learnable(
 class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
     _config: TConfig_co
     _device: str
+    _enable_ddp: bool
     _impl: Optional[TImpl_co]
     _grad_step: int
 
@@ -217,6 +214,7 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
         self,
         config: TConfig_co,
         device: DeviceArg,
+        enable_ddp: bool,
         impl: Optional[TImpl_co] = None,
     ):
         if self.get_action_type() == ActionSpace.DISCRETE:
@@ -225,6 +223,7 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
             ), "action_scaler cannot be used with discrete action-space algorithms."
         self._config = config
         self._device = _process_device(device)
+        self._enable_ddp = enable_ddp
         self._impl = impl
         self._grad_step = 0
 

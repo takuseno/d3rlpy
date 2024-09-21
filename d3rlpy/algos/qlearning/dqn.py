@@ -55,8 +55,10 @@ class DQNConfig(LearnableConfig):
     n_critics: int = 1
     target_update_interval: int = 8000
 
-    def create(self, device: DeviceArg = False) -> "DQN":
-        return DQN(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "DQN":
+        return DQN(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -74,6 +76,7 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_forwarder = create_discrete_q_function(
             observation_shape,
@@ -82,6 +85,7 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         optim = self._config.optim_factory.create(
@@ -158,8 +162,10 @@ class DoubleDQNConfig(DQNConfig):
     n_critics: int = 1
     target_update_interval: int = 8000
 
-    def create(self, device: DeviceArg = False) -> "DoubleDQN":
-        return DoubleDQN(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "DoubleDQN":
+        return DoubleDQN(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -177,6 +183,7 @@ class DoubleDQN(DQN):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_forwarder = create_discrete_q_function(
             observation_shape,
@@ -185,6 +192,7 @@ class DoubleDQN(DQN):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         optim = self._config.optim_factory.create(

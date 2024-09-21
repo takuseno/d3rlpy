@@ -86,8 +86,10 @@ class AWACConfig(LearnableConfig):
     n_action_samples: int = 1
     n_critics: int = 2
 
-    def create(self, device: DeviceArg = False) -> "AWAC":
-        return AWAC(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "AWAC":
+        return AWAC(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -106,6 +108,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             max_logstd=0.0,
             use_std_parameter=True,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         q_funcs, q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -114,6 +117,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -122,6 +126,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         actor_optim = self._config.actor_optim_factory.create(

@@ -160,8 +160,10 @@ class BCQConfig(LearnableConfig):
     rl_start_step: int = 0
     beta: float = 0.5
 
-    def create(self, device: DeviceArg = False) -> "BCQ":
-        return BCQ(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "BCQ":
+        return BCQ(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -178,6 +180,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             self._config.action_flexibility,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_policy = create_deterministic_residual_policy(
             observation_shape,
@@ -185,6 +188,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             self._config.action_flexibility,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         q_funcs, q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -193,6 +197,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -201,6 +206,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         vae_encoder = create_vae_encoder(
             observation_shape=observation_shape,
@@ -210,6 +216,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             max_logstd=15.0,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         vae_decoder = create_vae_decoder(
             observation_shape=observation_shape,
@@ -217,6 +224,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             latent_size=2 * action_size,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         actor_optim = self._config.actor_optim_factory.create(
@@ -337,8 +345,10 @@ class DiscreteBCQConfig(LearnableConfig):
     target_update_interval: int = 8000
     share_encoder: bool = True
 
-    def create(self, device: DeviceArg = False) -> "DiscreteBCQ":
-        return DiscreteBCQ(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "DiscreteBCQ":
+        return DiscreteBCQ(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -356,6 +366,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_discrete_q_function(
             observation_shape,
@@ -364,6 +375,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         # share convolutional layers if observation is pixel
@@ -384,6 +396,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
                 action_size,
                 self._config.encoder_factory,
                 device=self._device,
+                enable_ddp=self._enable_ddp,
             )
 
         q_func_params = list(q_funcs.named_modules())

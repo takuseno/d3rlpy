@@ -146,8 +146,10 @@ class BEARConfig(LearnableConfig):
     vae_kl_weight: float = 0.5
     warmup_steps: int = 40000
 
-    def create(self, device: DeviceArg = False) -> "BEAR":
-        return BEAR(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "BEAR":
+        return BEAR(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -163,6 +165,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             action_size,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         q_funcs, q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -171,6 +174,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -179,6 +183,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         vae_encoder = create_vae_encoder(
             observation_shape=observation_shape,
@@ -188,6 +193,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             max_logstd=15.0,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         vae_decoder = create_vae_decoder(
             observation_shape=observation_shape,
@@ -195,14 +201,19 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             latent_size=2 * action_size,
             encoder_factory=self._config.imitator_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         log_temp = create_parameter(
             (1, 1),
             math.log(self._config.initial_temperature),
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         log_alpha = create_parameter(
-            (1, 1), math.log(self._config.initial_alpha), device=self._device
+            (1, 1),
+            math.log(self._config.initial_alpha),
+            device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         actor_optim = self._config.actor_optim_factory.create(

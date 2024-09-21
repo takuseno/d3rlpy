@@ -389,7 +389,6 @@ class TransformerAlgoBase(
         eval_action_sampler: Optional[TransformerActionSampler] = None,
         save_interval: int = 1,
         callback: Optional[Callable[[Self, int, int], None]] = None,
-        enable_ddp: bool = False,
     ) -> None:
         """Trains with given dataset.
 
@@ -410,7 +409,6 @@ class TransformerAlgoBase(
             save_interval: Interval to save parameters.
             callback: Callable function that takes ``(algo, epoch, total_step)``
                 , which is called every step.
-            enable_ddp: Flag to wrap models with DataDistributedParallel.
         """
         LOG.info("dataset info", dataset_info=dataset.dataset_info)
 
@@ -442,11 +440,6 @@ class TransformerAlgoBase(
             LOG.debug("Models have been built.")
         else:
             LOG.warning("Skip building models since they're already built.")
-
-        # wrap all PyTorch modules with DataDistributedParallel
-        if enable_ddp:
-            assert self._impl
-            self._impl.wrap_models_by_ddp()
 
         # save hyperparameters
         save_config(self, logger)

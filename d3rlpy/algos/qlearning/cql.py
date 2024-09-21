@@ -125,8 +125,10 @@ class CQLConfig(LearnableConfig):
     soft_q_backup: bool = False
     max_q_backup: bool = False
 
-    def create(self, device: DeviceArg = False) -> "CQL":
-        return CQL(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "CQL":
+        return CQL(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -146,6 +148,7 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             action_size,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         q_funcs, q_func_fowarder = create_continuous_q_function(
             observation_shape,
@@ -154,6 +157,7 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -162,14 +166,19 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         log_temp = create_parameter(
             (1, 1),
             math.log(self._config.initial_temperature),
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         log_alpha = create_parameter(
-            (1, 1), math.log(self._config.initial_alpha), device=self._device
+            (1, 1),
+            math.log(self._config.initial_alpha),
+            device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         actor_optim = self._config.actor_optim_factory.create(
@@ -275,8 +284,10 @@ class DiscreteCQLConfig(LearnableConfig):
     target_update_interval: int = 8000
     alpha: float = 1.0
 
-    def create(self, device: DeviceArg = False) -> "DiscreteCQL":
-        return DiscreteCQL(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "DiscreteCQL":
+        return DiscreteCQL(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -294,6 +305,7 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_discrete_q_function(
             observation_shape,
@@ -302,6 +314,7 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         optim = self._config.optim_factory.create(

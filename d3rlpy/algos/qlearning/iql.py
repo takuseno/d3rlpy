@@ -97,8 +97,10 @@ class IQLConfig(LearnableConfig):
     weight_temp: float = 3.0
     max_weight: float = 100.0
 
-    def create(self, device: DeviceArg = False) -> "IQL":
-        return IQL(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "IQL":
+        return IQL(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -117,6 +119,7 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             max_logstd=2.0,
             use_std_parameter=True,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         q_funcs, q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -125,6 +128,7 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             MeanQFunctionFactory(),
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -133,11 +137,13 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             MeanQFunctionFactory(),
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         value_func = create_value_function(
             observation_shape,
             self._config.value_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         actor_optim = self._config.actor_optim_factory.create(

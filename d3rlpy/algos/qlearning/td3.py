@@ -91,8 +91,10 @@ class TD3Config(LearnableConfig):
     target_smoothing_clip: float = 0.5
     update_actor_interval: int = 2
 
-    def create(self, device: DeviceArg = False) -> "TD3":
-        return TD3(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "TD3":
+        return TD3(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -108,12 +110,14 @@ class TD3(QLearningAlgoBase[TD3Impl, TD3Config]):
             action_size,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_policy = create_deterministic_policy(
             observation_shape,
             action_size,
             self._config.actor_encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         q_funcs, q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -122,6 +126,7 @@ class TD3(QLearningAlgoBase[TD3Impl, TD3Config]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -130,6 +135,7 @@ class TD3(QLearningAlgoBase[TD3Impl, TD3Config]):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         actor_optim = self._config.actor_optim_factory.create(

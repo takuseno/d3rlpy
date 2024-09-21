@@ -27,7 +27,7 @@ def main() -> None:
         actor_learning_rate=1e-3,
         critic_learning_rate=1e-3,
         alpha_learning_rate=1e-3,
-    ).create(device=device)
+    ).create(device=device, enable_ddp=True)
 
     # prepare dataset
     dataset, env = d3rlpy.datasets.get_pendulum()
@@ -50,7 +50,6 @@ def main() -> None:
         evaluators=evaluators,
         logger_adapter=logger_adapter,
         show_progress=rank == 0,
-        enable_ddp=True,
     )
 
     d3rlpy.distributed.destroy_process_group()

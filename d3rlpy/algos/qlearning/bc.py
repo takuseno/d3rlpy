@@ -57,8 +57,10 @@ class BCConfig(LearnableConfig):
     optim_factory: OptimizerFactory = make_optimizer_field()
     encoder_factory: EncoderFactory = make_encoder_field()
 
-    def create(self, device: DeviceArg = False) -> "BC":
-        return BC(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "BC":
+        return BC(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -75,6 +77,7 @@ class BC(QLearningAlgoBase[BCBaseImpl, BCConfig]):
                 action_size,
                 self._config.encoder_factory,
                 device=self._device,
+                enable_ddp=self._enable_ddp,
             )
         elif self._config.policy_type == "stochastic":
             imitator = create_normal_policy(
@@ -84,6 +87,7 @@ class BC(QLearningAlgoBase[BCBaseImpl, BCConfig]):
                 min_logstd=-4.0,
                 max_logstd=15.0,
                 device=self._device,
+                enable_ddp=self._enable_ddp,
             )
         else:
             raise ValueError(f"invalid policy_type: {self._config.policy_type}")
@@ -141,8 +145,10 @@ class DiscreteBCConfig(LearnableConfig):
     encoder_factory: EncoderFactory = make_encoder_field()
     beta: float = 0.5
 
-    def create(self, device: DeviceArg = False) -> "DiscreteBC":
-        return DiscreteBC(self, device)
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "DiscreteBC":
+        return DiscreteBC(self, device, enable_ddp)
 
     @staticmethod
     def get_type() -> str:
@@ -158,6 +164,7 @@ class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
             action_size,
             self._config.encoder_factory,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
 
         optim = self._config.optim_factory.create(

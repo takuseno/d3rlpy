@@ -71,7 +71,9 @@ class FQEConfig(LearnableConfig):
     n_critics: int = 1
     target_update_interval: int = 100
 
-    def create(self, device: DeviceArg = False) -> "_FQEBase":
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "_FQEBase":
         raise NotImplementedError(
             "Config object must be directly given to constructor"
         )
@@ -91,9 +93,10 @@ class _FQEBase(QLearningAlgoBase[FQEBaseImpl, FQEConfig]):
         algo: QLearningAlgoBase[QLearningAlgoImplBase, LearnableConfig],
         config: FQEConfig,
         device: DeviceArg = False,
+        enable_ddp: bool = False,
         impl: Optional[FQEBaseImpl] = None,
     ):
-        super().__init__(config, device, impl)
+        super().__init__(config, device, enable_ddp, impl)
         self._algo = algo
 
     def save_policy(self, fname: str) -> None:
@@ -152,6 +155,7 @@ class FQE(_FQEBase):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_continuous_q_function(
             observation_shape,
@@ -160,6 +164,7 @@ class FQE(_FQEBase):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         optim = self._config.optim_factory.create(
             q_funcs.named_modules(), lr=self._config.learning_rate
@@ -228,6 +233,7 @@ class DiscreteFQE(_FQEBase):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         targ_q_funcs, targ_q_func_forwarder = create_discrete_q_function(
             observation_shape,
@@ -236,6 +242,7 @@ class DiscreteFQE(_FQEBase):
             self._config.q_func_factory,
             n_ensembles=self._config.n_critics,
             device=self._device,
+            enable_ddp=self._enable_ddp,
         )
         optim = self._config.optim_factory.create(
             q_funcs.named_modules(), lr=self._config.learning_rate
