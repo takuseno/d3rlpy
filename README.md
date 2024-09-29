@@ -52,6 +52,19 @@ actions = sac.predict(x)
 ## Installation
 d3rlpy supports Linux, macOS and Windows.
 
+### Dependencies
+Installing d3rlpy package will install or upgrade the following packages to satisfy requirements:
+- torch>=2.0.0
+- tqdm>=4.66.3
+- gym>=0.26.0
+- gymnasium
+- click
+- colorama
+- dataclasses-json
+- h5py
+- structlog
+- typing-extensions
+
 ### PyPI (recommended)
 [![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/d3rlpy)
