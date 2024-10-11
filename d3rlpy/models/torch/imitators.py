@@ -1,3 +1,4 @@
+import dataclasses
 from typing import cast
 
 import torch
@@ -25,6 +26,7 @@ __all__ = [
     "compute_discrete_imitation_loss",
     "compute_deterministic_imitation_loss",
     "compute_stochastic_imitation_loss",
+    "ImitationLoss",
 ]
 
 
@@ -159,26 +161,43 @@ def compute_vae_error(
     return F.mse_loss(y, action) + cast(torch.Tensor, beta * kl_loss)
 
 
+@dataclasses.dataclass(frozen=True)
+class ImitationLoss:
+    loss: torch.Tensor
+
+
+@dataclasses.dataclass(frozen=True)
+class DiscreteImitationLoss(ImitationLoss):
+    imitation_loss: torch.Tensor
+    regularization_loss: torch.Tensor
+
+
 def compute_discrete_imitation_loss(
     policy: CategoricalPolicy,
     x: TorchObservation,
     action: torch.Tensor,
     beta: float,
-) -> torch.Tensor:
+) -> DiscreteImitationLoss:
     dist = policy(x)
     penalty = (dist.logits**2).mean()
     log_probs = F.log_softmax(dist.logits, dim=1)
-    return F.nll_loss(log_probs, action.view(-1)) + beta * penalty
+    imitation_loss = F.nll_loss(log_probs, action.view(-1))
+    regularization_loss = beta * penalty
+    return DiscreteImitationLoss(
+        loss=imitation_loss + regularization_loss,
+        imitation_loss=imitation_loss,
+        regularization_loss=regularization_loss
+    )
 
 
 def compute_deterministic_imitation_loss(
     policy: DeterministicPolicy, x: TorchObservation, action: torch.Tensor
-) -> torch.Tensor:
-    return F.mse_loss(policy(x).squashed_mu, action)
+) -> ImitationLoss:
+    return ImitationLoss(loss=F.mse_loss(policy(x).squashed_mu, action))
 
 
 def compute_stochastic_imitation_loss(
     policy: NormalPolicy, x: TorchObservation, action: torch.Tensor
-) -> torch.Tensor:
+) -> ImitationLoss:
     dist = build_gaussian_distribution(policy(x))
-    return F.mse_loss(dist.sample(), action)
+    return ImitationLoss(loss=F.mse_loss(dist.sample(), action))
