@@ -260,9 +260,9 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             action=batch.actions.long(),
             beta=self._beta,
         )
-        loss = td_loss + imitator_loss
+        loss = td_loss + imitator_loss.loss
         return DiscreteBCQLoss(
-            loss=loss, td_loss=td_loss, imitator_loss=imitator_loss
+            loss=loss, td_loss=td_loss, imitator_loss=imitator_loss.loss
         )
 
     def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
