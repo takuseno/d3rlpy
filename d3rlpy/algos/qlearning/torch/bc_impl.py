@@ -9,12 +9,12 @@ from ....dataclass_utils import asdict_as_float
 from ....models.torch import (
     CategoricalPolicy,
     DeterministicPolicy,
+    ImitationLoss,
     NormalPolicy,
     Policy,
     compute_deterministic_imitation_loss,
     compute_discrete_imitation_loss,
     compute_stochastic_imitation_loss,
-    ImitationLoss,
 )
 from ....torch_utility import Modules, TorchMiniBatch
 from ....types import Shape, TorchObservation
