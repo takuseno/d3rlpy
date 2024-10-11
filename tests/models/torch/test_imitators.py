@@ -138,7 +138,9 @@ def test_compute_discrete_imitation_loss(
     x = create_torch_observations(observation_shape, batch_size)
     action = torch.randint(low=0, high=action_size, size=(batch_size,))
     loss = compute_discrete_imitation_loss(policy, x, action, beta)
-    assert loss.ndim == 0
+    assert loss.loss.ndim == 0
+    assert loss.imitation_loss.ndim == 0
+    assert loss.regularization_loss.ndim == 0
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
@@ -158,8 +160,8 @@ def test_compute_deterministic_imitation_loss(
     x = create_torch_observations(observation_shape, batch_size)
     action = torch.rand(batch_size, action_size)
     loss = compute_deterministic_imitation_loss(policy, x, action)
-    assert loss.ndim == 0
-    assert loss == ((policy(x).squashed_mu - action) ** 2).mean()
+    assert loss.loss.ndim == 0
+    assert loss.loss == ((policy(x).squashed_mu - action) ** 2).mean()
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
@@ -190,4 +192,4 @@ def test_compute_stochastic_imitation_loss(
     x = create_torch_observations(observation_shape, batch_size)
     action = torch.rand(batch_size, action_size)
     loss = compute_stochastic_imitation_loss(policy, x, action)
-    assert loss.ndim == 0
+    assert loss.loss.ndim == 0
