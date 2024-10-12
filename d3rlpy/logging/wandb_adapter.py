@@ -1,6 +1,12 @@
 from typing import Any, Dict, Optional
 
-from .logger import LoggerAdapter, LoggerAdapterFactory, SaveProtocol
+from ..types import Float32NDArray
+from .logger import (
+    LoggerAdapter,
+    LoggerAdapterFactory,
+    SaveProtocol,
+    TorchModuleProtocol,
+)
 
 __all__ = ["WanDBAdapter", "WanDBAdapterFactory"]
 
@@ -38,6 +44,11 @@ class WanDBAdapter(LoggerAdapter):
         """Writes metric to WandB."""
         self.run.log({name: value, "epoch": epoch}, step=step)
 
+    def write_histogram(
+        self, epoch: int, step: int, name: str, values: Float32NDArray
+    ) -> None:
+        pass
+
     def after_write_metric(self, epoch: int, step: int) -> None:
         """Callback executed after writing metric."""
 
@@ -52,7 +63,9 @@ class WanDBAdapter(LoggerAdapter):
         """Closes the logger and finishes the WandB run."""
         self.run.finish()
 
-    def watch_model(self, logging_steps: int, algo) -> None:
+    def watch_model(
+        self, logging_steps: int, algo: TorchModuleProtocol
+    ) -> None:
         self.run.watch(
             algo.impl.modules.get_torch_modules(),
             log="gradients",

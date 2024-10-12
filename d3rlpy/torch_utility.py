@@ -4,14 +4,14 @@ from typing import (
     Any,
     BinaryIO,
     Dict,
+    Iterator,
+    List,
     Optional,
     Sequence,
+    Tuple,
     TypeVar,
     Union,
     overload,
-    List,
-    Iterator,
-    Tuple,
 )
 
 import numpy as np
@@ -446,8 +446,9 @@ class GEGLU(nn.Module):  # type: ignore
         return a * F.gelu(b)
 
 
-def get_gradients(modules: List[nn.Module]) -> Iterator[Tuple[str, NDArray]]:
-    # TODO: FloatArray?
+def get_gradients(
+    modules: List[nn.Module],
+) -> Iterator[Tuple[str, Float32NDArray]]:
     for module in modules:
         for name, parameter in module.named_parameters():
             if parameter.requires_grad and parameter.grad is not None:

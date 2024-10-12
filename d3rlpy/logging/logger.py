@@ -6,7 +6,10 @@ from typing import Any, DefaultDict, Dict, Iterator, List
 
 import numpy as np
 import structlog
+from torch import nn
 from typing_extensions import Protocol
+
+from ..types import Float32NDArray
 
 __all__ = [
     "LOG",
@@ -40,6 +43,18 @@ class SaveProtocol(Protocol):
     def save(self, fname: str) -> None: ...
 
 
+class ModuleProtocol(Protocol):
+    def get_torch_modules(self) -> List[nn.Module]: ...
+
+
+class ImplProtocol(Protocol):
+    modules: ModuleProtocol
+
+
+class TorchModuleProtocol(Protocol):
+    impl: ImplProtocol
+
+
 class LoggerAdapter(Protocol):
     r"""Interface of LoggerAdapter."""
 
@@ -70,9 +85,12 @@ class LoggerAdapter(Protocol):
             value: Metric value.
         """
 
-    def write_histogram(self, epoch: int, step: int, name: str, values) -> None:
+    def write_histogram(
+        self, epoch: int, step: int, name: str, values: Float32NDArray
+    ) -> None:
         r"""Writes histogram.
 
+        # TODO
         Args:
             epoch:
             step:
@@ -99,7 +117,9 @@ class LoggerAdapter(Protocol):
     def close(self) -> None:
         r"""Closes this LoggerAdapter."""
 
-    def watch_model(self, logging_steps: int, algo) -> None:
+    def watch_model(
+        self, logging_steps: int, algo: TorchModuleProtocol
+    ) -> None:
         r"""TODO: Docstring and type"""
 
 
@@ -146,7 +166,7 @@ class D3RLPyLogger:
     def add_metric(self, name: str, value: float) -> None:
         self._metrics_buffer[name].append(value)
 
-    def add_histogram(self, name: str, values) -> None:
+    def add_histogram(self, name: str, values: Float32NDArray) -> None:
         self._histogram_metrics_buffer[name].append(values)
 
     def commit(self, epoch: int, step: int) -> Dict[str, float]:
@@ -194,5 +214,5 @@ class D3RLPyLogger:
     def adapter(self) -> LoggerAdapter:
         return self._adapter
 
-    def watch_model(self, logging_steps, algo):
+    def watch_model(self, logging_steps, algo: TorchModuleProtocol) -> None:
         self._adapter.watch_model(logging_steps, algo)

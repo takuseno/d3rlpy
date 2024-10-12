@@ -3,7 +3,13 @@ from typing import Any, Dict
 
 import numpy as np
 
-from .logger import LoggerAdapter, LoggerAdapterFactory, SaveProtocol
+from ..types import Float32NDArray
+from .logger import (
+    LoggerAdapter,
+    LoggerAdapterFactory,
+    SaveProtocol,
+    TorchModuleProtocol,
+)
 
 __all__ = ["TensorboardAdapter", "TensorboardAdapterFactory"]
 
@@ -50,6 +56,11 @@ class TensorboardAdapter(LoggerAdapter):
         self._writer.add_scalar(f"metrics/{name}", value, epoch)
         self._metrics[name] = value
 
+    def write_histogram(
+        self, epoch: int, step: int, name: str, value: Float32NDArray
+    ) -> None:
+        self._writer.add_histogram(f"histograms/{name}_grad", value, epoch)
+
     def after_write_metric(self, epoch: int, step: int) -> None:
         self._writer.add_hparams(
             self._params,
@@ -64,13 +75,10 @@ class TensorboardAdapter(LoggerAdapter):
     def close(self) -> None:
         self._writer.close()
 
-    def write_histogram(self, epoch: int, step: int, name: str, value) -> None:
-        # TODO: value typing
-        self._writer.add_histogram(
-            f"histograms/{name}_grad",
-            value,
-            epoch
-        )
+    def watch_model(
+        self, logging_steps: int, algo: TorchModuleProtocol
+    ) -> None:
+        pass
 
 
 class TensorboardAdapterFactory(LoggerAdapterFactory):

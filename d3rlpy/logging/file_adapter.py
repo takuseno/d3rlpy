@@ -5,7 +5,14 @@ from typing import Any, Dict
 
 import numpy as np
 
-from .logger import LOG, LoggerAdapter, LoggerAdapterFactory, SaveProtocol
+from ..types import Float32NDArray
+from .logger import (
+    LOG,
+    LoggerAdapter,
+    LoggerAdapterFactory,
+    SaveProtocol,
+    TorchModuleProtocol,
+)
 
 __all__ = ["FileAdapter", "FileAdapterFactory"]
 
@@ -60,6 +67,19 @@ class FileAdapter(LoggerAdapter):
         with open(path, "a") as f:
             print(f"{epoch},{step},{value}", file=f)
 
+    def write_histogram(
+        self, epoch: int, step: int, name: str, value: Float32NDArray
+    ) -> None:
+        path = os.path.join(self._logdir, f"{name}.csv")
+        with open(path, "a") as f:
+            min_value = value.min()
+            max_value = value.max()
+            mean_value = value.mean()
+            print(
+                f"{epoch},{step},{name},{min_value},{max_value},{mean_value}",
+                file=f,
+            )
+
     def after_write_metric(self, epoch: int, step: int) -> None:
         pass
 
@@ -76,13 +96,10 @@ class FileAdapter(LoggerAdapter):
     def logdir(self) -> str:
         return self._logdir
 
-    def write_histogram(self, epoch: int, step: int, name: str, value) -> None:
-        path = os.path.join(self._logdir, f"{name}.csv")
-        with open(path, "a") as f:
-            min_value = value.min()
-            max_value = value.max()
-            mean_value = value.mean()
-            print(f"{epoch},{step},{name},{min_value},{max_value},{mean_value}", file=f)
+    def watch_model(
+        self, logging_steps: int, algo: TorchModuleProtocol
+    ) -> None:
+        pass
 
 
 class FileAdapterFactory(LoggerAdapterFactory):
