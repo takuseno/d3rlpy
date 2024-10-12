@@ -1,9 +1,11 @@
 from typing import Any, Dict
 
+import numpy as np
 import pytest
 
 from d3rlpy.logging import D3RLPyLogger
 from d3rlpy.logging.logger import SaveProtocol
+from d3rlpy.types import Float32NDArray
 
 
 class StubLoggerAdapter:
@@ -12,6 +14,7 @@ class StubLoggerAdapter:
         self.is_write_params_called = False
         self.is_before_write_metric_called = False
         self.is_write_metric_called = False
+        self.is_write_histogram_called = False
         self.is_after_write_metric_called = False
         self.is_save_model_called = False
         self.is_close_called = False
@@ -27,6 +30,11 @@ class StubLoggerAdapter:
     ) -> None:
         assert self.is_before_write_metric_called
         self.is_write_metric_called = True
+
+    def write_histogram(
+        self, epoch: int, step: int, name: str, values: Float32NDArray
+    ) -> None:
+        self.is_write_histogram_called = True
 
     def after_write_metric(self, epoch: int, step: int) -> None:
         assert self.is_before_write_metric_called
@@ -67,17 +75,20 @@ def test_d3rlpy_logger(with_timestamp: bool) -> None:
     assert adapter.is_write_params_called
 
     logger.add_metric("test", 1)
+    logger.add_histogram("test", np.array([1.0], dtype=np.float32))
     with logger.measure_time("test"):
         pass
 
     assert not adapter.is_before_write_metric_called
     assert not adapter.is_write_metric_called
+    assert not adapter.is_write_histogram_called
     assert not adapter.is_after_write_metric_called
     metrics = logger.commit(1, 1)
     assert "test" in metrics
     assert "time_test" in metrics
     assert adapter.is_before_write_metric_called
     assert adapter.is_write_metric_called
+    assert adapter.is_write_histogram_called
     assert adapter.is_after_write_metric_called
 
     assert not adapter.is_save_model_called

@@ -90,12 +90,11 @@ class LoggerAdapter(Protocol):
     ) -> None:
         r"""Writes histogram.
 
-        # TODO
         Args:
-            epoch:
-            step:
-            name:
-            values:
+            epoch: Epoch.
+            step: Training step.
+            name: Histogram name.
+            values: Histogram values.
         """
 
     def after_write_metric(self, epoch: int, step: int) -> None:
@@ -120,7 +119,12 @@ class LoggerAdapter(Protocol):
     def watch_model(
         self, logging_steps: int, algo: TorchModuleProtocol
     ) -> None:
-        r"""TODO: Docstring and type"""
+        r"""Watch model parameters / gradients during training.
+
+        Args:
+            logging_steps: Training step.
+            algo: Algorithm.
+        """
 
 
 class LoggerAdapterFactory(Protocol):
@@ -214,5 +218,5 @@ class D3RLPyLogger:
     def adapter(self) -> LoggerAdapter:
         return self._adapter
 
-    def watch_model(self, logging_steps, algo: TorchModuleProtocol) -> None:
+    def watch_model(self, logging_steps: int, algo: TorchModuleProtocol) -> None:
         self._adapter.watch_model(logging_steps, algo)
