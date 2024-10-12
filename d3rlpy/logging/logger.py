@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import Any, DefaultDict, Dict, Iterator, List
 
+import numpy as np
 import structlog
 from typing_extensions import Protocol
 
@@ -69,6 +70,16 @@ class LoggerAdapter(Protocol):
             value: Metric value.
         """
 
+    def write_histogram(self, epoch: int, step: int, name: str, values) -> None:
+        r"""Writes histogram.
+
+        Args:
+            epoch:
+            step:
+            name:
+            values:
+        """
+
     def after_write_metric(self, epoch: int, step: int) -> None:
         r"""Callback executed after write_metric method.
 
@@ -87,6 +98,9 @@ class LoggerAdapter(Protocol):
 
     def close(self) -> None:
         r"""Closes this LoggerAdapter."""
+
+    def watch_model(self, logging_steps: int, algo) -> None:
+        r"""TODO: Docstring and type"""
 
 
 class LoggerAdapterFactory(Protocol):
@@ -123,6 +137,7 @@ class D3RLPyLogger:
             self._experiment_name = experiment_name
         self._adapter = adapter_factory.create(self._experiment_name)
         self._metrics_buffer = defaultdict(list)
+        self._histogram_metrics_buffer = defaultdict(list)
 
     def add_params(self, params: Dict[str, Any]) -> None:
         self._adapter.write_params(params)
@@ -130,6 +145,9 @@ class D3RLPyLogger:
 
     def add_metric(self, name: str, value: float) -> None:
         self._metrics_buffer[name].append(value)
+
+    def add_histogram(self, name: str, values) -> None:
+        self._histogram_metrics_buffer[name].append(values)
 
     def commit(self, epoch: int, step: int) -> Dict[str, float]:
         self._adapter.before_write_metric(epoch, step)
@@ -139,6 +157,10 @@ class D3RLPyLogger:
             metric = sum(buffer) / len(buffer)
             self._adapter.write_metric(epoch, step, name, metric)
             metrics[name] = metric
+
+        for name, buffer in self._histogram_metrics_buffer.items():
+            histogram_values = np.concatenate(buffer)
+            self._adapter.write_histogram(epoch, step, name, histogram_values)
 
         LOG.info(
             f"{self._experiment_name}: epoch={epoch} step={step}",
@@ -171,3 +193,6 @@ class D3RLPyLogger:
     @property
     def adapter(self) -> LoggerAdapter:
         return self._adapter
+
+    def watch_model(self, logging_steps, algo):
+        self._adapter.watch_model(logging_steps, algo)

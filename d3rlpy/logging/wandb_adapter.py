@@ -52,6 +52,13 @@ class WanDBAdapter(LoggerAdapter):
         """Closes the logger and finishes the WandB run."""
         self.run.finish()
 
+    def watch_model(self, logging_steps: int, algo) -> None:
+        self.run.watch(
+            algo.impl.modules.get_torch_modules(),
+            log="gradients",
+            log_freq=logging_steps,
+        )
+
 
 class WanDBAdapterFactory(LoggerAdapterFactory):
     r"""WandB Logger Adapter Factory class.

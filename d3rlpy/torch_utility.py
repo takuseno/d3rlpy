@@ -9,6 +9,9 @@ from typing import (
     TypeVar,
     Union,
     overload,
+    List,
+    Iterator,
+    Tuple,
 )
 
 import numpy as np
@@ -44,6 +47,7 @@ __all__ = [
     "eval_api",
     "train_api",
     "View",
+    "get_gradients",
 ]
 
 
@@ -388,6 +392,13 @@ class Modules:
             if isinstance(v, torch.optim.Optimizer):
                 v.state = collections.defaultdict(dict)
 
+    def get_torch_modules(self) -> List[nn.Module]:
+        torch_modules: List[nn.Module] = []
+        for v in asdict_without_copy(self).values():
+            if isinstance(v, nn.Module):
+                torch_modules.append(v)
+        return torch_modules
+
 
 TCallable = TypeVar("TCallable")
 
@@ -433,3 +444,11 @@ class GEGLU(nn.Module):  # type: ignore
         assert x.shape[-1] % 2 == 0
         a, b = x.chunk(2, dim=-1)
         return a * F.gelu(b)
+
+
+def get_gradients(modules: List[nn.Module]) -> Iterator[Tuple[str, NDArray]]:
+    # TODO: FloatArray?
+    for module in modules:
+        for name, parameter in module.named_parameters():
+            if parameter.requires_grad and parameter.grad is not None:
+                yield name, parameter.grad.cpu().detach().numpy()

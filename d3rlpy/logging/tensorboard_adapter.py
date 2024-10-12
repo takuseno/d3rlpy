@@ -64,6 +64,14 @@ class TensorboardAdapter(LoggerAdapter):
     def close(self) -> None:
         self._writer.close()
 
+    def write_histogram(self, epoch: int, step: int, name: str, value) -> None:
+        # TODO: value typing
+        self._writer.add_histogram(
+            f"histograms/{name}_grad",
+            value,
+            epoch
+        )
+
 
 class TensorboardAdapterFactory(LoggerAdapterFactory):
     r"""TensorboardAdapterFactory class.

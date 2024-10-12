@@ -32,6 +32,10 @@ class CombineAdapter(LoggerAdapter):
         for adapter in self._adapters:
             adapter.write_metric(epoch, step, name, value)
 
+    def write_histogram(self, epoch: int, step: int, name: str, values):
+        for adapter in self._adapters:
+            adapter.write_histogram(epoch, step, name, values)
+
     def after_write_metric(self, epoch: int, step: int) -> None:
         for adapter in self._adapters:
             adapter.after_write_metric(epoch, step)
@@ -43,6 +47,10 @@ class CombineAdapter(LoggerAdapter):
     def close(self) -> None:
         for adapter in self._adapters:
             adapter.close()
+
+    def watch_model(self, logging_steps: int, algo) -> None:
+        for adapter in self._adapters:
+            adapter.watch_model(logging_steps, algo)
 
 
 class CombineAdapterFactory(LoggerAdapterFactory):

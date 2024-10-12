@@ -76,6 +76,14 @@ class FileAdapter(LoggerAdapter):
     def logdir(self) -> str:
         return self._logdir
 
+    def write_histogram(self, epoch: int, step: int, name: str, value) -> None:
+        path = os.path.join(self._logdir, f"{name}.csv")
+        with open(path, "a") as f:
+            min_value = value.min()
+            max_value = value.max()
+            mean_value = value.mean()
+            print(f"{epoch},{step},{name},{min_value},{max_value},{mean_value}", file=f)
+
 
 class FileAdapterFactory(LoggerAdapterFactory):
     r"""FileAdapterFactory class.
