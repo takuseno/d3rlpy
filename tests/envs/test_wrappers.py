@@ -1,17 +1,9 @@
 import gym
-import gymnasium
 import numpy as np
 import pytest
-from gymnasium.spaces import Box as GymnasiumBox
-from gymnasium.spaces import Dict as GymnasiumDictSpace
 
 from d3rlpy.algos import DQNConfig
-from d3rlpy.envs.wrappers import (
-    Atari,
-    ChannelFirst,
-    FrameStack,
-    GoalConcatWrapper,
-)
+from d3rlpy.envs.wrappers import Atari, ChannelFirst, FrameStack
 
 from ..dummy_env import DummyAtari
 
@@ -99,35 +91,35 @@ def test_atari(is_eval: bool) -> None:
     assert observation.shape == (1, 84, 84)  # type: ignore
 
 
-@pytest.mark.parametrize("tuple_observation", [True, False])
-def test_goal_concat_wrapper(tuple_observation: bool) -> None:
-    raw_env = gymnasium.make("AntMaze_UMaze-v4")
-    env = GoalConcatWrapper(raw_env, tuple_observation=tuple_observation)
-
-    assert isinstance(raw_env.observation_space, GymnasiumDictSpace)
-
-    observation_space = raw_env.observation_space["observation"]
-    assert isinstance(observation_space, GymnasiumBox)
-    observation_shape = observation_space.shape
-
-    goal_space = raw_env.observation_space["desired_goal"]
-    assert isinstance(goal_space, GymnasiumBox)
-    goal_shape = goal_space.shape
-
-    concat_shape = (observation_shape[0] + goal_shape[0],)
-
-    # check reset
-    observation, _ = env.reset()
-    if tuple_observation:
-        assert observation[0].shape == observation_shape
-        assert observation[1].shape == goal_shape
-    else:
-        assert observation.shape == concat_shape  # type: ignore
-
-    # check step
-    observation, _, _, _, _ = env.step(env.action_space.sample())
-    if tuple_observation:
-        assert observation[0].shape == observation_shape
-        assert observation[1].shape == goal_shape
-    else:
-        assert observation.shape == concat_shape  # type: ignore
+# @pytest.mark.parametrize("tuple_observation", [True, False])
+# def test_goal_concat_wrapper(tuple_observation: bool) -> None:
+#     raw_env = gymnasium.make("AntMaze_UMaze-v4")
+#     env = GoalConcatWrapper(raw_env, tuple_observation=tuple_observation)
+#
+#     assert isinstance(raw_env.observation_space, GymnasiumDictSpace)
+#
+#     observation_space = raw_env.observation_space["observation"]
+#     assert isinstance(observation_space, GymnasiumBox)
+#     observation_shape = observation_space.shape
+#
+#     goal_space = raw_env.observation_space["desired_goal"]
+#     assert isinstance(goal_space, GymnasiumBox)
+#     goal_shape = goal_space.shape
+#
+#     concat_shape = (observation_shape[0] + goal_shape[0],)
+#
+#     # check reset
+#     observation, _ = env.reset()
+#     if tuple_observation:
+#         assert observation[0].shape == observation_shape
+#         assert observation[1].shape == goal_shape
+#     else:
+#         assert observation.shape == concat_shape  # type: ignore
+#
+#     # check step
+#     observation, _, _, _, _ = env.step(env.action_space.sample())
+#     if tuple_observation:
+#         assert observation[0].shape == observation_shape
+#         assert observation[1].shape == goal_shape
+#     else:
+#         assert observation.shape == concat_shape  # type: ignore

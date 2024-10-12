@@ -6,4 +6,4 @@ click==8.0.1
 typing-extensions==3.7.4.3
 structlog==20.2.0
 colorama==0.4.4
-gymnasium==0.29.0
+gymnasium==1.0.0

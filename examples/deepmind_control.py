@@ -1,7 +1,7 @@
 import argparse
 
 import gymnasium
-from gymnasium.wrappers.flatten_observation import FlattenObservation
+from gymnasium.wrappers import FlattenObservation
 
 import d3rlpy
 
@@ -21,8 +21,8 @@ def main() -> None:
     args = parser.parse_args()
 
     env_id = f"dm_control/{args.env}"
-    env = FlattenObservation(gymnasium.make(env_id))
-    eval_env = FlattenObservation(gymnasium.make(env_id))
+    env = FlattenObservation(gymnasium.make(env_id))  # type: ignore
+    eval_env = FlattenObservation(gymnasium.make(env_id))  # type: ignore
 
     # fix seed
     d3rlpy.seed(args.seed)
