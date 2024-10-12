@@ -186,7 +186,7 @@ def compute_discrete_imitation_loss(
     return DiscreteImitationLoss(
         loss=imitation_loss + regularization_loss,
         imitation_loss=imitation_loss,
-        regularization_loss=regularization_loss
+        regularization_loss=regularization_loss,
     )
 
 
