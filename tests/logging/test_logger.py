@@ -58,7 +58,7 @@ class StubLoggerAdapterFactory:
 
 class StubModules:
     def get_torch_modules(self) -> List[nn.Module]:
-        pass
+        return []
 
 
 class StubImpl:
