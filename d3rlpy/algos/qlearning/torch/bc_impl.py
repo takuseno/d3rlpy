@@ -5,9 +5,11 @@ from typing import Dict, Union
 import torch
 from torch.optim import Optimizer
 
+from ....dataclass_utils import asdict_as_float
 from ....models.torch import (
     CategoricalPolicy,
     DeterministicPolicy,
+    ImitationLoss,
     NormalPolicy,
     Policy,
     compute_deterministic_imitation_loss,
@@ -43,20 +45,20 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
             device=device,
         )
 
-    def update_imitator(self, batch: TorchMiniBatch) -> float:
+    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.optim.zero_grad()
 
         loss = self.compute_loss(batch.observations, batch.actions)
 
-        loss.backward()
+        loss.loss.backward()
         self._modules.optim.step()
 
-        return float(loss.cpu().detach().numpy())
+        return asdict_as_float(loss)
 
     @abstractmethod
     def compute_loss(
         self, obs_t: TorchObservation, act_t: torch.Tensor
-    ) -> torch.Tensor:
+    ) -> ImitationLoss:
         pass
 
     def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
@@ -70,7 +72,7 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
     ) -> Dict[str, float]:
-        return {"loss": self.update_imitator(batch)}
+        return self.update_imitator(batch)
 
 
 @dataclasses.dataclass(frozen=True)
