@@ -91,7 +91,7 @@ class FileAdapter(LoggerAdapter):
     ) -> None:
         if logging_steps is not None and step % logging_steps == 0:
             for name, grad in algo.impl.modules.get_gradients():
-                path = os.path.join(self._logdir, f"{name}.csv")
+                path = os.path.join(self._logdir, f"{name}_grad.csv")
                 with open(path, "a") as f:
                     min_grad = grad.min()
                     max_grad = grad.max()
