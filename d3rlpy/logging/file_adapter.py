@@ -1,11 +1,10 @@
 import json
 import os
 from enum import Enum, IntEnum
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import numpy as np
 
-from ..types import Float32NDArray
 from .logger import (
     LOG,
     LoggerAdapter,
@@ -67,19 +66,6 @@ class FileAdapter(LoggerAdapter):
         with open(path, "a") as f:
             print(f"{epoch},{step},{value}", file=f)
 
-    def write_histogram(
-        self, epoch: int, step: int, name: str, value: Float32NDArray
-    ) -> None:
-        path = os.path.join(self._logdir, f"{name}.csv")
-        with open(path, "a") as f:
-            min_value = value.min()
-            max_value = value.max()
-            mean_value = value.mean()
-            print(
-                f"{epoch},{step},{name},{min_value},{max_value},{mean_value}",
-                file=f,
-            )
-
     def after_write_metric(self, epoch: int, step: int) -> None:
         pass
 
@@ -97,9 +83,23 @@ class FileAdapter(LoggerAdapter):
         return self._logdir
 
     def watch_model(
-        self, logging_steps: int, algo: TorchModuleProtocol
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
     ) -> None:
-        pass
+        if logging_steps is not None and step % logging_steps == 0:
+            for name, grad in algo.impl.modules.get_gradients():
+                path = os.path.join(self._logdir, f"{name}.csv")
+                with open(path, "a") as f:
+                    min_grad = grad.min()
+                    max_grad = grad.max()
+                    mean_grad = grad.mean()
+                    print(
+                        f"{epoch},{step},{name},{min_grad},{max_grad},{mean_grad}",
+                        file=f,
+                    )
 
 
 class FileAdapterFactory(LoggerAdapterFactory):

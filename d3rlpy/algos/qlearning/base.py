@@ -44,7 +44,6 @@ from ...torch_utility import (
     convert_to_torch,
     convert_to_torch_recursively,
     eval_api,
-    get_gradients,
     hard_sync,
     sync_optimizer_state,
     train_api,
@@ -526,9 +525,7 @@ class QLearningAlgoBase(
         # save hyperparameters
         save_config(self, logger)
 
-        # watch model gradients
-        if gradient_logging_steps is not None:
-            logger.watch_model(gradient_logging_steps, self)
+        logger.watch_model(0, 0, gradient_logging_steps, self)
 
         # training loop
         n_epochs = n_steps // n_steps_per_epoch
@@ -569,14 +566,9 @@ class QLearningAlgoBase(
 
                 total_step += 1
 
-                if (
-                    gradient_logging_steps is not None
-                    and total_step % gradient_logging_steps == 0
-                ):
-                    for name, grad in get_gradients(
-                        self.impl.modules.get_torch_modules()
-                    ):
-                        logger.add_histogram(name=name, values=grad)
+                logger.watch_model(
+                    epoch, total_step, gradient_logging_steps, self
+                )
 
                 if (
                     logging_strategy == LoggingStrategy.STEPS
@@ -694,9 +686,7 @@ class QLearningAlgoBase(
         # save hyperparameters
         save_config(self, logger)
 
-        # watch model gradients
-        if gradient_logging_steps is not None:
-            logger.watch_model(gradient_logging_steps, self)
+        logger.watch_model(0, 0, gradient_logging_steps, self)
 
         # switch based on show_progress flag
         xrange = trange if show_progress else range
@@ -766,20 +756,15 @@ class QLearningAlgoBase(
                             for name, val in loss.items():
                                 logger.add_metric(name, val)
 
+                        logger.watch_model(
+                            epoch, total_step, gradient_logging_steps, self
+                        )
+
                         if (
                             logging_strategy == LoggingStrategy.STEPS
                             and total_step % logging_steps == 0
                         ):
                             logger.commit(epoch, total_step)
-
-                if (
-                    gradient_logging_steps is not None
-                    and total_step % gradient_logging_steps == 0
-                ):
-                    for name, grad in get_gradients(
-                        self.impl.modules.get_torch_modules()
-                    ):
-                        logger.add_histogram(name=name, values=grad)
 
                 # call callback if given
                 if callback:

@@ -1,9 +1,8 @@
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import numpy as np
 
-from ..types import Float32NDArray
 from .logger import (
     LoggerAdapter,
     LoggerAdapterFactory,
@@ -56,11 +55,6 @@ class TensorboardAdapter(LoggerAdapter):
         self._writer.add_scalar(f"metrics/{name}", value, epoch)
         self._metrics[name] = value
 
-    def write_histogram(
-        self, epoch: int, step: int, name: str, value: Float32NDArray
-    ) -> None:
-        self._writer.add_histogram(f"histograms/{name}_grad", value, epoch)
-
     def after_write_metric(self, epoch: int, step: int) -> None:
         self._writer.add_hparams(
             self._params,
@@ -76,9 +70,17 @@ class TensorboardAdapter(LoggerAdapter):
         self._writer.close()
 
     def watch_model(
-        self, logging_steps: int, algo: TorchModuleProtocol
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
     ) -> None:
-        pass
+        if logging_steps is not None and step % logging_steps == 0:
+            for name, grad in algo.impl.modules.get_gradients():
+                self._writer.add_histogram(
+                    f"histograms/{name}_grad", grad, epoch
+                )
 
 
 class TensorboardAdapterFactory(LoggerAdapterFactory):

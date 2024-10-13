@@ -2,9 +2,8 @@ import time
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, DefaultDict, Dict, Iterator, List
+from typing import Any, DefaultDict, Dict, Iterator, List, Optional, Tuple
 
-import numpy as np
 import structlog
 from torch import nn
 from typing_extensions import Protocol
@@ -45,6 +44,7 @@ class SaveProtocol(Protocol):
 
 class ModuleProtocol(Protocol):
     def get_torch_modules(self) -> List[nn.Module]: ...
+    def get_gradients(self) -> Iterator[Tuple[str, Float32NDArray]]: ...
 
 
 class ImplProtocol(Protocol):
@@ -85,18 +85,6 @@ class LoggerAdapter(Protocol):
             value: Metric value.
         """
 
-    def write_histogram(
-        self, epoch: int, step: int, name: str, values: Float32NDArray
-    ) -> None:
-        r"""Writes histogram.
-
-        Args:
-            epoch: Epoch.
-            step: Training step.
-            name: Histogram name.
-            values: Histogram values.
-        """
-
     def after_write_metric(self, epoch: int, step: int) -> None:
         r"""Callback executed after write_metric method.
 
@@ -117,11 +105,17 @@ class LoggerAdapter(Protocol):
         r"""Closes this LoggerAdapter."""
 
     def watch_model(
-        self, logging_steps: int, algo: TorchModuleProtocol
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
     ) -> None:
         r"""Watch model parameters / gradients during training.
 
         Args:
+            epoch: Epoch.
+            step: Training step.
             logging_steps: Training step.
             algo: Algorithm.
         """
@@ -161,7 +155,6 @@ class D3RLPyLogger:
             self._experiment_name = experiment_name
         self._adapter = adapter_factory.create(self._experiment_name)
         self._metrics_buffer = defaultdict(list)
-        self._histogram_metrics_buffer = defaultdict(list)
 
     def add_params(self, params: Dict[str, Any]) -> None:
         self._adapter.write_params(params)
@@ -169,9 +162,6 @@ class D3RLPyLogger:
 
     def add_metric(self, name: str, value: float) -> None:
         self._metrics_buffer[name].append(value)
-
-    def add_histogram(self, name: str, values: Float32NDArray) -> None:
-        self._histogram_metrics_buffer[name].append(values)
 
     def commit(self, epoch: int, step: int) -> Dict[str, float]:
         self._adapter.before_write_metric(epoch, step)
@@ -181,10 +171,6 @@ class D3RLPyLogger:
             metric = sum(buffer) / len(buffer)
             self._adapter.write_metric(epoch, step, name, metric)
             metrics[name] = metric
-
-        for name, buffer in self._histogram_metrics_buffer.items():
-            histogram_values = np.concatenate(buffer)
-            self._adapter.write_histogram(epoch, step, name, histogram_values)
 
         LOG.info(
             f"{self._experiment_name}: epoch={epoch} step={step}",
@@ -218,5 +204,11 @@ class D3RLPyLogger:
     def adapter(self) -> LoggerAdapter:
         return self._adapter
 
-    def watch_model(self, logging_steps: int, algo: TorchModuleProtocol) -> None:
-        self._adapter.watch_model(logging_steps, algo)
+    def watch_model(
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
+    ) -> None:
+        self._adapter.watch_model(epoch, step, logging_steps, algo)

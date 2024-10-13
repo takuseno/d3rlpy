@@ -1,6 +1,5 @@
 from typing import Any, Dict, Optional
 
-from ..types import Float32NDArray
 from .logger import (
     LoggerAdapter,
     LoggerAdapterFactory,
@@ -30,6 +29,7 @@ class WanDBAdapter(LoggerAdapter):
         except ImportError as e:
             raise ImportError("Please install wandb") from e
         self.run = wandb.init(project=project, name=experiment_name)
+        self._is_model_watched = False
 
     def write_params(self, params: Dict[str, Any]) -> None:
         """Writes hyperparameters to WandB config."""
@@ -43,11 +43,6 @@ class WanDBAdapter(LoggerAdapter):
     ) -> None:
         """Writes metric to WandB."""
         self.run.log({name: value, "epoch": epoch}, step=step)
-
-    def write_histogram(
-        self, epoch: int, step: int, name: str, values: Float32NDArray
-    ) -> None:
-        pass
 
     def after_write_metric(self, epoch: int, step: int) -> None:
         """Callback executed after writing metric."""
@@ -64,13 +59,19 @@ class WanDBAdapter(LoggerAdapter):
         self.run.finish()
 
     def watch_model(
-        self, logging_steps: int, algo: TorchModuleProtocol
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
     ) -> None:
-        self.run.watch(
-            algo.impl.modules.get_torch_modules(),
-            log="gradients",
-            log_freq=logging_steps,
-        )
+        if not self._is_model_watched:
+            self.run.watch(
+                algo.impl.modules.get_torch_modules(),
+                log="gradients",
+                log_freq=logging_steps,
+            )
+            self._is_model_watched = True
 
 
 class WanDBAdapterFactory(LoggerAdapterFactory):

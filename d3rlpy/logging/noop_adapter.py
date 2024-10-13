@@ -1,6 +1,5 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
-from ..types import Float32NDArray
 from .logger import (
     LoggerAdapter,
     LoggerAdapterFactory,
@@ -29,11 +28,6 @@ class NoopAdapter(LoggerAdapter):
     ) -> None:
         pass
 
-    def write_histogram(
-        self, epoch: int, step: int, name: str, values: Float32NDArray
-    ) -> None:
-        pass
-
     def after_write_metric(self, epoch: int, step: int) -> None:
         pass
 
@@ -44,7 +38,11 @@ class NoopAdapter(LoggerAdapter):
         pass
 
     def watch_model(
-        self, logging_steps: int, algo: TorchModuleProtocol
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
     ) -> None:
         pass
 

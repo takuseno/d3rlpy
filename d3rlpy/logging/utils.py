@@ -1,6 +1,5 @@
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, Optional, Sequence
 
-from ..types import Float32NDArray
 from .logger import (
     LoggerAdapter,
     LoggerAdapterFactory,
@@ -38,12 +37,6 @@ class CombineAdapter(LoggerAdapter):
         for adapter in self._adapters:
             adapter.write_metric(epoch, step, name, value)
 
-    def write_histogram(
-        self, epoch: int, step: int, name: str, values: Float32NDArray
-    ) -> None:
-        for adapter in self._adapters:
-            adapter.write_histogram(epoch, step, name, values)
-
     def after_write_metric(self, epoch: int, step: int) -> None:
         for adapter in self._adapters:
             adapter.after_write_metric(epoch, step)
@@ -57,10 +50,14 @@ class CombineAdapter(LoggerAdapter):
             adapter.close()
 
     def watch_model(
-        self, logging_steps: int, algo: TorchModuleProtocol
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
     ) -> None:
         for adapter in self._adapters:
-            adapter.watch_model(logging_steps, algo)
+            adapter.watch_model(epoch, step, logging_steps, algo)
 
 
 class CombineAdapterFactory(LoggerAdapterFactory):
