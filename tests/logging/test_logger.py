@@ -112,3 +112,4 @@ def test_d3rlpy_logger(with_timestamp: bool) -> None:
 
     assert not adapter.is_watch_model_called
     logger.watch_model(1, 1, 1, StubAlgo())
+    assert adapter.is_watch_model_called
