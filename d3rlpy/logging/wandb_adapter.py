@@ -67,7 +67,7 @@ class WanDBAdapter(LoggerAdapter):
     ) -> None:
         if not self._is_model_watched:
             self.run.watch(
-                algo.impl.modules.get_torch_modules(),
+                tuple(algo.impl.modules.get_torch_modules().values()),
                 log="gradients",
                 log_freq=logging_steps,
             )

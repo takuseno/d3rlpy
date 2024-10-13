@@ -5,7 +5,6 @@ from typing import (
     BinaryIO,
     Dict,
     Iterator,
-    List,
     Optional,
     Sequence,
     Tuple,
@@ -391,18 +390,18 @@ class Modules:
             if isinstance(v, torch.optim.Optimizer):
                 v.state = collections.defaultdict(dict)
 
-    def get_torch_modules(self) -> List[nn.Module]:
-        torch_modules: List[nn.Module] = []
-        for v in asdict_without_copy(self).values():
+    def get_torch_modules(self) -> Dict[str, nn.Module]:
+        torch_modules: Dict[str, nn.Module] = {}
+        for k, v in asdict_without_copy(self).items():
             if isinstance(v, nn.Module):
-                torch_modules.append(v)
+                torch_modules[k] = v
         return torch_modules
 
     def get_gradients(self) -> Iterator[Tuple[str, Float32NDArray]]:
-        for module in self.get_torch_modules():
+        for module_name, module in self.get_torch_modules().items():
             for name, parameter in module.named_parameters():
                 if parameter.requires_grad and parameter.grad is not None:
-                    yield name, parameter.grad.cpu().detach().numpy()
+                    yield f"{module_name}.{name}", parameter.grad.cpu().detach().numpy()
 
 
 TCallable = TypeVar("TCallable")
