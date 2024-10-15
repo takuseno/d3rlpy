@@ -1,6 +1,11 @@
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, Optional, Sequence
 
-from .logger import LoggerAdapter, LoggerAdapterFactory, SaveProtocol
+from .logger import (
+    LoggerAdapter,
+    LoggerAdapterFactory,
+    SaveProtocol,
+    TorchModuleProtocol,
+)
 
 __all__ = ["CombineAdapter", "CombineAdapterFactory"]
 
@@ -43,6 +48,16 @@ class CombineAdapter(LoggerAdapter):
     def close(self) -> None:
         for adapter in self._adapters:
             adapter.close()
+
+    def watch_model(
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
+    ) -> None:
+        for adapter in self._adapters:
+            adapter.watch_model(epoch, step, logging_steps, algo)
 
 
 class CombineAdapterFactory(LoggerAdapterFactory):

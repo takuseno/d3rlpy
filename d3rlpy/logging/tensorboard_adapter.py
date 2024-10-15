@@ -1,9 +1,14 @@
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import numpy as np
 
-from .logger import LoggerAdapter, LoggerAdapterFactory, SaveProtocol
+from .logger import (
+    LoggerAdapter,
+    LoggerAdapterFactory,
+    SaveProtocol,
+    TorchModuleProtocol,
+)
 
 __all__ = ["TensorboardAdapter", "TensorboardAdapterFactory"]
 
@@ -63,6 +68,19 @@ class TensorboardAdapter(LoggerAdapter):
 
     def close(self) -> None:
         self._writer.close()
+
+    def watch_model(
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
+    ) -> None:
+        if logging_steps is not None and step % logging_steps == 0:
+            for name, grad in algo.impl.modules.get_gradients():
+                self._writer.add_histogram(
+                    f"histograms/{name}_grad", grad, epoch
+                )
 
 
 class TensorboardAdapterFactory(LoggerAdapterFactory):

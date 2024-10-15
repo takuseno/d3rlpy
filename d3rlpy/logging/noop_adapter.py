@@ -1,6 +1,11 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
-from .logger import LoggerAdapter, LoggerAdapterFactory, SaveProtocol
+from .logger import (
+    LoggerAdapter,
+    LoggerAdapterFactory,
+    SaveProtocol,
+    TorchModuleProtocol,
+)
 
 __all__ = ["NoopAdapter", "NoopAdapterFactory"]
 
@@ -30,6 +35,15 @@ class NoopAdapter(LoggerAdapter):
         pass
 
     def close(self) -> None:
+        pass
+
+    def watch_model(
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
+    ) -> None:
         pass
 
 

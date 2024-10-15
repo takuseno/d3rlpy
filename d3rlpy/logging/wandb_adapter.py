@@ -1,6 +1,11 @@
 from typing import Any, Dict, Optional
 
-from .logger import LoggerAdapter, LoggerAdapterFactory, SaveProtocol
+from .logger import (
+    LoggerAdapter,
+    LoggerAdapterFactory,
+    SaveProtocol,
+    TorchModuleProtocol,
+)
 
 __all__ = ["WanDBAdapter", "WanDBAdapterFactory"]
 
@@ -24,6 +29,7 @@ class WanDBAdapter(LoggerAdapter):
         except ImportError as e:
             raise ImportError("Please install wandb") from e
         self.run = wandb.init(project=project, name=experiment_name)
+        self._is_model_watched = False
 
     def write_params(self, params: Dict[str, Any]) -> None:
         """Writes hyperparameters to WandB config."""
@@ -51,6 +57,21 @@ class WanDBAdapter(LoggerAdapter):
     def close(self) -> None:
         """Closes the logger and finishes the WandB run."""
         self.run.finish()
+
+    def watch_model(
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
+    ) -> None:
+        if not self._is_model_watched:
+            self.run.watch(
+                tuple(algo.impl.modules.get_torch_modules().values()),
+                log="gradients",
+                log_freq=logging_steps,
+            )
+            self._is_model_watched = True
 
 
 class WanDBAdapterFactory(LoggerAdapterFactory):

@@ -2,10 +2,13 @@ import time
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, DefaultDict, Dict, Iterator, List
+from typing import Any, DefaultDict, Dict, Iterator, List, Optional, Tuple
 
 import structlog
+from torch import nn
 from typing_extensions import Protocol
+
+from ..types import Float32NDArray
 
 __all__ = [
     "LOG",
@@ -37,6 +40,19 @@ def set_log_context(**kwargs: Any) -> None:
 
 class SaveProtocol(Protocol):
     def save(self, fname: str) -> None: ...
+
+
+class ModuleProtocol(Protocol):
+    def get_torch_modules(self) -> Dict[str, nn.Module]: ...
+    def get_gradients(self) -> Iterator[Tuple[str, Float32NDArray]]: ...
+
+
+class ImplProtocol(Protocol):
+    modules: ModuleProtocol
+
+
+class TorchModuleProtocol(Protocol):
+    impl: ImplProtocol
 
 
 class LoggerAdapter(Protocol):
@@ -87,6 +103,22 @@ class LoggerAdapter(Protocol):
 
     def close(self) -> None:
         r"""Closes this LoggerAdapter."""
+
+    def watch_model(
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
+    ) -> None:
+        r"""Watch model parameters / gradients during training.
+
+        Args:
+            epoch: Epoch.
+            step: Training step.
+            logging_steps: Training step.
+            algo: Algorithm.
+        """
 
 
 class LoggerAdapterFactory(Protocol):
@@ -171,3 +203,12 @@ class D3RLPyLogger:
     @property
     def adapter(self) -> LoggerAdapter:
         return self._adapter
+
+    def watch_model(
+        self,
+        epoch: int,
+        step: int,
+        logging_steps: Optional[int],
+        algo: TorchModuleProtocol,
+    ) -> None:
+        self._adapter.watch_model(epoch, step, logging_steps, algo)

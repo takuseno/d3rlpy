@@ -4,8 +4,10 @@ from typing import (
     Any,
     BinaryIO,
     Dict,
+    Iterator,
     Optional,
     Sequence,
+    Tuple,
     TypeVar,
     Union,
     overload,
@@ -387,6 +389,19 @@ class Modules:
         for v in asdict_without_copy(self).values():
             if isinstance(v, torch.optim.Optimizer):
                 v.state = collections.defaultdict(dict)
+
+    def get_torch_modules(self) -> Dict[str, nn.Module]:
+        torch_modules: Dict[str, nn.Module] = {}
+        for k, v in asdict_without_copy(self).items():
+            if isinstance(v, nn.Module):
+                torch_modules[k] = v
+        return torch_modules
+
+    def get_gradients(self) -> Iterator[Tuple[str, Float32NDArray]]:
+        for module_name, module in self.get_torch_modules().items():
+            for name, parameter in module.named_parameters():
+                if parameter.requires_grad and parameter.grad is not None:
+                    yield f"{module_name}.{name}", parameter.grad.cpu().detach().numpy()
 
 
 TCallable = TypeVar("TCallable")

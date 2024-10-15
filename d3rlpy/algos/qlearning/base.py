@@ -378,6 +378,7 @@ class QLearningAlgoBase(
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
         logging_steps: int = 500,
+        gradient_logging_steps: Optional[int] = None,
         logging_strategy: LoggingStrategy = LoggingStrategy.EPOCH,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
@@ -403,6 +404,7 @@ class QLearningAlgoBase(
                 directory name.
             logging_steps: Number of steps to log metrics. This will be ignored
                 if logging_strategy is EPOCH.
+            gradient_logging_steps: Number of steps to log gradients.
             logging_strategy: Logging strategy to use.
             logger_adapter: LoggerAdapterFactory object.
             show_progress: Flag to show progress bar for iterations.
@@ -425,6 +427,7 @@ class QLearningAlgoBase(
                 experiment_name=experiment_name,
                 with_timestamp=with_timestamp,
                 logging_steps=logging_steps,
+                gradient_logging_steps=gradient_logging_steps,
                 logging_strategy=logging_strategy,
                 logger_adapter=logger_adapter,
                 show_progress=show_progress,
@@ -442,6 +445,7 @@ class QLearningAlgoBase(
         n_steps: int,
         n_steps_per_epoch: int = 10000,
         logging_steps: int = 500,
+        gradient_logging_steps: Optional[int] = None,
         logging_strategy: LoggingStrategy = LoggingStrategy.EPOCH,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
@@ -471,7 +475,8 @@ class QLearningAlgoBase(
             with_timestamp: Flag to add timestamp string to the last of
                 directory name.
             logging_steps: Number of steps to log metrics. This will be ignored
-                if loggig_strategy is EPOCH.
+                if logging_strategy is EPOCH.
+            gradient_logging_steps: Number of steps to log gradients.
             logging_strategy: Logging strategy to use.
             logger_adapter: LoggerAdapterFactory object.
             show_progress: Flag to show progress bar for iterations.
@@ -520,6 +525,8 @@ class QLearningAlgoBase(
         # save hyperparameters
         save_config(self, logger)
 
+        logger.watch_model(0, 0, gradient_logging_steps, self)  # type: ignore
+
         # training loop
         n_epochs = n_steps // n_steps_per_epoch
         total_step = 0
@@ -558,6 +565,8 @@ class QLearningAlgoBase(
                         range_gen.set_postfix(mean_loss)
 
                 total_step += 1
+
+                logger.watch_model(epoch, total_step, gradient_logging_steps, self)  # type: ignore
 
                 if (
                     logging_strategy == LoggingStrategy.STEPS
@@ -608,6 +617,7 @@ class QLearningAlgoBase(
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
         logging_steps: int = 500,
+        gradient_logging_steps: Optional[int] = None,
         logging_strategy: LoggingStrategy = LoggingStrategy.EPOCH,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
@@ -636,6 +646,7 @@ class QLearningAlgoBase(
                 directory name.
             logging_steps: Number of steps to log metrics. This will be ignored
                 if logging_strategy is EPOCH.
+            gradient_logging_steps: Number of steps to log gradients.
             logging_strategy: Logging strategy to use.
             logger_adapter: LoggerAdapterFactory object.
             show_progress: Flag to show progress bar for iterations.
@@ -672,6 +683,8 @@ class QLearningAlgoBase(
 
         # save hyperparameters
         save_config(self, logger)
+
+        logger.watch_model(0, 0, gradient_logging_steps, self)  # type: ignore
 
         # switch based on show_progress flag
         xrange = trange if show_progress else range
@@ -740,6 +753,8 @@ class QLearningAlgoBase(
                             # record metrics
                             for name, val in loss.items():
                                 logger.add_metric(name, val)
+
+                        logger.watch_model(epoch, total_step, gradient_logging_steps, self)  # type: ignore
 
                         if (
                             logging_strategy == LoggingStrategy.STEPS

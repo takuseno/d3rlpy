@@ -1,9 +1,10 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import pytest
+from torch import nn
 
 from d3rlpy.logging import D3RLPyLogger
-from d3rlpy.logging.logger import SaveProtocol
+from d3rlpy.logging.logger import SaveProtocol, TorchModuleProtocol
 
 
 class StubLoggerAdapter:
@@ -15,6 +16,7 @@ class StubLoggerAdapter:
         self.is_after_write_metric_called = False
         self.is_save_model_called = False
         self.is_close_called = False
+        self.is_watch_model_called = False
 
     def write_params(self, params: Dict[str, Any]) -> None:
         self.is_write_params_called = True
@@ -39,20 +41,40 @@ class StubLoggerAdapter:
     def close(self) -> None:
         self.is_close_called = True
 
+    def watch_model(
+        self,
+        epoch: int,
+        step: int,
+        logging_step: int,
+        algo: TorchModuleProtocol,
+    ) -> None:
+        self.is_watch_model_called = True
+
 
 class StubLoggerAdapterFactory:
     def create(self, experiment_name: str) -> StubLoggerAdapter:
         return StubLoggerAdapter(experiment_name)
 
 
+class StubModules:
+    def get_torch_modules(self) -> List[nn.Module]:
+        return []
+
+
+class StubImpl:
+    modules: StubModules
+
+
 class StubAlgo:
+    impl: StubImpl
+
     def save(self, fname: str) -> None:
         pass
 
 
 @pytest.mark.parametrize("with_timestamp", [False, True])
 def test_d3rlpy_logger(with_timestamp: bool) -> None:
-    logger = D3RLPyLogger(StubLoggerAdapterFactory(), "test", with_timestamp)
+    logger = D3RLPyLogger(StubLoggerAdapterFactory(), "test", with_timestamp)  # type: ignore
 
     # check experiment_name
     adapter = logger.adapter
@@ -87,3 +109,7 @@ def test_d3rlpy_logger(with_timestamp: bool) -> None:
     assert not adapter.is_close_called
     logger.close()
     assert adapter.is_close_called
+
+    assert not adapter.is_watch_model_called
+    logger.watch_model(1, 1, 1, StubAlgo())
+    assert adapter.is_watch_model_called
