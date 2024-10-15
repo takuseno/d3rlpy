@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Sequence
 
 from .logger import (
     AlgProtocol,
@@ -53,11 +53,9 @@ class CombineAdapter(LoggerAdapter):
         self,
         epoch: int,
         step: int,
-        logging_steps: Optional[int],
-        algo: AlgProtocol,
     ) -> None:
         for adapter in self._adapters:
-            adapter.watch_model(epoch, step, logging_steps, algo)
+            adapter.watch_model(epoch, step)
 
 
 class CombineAdapterFactory(LoggerAdapterFactory):
@@ -75,10 +73,12 @@ class CombineAdapterFactory(LoggerAdapterFactory):
     def __init__(self, adapter_factories: Sequence[LoggerAdapterFactory]):
         self._adapter_factories = adapter_factories
 
-    def create(self, experiment_name: str) -> CombineAdapter:
+    def create(
+        self, algo: AlgProtocol, experiment_name: str, n_steps_per_epoch: int
+    ) -> CombineAdapter:
         return CombineAdapter(
             [
-                factory.create(experiment_name)
+                factory.create(algo, experiment_name, n_steps_per_epoch)
                 for factory in self._adapter_factories
             ]
         )

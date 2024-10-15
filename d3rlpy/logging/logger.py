@@ -112,23 +112,21 @@ class LoggerAdapter(Protocol):
         self,
         epoch: int,
         step: int,
-        logging_steps: Optional[int],
-        algo: AlgProtocol,
     ) -> None:
         r"""Watch model parameters / gradients during training.
 
         Args:
             epoch: Epoch.
             step: Training step.
-            logging_steps: Training step.
-            algo: Algorithm.
         """
 
 
 class LoggerAdapterFactory(Protocol):
     r"""Interface of LoggerAdapterFactory."""
 
-    def create(self, experiment_name: str) -> LoggerAdapter:
+    def create(
+        self, algo: AlgProtocol, experiment_name: str, n_steps_per_epoch: int
+    ) -> LoggerAdapter:
         r"""Creates LoggerAdapter.
 
         This method instantiates ``LoggerAdapter`` with a given
@@ -136,20 +134,25 @@ class LoggerAdapterFactory(Protocol):
         This method is usually called at the beginning of training.
 
         Args:
+            algo: Algorithm.
             experiment_name: Experiment name.
+            steps_per_epoch: Number of steps per epoch.
         """
         raise NotImplementedError
 
 
 class D3RLPyLogger:
+    _algo: AlgProtocol
     _adapter: LoggerAdapter
     _experiment_name: str
     _metrics_buffer: DefaultDict[str, List[float]]
 
     def __init__(
         self,
+        algo: AlgProtocol,
         adapter_factory: LoggerAdapterFactory,
         experiment_name: str,
+        n_steps_per_epoch: int,
         with_timestamp: bool = True,
     ):
         if with_timestamp:
@@ -157,7 +160,10 @@ class D3RLPyLogger:
             self._experiment_name = experiment_name + "_" + date
         else:
             self._experiment_name = experiment_name
-        self._adapter = adapter_factory.create(self._experiment_name)
+        self._algo = algo
+        self._adapter = adapter_factory.create(
+            algo, self._experiment_name, n_steps_per_epoch
+        )
         self._metrics_buffer = defaultdict(list)
 
     def add_params(self, params: Dict[str, Any]) -> None:
@@ -185,6 +191,9 @@ class D3RLPyLogger:
 
         self._adapter.after_write_metric(epoch, step)
 
+        # save model parameter metrics
+        self._adapter.watch_model(epoch, step)
+
         # initialize metrics buffer
         self._metrics_buffer.clear()
         return metrics
@@ -207,12 +216,3 @@ class D3RLPyLogger:
     @property
     def adapter(self) -> LoggerAdapter:
         return self._adapter
-
-    def watch_model(
-        self,
-        epoch: int,
-        step: int,
-        logging_steps: Optional[int],
-        algo: AlgProtocol,
-    ) -> None:
-        self._adapter.watch_model(epoch, step, logging_steps, algo)

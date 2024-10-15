@@ -60,7 +60,12 @@ def from_json_tester(
     algo.create_impl(observation_shape, action_size)
     # save params.json
     adapter_factory = FileAdapterFactory("test_data")
-    logger = D3RLPyLogger(adapter_factory, experiment_name="test")
+    logger = D3RLPyLogger(
+        algo=algo,
+        adapter_factory=adapter_factory,
+        n_steps_per_epoch=1,
+        experiment_name="test",
+    )
     # save parameters to test_data/test/params.json
     save_config(algo, logger)
     # load params.json

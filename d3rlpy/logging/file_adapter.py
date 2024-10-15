@@ -1,7 +1,7 @@
 import json
 import os
 from enum import Enum, IntEnum
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import numpy as np
 
@@ -36,12 +36,15 @@ class FileAdapter(LoggerAdapter):
     models as d3 files.
 
     Args:
+        algo: Algorithm.
         logdir (str): Log directory.
     """
 
+    _algo: AlgProtocol
     _logdir: str
 
-    def __init__(self, logdir: str):
+    def __init__(self, algo: AlgProtocol, logdir: str):
+        self._algo = algo
         self._logdir = logdir
         if not os.path.exists(self._logdir):
             os.makedirs(self._logdir)
@@ -86,21 +89,18 @@ class FileAdapter(LoggerAdapter):
         self,
         epoch: int,
         step: int,
-        logging_steps: Optional[int],
-        algo: AlgProtocol,
     ) -> None:
-        assert algo.impl
-        if logging_steps is not None and step % logging_steps == 0:
-            for name, grad in algo.impl.modules.get_gradients():
-                path = os.path.join(self._logdir, f"{name}_grad.csv")
-                with open(path, "a") as f:
-                    min_grad = grad.min()
-                    max_grad = grad.max()
-                    mean_grad = grad.mean()
-                    print(
-                        f"{epoch},{step},{name},{min_grad},{max_grad},{mean_grad}",
-                        file=f,
-                    )
+        assert self._algo.impl
+        for name, grad in self._algo.impl.modules.get_gradients():
+            path = os.path.join(self._logdir, f"{name}_grad.csv")
+            with open(path, "a") as f:
+                min_grad = grad.min()
+                max_grad = grad.max()
+                mean_grad = grad.mean()
+                print(
+                    f"{epoch},{step},{min_grad},{max_grad},{mean_grad}",
+                    file=f,
+                )
 
 
 class FileAdapterFactory(LoggerAdapterFactory):
@@ -118,6 +118,8 @@ class FileAdapterFactory(LoggerAdapterFactory):
     def __init__(self, root_dir: str = "d3rlpy_logs"):
         self._root_dir = root_dir
 
-    def create(self, experiment_name: str) -> FileAdapter:
+    def create(
+        self, algo: AlgProtocol, experiment_name: str, n_steps_per_epoch: int
+    ) -> FileAdapter:
         logdir = os.path.join(self._root_dir, experiment_name)
-        return FileAdapter(logdir)
+        return FileAdapter(algo, logdir)

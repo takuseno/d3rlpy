@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import numpy as np
 
@@ -27,16 +27,18 @@ class TensorboardAdapter(LoggerAdapter):
         experiment_name (str): Experiment name.
     """
 
+    _algo: AlgProtocol
     _experiment_name: str
     _params: Dict[str, Any]
     _metrics: Dict[str, float]
 
-    def __init__(self, root_dir: str, experiment_name: str):
+    def __init__(self, algo: AlgProtocol, root_dir: str, experiment_name: str):
         try:
             from tensorboardX import SummaryWriter
         except ImportError as e:
             raise ImportError("Please install tensorboardX") from e
 
+        self._algo = algo
         self._experiment_name = experiment_name
         logdir = os.path.join(root_dir, "runs", experiment_name)
         self._writer = SummaryWriter(logdir=logdir)
@@ -73,15 +75,10 @@ class TensorboardAdapter(LoggerAdapter):
         self,
         epoch: int,
         step: int,
-        logging_steps: Optional[int],
-        algo: AlgProtocol,
     ) -> None:
-        assert algo.impl
-        if logging_steps is not None and step % logging_steps == 0:
-            for name, grad in algo.impl.modules.get_gradients():
-                self._writer.add_histogram(
-                    f"histograms/{name}_grad", grad, epoch
-                )
+        assert self._algo.impl
+        for name, grad in self._algo.impl.modules.get_gradients():
+            self._writer.add_histogram(f"histograms/{name}_grad", grad, epoch)
 
 
 class TensorboardAdapterFactory(LoggerAdapterFactory):
@@ -98,5 +95,7 @@ class TensorboardAdapterFactory(LoggerAdapterFactory):
     def __init__(self, root_dir: str = "tensorboard_logs"):
         self._root_dir = root_dir
 
-    def create(self, experiment_name: str) -> TensorboardAdapter:
-        return TensorboardAdapter(self._root_dir, experiment_name)
+    def create(
+        self, algo: AlgProtocol, experiment_name: str, n_steps_per_epoch: int
+    ) -> TensorboardAdapter:
+        return TensorboardAdapter(algo, self._root_dir, experiment_name)

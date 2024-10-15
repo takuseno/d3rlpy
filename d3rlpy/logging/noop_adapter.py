@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from .logger import (
     AlgProtocol,
@@ -41,8 +41,6 @@ class NoopAdapter(LoggerAdapter):
         self,
         epoch: int,
         step: int,
-        logging_steps: Optional[int],
-        algo: AlgProtocol,
     ) -> None:
         pass
 
@@ -53,5 +51,7 @@ class NoopAdapterFactory(LoggerAdapterFactory):
     This class instantiates ``NoopAdapter`` object.
     """
 
-    def create(self, experiment_name: str) -> NoopAdapter:
+    def create(
+        self, algo: AlgProtocol, experiment_name: str, n_steps_per_epoch: int
+    ) -> NoopAdapter:
         return NoopAdapter()
