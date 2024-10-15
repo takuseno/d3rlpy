@@ -74,7 +74,7 @@ class StubAlgo:
 
 @pytest.mark.parametrize("with_timestamp", [False, True])
 def test_d3rlpy_logger(with_timestamp: bool) -> None:
-    logger = D3RLPyLogger(StubLoggerAdapterFactory(), "test", with_timestamp)
+    logger = D3RLPyLogger(StubLoggerAdapterFactory(), "test", with_timestamp)  # type: ignore
 
     # check experiment_name
     adapter = logger.adapter
