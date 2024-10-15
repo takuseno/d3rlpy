@@ -4,7 +4,7 @@ import pytest
 from torch import nn
 
 from d3rlpy.logging import D3RLPyLogger
-from d3rlpy.logging.logger import SaveProtocol, TorchModuleProtocol
+from d3rlpy.logging.logger import AlgProtocol, SaveProtocol
 
 
 class StubLoggerAdapter:
@@ -46,7 +46,7 @@ class StubLoggerAdapter:
         epoch: int,
         step: int,
         logging_step: int,
-        algo: TorchModuleProtocol,
+        algo: AlgProtocol,
     ) -> None:
         self.is_watch_model_called = True
 

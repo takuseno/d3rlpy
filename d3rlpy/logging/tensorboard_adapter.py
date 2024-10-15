@@ -4,10 +4,10 @@ from typing import Any, Dict, Optional
 import numpy as np
 
 from .logger import (
+    AlgProtocol,
     LoggerAdapter,
     LoggerAdapterFactory,
     SaveProtocol,
-    TorchModuleProtocol,
 )
 
 __all__ = ["TensorboardAdapter", "TensorboardAdapterFactory"]
@@ -74,8 +74,9 @@ class TensorboardAdapter(LoggerAdapter):
         epoch: int,
         step: int,
         logging_steps: Optional[int],
-        algo: TorchModuleProtocol,
+        algo: AlgProtocol,
     ) -> None:
+        assert algo.impl
         if logging_steps is not None and step % logging_steps == 0:
             for name, grad in algo.impl.modules.get_gradients():
                 self._writer.add_histogram(

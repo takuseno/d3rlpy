@@ -1,10 +1,10 @@
 from typing import Any, Dict, Optional
 
 from .logger import (
+    AlgProtocol,
     LoggerAdapter,
     LoggerAdapterFactory,
     SaveProtocol,
-    TorchModuleProtocol,
 )
 
 __all__ = ["WanDBAdapter", "WanDBAdapterFactory"]
@@ -63,9 +63,10 @@ class WanDBAdapter(LoggerAdapter):
         epoch: int,
         step: int,
         logging_steps: Optional[int],
-        algo: TorchModuleProtocol,
+        algo: AlgProtocol,
     ) -> None:
         if not self._is_model_watched:
+            assert algo.impl
             self.run.watch(
                 tuple(algo.impl.modules.get_torch_modules().values()),
                 log="gradients",

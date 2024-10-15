@@ -48,11 +48,15 @@ class ModuleProtocol(Protocol):
 
 
 class ImplProtocol(Protocol):
-    modules: ModuleProtocol
+    @property
+    def modules(self) -> ModuleProtocol:
+        raise NotImplementedError
 
 
-class TorchModuleProtocol(Protocol):
-    impl: ImplProtocol
+class AlgProtocol(Protocol):
+    @property
+    def impl(self) -> Optional[ImplProtocol]:
+        raise NotImplementedError
 
 
 class LoggerAdapter(Protocol):
@@ -109,7 +113,7 @@ class LoggerAdapter(Protocol):
         epoch: int,
         step: int,
         logging_steps: Optional[int],
-        algo: TorchModuleProtocol,
+        algo: AlgProtocol,
     ) -> None:
         r"""Watch model parameters / gradients during training.
 
@@ -209,6 +213,6 @@ class D3RLPyLogger:
         epoch: int,
         step: int,
         logging_steps: Optional[int],
-        algo: TorchModuleProtocol,
+        algo: AlgProtocol,
     ) -> None:
         self._adapter.watch_model(epoch, step, logging_steps, algo)

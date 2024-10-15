@@ -7,10 +7,10 @@ import numpy as np
 
 from .logger import (
     LOG,
+    AlgProtocol,
     LoggerAdapter,
     LoggerAdapterFactory,
     SaveProtocol,
-    TorchModuleProtocol,
 )
 
 __all__ = ["FileAdapter", "FileAdapterFactory"]
@@ -87,8 +87,9 @@ class FileAdapter(LoggerAdapter):
         epoch: int,
         step: int,
         logging_steps: Optional[int],
-        algo: TorchModuleProtocol,
+        algo: AlgProtocol,
     ) -> None:
+        assert algo.impl
         if logging_steps is not None and step % logging_steps == 0:
             for name, grad in algo.impl.modules.get_gradients():
                 path = os.path.join(self._logdir, f"{name}_grad.csv")

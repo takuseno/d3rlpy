@@ -1,10 +1,10 @@
 from typing import Any, Dict, Optional, Sequence
 
 from .logger import (
+    AlgProtocol,
     LoggerAdapter,
     LoggerAdapterFactory,
     SaveProtocol,
-    TorchModuleProtocol,
 )
 
 __all__ = ["CombineAdapter", "CombineAdapterFactory"]
@@ -54,7 +54,7 @@ class CombineAdapter(LoggerAdapter):
         epoch: int,
         step: int,
         logging_steps: Optional[int],
-        algo: TorchModuleProtocol,
+        algo: AlgProtocol,
     ) -> None:
         for adapter in self._adapters:
             adapter.watch_model(epoch, step, logging_steps, algo)
