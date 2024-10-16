@@ -45,14 +45,14 @@ class StubLoggerAdapter:
         self,
         epoch: int,
         step: int,
-        logging_step: int,
-        algo: AlgProtocol,
     ) -> None:
         self.is_watch_model_called = True
 
 
 class StubLoggerAdapterFactory:
-    def create(self, experiment_name: str) -> StubLoggerAdapter:
+    def create(
+        self, algo: AlgProtocol, experiment_name: str, n_steps_per_epoch: int
+    ) -> StubLoggerAdapter:
         return StubLoggerAdapter(experiment_name)
 
 
@@ -74,7 +74,13 @@ class StubAlgo:
 
 @pytest.mark.parametrize("with_timestamp", [False, True])
 def test_d3rlpy_logger(with_timestamp: bool) -> None:
-    logger = D3RLPyLogger(StubLoggerAdapterFactory(), "test", with_timestamp)  # type: ignore
+    logger = D3RLPyLogger(
+        algo=StubAlgo(),  # type: ignore
+        adapter_factory=StubLoggerAdapterFactory(),
+        experiment_name="test",
+        n_steps_per_epoch=1,
+        with_timestamp=with_timestamp,
+    )
 
     # check experiment_name
     adapter = logger.adapter
@@ -95,12 +101,14 @@ def test_d3rlpy_logger(with_timestamp: bool) -> None:
     assert not adapter.is_before_write_metric_called
     assert not adapter.is_write_metric_called
     assert not adapter.is_after_write_metric_called
+    assert not adapter.is_watch_model_called
     metrics = logger.commit(1, 1)
     assert "test" in metrics
     assert "time_test" in metrics
     assert adapter.is_before_write_metric_called
     assert adapter.is_write_metric_called
     assert adapter.is_after_write_metric_called
+    assert adapter.is_watch_model_called
 
     assert not adapter.is_save_model_called
     logger.save_model(1, StubAlgo())
@@ -109,7 +117,3 @@ def test_d3rlpy_logger(with_timestamp: bool) -> None:
     assert not adapter.is_close_called
     logger.close()
     assert adapter.is_close_called
-
-    assert not adapter.is_watch_model_called
-    logger.watch_model(1, 1, 1, StubAlgo())
-    assert adapter.is_watch_model_called

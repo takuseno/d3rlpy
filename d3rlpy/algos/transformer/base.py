@@ -418,15 +418,6 @@ class TransformerAlgoBase(
         # initialize scalers
         build_scalers_with_trajectory_slicer(self, dataset)
 
-        # setup logger
-        if experiment_name is None:
-            experiment_name = self.__class__.__name__
-        logger = D3RLPyLogger(
-            adapter_factory=logger_adapter,
-            experiment_name=experiment_name,
-            with_timestamp=with_timestamp,
-        )
-
         # instantiate implementation
         if self._impl is None:
             LOG.debug("Building models...")
@@ -440,6 +431,17 @@ class TransformerAlgoBase(
             LOG.debug("Models have been built.")
         else:
             LOG.warning("Skip building models since they're already built.")
+
+        # setup logger
+        if experiment_name is None:
+            experiment_name = self.__class__.__name__
+        logger = D3RLPyLogger(
+            algo=self,
+            adapter_factory=logger_adapter,
+            experiment_name=experiment_name,
+            n_steps_per_epoch=n_steps_per_epoch,
+            with_timestamp=with_timestamp,
+        )
 
         # save hyperparameters
         save_config(self, logger)
