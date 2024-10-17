@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 from torch.optim import Optimizer
@@ -53,6 +53,7 @@ class PLASImpl(DDPGBaseImpl):
         beta: float,
         warmup_steps: int,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -63,6 +64,7 @@ class PLASImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._lam = lam
         self._beta = beta
@@ -78,6 +80,7 @@ class PLASImpl(DDPGBaseImpl):
             beta=self._beta,
         )
         loss.backward()
+        self.clip_gradients()
         self._modules.vae_optim.step()
         return {"vae_loss": float(loss.cpu().detach().numpy())}
 
@@ -156,6 +159,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         beta: float,
         warmup_steps: int,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -169,6 +173,7 @@ class PLASWithPerturbationImpl(PLASImpl):
             beta=beta,
             warmup_steps=warmup_steps,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
 
     def compute_actor_loss(

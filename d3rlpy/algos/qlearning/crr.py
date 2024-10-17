@@ -200,6 +200,7 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
             target_update_type=self._config.target_update_type,
             target_update_interval=self._config.target_update_interval,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:

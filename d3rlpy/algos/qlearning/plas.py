@@ -198,6 +198,7 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             beta=self._config.beta,
             warmup_steps=self._config.warmup_steps,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:
@@ -374,6 +375,7 @@ class PLASWithPerturbation(PLAS):
             beta=self._config.beta,
             warmup_steps=self._config.warmup_steps,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
 

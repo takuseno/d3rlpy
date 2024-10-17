@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import torch
 from torch.optim import Optimizer
@@ -37,12 +37,14 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
         action_size: int,
         modules: BCBaseModules,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
             device=device,
+            clip_grad_norm=clip_gradient_norm,
         )
 
     def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
@@ -51,6 +53,7 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
         loss = self.compute_loss(batch.observations, batch.actions)
 
         loss.loss.backward()
+        self.clip_gradients()
         self._modules.optim.step()
 
         return asdict_as_float(loss)
@@ -91,12 +94,14 @@ class BCImpl(BCBaseImpl):
         modules: BCModules,
         policy_type: str,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._policy_type = policy_type
 
@@ -142,12 +147,14 @@ class DiscreteBCImpl(BCBaseImpl):
         modules: DiscreteBCModules,
         beta: float,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._beta = beta
 

@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 from torch import nn
@@ -65,12 +65,14 @@ class DDPGBaseImpl(
         gamma: float,
         tau: float,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
             device=device,
+            clip_grad_norm=clip_gradient_norm,
         )
         self._gamma = gamma
         self._tau = tau
@@ -83,6 +85,7 @@ class DDPGBaseImpl(
         q_tpn = self.compute_target(batch)
         loss = self.compute_critic_loss(batch, q_tpn)
         loss.critic_loss.backward()
+        self.clip_gradients()
         self._modules.critic_optim.step()
         return asdict_as_float(loss)
 
@@ -107,6 +110,7 @@ class DDPGBaseImpl(
         self._modules.actor_optim.zero_grad()
         loss = self.compute_actor_loss(batch, action)
         loss.actor_loss.backward()
+        self.clip_gradients()
         self._modules.actor_optim.step()
         return asdict_as_float(loss)
 
@@ -175,6 +179,7 @@ class DDPGImpl(DDPGBaseImpl):
         gamma: float,
         tau: float,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -185,6 +190,7 @@ class DDPGImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         hard_sync(self._modules.targ_policy, self._modules.policy)
 

@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 import torch.nn.functional as F
@@ -56,6 +56,7 @@ class CRRImpl(DDPGBaseImpl):
         target_update_type: str,
         target_update_interval: int,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -66,6 +67,7 @@ class CRRImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._beta = beta
         self._n_action_samples = n_action_samples

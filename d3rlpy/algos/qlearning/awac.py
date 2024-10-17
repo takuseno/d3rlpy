@@ -159,6 +159,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             lam=self._config.lam,
             n_action_samples=self._config.n_action_samples,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:

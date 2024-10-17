@@ -59,6 +59,7 @@ class SACImpl(DDPGBaseImpl):
         gamma: float,
         tau: float,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -69,6 +70,7 @@ class SACImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
 
     def compute_actor_loss(
@@ -150,12 +152,14 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         target_update_interval: int,
         gamma: float,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
             device=device,
+            clip_grad_norm=clip_gradient_norm,
         )
         self._gamma = gamma
         self._q_func_forwarder = q_func_forwarder
@@ -170,6 +174,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         loss = self.compute_critic_loss(batch, q_tpn)
 
         loss.backward()
+        self.clip_gradients()
         self._modules.critic_optim.step()
 
         return {"critic_loss": float(loss.cpu().detach().numpy())}
@@ -217,6 +222,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         loss = self.compute_actor_loss(batch)
 
         loss.backward()
+        self.clip_gradients()
         self._modules.actor_optim.step()
 
         return {"actor_loss": float(loss.cpu().detach().numpy())}

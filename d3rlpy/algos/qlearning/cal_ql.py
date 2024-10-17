@@ -172,6 +172,7 @@ class CalQL(CQL):
             soft_q_backup=self._config.soft_q_backup,
             max_q_backup=self._config.max_q_backup,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     @property

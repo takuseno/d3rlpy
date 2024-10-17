@@ -267,6 +267,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             vae_kl_weight=self._config.vae_kl_weight,
             warmup_steps=self._config.warmup_steps,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:

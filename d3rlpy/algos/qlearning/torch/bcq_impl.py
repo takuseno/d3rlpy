@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Dict, cast
+from typing import Dict, Optional, cast
 
 import torch
 import torch.nn.functional as F
@@ -70,6 +70,7 @@ class BCQImpl(DDPGBaseImpl):
         beta: float,
         rl_start_step: int,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -80,6 +81,7 @@ class BCQImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._lam = lam
         self._n_action_samples = n_action_samples
@@ -105,6 +107,7 @@ class BCQImpl(DDPGBaseImpl):
             beta=self._beta,
         )
         loss.backward()
+        self.clip_gradients()
         self._modules.vae_optim.step()
         return {"vae_loss": float(loss.cpu().detach().numpy())}
 
@@ -236,6 +239,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         action_flexibility: float,
         beta: float,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -246,6 +250,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             target_update_interval=target_update_interval,
             gamma=gamma,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._action_flexibility = action_flexibility
         self._beta = beta

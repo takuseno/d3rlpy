@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Optional
 
 import torch
 
@@ -52,6 +53,7 @@ class IQLImpl(DDPGBaseImpl):
         weight_temp: float,
         max_weight: float,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -62,6 +64,7 @@ class IQLImpl(DDPGBaseImpl):
             gamma=gamma,
             tau=tau,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._expectile = expectile
         self._weight_temp = weight_temp

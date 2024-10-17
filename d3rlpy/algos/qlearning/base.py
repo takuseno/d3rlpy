@@ -158,6 +158,17 @@ class QLearningAlgoImplBase(ImplBase):
     def reset_optimizer_states(self) -> None:
         self.modules.reset_optimizer_states()
 
+    def clip_gradients(self) -> None:
+        if self.clip_gradient_norm is not None:
+            parameters = [
+                param.parameters()
+                for param in self.modules.get_torch_modules().values()
+            ]
+            torch.nn.utils.clip_grad_norm_(
+                *parameters,
+                torch.tensor(data=self.clip_gradient_norm, device=self.device),
+            )
+
 
 TQLearningImpl = TypeVar("TQLearningImpl", bound=QLearningAlgoImplBase)
 TQLearningConfig = TypeVar("TQLearningConfig", bound=LearnableConfig)

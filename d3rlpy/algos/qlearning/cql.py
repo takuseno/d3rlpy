@@ -226,6 +226,7 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             soft_q_backup=self._config.soft_q_backup,
             max_q_backup=self._config.max_q_backup,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:
@@ -337,6 +338,7 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
             gamma=self._config.gamma,
             alpha=self._config.alpha,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:

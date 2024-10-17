@@ -154,6 +154,7 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
             gamma=self._config.gamma,
             tau=self._config.tau,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:

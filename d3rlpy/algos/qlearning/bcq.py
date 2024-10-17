@@ -265,6 +265,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             beta=self._config.beta,
             rl_start_step=self._config.rl_start_step,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:
@@ -423,6 +424,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
             device=self._device,
+            clip_gradient_norm=self.config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:

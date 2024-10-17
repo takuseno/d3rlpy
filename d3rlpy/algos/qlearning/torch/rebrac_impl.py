@@ -1,4 +1,6 @@
 # pylint: disable=too-many-ancestors
+from typing import Optional
+
 import torch
 
 from ....models.torch import ActionOutput, ContinuousEnsembleQFunctionForwarder
@@ -30,6 +32,7 @@ class ReBRACImpl(TD3Impl):
         critic_beta: float,
         update_actor_interval: int,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -43,6 +46,7 @@ class ReBRACImpl(TD3Impl):
             target_smoothing_clip=target_smoothing_clip,
             update_actor_interval=update_actor_interval,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._actor_beta = actor_beta
         self._critic_beta = critic_beta
