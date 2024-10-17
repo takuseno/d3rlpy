@@ -32,7 +32,6 @@ class DecisionTransformerModules(Modules):
 class DecisionTransformerImpl(TransformerAlgoImplBase):
     _modules: DecisionTransformerModules
     _scheduler: torch.optim.lr_scheduler.LRScheduler
-    _clip_grad_norm: float
 
     def __init__(
         self,
@@ -48,9 +47,9 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
             action_size=action_size,
             modules=modules,
             device=device,
+            clip_grad_norm=clip_grad_norm,
         )
         self._scheduler = scheduler
-        self._clip_grad_norm = clip_grad_norm
 
     def inner_predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
         # (1, T, A)
@@ -96,7 +95,6 @@ class DiscreteDecisionTransformerModules(Modules):
 
 class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
     _modules: DiscreteDecisionTransformerModules
-    _clip_grad_norm: float
     _warmup_tokens: int
     _final_tokens: int
     _initial_learning_rate: float
@@ -118,8 +116,8 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
             action_size=action_size,
             modules=modules,
             device=device,
+            clip_grad_norm=clip_grad_norm,
         )
-        self._clip_grad_norm = clip_grad_norm
         self._warmup_tokens = warmup_tokens
         self._final_tokens = final_tokens
         self._initial_learning_rate = initial_learning_rate
