@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 from torch import nn
@@ -44,12 +44,14 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         target_update_interval: int,
         gamma: float,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
             device=device,
+            clip_grad_norm=clip_gradient_norm,
         )
         self._gamma = gamma
         self._q_func_forwarder = q_func_forwarder
@@ -67,6 +69,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         loss = self.compute_loss(batch, q_tpn)
 
         loss.loss.backward()
+        self.clip_gradients()
         self._modules.optim.step()
 
         if grad_step % self._target_update_interval == 0:

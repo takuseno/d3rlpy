@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 
@@ -28,6 +28,7 @@ class TD3Impl(DDPGImpl):
         target_smoothing_clip: float,
         update_actor_interval: int,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -38,6 +39,7 @@ class TD3Impl(DDPGImpl):
             gamma=gamma,
             tau=tau,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._target_smoothing_sigma = target_smoothing_sigma
         self._target_smoothing_clip = target_smoothing_clip

@@ -107,6 +107,7 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
             modules=modules,
             gamma=self._config.gamma,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:
@@ -214,6 +215,7 @@ class DoubleDQN(DQN):
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
 

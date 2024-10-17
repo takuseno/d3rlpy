@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 import torch.nn.functional as F
 
@@ -34,6 +36,7 @@ class AWACImpl(SACImpl):
         lam: float,
         n_action_samples: int,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -44,6 +47,7 @@ class AWACImpl(SACImpl):
             gamma=gamma,
             tau=tau,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._lam = lam
         self._n_action_samples = n_action_samples

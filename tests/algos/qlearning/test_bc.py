@@ -15,8 +15,12 @@ from .algo_test import algo_tester
 )
 @pytest.mark.parametrize("policy_type", ["deterministic", "stochastic"])
 @pytest.mark.parametrize("scalers", [None, "min_max"])
+@pytest.mark.parametrize("clip_gradient_norm", [None, 1.0])
 def test_bc(
-    observation_shape: Shape, policy_type: str, scalers: Optional[str]
+    observation_shape: Shape,
+    policy_type: str,
+    scalers: Optional[str],
+    clip_gradient_norm: Optional[float],
 ) -> None:
     observation_scaler, action_scaler, _ = create_scaler_tuple(
         scalers, observation_shape
@@ -26,6 +30,7 @@ def test_bc(
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         policy_type=policy_type,
+        clip_gradient_norm=clip_gradient_norm,
     )
     bc = config.create()
     algo_tester(
@@ -43,11 +48,17 @@ def test_bc(
     "observation_shape", [(100,), (4, 84, 84), ((100,), (200,))]
 )
 @pytest.mark.parametrize("scaler", [None, "min_max"])
-def test_discrete_bc(observation_shape: Shape, scaler: Optional[str]) -> None:
+@pytest.mark.parametrize("clip_gradient_norm", [None, 1.0])
+def test_discrete_bc(
+    observation_shape: Shape,
+    scaler: Optional[str],
+    clip_gradient_norm: Optional[float],
+) -> None:
     observation_scaler, _, _ = create_scaler_tuple(scaler, observation_shape)
     config = DiscreteBCConfig(
         encoder_factory=DummyEncoderFactory(),
         observation_scaler=observation_scaler,
+        clip_gradient_norm=clip_gradient_norm,
     )
     bc = config.create()
     algo_tester(

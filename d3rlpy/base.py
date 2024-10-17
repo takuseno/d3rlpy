@@ -50,6 +50,7 @@ class ImplBase(metaclass=ABCMeta):
     _modules: Modules
     _checkpointer: Checkpointer
     _device: str
+    _clip_grad_norm: Optional[float]
 
     def __init__(
         self,
@@ -57,12 +58,14 @@ class ImplBase(metaclass=ABCMeta):
         action_size: int,
         modules: Modules,
         device: str,
+        clip_grad_norm: Optional[float],
     ):
         self._observation_shape = observation_shape
         self._action_size = action_size
         self._modules = modules
         self._checkpointer = modules.create_checkpointer(device)
         self._device = device
+        self._clip_grad_norm = clip_grad_norm
 
     def save_model(self, f: BinaryIO) -> None:
         self._checkpointer.save(f)
@@ -86,6 +89,10 @@ class ImplBase(metaclass=ABCMeta):
     def modules(self) -> Modules:
         return self._modules
 
+    @property
+    def clip_gradient_norm(self) -> Optional[float]:
+        return self._clip_grad_norm
+
 
 @dataclasses.dataclass()
 class LearnableConfig(DynamicConfig):
@@ -96,6 +103,7 @@ class LearnableConfig(DynamicConfig):
     )
     action_scaler: Optional[ActionScaler] = make_action_scaler_field()
     reward_scaler: Optional[RewardScaler] = make_reward_scaler_field()
+    clip_gradient_norm: Optional[float] = None
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False

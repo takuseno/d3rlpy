@@ -1,5 +1,6 @@
 # pylint: disable=too-many-ancestors
 import dataclasses
+from typing import Optional
 
 import torch
 
@@ -34,6 +35,7 @@ class TD3PlusBCImpl(TD3Impl):
         alpha: float,
         update_actor_interval: int,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -47,6 +49,7 @@ class TD3PlusBCImpl(TD3Impl):
             target_smoothing_clip=target_smoothing_clip,
             update_actor_interval=update_actor_interval,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._alpha = alpha
 

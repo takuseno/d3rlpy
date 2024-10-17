@@ -167,6 +167,7 @@ class ReBRAC(QLearningAlgoBase[ReBRACImpl, ReBRACConfig]):
             critic_beta=self._config.critic_beta,
             update_actor_interval=self._config.update_actor_interval,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:

@@ -22,10 +22,12 @@ from .algo_test import algo_tester
     "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
 )
 @pytest.mark.parametrize("scalers", [None, "min_max"])
+@pytest.mark.parametrize("clip_gradient_norm", [None, 1.0])
 def test_plas(
     observation_shape: Shape,
     q_func_factory: QFunctionFactory,
     scalers: Optional[str],
+    clip_gradient_norm: Optional[float],
 ) -> None:
     observation_scaler, action_scaler, reward_scaler = create_scaler_tuple(
         scalers, observation_shape
@@ -39,6 +41,7 @@ def test_plas(
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
         warmup_steps=0,
+        clip_gradient_norm=clip_gradient_norm,
     )
     plas = config.create()
     algo_tester(plas, observation_shape, test_policy_copy=False)  # type: ignore
@@ -51,10 +54,12 @@ def test_plas(
     "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
 )
 @pytest.mark.parametrize("scalers", [None, "min_max"])
+@pytest.mark.parametrize("clip_gradient_norm", [None, 1.0])
 def test_plas_with_perturbation(
     observation_shape: Shape,
     q_func_factory: QFunctionFactory,
     scalers: Optional[str],
+    clip_gradient_norm: Optional[float],
 ) -> None:
     observation_scaler, action_scaler, reward_scaler = create_scaler_tuple(
         scalers, observation_shape
@@ -68,6 +73,7 @@ def test_plas_with_perturbation(
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
         warmup_steps=0,
+        clip_gradient_norm=clip_gradient_norm,
     )
     plas = config.create()
     algo_tester(plas, observation_shape, test_policy_copy=False)  # type: ignore

@@ -25,6 +25,7 @@ from .algo_test import algo_tester
 @pytest.mark.parametrize("advantage_type", ["mean", "max"])
 @pytest.mark.parametrize("weight_type", ["exp", "binary"])
 @pytest.mark.parametrize("target_update_type", ["hard", "soft"])
+@pytest.mark.parametrize("clip_gradient_norm", [None, 1.0])
 def test_crr(
     observation_shape: Shape,
     q_func_factory: QFunctionFactory,
@@ -32,6 +33,7 @@ def test_crr(
     advantage_type: str,
     weight_type: str,
     target_update_type: str,
+    clip_gradient_norm: Optional[float],
 ) -> None:
     observation_scaler, action_scaler, reward_scaler = create_scaler_tuple(
         scalers, observation_shape
@@ -46,6 +48,7 @@ def test_crr(
         advantage_type=advantage_type,
         weight_type=weight_type,
         target_update_type=target_update_type,
+        clip_gradient_norm=clip_gradient_norm,
     )
     crr = config.create()
     algo_tester(

@@ -176,6 +176,7 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             weight_temp=self._config.weight_temp,
             max_weight=self._config.max_weight,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:

@@ -22,10 +22,12 @@ from .algo_test import algo_tester
     "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
 )
 @pytest.mark.parametrize("scalers", [None, "min_max"])
+@pytest.mark.parametrize("clip_gradient_norm", [None, 1.0])
 def test_cql(
     observation_shape: Shape,
     q_func_factory: QFunctionFactory,
     scalers: Optional[str],
+    clip_gradient_norm: Optional[float],
 ) -> None:
     observation_scaler, action_scaler, reward_scaler = create_scaler_tuple(
         scalers, observation_shape
@@ -37,6 +39,7 @@ def test_cql(
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
+        clip_gradient_norm=clip_gradient_norm,
     )
     cql = config.create()
     algo_tester(cql, observation_shape)  # type: ignore
@@ -50,11 +53,13 @@ def test_cql(
     "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
 )
 @pytest.mark.parametrize("scalers", [None, None, "min_max"])
+@pytest.mark.parametrize("clip_gradient_norm", [None, 1.0])
 def test_discrete_cql(
     observation_shape: Shape,
     n_critics: int,
     q_func_factory: QFunctionFactory,
     scalers: Optional[str],
+    clip_gradient_norm: Optional[float],
 ) -> None:
     observation_scaler, _, reward_scaler = create_scaler_tuple(
         scalers, observation_shape
@@ -65,6 +70,7 @@ def test_discrete_cql(
         q_func_factory=q_func_factory,
         observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
+        clip_gradient_norm=clip_gradient_norm,
     )
     cql = config.create()
     algo_tester(

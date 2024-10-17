@@ -88,6 +88,7 @@ class BEARImpl(SACImpl):
         vae_kl_weight: float,
         warmup_steps: int,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -98,6 +99,7 @@ class BEARImpl(SACImpl):
             gamma=gamma,
             tau=tau,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._alpha_threshold = alpha_threshold
         self._lam = lam
@@ -128,6 +130,7 @@ class BEARImpl(SACImpl):
         self._modules.actor_optim.zero_grad()
         loss = self._compute_mmd_loss(batch.observations)
         loss.backward()
+        self.clip_gradients()
         self._modules.actor_optim.step()
         return {"actor_loss": float(loss.cpu().detach().numpy())}
 
@@ -140,6 +143,7 @@ class BEARImpl(SACImpl):
         self._modules.vae_optim.zero_grad()
         loss = self.compute_imitator_loss(batch)
         loss.backward()
+        self.clip_gradients()
         self._modules.vae_optim.step()
         return {"imitator_loss": float(loss.cpu().detach().numpy())}
 

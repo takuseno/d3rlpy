@@ -38,7 +38,7 @@ class BCConfig(LearnableConfig):
             [(a_t - \pi_\theta(s_t))^2]
 
     Args:
-        learning_rate (float): Learing rate.
+        learning_rate (float): Learning rate.
         optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
             Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
@@ -104,6 +104,7 @@ class BC(QLearningAlgoBase[BCBaseImpl, BCConfig]):
             modules=modules,
             policy_type=self._config.policy_type,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:
@@ -179,6 +180,7 @@ class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
             modules=modules,
             beta=self._config.beta,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:

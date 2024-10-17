@@ -166,6 +166,7 @@ class TD3(QLearningAlgoBase[TD3Impl, TD3Config]):
             target_smoothing_clip=self._config.target_smoothing_clip,
             update_actor_interval=self._config.update_actor_interval,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:

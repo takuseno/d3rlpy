@@ -61,6 +61,7 @@ class CQLImpl(SACImpl):
         soft_q_backup: bool,
         max_q_backup: bool,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -71,6 +72,7 @@ class CQLImpl(SACImpl):
             gamma=gamma,
             tau=tau,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._alpha_threshold = alpha_threshold
         self._conservative_weight = conservative_weight
@@ -246,6 +248,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         gamma: float,
         alpha: float,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -256,6 +259,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
             target_update_interval=target_update_interval,
             gamma=gamma,
             device=device,
+            clip_gradient_norm=clip_gradient_norm,
         )
         self._alpha = alpha
 

@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import torch
 from torch import nn
@@ -56,12 +56,14 @@ class FQEBaseImpl(QLearningAlgoImplBase):
         gamma: float,
         target_update_interval: int,
         device: str,
+        clip_gradient_norm: Optional[float],
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
             device=device,
+            clip_grad_norm=clip_gradient_norm,
         )
         self._algo = algo
         self._gamma = gamma

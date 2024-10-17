@@ -186,6 +186,7 @@ class FQE(_FQEBase):
             gamma=self._config.gamma,
             target_update_interval=self._config.target_update_interval,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:
@@ -262,6 +263,7 @@ class DiscreteFQE(_FQEBase):
             gamma=self._config.gamma,
             target_update_interval=self._config.target_update_interval,
             device=self._device,
+            clip_gradient_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> ActionSpace:
