@@ -1,6 +1,6 @@
 import copy
 import dataclasses
-from typing import Dict, Sequence, cast
+from typing import Dict, Optional, Sequence, cast
 
 import gym
 import torch
@@ -42,8 +42,11 @@ class CustomAlgoImpl(d3rlpy.algos.QLearningAlgoImplBase):
         target_update_interval: int,
         gamma: float,
         device: str,
+        clip_grad_norm: Optional[float],
     ):
-        super().__init__(observation_shape, action_size, modules, device)
+        super().__init__(
+            observation_shape, action_size, modules, device, clip_grad_norm
+        )
         self._target_update_interval = target_update_interval
         self._gamma = gamma
 
@@ -152,6 +155,7 @@ class CustomAlgo(
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
             device=self._device,
+            clip_grad_norm=self._config.clip_gradient_norm,
         )
 
     def get_action_type(self) -> d3rlpy.ActionSpace:
