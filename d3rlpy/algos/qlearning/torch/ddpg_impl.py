@@ -10,12 +10,13 @@ from ....dataclass_utils import asdict_as_float
 from ....models.torch import (
     ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
+    DiscreteEnsembleQFunctionForwarder,
     Policy,
 )
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync, soft_sync
 from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
-from .utility import ContinuousQFunctionMixin
+from .utility import ContinuousQFunctionMixin, DiscreteQFunctionMixin
 
 __all__ = [
     "DDPGImpl",
@@ -132,6 +133,117 @@ class DDPGBaseImpl(
 
     def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         return self._modules.policy(x).squashed_mu
+
+    @abstractmethod
+    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
+        pass
+
+    def update_critic_target(self) -> None:
+        soft_sync(self._modules.targ_q_funcs, self._modules.q_funcs, self._tau)
+
+    @property
+    def policy(self) -> Policy:
+        return self._modules.policy
+
+    @property
+    def policy_optim(self) -> Optimizer:
+        return self._modules.actor_optim
+
+    @property
+    def q_function(self) -> nn.ModuleList:
+        return self._modules.q_funcs
+
+    @property
+    def q_function_optim(self) -> Optimizer:
+        return self._modules.critic_optim
+
+
+class DiscreteDDPGBaseImpl(
+    DiscreteQFunctionMixin, QLearningAlgoImplBase, metaclass=ABCMeta
+):
+    _modules: DDPGBaseModules
+    _gamma: float
+    _tau: float
+    _q_func_forwarder: DiscreteEnsembleQFunctionForwarder
+    _targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder
+
+    def __init__(
+        self,
+        observation_shape: Shape,
+        action_size: int,
+        modules: DDPGBaseModules,
+        q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        gamma: float,
+        tau: float,
+        device: str,
+    ):
+        super().__init__(
+            observation_shape=observation_shape,
+            action_size=action_size,
+            modules=modules,
+            device=device,
+        )
+        self._gamma = gamma
+        self._tau = tau
+        self._q_func_forwarder = q_func_forwarder
+        self._targ_q_func_forwarder = targ_q_func_forwarder
+        hard_sync(self._modules.targ_q_funcs, self._modules.q_funcs)
+
+    def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        self._modules.critic_optim.zero_grad()
+        q_tpn = self.compute_target(batch)
+        loss = self.compute_critic_loss(batch, q_tpn)
+        loss.critic_loss.backward()
+        self._modules.critic_optim.step()
+        return asdict_as_float(loss)
+
+    def compute_critic_loss(
+        self, batch: TorchMiniBatch, q_tpn: torch.Tensor
+    ) -> DDPGBaseCriticLoss:
+        loss = self._q_func_forwarder.compute_error(
+            observations=batch.observations,
+            actions=batch.actions,
+            rewards=batch.rewards,
+            target=q_tpn,
+            terminals=batch.terminals,
+            gamma=self._gamma**batch.intervals,
+        )
+        return DDPGBaseCriticLoss(loss)
+
+    def update_actor(
+        self, batch: TorchMiniBatch, action: ActionOutput
+    ) -> Dict[str, float]:
+        # Q function should be inference mode for stability
+        self._modules.q_funcs.eval()
+        self._modules.actor_optim.zero_grad()
+        loss = self.compute_actor_loss(batch, None)
+        loss.actor_loss.backward()
+        self._modules.actor_optim.step()
+        return asdict_as_float(loss)
+
+    def inner_update(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        metrics = {}
+        action = self._modules.policy(batch.observations)
+        metrics.update(self.update_critic(batch))
+        metrics.update(self.update_actor(batch, action))
+        self.update_critic_target()
+        return metrics
+
+    @abstractmethod
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch, action: None
+    ) -> DDPGBaseActorLoss:
+        pass
+
+    @abstractmethod
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
+        pass
+
+    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
+        return torch.argmax(self._modules.policy(x).probs).unsqueeze(0)
 
     @abstractmethod
     def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
