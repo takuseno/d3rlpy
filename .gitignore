@@ -21,3 +21,5 @@ build
 dist
 /.idea/
 *.egg-info
+venv
+.venv
