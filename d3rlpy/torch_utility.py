@@ -24,6 +24,7 @@ from .dataclass_utils import asdict_without_copy
 from .dataset import TrajectoryMiniBatch, TransitionMiniBatch
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from .types import Float32NDArray, NDArray, TorchObservation
+from .models import OptimizerWrapper
 
 __all__ = [
     "soft_sync",
@@ -325,11 +326,11 @@ def unwrap_ddp_model(model: _TModule) -> _TModule:
 
 
 class Checkpointer:
-    _modules: Dict[str, Union[nn.Module, Optimizer]]
+    _modules: Dict[str, Union[nn.Module, OptimizerWrapper]]
     _device: str
 
     def __init__(
-        self, modules: Dict[str, Union[nn.Module, Optimizer]], device: str
+        self, modules: Dict[str, Union[nn.Module, OptimizerWrapper]], device: str
     ):
         self._modules = modules
         self._device = device
@@ -337,7 +338,7 @@ class Checkpointer:
     def save(self, f: BinaryIO) -> None:
         # unwrap DDP
         modules = {
-            k: unwrap_ddp_model(v) if isinstance(v, nn.Module) else v
+            k: unwrap_ddp_model(v) if isinstance(v, nn.Module) else v.optim
             for k, v in self._modules.items()
         }
         states = {k: v.state_dict() for k, v in modules.items()}
@@ -346,10 +347,13 @@ class Checkpointer:
     def load(self, f: BinaryIO) -> None:
         chkpt = torch.load(f, map_location=map_location(self._device))
         for k, v in self._modules.items():
-            v.load_state_dict(chkpt[k])
+            if isinstance(v, nn.Module):
+                v.load_state_dict(chkpt[k])
+            else:
+                v.optim.load_state_dict(chkpt[k])
 
     @property
-    def modules(self) -> Dict[str, Union[nn.Module, Optimizer]]:
+    def modules(self) -> Dict[str, Union[nn.Module, OptimizerWrapper]]:
         return self._modules
 
 
@@ -359,7 +363,7 @@ class Modules:
         modules = {
             k: v
             for k, v in asdict_without_copy(self).items()
-            if isinstance(v, (nn.Module, torch.optim.Optimizer))
+            if isinstance(v, (nn.Module, OptimizerWrapper))
         }
         return Checkpointer(modules=modules, device=device)
 
@@ -387,8 +391,8 @@ class Modules:
 
     def reset_optimizer_states(self) -> None:
         for v in asdict_without_copy(self).values():
-            if isinstance(v, torch.optim.Optimizer):
-                v.state = collections.defaultdict(dict)
+            if isinstance(v, OptimizerWrapper):
+                v.optim.state = collections.defaultdict(dict)
 
     def get_torch_modules(self) -> Dict[str, nn.Module]:
         torch_modules: Dict[str, nn.Module] = {}

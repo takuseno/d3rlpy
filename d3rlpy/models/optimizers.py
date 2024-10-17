@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Iterable, Sequence, Tuple
+from typing import Iterable, Sequence, Tuple, Optional
 
 from torch import nn
 from torch.optim import SGD, Adam, AdamW, Optimizer, RMSprop
@@ -7,6 +7,7 @@ from torch.optim import SGD, Adam, AdamW, Optimizer, RMSprop
 from ..serializable_config import DynamicConfig, generate_config_registration
 
 __all__ = [
+    "OptimizerWrapper",
     "OptimizerFactory",
     "SGDFactory",
     "AdamFactory",
@@ -30,16 +31,56 @@ def _get_parameters_from_named_modules(
     return list(params_dict.values())
 
 
+class OptimizerWrapper:
+    """OptimizerWrapper class
+
+    This class wraps PyTorch optimizer to add additional steps such as gradient
+    clipping.
+
+    Args:
+        params: List of torch parameters.
+        optim: PyTorch optimizer.
+        clip_grad_norm: Maximum norm value of gradients to clip.
+    """
+    _params: Sequence[nn.Parameter]
+    _optim: Optimizer
+    _clip_grad_norm: Optional[float]
+
+    def __init__(self, params: Sequence[nn.Parameter], optim: Optimizer, clip_grad_norm: Optional[float] = None):
+        self._params = params
+        self._optim = optim
+        self._clip_grad_norm = clip_grad_norm
+
+    def zero_grad(self) -> None:
+        self._optim.zero_grad()
+
+    def step(self, grad_step: int) -> None:
+        """Updates parameters.
+
+        Args:
+            grad_step: Total gradient step. This can be used for learning rate
+                schedulers.
+        """
+        if self._clip_grad_norm:
+            nn.utils.clip_grad_norm_(self._params, max_norm=self._clip_grad_norm)
+        self._optim.step()
+
+    @property
+    def optim(self) -> Optimizer:
+        return self._optim
+
+
 @dataclasses.dataclass()
 class OptimizerFactory(DynamicConfig):
     """A factory class that creates an optimizer object in a lazy way.
 
     The optimizers in algorithms can be configured through this factory class.
     """
+    clip_grad_norm: Optional[float] = None
 
     def create(
         self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
-    ) -> Optimizer:
+    ) -> OptimizerWrapper:
         """Returns an optimizer object.
 
         Args:
@@ -47,8 +88,17 @@ class OptimizerFactory(DynamicConfig):
             lr (float): Learning rate.
 
         Returns:
-            torch.optim.Optimizer: an optimizer object.
+            Updater: Updater object.
         """
+        params = _get_parameters_from_named_modules(named_modules)
+        optim = self.create_optimizer(named_modules, lr)
+        return OptimizerWrapper(
+            params=params,
+            optim=optim,
+            clip_grad_norm=self.clip_grad_norm,
+        )
+
+    def create_optimizer(self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float) -> Optimizer:
         raise NotImplementedError
 
 
@@ -63,6 +113,7 @@ class SGDFactory(OptimizerFactory):
         factory = SGDFactory(weight_decay=1e-4)
 
     Args:
+        clip_grad_norm: Maximum norm value of gradients to clip.
         momentum: momentum factor.
         dampening: dampening for momentum.
         weight_decay: weight decay (L2 penalty).
@@ -74,9 +125,9 @@ class SGDFactory(OptimizerFactory):
     weight_decay: float = 0.0
     nesterov: bool = False
 
-    def create(
+    def create_optimizer(
         self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
-    ) -> SGD:
+    ) -> Optimizer:
         return SGD(
             _get_parameters_from_named_modules(named_modules),
             lr=lr,
@@ -102,6 +153,7 @@ class AdamFactory(OptimizerFactory):
         factory = AdamFactory(weight_decay=1e-4)
 
     Args:
+        clip_grad_norm: Maximum norm value of gradients to clip.
         betas: coefficients used for computing running averages of
             gradient and its square.
         eps: term added to the denominator to improve numerical stability.
@@ -114,11 +166,11 @@ class AdamFactory(OptimizerFactory):
     weight_decay: float = 0
     amsgrad: bool = False
 
-    def create(
+    def create_optimizer(
         self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
     ) -> Adam:
         return Adam(
-            _get_parameters_from_named_modules(named_modules),
+            params=_get_parameters_from_named_modules(named_modules),
             lr=lr,
             betas=self.betas,
             eps=self.eps,
@@ -154,7 +206,7 @@ class AdamWFactory(OptimizerFactory):
     weight_decay: float = 0
     amsgrad: bool = False
 
-    def create(
+    def create_optimizer(
         self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
     ) -> AdamW:
         return AdamW(
@@ -196,7 +248,7 @@ class RMSpropFactory(OptimizerFactory):
     momentum: float = 0.0
     centered: bool = True
 
-    def create(
+    def create_optimizer(
         self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
     ) -> RMSprop:
         return RMSprop(
@@ -237,7 +289,7 @@ class GPTAdamWFactory(OptimizerFactory):
     weight_decay: float = 0
     amsgrad: bool = False
 
-    def create(
+    def create_optimizer(
         self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
     ) -> AdamW:
         named_modules = list(named_modules)
