@@ -23,11 +23,13 @@ from .algo_test import algo_tester
     "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
 )
 @pytest.mark.parametrize("scalers", [None, "min_max"])
+@pytest.mark.parametrize("clip_gradient_norm", [None, 1.0])
 def test_dqn(
     observation_shape: Shape,
     n_critics: int,
     q_func_factory: QFunctionFactory,
     scalers: Optional[str],
+    clip_gradient_norm: Optional[float],
 ) -> None:
     observation_scaler, _, reward_scaler = create_scaler_tuple(
         scalers, observation_shape
@@ -38,6 +40,7 @@ def test_dqn(
         q_func_factory=q_func_factory,
         observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
+        clip_gradient_norm=clip_gradient_norm,
     )
     dqn = config.create()
     algo_tester(
@@ -56,11 +59,13 @@ def test_dqn(
     "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
 )
 @pytest.mark.parametrize("scalers", [None, "min_max"])
+@pytest.mark.parametrize("clip_gradient_norm", [None, 1.0])
 def test_double_dqn(
     observation_shape: Shape,
     n_critics: int,
     q_func_factory: QFunctionFactory,
     scalers: Optional[str],
+    clip_gradient_norm: Optional[float],
 ) -> None:
     observation_scaler, _, reward_scaler = create_scaler_tuple(
         scalers, observation_shape
@@ -71,6 +76,7 @@ def test_double_dqn(
         q_func_factory=q_func_factory,
         observation_scaler=observation_scaler,
         reward_scaler=reward_scaler,
+        clip_gradient_norm=clip_gradient_norm,
     )
     double_dqn = config.create()
     algo_tester(
