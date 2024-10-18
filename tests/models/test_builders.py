@@ -1,3 +1,5 @@
+# pylint: disable=not-an-iterable
+
 from typing import Sequence
 
 import numpy as np

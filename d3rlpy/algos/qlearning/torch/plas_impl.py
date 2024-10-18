@@ -2,8 +2,8 @@ import dataclasses
 from typing import Dict
 
 import torch
-from torch.optim import Optimizer
 
+from ....models import OptimizerWrapper
 from ....models.torch import (
     ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
@@ -31,7 +31,7 @@ class PLASModules(DDPGBaseModules):
     targ_policy: DeterministicPolicy
     vae_encoder: VAEEncoder
     vae_decoder: VAEDecoder
-    vae_optim: Optimizer
+    vae_optim: OptimizerWrapper
 
 
 class PLASImpl(DDPGBaseImpl):
@@ -68,7 +68,9 @@ class PLASImpl(DDPGBaseImpl):
         self._beta = beta
         self._warmup_steps = warmup_steps
 
-    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_imitator(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
         self._modules.vae_optim.zero_grad()
         loss = compute_vae_error(
             vae_encoder=self._modules.vae_encoder,
@@ -78,11 +80,11 @@ class PLASImpl(DDPGBaseImpl):
             beta=self._beta,
         )
         loss.backward()
-        self._modules.vae_optim.step()
+        self._modules.vae_optim.step(grad_step)
         return {"vae_loss": float(loss.cpu().detach().numpy())}
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
     ) -> DDPGBaseActorLoss:
         latent_actions = 2.0 * action.squashed_mu
         actions = self._modules.vae_decoder(batch.observations, latent_actions)
@@ -123,11 +125,11 @@ class PLASImpl(DDPGBaseImpl):
         metrics = {}
 
         if grad_step < self._warmup_steps:
-            metrics.update(self.update_imitator(batch))
+            metrics.update(self.update_imitator(batch, grad_step))
         else:
             action = self._modules.policy(batch.observations)
-            metrics.update(self.update_critic(batch))
-            metrics.update(self.update_actor(batch, action))
+            metrics.update(self.update_critic(batch, grad_step))
+            metrics.update(self.update_actor(batch, action, grad_step))
             self.update_actor_target()
             self.update_critic_target()
 
@@ -172,7 +174,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         )
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
     ) -> DDPGBaseActorLoss:
         latent_actions = 2.0 * action.squashed_mu
         actions = self._modules.vae_decoder(batch.observations, latent_actions)

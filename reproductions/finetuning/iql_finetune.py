@@ -37,7 +37,7 @@ def main() -> None:
     iql.build_with_dataset(dataset)
     assert iql.impl
     scheduler = CosineAnnealingLR(
-        iql.impl._modules.actor_optim,  # pylint: disable=protected-access
+        iql.impl._modules.actor_optim.optim,  # pylint: disable=protected-access
         1000000,
     )
 
@@ -56,7 +56,7 @@ def main() -> None:
     )
 
     # reset learning rate
-    for g in iql.impl._modules.actor_optim.param_groups:
+    for g in iql.impl._modules.actor_optim.optim.param_groups:
         g["lr"] = iql.config.actor_learning_rate
 
     # prepare FIFO buffer filled with dataset episodes

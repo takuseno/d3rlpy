@@ -6,6 +6,8 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
+from d3rlpy.models.optimizers import OptimizerWrapper
+
 from ....dataclass_utils import asdict_as_float
 from ....models.torch import (
     ActionOutput,
@@ -32,8 +34,8 @@ class DDPGBaseModules(Modules):
     policy: Policy
     q_funcs: nn.ModuleList
     targ_q_funcs: nn.ModuleList
-    actor_optim: Optimizer
-    critic_optim: Optimizer
+    actor_optim: OptimizerWrapper
+    critic_optim: OptimizerWrapper
 
 
 @dataclasses.dataclass(frozen=True)
@@ -78,16 +80,18 @@ class DDPGBaseImpl(
         self._targ_q_func_forwarder = targ_q_func_forwarder
         hard_sync(self._modules.targ_q_funcs, self._modules.q_funcs)
 
-    def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_critic(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
         self._modules.critic_optim.zero_grad()
         q_tpn = self.compute_target(batch)
-        loss = self.compute_critic_loss(batch, q_tpn)
+        loss = self.compute_critic_loss(batch, q_tpn, grad_step)
         loss.critic_loss.backward()
-        self._modules.critic_optim.step()
+        self._modules.critic_optim.step(grad_step)
         return asdict_as_float(loss)
 
     def compute_critic_loss(
-        self, batch: TorchMiniBatch, q_tpn: torch.Tensor
+        self, batch: TorchMiniBatch, q_tpn: torch.Tensor, grad_step: int
     ) -> DDPGBaseCriticLoss:
         loss = self._q_func_forwarder.compute_error(
             observations=batch.observations,
@@ -100,14 +104,14 @@ class DDPGBaseImpl(
         return DDPGBaseCriticLoss(loss)
 
     def update_actor(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
     ) -> Dict[str, float]:
         # Q function should be inference mode for stability
         self._modules.q_funcs.eval()
         self._modules.actor_optim.zero_grad()
-        loss = self.compute_actor_loss(batch, action)
+        loss = self.compute_actor_loss(batch, action, grad_step)
         loss.actor_loss.backward()
-        self._modules.actor_optim.step()
+        self._modules.actor_optim.step(grad_step)
         return asdict_as_float(loss)
 
     def inner_update(
@@ -115,14 +119,14 @@ class DDPGBaseImpl(
     ) -> Dict[str, float]:
         metrics = {}
         action = self._modules.policy(batch.observations)
-        metrics.update(self.update_critic(batch))
-        metrics.update(self.update_actor(batch, action))
+        metrics.update(self.update_critic(batch, grad_step))
+        metrics.update(self.update_actor(batch, action, grad_step))
         self.update_critic_target()
         return metrics
 
     @abstractmethod
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
     ) -> DDPGBaseActorLoss:
         pass
 
@@ -146,7 +150,7 @@ class DDPGBaseImpl(
 
     @property
     def policy_optim(self) -> Optimizer:
-        return self._modules.actor_optim
+        return self._modules.actor_optim.optim
 
     @property
     def q_function(self) -> nn.ModuleList:
@@ -154,7 +158,7 @@ class DDPGBaseImpl(
 
     @property
     def q_function_optim(self) -> Optimizer:
-        return self._modules.critic_optim
+        return self._modules.critic_optim.optim
 
 
 @dataclasses.dataclass(frozen=True)
@@ -189,7 +193,7 @@ class DDPGImpl(DDPGBaseImpl):
         hard_sync(self._modules.targ_policy, self._modules.policy)
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
     ) -> DDPGBaseActorLoss:
         q_t = self._q_func_forwarder.compute_expected_q(
             batch.observations, action.squashed_mu, "none"

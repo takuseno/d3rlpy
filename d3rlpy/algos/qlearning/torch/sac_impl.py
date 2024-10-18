@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.optim import Optimizer
 
+from ....models import OptimizerWrapper
 from ....models.torch import (
     ActionOutput,
     CategoricalPolicy,
@@ -37,7 +38,7 @@ __all__ = [
 class SACModules(DDPGBaseModules):
     policy: NormalPolicy
     log_temp: Parameter
-    temp_optim: Optional[Optimizer]
+    temp_optim: Optional[OptimizerWrapper]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -72,13 +73,13 @@ class SACImpl(DDPGBaseImpl):
         )
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
     ) -> SACActorLoss:
         dist = build_squashed_gaussian_distribution(action)
         sampled_action, log_prob = dist.sample_with_log_prob()
 
         if self._modules.temp_optim:
-            temp_loss = self.update_temp(log_prob)
+            temp_loss = self.update_temp(log_prob, grad_step)
         else:
             temp_loss = torch.tensor(
                 0.0, dtype=torch.float32, device=sampled_action.device
@@ -94,14 +95,16 @@ class SACImpl(DDPGBaseImpl):
             temp=get_parameter(self._modules.log_temp).exp()[0][0],
         )
 
-    def update_temp(self, log_prob: torch.Tensor) -> torch.Tensor:
+    def update_temp(
+        self, log_prob: torch.Tensor, grad_step: int
+    ) -> torch.Tensor:
         assert self._modules.temp_optim
         self._modules.temp_optim.zero_grad()
         with torch.no_grad():
             targ_temp = log_prob - self._action_size
         loss = -(get_parameter(self._modules.log_temp).exp() * targ_temp).mean()
         loss.backward()
-        self._modules.temp_optim.step()
+        self._modules.temp_optim.step(grad_step)
         return loss
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
@@ -129,9 +132,9 @@ class DiscreteSACModules(Modules):
     q_funcs: nn.ModuleList
     targ_q_funcs: nn.ModuleList
     log_temp: Optional[Parameter]
-    actor_optim: Optimizer
-    critic_optim: Optimizer
-    temp_optim: Optional[Optimizer]
+    actor_optim: OptimizerWrapper
+    critic_optim: OptimizerWrapper
+    temp_optim: Optional[OptimizerWrapper]
 
 
 class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
@@ -163,14 +166,16 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._target_update_interval = target_update_interval
         hard_sync(modules.targ_q_funcs, modules.q_funcs)
 
-    def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_critic(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
         self._modules.critic_optim.zero_grad()
 
         q_tpn = self.compute_target(batch)
         loss = self.compute_critic_loss(batch, q_tpn)
 
         loss.backward()
-        self._modules.critic_optim.step()
+        self._modules.critic_optim.step(grad_step)
 
         return {"critic_loss": float(loss.cpu().detach().numpy())}
 
@@ -208,7 +213,9 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             gamma=self._gamma**batch.intervals,
         )
 
-    def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_actor(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
         # Q function should be inference mode for stability
         self._modules.q_funcs.eval()
 
@@ -217,7 +224,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         loss = self.compute_actor_loss(batch)
 
         loss.backward()
-        self._modules.actor_optim.step()
+        self._modules.actor_optim.step(grad_step)
 
         return {"actor_loss": float(loss.cpu().detach().numpy())}
 
@@ -236,7 +243,9 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         entropy = temp * log_probs
         return (probs * (entropy - q_t)).sum(dim=1).mean()
 
-    def update_temp(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_temp(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
         assert self._modules.temp_optim
         assert self._modules.log_temp is not None
         self._modules.temp_optim.zero_grad()
@@ -252,7 +261,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         loss = -(get_parameter(self._modules.log_temp).exp() * targ_temp).mean()
 
         loss.backward()
-        self._modules.temp_optim.step()
+        self._modules.temp_optim.step(grad_step)
 
         # current temperature value
         log_temp = get_parameter(self._modules.log_temp)
@@ -270,9 +279,9 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
         # lagrangian parameter update for SAC temeprature
         if self._modules.temp_optim:
-            metrics.update(self.update_temp(batch))
-        metrics.update(self.update_critic(batch))
-        metrics.update(self.update_actor(batch))
+            metrics.update(self.update_temp(batch, grad_step))
+        metrics.update(self.update_critic(batch, grad_step))
+        metrics.update(self.update_actor(batch, grad_step))
 
         if grad_step % self._target_update_interval == 0:
             self.update_target()
@@ -296,7 +305,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
     @property
     def policy_optim(self) -> Optimizer:
-        return self._modules.actor_optim
+        return self._modules.actor_optim.optim
 
     @property
     def q_function(self) -> nn.ModuleList:
@@ -304,4 +313,4 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
     @property
     def q_function_optim(self) -> Optimizer:
-        return self._modules.critic_optim
+        return self._modules.critic_optim.optim

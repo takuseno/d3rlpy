@@ -4,8 +4,8 @@ from typing import Dict, cast
 
 import torch
 import torch.nn.functional as F
-from torch.optim import Optimizer
 
+from ....models import OptimizerWrapper
 from ....models.torch import (
     ActionOutput,
     CategoricalPolicy,
@@ -44,7 +44,7 @@ class BCQModules(DDPGBaseModules):
     targ_policy: DeterministicResidualPolicy
     vae_encoder: VAEEncoder
     vae_decoder: VAEDecoder
-    vae_optim: Optimizer
+    vae_optim: OptimizerWrapper
 
 
 class BCQImpl(DDPGBaseImpl):
@@ -88,14 +88,16 @@ class BCQImpl(DDPGBaseImpl):
         self._rl_start_step = rl_start_step
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
     ) -> DDPGBaseActorLoss:
         value = self._q_func_forwarder.compute_expected_q(
             batch.observations, action.squashed_mu, "none"
         )
         return DDPGBaseActorLoss(-value[0].mean())
 
-    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_imitator(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
         self._modules.vae_optim.zero_grad()
         loss = compute_vae_error(
             vae_encoder=self._modules.vae_encoder,
@@ -105,7 +107,7 @@ class BCQImpl(DDPGBaseImpl):
             beta=self._beta,
         )
         loss.backward()
-        self._modules.vae_optim.step()
+        self._modules.vae_optim.step(grad_step)
         return {"vae_loss": float(loss.cpu().detach().numpy())}
 
     def _repeat_observation(self, x: TorchObservation) -> TorchObservation:
@@ -184,7 +186,7 @@ class BCQImpl(DDPGBaseImpl):
     ) -> Dict[str, float]:
         metrics = {}
 
-        metrics.update(self.update_imitator(batch))
+        metrics.update(self.update_imitator(batch, grad_step))
         if grad_step < self._rl_start_step:
             return metrics
 
@@ -201,8 +203,8 @@ class BCQImpl(DDPGBaseImpl):
         action = self._modules.policy(batch.observations, sampled_action)
 
         # update models
-        metrics.update(self.update_critic(batch))
-        metrics.update(self.update_actor(batch, action))
+        metrics.update(self.update_critic(batch, grad_step))
+        metrics.update(self.update_actor(batch, action, grad_step))
         self.update_critic_target()
         self.update_actor_target()
         return metrics
