@@ -2,8 +2,8 @@ import dataclasses
 from typing import Dict, Optional
 
 import torch
-from torch.optim import Optimizer
 
+from ....models import OptimizerWrapper
 from ....models.torch import (
     ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
@@ -47,8 +47,8 @@ class BEARModules(SACModules):
     vae_encoder: VAEEncoder
     vae_decoder: VAEDecoder
     log_alpha: Parameter
-    vae_optim: Optimizer
-    alpha_optim: Optional[Optimizer]
+    vae_optim: OptimizerWrapper
+    alpha_optim: Optional[OptimizerWrapper]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -110,12 +110,12 @@ class BEARImpl(SACImpl):
         self._warmup_steps = warmup_steps
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
     ) -> BEARActorLoss:
-        loss = super().compute_actor_loss(batch, action)
+        loss = super().compute_actor_loss(batch, action, grad_step)
         mmd_loss = self._compute_mmd_loss(batch.observations)
         if self._modules.alpha_optim:
-            self.update_alpha(mmd_loss)
+            self.update_alpha(mmd_loss, grad_step)
         return BEARActorLoss(
             actor_loss=loss.actor_loss + mmd_loss,
             temp_loss=loss.temp_loss,
@@ -124,11 +124,13 @@ class BEARImpl(SACImpl):
             alpha=get_parameter(self._modules.log_alpha).exp()[0][0],
         )
 
-    def warmup_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def warmup_actor(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
         self._modules.actor_optim.zero_grad()
         loss = self._compute_mmd_loss(batch.observations)
         loss.backward()
-        self._modules.actor_optim.step()
+        self._modules.actor_optim.step(grad_step)
         return {"actor_loss": float(loss.cpu().detach().numpy())}
 
     def _compute_mmd_loss(self, obs_t: TorchObservation) -> torch.Tensor:
@@ -136,11 +138,13 @@ class BEARImpl(SACImpl):
         alpha = get_parameter(self._modules.log_alpha).exp()
         return (alpha * (mmd - self._alpha_threshold)).mean()
 
-    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_imitator(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
         self._modules.vae_optim.zero_grad()
         loss = self.compute_imitator_loss(batch)
         loss.backward()
-        self._modules.vae_optim.step()
+        self._modules.vae_optim.step(grad_step)
         return {"imitator_loss": float(loss.cpu().detach().numpy())}
 
     def compute_imitator_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
@@ -152,12 +156,12 @@ class BEARImpl(SACImpl):
             beta=self._vae_kl_weight,
         )
 
-    def update_alpha(self, mmd_loss: torch.Tensor) -> None:
+    def update_alpha(self, mmd_loss: torch.Tensor, grad_step: int) -> None:
         assert self._modules.alpha_optim
         self._modules.alpha_optim.zero_grad()
         loss = -mmd_loss
         loss.backward(retain_graph=True)
-        self._modules.alpha_optim.step()
+        self._modules.alpha_optim.step(grad_step)
         # clip for stability
         get_parameter(self._modules.log_alpha).data.clamp_(-5.0, 10.0)
 
@@ -274,13 +278,13 @@ class BEARImpl(SACImpl):
         self, batch: TorchMiniBatch, grad_step: int
     ) -> Dict[str, float]:
         metrics = {}
-        metrics.update(self.update_imitator(batch))
-        metrics.update(self.update_critic(batch))
+        metrics.update(self.update_imitator(batch, grad_step))
+        metrics.update(self.update_critic(batch, grad_step))
         if grad_step < self._warmup_steps:
-            actor_loss = self.warmup_actor(batch)
+            actor_loss = self.warmup_actor(batch, grad_step)
         else:
             action = self._modules.policy(batch.observations)
-            actor_loss = self.update_actor(batch, action)
+            actor_loss = self.update_actor(batch, action, grad_step)
         metrics.update(actor_loss)
         self.update_critic_target()
         return metrics

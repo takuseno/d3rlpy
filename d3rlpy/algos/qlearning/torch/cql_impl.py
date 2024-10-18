@@ -4,8 +4,8 @@ from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from torch.optim import Optimizer
 
+from ....models import OptimizerWrapper
 from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
@@ -29,7 +29,7 @@ __all__ = ["CQLImpl", "DiscreteCQLImpl", "CQLModules", "DiscreteCQLLoss"]
 @dataclasses.dataclass(frozen=True)
 class CQLModules(SACModules):
     log_alpha: Parameter
-    alpha_optim: Optional[Optimizer]
+    alpha_optim: Optional[OptimizerWrapper]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -79,9 +79,9 @@ class CQLImpl(SACImpl):
         self._max_q_backup = max_q_backup
 
     def compute_critic_loss(
-        self, batch: TorchMiniBatch, q_tpn: torch.Tensor
+        self, batch: TorchMiniBatch, q_tpn: torch.Tensor, grad_step: int
     ) -> CQLCriticLoss:
-        loss = super().compute_critic_loss(batch, q_tpn)
+        loss = super().compute_critic_loss(batch, q_tpn, grad_step)
         conservative_loss = self._compute_conservative_loss(
             obs_t=batch.observations,
             act_t=batch.actions,
@@ -89,20 +89,22 @@ class CQLImpl(SACImpl):
             returns_to_go=batch.returns_to_go,
         )
         if self._modules.alpha_optim:
-            self.update_alpha(conservative_loss)
+            self.update_alpha(conservative_loss, grad_step)
         return CQLCriticLoss(
             critic_loss=loss.critic_loss + conservative_loss.sum(),
             conservative_loss=conservative_loss.sum(),
             alpha=get_parameter(self._modules.log_alpha).exp()[0][0],
         )
 
-    def update_alpha(self, conservative_loss: torch.Tensor) -> None:
+    def update_alpha(
+        self, conservative_loss: torch.Tensor, grad_step: int
+    ) -> None:
         assert self._modules.alpha_optim
         self._modules.alpha_optim.zero_grad()
         # the original implementation does scale the loss value
         loss = -conservative_loss.mean()
         loss.backward(retain_graph=True)
-        self._modules.alpha_optim.step()
+        self._modules.alpha_optim.step(grad_step)
 
     def _compute_policy_is_values(
         self,

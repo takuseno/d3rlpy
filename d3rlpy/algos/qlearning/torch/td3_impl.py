@@ -65,12 +65,12 @@ class TD3Impl(DDPGImpl):
     ) -> Dict[str, float]:
         metrics = {}
 
-        metrics.update(self.update_critic(batch))
+        metrics.update(self.update_critic(batch, grad_step))
 
         # delayed policy update
         if grad_step % self._update_actor_interval == 0:
             action = self._modules.policy(batch.observations)
-            metrics.update(self.update_actor(batch, action))
+            metrics.update(self.update_actor(batch, action, grad_step))
             self.update_critic_target()
             self.update_actor_target()
 

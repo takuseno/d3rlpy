@@ -27,6 +27,7 @@ __all__ = [
     "compute_deterministic_imitation_loss",
     "compute_stochastic_imitation_loss",
     "ImitationLoss",
+    "DiscreteImitationLoss",
 ]
 
 

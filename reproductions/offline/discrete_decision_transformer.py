@@ -63,8 +63,8 @@ def main() -> None:
         optim_factory=d3rlpy.models.GPTAdamWFactory(
             betas=(0.9, 0.95),
             weight_decay=0.1,
+            clip_grad_norm=1.0,
         ),
-        clip_grad_norm=1.0,
         warmup_tokens=512 * 20,
         final_tokens=2 * 500000 * context_size * 3,
         observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),

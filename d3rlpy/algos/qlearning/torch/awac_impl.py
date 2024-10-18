@@ -49,7 +49,7 @@ class AWACImpl(SACImpl):
         self._n_action_samples = n_action_samples
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
     ) -> SACActorLoss:
         # compute log probability
         dist = build_gaussian_distribution(action)

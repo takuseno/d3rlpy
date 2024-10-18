@@ -48,7 +48,7 @@ class ReBRACImpl(TD3Impl):
         self._critic_beta = critic_beta
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
     ) -> TD3PlusBCActorLoss:
         q_t = self._q_func_forwarder.compute_expected_q(
             batch.observations,

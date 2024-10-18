@@ -19,8 +19,8 @@ def test_sgd_factory(lr: float, module: torch.nn.Module) -> None:
 
     optim = factory.create(module.named_modules(), lr)
 
-    assert isinstance(optim, SGD)
-    assert optim.defaults["lr"] == lr
+    assert isinstance(optim.optim, SGD)
+    assert optim.optim.defaults["lr"] == lr
 
     # check serialization and deserialization
     SGDFactory.deserialize(factory.serialize())
@@ -33,8 +33,8 @@ def test_adam_factory(lr: float, module: torch.nn.Module) -> None:
 
     optim = factory.create(module.named_modules(), lr)
 
-    assert isinstance(optim, Adam)
-    assert optim.defaults["lr"] == lr
+    assert isinstance(optim.optim, Adam)
+    assert optim.optim.defaults["lr"] == lr
 
     # check serialization and deserialization
     AdamFactory.deserialize(factory.serialize())
@@ -47,8 +47,8 @@ def test_adam_w_factory(lr: float, module: torch.nn.Module) -> None:
 
     optim = factory.create(module.named_modules(), lr)
 
-    assert isinstance(optim, AdamW)
-    assert optim.defaults["lr"] == lr
+    assert isinstance(optim.optim, AdamW)
+    assert optim.optim.defaults["lr"] == lr
 
     # check serialization and deserialization
     AdamWFactory.deserialize(factory.serialize())
@@ -61,8 +61,8 @@ def test_rmsprop_factory(lr: float, module: torch.nn.Module) -> None:
 
     optim = factory.create(module.named_modules(), lr)
 
-    assert isinstance(optim, RMSprop)
-    assert optim.defaults["lr"] == lr
+    assert isinstance(optim.optim, RMSprop)
+    assert optim.optim.defaults["lr"] == lr
 
     # check serialization and deserialization
     RMSpropFactory.deserialize(factory.serialize())
@@ -83,11 +83,11 @@ def test_gpt_adam_w_factory(lr: float, weight_decay: float) -> None:
 
     optim = factory.create(module.named_modules(), lr)
 
-    assert isinstance(optim, AdamW)
-    assert optim.defaults["lr"] == lr
-    assert len(optim.param_groups) == 2
-    assert optim.param_groups[0]["weight_decay"] == weight_decay
-    assert optim.param_groups[1]["weight_decay"] == 0.0
+    assert isinstance(optim.optim, AdamW)
+    assert optim.optim.defaults["lr"] == lr
+    assert len(optim.optim.param_groups) == 2
+    assert optim.optim.param_groups[0]["weight_decay"] == weight_decay
+    assert optim.optim.param_groups[1]["weight_decay"] == 0.0
 
     # check serialization and deserialization
     GPTAdamWFactory.deserialize(factory.serialize())

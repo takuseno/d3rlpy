@@ -64,7 +64,6 @@ class DecisionTransformerConfig(TransformerConfig):
         position_encoding_type (d3rlpy.PositionEncodingType):
             Type of positional encoding (``SIMPLE`` or ``GLOBAL``).
         warmup_steps (int): Warmup steps for learning rate scheduler.
-        clip_grad_norm (float): Norm of gradient clipping.
         compile (bool): (experimental) Flag to enable JIT compilation.
     """
 
@@ -80,7 +79,6 @@ class DecisionTransformerConfig(TransformerConfig):
     activation_type: str = "relu"
     position_encoding_type: PositionEncodingType = PositionEncodingType.SIMPLE
     warmup_steps: int = 10000
-    clip_grad_norm: float = 0.25
     compile: bool = False
 
     def create(
@@ -136,7 +134,6 @@ class DecisionTransformer(
             action_size=action_size,
             modules=modules,
             scheduler=scheduler,
-            clip_grad_norm=self._config.clip_grad_norm,
             device=self._device,
         )
 
@@ -179,7 +176,6 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
             Type of positional encoding (``SIMPLE`` or ``GLOBAL``).
         warmup_tokens (int): Number of tokens to warmup learning rate scheduler.
         final_tokens (int): Final number of tokens for learning rate scheduler.
-        clip_grad_norm (float): Norm of gradient clipping.
         compile (bool): (experimental) Flag to enable JIT compilation.
     """
 
@@ -197,7 +193,6 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
     position_encoding_type: PositionEncodingType = PositionEncodingType.GLOBAL
     warmup_tokens: int = 10240
     final_tokens: int = 30000000
-    clip_grad_norm: float = 1.0
     compile: bool = False
 
     def create(
@@ -251,7 +246,6 @@ class DiscreteDecisionTransformer(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            clip_grad_norm=self._config.clip_grad_norm,
             warmup_tokens=self._config.warmup_tokens,
             final_tokens=self._config.final_tokens,
             initial_learning_rate=self._config.learning_rate,

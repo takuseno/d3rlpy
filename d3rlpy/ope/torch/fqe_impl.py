@@ -3,13 +3,13 @@ from typing import Dict, Union
 
 import torch
 from torch import nn
-from torch.optim import Optimizer
 
 from ...algos.qlearning.base import QLearningAlgoImplBase
 from ...algos.qlearning.torch.utility import (
     ContinuousQFunctionMixin,
     DiscreteQFunctionMixin,
 )
+from ...models import OptimizerWrapper
 from ...models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
@@ -24,7 +24,7 @@ __all__ = ["FQEBaseImpl", "FQEImpl", "DiscreteFQEImpl", "FQEBaseModules"]
 class FQEBaseModules(Modules):
     q_funcs: nn.ModuleList
     targ_q_funcs: nn.ModuleList
-    optim: Optimizer
+    optim: OptimizerWrapper
 
 
 class FQEBaseImpl(QLearningAlgoImplBase):
@@ -111,7 +111,7 @@ class FQEBaseImpl(QLearningAlgoImplBase):
 
         self._modules.optim.zero_grad()
         loss.backward()
-        self._modules.optim.step()
+        self._modules.optim.step(grad_step)
 
         if grad_step % self._target_update_interval == 0:
             self.update_target()

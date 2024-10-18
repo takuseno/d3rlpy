@@ -6,9 +6,11 @@ import torch
 from torch.optim import Optimizer
 
 from ....dataclass_utils import asdict_as_float
+from ....models import OptimizerWrapper
 from ....models.torch import (
     CategoricalPolicy,
     DeterministicPolicy,
+    DiscreteImitationLoss,
     ImitationLoss,
     NormalPolicy,
     Policy,
@@ -25,7 +27,7 @@ __all__ = ["BCImpl", "DiscreteBCImpl", "BCModules", "DiscreteBCModules"]
 
 @dataclasses.dataclass(frozen=True)
 class BCBaseModules(Modules):
-    optim: Optimizer
+    optim: OptimizerWrapper
 
 
 class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
@@ -45,13 +47,15 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
             device=device,
         )
 
-    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_imitator(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
         self._modules.optim.zero_grad()
 
         loss = self.compute_loss(batch.observations, batch.actions)
 
         loss.loss.backward()
-        self._modules.optim.step()
+        self._modules.optim.step(grad_step)
 
         return asdict_as_float(loss)
 
@@ -72,7 +76,7 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
     ) -> Dict[str, float]:
-        return self.update_imitator(batch)
+        return self.update_imitator(batch, grad_step)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -105,12 +109,14 @@ class BCImpl(BCBaseImpl):
 
     def compute_loss(
         self, obs_t: TorchObservation, act_t: torch.Tensor
-    ) -> torch.Tensor:
+    ) -> ImitationLoss:
         if self._policy_type == "deterministic":
+            assert isinstance(self._modules.imitator, DeterministicPolicy)
             return compute_deterministic_imitation_loss(
                 self._modules.imitator, obs_t, act_t
             )
         elif self._policy_type == "stochastic":
+            assert isinstance(self._modules.imitator, NormalPolicy)
             return compute_stochastic_imitation_loss(
                 self._modules.imitator, obs_t, act_t
             )
@@ -123,7 +129,7 @@ class BCImpl(BCBaseImpl):
 
     @property
     def policy_optim(self) -> Optimizer:
-        return self._modules.optim
+        return self._modules.optim.optim
 
 
 @dataclasses.dataclass(frozen=True)
@@ -156,7 +162,7 @@ class DiscreteBCImpl(BCBaseImpl):
 
     def compute_loss(
         self, obs_t: TorchObservation, act_t: torch.Tensor
-    ) -> torch.Tensor:
+    ) -> DiscreteImitationLoss:
         return compute_discrete_imitation_loss(
             policy=self._modules.imitator,
             x=obs_t,

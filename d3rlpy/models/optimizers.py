@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Iterable, Sequence, Tuple, Optional
+from typing import Iterable, Optional, Sequence, Tuple
 
 from torch import nn
 from torch.optim import SGD, Adam, AdamW, Optimizer, RMSprop
@@ -32,7 +32,7 @@ def _get_parameters_from_named_modules(
 
 
 class OptimizerWrapper:
-    """OptimizerWrapper class
+    """OptimizerWrapper class.
 
     This class wraps PyTorch optimizer to add additional steps such as gradient
     clipping.
@@ -42,11 +42,17 @@ class OptimizerWrapper:
         optim: PyTorch optimizer.
         clip_grad_norm: Maximum norm value of gradients to clip.
     """
+
     _params: Sequence[nn.Parameter]
     _optim: Optimizer
     _clip_grad_norm: Optional[float]
 
-    def __init__(self, params: Sequence[nn.Parameter], optim: Optimizer, clip_grad_norm: Optional[float] = None):
+    def __init__(
+        self,
+        params: Sequence[nn.Parameter],
+        optim: Optimizer,
+        clip_grad_norm: Optional[float] = None,
+    ):
         self._params = params
         self._optim = optim
         self._clip_grad_norm = clip_grad_norm
@@ -62,7 +68,9 @@ class OptimizerWrapper:
                 schedulers.
         """
         if self._clip_grad_norm:
-            nn.utils.clip_grad_norm_(self._params, max_norm=self._clip_grad_norm)
+            nn.utils.clip_grad_norm_(
+                self._params, max_norm=self._clip_grad_norm
+            )
         self._optim.step()
 
     @property
@@ -76,6 +84,7 @@ class OptimizerFactory(DynamicConfig):
 
     The optimizers in algorithms can be configured through this factory class.
     """
+
     clip_grad_norm: Optional[float] = None
 
     def create(
@@ -90,6 +99,7 @@ class OptimizerFactory(DynamicConfig):
         Returns:
             Updater: Updater object.
         """
+        named_modules = list(named_modules)
         params = _get_parameters_from_named_modules(named_modules)
         optim = self.create_optimizer(named_modules, lr)
         return OptimizerWrapper(
@@ -98,7 +108,9 @@ class OptimizerFactory(DynamicConfig):
             clip_grad_norm=self.clip_grad_norm,
         )
 
-    def create_optimizer(self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float) -> Optimizer:
+    def create_optimizer(
+        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+    ) -> Optimizer:
         raise NotImplementedError
 
 

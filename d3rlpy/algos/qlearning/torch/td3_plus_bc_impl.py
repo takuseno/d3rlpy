@@ -51,7 +51,7 @@ class TD3PlusBCImpl(TD3Impl):
         self._alpha = alpha
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
+        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
     ) -> TD3PlusBCActorLoss:
         q_t = self._q_func_forwarder.compute_expected_q(
             batch.observations, action.squashed_mu, "none"

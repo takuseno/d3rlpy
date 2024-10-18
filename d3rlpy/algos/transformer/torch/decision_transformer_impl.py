@@ -4,8 +4,8 @@ from typing import Dict
 
 import torch
 import torch.nn.functional as F
-from torch.optim import Optimizer
 
+from ....models import OptimizerWrapper
 from ....models.torch import (
     ContinuousDecisionTransformer,
     DiscreteDecisionTransformer,
@@ -26,13 +26,12 @@ __all__ = [
 @dataclasses.dataclass(frozen=True)
 class DecisionTransformerModules(Modules):
     transformer: ContinuousDecisionTransformer
-    optim: Optimizer
+    optim: OptimizerWrapper
 
 
 class DecisionTransformerImpl(TransformerAlgoImplBase):
     _modules: DecisionTransformerModules
     _scheduler: torch.optim.lr_scheduler.LRScheduler
-    _clip_grad_norm: float
 
     def __init__(
         self,
@@ -40,7 +39,6 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         action_size: int,
         modules: DecisionTransformerModules,
         scheduler: torch.optim.lr_scheduler.LRScheduler,
-        clip_grad_norm: float,
         device: str,
     ):
         super().__init__(
@@ -50,7 +48,6 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
             device=device,
         )
         self._scheduler = scheduler
-        self._clip_grad_norm = clip_grad_norm
 
     def inner_predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
         # (1, T, A)
@@ -64,14 +61,9 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         self, batch: TorchTrajectoryMiniBatch, grad_step: int
     ) -> Dict[str, float]:
         self._modules.optim.zero_grad()
-
         loss = self.compute_loss(batch)
-
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(
-            self._modules.transformer.parameters(), self._clip_grad_norm
-        )
-        self._modules.optim.step()
+        self._modules.optim.step(grad_step)
         self._scheduler.step()
 
         return {"loss": float(loss.cpu().detach().numpy())}
@@ -91,12 +83,11 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
 @dataclasses.dataclass(frozen=True)
 class DiscreteDecisionTransformerModules(Modules):
     transformer: DiscreteDecisionTransformer
-    optim: Optimizer
+    optim: OptimizerWrapper
 
 
 class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
     _modules: DiscreteDecisionTransformerModules
-    _clip_grad_norm: float
     _warmup_tokens: int
     _final_tokens: int
     _initial_learning_rate: float
@@ -107,7 +98,6 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
         observation_shape: Shape,
         action_size: int,
         modules: DiscreteDecisionTransformerModules,
-        clip_grad_norm: float,
         warmup_tokens: int,
         final_tokens: int,
         initial_learning_rate: float,
@@ -119,7 +109,6 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
             modules=modules,
             device=device,
         )
-        self._clip_grad_norm = clip_grad_norm
         self._warmup_tokens = warmup_tokens
         self._final_tokens = final_tokens
         self._initial_learning_rate = initial_learning_rate
@@ -138,14 +127,9 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
         self, batch: TorchTrajectoryMiniBatch, grad_step: int
     ) -> Dict[str, float]:
         self._modules.optim.zero_grad()
-
         loss = self.compute_loss(batch)
-
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(
-            self._modules.transformer.parameters(), self._clip_grad_norm
-        )
-        self._modules.optim.step()
+        self._modules.optim.step(grad_step)
 
         # schedule learning rate
         self._tokens += int(batch.masks.sum().cpu().detach().numpy())
@@ -159,7 +143,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
             )
             lr_mult = max(0.1, 0.5 * (1.0 + math.cos(math.pi * progress)))
         new_learning_rate = lr_mult * self._initial_learning_rate
-        for param_group in self._modules.optim.param_groups:
+        for param_group in self._modules.optim.optim.param_groups:
             param_group["lr"] = new_learning_rate
 
         return {

@@ -6,6 +6,7 @@ from torch import nn
 from torch.optim import Optimizer
 
 from ....dataclass_utils import asdict_as_float
+from ....models.optimizers import OptimizerWrapper
 from ....models.torch import DiscreteEnsembleQFunctionForwarder
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync
 from ....types import Shape, TorchObservation
@@ -19,7 +20,7 @@ __all__ = ["DQNImpl", "DQNModules", "DQNLoss", "DoubleDQNImpl"]
 class DQNModules(Modules):
     q_funcs: nn.ModuleList
     targ_q_funcs: nn.ModuleList
-    optim: Optimizer
+    optim: OptimizerWrapper
 
 
 @dataclasses.dataclass(frozen=True)
@@ -67,7 +68,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         loss = self.compute_loss(batch, q_tpn)
 
         loss.loss.backward()
-        self._modules.optim.step()
+        self._modules.optim.step(grad_step)
 
         if grad_step % self._target_update_interval == 0:
             self.update_target()
@@ -116,7 +117,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
     @property
     def q_function_optim(self) -> Optimizer:
-        return self._modules.optim
+        return self._modules.optim.optim
 
 
 class DoubleDQNImpl(DQNImpl):
