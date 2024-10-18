@@ -9,6 +9,7 @@ import pytest
 import torch
 
 from d3rlpy.dataset import TrajectoryMiniBatch, Transition, TransitionMiniBatch
+from d3rlpy.models import OptimizerWrapper
 from d3rlpy.torch_utility import (
     GEGLU,
     Checkpointer,
@@ -114,7 +115,8 @@ class DummyImpl:
     def __init__(self) -> None:
         self.fc1 = torch.nn.Linear(100, 100)
         self.fc2 = torch.nn.Linear(100, 100)
-        self.optim = torch.optim.Adam(self.fc1.parameters())
+        params = list(self.fc1.parameters())
+        self.optim = OptimizerWrapper(params, torch.optim.Adam(params))
         self.modules = DummyModules(self.fc1, self.optim)
         self.device = "cpu:0"
 
@@ -143,16 +145,16 @@ def test_reset_optimizer_states() -> None:
     # instantiate optimizer state
     y = impl.fc1(torch.rand(100)).sum()
     y.backward()
-    impl.optim.step()
+    impl.optim.step(0)
 
     # check if state is not empty
-    state = copy.deepcopy(impl.optim.state)
+    state = copy.deepcopy(impl.optim.optim.state)
     assert state
 
     impl.modules.reset_optimizer_states()
 
     # check if state is empty
-    reset_state = impl.optim.state
+    reset_state = impl.optim.optim.state
     assert not reset_state
 
 
@@ -183,12 +185,13 @@ def test_get_batch_size() -> None:
 @dataclasses.dataclass(frozen=True)
 class DummyModules(Modules):
     fc: torch.nn.Linear
-    optim: torch.optim.Adam
+    optim: OptimizerWrapper
 
 
 def test_modules() -> None:
     fc = torch.nn.Linear(100, 200)
-    optim = torch.optim.Adam(fc.parameters())
+    params = list(fc.parameters())
+    optim = OptimizerWrapper(params, torch.optim.Adam(params))
     modules = DummyModules(fc, optim)
 
     # check checkpointer
@@ -398,7 +401,8 @@ def test_torch_trajectory_mini_batch(
 def test_checkpointer() -> None:
     fc1 = torch.nn.Linear(100, 100)
     fc2 = torch.nn.Linear(100, 100)
-    optim = torch.optim.Adam(fc1.parameters())
+    params = list(fc1.parameters())
+    optim = OptimizerWrapper(params, torch.optim.Adam(params))
     checkpointer = Checkpointer(
         modules={"fc1": fc1, "fc2": fc2, "optim": optim}, device="cpu:0"
     )
@@ -408,7 +412,7 @@ def test_checkpointer() -> None:
     states = {
         "fc1": fc1.state_dict(),
         "fc2": fc2.state_dict(),
-        "optim": optim.state_dict(),
+        "optim": optim.optim.state_dict(),
     }
     torch.save(states, ref_bytes)
 
@@ -419,7 +423,8 @@ def test_checkpointer() -> None:
 
     fc1_2 = torch.nn.Linear(100, 100)
     fc2_2 = torch.nn.Linear(100, 100)
-    optim_2 = torch.optim.Adam(fc1_2.parameters())
+    params_2 = list(fc1_2.parameters())
+    optim_2 = OptimizerWrapper(params_2, torch.optim.Adam(params_2))
     checkpointer = Checkpointer(
         modules={"fc1": fc1_2, "fc2": fc2_2, "optim": optim_2}, device="cpu:0"
     )

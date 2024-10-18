@@ -117,7 +117,8 @@ class DecisionTransformer(
             transformer.named_modules(), lr=self._config.learning_rate
         )
         scheduler = torch.optim.lr_scheduler.LambdaLR(
-            optim, lambda steps: min((steps + 1) / self._config.warmup_steps, 1)
+            optim.optim,
+            lambda steps: min((steps + 1) / self._config.warmup_steps, 1),
         )
 
         # JIT compile
