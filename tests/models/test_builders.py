@@ -174,7 +174,7 @@ def test_create_discrete_q_function(
 
     # check share_encoder
     encoder = q_funcs[0].encoder
-    for q_func in q_funcs[1:]:
+    for q_func in list(q_funcs.modules())[1:]:
         if share_encoder:
             assert encoder is q_func.encoder
         else:
@@ -215,7 +215,7 @@ def test_create_continuous_q_function(
 
     # check share_encoder
     encoder = q_funcs[0].encoder
-    for q_func in q_funcs[1:]:
+    for q_func in list(q_funcs.modules())[1:]:
         if share_encoder:
             assert encoder is q_func.encoder
         else:
