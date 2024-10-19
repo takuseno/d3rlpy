@@ -38,7 +38,7 @@ class WarmupSchedulerFactory(LRSchedulerFactory):
 
     .. math::
 
-        lr = \max((t + 1) / warmup_steps, 1)
+        lr = \max((t + 1) / warmup\_steps, 1)
 
     Args:
         warmup_steps: Warmup steps.

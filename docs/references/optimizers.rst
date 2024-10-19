@@ -38,3 +38,30 @@ There are also convenient alises.
    d3rlpy.models.AdamFactory
    d3rlpy.models.RMSpropFactory
    d3rlpy.models.GPTAdamWFactory
+
+
+Learning rate scheduler
+~~~~~~~~~~~~~~~~~~~~~~~
+
+d3rlpy provides ``LRSchedulerFactory`` that gives you configure learning rate
+schedulers with ``OptimizerFactory``.
+
+.. code-block:: python
+
+   import d3rlpy
+
+   # set lr_scheduler_factory
+   optim_factory = d3rlpy.models.AdamFactory(
+       lr_scheduler_factory=d3rlpy.models.WarmupSchedulerFactory(
+           warmup_steps=10000
+       )
+   )
+
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   d3rlpy.models.LRSchedulerFactory
+   d3rlpy.models.WarmupSchedulerFactory
+   d3rlpy.models.CosineAnnealingLRFactory
