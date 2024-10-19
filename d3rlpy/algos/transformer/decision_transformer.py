@@ -63,7 +63,6 @@ class DecisionTransformerConfig(TransformerConfig):
         activation_type (str): Type of activation function.
         position_encoding_type (d3rlpy.PositionEncodingType):
             Type of positional encoding (``SIMPLE`` or ``GLOBAL``).
-        warmup_steps (int): Warmup steps for learning rate scheduler.
         compile (bool): (experimental) Flag to enable JIT compilation.
     """
 
@@ -78,7 +77,6 @@ class DecisionTransformerConfig(TransformerConfig):
     embed_dropout: float = 0.1
     activation_type: str = "relu"
     position_encoding_type: PositionEncodingType = PositionEncodingType.SIMPLE
-    warmup_steps: int = 10000
     compile: bool = False
 
     def create(
@@ -116,10 +114,6 @@ class DecisionTransformer(
         optim = self._config.optim_factory.create(
             transformer.named_modules(), lr=self._config.learning_rate
         )
-        scheduler = torch.optim.lr_scheduler.LambdaLR(
-            optim.optim,
-            lambda steps: min((steps + 1) / self._config.warmup_steps, 1),
-        )
 
         # JIT compile
         if self._config.compile:
@@ -134,7 +128,6 @@ class DecisionTransformer(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            scheduler=scheduler,
             device=self._device,
         )
 

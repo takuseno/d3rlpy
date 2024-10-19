@@ -31,23 +31,6 @@ class DecisionTransformerModules(Modules):
 
 class DecisionTransformerImpl(TransformerAlgoImplBase):
     _modules: DecisionTransformerModules
-    _scheduler: torch.optim.lr_scheduler.LRScheduler
-
-    def __init__(
-        self,
-        observation_shape: Shape,
-        action_size: int,
-        modules: DecisionTransformerModules,
-        scheduler: torch.optim.lr_scheduler.LRScheduler,
-        device: str,
-    ):
-        super().__init__(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            modules=modules,
-            device=device,
-        )
-        self._scheduler = scheduler
 
     def inner_predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
         # (1, T, A)
@@ -64,8 +47,6 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         loss = self.compute_loss(batch)
         loss.backward()
         self._modules.optim.step(grad_step)
-        self._scheduler.step()
-
         return {"loss": float(loss.cpu().detach().numpy())}
 
     def compute_loss(self, batch: TorchTrajectoryMiniBatch) -> torch.Tensor:

@@ -3,8 +3,10 @@ from typing import Iterable, Optional, Sequence, Tuple
 
 from torch import nn
 from torch.optim import SGD, Adam, AdamW, Optimizer, RMSprop
+from torch.optim.lr_scheduler import LRScheduler
 
 from ..serializable_config import DynamicConfig, generate_config_registration
+from .lr_schedulers import LRSchedulerFactory, make_lr_scheduler_field
 
 __all__ = [
     "OptimizerWrapper",
@@ -46,16 +48,19 @@ class OptimizerWrapper:
     _params: Sequence[nn.Parameter]
     _optim: Optimizer
     _clip_grad_norm: Optional[float]
+    _lr_scheduler: Optional[LRScheduler]
 
     def __init__(
         self,
         params: Sequence[nn.Parameter],
         optim: Optimizer,
         clip_grad_norm: Optional[float] = None,
+        lr_scheduler: Optional[LRScheduler] = None,
     ):
         self._params = params
         self._optim = optim
         self._clip_grad_norm = clip_grad_norm
+        self._lr_scheduler = lr_scheduler
 
     def zero_grad(self) -> None:
         self._optim.zero_grad()
@@ -67,11 +72,18 @@ class OptimizerWrapper:
             grad_step: Total gradient step. This can be used for learning rate
                 schedulers.
         """
+        # clip gradients
         if self._clip_grad_norm:
             nn.utils.clip_grad_norm_(
                 self._params, max_norm=self._clip_grad_norm
             )
+
+        # update parameters
         self._optim.step()
+
+        # schedule learning rate
+        if self._lr_scheduler:
+            self._lr_scheduler.step()
 
     @property
     def optim(self) -> Optimizer:
@@ -86,6 +98,9 @@ class OptimizerFactory(DynamicConfig):
     """
 
     clip_grad_norm: Optional[float] = None
+    lr_scheduler_factory: Optional[LRSchedulerFactory] = (
+        make_lr_scheduler_field()
+    )
 
     def create(
         self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
@@ -97,7 +112,7 @@ class OptimizerFactory(DynamicConfig):
             lr (float): Learning rate.
 
         Returns:
-            Updater: Updater object.
+            OptimizerWrapper object.
         """
         named_modules = list(named_modules)
         params = _get_parameters_from_named_modules(named_modules)
@@ -106,6 +121,11 @@ class OptimizerFactory(DynamicConfig):
             params=params,
             optim=optim,
             clip_grad_norm=self.clip_grad_norm,
+            lr_scheduler=(
+                self.lr_scheduler_factory.create(optim)
+                if self.lr_scheduler_factory
+                else None
+            ),
         )
 
     def create_optimizer(
@@ -126,6 +146,7 @@ class SGDFactory(OptimizerFactory):
 
     Args:
         clip_grad_norm: Maximum norm value of gradients to clip.
+        lr_scheduler_factory: LRSchedulerFactory.
         momentum: momentum factor.
         dampening: dampening for momentum.
         weight_decay: weight decay (L2 penalty).
@@ -166,6 +187,7 @@ class AdamFactory(OptimizerFactory):
 
     Args:
         clip_grad_norm: Maximum norm value of gradients to clip.
+        lr_scheduler_factory: LRSchedulerFactory.
         betas: coefficients used for computing running averages of
             gradient and its square.
         eps: term added to the denominator to improve numerical stability.
@@ -206,6 +228,8 @@ class AdamWFactory(OptimizerFactory):
         factory = AdamWFactory(weight_decay=1e-4)
 
     Args:
+        clip_grad_norm: Maximum norm value of gradients to clip.
+        lr_scheduler_factory: LRSchedulerFactory.
         betas: coefficients used for computing running averages of
             gradient and its square.
         eps: term added to the denominator to improve numerical stability.
@@ -246,6 +270,8 @@ class RMSpropFactory(OptimizerFactory):
         factory = RMSpropFactory(weight_decay=1e-4)
 
     Args:
+        clip_grad_norm: Maximum norm value of gradients to clip.
+        lr_scheduler_factory: LRSchedulerFactory.
         alpha: smoothing constant.
         eps: term added to the denominator to improve numerical stability.
         weight_decay: weight decay (L2 penalty).
@@ -289,6 +315,8 @@ class GPTAdamWFactory(OptimizerFactory):
         factory = GPTAdamWFactory(weight_decay=1e-4)
 
     Args:
+        clip_grad_norm: Maximum norm value of gradients to clip.
+        lr_scheduler_factory: LRSchedulerFactory.
         betas: coefficients used for computing running averages of
             gradient and its square.
         eps: term added to the denominator to improve numerical stability.

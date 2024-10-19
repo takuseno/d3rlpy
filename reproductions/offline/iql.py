@@ -1,7 +1,5 @@
 import argparse
 
-from torch.optim.lr_scheduler import CosineAnnealingLR
-
 import d3rlpy
 
 
@@ -25,6 +23,11 @@ def main() -> None:
     iql = d3rlpy.algos.IQLConfig(
         actor_learning_rate=3e-4,
         critic_learning_rate=3e-4,
+        actor_optim_factory=d3rlpy.models.AdamFactory(
+            lr_scheduler_factory=d3rlpy.models.CosineAnnealingLRFactory(
+                T_max=500000
+            ),
+        ),
         batch_size=256,
         weight_temp=3.0,
         max_weight=100.0,
@@ -32,23 +35,11 @@ def main() -> None:
         reward_scaler=reward_scaler,
     ).create(device=args.gpu)
 
-    # workaround for learning scheduler
-    iql.build_with_dataset(dataset)
-    assert iql.impl
-    scheduler = CosineAnnealingLR(
-        iql.impl._modules.actor_optim,  # pylint: disable=protected-access
-        500000,
-    )
-
-    def callback(algo: d3rlpy.algos.IQL, epoch: int, total_step: int) -> None:
-        scheduler.step()
-
     iql.fit(
         dataset,
         n_steps=500000,
         n_steps_per_epoch=1000,
         save_interval=10,
-        callback=callback,
         evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
         experiment_name=f"IQL_{args.dataset}_{args.seed}",
     )

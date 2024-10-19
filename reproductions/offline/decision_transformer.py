@@ -29,7 +29,11 @@ def main() -> None:
         batch_size=64,
         learning_rate=1e-4,
         optim_factory=d3rlpy.models.AdamWFactory(
-            weight_decay=1e-4, clip_grad_norm=0.25
+            weight_decay=1e-4,
+            clip_grad_norm=0.25,
+            lr_scheduler_factory=d3rlpy.models.WarmupSchedulerFactory(
+                warmup_steps=10000
+            ),
         ),
         encoder_factory=d3rlpy.models.VectorEncoderFactory(
             [128],
@@ -41,7 +45,6 @@ def main() -> None:
         context_size=20,
         num_heads=1,
         num_layers=3,
-        warmup_steps=10000,
         max_timestep=1000,
     ).create(device=args.gpu)
 
