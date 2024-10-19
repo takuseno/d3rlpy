@@ -4,16 +4,12 @@ import torch
 
 from ...base import DeviceArg, register_learnable
 from ...constants import ActionSpace, PositionEncodingType
-from ...models import (
-    EncoderFactory,
-    OptimizerFactory,
-    make_encoder_field,
-    make_optimizer_field,
-)
+from ...models import EncoderFactory, make_encoder_field
 from ...models.builders import (
     create_continuous_decision_transformer,
     create_discrete_decision_transformer,
 )
+from ...optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import TransformerAlgoBase, TransformerConfig
 from .torch.decision_transformer_impl import (
@@ -53,7 +49,7 @@ class DecisionTransformerConfig(TransformerConfig):
         learning_rate (float): Learning rate.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory.
-        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory.
         num_heads (int): Number of attention heads.
         num_layers (int): Number of attention blocks.
@@ -156,7 +152,7 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
         learning_rate (float): Learning rate.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory.
-        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory.
         num_heads (int): Number of attention heads.
         num_layers (int): Number of attention blocks.

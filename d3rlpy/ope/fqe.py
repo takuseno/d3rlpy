@@ -9,8 +9,8 @@ from ..models.builders import (
     create_discrete_q_function,
 )
 from ..models.encoders import EncoderFactory, make_encoder_field
-from ..models.optimizers import OptimizerFactory, make_optimizer_field
 from ..models.q_functions import QFunctionFactory, make_q_func_field
+from ..optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ..types import NDArray, Observation, Shape
 from .torch.fqe_impl import (
     DiscreteFQEImpl,
@@ -46,7 +46,7 @@ class FQEConfig(LearnableConfig):
         algo (d3rlpy.algos.qlearning.base.QLearningAlgoBase):
             Algorithm to evaluate.
         learning_rate (float): Learning rate.
-        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory.

@@ -6,7 +6,7 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
-from d3rlpy.models.optimizers import OptimizerWrapper
+from d3rlpy.optimizers.optimizers import OptimizerWrapper
 
 from ....dataclass_utils import asdict_as_float
 from ....models.torch import (

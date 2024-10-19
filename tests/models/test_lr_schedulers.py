@@ -3,7 +3,7 @@ import torch
 from torch.optim import SGD
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
 
-from d3rlpy.models.lr_schedulers import (
+from d3rlpy.optimizers.lr_schedulers import (
     CosineAnnealingLRFactory,
     WarmupSchedulerFactory,
 )

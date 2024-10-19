@@ -5,7 +5,6 @@ from typing import Dict, cast
 import torch
 import torch.nn.functional as F
 
-from ....models import OptimizerWrapper
 from ....models.torch import (
     ActionOutput,
     CategoricalPolicy,
@@ -18,6 +17,7 @@ from ....models.torch import (
     compute_max_with_n_actions,
     compute_vae_error,
 )
+from ....optimizers import OptimizerWrapper
 from ....torch_utility import (
     TorchMiniBatch,
     expand_and_repeat_recursively,

@@ -25,7 +25,7 @@ def main() -> None:
     dqn = d3rlpy.algos.DQNConfig(
         batch_size=32,
         learning_rate=5e-5,
-        optim_factory=d3rlpy.models.optimizers.AdamFactory(eps=1e-2 / 32),
+        optim_factory=d3rlpy.optimizers.AdamFactory(eps=1e-2 / 32),
         target_update_interval=10000 // 4,
         q_func_factory=d3rlpy.models.IQNQFunctionFactory(),
         observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),

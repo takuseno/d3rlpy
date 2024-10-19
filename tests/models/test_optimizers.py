@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.optim import SGD, Adam, AdamW, RMSprop
 
-from d3rlpy.models.optimizers import (
+from d3rlpy.optimizers.optimizers import (
     AdamFactory,
     AdamWFactory,
     GPTAdamWFactory,

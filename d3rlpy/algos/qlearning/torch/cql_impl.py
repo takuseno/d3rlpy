@@ -5,13 +5,13 @@ from typing import Optional, Tuple
 import torch
 import torch.nn.functional as F
 
-from ....models import OptimizerWrapper
 from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
     Parameter,
     get_parameter,
 )
+from ....optimizers import OptimizerWrapper
 from ....torch_utility import (
     TorchMiniBatch,
     expand_and_repeat_recursively,

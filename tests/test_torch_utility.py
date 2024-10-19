@@ -9,7 +9,7 @@ import pytest
 import torch
 
 from d3rlpy.dataset import TrajectoryMiniBatch, Transition, TransitionMiniBatch
-from d3rlpy.models import OptimizerWrapper
+from d3rlpy.optimizers import OptimizerWrapper
 from d3rlpy.torch_utility import (
     GEGLU,
     Checkpointer,

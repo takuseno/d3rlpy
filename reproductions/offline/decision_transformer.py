@@ -28,10 +28,10 @@ def main() -> None:
     dt = d3rlpy.algos.DecisionTransformerConfig(
         batch_size=64,
         learning_rate=1e-4,
-        optim_factory=d3rlpy.models.AdamWFactory(
+        optim_factory=d3rlpy.optimizers.AdamWFactory(
             weight_decay=1e-4,
             clip_grad_norm=0.25,
-            lr_scheduler_factory=d3rlpy.models.WarmupSchedulerFactory(
+            lr_scheduler_factory=d3rlpy.optimizers.WarmupSchedulerFactory(
                 warmup_steps=10000
             ),
         ),

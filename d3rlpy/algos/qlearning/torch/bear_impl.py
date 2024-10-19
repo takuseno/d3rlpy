@@ -3,7 +3,6 @@ from typing import Dict, Optional
 
 import torch
 
-from ....models import OptimizerWrapper
 from ....models.torch import (
     ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
@@ -16,6 +15,7 @@ from ....models.torch import (
     forward_vae_sample_n,
     get_parameter,
 )
+from ....optimizers import OptimizerWrapper
 from ....torch_utility import (
     TorchMiniBatch,
     expand_and_repeat_recursively,

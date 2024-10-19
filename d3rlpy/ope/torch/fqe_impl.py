@@ -9,11 +9,11 @@ from ...algos.qlearning.torch.utility import (
     ContinuousQFunctionMixin,
     DiscreteQFunctionMixin,
 )
-from ...models import OptimizerWrapper
 from ...models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
 )
+from ...optimizers import OptimizerWrapper
 from ...torch_utility import Modules, TorchMiniBatch, hard_sync
 from ...types import Shape
 

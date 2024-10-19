@@ -11,8 +11,8 @@ from ...models.builders import (
     create_parameter,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
-from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
+from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
 from .torch.sac_impl import (
@@ -77,11 +77,11 @@ class SACConfig(LearnableConfig):
         actor_learning_rate (float): Learning rate for policy function.
         critic_learning_rate (float): Learning rate for Q functions.
         temp_learning_rate (float): Learning rate for temperature parameter.
-        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the critic.
-        temp_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the temperature.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory for the actor.
@@ -233,11 +233,11 @@ class DiscreteSACConfig(LearnableConfig):
         actor_learning_rate (float): Learning rate for policy function.
         critic_learning_rate (float): Learning rate for Q functions.
         temp_learning_rate (float): Learning rate for temperature parameter.
-        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the critic.
-        temp_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the temperature.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory for the actor.

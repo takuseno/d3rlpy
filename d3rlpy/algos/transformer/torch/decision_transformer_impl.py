@@ -5,11 +5,11 @@ from typing import Dict
 import torch
 import torch.nn.functional as F
 
-from ....models import OptimizerWrapper
 from ....models.torch import (
     ContinuousDecisionTransformer,
     DiscreteDecisionTransformer,
 )
+from ....optimizers import OptimizerWrapper
 from ....torch_utility import Modules, TorchTrajectoryMiniBatch
 from ....types import Shape
 from ..base import TransformerAlgoImplBase

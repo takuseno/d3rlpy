@@ -25,7 +25,7 @@ def main() -> None:
     dqn = d3rlpy.algos.DoubleDQNConfig(
         batch_size=32,
         learning_rate=2.5e-4,
-        optim_factory=d3rlpy.models.optimizers.RMSpropFactory(),
+        optim_factory=d3rlpy.optimizers.RMSpropFactory(),
         target_update_interval=10000,
         observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
     ).create(device=args.gpu)

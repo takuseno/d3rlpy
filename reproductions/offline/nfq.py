@@ -24,7 +24,7 @@ def main() -> None:
 
     nfq = d3rlpy.algos.NFQConfig(
         learning_rate=5e-5,
-        optim_factory=d3rlpy.models.optimizers.AdamFactory(),
+        optim_factory=d3rlpy.optimizers.AdamFactory(),
         batch_size=32,
         observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
         reward_scaler=d3rlpy.preprocessing.ClipRewardScaler(-1.0, 1.0),

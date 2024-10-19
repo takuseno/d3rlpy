@@ -25,15 +25,15 @@ def main() -> None:
         batch_size=256,
         actor_learning_rate=3e-4,
         critic_learning_rate=3e-4,
-        actor_optim_factory=d3rlpy.models.AdamFactory(
+        actor_optim_factory=d3rlpy.optimizers.AdamFactory(
             # setup learning rate scheduler
-            lr_scheduler_factory=d3rlpy.models.WarmupSchedulerFactory(
+            lr_scheduler_factory=d3rlpy.optimizers.WarmupSchedulerFactory(
                 warmup_steps=10000
             ),
         ),
-        critic_optim_factory=d3rlpy.models.AdamFactory(
+        critic_optim_factory=d3rlpy.optimizers.AdamFactory(
             # setup learning rate scheduler
-            lr_scheduler_factory=d3rlpy.models.WarmupSchedulerFactory(
+            lr_scheduler_factory=d3rlpy.optimizers.WarmupSchedulerFactory(
                 warmup_steps=10000
             ),
         ),

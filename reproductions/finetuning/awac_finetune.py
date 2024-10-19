@@ -18,7 +18,7 @@ def main() -> None:
     d3rlpy.envs.seed_env(env, args.seed)
 
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([256, 256, 256, 256])
-    optim = d3rlpy.models.optimizers.AdamFactory(weight_decay=1e-4)
+    optim = d3rlpy.optimizers.AdamFactory(weight_decay=1e-4)
     # for antmaze datasets
     reward_scaler = d3rlpy.preprocessing.ConstantShiftRewardScaler(shift=-1)
 

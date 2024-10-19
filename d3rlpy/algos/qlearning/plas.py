@@ -10,8 +10,8 @@ from ...models.builders import (
     create_vae_encoder,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
-from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
+from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
 from .torch.plas_impl import (
@@ -56,11 +56,11 @@ class PLASConfig(LearnableConfig):
         actor_learning_rate (float): Learning rate for policy function.
         critic_learning_rate (float): Learning rate for Q functions.
         imitator_learning_rate (float): Learning rate for Conditional VAE.
-        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the critic.
-        imitator_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the conditional VAE.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory for the actor.
@@ -224,11 +224,11 @@ class PLASWithPerturbationConfig(PLASConfig):
         actor_learning_rate (float): Learning rate for policy function.
         critic_learning_rate (float): Learning rate for Q functions.
         imitator_learning_rate (float): Learning rate for Conditional VAE.
-        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the critic.
-        imitator_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        imitator_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the conditional VAE.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory for the actor.

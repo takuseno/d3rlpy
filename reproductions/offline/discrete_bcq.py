@@ -24,7 +24,7 @@ def main() -> None:
 
     bcq = d3rlpy.algos.DiscreteBCQConfig(
         learning_rate=5e-5,
-        optim_factory=d3rlpy.models.optimizers.AdamFactory(eps=1e-2 / 32),
+        optim_factory=d3rlpy.optimizers.AdamFactory(eps=1e-2 / 32),
         batch_size=32,
         q_func_factory=d3rlpy.models.q_functions.QRQFunctionFactory(
             n_quantiles=200

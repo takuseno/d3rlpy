@@ -1,7 +1,7 @@
 Optimizers
 ==========
 
-.. module:: d3rlpy.models
+.. module:: d3rlpy.optimizers
 
 d3rlpy provides ``OptimizerFactory`` that gives you flexible control over
 optimizers.
@@ -14,7 +14,7 @@ initialize, which you can check more `here <https://pytorch.org/docs/stable/opti
    from torch.optim import Adam
 
    # modify weight decay
-   optim_factory = d3rlpy.models.OptimizerFactory(Adam, weight_decay=1e-4)
+   optim_factory = d3rlpy.optimizers.OptimizerFactory(Adam, weight_decay=1e-4)
 
    # set OptimizerFactory
    dqn = d3rlpy.algos.DQNConfig(optim_factory=optim_factory).create()
@@ -24,7 +24,7 @@ There are also convenient alises.
 .. code-block:: python
 
    # alias for Adam optimizer
-   optim_factory = d3rlpy.models.AdamFactory(weight_decay=1e-4)
+   optim_factory = d3rlpy.optimizers.AdamFactory(weight_decay=1e-4)
 
    dqn = d3rlpy.algos.DQNConfig(optim_factory=optim_factory).create()
 
@@ -33,11 +33,11 @@ There are also convenient alises.
    :toctree: generated/
    :nosignatures:
 
-   d3rlpy.models.OptimizerFactory
-   d3rlpy.models.SGDFactory
-   d3rlpy.models.AdamFactory
-   d3rlpy.models.RMSpropFactory
-   d3rlpy.models.GPTAdamWFactory
+   d3rlpy.optimizers.OptimizerFactory
+   d3rlpy.optimizers.SGDFactory
+   d3rlpy.optimizers.AdamFactory
+   d3rlpy.optimizers.RMSpropFactory
+   d3rlpy.optimizers.GPTAdamWFactory
 
 
 Learning rate scheduler
@@ -51,8 +51,8 @@ schedulers with ``OptimizerFactory``.
    import d3rlpy
 
    # set lr_scheduler_factory
-   optim_factory = d3rlpy.models.AdamFactory(
-       lr_scheduler_factory=d3rlpy.models.WarmupSchedulerFactory(
+   optim_factory = d3rlpy.optimizers.AdamFactory(
+       lr_scheduler_factory=d3rlpy.optimizers.WarmupSchedulerFactory(
            warmup_steps=10000
        )
    )
@@ -62,6 +62,6 @@ schedulers with ``OptimizerFactory``.
    :toctree: generated/
    :nosignatures:
 
-   d3rlpy.models.LRSchedulerFactory
-   d3rlpy.models.WarmupSchedulerFactory
-   d3rlpy.models.CosineAnnealingLRFactory
+   d3rlpy.optimizers.LRSchedulerFactory
+   d3rlpy.optimizers.WarmupSchedulerFactory
+   d3rlpy.optimizers.CosineAnnealingLRFactory

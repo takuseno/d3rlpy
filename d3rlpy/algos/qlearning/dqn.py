@@ -4,8 +4,8 @@ from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
 from ...models.builders import create_discrete_q_function
 from ...models.encoders import EncoderFactory, make_encoder_field
-from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
+from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
 from .torch.dqn_impl import DoubleDQNImpl, DQNImpl, DQNModules
@@ -34,7 +34,7 @@ class DQNConfig(LearnableConfig):
             Observation preprocessor.
         reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
         learning_rate (float): Learning rate.
-        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory.
@@ -140,7 +140,7 @@ class DoubleDQNConfig(DQNConfig):
             Observation preprocessor.
         reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
         learning_rate (float): Learning rate.
-        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory.

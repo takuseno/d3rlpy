@@ -10,8 +10,8 @@ from ...models.builders import (
     create_parameter,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
-from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
+from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
 from .torch.cql_impl import CQLImpl, CQLModules, DiscreteCQLImpl
@@ -74,13 +74,13 @@ class CQLConfig(LearnableConfig):
         temp_learning_rate (float):
             Learning rate for temperature parameter of SAC.
         alpha_learning_rate (float): Learning rate for :math:`\alpha`.
-        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the critic.
-        temp_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        temp_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the temperature.
-        alpha_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        alpha_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for :math:`\alpha`.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory for the actor.
@@ -260,7 +260,7 @@ class DiscreteCQLConfig(LearnableConfig):
             Observation preprocessor.
         reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
         learning_rate (float): Learning rate.
-        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory.

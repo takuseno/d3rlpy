@@ -17,7 +17,7 @@ def main() -> None:
     d3rlpy.envs.seed_env(env, args.seed)
 
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([256, 256, 256, 256])
-    optim = d3rlpy.models.optimizers.AdamFactory(weight_decay=1e-4)
+    optim = d3rlpy.optimizers.AdamFactory(weight_decay=1e-4)
 
     awac = d3rlpy.algos.AWACConfig(
         actor_learning_rate=3e-4,

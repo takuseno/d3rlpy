@@ -3,7 +3,6 @@ from typing import Dict
 
 import torch
 
-from ....models import OptimizerWrapper
 from ....models.torch import (
     ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
@@ -13,6 +12,7 @@ from ....models.torch import (
     VAEEncoder,
     compute_vae_error,
 )
+from ....optimizers import OptimizerWrapper
 from ....torch_utility import TorchMiniBatch, soft_sync
 from ....types import Shape, TorchObservation
 from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules

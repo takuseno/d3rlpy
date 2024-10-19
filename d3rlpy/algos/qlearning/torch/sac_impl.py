@@ -7,7 +7,6 @@ import torch.nn.functional as F
 from torch import nn
 from torch.optim import Optimizer
 
-from ....models import OptimizerWrapper
 from ....models.torch import (
     ActionOutput,
     CategoricalPolicy,
@@ -19,6 +18,7 @@ from ....models.torch import (
     build_squashed_gaussian_distribution,
     get_parameter,
 )
+from ....optimizers import OptimizerWrapper
 from ....torch_utility import Modules, TorchMiniBatch, hard_sync
 from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase

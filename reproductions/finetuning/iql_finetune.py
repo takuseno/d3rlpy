@@ -24,8 +24,8 @@ def main() -> None:
     iql = d3rlpy.algos.IQLConfig(
         actor_learning_rate=3e-4,
         critic_learning_rate=3e-4,
-        actor_optim_factory=d3rlpy.models.AdamFactory(
-            lr_scheduler_factory=d3rlpy.models.CosineAnnealingLRFactory(
+        actor_optim_factory=d3rlpy.optimizers.AdamFactory(
+            lr_scheduler_factory=d3rlpy.optimizers.CosineAnnealingLRFactory(
                 T_max=1000000
             ),
         ),

@@ -8,7 +8,7 @@ from ...models.builders import (
     create_normal_policy,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
-from ...models.optimizers import OptimizerFactory, make_optimizer_field
+from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
 from .torch.bc_impl import (
@@ -39,7 +39,7 @@ class BCConfig(LearnableConfig):
 
     Args:
         learning_rate (float): Learing rate.
-        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory.
@@ -129,7 +129,7 @@ class DiscreteBCConfig(LearnableConfig):
 
     Args:
         learning_rate (float): Learing rate.
-        optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory.
         encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory.

@@ -6,7 +6,6 @@ import torch
 from torch.optim import Optimizer
 
 from ....dataclass_utils import asdict_as_float
-from ....models import OptimizerWrapper
 from ....models.torch import (
     CategoricalPolicy,
     DeterministicPolicy,
@@ -18,6 +17,7 @@ from ....models.torch import (
     compute_discrete_imitation_loss,
     compute_stochastic_imitation_loss,
 )
+from ....optimizers import OptimizerWrapper
 from ....torch_utility import Modules, TorchMiniBatch
 from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase

@@ -23,7 +23,7 @@ def main() -> None:
 
     cql = d3rlpy.algos.DiscreteCQLConfig(
         learning_rate=5e-5,
-        optim_factory=d3rlpy.models.optimizers.AdamFactory(eps=1e-2 / 32),
+        optim_factory=d3rlpy.optimizers.AdamFactory(eps=1e-2 / 32),
         batch_size=32,
         alpha=4.0,
         q_func_factory=d3rlpy.models.q_functions.QRQFunctionFactory(

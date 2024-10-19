@@ -7,8 +7,8 @@ from ...models.builders import (
     create_deterministic_policy,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
-from ...models.optimizers import OptimizerFactory, make_optimizer_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
+from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
 from .torch.ddpg_impl import DDPGImpl, DDPGModules
@@ -55,9 +55,9 @@ class DDPGConfig(LearnableConfig):
         reward_scaler (d3rlpy.preprocessing.RewardScaler): Reward preprocessor.
         actor_learning_rate (float): Learning rate for policy function.
         critic_learning_rate (float): Learning rate for Q function.
-        actor_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        actor_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the actor.
-        critic_optim_factory (d3rlpy.models.optimizers.OptimizerFactory):
+        critic_optim_factory (d3rlpy.optimizers.OptimizerFactory):
             Optimizer factory for the critic.
         actor_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory for the actor.
