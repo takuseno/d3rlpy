@@ -54,7 +54,7 @@ d3rlpy supports Linux, macOS and Windows.
 
 ### Dependencies
 Installing d3rlpy package will install or upgrade the following packages to satisfy requirements:
-- torch>=2.0.0
+- torch>=2.5.0
 - tqdm>=4.66.3
 - gym>=0.26.0
 - gymnasium>=1.0.0
