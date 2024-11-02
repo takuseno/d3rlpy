@@ -65,6 +65,7 @@ class TD3PlusBCConfig(LearnableConfig):
         alpha (float): :math:`\alpha` value.
         update_actor_interval (int): Interval to update policy function
             described as `delayed policy update` in the paper.
+        compile (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 3e-4
@@ -82,6 +83,7 @@ class TD3PlusBCConfig(LearnableConfig):
     target_smoothing_clip: float = 0.5
     alpha: float = 2.5
     update_actor_interval: int = 2
+    compile: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -158,6 +160,7 @@ class TD3PlusBC(QLearningAlgoBase[TD3PlusBCImpl, TD3PlusBCConfig]):
             target_smoothing_clip=self._config.target_smoothing_clip,
             alpha=self._config.alpha,
             update_actor_interval=self._config.update_actor_interval,
+            compile=self._config.compile and "cuda" in self._device,
             device=self._device,
         )
 

@@ -68,6 +68,9 @@ def seed(n: int) -> None:
 # run healthcheck
 run_healthcheck()
 
+# enable autograd compilation
+torch._dynamo.config.compiled_autograd = True
+torch.set_float32_matmul_precision("high")
 
 # register Shimmy if available
 try:

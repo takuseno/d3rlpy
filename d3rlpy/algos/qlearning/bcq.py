@@ -137,6 +137,7 @@ class BCQConfig(LearnableConfig):
         rl_start_step (int): Steps to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
         beta (float): KL reguralization term for Conditional VAE.
+        compile (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 1e-3
@@ -159,6 +160,7 @@ class BCQConfig(LearnableConfig):
     action_flexibility: float = 0.05
     rl_start_step: int = 0
     beta: float = 0.5
+    compile: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -264,6 +266,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
             rl_start_step=self._config.rl_start_step,
+            compile=self._config.compile and "cuda" in self._device,
             device=self._device,
         )
 
@@ -331,6 +334,7 @@ class DiscreteBCQConfig(LearnableConfig):
         target_update_interval (int): Interval to update the target network.
         share_encoder (bool): Flag to share encoder between Q-function and
             imitation models.
+        compile (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     learning_rate: float = 6.25e-5
@@ -344,6 +348,7 @@ class DiscreteBCQConfig(LearnableConfig):
     beta: float = 0.5
     target_update_interval: int = 8000
     share_encoder: bool = True
+    compile: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -422,6 +427,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             gamma=self._config.gamma,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
+            compile=self._config.compile and "cuda" in self._device,
             device=self._device,
         )
 

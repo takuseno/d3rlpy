@@ -59,6 +59,7 @@ class SACImpl(DDPGBaseImpl):
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         gamma: float,
         tau: float,
+        compile: bool,
         device: str,
     ):
         super().__init__(
@@ -69,17 +70,18 @@ class SACImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
+            compile=compile,
             device=device,
         )
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
+        self, batch: TorchMiniBatch, action: ActionOutput
     ) -> SACActorLoss:
         dist = build_squashed_gaussian_distribution(action)
         sampled_action, log_prob = dist.sample_with_log_prob()
 
         if self._modules.temp_optim:
-            temp_loss = self.update_temp(log_prob, grad_step)
+            temp_loss = self.update_temp(log_prob)
         else:
             temp_loss = torch.tensor(
                 0.0, dtype=torch.float32, device=sampled_action.device
@@ -95,16 +97,14 @@ class SACImpl(DDPGBaseImpl):
             temp=get_parameter(self._modules.log_temp).exp()[0][0],
         )
 
-    def update_temp(
-        self, log_prob: torch.Tensor, grad_step: int
-    ) -> torch.Tensor:
+    def update_temp(self, log_prob: torch.Tensor) -> torch.Tensor:
         assert self._modules.temp_optim
         self._modules.temp_optim.zero_grad()
         with torch.no_grad():
             targ_temp = log_prob - self._action_size
         loss = -(get_parameter(self._modules.log_temp).exp() * targ_temp).mean()
         loss.backward()
-        self._modules.temp_optim.step(grad_step)
+        self._modules.temp_optim.step()
         return loss
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:

@@ -62,10 +62,10 @@ class OptimizerWrapper:
         self._clip_grad_norm = clip_grad_norm
         self._lr_scheduler = lr_scheduler
 
-    def zero_grad(self) -> None:
-        self._optim.zero_grad()
+    def zero_grad(self, set_to_none: bool = False) -> None:
+        self._optim.zero_grad(set_to_none=set_to_none)
 
-    def step(self, grad_step: int) -> None:
+    def step(self) -> None:
         """Updates parameters.
 
         Args:
@@ -252,6 +252,8 @@ class AdamWFactory(OptimizerFactory):
             eps=self.eps,
             weight_decay=self.weight_decay,
             amsgrad=self.amsgrad,
+            capturable=False,
+            differentiable=False,
         )
 
     @staticmethod

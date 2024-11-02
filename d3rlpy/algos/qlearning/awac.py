@@ -70,6 +70,7 @@ class AWACConfig(LearnableConfig):
         n_action_samples (int): Number of sampled actions to calculate
             :math:`A^\pi(s_t, a_t)`.
         n_critics (int): Number of Q functions for ensemble.
+        compile (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 3e-4
@@ -85,6 +86,7 @@ class AWACConfig(LearnableConfig):
     lam: float = 1.0
     n_action_samples: int = 1
     n_critics: int = 2
+    compile: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -158,6 +160,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             tau=self._config.tau,
             lam=self._config.lam,
             n_action_samples=self._config.n_action_samples,
+            compile=self._config.compile and "cuda" in self._device,
             device=self._device,
         )
 

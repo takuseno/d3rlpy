@@ -111,7 +111,7 @@ class FQEBaseImpl(QLearningAlgoImplBase):
 
         self._modules.optim.zero_grad()
         loss.backward()
-        self._modules.optim.step(grad_step)
+        self._modules.optim.step()
 
         if grad_step % self._target_update_interval == 0:
             self.update_target()

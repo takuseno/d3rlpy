@@ -59,7 +59,7 @@ class DecisionTransformerConfig(TransformerConfig):
         activation_type (str): Type of activation function.
         position_encoding_type (d3rlpy.PositionEncodingType):
             Type of positional encoding (``SIMPLE`` or ``GLOBAL``).
-        compile (bool): (experimental) Flag to enable JIT compilation.
+        compile (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     batch_size: int = 64
@@ -111,10 +111,6 @@ class DecisionTransformer(
             transformer.named_modules(), lr=self._config.learning_rate
         )
 
-        # JIT compile
-        if self._config.compile:
-            transformer = torch.compile(transformer, fullgraph=True)
-
         modules = DecisionTransformerModules(
             transformer=transformer,
             optim=optim,
@@ -125,6 +121,7 @@ class DecisionTransformer(
             action_size=action_size,
             modules=modules,
             device=self._device,
+            compile=self._config.compile and "cuda" in self._device,
         )
 
     def get_action_type(self) -> ActionSpace:
@@ -166,7 +163,7 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
             Type of positional encoding (``SIMPLE`` or ``GLOBAL``).
         warmup_tokens (int): Number of tokens to warmup learning rate scheduler.
         final_tokens (int): Final number of tokens for learning rate scheduler.
-        compile (bool): (experimental) Flag to enable JIT compilation.
+        compile (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     batch_size: int = 128
@@ -223,9 +220,6 @@ class DiscreteDecisionTransformer(
         optim = self._config.optim_factory.create(
             transformer.named_modules(), lr=self._config.learning_rate
         )
-        # JIT compile
-        if self._config.compile:
-            transformer = torch.compile(transformer, fullgraph=True)
 
         modules = DiscreteDecisionTransformerModules(
             transformer=transformer,
@@ -239,6 +233,7 @@ class DiscreteDecisionTransformer(
             warmup_tokens=self._config.warmup_tokens,
             final_tokens=self._config.final_tokens,
             initial_learning_rate=self._config.learning_rate,
+            compile=self._config.compile and "cuda" in self._device,
             device=self._device,
         )
 

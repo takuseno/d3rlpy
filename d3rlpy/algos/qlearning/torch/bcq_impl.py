@@ -19,6 +19,7 @@ from ....models.torch import (
 )
 from ....optimizers import OptimizerWrapper
 from ....torch_utility import (
+    CudaGraphWrapper,
     TorchMiniBatch,
     expand_and_repeat_recursively,
     flatten_left_recursively,
@@ -69,6 +70,7 @@ class BCQImpl(DDPGBaseImpl):
         action_flexibility: float,
         beta: float,
         rl_start_step: int,
+        compile: bool,
         device: str,
     ):
         super().__init__(
@@ -79,6 +81,7 @@ class BCQImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
+            compile=compile,
             device=device,
         )
         self._lam = lam
@@ -86,18 +89,41 @@ class BCQImpl(DDPGBaseImpl):
         self._action_flexibility = action_flexibility
         self._beta = beta
         self._rl_start_step = rl_start_step
+        self._compute_imitator_grad = (
+            CudaGraphWrapper(self.compute_imitator_grad)
+            if compile
+            else self.compute_imitator_grad
+        )
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
+        self, batch: TorchMiniBatch, action: ActionOutput
     ) -> DDPGBaseActorLoss:
         value = self._q_func_forwarder.compute_expected_q(
             batch.observations, action.squashed_mu, "none"
         )
         return DDPGBaseActorLoss(-value[0].mean())
 
-    def update_imitator(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    def compute_actor_grad(self, batch: TorchMiniBatch) -> DDPGBaseActorLoss:
+        # forward policy
+        batch_size = get_batch_size(batch.observations)
+        latent = torch.randn(
+            batch_size, 2 * self._action_size, device=self._device
+        )
+        clipped_latent = latent.clamp(-0.5, 0.5)
+        sampled_action = self._modules.vae_decoder(
+            x=batch.observations,
+            latent=clipped_latent,
+        )
+        action = self._modules.policy(batch.observations, sampled_action)
+
+        self._modules.actor_optim.zero_grad()
+        loss = self.compute_actor_loss(batch, action)
+        loss.actor_loss.backward()
+        return loss
+
+    def compute_imitator_grad(
+        self, batch: TorchMiniBatch
+    ) -> Dict[str, torch.Tensor]:
         self._modules.vae_optim.zero_grad()
         loss = compute_vae_error(
             vae_encoder=self._modules.vae_encoder,
@@ -107,8 +133,12 @@ class BCQImpl(DDPGBaseImpl):
             beta=self._beta,
         )
         loss.backward()
-        self._modules.vae_optim.step(grad_step)
-        return {"vae_loss": float(loss.cpu().detach().numpy())}
+        return {"loss": loss}
+
+    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        loss = self._compute_imitator_grad(batch)
+        self._modules.vae_optim.step()
+        return {"vae_loss": float(loss["loss"].cpu().detach().numpy())}
 
     def _repeat_observation(self, x: TorchObservation) -> TorchObservation:
         # (batch_size, *obs_shape) -> (batch_size, n, *obs_shape)
@@ -186,25 +216,13 @@ class BCQImpl(DDPGBaseImpl):
     ) -> Dict[str, float]:
         metrics = {}
 
-        metrics.update(self.update_imitator(batch, grad_step))
+        metrics.update(self.update_imitator(batch))
         if grad_step < self._rl_start_step:
             return metrics
 
-        # forward policy
-        batch_size = get_batch_size(batch.observations)
-        latent = torch.randn(
-            batch_size, 2 * self._action_size, device=self._device
-        )
-        clipped_latent = latent.clamp(-0.5, 0.5)
-        sampled_action = self._modules.vae_decoder(
-            x=batch.observations,
-            latent=clipped_latent,
-        )
-        action = self._modules.policy(batch.observations, sampled_action)
-
         # update models
-        metrics.update(self.update_critic(batch, grad_step))
-        metrics.update(self.update_actor(batch, action, grad_step))
+        metrics.update(self.update_critic(batch))
+        metrics.update(self.update_actor(batch))
         self.update_critic_target()
         self.update_actor_target()
         return metrics
@@ -237,6 +255,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         gamma: float,
         action_flexibility: float,
         beta: float,
+        compile: bool,
         device: str,
     ):
         super().__init__(
@@ -247,6 +266,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=target_update_interval,
             gamma=gamma,
+            compile=compile,
             device=device,
         )
         self._action_flexibility = action_flexibility

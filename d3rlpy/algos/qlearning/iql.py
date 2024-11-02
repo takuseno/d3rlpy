@@ -80,6 +80,7 @@ class IQLConfig(LearnableConfig):
         weight_temp (float): Inverse temperature value represented as
             :math:`\beta`.
         max_weight (float): Maximum advantage weight value to clip.
+        compile (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 3e-4
@@ -96,6 +97,7 @@ class IQLConfig(LearnableConfig):
     expectile: float = 0.7
     weight_temp: float = 3.0
     max_weight: float = 100.0
+    compile: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -175,6 +177,7 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             expectile=self._config.expectile,
             weight_temp=self._config.weight_temp,
             max_weight=self._config.max_weight,
+            compile=self._config.compile and "cuda" in self._device,
             device=self._device,
         )
 

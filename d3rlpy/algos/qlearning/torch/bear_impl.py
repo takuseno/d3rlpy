@@ -17,6 +17,7 @@ from ....models.torch import (
 )
 from ....optimizers import OptimizerWrapper
 from ....torch_utility import (
+    CudaGraphWrapper,
     TorchMiniBatch,
     expand_and_repeat_recursively,
     flatten_left_recursively,
@@ -87,6 +88,7 @@ class BEARImpl(SACImpl):
         mmd_sigma: float,
         vae_kl_weight: float,
         warmup_steps: int,
+        compile: bool,
         device: str,
     ):
         super().__init__(
@@ -97,6 +99,7 @@ class BEARImpl(SACImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
+            compile=compile,
             device=device,
         )
         self._alpha_threshold = alpha_threshold
@@ -108,14 +111,24 @@ class BEARImpl(SACImpl):
         self._mmd_sigma = mmd_sigma
         self._vae_kl_weight = vae_kl_weight
         self._warmup_steps = warmup_steps
+        self._compute_warmup_actor_grad = (
+            CudaGraphWrapper(self.compute_warmup_actor_grad)
+            if compile
+            else self.compute_warmup_actor_grad
+        )
+        self._compute_imitator_grad = (
+            CudaGraphWrapper(self.compute_imitator_grad)
+            if compile
+            else self.compute_imitator_grad
+        )
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
+        self, batch: TorchMiniBatch, action: ActionOutput
     ) -> BEARActorLoss:
-        loss = super().compute_actor_loss(batch, action, grad_step)
+        loss = super().compute_actor_loss(batch, action)
         mmd_loss = self._compute_mmd_loss(batch.observations)
         if self._modules.alpha_optim:
-            self.update_alpha(mmd_loss, grad_step)
+            self.update_alpha(mmd_loss)
         return BEARActorLoss(
             actor_loss=loss.actor_loss + mmd_loss,
             temp_loss=loss.temp_loss,
@@ -124,28 +137,36 @@ class BEARImpl(SACImpl):
             alpha=get_parameter(self._modules.log_alpha).exp()[0][0],
         )
 
-    def warmup_actor(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    def compute_warmup_actor_grad(
+        self, batch: TorchMiniBatch
+    ) -> Dict[str, torch.Tensor]:
         self._modules.actor_optim.zero_grad()
         loss = self._compute_mmd_loss(batch.observations)
         loss.backward()
-        self._modules.actor_optim.step(grad_step)
-        return {"actor_loss": float(loss.cpu().detach().numpy())}
+        return {"loss": loss}
+
+    def warmup_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        loss = self._compute_warmup_actor_grad(batch)
+        self._modules.actor_optim.step()
+        return {"actor_loss": float(loss["loss"].cpu().detach().numpy())}
 
     def _compute_mmd_loss(self, obs_t: TorchObservation) -> torch.Tensor:
         mmd = self._compute_mmd(obs_t)
         alpha = get_parameter(self._modules.log_alpha).exp()
         return (alpha * (mmd - self._alpha_threshold)).mean()
 
-    def update_imitator(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    def compute_imitator_grad(
+        self, batch: TorchMiniBatch
+    ) -> Dict[str, torch.Tensor]:
         self._modules.vae_optim.zero_grad()
         loss = self.compute_imitator_loss(batch)
         loss.backward()
-        self._modules.vae_optim.step(grad_step)
-        return {"imitator_loss": float(loss.cpu().detach().numpy())}
+        return {"loss": loss}
+
+    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        loss = self._compute_imitator_grad(batch)
+        self._modules.vae_optim.step()
+        return {"imitator_loss": float(loss["loss"].cpu().detach().numpy())}
 
     def compute_imitator_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
         return compute_vae_error(
@@ -156,12 +177,12 @@ class BEARImpl(SACImpl):
             beta=self._vae_kl_weight,
         )
 
-    def update_alpha(self, mmd_loss: torch.Tensor, grad_step: int) -> None:
+    def update_alpha(self, mmd_loss: torch.Tensor) -> None:
         assert self._modules.alpha_optim
         self._modules.alpha_optim.zero_grad()
         loss = -mmd_loss
         loss.backward(retain_graph=True)
-        self._modules.alpha_optim.step(grad_step)
+        self._modules.alpha_optim.step()
         # clip for stability
         get_parameter(self._modules.log_alpha).data.clamp_(-5.0, 10.0)
 
@@ -278,13 +299,12 @@ class BEARImpl(SACImpl):
         self, batch: TorchMiniBatch, grad_step: int
     ) -> Dict[str, float]:
         metrics = {}
-        metrics.update(self.update_imitator(batch, grad_step))
-        metrics.update(self.update_critic(batch, grad_step))
+        metrics.update(self.update_imitator(batch))
+        metrics.update(self.update_critic(batch))
         if grad_step < self._warmup_steps:
-            actor_loss = self.warmup_actor(batch, grad_step)
+            actor_loss = self.warmup_actor(batch)
         else:
-            action = self._modules.policy(batch.observations)
-            actor_loss = self.update_actor(batch, action, grad_step)
+            actor_loss = self.update_actor(batch)
         metrics.update(actor_loss)
         self.update_critic_target()
         return metrics

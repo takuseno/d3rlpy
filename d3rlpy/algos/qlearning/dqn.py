@@ -44,6 +44,7 @@ class DQNConfig(LearnableConfig):
         gamma (float): Discount factor.
         n_critics (int): Number of Q functions for ensemble.
         target_update_interval (int): Interval to update the target network.
+        compile (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     batch_size: int = 32
@@ -54,6 +55,7 @@ class DQNConfig(LearnableConfig):
     gamma: float = 0.99
     n_critics: int = 1
     target_update_interval: int = 8000
+    compile: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -106,6 +108,7 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
             target_update_interval=self._config.target_update_interval,
             modules=modules,
             gamma=self._config.gamma,
+            compile=self._config.compile,
             device=self._device,
         )
 
@@ -151,6 +154,7 @@ class DoubleDQNConfig(DQNConfig):
         n_critics (int): Number of Q functions.
         target_update_interval (int): Interval to synchronize the target
             network.
+        compile (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     batch_size: int = 32
@@ -161,6 +165,7 @@ class DoubleDQNConfig(DQNConfig):
     gamma: float = 0.99
     n_critics: int = 1
     target_update_interval: int = 8000
+    compile: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -213,6 +218,7 @@ class DoubleDQN(DQN):
             targ_q_func_forwarder=targ_forwarder,
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
+            compile=self._config.compile,
             device=self._device,
         )
 

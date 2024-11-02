@@ -145,7 +145,7 @@ def test_reset_optimizer_states() -> None:
     # instantiate optimizer state
     y = impl.fc1(torch.rand(100)).sum()
     y.backward()
-    impl.optim.step(0)
+    impl.optim.step()
 
     # check if state is not empty
     state = copy.deepcopy(impl.optim.optim.state)

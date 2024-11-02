@@ -46,6 +46,7 @@ def main() -> None:
         num_heads=1,
         num_layers=3,
         max_timestep=1000,
+        compile=False,
     ).create(device=args.gpu)
 
     dt.fit(

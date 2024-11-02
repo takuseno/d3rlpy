@@ -71,6 +71,7 @@ class ReBRACConfig(LearnableConfig):
         critic_beta (float): :math:`\beta_2` value.
         update_actor_interval (int): Interval to update policy function
             described as `delayed policy update` in the paper.
+        compile (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 1e-3
@@ -89,6 +90,7 @@ class ReBRACConfig(LearnableConfig):
     actor_beta: float = 0.001
     critic_beta: float = 0.01
     update_actor_interval: int = 2
+    compile: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -166,6 +168,7 @@ class ReBRAC(QLearningAlgoBase[ReBRACImpl, ReBRACConfig]):
             actor_beta=self._config.actor_beta,
             critic_beta=self._config.critic_beta,
             update_actor_interval=self._config.update_actor_interval,
+            compile=self._config.compile and "cuda" in self._device,
             device=self._device,
         )
 
