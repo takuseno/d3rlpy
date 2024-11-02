@@ -244,7 +244,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
     def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
         # Q function should be inference mode for stability
         self._modules.q_funcs.eval()
-        loss = self._compute_critic_grad(batch)
+        loss = self._compute_actor_grad(batch)
         self._modules.actor_optim.step()
         return {"actor_loss": float(loss["loss"].cpu().detach().numpy())}
 
@@ -259,7 +259,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
         loss = {}
         if self._modules.temp_optim:
-            loss.update(self.update_temp(batch, dist))
+            loss.update(self.update_temp(dist))
 
         log_probs = dist.logits
         probs = dist.probs
@@ -271,9 +271,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         loss["loss"] = (probs * (entropy - q_t)).sum(dim=1).mean()
         return loss
 
-    def update_temp(
-        self, batch: TorchMiniBatch, dist: Categorical
-    ) -> Dict[str, torch.Tensor]:
+    def update_temp(self, dist: Categorical) -> Dict[str, torch.Tensor]:
         assert self._modules.temp_optim
         assert self._modules.log_temp is not None
         self._modules.temp_optim.zero_grad()
