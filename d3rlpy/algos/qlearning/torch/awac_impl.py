@@ -33,7 +33,7 @@ class AWACImpl(SACImpl):
         tau: float,
         lam: float,
         n_action_samples: int,
-        compile: bool,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -44,7 +44,7 @@ class AWACImpl(SACImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile=compile,
+            compile_graph=compile_graph,
             device=device,
         )
         self._lam = lam

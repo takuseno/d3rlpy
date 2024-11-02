@@ -69,7 +69,7 @@ class DDPGConfig(LearnableConfig):
         gamma (float): Discount factor.
         tau (float): Target network synchronization coefficiency.
         n_critics (int): Number of Q functions for ensemble.
-        compile (bool): Flag to enable JIT compilation and CUDAGraph.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     batch_size: int = 256
@@ -82,7 +82,7 @@ class DDPGConfig(LearnableConfig):
     q_func_factory: QFunctionFactory = make_q_func_field()
     tau: float = 0.005
     n_critics: int = 1
-    compile: bool = False
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -155,7 +155,7 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
-            compile=self._config.compile,
+            compile_graph=self._config.compile_graph,
             device=self._device,
         )
 

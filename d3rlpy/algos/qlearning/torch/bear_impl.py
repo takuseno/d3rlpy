@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import torch
 
@@ -60,6 +60,10 @@ class BEARActorLoss(SACActorLoss):
 
 class BEARImpl(SACImpl):
     _modules: BEARModules
+    _compute_warmup_actor_grad: Callable[
+        [TorchMiniBatch], Dict[str, torch.Tensor]
+    ]
+    _compute_imitator_grad: Callable[[TorchMiniBatch], Dict[str, torch.Tensor]]
     _alpha_threshold: float
     _lam: float
     _n_action_samples: int
@@ -88,7 +92,7 @@ class BEARImpl(SACImpl):
         mmd_sigma: float,
         vae_kl_weight: float,
         warmup_steps: int,
-        compile: bool,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -99,7 +103,7 @@ class BEARImpl(SACImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile=compile,
+            compile_graph=compile_graph,
             device=device,
         )
         self._alpha_threshold = alpha_threshold
@@ -112,13 +116,13 @@ class BEARImpl(SACImpl):
         self._vae_kl_weight = vae_kl_weight
         self._warmup_steps = warmup_steps
         self._compute_warmup_actor_grad = (
-            CudaGraphWrapper(self.compute_warmup_actor_grad)
-            if compile
+            CudaGraphWrapper(self.compute_warmup_actor_grad)  # type: ignore
+            if compile_graph
             else self.compute_warmup_actor_grad
         )
         self._compute_imitator_grad = (
-            CudaGraphWrapper(self.compute_imitator_grad)
-            if compile
+            CudaGraphWrapper(self.compute_imitator_grad)  # type: ignore
+            if compile_graph
             else self.compute_imitator_grad
         )
 

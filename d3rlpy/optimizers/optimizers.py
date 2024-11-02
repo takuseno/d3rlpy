@@ -252,8 +252,6 @@ class AdamWFactory(OptimizerFactory):
             eps=self.eps,
             weight_decay=self.weight_decay,
             amsgrad=self.amsgrad,
-            capturable=False,
-            differentiable=False,
         )
 
     @staticmethod

@@ -47,6 +47,7 @@ class NFQConfig(LearnableConfig):
         batch_size (int): Mini-batch size.
         gamma (float): Discount factor.
         n_critics (int): Number of Q functions for ensemble.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     learning_rate: float = 6.25e-5
@@ -56,6 +57,7 @@ class NFQConfig(LearnableConfig):
     batch_size: int = 32
     gamma: float = 0.99
     n_critics: int = 1
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -108,6 +110,7 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=1,
             gamma=self._config.gamma,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
             device=self._device,
         )
 

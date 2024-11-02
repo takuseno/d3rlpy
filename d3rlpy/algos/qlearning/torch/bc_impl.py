@@ -47,15 +47,13 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
             device=device,
         )
 
-    def update_imitator(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
         self._modules.optim.zero_grad()
 
         loss = self.compute_loss(batch.observations, batch.actions)
 
         loss.loss.backward()
-        self._modules.optim.step(grad_step)
+        self._modules.optim.step()
 
         return asdict_as_float(loss)
 
@@ -76,7 +74,7 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
     ) -> Dict[str, float]:
-        return self.update_imitator(batch, grad_step)
+        return self.update_imitator(batch)
 
 
 @dataclasses.dataclass(frozen=True)

@@ -99,6 +99,7 @@ class CRRConfig(LearnableConfig):
             ``soft`` target update.
         update_actor_interval (int): Interval to update policy function used
             with ``hard`` target update.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 3e-4
@@ -120,6 +121,7 @@ class CRRConfig(LearnableConfig):
     tau: float = 5e-3
     target_update_interval: int = 100
     update_actor_interval: int = 1
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -199,6 +201,7 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
             tau=self._config.tau,
             target_update_type=self._config.target_update_type,
             target_update_interval=self._config.target_update_interval,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
             device=self._device,
         )
 

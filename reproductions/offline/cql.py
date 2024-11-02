@@ -20,7 +20,7 @@ def main() -> None:
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([256, 256])
 
     if "medium-v0" in args.dataset:
-        conservative_weight = 5.0
+        conservative_weight = 10.0
     else:
         conservative_weight = 5.0
 
@@ -35,8 +35,7 @@ def main() -> None:
         batch_size=256,
         n_action_samples=10,
         alpha_threshold=10,
-        conservative_weight=5.0,
-        compile=True,
+        conservative_weight=conservative_weight,
     ).create(device=args.gpu)
 
     cql.fit(

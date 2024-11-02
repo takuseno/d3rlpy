@@ -50,7 +50,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         target_update_interval: int,
         gamma: float,
-        compile: bool,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -65,7 +65,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._target_update_interval = target_update_interval
         self._compute_grad = (
             CudaGraphWrapper(self.compute_grad)  # type: ignore
-            if compile
+            if compile_graph
             else self.compute_grad
         )
         hard_sync(modules.targ_q_funcs, modules.q_funcs)

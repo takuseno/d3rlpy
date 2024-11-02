@@ -51,7 +51,6 @@ def main() -> None:
         alpha_threshold=0.8,
         reward_scaler=reward_scaler,
         max_q_backup=True,
-        compile=True,
     ).create(device=args.gpu)
 
     # pretraining

@@ -1,3 +1,4 @@
+# pylint: disable=protected-access
 import random
 
 import gymnasium
@@ -68,9 +69,10 @@ def seed(n: int) -> None:
 # run healthcheck
 run_healthcheck()
 
-# enable autograd compilation
-torch._dynamo.config.compiled_autograd = True
-torch.set_float32_matmul_precision("high")
+if torch.cuda.is_available():
+    # enable autograd compilation
+    torch._dynamo.config.compiled_autograd = True
+    torch.set_float32_matmul_precision("high")
 
 # register Shimmy if available
 try:

@@ -100,7 +100,7 @@ class CQLConfig(LearnableConfig):
             :math:`\log{\sum_a \exp{Q(s, a)}}`.
         soft_q_backup (bool): Flag to use SAC-style backup.
         max_q_backup (bool): Flag to sample max Q-values for target.
-        compile (bool): Flag to enable JIT compilation and CUDAGraph.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 1e-4
@@ -125,7 +125,7 @@ class CQLConfig(LearnableConfig):
     n_action_samples: int = 10
     soft_q_backup: bool = False
     max_q_backup: bool = False
-    compile: bool = False
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -227,7 +227,7 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             n_action_samples=self._config.n_action_samples,
             soft_q_backup=self._config.soft_q_backup,
             max_q_backup=self._config.max_q_backup,
-            compile=self._config.compile and "cuda" in self._device,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
             device=self._device,
         )
 
@@ -275,7 +275,7 @@ class DiscreteCQLConfig(LearnableConfig):
         target_update_interval (int): Interval to synchronize the target
             network.
         alpha (float): math:`\alpha` value above.
-        compile (bool): Flag to enable JIT compilation and CUDAGraph.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     learning_rate: float = 6.25e-5
@@ -287,7 +287,7 @@ class DiscreteCQLConfig(LearnableConfig):
     n_critics: int = 1
     target_update_interval: int = 8000
     alpha: float = 1.0
-    compile: bool = False
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -341,7 +341,7 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
             alpha=self._config.alpha,
-            compile=self._config.compile and "cuda" in self._device,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
             device=self._device,
         )
 

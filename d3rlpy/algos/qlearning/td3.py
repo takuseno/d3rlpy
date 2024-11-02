@@ -74,7 +74,7 @@ class TD3Config(LearnableConfig):
         target_smoothing_clip (float): Clipping range for target noise.
         update_actor_interval (int): Interval to update policy function
             described as `delayed policy update` in the paper.
-        compile (bool): Flag to enable JIT compilation and CUDAGraph.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 3e-4
@@ -91,7 +91,7 @@ class TD3Config(LearnableConfig):
     target_smoothing_sigma: float = 0.2
     target_smoothing_clip: float = 0.5
     update_actor_interval: int = 2
-    compile: bool = False
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -167,7 +167,7 @@ class TD3(QLearningAlgoBase[TD3Impl, TD3Config]):
             target_smoothing_sigma=self._config.target_smoothing_sigma,
             target_smoothing_clip=self._config.target_smoothing_clip,
             update_actor_interval=self._config.update_actor_interval,
-            compile=self._config.compile,
+            compile_graph=self._config.compile_graph,
             device=self._device,
         )
 

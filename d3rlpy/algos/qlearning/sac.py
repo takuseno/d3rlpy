@@ -94,7 +94,7 @@ class SACConfig(LearnableConfig):
         tau (float): Target network synchronization coefficiency.
         n_critics (int): Number of Q functions for ensemble.
         initial_temperature (float): Initial temperature value.
-        compile (bool): Flag to enable JIT compilation and CUDAGraph.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 3e-4
@@ -111,7 +111,7 @@ class SACConfig(LearnableConfig):
     tau: float = 0.005
     n_critics: int = 2
     initial_temperature: float = 1.0
-    compile: bool = False
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -190,7 +190,7 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
-            compile=self._config.compile and "cuda" in self._device,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
             device=self._device,
         )
 
@@ -252,6 +252,7 @@ class DiscreteSACConfig(LearnableConfig):
         gamma (float): Discount factor.
         n_critics (int): Number of Q functions for ensemble.
         initial_temperature (float): Initial temperature value.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 3e-4
@@ -268,6 +269,7 @@ class DiscreteSACConfig(LearnableConfig):
     n_critics: int = 2
     initial_temperature: float = 1.0
     target_update_interval: int = 8000
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -350,6 +352,7 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
             device=self._device,
         )
 

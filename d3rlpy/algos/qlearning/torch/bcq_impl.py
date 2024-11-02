@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Dict, cast
+from typing import Callable, Dict, cast
 
 import torch
 import torch.nn.functional as F
@@ -50,6 +50,7 @@ class BCQModules(DDPGBaseModules):
 
 class BCQImpl(DDPGBaseImpl):
     _modules: BCQModules
+    _compute_imitator_grad: Callable[[TorchMiniBatch], Dict[str, torch.Tensor]]
     _lam: float
     _n_action_samples: int
     _action_flexibility: float
@@ -70,7 +71,7 @@ class BCQImpl(DDPGBaseImpl):
         action_flexibility: float,
         beta: float,
         rl_start_step: int,
-        compile: bool,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -81,7 +82,7 @@ class BCQImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile=compile,
+            compile_graph=compile_graph,
             device=device,
         )
         self._lam = lam
@@ -90,8 +91,8 @@ class BCQImpl(DDPGBaseImpl):
         self._beta = beta
         self._rl_start_step = rl_start_step
         self._compute_imitator_grad = (
-            CudaGraphWrapper(self.compute_imitator_grad)
-            if compile
+            CudaGraphWrapper(self.compute_imitator_grad)  # type: ignore
+            if compile_graph
             else self.compute_imitator_grad
         )
 
@@ -255,7 +256,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         gamma: float,
         action_flexibility: float,
         beta: float,
-        compile: bool,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -266,7 +267,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=target_update_interval,
             gamma=gamma,
-            compile=compile,
+            compile_graph=compile_graph,
             device=device,
         )
         self._action_flexibility = action_flexibility

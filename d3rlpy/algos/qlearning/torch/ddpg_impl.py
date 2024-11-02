@@ -57,7 +57,7 @@ class DDPGBaseImpl(
     ContinuousQFunctionMixin, QLearningAlgoImplBase, metaclass=ABCMeta
 ):
     _modules: DDPGBaseModules
-    _compute_crtic_grad: Callable[[TorchMiniBatch], DDPGBaseCriticLoss]
+    _compute_critic_grad: Callable[[TorchMiniBatch], DDPGBaseCriticLoss]
     _compute_actor_grad: Callable[[TorchMiniBatch], DDPGBaseActorLoss]
     _gamma: float
     _tau: float
@@ -73,7 +73,7 @@ class DDPGBaseImpl(
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         gamma: float,
         tau: float,
-        compile: bool,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -87,13 +87,13 @@ class DDPGBaseImpl(
         self._q_func_forwarder = q_func_forwarder
         self._targ_q_func_forwarder = targ_q_func_forwarder
         self._compute_critic_grad = (
-            CudaGraphWrapper(self.compute_critic_grad)
-            if compile
+            CudaGraphWrapper(self.compute_critic_grad)  # type: ignore
+            if compile_graph
             else self.compute_critic_grad
         )
         self._compute_actor_grad = (
-            CudaGraphWrapper(self.compute_actor_grad)
-            if compile
+            CudaGraphWrapper(self.compute_actor_grad)  # type: ignore
+            if compile_graph
             else self.compute_actor_grad
         )
         hard_sync(self._modules.targ_q_funcs, self._modules.q_funcs)
@@ -200,7 +200,7 @@ class DDPGImpl(DDPGBaseImpl):
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         gamma: float,
         tau: float,
-        compile: bool,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -211,7 +211,7 @@ class DDPGImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile=compile,
+            compile_graph=compile_graph,
             device=device,
         )
         hard_sync(self._modules.targ_policy, self._modules.policy)

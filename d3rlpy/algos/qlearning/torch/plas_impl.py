@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict
+from typing import Callable, Dict
 
 import torch
 
@@ -36,6 +36,7 @@ class PLASModules(DDPGBaseModules):
 
 class PLASImpl(DDPGBaseImpl):
     _modules: PLASModules
+    _compute_imitator_grad: Callable[[TorchMiniBatch], Dict[str, torch.Tensor]]
     _lam: float
     _beta: float
     _warmup_steps: int
@@ -52,7 +53,7 @@ class PLASImpl(DDPGBaseImpl):
         lam: float,
         beta: float,
         warmup_steps: int,
-        compile: bool,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -63,15 +64,15 @@ class PLASImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile=compile,
+            compile_graph=compile_graph,
             device=device,
         )
         self._lam = lam
         self._beta = beta
         self._warmup_steps = warmup_steps
         self._compute_imitator_grad = (
-            CudaGraphWrapper(self.compute_imitator_grad)
-            if compile
+            CudaGraphWrapper(self.compute_imitator_grad)  # type: ignore
+            if compile_graph
             else self.compute_imitator_grad
         )
 
@@ -167,7 +168,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         lam: float,
         beta: float,
         warmup_steps: int,
-        compile: bool,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -181,7 +182,7 @@ class PLASWithPerturbationImpl(PLASImpl):
             lam=lam,
             beta=beta,
             warmup_steps=warmup_steps,
-            compile=compile,
+            compile_graph=compile_graph,
             device=device,
         )
 

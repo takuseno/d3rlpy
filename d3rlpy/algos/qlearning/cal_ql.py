@@ -69,7 +69,7 @@ class CalQLConfig(CQLConfig):
             :math:`\log{\sum_a \exp{Q(s, a)}}`.
         soft_q_backup (bool): Flag to use SAC-style backup.
         max_q_backup (bool): Flag to sample max Q-values for target.
-        compile (bool): Flag to enable JIT compilation and CUDAGraph.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     def create(
@@ -172,7 +172,7 @@ class CalQL(CQL):
             n_action_samples=self._config.n_action_samples,
             soft_q_backup=self._config.soft_q_backup,
             max_q_backup=self._config.max_q_backup,
-            compile=self._config.compile,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
             device=self._device,
         )
 

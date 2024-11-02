@@ -29,7 +29,7 @@ class ReBRACImpl(TD3Impl):
         actor_beta: float,
         critic_beta: float,
         update_actor_interval: int,
-        compile: bool,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -43,7 +43,7 @@ class ReBRACImpl(TD3Impl):
             target_smoothing_sigma=target_smoothing_sigma,
             target_smoothing_clip=target_smoothing_clip,
             update_actor_interval=update_actor_interval,
-            compile=compile,
+            compile_graph=compile_graph,
             device=device,
         )
         self._actor_beta = actor_beta

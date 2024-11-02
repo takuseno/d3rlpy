@@ -1,10 +1,11 @@
 import dataclasses
 import math
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.distributions import Categorical
 from torch.optim import Optimizer
 
 from ....models.torch import (
@@ -19,7 +20,12 @@ from ....models.torch import (
     get_parameter,
 )
 from ....optimizers import OptimizerWrapper
-from ....torch_utility import Modules, TorchMiniBatch, hard_sync
+from ....torch_utility import (
+    CudaGraphWrapper,
+    Modules,
+    TorchMiniBatch,
+    hard_sync,
+)
 from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
 from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
@@ -59,7 +65,7 @@ class SACImpl(DDPGBaseImpl):
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         gamma: float,
         tau: float,
-        compile: bool,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -70,7 +76,7 @@ class SACImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile=compile,
+            compile_graph=compile_graph,
             device=device,
         )
 
@@ -142,6 +148,8 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
     _q_func_forwarder: DiscreteEnsembleQFunctionForwarder
     _targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder
     _target_update_interval: int
+    _compute_critic_grad: Callable[[TorchMiniBatch], Dict[str, torch.Tensor]]
+    _compute_actor_grad: Callable[[TorchMiniBatch], Dict[str, torch.Tensor]]
 
     def __init__(
         self,
@@ -152,6 +160,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         target_update_interval: int,
         gamma: float,
+        compile_graph: bool,
         device: str,
     ):
         super().__init__(
@@ -164,20 +173,31 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._q_func_forwarder = q_func_forwarder
         self._targ_q_func_forwarder = targ_q_func_forwarder
         self._target_update_interval = target_update_interval
+        self._compute_critic_grad = (
+            CudaGraphWrapper(self.compute_critic_grad)  # type: ignore
+            if compile_graph
+            else self.compute_critic_grad
+        )
+        self._compute_actor_grad = (
+            CudaGraphWrapper(self.compute_actor_grad)  # type: ignore
+            if compile_graph
+            else self.compute_actor_grad
+        )
         hard_sync(modules.targ_q_funcs, modules.q_funcs)
 
-    def update_critic(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    def compute_critic_grad(
+        self, batch: TorchMiniBatch
+    ) -> Dict[str, torch.Tensor]:
         self._modules.critic_optim.zero_grad()
-
         q_tpn = self.compute_target(batch)
         loss = self.compute_critic_loss(batch, q_tpn)
-
         loss.backward()
-        self._modules.critic_optim.step(grad_step)
+        return {"loss": loss}
 
-        return {"critic_loss": float(loss.cpu().detach().numpy())}
+    def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        loss = self._compute_critic_grad(batch)
+        self._modules.critic_optim.step()
+        return {"critic_loss": float(loss["loss"].cpu().detach().numpy())}
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
@@ -213,27 +233,34 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
             gamma=self._gamma**batch.intervals,
         )
 
-    def update_actor(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    def compute_actor_grad(
+        self, batch: TorchMiniBatch
+    ) -> Dict[str, torch.Tensor]:
+        self._modules.actor_optim.zero_grad()
+        loss = self.compute_actor_loss(batch)
+        loss["loss"].backward()
+        return loss
+
+    def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
         # Q function should be inference mode for stability
         self._modules.q_funcs.eval()
+        loss = self._compute_critic_grad(batch)
+        self._modules.actor_optim.step()
+        return {"actor_loss": float(loss["loss"].cpu().detach().numpy())}
 
-        self._modules.actor_optim.zero_grad()
-
-        loss = self.compute_actor_loss(batch)
-
-        loss.backward()
-        self._modules.actor_optim.step(grad_step)
-
-        return {"actor_loss": float(loss.cpu().detach().numpy())}
-
-    def compute_actor_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
+    def compute_actor_loss(
+        self, batch: TorchMiniBatch
+    ) -> Dict[str, torch.Tensor]:
         with torch.no_grad():
             q_t = self._q_func_forwarder.compute_expected_q(
                 batch.observations, reduction="min"
             )
         dist = self._modules.policy(batch.observations)
+
+        loss = {}
+        if self._modules.temp_optim:
+            loss.update(self.update_temp(batch, dist))
+
         log_probs = dist.logits
         probs = dist.probs
         if self._modules.log_temp is None:
@@ -241,17 +268,17 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         else:
             temp = get_parameter(self._modules.log_temp).exp()
         entropy = temp * log_probs
-        return (probs * (entropy - q_t)).sum(dim=1).mean()
+        loss["loss"] = (probs * (entropy - q_t)).sum(dim=1).mean()
+        return loss
 
     def update_temp(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+        self, batch: TorchMiniBatch, dist: Categorical
+    ) -> Dict[str, torch.Tensor]:
         assert self._modules.temp_optim
         assert self._modules.log_temp is not None
         self._modules.temp_optim.zero_grad()
 
         with torch.no_grad():
-            dist = self._modules.policy(batch.observations)
             log_probs = F.log_softmax(dist.logits, dim=1)
             probs = dist.probs
             expct_log_probs = (probs * log_probs).sum(dim=1, keepdim=True)
@@ -261,31 +288,21 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         loss = -(get_parameter(self._modules.log_temp).exp() * targ_temp).mean()
 
         loss.backward()
-        self._modules.temp_optim.step(grad_step)
+        self._modules.temp_optim.step()
 
         # current temperature value
         log_temp = get_parameter(self._modules.log_temp)
-        cur_temp = log_temp.exp().cpu().detach().numpy()[0][0]
 
-        return {
-            "temp_loss": float(loss.cpu().detach().numpy()),
-            "temp": float(cur_temp),
-        }
+        return {"temp_loss": loss, "temp": log_temp.exp()[0][0]}
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
     ) -> Dict[str, float]:
         metrics = {}
-
-        # lagrangian parameter update for SAC temeprature
-        if self._modules.temp_optim:
-            metrics.update(self.update_temp(batch, grad_step))
-        metrics.update(self.update_critic(batch, grad_step))
-        metrics.update(self.update_actor(batch, grad_step))
-
+        metrics.update(self.update_critic(batch))
+        metrics.update(self.update_actor(batch))
         if grad_step % self._target_update_interval == 0:
             self.update_target()
-
         return metrics
 
     def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:

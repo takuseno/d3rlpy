@@ -77,7 +77,7 @@ class PLASConfig(LearnableConfig):
         lam (float): Weight factor for critic ensemble.
         warmup_steps (int): Number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
-        compile (bool): Flag to enable JIT compilation and CUDAGraph.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 1e-4
@@ -97,7 +97,7 @@ class PLASConfig(LearnableConfig):
     lam: float = 0.75
     warmup_steps: int = 500000
     beta: float = 0.5
-    compile: bool = False
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -199,7 +199,7 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             lam=self._config.lam,
             beta=self._config.beta,
             warmup_steps=self._config.warmup_steps,
-            compile=self._config.compile and "cuda" in self._device,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
             device=self._device,
         )
 
@@ -250,7 +250,7 @@ class PLASWithPerturbationConfig(PLASConfig):
         action_flexibility (float): Output scale of perturbation layer.
         warmup_steps (int): Number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
-        compile (bool): Flag to enable JIT compilation and CUDAGraph.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     action_flexibility: float = 0.05
@@ -377,7 +377,7 @@ class PLASWithPerturbation(PLAS):
             lam=self._config.lam,
             beta=self._config.beta,
             warmup_steps=self._config.warmup_steps,
-            compile=self._config.compile and "cuda" in self._device,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
             device=self._device,
         )
 

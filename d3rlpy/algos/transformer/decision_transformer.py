@@ -1,7 +1,5 @@
 import dataclasses
 
-import torch
-
 from ...base import DeviceArg, register_learnable
 from ...constants import ActionSpace, PositionEncodingType
 from ...models import EncoderFactory, make_encoder_field
@@ -59,7 +57,7 @@ class DecisionTransformerConfig(TransformerConfig):
         activation_type (str): Type of activation function.
         position_encoding_type (d3rlpy.PositionEncodingType):
             Type of positional encoding (``SIMPLE`` or ``GLOBAL``).
-        compile (bool): Flag to enable JIT compilation and CUDAGraph.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     batch_size: int = 64
@@ -73,7 +71,7 @@ class DecisionTransformerConfig(TransformerConfig):
     embed_dropout: float = 0.1
     activation_type: str = "relu"
     position_encoding_type: PositionEncodingType = PositionEncodingType.SIMPLE
-    compile: bool = False
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -121,7 +119,7 @@ class DecisionTransformer(
             action_size=action_size,
             modules=modules,
             device=self._device,
-            compile=self._config.compile and "cuda" in self._device,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
         )
 
     def get_action_type(self) -> ActionSpace:
@@ -163,7 +161,7 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
             Type of positional encoding (``SIMPLE`` or ``GLOBAL``).
         warmup_tokens (int): Number of tokens to warmup learning rate scheduler.
         final_tokens (int): Final number of tokens for learning rate scheduler.
-        compile (bool): Flag to enable JIT compilation and CUDAGraph.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     batch_size: int = 128
@@ -180,7 +178,7 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
     position_encoding_type: PositionEncodingType = PositionEncodingType.GLOBAL
     warmup_tokens: int = 10240
     final_tokens: int = 30000000
-    compile: bool = False
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -233,7 +231,7 @@ class DiscreteDecisionTransformer(
             warmup_tokens=self._config.warmup_tokens,
             final_tokens=self._config.final_tokens,
             initial_learning_rate=self._config.learning_rate,
-            compile=self._config.compile and "cuda" in self._device,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
             device=self._device,
         )
 

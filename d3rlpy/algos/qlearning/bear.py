@@ -114,7 +114,7 @@ class BEARConfig(LearnableConfig):
             policy training.
         warmup_steps (int): Number of steps to warmup the policy
             function.
-        compile (bool): Flag to enable JIT compilation and CUDAGraph.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 1e-4
@@ -146,7 +146,7 @@ class BEARConfig(LearnableConfig):
     mmd_sigma: float = 20.0
     vae_kl_weight: float = 0.5
     warmup_steps: int = 40000
-    compile: bool = False
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -268,7 +268,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             mmd_sigma=self._config.mmd_sigma,
             vae_kl_weight=self._config.vae_kl_weight,
             warmup_steps=self._config.warmup_steps,
-            compile=self._config.compile and "cuda" in self._device,
+            compile_graph=self._config.compile_graph and "cuda" in self._device,
             device=self._device,
         )
 

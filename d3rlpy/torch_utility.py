@@ -139,7 +139,8 @@ def copy_recursively(src: _T, dst: _T) -> None:
     if isinstance(src, torch.Tensor) and isinstance(dst, torch.Tensor):
         dst.copy_(src)
     elif isinstance(src, (list, tuple)) and isinstance(dst, (list, tuple)):
-        [d.copy_(s) for s, d in zip(src, dst)]
+        for s, d in zip(src, dst):
+            d.copy_(s)
     else:
         raise ValueError(
             f"invalid inpu types: src={type(src)}, dst={type(dst)}"
@@ -426,12 +427,12 @@ class Modules:
 
     def set_eval(self) -> None:
         for v in asdict_without_copy(self).values():
-            if isinstance(v, nn.Module):
+            if isinstance(v, nn.Module) and v.training:
                 v.eval()
 
     def set_train(self) -> None:
         for v in asdict_without_copy(self).values():
-            if isinstance(v, nn.Module):
+            if isinstance(v, nn.Module) and not v.training:
                 v.train()
 
     def reset_optimizer_states(self) -> None:
@@ -499,32 +500,32 @@ class GEGLU(nn.Module):  # type: ignore
         return a * F.gelu(b)
 
 
-BatchT = TypeVar(
-    "BatchT",
+BatchT_contra = TypeVar(
+    "BatchT_contra",
     bound=Union[TorchMiniBatch, TorchTrajectoryMiniBatch],
     contravariant=True,
 )
-RetT = TypeVar("RetT", covariant=True)
+RetT_co = TypeVar("RetT_co", covariant=True)
 
 
-class CudaGraphFunc(Generic[BatchT, RetT], Protocol):
-    def __call__(self, batch: BatchT) -> RetT: ...
+class CudaGraphFunc(Generic[BatchT_contra, RetT_co], Protocol):
+    def __call__(self, batch: BatchT_contra) -> RetT_co: ...
 
 
-class CudaGraphWrapper(Generic[BatchT, RetT]):
-    _func: CudaGraphFunc[BatchT, RetT]
+class CudaGraphWrapper(Generic[BatchT_contra, RetT_co]):
+    _func: CudaGraphFunc[BatchT_contra, RetT_co]
     _input: TorchTrajectoryMiniBatch
     _graph: Optional[CUDAGraph]
-    _inpt: Optional[BatchT]
-    _out: Optional[RetT]
+    _inpt: Optional[BatchT_contra]
+    _out: Optional[RetT_co]
 
     def __init__(
         self,
-        func: CudaGraphFunc[BatchT, RetT],
+        func: CudaGraphFunc[BatchT_contra, RetT_co],
         warmup_steps: int = 3,
-        compile: bool = True,
+        compile_func: bool = True,
     ):
-        self._func = torch.compile(func) if compile else func
+        self._func = torch.compile(func) if compile_func else func
         self._step = 0
         self._graph = None
         self._inpt = None
@@ -532,7 +533,7 @@ class CudaGraphWrapper(Generic[BatchT, RetT]):
         self._warmup_steps = warmup_steps
         self._warmup_stream = torch.cuda.Stream()
 
-    def __call__(self, batch: BatchT) -> RetT:
+    def __call__(self, batch: BatchT_contra) -> RetT_co:
         if self._step < self._warmup_steps:  # warmup
             self._warmup_stream.wait_stream(torch.cuda.current_stream())
             with torch.cuda.stream(self._warmup_stream):
