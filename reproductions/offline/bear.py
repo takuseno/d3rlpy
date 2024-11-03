@@ -8,6 +8,7 @@ def main() -> None:
     parser.add_argument("--dataset", type=str, default="hopper-medium-v0")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--gpu", type=int)
+    parser.add_argument("--compile", action="store_true")
     args = parser.parse_args()
 
     dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
@@ -39,6 +40,7 @@ def main() -> None:
         n_target_samples=10,
         n_action_samples=100,
         warmup_steps=40000,
+        compile_graph=args.compile,
     ).create(device=args.gpu)
 
     bear.fit(

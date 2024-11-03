@@ -8,6 +8,7 @@ def main() -> None:
     parser.add_argument("--game", type=str, default="breakout")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--gpu", type=int)
+    parser.add_argument("--compile", action="store_true")
     args = parser.parse_args()
 
     d3rlpy.seed(args.seed)
@@ -32,6 +33,7 @@ def main() -> None:
         observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
         target_update_interval=2000,
         reward_scaler=d3rlpy.preprocessing.ClipRewardScaler(-1.0, 1.0),
+        compile_graph=args.compile,
     ).create(device=args.gpu)
 
     env_scorer = d3rlpy.metrics.EnvironmentEvaluator(env, epsilon=0.001)

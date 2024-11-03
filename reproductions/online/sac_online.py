@@ -10,6 +10,7 @@ def main() -> None:
     parser.add_argument("--env", type=str, default="Hopper-v2")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--gpu", action="store_true")
+    parser.add_argument("--compile", action="store_true")
     args = parser.parse_args()
 
     env = gym.make(args.env)
@@ -26,6 +27,7 @@ def main() -> None:
         actor_learning_rate=3e-4,
         critic_learning_rate=3e-4,
         temp_learning_rate=3e-4,
+        compile_graph=args.compile,
     ).create(device=args.gpu)
 
     # replay buffer for experience replay
