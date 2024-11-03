@@ -91,7 +91,7 @@ class BCQImpl(DDPGBaseImpl):
         self._beta = beta
         self._rl_start_step = rl_start_step
         self._compute_imitator_grad = (
-            CudaGraphWrapper(self.compute_imitator_grad)  # type: ignore
+            CudaGraphWrapper(self.compute_imitator_grad)
             if compile_graph
             else self.compute_imitator_grad
         )

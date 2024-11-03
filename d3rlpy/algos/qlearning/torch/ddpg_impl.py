@@ -87,12 +87,12 @@ class DDPGBaseImpl(
         self._q_func_forwarder = q_func_forwarder
         self._targ_q_func_forwarder = targ_q_func_forwarder
         self._compute_critic_grad = (
-            CudaGraphWrapper(self.compute_critic_grad)  # type: ignore
+            CudaGraphWrapper(self.compute_critic_grad)
             if compile_graph
             else self.compute_critic_grad
         )
         self._compute_actor_grad = (
-            CudaGraphWrapper(self.compute_actor_grad)  # type: ignore
+            CudaGraphWrapper(self.compute_actor_grad)
             if compile_graph
             else self.compute_actor_grad
         )

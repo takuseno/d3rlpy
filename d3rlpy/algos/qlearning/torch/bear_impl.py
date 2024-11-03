@@ -116,12 +116,12 @@ class BEARImpl(SACImpl):
         self._vae_kl_weight = vae_kl_weight
         self._warmup_steps = warmup_steps
         self._compute_warmup_actor_grad = (
-            CudaGraphWrapper(self.compute_warmup_actor_grad)  # type: ignore
+            CudaGraphWrapper(self.compute_warmup_actor_grad)
             if compile_graph
             else self.compute_warmup_actor_grad
         )
         self._compute_imitator_grad = (
-            CudaGraphWrapper(self.compute_imitator_grad)  # type: ignore
+            CudaGraphWrapper(self.compute_imitator_grad)
             if compile_graph
             else self.compute_imitator_grad
         )

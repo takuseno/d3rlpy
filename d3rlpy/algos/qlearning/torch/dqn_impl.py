@@ -64,7 +64,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._targ_q_func_forwarder = targ_q_func_forwarder
         self._target_update_interval = target_update_interval
         self._compute_grad = (
-            CudaGraphWrapper(self.compute_grad)  # type: ignore
+            CudaGraphWrapper(self.compute_grad)
             if compile_graph
             else self.compute_grad
         )

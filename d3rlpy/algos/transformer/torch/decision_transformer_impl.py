@@ -47,7 +47,7 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
     ):
         super().__init__(observation_shape, action_size, modules, device)
         self._compute_grad = (
-            CudaGraphWrapper(self.compute_grad)  # type: ignore
+            CudaGraphWrapper(self.compute_grad)
             if compile_graph
             else self.compute_grad
         )
@@ -122,7 +122,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
         self._final_tokens = final_tokens
         self._initial_learning_rate = initial_learning_rate
         self._compute_grad = (
-            CudaGraphWrapper(self.compute_grad)  # type: ignore
+            CudaGraphWrapper(self.compute_grad)
             if compile_graph
             else self.compute_grad
         )
