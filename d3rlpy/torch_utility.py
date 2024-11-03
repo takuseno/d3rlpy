@@ -6,6 +6,7 @@ from typing import (
     Generic,
     Iterator,
     Optional,
+    Protocol,
     Sequence,
     TypeVar,
     Union,
@@ -19,7 +20,7 @@ from torch import nn
 from torch.cuda import CUDAGraph
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
-from typing_extensions import Protocol, Self
+from typing_extensions import Self
 
 from .dataclass_utils import asdict_without_copy
 from .dataset import TrajectoryMiniBatch, TransitionMiniBatch

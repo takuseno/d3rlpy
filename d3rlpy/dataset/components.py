@@ -1,8 +1,7 @@
 import dataclasses
-from typing import Any, Sequence
+from typing import Any, Protocol, Sequence
 
 import numpy as np
-from typing_extensions import Protocol
 
 from ..constants import ActionSpace
 from ..types import (

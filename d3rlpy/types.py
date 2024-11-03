@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Mapping, Protocol, Sequence, Union, runtime_checkable
 
 import gym
 import gymnasium
@@ -6,7 +6,6 @@ import numpy as np
 import numpy.typing as npt
 import torch
 from torch.optim import Optimizer
-from typing_extensions import Protocol, runtime_checkable
 
 __all__ = [
     "NDArray",

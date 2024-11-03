@@ -1,7 +1,6 @@
-from typing import Any, Sequence, Union
+from typing import Any, Protocol, Sequence, Union
 
 import numpy as np
-from typing_extensions import Protocol
 
 from ..types import NDArray, Observation, ObservationSequence
 from .buffers import BufferProtocol

@@ -1,7 +1,5 @@
 from collections import deque
-from typing import Sequence
-
-from typing_extensions import Protocol
+from typing import Protocol, Sequence
 
 from .components import EpisodeBase
 

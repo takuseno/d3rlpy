@@ -2,11 +2,10 @@ import time
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, Iterator, Optional
+from typing import Any, Iterator, Optional, Protocol
 
 import structlog
 from torch import nn
-from typing_extensions import Protocol
 
 from ..types import Float32NDArray
 

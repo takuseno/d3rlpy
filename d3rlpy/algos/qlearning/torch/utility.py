@@ -1,6 +1,6 @@
+from typing import Protocol
 
 import torch
-from typing_extensions import Protocol
 
 from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,

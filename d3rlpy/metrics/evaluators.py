@@ -1,7 +1,6 @@
-from typing import Iterator, Optional, Sequence
+from typing import Iterator, Optional, Protocol, Sequence
 
 import numpy as np
-from typing_extensions import Protocol
 
 from ..dataset import (
     EpisodeBase,
