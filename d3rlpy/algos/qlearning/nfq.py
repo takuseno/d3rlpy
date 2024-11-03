@@ -111,7 +111,7 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=1,
             gamma=self._config.gamma,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

@@ -109,7 +109,7 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
             target_update_interval=self._config.target_update_interval,
             modules=modules,
             gamma=self._config.gamma,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 
@@ -220,7 +220,7 @@ class DoubleDQN(DQN):
             targ_q_func_forwarder=targ_forwarder,
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

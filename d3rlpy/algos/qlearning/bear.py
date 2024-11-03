@@ -276,7 +276,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             mmd_sigma=self._config.mmd_sigma,
             vae_kl_weight=self._config.vae_kl_weight,
             warmup_steps=self._config.warmup_steps,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

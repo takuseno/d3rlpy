@@ -121,7 +121,7 @@ class DecisionTransformer(
             action_size=action_size,
             modules=modules,
             device=self._device,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
         )
 
     def get_action_type(self) -> ActionSpace:
@@ -235,7 +235,7 @@ class DiscreteDecisionTransformer(
             warmup_tokens=self._config.warmup_tokens,
             final_tokens=self._config.final_tokens,
             initial_learning_rate=self._config.learning_rate,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

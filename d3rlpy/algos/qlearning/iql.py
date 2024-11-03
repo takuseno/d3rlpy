@@ -180,7 +180,7 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             expectile=self._config.expectile,
             weight_temp=self._config.weight_temp,
             max_weight=self._config.max_weight,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

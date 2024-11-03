@@ -163,7 +163,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             tau=self._config.tau,
             lam=self._config.lam,
             n_action_samples=self._config.n_action_samples,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

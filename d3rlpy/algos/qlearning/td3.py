@@ -170,7 +170,7 @@ class TD3(QLearningAlgoBase[TD3Impl, TD3Config]):
             target_smoothing_sigma=self._config.target_smoothing_sigma,
             target_smoothing_clip=self._config.target_smoothing_clip,
             update_actor_interval=self._config.update_actor_interval,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

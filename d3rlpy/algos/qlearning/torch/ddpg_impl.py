@@ -73,7 +73,7 @@ class DDPGBaseImpl(
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         gamma: float,
         tau: float,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -88,12 +88,12 @@ class DDPGBaseImpl(
         self._targ_q_func_forwarder = targ_q_func_forwarder
         self._compute_critic_grad = (
             CudaGraphWrapper(self.compute_critic_grad)
-            if compile_graph
+            if compiled
             else self.compute_critic_grad
         )
         self._compute_actor_grad = (
             CudaGraphWrapper(self.compute_actor_grad)
-            if compile_graph
+            if compiled
             else self.compute_actor_grad
         )
         hard_sync(self._modules.targ_q_funcs, self._modules.q_funcs)
@@ -200,7 +200,7 @@ class DDPGImpl(DDPGBaseImpl):
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         gamma: float,
         tau: float,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -211,7 +211,7 @@ class DDPGImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
         hard_sync(self._modules.targ_policy, self._modules.policy)

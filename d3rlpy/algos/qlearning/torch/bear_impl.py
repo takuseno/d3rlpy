@@ -92,7 +92,7 @@ class BEARImpl(SACImpl):
         mmd_sigma: float,
         vae_kl_weight: float,
         warmup_steps: int,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -103,7 +103,7 @@ class BEARImpl(SACImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
         self._alpha_threshold = alpha_threshold
@@ -117,12 +117,12 @@ class BEARImpl(SACImpl):
         self._warmup_steps = warmup_steps
         self._compute_warmup_actor_grad = (
             CudaGraphWrapper(self.compute_warmup_actor_grad)
-            if compile_graph
+            if compiled
             else self.compute_warmup_actor_grad
         )
         self._compute_imitator_grad = (
             CudaGraphWrapper(self.compute_imitator_grad)
-            if compile_graph
+            if compiled
             else self.compute_imitator_grad
         )
 

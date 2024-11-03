@@ -60,7 +60,7 @@ class CQLImpl(SACImpl):
         n_action_samples: int,
         soft_q_backup: bool,
         max_q_backup: bool,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -71,7 +71,7 @@ class CQLImpl(SACImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
         self._alpha_threshold = alpha_threshold
@@ -247,7 +247,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         target_update_interval: int,
         gamma: float,
         alpha: float,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -258,7 +258,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=target_update_interval,
             gamma=gamma,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
         self._alpha = alpha

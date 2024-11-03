@@ -171,7 +171,7 @@ class ReBRAC(QLearningAlgoBase[ReBRACImpl, ReBRACConfig]):
             actor_beta=self._config.actor_beta,
             critic_beta=self._config.critic_beta,
             update_actor_interval=self._config.update_actor_interval,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

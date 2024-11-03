@@ -203,7 +203,7 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             lam=self._config.lam,
             beta=self._config.beta,
             warmup_steps=self._config.warmup_steps,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 
@@ -386,7 +386,7 @@ class PLASWithPerturbation(PLAS):
             lam=self._config.lam,
             beta=self._config.beta,
             warmup_steps=self._config.warmup_steps,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

@@ -42,13 +42,13 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         observation_shape: Shape,
         action_size: int,
         modules: Modules,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(observation_shape, action_size, modules, device)
         self._compute_grad = (
             CudaGraphWrapper(self.compute_grad)
-            if compile_graph
+            if compiled
             else self.compute_grad
         )
 
@@ -109,7 +109,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
         warmup_tokens: int,
         final_tokens: int,
         initial_learning_rate: float,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -123,7 +123,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
         self._initial_learning_rate = initial_learning_rate
         self._compute_grad = (
             CudaGraphWrapper(self.compute_grad)
-            if compile_graph
+            if compiled
             else self.compute_grad
         )
         # TODO: Include stateful information in checkpoint.

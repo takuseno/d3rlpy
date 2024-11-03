@@ -65,7 +65,7 @@ class SACImpl(DDPGBaseImpl):
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         gamma: float,
         tau: float,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -76,7 +76,7 @@ class SACImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
 
@@ -160,7 +160,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         target_update_interval: int,
         gamma: float,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -175,12 +175,12 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._target_update_interval = target_update_interval
         self._compute_critic_grad = (
             CudaGraphWrapper(self.compute_critic_grad)
-            if compile_graph
+            if compiled
             else self.compute_critic_grad
         )
         self._compute_actor_grad = (
             CudaGraphWrapper(self.compute_actor_grad)
-            if compile_graph
+            if compiled
             else self.compute_actor_grad
         )
         hard_sync(modules.targ_q_funcs, modules.q_funcs)

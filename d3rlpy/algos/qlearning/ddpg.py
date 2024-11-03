@@ -158,7 +158,7 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

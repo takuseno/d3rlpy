@@ -270,7 +270,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
             rl_start_step=self._config.rl_start_step,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 
@@ -432,7 +432,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             gamma=self._config.gamma,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

@@ -55,7 +55,7 @@ class CRRImpl(DDPGBaseImpl):
         tau: float,
         target_update_type: str,
         target_update_interval: int,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -66,7 +66,7 @@ class CRRImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
         self._beta = beta

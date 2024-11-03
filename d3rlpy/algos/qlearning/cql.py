@@ -233,7 +233,7 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             n_action_samples=self._config.n_action_samples,
             soft_q_backup=self._config.soft_q_backup,
             max_q_backup=self._config.max_q_backup,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 
@@ -348,7 +348,7 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
             alpha=self._config.alpha,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

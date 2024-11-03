@@ -71,7 +71,7 @@ class BCQImpl(DDPGBaseImpl):
         action_flexibility: float,
         beta: float,
         rl_start_step: int,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -82,7 +82,7 @@ class BCQImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
         self._lam = lam
@@ -92,7 +92,7 @@ class BCQImpl(DDPGBaseImpl):
         self._rl_start_step = rl_start_step
         self._compute_imitator_grad = (
             CudaGraphWrapper(self.compute_imitator_grad)
-            if compile_graph
+            if compiled
             else self.compute_imitator_grad
         )
 
@@ -256,7 +256,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
         gamma: float,
         action_flexibility: float,
         beta: float,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -267,7 +267,7 @@ class DiscreteBCQImpl(DoubleDQNImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=target_update_interval,
             gamma=gamma,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
         self._action_flexibility = action_flexibility

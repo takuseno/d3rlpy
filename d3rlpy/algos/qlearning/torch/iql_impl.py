@@ -51,7 +51,7 @@ class IQLImpl(DDPGBaseImpl):
         expectile: float,
         weight_temp: float,
         max_weight: float,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -62,7 +62,7 @@ class IQLImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
         self._expectile = expectile

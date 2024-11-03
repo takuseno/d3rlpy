@@ -27,7 +27,7 @@ class TD3Impl(DDPGImpl):
         target_smoothing_sigma: float,
         target_smoothing_clip: float,
         update_actor_interval: int,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -38,7 +38,7 @@ class TD3Impl(DDPGImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
         self._target_smoothing_sigma = target_smoothing_sigma

@@ -163,7 +163,7 @@ class TD3PlusBC(QLearningAlgoBase[TD3PlusBCImpl, TD3PlusBCConfig]):
             target_smoothing_clip=self._config.target_smoothing_clip,
             alpha=self._config.alpha,
             update_actor_interval=self._config.update_actor_interval,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

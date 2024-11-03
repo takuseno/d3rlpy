@@ -179,7 +179,7 @@ class CalQL(CQL):
             n_action_samples=self._config.n_action_samples,
             soft_q_backup=self._config.soft_q_backup,
             max_q_backup=self._config.max_q_backup,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

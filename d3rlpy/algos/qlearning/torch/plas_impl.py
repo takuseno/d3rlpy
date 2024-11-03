@@ -53,7 +53,7 @@ class PLASImpl(DDPGBaseImpl):
         lam: float,
         beta: float,
         warmup_steps: int,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -64,7 +64,7 @@ class PLASImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
         self._lam = lam
@@ -72,7 +72,7 @@ class PLASImpl(DDPGBaseImpl):
         self._warmup_steps = warmup_steps
         self._compute_imitator_grad = (
             CudaGraphWrapper(self.compute_imitator_grad)
-            if compile_graph
+            if compiled
             else self.compute_imitator_grad
         )
 
@@ -168,7 +168,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         lam: float,
         beta: float,
         warmup_steps: int,
-        compile_graph: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -182,7 +182,7 @@ class PLASWithPerturbationImpl(PLASImpl):
             lam=lam,
             beta=beta,
             warmup_steps=warmup_steps,
-            compile_graph=compile_graph,
+            compiled=compiled,
             device=device,
         )
 

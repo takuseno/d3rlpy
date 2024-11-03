@@ -204,7 +204,7 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
             tau=self._config.tau,
             target_update_type=self._config.target_update_type,
             target_update_interval=self._config.target_update_interval,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 

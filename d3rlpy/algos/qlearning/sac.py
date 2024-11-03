@@ -195,7 +195,7 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 
@@ -362,7 +362,7 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
-            compile_graph=self.compiled,
+            compiled=self.compiled,
             device=self._device,
         )
 
