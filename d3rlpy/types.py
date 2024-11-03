@@ -1,4 +1,4 @@
-from typing import Any, Sequence, Type, TypeVar, Union
+from typing import Any, Sequence, Union
 
 import gym
 import gymnasium
@@ -20,7 +20,6 @@ __all__ = [
     "TorchObservation",
     "GymEnv",
     "OptimizerWrapperProto",
-    "assert_cast",
 ]
 
 
@@ -43,11 +42,3 @@ class OptimizerWrapperProto(Protocol):
     @property
     def optim(self) -> Optimizer:
         raise NotImplementedError
-
-
-T = TypeVar("T")
-
-
-def assert_cast(obj_type: Type[T], obj: Any) -> T:
-    assert isinstance(obj, obj_type)
-    return obj
