@@ -137,6 +137,7 @@ class BCQConfig(LearnableConfig):
         rl_start_step (int): Steps to start to update policy function and Q
             functions. If this is large, RL training would be more stabilized.
         beta (float): KL reguralization term for Conditional VAE.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 1e-3
@@ -228,15 +229,20 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=self.compiled,
         )
         vae_optim = self._config.imitator_optim_factory.create(
             list(vae_encoder.named_modules())
             + list(vae_decoder.named_modules()),
             lr=self._config.imitator_learning_rate,
+            compiled=self.compiled,
         )
 
         modules = BCQModules(
@@ -264,6 +270,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
             rl_start_step=self._config.rl_start_step,
+            compiled=self.compiled,
             device=self._device,
         )
 
@@ -331,6 +338,7 @@ class DiscreteBCQConfig(LearnableConfig):
         target_update_interval (int): Interval to update the target network.
         share_encoder (bool): Flag to share encoder between Q-function and
             imitation models.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     learning_rate: float = 6.25e-5
@@ -402,7 +410,9 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
         q_func_params = list(q_funcs.named_modules())
         imitator_params = list(imitator.named_modules())
         optim = self._config.optim_factory.create(
-            q_func_params + imitator_params, lr=self._config.learning_rate
+            q_func_params + imitator_params,
+            lr=self._config.learning_rate,
+            compiled=self.compiled,
         )
 
         modules = DiscreteBCQModules(
@@ -422,6 +432,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             gamma=self._config.gamma,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
+            compiled=self.compiled,
             device=self._device,
         )
 

@@ -26,6 +26,13 @@ class ActionOutput(NamedTuple):
     squashed_mu: torch.Tensor
     logstd: Optional[torch.Tensor]
 
+    def copy_(self, src: "ActionOutput") -> None:
+        self.mu.copy_(src.mu)
+        self.squashed_mu.copy_(src.squashed_mu)
+        if self.logstd:
+            assert src.logstd is not None
+            self.logstd.copy_(src.logstd)
+
 
 def build_gaussian_distribution(action: ActionOutput) -> GaussianDistribution:
     assert action.logstd is not None

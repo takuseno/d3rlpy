@@ -33,7 +33,7 @@ if __name__ == "__main__":
             "Operating System :: MacOS :: MacOS X",
         ],
         install_requires=[
-            "torch>=2.0.0",
+            "torch>=2.5.0",
             "tqdm>=4.66.3",
             "h5py",
             "gym>=0.26.0",

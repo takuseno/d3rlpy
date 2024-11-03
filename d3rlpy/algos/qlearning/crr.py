@@ -99,6 +99,7 @@ class CRRConfig(LearnableConfig):
             ``soft`` target update.
         update_actor_interval (int): Interval to update policy function used
             with ``hard`` target update.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 3e-4
@@ -169,10 +170,14 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=self.compiled,
         )
 
         modules = CRRModules(
@@ -199,6 +204,7 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
             tau=self._config.tau,
             target_update_type=self._config.target_update_type,
             target_update_interval=self._config.target_update_interval,
+            compiled=self.compiled,
             device=self._device,
         )
 

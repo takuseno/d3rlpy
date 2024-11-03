@@ -60,6 +60,7 @@ class CQLImpl(SACImpl):
         n_action_samples: int,
         soft_q_backup: bool,
         max_q_backup: bool,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -70,6 +71,7 @@ class CQLImpl(SACImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
+            compiled=compiled,
             device=device,
         )
         self._alpha_threshold = alpha_threshold
@@ -79,32 +81,38 @@ class CQLImpl(SACImpl):
         self._max_q_backup = max_q_backup
 
     def compute_critic_loss(
-        self, batch: TorchMiniBatch, q_tpn: torch.Tensor, grad_step: int
+        self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> CQLCriticLoss:
-        loss = super().compute_critic_loss(batch, q_tpn, grad_step)
+        loss = super().compute_critic_loss(batch, q_tpn)
         conservative_loss = self._compute_conservative_loss(
             obs_t=batch.observations,
             act_t=batch.actions,
             obs_tp1=batch.next_observations,
             returns_to_go=batch.returns_to_go,
         )
+
         if self._modules.alpha_optim:
-            self.update_alpha(conservative_loss, grad_step)
+            self.update_alpha(conservative_loss.detach())
+
+        # clip for stability
+        log_alpha = get_parameter(self._modules.log_alpha)
+        clipped_alpha = log_alpha.exp().clamp(0, 1e6)[0][0]
+        scaled_conservative_loss = clipped_alpha * conservative_loss
+
         return CQLCriticLoss(
-            critic_loss=loss.critic_loss + conservative_loss.sum(),
-            conservative_loss=conservative_loss.sum(),
-            alpha=get_parameter(self._modules.log_alpha).exp()[0][0],
+            critic_loss=loss.critic_loss + scaled_conservative_loss.sum(),
+            conservative_loss=scaled_conservative_loss.sum(),
+            alpha=clipped_alpha,
         )
 
-    def update_alpha(
-        self, conservative_loss: torch.Tensor, grad_step: int
-    ) -> None:
+    def update_alpha(self, conservative_loss: torch.Tensor) -> None:
         assert self._modules.alpha_optim
         self._modules.alpha_optim.zero_grad()
-        # the original implementation does scale the loss value
-        loss = -conservative_loss.mean()
-        loss.backward(retain_graph=True)
-        self._modules.alpha_optim.step(grad_step)
+        log_alpha = get_parameter(self._modules.log_alpha)
+        clipped_alpha = log_alpha.exp().clamp(0, 1e6)
+        loss = -(clipped_alpha * conservative_loss).mean()
+        loss.backward()
+        self._modules.alpha_optim.step()
 
     def _compute_policy_is_values(
         self,
@@ -188,15 +196,7 @@ class CQLImpl(SACImpl):
 
         loss = (logsumexp - data_values).mean(dim=[1, 2])
 
-        # clip for stability
-        log_alpha = get_parameter(self._modules.log_alpha)
-        clipped_alpha = log_alpha.exp().clamp(0, 1e6)[0][0]
-
-        return (
-            clipped_alpha
-            * self._conservative_weight
-            * (loss - self._alpha_threshold)
-        )
+        return self._conservative_weight * (loss - self._alpha_threshold)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         if self._soft_q_backup:
@@ -247,6 +247,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         target_update_interval: int,
         gamma: float,
         alpha: float,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -257,6 +258,7 @@ class DiscreteCQLImpl(DoubleDQNImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=target_update_interval,
             gamma=gamma,
+            compiled=compiled,
             device=device,
         )
         self._alpha = alpha

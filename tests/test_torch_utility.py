@@ -18,6 +18,7 @@ from d3rlpy.torch_utility import (
     TorchMiniBatch,
     TorchTrajectoryMiniBatch,
     View,
+    copy_recursively,
     eval_api,
     get_batch_size,
     get_device,
@@ -116,7 +117,7 @@ class DummyImpl:
         self.fc1 = torch.nn.Linear(100, 100)
         self.fc2 = torch.nn.Linear(100, 100)
         params = list(self.fc1.parameters())
-        self.optim = OptimizerWrapper(params, torch.optim.Adam(params))
+        self.optim = OptimizerWrapper(params, torch.optim.Adam(params), False)
         self.modules = DummyModules(self.fc1, self.optim)
         self.device = "cpu:0"
 
@@ -145,7 +146,7 @@ def test_reset_optimizer_states() -> None:
     # instantiate optimizer state
     y = impl.fc1(torch.rand(100)).sum()
     y.backward()
-    impl.optim.step(0)
+    impl.optim.step()
 
     # check if state is not empty
     state = copy.deepcopy(impl.optim.optim.state)
@@ -166,6 +167,19 @@ def test_to_cuda() -> None:
 @pytest.mark.skip(reason="no way to test this")
 def test_to_cpu() -> None:
     pass
+
+
+def test_copy_recursively() -> None:
+    x = torch.rand(10)
+    y = torch.rand(10)
+    copy_recursively(x, y)
+    assert torch.all(x == y)
+
+    x_list = [torch.rand(10), torch.rand(20)]
+    y_list = [torch.rand(10), torch.rand(20)]
+    copy_recursively(x_list, y_list)
+    assert torch.all(x_list[0] == y_list[0])
+    assert torch.all(x_list[1] == y_list[1])
 
 
 def test_get_device() -> None:
@@ -191,7 +205,7 @@ class DummyModules(Modules):
 def test_modules() -> None:
     fc = torch.nn.Linear(100, 200)
     params = list(fc.parameters())
-    optim = OptimizerWrapper(params, torch.optim.Adam(params))
+    optim = OptimizerWrapper(params, torch.optim.Adam(params), False)
     modules = DummyModules(fc, optim)
 
     # check checkpointer
@@ -323,6 +337,29 @@ def test_torch_mini_batch(
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
     assert np.all(torch_batch.intervals.numpy() == batch.intervals)
 
+    torch_batch2 = TorchMiniBatch(
+        observations=torch.zeros_like(torch_batch.observations),
+        actions=torch.zeros_like(torch_batch.actions),
+        rewards=torch.zeros_like(torch_batch.rewards),
+        next_observations=torch.zeros_like(torch_batch.next_observations),
+        next_actions=torch.zeros_like(torch_batch.next_actions),
+        returns_to_go=torch.zeros_like(torch_batch.returns_to_go),
+        terminals=torch.zeros_like(torch_batch.terminals),
+        intervals=torch.zeros_like(torch_batch.intervals),
+        device=torch_batch.device,
+    )
+    torch_batch2.copy_(torch_batch)
+    assert torch.all(torch_batch2.observations == torch_batch.observations)
+    assert torch.all(torch_batch2.actions == torch_batch.actions)
+    assert torch.all(torch_batch2.rewards == torch_batch.rewards)
+    assert torch.all(
+        torch_batch2.next_observations == torch_batch.next_observations
+    )
+    assert torch.all(torch_batch2.next_actions == torch_batch.next_actions)
+    assert torch.all(torch_batch2.returns_to_go == torch_batch.returns_to_go)
+    assert torch.all(torch_batch2.terminals == torch_batch.terminals)
+    assert torch.all(torch_batch2.intervals == torch_batch.intervals)
+
 
 @pytest.mark.parametrize("batch_size", [32])
 @pytest.mark.parametrize("length", [32])
@@ -397,12 +434,31 @@ def test_torch_trajectory_mini_batch(
 
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
 
+    torch_batch2 = TorchTrajectoryMiniBatch(
+        observations=torch.zeros_like(torch_batch.observations),
+        actions=torch.zeros_like(torch_batch.actions),
+        rewards=torch.zeros_like(torch_batch.rewards),
+        returns_to_go=torch.zeros_like(torch_batch.returns_to_go),
+        terminals=torch.zeros_like(torch_batch.terminals),
+        timesteps=torch.zeros_like(torch_batch.timesteps),
+        masks=torch.zeros_like(torch_batch.masks),
+        device=torch_batch.device,
+    )
+    torch_batch2.copy_(torch_batch)
+    assert torch.all(torch_batch2.observations == torch_batch.observations)
+    assert torch.all(torch_batch2.actions == torch_batch.actions)
+    assert torch.all(torch_batch2.rewards == torch_batch.rewards)
+    assert torch.all(torch_batch2.returns_to_go == torch_batch.returns_to_go)
+    assert torch.all(torch_batch2.terminals == torch_batch.terminals)
+    assert torch.all(torch_batch2.timesteps == torch_batch.timesteps)
+    assert torch.all(torch_batch2.masks == torch_batch.masks)
+
 
 def test_checkpointer() -> None:
     fc1 = torch.nn.Linear(100, 100)
     fc2 = torch.nn.Linear(100, 100)
     params = list(fc1.parameters())
-    optim = OptimizerWrapper(params, torch.optim.Adam(params))
+    optim = OptimizerWrapper(params, torch.optim.Adam(params), False)
     checkpointer = Checkpointer(
         modules={"fc1": fc1, "fc2": fc2, "optim": optim}, device="cpu:0"
     )
@@ -424,7 +480,7 @@ def test_checkpointer() -> None:
     fc1_2 = torch.nn.Linear(100, 100)
     fc2_2 = torch.nn.Linear(100, 100)
     params_2 = list(fc1_2.parameters())
-    optim_2 = OptimizerWrapper(params_2, torch.optim.Adam(params_2))
+    optim_2 = OptimizerWrapper(params_2, torch.optim.Adam(params_2), False)
     checkpointer = Checkpointer(
         modules={"fc1": fc1_2, "fc2": fc2_2, "optim": optim_2}, device="cpu:0"
     )

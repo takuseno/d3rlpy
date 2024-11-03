@@ -42,11 +42,13 @@ class OptimizerWrapper:
     Args:
         params: List of torch parameters.
         optim: PyTorch optimizer.
+        compiled: Flag to be True if CudaGraph and torch.compile are applied.
         clip_grad_norm: Maximum norm value of gradients to clip.
     """
 
     _params: Sequence[nn.Parameter]
     _optim: Optimizer
+    _compiled: bool
     _clip_grad_norm: Optional[float]
     _lr_scheduler: Optional[LRScheduler]
 
@@ -54,18 +56,20 @@ class OptimizerWrapper:
         self,
         params: Sequence[nn.Parameter],
         optim: Optimizer,
+        compiled: bool,
         clip_grad_norm: Optional[float] = None,
         lr_scheduler: Optional[LRScheduler] = None,
     ):
         self._params = params
         self._optim = optim
+        self._compiled = compiled
         self._clip_grad_norm = clip_grad_norm
         self._lr_scheduler = lr_scheduler
 
     def zero_grad(self) -> None:
-        self._optim.zero_grad()
+        self._optim.zero_grad(set_to_none=self._compiled)
 
-    def step(self, grad_step: int) -> None:
+    def step(self) -> None:
         """Updates parameters.
 
         Args:
@@ -103,13 +107,18 @@ class OptimizerFactory(DynamicConfig):
     )
 
     def create(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self,
+        named_modules: Iterable[Tuple[str, nn.Module]],
+        lr: float,
+        compiled: bool,
     ) -> OptimizerWrapper:
         """Returns an optimizer object.
 
         Args:
             named_modules (list): List of tuples of module names and modules.
             lr (float): Learning rate.
+            compiled (bool): Flag to be True if CudaGraph and torch.compile are
+                applied.
 
         Returns:
             OptimizerWrapper object.
@@ -120,6 +129,7 @@ class OptimizerFactory(DynamicConfig):
         return OptimizerWrapper(
             params=params,
             optim=optim,
+            compiled=compiled,
             clip_grad_norm=self.clip_grad_norm,
             lr_scheduler=(
                 self.lr_scheduler_factory.create(optim)

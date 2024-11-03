@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Dict
+from typing import Callable, Dict
 
 import torch
 import torch.nn.functional as F
@@ -10,7 +10,11 @@ from ....models.torch import (
     DiscreteDecisionTransformer,
 )
 from ....optimizers import OptimizerWrapper
-from ....torch_utility import Modules, TorchTrajectoryMiniBatch
+from ....torch_utility import (
+    CudaGraphWrapper,
+    Modules,
+    TorchTrajectoryMiniBatch,
+)
 from ....types import Shape
 from ..base import TransformerAlgoImplBase
 from ..inputs import TorchTransformerInput
@@ -31,6 +35,22 @@ class DecisionTransformerModules(Modules):
 
 class DecisionTransformerImpl(TransformerAlgoImplBase):
     _modules: DecisionTransformerModules
+    _compute_grad: Callable[[TorchTrajectoryMiniBatch], Dict[str, torch.Tensor]]
+
+    def __init__(
+        self,
+        observation_shape: Shape,
+        action_size: int,
+        modules: Modules,
+        compiled: bool,
+        device: str,
+    ):
+        super().__init__(observation_shape, action_size, modules, device)
+        self._compute_grad = (
+            CudaGraphWrapper(self.compute_grad)
+            if compiled
+            else self.compute_grad
+        )
 
     def inner_predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
         # (1, T, A)
@@ -40,14 +60,20 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
         # (1, T, A) -> (A,)
         return action[0][-1]
 
-    def inner_update(
-        self, batch: TorchTrajectoryMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    def compute_grad(
+        self, batch: TorchTrajectoryMiniBatch
+    ) -> Dict[str, torch.Tensor]:
         self._modules.optim.zero_grad()
         loss = self.compute_loss(batch)
         loss.backward()
-        self._modules.optim.step(grad_step)
-        return {"loss": float(loss.cpu().detach().numpy())}
+        return {"loss": loss}
+
+    def inner_update(
+        self, batch: TorchTrajectoryMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        loss = self._compute_grad(batch)
+        self._modules.optim.step()
+        return {"loss": float(loss["loss"].cpu().detach().numpy())}
 
     def compute_loss(self, batch: TorchTrajectoryMiniBatch) -> torch.Tensor:
         action = self._modules.transformer(
@@ -73,6 +99,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
     _final_tokens: int
     _initial_learning_rate: float
     _tokens: int
+    _compute_grad: Callable[[TorchTrajectoryMiniBatch], Dict[str, torch.Tensor]]
 
     def __init__(
         self,
@@ -82,6 +109,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
         warmup_tokens: int,
         final_tokens: int,
         initial_learning_rate: float,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -93,6 +121,11 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
         self._warmup_tokens = warmup_tokens
         self._final_tokens = final_tokens
         self._initial_learning_rate = initial_learning_rate
+        self._compute_grad = (
+            CudaGraphWrapper(self.compute_grad)
+            if compiled
+            else self.compute_grad
+        )
         # TODO: Include stateful information in checkpoint.
         self._tokens = 0
 
@@ -104,13 +137,19 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
         # (1, T, A) -> (A,)
         return logits[0][-1]
 
-    def inner_update(
-        self, batch: TorchTrajectoryMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    def compute_grad(
+        self, batch: TorchTrajectoryMiniBatch
+    ) -> Dict[str, torch.Tensor]:
         self._modules.optim.zero_grad()
         loss = self.compute_loss(batch)
         loss.backward()
-        self._modules.optim.step(grad_step)
+        return {"loss": loss}
+
+    def inner_update(
+        self, batch: TorchTrajectoryMiniBatch, grad_step: int
+    ) -> Dict[str, float]:
+        loss = self._compute_grad(batch)
+        self._modules.optim.step()
 
         # schedule learning rate
         self._tokens += int(batch.masks.sum().cpu().detach().numpy())
@@ -128,7 +167,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
             param_group["lr"] = new_learning_rate
 
         return {
-            "loss": float(loss.cpu().detach().numpy()),
+            "loss": float(loss["loss"].cpu().detach().numpy()),
             "learning_rate": new_learning_rate,
         }
 

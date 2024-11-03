@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict
+from typing import Callable, Dict
 
 import torch
 
@@ -13,7 +13,7 @@ from ....models.torch import (
     compute_vae_error,
 )
 from ....optimizers import OptimizerWrapper
-from ....torch_utility import TorchMiniBatch, soft_sync
+from ....torch_utility import CudaGraphWrapper, TorchMiniBatch, soft_sync
 from ....types import Shape, TorchObservation
 from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
 
@@ -36,6 +36,7 @@ class PLASModules(DDPGBaseModules):
 
 class PLASImpl(DDPGBaseImpl):
     _modules: PLASModules
+    _compute_imitator_grad: Callable[[TorchMiniBatch], Dict[str, torch.Tensor]]
     _lam: float
     _beta: float
     _warmup_steps: int
@@ -52,6 +53,7 @@ class PLASImpl(DDPGBaseImpl):
         lam: float,
         beta: float,
         warmup_steps: int,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -62,15 +64,21 @@ class PLASImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
+            compiled=compiled,
             device=device,
         )
         self._lam = lam
         self._beta = beta
         self._warmup_steps = warmup_steps
+        self._compute_imitator_grad = (
+            CudaGraphWrapper(self.compute_imitator_grad)
+            if compiled
+            else self.compute_imitator_grad
+        )
 
-    def update_imitator(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    def compute_imitator_grad(
+        self, batch: TorchMiniBatch
+    ) -> Dict[str, torch.Tensor]:
         self._modules.vae_optim.zero_grad()
         loss = compute_vae_error(
             vae_encoder=self._modules.vae_encoder,
@@ -80,11 +88,15 @@ class PLASImpl(DDPGBaseImpl):
             beta=self._beta,
         )
         loss.backward()
-        self._modules.vae_optim.step(grad_step)
-        return {"vae_loss": float(loss.cpu().detach().numpy())}
+        return {"loss": loss}
+
+    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
+        loss = self._compute_imitator_grad(batch)
+        self._modules.vae_optim.step()
+        return {"vae_loss": float(loss["loss"].cpu().detach().numpy())}
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
+        self, batch: TorchMiniBatch, action: ActionOutput
     ) -> DDPGBaseActorLoss:
         latent_actions = 2.0 * action.squashed_mu
         actions = self._modules.vae_decoder(batch.observations, latent_actions)
@@ -125,11 +137,10 @@ class PLASImpl(DDPGBaseImpl):
         metrics = {}
 
         if grad_step < self._warmup_steps:
-            metrics.update(self.update_imitator(batch, grad_step))
+            metrics.update(self.update_imitator(batch))
         else:
-            action = self._modules.policy(batch.observations)
-            metrics.update(self.update_critic(batch, grad_step))
-            metrics.update(self.update_actor(batch, action, grad_step))
+            metrics.update(self.update_critic(batch))
+            metrics.update(self.update_actor(batch))
             self.update_actor_target()
             self.update_critic_target()
 
@@ -157,6 +168,7 @@ class PLASWithPerturbationImpl(PLASImpl):
         lam: float,
         beta: float,
         warmup_steps: int,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -170,11 +182,12 @@ class PLASWithPerturbationImpl(PLASImpl):
             lam=lam,
             beta=beta,
             warmup_steps=warmup_steps,
+            compiled=compiled,
             device=device,
         )
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
+        self, batch: TorchMiniBatch, action: ActionOutput
     ) -> DDPGBaseActorLoss:
         latent_actions = 2.0 * action.squashed_mu
         actions = self._modules.vae_decoder(batch.observations, latent_actions)

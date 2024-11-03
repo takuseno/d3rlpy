@@ -55,6 +55,7 @@ class CRRImpl(DDPGBaseImpl):
         tau: float,
         target_update_type: str,
         target_update_interval: int,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -65,6 +66,7 @@ class CRRImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
+            compiled=compiled,
             device=device,
         )
         self._beta = beta
@@ -76,7 +78,7 @@ class CRRImpl(DDPGBaseImpl):
         self._target_update_interval = target_update_interval
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
+        self, batch: TorchMiniBatch, action: ActionOutput
     ) -> DDPGBaseActorLoss:
         # compute log probability
         dist = build_gaussian_distribution(action)
@@ -186,9 +188,8 @@ class CRRImpl(DDPGBaseImpl):
         self, batch: TorchMiniBatch, grad_step: int
     ) -> Dict[str, float]:
         metrics = {}
-        action = self._modules.policy(batch.observations)
-        metrics.update(self.update_critic(batch, grad_step))
-        metrics.update(self.update_actor(batch, action, grad_step))
+        metrics.update(self.update_critic(batch))
+        metrics.update(self.update_actor(batch))
 
         if self._target_update_type == "hard":
             if grad_step % self._target_update_interval == 0:
