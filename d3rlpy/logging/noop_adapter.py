@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 from .logger import (
     AlgProtocol,
@@ -17,7 +17,7 @@ class NoopAdapter(LoggerAdapter):
     are not allowed to write things to disks.
     """
 
-    def write_params(self, params: Dict[str, Any]) -> None:
+    def write_params(self, params: dict[str, Any]) -> None:
         pass
 
     def before_write_metric(self, epoch: int, step: int) -> None:

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import BinaryIO, List, Optional, Sequence, Type, Union
+from typing import BinaryIO, Optional, Sequence, Union
 
 import numpy as np
 
@@ -172,7 +172,7 @@ class ReplayBufferBase(ABC):
         cls,
         f: BinaryIO,
         buffer: BufferProtocol,
-        episode_cls: Type[EpisodeBase] = Episode,
+        episode_cls: type[EpisodeBase] = Episode,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
@@ -336,7 +336,7 @@ class ReplayBuffer(ReplayBufferBase):
     _transition_picker: TransitionPickerProtocol
     _trajectory_slicer: TrajectorySlicerProtocol
     _writer: ExperienceWriter
-    _episodes: List[EpisodeBase]
+    _episodes: list[EpisodeBase]
     _dataset_info: DatasetInfo
 
     def __init__(
@@ -515,7 +515,7 @@ class ReplayBuffer(ReplayBufferBase):
         cls,
         f: BinaryIO,
         buffer: BufferProtocol,
-        episode_cls: Type[EpisodeBase] = Episode,
+        episode_cls: type[EpisodeBase] = Episode,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
@@ -693,7 +693,7 @@ class MixedReplayBuffer(ReplayBufferBase):
         cls,
         f: BinaryIO,
         buffer: BufferProtocol,
-        episode_cls: Type[EpisodeBase] = Episode,
+        episode_cls: type[EpisodeBase] = Episode,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         writer_preprocessor: Optional[WriterPreprocessProtocol] = None,

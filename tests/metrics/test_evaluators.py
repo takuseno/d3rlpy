@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Sequence
+from typing import Callable, Optional, Sequence
 
 import numpy as np
 import pytest
@@ -98,7 +98,7 @@ def ref_td_error_score(
     terminals: NDArray,
     gamma: float,
     reward_scaler: Optional[RewardScaler],
-) -> List[float]:
+) -> list[float]:
     if reward_scaler:
         rewards = reward_scaler.transform_numpy(rewards)
     values = predict_value(observations, actions)
@@ -140,7 +140,7 @@ def test_td_error_scorer(
 
     algo = DummyAlgo(A, gamma, reward_scaler=reward_scaler)
 
-    ref_errors: List[float] = []
+    ref_errors: list[float] = []
     for episode in episodes:
         batch = _convert_episode_to_batch(episode)
         ref_error = ref_td_error_score(
@@ -199,7 +199,7 @@ def ref_discounted_sum_of_advantage_score(
     dataset_actions: NDArray,
     policy_actions: NDArray,
     gamma: float,
-) -> List[float]:
+) -> list[float]:
     dataset_values = predict_value(observations, dataset_actions)
     policy_values = predict_value(observations, policy_actions)
     advantages = (dataset_values - policy_values).reshape(-1).tolist()

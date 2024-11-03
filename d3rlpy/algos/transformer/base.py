@@ -3,8 +3,6 @@ from abc import abstractmethod
 from collections import defaultdict, deque
 from typing import (
     Callable,
-    Deque,
-    Dict,
     Generic,
     Optional,
     Sequence,
@@ -60,13 +58,13 @@ class TransformerAlgoImplBase(ImplBase):
     @train_api
     def update(
         self, batch: TorchTrajectoryMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         return self.inner_update(batch, grad_step)
 
     @abstractmethod
     def inner_update(
         self, batch: TorchTrajectoryMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         raise NotImplementedError
 
 
@@ -115,11 +113,11 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
     _target_return: float
     _action_sampler: TransformerActionSampler
     _return_rest: float
-    _observations: Deque[Observation]
-    _actions: Deque[Union[NDArray, int]]
-    _rewards: Deque[float]
-    _returns_to_go: Deque[float]
-    _timesteps: Deque[int]
+    _observations: deque[Observation]
+    _actions: deque[Union[NDArray, int]]
+    _rewards: deque[float]
+    _returns_to_go: deque[float]
+    _timesteps: deque[int]
     _timestep: int
 
     def __init__(
@@ -510,7 +508,7 @@ class TransformerAlgoBase(
 
         logger.close()
 
-    def update(self, batch: TrajectoryMiniBatch) -> Dict[str, float]:
+    def update(self, batch: TrajectoryMiniBatch) -> dict[str, float]:
         """Update parameters with mini-batch of data.
 
         Args:

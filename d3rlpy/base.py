@@ -2,7 +2,7 @@ import dataclasses
 import io
 import pickle
 from abc import ABCMeta, abstractmethod
-from typing import BinaryIO, Generic, Optional, Type, TypeVar, Union
+from typing import BinaryIO, Generic, Optional, TypeVar, Union
 
 from gym.spaces import Box
 from gymnasium.spaces import Box as GymnasiumBox
@@ -274,7 +274,7 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
     @classmethod
     def from_json(
-        cls: Type[Self], fname: str, device: DeviceArg = False
+        cls: type[Self], fname: str, device: DeviceArg = False
     ) -> Self:
         r"""Construct algorithm from params.json file.
 

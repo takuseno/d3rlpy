@@ -2,11 +2,10 @@ import time
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, DefaultDict, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Iterator, Optional, Protocol
 
 import structlog
 from torch import nn
-from typing_extensions import Protocol
 
 from ..types import Float32NDArray
 
@@ -43,8 +42,8 @@ class SaveProtocol(Protocol):
 
 
 class ModuleProtocol(Protocol):
-    def get_torch_modules(self) -> Dict[str, nn.Module]: ...
-    def get_gradients(self) -> Iterator[Tuple[str, Float32NDArray]]: ...
+    def get_torch_modules(self) -> dict[str, nn.Module]: ...
+    def get_gradients(self) -> Iterator[tuple[str, Float32NDArray]]: ...
 
 
 class ImplProtocol(Protocol):
@@ -62,7 +61,7 @@ class AlgProtocol(Protocol):
 class LoggerAdapter(Protocol):
     r"""Interface of LoggerAdapter."""
 
-    def write_params(self, params: Dict[str, Any]) -> None:
+    def write_params(self, params: dict[str, Any]) -> None:
         r"""Writes hyperparameters.
 
         Args:
@@ -145,7 +144,7 @@ class D3RLPyLogger:
     _algo: AlgProtocol
     _adapter: LoggerAdapter
     _experiment_name: str
-    _metrics_buffer: DefaultDict[str, List[float]]
+    _metrics_buffer: defaultdict[str, list[float]]
 
     def __init__(
         self,
@@ -166,14 +165,14 @@ class D3RLPyLogger:
         )
         self._metrics_buffer = defaultdict(list)
 
-    def add_params(self, params: Dict[str, Any]) -> None:
+    def add_params(self, params: dict[str, Any]) -> None:
         self._adapter.write_params(params)
         LOG.info("Parameters", params=params)
 
     def add_metric(self, name: str, value: float) -> None:
         self._metrics_buffer[name].append(value)
 
-    def commit(self, epoch: int, step: int) -> Dict[str, float]:
+    def commit(self, epoch: int, step: int) -> dict[str, float]:
         self._adapter.before_write_metric(epoch, step)
 
         metrics = {}

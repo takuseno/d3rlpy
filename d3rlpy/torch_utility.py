@@ -3,12 +3,11 @@ import dataclasses
 from typing import (
     Any,
     BinaryIO,
-    Dict,
     Generic,
     Iterator,
     Optional,
+    Protocol,
     Sequence,
-    Tuple,
     TypeVar,
     Union,
     overload,
@@ -21,7 +20,7 @@ from torch import nn
 from torch.cuda import CUDAGraph
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
-from typing_extensions import Protocol, Self
+from typing_extensions import Self
 
 from .dataclass_utils import asdict_without_copy
 from .dataset import TrajectoryMiniBatch, TransitionMiniBatch
@@ -122,7 +121,7 @@ def convert_to_torch_recursively(
 
 
 def convert_to_numpy_recursively(
-    array: Union[torch.Tensor, Sequence[torch.Tensor]]
+    array: Union[torch.Tensor, Sequence[torch.Tensor]],
 ) -> Union[NDArray, Sequence[NDArray]]:
     if isinstance(array, (list, tuple)):
         return [data.numpy() for data in array]
@@ -370,12 +369,12 @@ def unwrap_ddp_model(model: _TModule) -> _TModule:
 
 
 class Checkpointer:
-    _modules: Dict[str, Union[nn.Module, OptimizerWrapperProto]]
+    _modules: dict[str, Union[nn.Module, OptimizerWrapperProto]]
     _device: str
 
     def __init__(
         self,
-        modules: Dict[str, Union[nn.Module, OptimizerWrapperProto]],
+        modules: dict[str, Union[nn.Module, OptimizerWrapperProto]],
         device: str,
     ):
         self._modules = modules
@@ -396,7 +395,7 @@ class Checkpointer:
             v.load_state_dict(chkpt[k])
 
     @property
-    def modules(self) -> Dict[str, Union[nn.Module, OptimizerWrapperProto]]:
+    def modules(self) -> dict[str, Union[nn.Module, OptimizerWrapperProto]]:
         return self._modules
 
 
@@ -437,18 +436,21 @@ class Modules:
             if isinstance(v, OptimizerWrapperProto):
                 v.optim.state = collections.defaultdict(dict)
 
-    def get_torch_modules(self) -> Dict[str, nn.Module]:
-        torch_modules: Dict[str, nn.Module] = {}
+    def get_torch_modules(self) -> dict[str, nn.Module]:
+        torch_modules: dict[str, nn.Module] = {}
         for k, v in asdict_without_copy(self).items():
             if isinstance(v, nn.Module):
                 torch_modules[k] = v
         return torch_modules
 
-    def get_gradients(self) -> Iterator[Tuple[str, Float32NDArray]]:
+    def get_gradients(self) -> Iterator[tuple[str, Float32NDArray]]:
         for module_name, module in self.get_torch_modules().items():
             for name, parameter in module.named_parameters():
                 if parameter.requires_grad and parameter.grad is not None:
-                    yield f"{module_name}.{name}", parameter.grad.cpu().detach().numpy()
+                    yield (
+                        f"{module_name}.{name}",
+                        parameter.grad.cpu().detach().numpy(),
+                    )
 
 
 TCallable = TypeVar("TCallable")

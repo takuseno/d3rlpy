@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Any, Iterable, Mapping, Optional, Sequence, Tuple
+from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from torch import nn
 from torch.optim import SGD, Adam, AdamW, Optimizer, RMSprop
@@ -22,7 +22,7 @@ __all__ = [
 
 
 def _get_parameters_from_named_modules(
-    named_modules: Iterable[Tuple[str, nn.Module]]
+    named_modules: Iterable[tuple[str, nn.Module]],
 ) -> Sequence[nn.Parameter]:
     # retrieve unique set of parameters
     params_dict = {}
@@ -121,7 +121,7 @@ class OptimizerFactory(DynamicConfig):
 
     def create(
         self,
-        named_modules: Iterable[Tuple[str, nn.Module]],
+        named_modules: Iterable[tuple[str, nn.Module]],
         lr: float,
         compiled: bool,
     ) -> OptimizerWrapper:
@@ -152,7 +152,7 @@ class OptimizerFactory(DynamicConfig):
         )
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> Optimizer:
         raise NotImplementedError
 
@@ -182,7 +182,7 @@ class SGDFactory(OptimizerFactory):
     nesterov: bool = False
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> Optimizer:
         return SGD(
             _get_parameters_from_named_modules(named_modules),
@@ -218,13 +218,13 @@ class AdamFactory(OptimizerFactory):
         amsgrad: flag to use the AMSGrad variant of this algorithm.
     """
 
-    betas: Tuple[float, float] = (0.9, 0.999)
+    betas: tuple[float, float] = (0.9, 0.999)
     eps: float = 1e-8
     weight_decay: float = 0
     amsgrad: bool = False
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> Adam:
         return Adam(
             params=_get_parameters_from_named_modules(named_modules),
@@ -260,13 +260,13 @@ class AdamWFactory(OptimizerFactory):
         amsgrad: flag to use the AMSGrad variant of this algorithm.
     """
 
-    betas: Tuple[float, float] = (0.9, 0.999)
+    betas: tuple[float, float] = (0.9, 0.999)
     eps: float = 1e-8
     weight_decay: float = 0
     amsgrad: bool = False
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> AdamW:
         return AdamW(
             _get_parameters_from_named_modules(named_modules),
@@ -310,7 +310,7 @@ class RMSpropFactory(OptimizerFactory):
     centered: bool = True
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> RMSprop:
         return RMSprop(
             _get_parameters_from_named_modules(named_modules),
@@ -347,13 +347,13 @@ class GPTAdamWFactory(OptimizerFactory):
         amsgrad: flag to use the AMSGrad variant of this algorithm.
     """
 
-    betas: Tuple[float, float] = (0.9, 0.999)
+    betas: tuple[float, float] = (0.9, 0.999)
     eps: float = 1e-8
     weight_decay: float = 0
     amsgrad: bool = False
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> AdamW:
         named_modules = list(named_modules)
         params_dict = {}

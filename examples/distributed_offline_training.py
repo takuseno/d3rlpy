@@ -1,4 +1,3 @@
-from typing import Dict
 
 import d3rlpy
 
@@ -34,7 +33,7 @@ def main() -> None:
 
     # disable logging on rank != 0 workers
     logger_adapter: d3rlpy.logging.LoggerAdapterFactory
-    evaluators: Dict[str, d3rlpy.metrics.EvaluatorProtocol]
+    evaluators: dict[str, d3rlpy.metrics.EvaluatorProtocol]
     if rank == 0:
         evaluators = {"environment": d3rlpy.metrics.EnvironmentEvaluator(env)}
         logger_adapter = d3rlpy.logging.FileAdapterFactory()

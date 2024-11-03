@@ -1,6 +1,5 @@
 import math
 from abc import ABCMeta, abstractmethod
-from typing import Tuple
 
 import torch
 import torch.nn.functional as F
@@ -386,7 +385,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         action: torch.Tensor,
         return_to_go: torch.Tensor,
         timesteps: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         batch_size, context_size, _ = return_to_go.shape
         position_embedding = self._position_encoding(timesteps)
 
@@ -475,7 +474,7 @@ class GatoTransformer(nn.Module):  # type: ignore
         observation_masks: torch.Tensor,
         observation_positions: torch.Tensor,
         action_masks: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # TODO: Support text and patch tokens
         assert tokens.ndim == 2
         batch_size, context_size = tokens.shape

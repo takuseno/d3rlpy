@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 
@@ -29,8 +29,8 @@ class TensorboardAdapter(LoggerAdapter):
 
     _algo: AlgProtocol
     _experiment_name: str
-    _params: Dict[str, Any]
-    _metrics: Dict[str, float]
+    _params: dict[str, Any]
+    _metrics: dict[str, float]
 
     def __init__(self, algo: AlgProtocol, root_dir: str, experiment_name: str):
         try:
@@ -44,7 +44,7 @@ class TensorboardAdapter(LoggerAdapter):
         self._writer = SummaryWriter(logdir=logdir)
         self._metrics = {}
 
-    def write_params(self, params: Dict[str, Any]) -> None:
+    def write_params(self, params: dict[str, Any]) -> None:
         # remove non-scaler values for HParams
         self._params = {k: v for k, v in params.items() if np.isscalar(v)}
 

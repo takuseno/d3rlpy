@@ -1,5 +1,6 @@
+from typing import Protocol
+
 import numpy as np
-from typing_extensions import Protocol
 
 from ..types import Float32NDArray, Int32NDArray
 from .components import EpisodeBase, PartialTrajectory

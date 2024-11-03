@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Callable, Dict
+from typing import Callable
 
 import torch
 
@@ -36,7 +36,7 @@ class PLASModules(DDPGBaseModules):
 
 class PLASImpl(DDPGBaseImpl):
     _modules: PLASModules
-    _compute_imitator_grad: Callable[[TorchMiniBatch], Dict[str, torch.Tensor]]
+    _compute_imitator_grad: Callable[[TorchMiniBatch], dict[str, torch.Tensor]]
     _lam: float
     _beta: float
     _warmup_steps: int
@@ -78,7 +78,7 @@ class PLASImpl(DDPGBaseImpl):
 
     def compute_imitator_grad(
         self, batch: TorchMiniBatch
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         self._modules.vae_optim.zero_grad()
         loss = compute_vae_error(
             vae_encoder=self._modules.vae_encoder,
@@ -90,7 +90,7 @@ class PLASImpl(DDPGBaseImpl):
         loss.backward()
         return {"loss": loss}
 
-    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_imitator(self, batch: TorchMiniBatch) -> dict[str, float]:
         loss = self._compute_imitator_grad(batch)
         self._modules.vae_optim.step()
         return {"vae_loss": float(loss["loss"].cpu().detach().numpy())}
@@ -133,7 +133,7 @@ class PLASImpl(DDPGBaseImpl):
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         metrics = {}
 
         if grad_step < self._warmup_steps:

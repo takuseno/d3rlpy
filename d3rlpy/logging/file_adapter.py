@@ -1,7 +1,7 @@
 import json
 import os
 from enum import Enum, IntEnum
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 
@@ -52,7 +52,7 @@ class FileAdapter(LoggerAdapter):
             os.makedirs(self._logdir)
             LOG.info(f"Directory is created at {self._logdir}")
 
-    def write_params(self, params: Dict[str, Any]) -> None:
+    def write_params(self, params: dict[str, Any]) -> None:
         # save dictionary as json file
         params_path = os.path.join(self._logdir, "params.json")
         with open(params_path, "w") as f:

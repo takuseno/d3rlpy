@@ -25,10 +25,7 @@ jobs:
           pip install Cython numpy
           pip install -e .
           pip install -r dev.requirements.txt
-      - name: Check format
-        run: |
-          ./scripts/format
-      - name: Linter
+      - name: Static analysis
         run: |
           ./scripts/lint
 

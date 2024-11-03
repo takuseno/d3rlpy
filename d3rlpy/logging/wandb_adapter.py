@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from .logger import (
     AlgProtocol,
@@ -42,7 +42,7 @@ class WanDBAdapter(LoggerAdapter):
         )
         self._is_model_watched = False
 
-    def write_params(self, params: Dict[str, Any]) -> None:
+    def write_params(self, params: dict[str, Any]) -> None:
         """Writes hyperparameters to WandB config."""
         self.run.config.update(params)
 

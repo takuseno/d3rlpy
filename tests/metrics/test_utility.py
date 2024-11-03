@@ -1,6 +1,6 @@
 from functools import reduce
 from operator import mul
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
 
 import gym
 import numpy as np
@@ -65,14 +65,14 @@ class DummyEnv(gym.Env[NDArray, NDArray]):
 
     def step(
         self, action: NDArray
-    ) -> Tuple[NDArray, float, bool, bool, Dict[str, Any]]:
+    ) -> tuple[NDArray, float, bool, bool, dict[str, Any]]:
         self.t += 1
         observation = self.observations[self.episode - 1, self.t]
         reward = np.mean(observation) + np.mean(action)
         done = self.t == self.episode_length
         return observation, float(reward), done, False, {}
 
-    def reset(self, **kwargs: Any) -> Tuple[NDArray, Dict[str, Any]]:
+    def reset(self, **kwargs: Any) -> tuple[NDArray, dict[str, Any]]:
         self.t = 0
         self.episode += 1
         return self.observations[self.episode - 1, 0], {}

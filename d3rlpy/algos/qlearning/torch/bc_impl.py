@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
-from typing import Callable, Dict, Union
+from typing import Callable, Union
 
 import torch
 from torch.optim import Optimizer
@@ -60,7 +60,7 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
         loss.loss.backward()
         return loss
 
-    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_imitator(self, batch: TorchMiniBatch) -> dict[str, float]:
         loss = self._compute_imitator_grad(batch)
         self._modules.optim.step()
         return asdict_as_float(loss)
@@ -81,7 +81,7 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         return self.update_imitator(batch)
 
 

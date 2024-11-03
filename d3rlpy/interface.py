@@ -1,6 +1,4 @@
-from typing import Optional, Union
-
-from typing_extensions import Protocol
+from typing import Optional, Protocol, Union
 
 from .preprocessing import ActionScaler, ObservationScaler, RewardScaler
 from .types import NDArray, Observation

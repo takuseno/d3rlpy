@@ -5,11 +5,9 @@ onnx
 matplotlib
 tensorboardX
 wandb
-black
 mypy
-pylint==2.13.5
 numpy<2
-isort
 docformatter
+ruff
 minari==0.4.2
 gymnasium_robotics

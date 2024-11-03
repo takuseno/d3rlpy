@@ -5,7 +5,7 @@ import glob
 import json
 import os
 import subprocess
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 import click
 import gym
@@ -50,7 +50,7 @@ def get_plt() -> "matplotlib.pyplot":
 
 def _compute_moving_average(values: np.ndarray, window: int) -> np.ndarray:
     assert values.ndim == 1
-    results: List[float] = []
+    results: list[float] = []
     # average over past data
     for i in range(values.shape[0]):
         start = max(0, i - window)
@@ -83,13 +83,13 @@ def stats(path: str) -> None:
 @click.option("--ylabel", default="value", help="Label on y-axis.")
 @click.option("--save", help="Flag to save the plot as an image.")
 def plot(
-    path: List[str],
+    path: list[str],
     window: int,
     show_steps: bool,
     show_max: bool,
     label: Optional[Sequence[str]],
-    xlim: Optional[Tuple[float, float]],
-    ylim: Optional[Tuple[float, float]],
+    xlim: Optional[tuple[float, float]],
+    ylim: Optional[tuple[float, float]],
     title: Optional[str],
     ylabel: str,
     save: str,
@@ -230,7 +230,7 @@ def export(model_path: str, output_path: str) -> None:
 
 def _exec_to_create_env(code: str) -> gym.Env[Any, Any]:
     print(f"Executing '{code}'")
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     exec(code, globals(), variables)
     if "env" not in variables:
         raise RuntimeError("env must be defined in env_header.")
@@ -349,13 +349,13 @@ def play(
 
 
 def _install_module(
-    name: List[str], upgrade: bool = False, check: bool = True
+    name: list[str], upgrade: bool = False, check: bool = True
 ) -> None:
     name = ["-U", *name] if upgrade else name
     subprocess.run(["pip3", "install", *name], check=check)
 
 
-def _uninstall_module(name: List[str], check: bool = True) -> None:
+def _uninstall_module(name: list[str], check: bool = True) -> None:
     subprocess.run(["pip3", "uninstall", "-y", *name], check=check)
 
 
@@ -371,7 +371,6 @@ INSTALL_OPTIONS = {
 @cli.command(short_help="Install additional packages.")
 @click.argument("name")
 def install(name: str) -> None:
-
     def print_available_options() -> None:
         print("List of available options.")
         for name, description in INSTALL_OPTIONS.items():

@@ -18,11 +18,11 @@ def test_channel_first() -> None:
 
     # check reset
     observation, _ = wrapper.reset()
-    assert observation.shape == (channel, width, height)  # type: ignore
+    assert observation.shape == (channel, width, height)
 
     # check step
     observation, _, _, _, _ = wrapper.step(wrapper.action_space.sample())
-    assert observation.shape == (channel, width, height)  # type: ignore
+    assert observation.shape == (channel, width, height)
 
     # check with algorithm
     dqn = DQNConfig().create()
@@ -40,11 +40,11 @@ def test_channel_first_with_2_dim_obs() -> None:
 
     # check reset
     observation, _ = wrapper.reset()
-    assert observation.shape == (1, width, height)  # type: ignore
+    assert observation.shape == (1, width, height)
 
     # check step
     observation, _, _, _, _ = wrapper.step(wrapper.action_space.sample())
-    assert observation.shape == (1, width, height)  # type: ignore
+    assert observation.shape == (1, width, height)
 
     # check with algorithm
     dqn = DQNConfig().create()
@@ -63,11 +63,11 @@ def test_frame_stack(num_stack: int) -> None:
 
     # check reset
     observation, _ = wrapper.reset()
-    assert observation.shape == (num_stack, width, height)  # type: ignore
+    assert observation.shape == (num_stack, width, height)
 
     # check step
     observation, _, _, _, _ = wrapper.step(wrapper.action_space.sample())
-    assert observation.shape == (num_stack, width, height)  # type: ignore
+    assert observation.shape == (num_stack, width, height)
 
     # check with algorithm
     dqn = DQNConfig().create()
@@ -84,11 +84,11 @@ def test_atari(is_eval: bool) -> None:
 
     # check reset
     observation, _ = env.reset()
-    assert observation.shape == (1, 84, 84)  # type: ignore
+    assert observation.shape == (1, 84, 84)
 
     # check step
     observation, _, _, _, _ = env.step(env.action_space.sample())
-    assert observation.shape == (1, 84, 84)  # type: ignore
+    assert observation.shape == (1, 84, 84)
 
 
 # @pytest.mark.parametrize("tuple_observation", [True, False])

@@ -1,5 +1,4 @@
 import dataclasses
-from typing import Dict
 
 import numpy as np
 
@@ -35,7 +34,9 @@ class RandomPolicyConfig(LearnableConfig):
     distribution: str = "uniform"
     normal_std: float = 1.0
 
-    def create(self, device: DeviceArg = False, enable_ddp: bool = False) -> "RandomPolicy":  # type: ignore
+    def create(  # type: ignore
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "RandomPolicy":
         return RandomPolicy(self)
 
     @staticmethod
@@ -83,7 +84,7 @@ class RandomPolicy(QLearningAlgoBase[None, RandomPolicyConfig]):  # type: ignore
     def predict_value(self, x: Observation, action: NDArray) -> NDArray:
         raise NotImplementedError
 
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def inner_update(self, batch: TorchMiniBatch) -> dict[str, float]:
         raise NotImplementedError
 
     def get_action_type(self) -> ActionSpace:
@@ -98,7 +99,9 @@ class DiscreteRandomPolicyConfig(LearnableConfig):
     ``fit`` and ``fit_online`` methods will raise exceptions.
     """
 
-    def create(self, device: DeviceArg = False, enable_ddp: bool = False) -> "DiscreteRandomPolicy":  # type: ignore
+    def create(  # type: ignore
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "DiscreteRandomPolicy":
         return DiscreteRandomPolicy(self)
 
     @staticmethod
@@ -128,7 +131,7 @@ class DiscreteRandomPolicy(QLearningAlgoBase[None, DiscreteRandomPolicyConfig]):
     def predict_value(self, x: Observation, action: NDArray) -> NDArray:
         raise NotImplementedError
 
-    def inner_update(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def inner_update(self, batch: TorchMiniBatch) -> dict[str, float]:
         raise NotImplementedError
 
     def get_action_type(self) -> ActionSpace:

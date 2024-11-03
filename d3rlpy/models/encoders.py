@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from ..dataset import cast_flat_shape
 from ..serializable_config import DynamicConfig, generate_config_registration
@@ -75,7 +75,7 @@ class PixelEncoderFactory(EncoderFactory):
         last_activation (str): Activation function name for the last layer.
     """
 
-    filters: List[List[int]] = field(
+    filters: list[list[int]] = field(
         default_factory=lambda: [[32, 8, 4], [64, 4, 2], [64, 3, 1]]
     )
     feature_size: int = 512
@@ -149,7 +149,7 @@ class VectorEncoderFactory(EncoderFactory):
         last_activation (str): Activation function name for the last layer.
     """
 
-    hidden_units: List[int] = field(default_factory=lambda: [256, 256])
+    hidden_units: list[int] = field(default_factory=lambda: [256, 256])
     activation: str = "relu"
     use_batch_norm: bool = False
     use_layer_norm: bool = False

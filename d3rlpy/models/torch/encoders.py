@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional, Sequence
+from typing import Optional, Sequence
 
 import torch
 import torch.nn.functional as F
@@ -48,7 +48,7 @@ class PixelEncoder(Encoder):
     def __init__(
         self,
         observation_shape: Sequence[int],
-        filters: Optional[List[List[int]]] = None,
+        filters: Optional[list[list[int]]] = None,
         feature_size: int = 512,
         use_batch_norm: bool = False,
         dropout_rate: Optional[float] = False,
@@ -90,7 +90,7 @@ class PixelEncoder(Encoder):
             cnn_output_size = self._cnn_layers(x).view(1, -1).shape[1]
 
         # last dense layer
-        layers: List[nn.Module] = []
+        layers: list[nn.Module] = []
         layers.append(nn.Linear(cnn_output_size, feature_size))
         if not exclude_last_activation:
             layers.append(last_activation if last_activation else activation)
@@ -117,7 +117,7 @@ class PixelEncoderWithAction(EncoderWithAction):
         self,
         observation_shape: Sequence[int],
         action_size: int,
-        filters: Optional[List[List[int]]] = None,
+        filters: Optional[list[list[int]]] = None,
         feature_size: int = 512,
         use_batch_norm: bool = False,
         dropout_rate: Optional[float] = False,
@@ -162,7 +162,7 @@ class PixelEncoderWithAction(EncoderWithAction):
             cnn_output_size = self._cnn_layers(x).view(1, -1).shape[1]
 
         # last dense layer
-        layers: List[nn.Module] = []
+        layers: list[nn.Module] = []
         layers.append(nn.Linear(cnn_output_size + action_size, feature_size))
         if not exclude_last_activation:
             layers.append(last_activation if last_activation else activation)

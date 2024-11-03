@@ -2,11 +2,8 @@ import dataclasses
 from typing import (
     Any,
     Callable,
-    Dict,
     Optional,
     Sequence,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -38,21 +35,21 @@ class SerializableConfig:
     def serialize(self) -> str:
         return self.to_json()  # type: ignore
 
-    def serialize_to_dict(self) -> Dict[str, Any]:
+    def serialize_to_dict(self) -> dict[str, Any]:
         return self.to_dict()  # type: ignore
 
     @classmethod
-    def deserialize(cls: Type[TConfig], serialized_config: str) -> TConfig:
+    def deserialize(cls: type[TConfig], serialized_config: str) -> TConfig:
         return cls.from_json(serialized_config)  # type: ignore
 
     @classmethod
     def deserialize_from_dict(
-        cls: Type[TConfig], dict_config: Dict[str, Any]
+        cls: type[TConfig], dict_config: dict[str, Any]
     ) -> TConfig:
         return cls.from_dict(dict_config)  # type: ignore
 
     @classmethod
-    def deserialize_from_file(cls: Type[TConfig], path: str) -> TConfig:
+    def deserialize_from_file(cls: type[TConfig], path: str) -> TConfig:
         with open(path, "r") as f:
             return cls.deserialize(f.read())
 
@@ -65,43 +62,43 @@ class DynamicConfig(SerializableConfig):
 
 @dataclasses.dataclass(frozen=True)
 class ConfigMetadata:
-    base_cls: Type[DynamicConfig]
-    encoder: Callable[[DynamicConfig], Dict[str, Any]]
+    base_cls: type[DynamicConfig]
+    encoder: Callable[[DynamicConfig], dict[str, Any]]
     decoder: Callable[
-        [Dict[str, Any]], Union[DynamicConfig, Optional[DynamicConfig]]
+        [dict[str, Any]], Union[DynamicConfig, Optional[DynamicConfig]]
     ]
-    config_list: Dict[str, Type[DynamicConfig]]
+    config_list: dict[str, type[DynamicConfig]]
 
-    def add_config(self, name: str, new_config: Type[DynamicConfig]) -> None:
+    def add_config(self, name: str, new_config: type[DynamicConfig]) -> None:
         assert name not in self.config_list, f"{name} is already registered"
         self.config_list[name] = new_config
 
 
-CONFIG_STORAGE: Dict[Type[DynamicConfig], ConfigMetadata] = {}
+CONFIG_STORAGE: dict[type[DynamicConfig], ConfigMetadata] = {}
 
 
 def generate_config_registration(
-    base_cls: Type[TDynamicConfig],
+    base_cls: type[TDynamicConfig],
     default_factory: Optional[Callable[[], TDynamicConfig]] = None,
-) -> Tuple[
-    Callable[[Type[TDynamicConfig]], None], Callable[[], TDynamicConfig]
+) -> tuple[
+    Callable[[type[TDynamicConfig]], None], Callable[[], TDynamicConfig]
 ]:
-    CONFIG_LIST: Dict[str, Type[TDynamicConfig]] = {}
+    CONFIG_LIST: dict[str, type[TDynamicConfig]] = {}
 
-    def register_config(cls: Type[TDynamicConfig]) -> None:
+    def register_config(cls: type[TDynamicConfig]) -> None:
         assert issubclass(cls, base_cls)
         type_name = cls.get_type()
         is_registered = type_name in CONFIG_LIST
         assert not is_registered, f"{type_name} seems to be already registered"
         CONFIG_LIST[type_name] = cls
 
-    def _encoder(orig_config: TDynamicConfig) -> Dict[str, Any]:
+    def _encoder(orig_config: TDynamicConfig) -> dict[str, Any]:
         return {
             "type": orig_config.get_type(),
             "params": orig_config.serialize_to_dict(),
         }
 
-    def _decoder(dict_config: Dict[str, Any]) -> TDynamicConfig:
+    def _decoder(dict_config: dict[str, Any]) -> TDynamicConfig:
         name = dict_config["type"]
         params = dict_config["params"]
         return CONFIG_LIST[name].deserialize_from_dict(params)
@@ -137,21 +134,21 @@ def generate_config_registration(
 
 
 def generate_optional_config_generation(
-    base_cls: Type[TDynamicConfig],
-) -> Tuple[
-    Callable[[Type[TDynamicConfig]], None],
+    base_cls: type[TDynamicConfig],
+) -> tuple[
+    Callable[[type[TDynamicConfig]], None],
     Callable[[], Optional[TDynamicConfig]],
 ]:
-    CONFIG_LIST: Dict[str, Type[TDynamicConfig]] = {}
+    CONFIG_LIST: dict[str, type[TDynamicConfig]] = {}
 
-    def register_config(cls: Type[TDynamicConfig]) -> None:
+    def register_config(cls: type[TDynamicConfig]) -> None:
         assert issubclass(cls, base_cls)
         type_name = cls.get_type()
         is_registered = type_name in CONFIG_LIST
         assert not is_registered, f"{type_name} seems to be already registered"
         CONFIG_LIST[type_name] = cls
 
-    def _encoder(orig_config: Optional[TDynamicConfig]) -> Dict[str, Any]:
+    def _encoder(orig_config: Optional[TDynamicConfig]) -> dict[str, Any]:
         if orig_config is None:
             return {"type": "none", "params": {}}
         return {
@@ -159,7 +156,7 @@ def generate_optional_config_generation(
             "params": orig_config.serialize_to_dict(),
         }
 
-    def _decoder(dict_config: Dict[str, Any]) -> Optional[TDynamicConfig]:
+    def _decoder(dict_config: dict[str, Any]) -> Optional[TDynamicConfig]:
         name = dict_config["type"]
         params = dict_config["params"]
         if name == "none":
@@ -184,7 +181,7 @@ def generate_optional_config_generation(
 
 
 def generate_list_config_field(
-    base_cls: Type[TDynamicConfig],
+    base_cls: type[TDynamicConfig],
 ) -> Callable[[], Sequence[TDynamicConfig]]:
     assert base_cls in CONFIG_STORAGE
 
@@ -192,11 +189,11 @@ def generate_list_config_field(
 
     def _encoder(
         orig_config: Sequence[TDynamicConfig],
-    ) -> Sequence[Dict[str, Any]]:
+    ) -> Sequence[dict[str, Any]]:
         return [config_metadata.encoder(config) for config in orig_config]
 
     def _decoder(
-        dict_config: Sequence[Dict[str, Any]]
+        dict_config: Sequence[dict[str, Any]],
     ) -> Sequence[TDynamicConfig]:
         configs = [config_metadata.decoder(config) for config in dict_config]
         return configs  # type: ignore

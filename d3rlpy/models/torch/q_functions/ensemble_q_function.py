@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Optional, Sequence, Union
 
 import torch
 
@@ -118,7 +118,7 @@ def compute_ensemble_q_function_target(
     lam: float = 0.75,
 ) -> torch.Tensor:
     batch_size = get_batch_size(x)
-    values_list: List[torch.Tensor] = []
+    values_list: list[torch.Tensor] = []
     for forwarder in forwarders:
         if isinstance(forwarder, ContinuousQFunctionForwarder):
             assert action is not None
@@ -289,7 +289,7 @@ def compute_max_with_n_actions_and_indices(
     actions: torch.Tensor,
     forwarder: ContinuousEnsembleQFunctionForwarder,
     lam: float,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Returns weighted target value from sampled actions.
 
     This calculation is proposed in BCQ paper for the first time.
