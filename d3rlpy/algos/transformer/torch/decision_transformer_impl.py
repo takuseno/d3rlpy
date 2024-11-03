@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Callable, Dict
+from typing import Callable
 
 import torch
 import torch.nn.functional as F
@@ -35,7 +35,7 @@ class DecisionTransformerModules(Modules):
 
 class DecisionTransformerImpl(TransformerAlgoImplBase):
     _modules: DecisionTransformerModules
-    _compute_grad: Callable[[TorchTrajectoryMiniBatch], Dict[str, torch.Tensor]]
+    _compute_grad: Callable[[TorchTrajectoryMiniBatch], dict[str, torch.Tensor]]
 
     def __init__(
         self,
@@ -62,7 +62,7 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
 
     def compute_grad(
         self, batch: TorchTrajectoryMiniBatch
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         self._modules.optim.zero_grad()
         loss = self.compute_loss(batch)
         loss.backward()
@@ -70,7 +70,7 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
 
     def inner_update(
         self, batch: TorchTrajectoryMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         loss = self._compute_grad(batch)
         self._modules.optim.step()
         return {"loss": float(loss["loss"].cpu().detach().numpy())}
@@ -99,7 +99,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
     _final_tokens: int
     _initial_learning_rate: float
     _tokens: int
-    _compute_grad: Callable[[TorchTrajectoryMiniBatch], Dict[str, torch.Tensor]]
+    _compute_grad: Callable[[TorchTrajectoryMiniBatch], dict[str, torch.Tensor]]
 
     def __init__(
         self,
@@ -139,7 +139,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
 
     def compute_grad(
         self, batch: TorchTrajectoryMiniBatch
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         self._modules.optim.zero_grad()
         loss = self.compute_loss(batch)
         loss.backward()
@@ -147,7 +147,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
 
     def inner_update(
         self, batch: TorchTrajectoryMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         loss = self._compute_grad(batch)
         self._modules.optim.step()
 

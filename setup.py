@@ -9,7 +9,7 @@ exec(open(os.path.join(here, "d3rlpy", "_version.py")).read())
 if __name__ == "__main__":
     setup(
         name="d3rlpy",
-        version=__version__,
+        version=__version__,  # noqa
         description="An offline deep reinforcement learning library",
         long_description=open("README.md").read(),
         long_description_content_type="text/markdown",
@@ -24,9 +24,9 @@ if __name__ == "__main__":
             "Intended Audience :: Science/Research",
             "Topic :: Scientific/Engineering",
             "Topic :: Scientific/Engineering :: Artificial Intelligence",
-            "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
+            "Programming Language :: Python :: 3.11",
             "Programming Language :: Python :: Implementation :: CPython",
             "Operating System :: POSIX :: Linux",
             "Operating System :: Microsoft :: Windows",
@@ -38,14 +38,13 @@ if __name__ == "__main__":
             "h5py",
             "gym>=0.26.0",
             "click",
-            "typing-extensions",
             "structlog",
             "colorama",
             "dataclasses-json",
             "gymnasium>=1.0.0",
         ],
         packages=find_packages(exclude=["tests*"]),
-        python_requires=">=3.8.0",
+        python_requires=">=3.9.0",
         zip_safe=True,
         entry_points={"console_scripts": ["d3rlpy=d3rlpy.cli:cli"]},
     )

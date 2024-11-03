@@ -1,5 +1,5 @@
 # pylint: disable=protected-access
-from typing import List, Optional, Sequence, Tuple
+from typing import Optional, Sequence
 
 import pytest
 import torch
@@ -23,8 +23,8 @@ from .model_test import check_parameter_updates
 @pytest.mark.parametrize("activation", [torch.nn.ReLU()])
 @pytest.mark.parametrize("last_activation", [None, torch.nn.ReLU()])
 def test_pixel_encoder(
-    shapes: Tuple[Sequence[int], int],
-    filters: List[List[int]],
+    shapes: tuple[Sequence[int], int],
+    filters: list[list[int]],
     feature_size: int,
     batch_size: int,
     use_batch_norm: bool,
@@ -72,9 +72,9 @@ def test_pixel_encoder(
 @pytest.mark.parametrize("activation", [torch.nn.ReLU()])
 @pytest.mark.parametrize("last_activation", [None, torch.nn.ReLU()])
 def test_pixel_encoder_with_action(
-    shapes: Tuple[Sequence[int], int],
+    shapes: tuple[Sequence[int], int],
     action_size: int,
-    filters: List[List[int]],
+    filters: list[list[int]],
     feature_size: int,
     batch_size: int,
     use_batch_norm: bool,

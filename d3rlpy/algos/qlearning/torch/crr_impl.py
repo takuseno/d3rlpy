@@ -1,5 +1,4 @@
 import dataclasses
-from typing import Dict
 
 import torch
 import torch.nn.functional as F
@@ -186,7 +185,7 @@ class CRRImpl(DDPGBaseImpl):
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         metrics = {}
         metrics.update(self.update_critic(batch))
         metrics.update(self.update_actor(batch))

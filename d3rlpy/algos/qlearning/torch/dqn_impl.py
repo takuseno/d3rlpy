@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Callable, Dict
+from typing import Callable
 
 import torch
 from torch import nn
@@ -79,7 +79,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         loss = self._compute_grad(batch)
         self._modules.optim.step()
         if grad_step % self._target_update_interval == 0:

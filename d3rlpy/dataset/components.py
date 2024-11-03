@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Any, Dict, Sequence
+from typing import Any, Sequence
 
 import numpy as np
 from typing_extensions import Protocol
@@ -282,7 +282,7 @@ class EpisodeBase(Protocol):
         """
         raise NotImplementedError
 
-    def serialize(self) -> Dict[str, Any]:
+    def serialize(self) -> dict[str, Any]:
         r"""Returns serized episode data.
 
         Returns:
@@ -291,7 +291,7 @@ class EpisodeBase(Protocol):
         raise NotImplementedError
 
     @classmethod
-    def deserialize(cls, serializedData: Dict[str, Any]) -> "EpisodeBase":
+    def deserialize(cls, serializedData: dict[str, Any]) -> "EpisodeBase":
         r"""Constructs episode from serialized data.
 
         This is an inverse operation of ``serialize`` method.
@@ -362,7 +362,7 @@ class Episode:
     def compute_return(self) -> float:
         return float(np.sum(self.rewards))
 
-    def serialize(self) -> Dict[str, Any]:
+    def serialize(self) -> dict[str, Any]:
         return {
             "observations": self.observations,
             "actions": self.actions,
@@ -371,7 +371,7 @@ class Episode:
         }
 
     @classmethod
-    def deserialize(cls, serializedData: Dict[str, Any]) -> "Episode":
+    def deserialize(cls, serializedData: dict[str, Any]) -> "Episode":
         return cls(
             observations=serializedData["observations"],
             actions=serializedData["actions"],

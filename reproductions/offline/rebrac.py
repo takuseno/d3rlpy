@@ -1,9 +1,8 @@
 import argparse
-from typing import Dict, Tuple
 
 import d3rlpy
 
-BETA_TABLE: Dict[str, Tuple[float, float]] = {
+BETA_TABLE: dict[str, tuple[float, float]] = {
     "halfcheetah-random": (0.001, 0.1),
     "halfcheetah-medium": (0.001, 0.01),
     "halfcheetah-expert": (0.01, 0.01),

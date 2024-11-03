@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Callable, Dict, cast
+from typing import Callable, cast
 
 import torch
 import torch.nn.functional as F
@@ -50,7 +50,7 @@ class BCQModules(DDPGBaseModules):
 
 class BCQImpl(DDPGBaseImpl):
     _modules: BCQModules
-    _compute_imitator_grad: Callable[[TorchMiniBatch], Dict[str, torch.Tensor]]
+    _compute_imitator_grad: Callable[[TorchMiniBatch], dict[str, torch.Tensor]]
     _lam: float
     _n_action_samples: int
     _action_flexibility: float
@@ -124,7 +124,7 @@ class BCQImpl(DDPGBaseImpl):
 
     def compute_imitator_grad(
         self, batch: TorchMiniBatch
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         self._modules.vae_optim.zero_grad()
         loss = compute_vae_error(
             vae_encoder=self._modules.vae_encoder,
@@ -136,7 +136,7 @@ class BCQImpl(DDPGBaseImpl):
         loss.backward()
         return {"loss": loss}
 
-    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_imitator(self, batch: TorchMiniBatch) -> dict[str, float]:
         loss = self._compute_imitator_grad(batch)
         self._modules.vae_optim.step()
         return {"vae_loss": float(loss["loss"].cpu().detach().numpy())}
@@ -214,7 +214,7 @@ class BCQImpl(DDPGBaseImpl):
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         metrics = {}
 
         metrics.update(self.update_imitator(batch))

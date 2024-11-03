@@ -1,7 +1,7 @@
 import copy
 import dataclasses
 from io import BytesIO
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Optional, Sequence
 from unittest.mock import Mock
 
 import numpy as np
@@ -94,8 +94,8 @@ def test_sync_optimizer_state(input_size: int, output_size: int) -> None:
     # check if state is synced
     targ_state = targ_optim.state_dict()["state"]
     state = optim.state_dict()["state"]
-    for i, l in targ_state.items():
-        for k, v in l.items():
+    for i, v_dict in targ_state.items():
+        for k, v in v_dict.items():
             if isinstance(v, int):
                 assert v == state[i][k]
             else:
@@ -136,7 +136,7 @@ class DummyImpl:
         assert self.fc2.training
 
 
-def check_if_same_dict(a: Dict[str, Any], b: Dict[str, Any]) -> None:
+def check_if_same_dict(a: dict[str, Any], b: dict[str, Any]) -> None:
     for k, v in a.items():
         if isinstance(v, torch.Tensor):
             assert (b[k] == v).all()

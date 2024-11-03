@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
-from typing import Callable, Dict
+from typing import Callable
 
 import torch
 from torch import nn
@@ -105,7 +105,7 @@ class DDPGBaseImpl(
         loss.critic_loss.backward()
         return loss
 
-    def update_critic(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_critic(self, batch: TorchMiniBatch) -> dict[str, float]:
         loss = self._compute_critic_grad(batch)
         self._modules.critic_optim.step()
         return asdict_as_float(loss)
@@ -130,7 +130,7 @@ class DDPGBaseImpl(
         loss.actor_loss.backward()
         return loss
 
-    def update_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_actor(self, batch: TorchMiniBatch) -> dict[str, float]:
         # Q function should be inference mode for stability
         self._modules.q_funcs.eval()
         loss = self._compute_actor_grad(batch)
@@ -139,7 +139,7 @@ class DDPGBaseImpl(
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         metrics = {}
         metrics.update(self.update_critic(batch))
         metrics.update(self.update_actor(batch))
@@ -241,7 +241,7 @@ class DDPGImpl(DDPGBaseImpl):
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         metrics = super().inner_update(batch, grad_step)
         self.update_actor_target()
         return metrics

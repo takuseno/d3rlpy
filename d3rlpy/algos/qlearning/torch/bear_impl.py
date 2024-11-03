@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Callable, Dict, Optional
+from typing import Callable, Optional
 
 import torch
 
@@ -61,9 +61,9 @@ class BEARActorLoss(SACActorLoss):
 class BEARImpl(SACImpl):
     _modules: BEARModules
     _compute_warmup_actor_grad: Callable[
-        [TorchMiniBatch], Dict[str, torch.Tensor]
+        [TorchMiniBatch], dict[str, torch.Tensor]
     ]
-    _compute_imitator_grad: Callable[[TorchMiniBatch], Dict[str, torch.Tensor]]
+    _compute_imitator_grad: Callable[[TorchMiniBatch], dict[str, torch.Tensor]]
     _alpha_threshold: float
     _lam: float
     _n_action_samples: int
@@ -143,13 +143,13 @@ class BEARImpl(SACImpl):
 
     def compute_warmup_actor_grad(
         self, batch: TorchMiniBatch
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         self._modules.actor_optim.zero_grad()
         loss = self._compute_mmd_loss(batch.observations)
         loss.backward()
         return {"loss": loss}
 
-    def warmup_actor(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def warmup_actor(self, batch: TorchMiniBatch) -> dict[str, float]:
         loss = self._compute_warmup_actor_grad(batch)
         self._modules.actor_optim.step()
         return {"actor_loss": float(loss["loss"].cpu().detach().numpy())}
@@ -161,13 +161,13 @@ class BEARImpl(SACImpl):
 
     def compute_imitator_grad(
         self, batch: TorchMiniBatch
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         self._modules.vae_optim.zero_grad()
         loss = self.compute_imitator_loss(batch)
         loss.backward()
         return {"loss": loss}
 
-    def update_imitator(self, batch: TorchMiniBatch) -> Dict[str, float]:
+    def update_imitator(self, batch: TorchMiniBatch) -> dict[str, float]:
         loss = self._compute_imitator_grad(batch)
         self._modules.vae_optim.step()
         return {"imitator_loss": float(loss["loss"].cpu().detach().numpy())}
@@ -301,7 +301,7 @@ class BEARImpl(SACImpl):
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         metrics = {}
         metrics.update(self.update_imitator(batch))
         metrics.update(self.update_critic(batch))

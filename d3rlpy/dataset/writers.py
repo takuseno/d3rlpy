@@ -1,4 +1,4 @@
-from typing import Any, Dict, Sequence, Union
+from typing import Any, Sequence, Union
 
 import numpy as np
 from typing_extensions import Protocol
@@ -219,7 +219,7 @@ class _ActiveEpisode(EpisodeBase):
     def compute_return(self) -> float:
         return float(np.sum(self.rewards[: self._cursor]))
 
-    def serialize(self) -> Dict[str, Any]:
+    def serialize(self) -> dict[str, Any]:
         return {
             "observations": self.observations,
             "actions": self.actions,
@@ -228,7 +228,7 @@ class _ActiveEpisode(EpisodeBase):
         }
 
     @classmethod
-    def deserialize(cls, serializedData: Dict[str, Any]) -> "EpisodeBase":
+    def deserialize(cls, serializedData: dict[str, Any]) -> "EpisodeBase":
         raise NotImplementedError("_ActiveEpisode cannot be deserialized.")
 
     def __len__(self) -> int:

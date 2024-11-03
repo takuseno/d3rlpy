@@ -1,4 +1,3 @@
-from typing import List
 
 import pytest
 import torch
@@ -94,7 +93,7 @@ def test_discrete_ensemble_q_function_forwarder(
     n_quantiles: int,
     embed_size: int,
 ) -> None:
-    forwarders: List[DiscreteQFunctionForwarder] = []
+    forwarders: list[DiscreteQFunctionForwarder] = []
     for _ in range(ensemble_size):
         encoder = DummyEncoder(observation_shape)
         forwarder: DiscreteQFunctionForwarder
@@ -214,7 +213,7 @@ def test_ensemble_continuous_q_function(
     n_quantiles: int,
     embed_size: int,
 ) -> None:
-    forwarders: List[ContinuousQFunctionForwarder] = []
+    forwarders: list[ContinuousQFunctionForwarder] = []
     for _ in range(ensemble_size):
         forwarder: ContinuousQFunctionForwarder
         encoder = DummyEncoderWithAction(observation_shape, action_size)

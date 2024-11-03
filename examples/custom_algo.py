@@ -1,6 +1,6 @@
 import copy
 import dataclasses
-from typing import Dict, Sequence, cast
+from typing import Sequence, cast
 
 import gym
 import torch
@@ -49,7 +49,7 @@ class CustomAlgoImpl(d3rlpy.algos.QLearningAlgoImplBase):
 
     def inner_update(
         self, batch: d3rlpy.TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         self._modules.optim.zero_grad()
 
         with torch.no_grad():

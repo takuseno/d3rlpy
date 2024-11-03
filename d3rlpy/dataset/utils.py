@@ -1,4 +1,4 @@
-from typing import Any, Sequence, Type, TypeVar, Union, overload
+from typing import Any, Sequence, TypeVar, Union, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -315,18 +315,18 @@ def check_non_1d_array(array: Union[NDArray, Sequence[NDArray]]) -> bool:
 
 @overload
 def cast_recursively(
-    array: NDArray, dtype: Type[_TDType]
+    array: NDArray, dtype: type[_TDType]
 ) -> npt.NDArray[_TDType]: ...
 
 
 @overload
 def cast_recursively(
-    array: Sequence[NDArray], dtype: Type[_TDType]
+    array: Sequence[NDArray], dtype: type[_TDType]
 ) -> Sequence[npt.NDArray[_TDType]]: ...
 
 
 def cast_recursively(
-    array: Union[NDArray, Sequence[NDArray]], dtype: Type[_TDType]
+    array: Union[NDArray, Sequence[NDArray]], dtype: type[_TDType]
 ) -> Union[npt.NDArray[_TDType], Sequence[npt.NDArray[_TDType]]]:
     if isinstance(array, (list, tuple)):
         return [array[i].astype(dtype) for i in range(len(array))]

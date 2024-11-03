@@ -3,7 +3,6 @@ tqdm>=4.66.1
 h5py==2.10.0
 gym==0.26.2
 click==8.0.1
-typing-extensions==3.7.4.3
 structlog==20.2.0
 colorama==0.4.4
 gymnasium==1.0.0

@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -119,7 +119,7 @@ class CQLImpl(SACImpl):
         policy_obs: TorchObservation,
         value_obs: TorchObservation,
         returns_to_go: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         return sample_q_values_with_policy(
             policy=self._modules.policy,
             q_func_forwarder=self._q_func_forwarder,
@@ -131,7 +131,7 @@ class CQLImpl(SACImpl):
 
     def _compute_random_is_values(
         self, obs: TorchObservation
-    ) -> Tuple[torch.Tensor, float]:
+    ) -> tuple[torch.Tensor, float]:
         # (batch, observation) -> (batch, n, observation)
         repeated_obs = expand_and_repeat_recursively(
             obs, self._n_action_samples

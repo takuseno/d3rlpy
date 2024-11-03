@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Tuple, cast, overload
+from typing import Optional, Sequence, cast, overload
 
 import numpy as np
 import torch
@@ -262,7 +262,7 @@ def create_partial_trajectory(
 def create_scaler_tuple(
     name: Optional[str],
     observation_shape: Shape,
-) -> Tuple[
+) -> tuple[
     Optional[ObservationScaler], Optional[ActionScaler], Optional[RewardScaler]
 ]:
     if name is None:
