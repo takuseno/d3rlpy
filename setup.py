@@ -38,6 +38,7 @@ if __name__ == "__main__":
             "h5py",
             "gym>=0.26.0",
             "click",
+            "typing-extensions",
             "structlog",
             "colorama",
             "dataclasses-json",
