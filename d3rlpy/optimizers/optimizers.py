@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Iterable, Optional, Sequence, Tuple
+from typing import Any, Iterable, Mapping, Optional, Sequence, Tuple
 
 from torch import nn
 from torch.optim import SGD, Adam, AdamW, Optimizer, RMSprop
@@ -92,6 +92,19 @@ class OptimizerWrapper:
     @property
     def optim(self) -> Optimizer:
         return self._optim
+
+    def state_dict(self) -> Mapping[str, Any]:
+        return {
+            "optim": self._optim.state_dict(),
+            "lr_scheduler": (
+                self._lr_scheduler.state_dict() if self._lr_scheduler else None
+            ),
+        }
+
+    def load_state_dict(self, state_dict: Mapping[str, Any]) -> None:
+        self._optim.load_state_dict(state_dict["optim"])
+        if self._lr_scheduler:
+            self._lr_scheduler.load_state_dict(state_dict["lr_scheduler"])
 
 
 @dataclasses.dataclass()

@@ -1,4 +1,4 @@
-from typing import Any, Sequence, Union
+from typing import Any, Mapping, Sequence, Union
 
 import gym
 import gymnasium
@@ -41,4 +41,10 @@ GymEnv = Union[gym.Env[Any, Any], gymnasium.Env[Any, Any]]
 class OptimizerWrapperProto(Protocol):
     @property
     def optim(self) -> Optimizer:
+        raise NotImplementedError
+
+    def state_dict(self) -> Mapping[str, Any]:
+        raise NotImplementedError
+
+    def load_state_dict(self, state_dict: Mapping[str, Any]) -> None:
         raise NotImplementedError

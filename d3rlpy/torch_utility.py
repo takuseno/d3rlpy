@@ -384,7 +384,7 @@ class Checkpointer:
     def save(self, f: BinaryIO) -> None:
         # unwrap DDP
         modules = {
-            k: unwrap_ddp_model(v) if isinstance(v, nn.Module) else v.optim
+            k: unwrap_ddp_model(v) if isinstance(v, nn.Module) else v
             for k, v in self._modules.items()
         }
         states = {k: v.state_dict() for k, v in modules.items()}
@@ -393,10 +393,7 @@ class Checkpointer:
     def load(self, f: BinaryIO) -> None:
         chkpt = torch.load(f, map_location=map_location(self._device))
         for k, v in self._modules.items():
-            if isinstance(v, nn.Module):
-                v.load_state_dict(chkpt[k])
-            else:
-                v.optim.load_state_dict(chkpt[k])
+            v.load_state_dict(chkpt[k])
 
     @property
     def modules(self) -> Dict[str, Union[nn.Module, OptimizerWrapperProto]]:

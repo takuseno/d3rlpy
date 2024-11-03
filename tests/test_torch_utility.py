@@ -1,7 +1,7 @@
 import copy
 import dataclasses
 from io import BytesIO
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, Optional, Sequence
 from unittest.mock import Mock
 
 import numpy as np
@@ -10,6 +10,10 @@ import torch
 
 from d3rlpy.dataset import TrajectoryMiniBatch, Transition, TransitionMiniBatch
 from d3rlpy.optimizers import OptimizerWrapper
+from d3rlpy.optimizers.lr_schedulers import (
+    CosineAnnealingLRFactory,
+    LRSchedulerFactory,
+)
 from d3rlpy.torch_utility import (
     GEGLU,
     Checkpointer,
@@ -454,11 +458,22 @@ def test_torch_trajectory_mini_batch(
     assert torch.all(torch_batch2.masks == torch_batch.masks)
 
 
-def test_checkpointer() -> None:
+@pytest.mark.parametrize(
+    "lr_scheduler_factory", [None, CosineAnnealingLRFactory(100)]
+)
+def test_checkpointer(
+    lr_scheduler_factory: Optional[LRSchedulerFactory],
+) -> None:
     fc1 = torch.nn.Linear(100, 100)
     fc2 = torch.nn.Linear(100, 100)
     params = list(fc1.parameters())
-    optim = OptimizerWrapper(params, torch.optim.Adam(params), False)
+    raw_optim = torch.optim.Adam(params)
+    lr_scheduler = (
+        lr_scheduler_factory.create(raw_optim) if lr_scheduler_factory else None
+    )
+    optim = OptimizerWrapper(
+        params, raw_optim, lr_scheduler=lr_scheduler, compiled=False
+    )
     checkpointer = Checkpointer(
         modules={"fc1": fc1, "fc2": fc2, "optim": optim}, device="cpu:0"
     )
@@ -468,7 +483,7 @@ def test_checkpointer() -> None:
     states = {
         "fc1": fc1.state_dict(),
         "fc2": fc2.state_dict(),
-        "optim": optim.optim.state_dict(),
+        "optim": optim.state_dict(),
     }
     torch.save(states, ref_bytes)
 
@@ -480,7 +495,15 @@ def test_checkpointer() -> None:
     fc1_2 = torch.nn.Linear(100, 100)
     fc2_2 = torch.nn.Linear(100, 100)
     params_2 = list(fc1_2.parameters())
-    optim_2 = OptimizerWrapper(params_2, torch.optim.Adam(params_2), False)
+    raw_optim_2 = torch.optim.Adam(params_2)
+    lr_scheduler_2 = (
+        lr_scheduler_factory.create(raw_optim_2)
+        if lr_scheduler_factory
+        else None
+    )
+    optim_2 = OptimizerWrapper(
+        params_2, raw_optim_2, lr_scheduler=lr_scheduler_2, compiled=False
+    )
     checkpointer = Checkpointer(
         modules={"fc1": fc1_2, "fc2": fc2_2, "optim": optim_2}, device="cpu:0"
     )
