@@ -55,7 +55,6 @@ class DQNConfig(LearnableConfig):
     gamma: float = 0.99
     n_critics: int = 1
     target_update_interval: int = 8000
-    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -71,8 +70,6 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         q_funcs, forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
@@ -95,7 +92,7 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
         optim = self._config.optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
 
         modules = DQNModules(
@@ -112,7 +109,7 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
             target_update_interval=self._config.target_update_interval,
             modules=modules,
             gamma=self._config.gamma,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
             device=self._device,
         )
 
@@ -169,7 +166,6 @@ class DoubleDQNConfig(DQNConfig):
     gamma: float = 0.99
     n_critics: int = 1
     target_update_interval: int = 8000
-    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -185,8 +181,6 @@ class DoubleDQN(DQN):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         q_funcs, forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
@@ -209,7 +203,7 @@ class DoubleDQN(DQN):
         optim = self._config.optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
 
         modules = DQNModules(
@@ -226,7 +220,7 @@ class DoubleDQN(DQN):
             targ_q_func_forwarder=targ_forwarder,
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
             device=self._device,
         )
 

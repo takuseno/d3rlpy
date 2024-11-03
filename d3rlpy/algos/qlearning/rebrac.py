@@ -90,7 +90,6 @@ class ReBRACConfig(LearnableConfig):
     actor_beta: float = 0.001
     critic_beta: float = 0.01
     update_actor_interval: int = 2
-    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -106,8 +105,6 @@ class ReBRAC(QLearningAlgoBase[ReBRACImpl, ReBRACConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         policy = create_deterministic_policy(
             observation_shape,
             action_size,
@@ -144,12 +141,12 @@ class ReBRAC(QLearningAlgoBase[ReBRACImpl, ReBRACConfig]):
         actor_optim = self._config.actor_optim_factory.create(
             policy.named_modules(),
             lr=self._config.actor_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.critic_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
 
         modules = DDPGModules(
@@ -174,7 +171,7 @@ class ReBRAC(QLearningAlgoBase[ReBRACImpl, ReBRACConfig]):
             actor_beta=self._config.actor_beta,
             critic_beta=self._config.critic_beta,
             update_actor_interval=self._config.update_actor_interval,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
             device=self._device,
         )
 

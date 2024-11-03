@@ -83,7 +83,6 @@ class TD3PlusBCConfig(LearnableConfig):
     target_smoothing_clip: float = 0.5
     alpha: float = 2.5
     update_actor_interval: int = 2
-    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -99,8 +98,6 @@ class TD3PlusBC(QLearningAlgoBase[TD3PlusBCImpl, TD3PlusBCConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         policy = create_deterministic_policy(
             observation_shape,
             action_size,
@@ -137,12 +134,12 @@ class TD3PlusBC(QLearningAlgoBase[TD3PlusBCImpl, TD3PlusBCConfig]):
         actor_optim = self._config.actor_optim_factory.create(
             policy.named_modules(),
             lr=self._config.actor_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.critic_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
 
         modules = DDPGModules(
@@ -166,7 +163,7 @@ class TD3PlusBC(QLearningAlgoBase[TD3PlusBCImpl, TD3PlusBCConfig]):
             target_smoothing_clip=self._config.target_smoothing_clip,
             alpha=self._config.alpha,
             update_actor_interval=self._config.update_actor_interval,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
             device=self._device,
         )
 

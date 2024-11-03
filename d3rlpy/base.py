@@ -96,6 +96,7 @@ class LearnableConfig(DynamicConfig):
     )
     action_scaler: Optional[ActionScaler] = make_action_scaler_field()
     reward_scaler: Optional[RewardScaler] = make_reward_scaler_field()
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -355,6 +356,18 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
             LearnableConfig: config.
         """
         return self._config
+
+    @property
+    def compiled(self) -> bool:
+        """Compiled flag.
+
+        This represents if computational graph is optimized with CudaGraph and
+        torch.compile.
+
+        Returns:
+            bool: True if compiled.
+        """
+        return self._config.compile_graph and "cuda" in self._device
 
     @property
     def batch_size(self) -> int:

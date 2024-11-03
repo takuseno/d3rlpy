@@ -89,8 +89,6 @@ class DecisionTransformer(
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         transformer = create_continuous_decision_transformer(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -110,7 +108,7 @@ class DecisionTransformer(
         optim = self._config.optim_factory.create(
             transformer.named_modules(),
             lr=self._config.learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
 
         modules = DecisionTransformerModules(
@@ -123,7 +121,7 @@ class DecisionTransformer(
             action_size=action_size,
             modules=modules,
             device=self._device,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
         )
 
     def get_action_type(self) -> ActionSpace:
@@ -202,8 +200,6 @@ class DiscreteDecisionTransformer(
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         transformer = create_discrete_decision_transformer(
             observation_shape=observation_shape,
             action_size=action_size,
@@ -224,7 +220,7 @@ class DiscreteDecisionTransformer(
         optim = self._config.optim_factory.create(
             transformer.named_modules(),
             lr=self._config.learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
 
         modules = DiscreteDecisionTransformerModules(
@@ -239,7 +235,7 @@ class DiscreteDecisionTransformer(
             warmup_tokens=self._config.warmup_tokens,
             final_tokens=self._config.final_tokens,
             initial_learning_rate=self._config.learning_rate,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
             device=self._device,
         )
 

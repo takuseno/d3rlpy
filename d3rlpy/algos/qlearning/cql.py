@@ -125,7 +125,6 @@ class CQLConfig(LearnableConfig):
     n_action_samples: int = 10
     soft_q_backup: bool = False
     max_q_backup: bool = False
-    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -144,8 +143,6 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
         assert not (
             self._config.soft_q_backup and self._config.max_q_backup
         ), "soft_q_backup and max_q_backup are mutually exclusive."
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         policy = create_normal_policy(
             observation_shape,
             action_size,
@@ -187,18 +184,18 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
         actor_optim = self._config.actor_optim_factory.create(
             policy.named_modules(),
             lr=self._config.actor_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.critic_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
         if self._config.temp_learning_rate > 0:
             temp_optim = self._config.temp_optim_factory.create(
                 log_temp.named_modules(),
                 lr=self._config.temp_learning_rate,
-                compiled=compiled,
+                compiled=self.compiled,
             )
         else:
             temp_optim = None
@@ -206,7 +203,7 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             alpha_optim = self._config.alpha_optim_factory.create(
                 log_alpha.named_modules(),
                 lr=self._config.alpha_learning_rate,
-                compiled=compiled,
+                compiled=self.compiled,
             )
         else:
             alpha_optim = None
@@ -236,7 +233,7 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             n_action_samples=self._config.n_action_samples,
             soft_q_backup=self._config.soft_q_backup,
             max_q_backup=self._config.max_q_backup,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
             device=self._device,
         )
 
@@ -296,7 +293,6 @@ class DiscreteCQLConfig(LearnableConfig):
     n_critics: int = 1
     target_update_interval: int = 8000
     alpha: float = 1.0
-    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -312,8 +308,6 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         q_funcs, q_func_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
@@ -336,7 +330,7 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
         optim = self._config.optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
 
         modules = DQNModules(
@@ -354,7 +348,7 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
             alpha=self._config.alpha,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
             device=self._device,
         )
 

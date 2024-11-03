@@ -111,7 +111,6 @@ class SACConfig(LearnableConfig):
     tau: float = 0.005
     n_critics: int = 2
     initial_temperature: float = 1.0
-    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -127,8 +126,6 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         policy = create_normal_policy(
             observation_shape,
             action_size,
@@ -164,18 +161,18 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
         actor_optim = self._config.actor_optim_factory.create(
             policy.named_modules(),
             lr=self._config.actor_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.critic_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
         if self._config.temp_learning_rate > 0:
             temp_optim = self._config.temp_optim_factory.create(
                 log_temp.named_modules(),
                 lr=self._config.temp_learning_rate,
-                compiled=compiled,
+                compiled=self.compiled,
             )
         else:
             temp_optim = None
@@ -198,7 +195,7 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
             device=self._device,
         )
 
@@ -277,7 +274,6 @@ class DiscreteSACConfig(LearnableConfig):
     n_critics: int = 2
     initial_temperature: float = 1.0
     target_update_interval: int = 8000
-    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -293,8 +289,6 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         q_funcs, q_func_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
@@ -333,19 +327,19 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.critic_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
         actor_optim = self._config.actor_optim_factory.create(
             policy.named_modules(),
             lr=self._config.actor_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
         if self._config.temp_learning_rate > 0:
             assert log_temp is not None
             temp_optim = self._config.temp_optim_factory.create(
                 log_temp.named_modules(),
                 lr=self._config.temp_learning_rate,
-                compiled=compiled,
+                compiled=self.compiled,
             )
         else:
             temp_optim = None
@@ -368,7 +362,7 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
             device=self._device,
         )
 

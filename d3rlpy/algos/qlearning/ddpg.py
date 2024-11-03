@@ -82,7 +82,6 @@ class DDPGConfig(LearnableConfig):
     q_func_factory: QFunctionFactory = make_q_func_field()
     tau: float = 0.005
     n_critics: int = 1
-    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -98,8 +97,6 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         policy = create_deterministic_policy(
             observation_shape,
             action_size,
@@ -136,12 +133,12 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
         actor_optim = self._config.actor_optim_factory.create(
             policy.named_modules(),
             lr=self._config.actor_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.critic_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
 
         modules = DDPGModules(
@@ -161,7 +158,7 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
             device=self._device,
         )
 

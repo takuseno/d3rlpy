@@ -121,7 +121,6 @@ class CRRConfig(LearnableConfig):
     tau: float = 5e-3
     target_update_interval: int = 100
     update_actor_interval: int = 1
-    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -137,8 +136,6 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         policy = create_normal_policy(
             observation_shape,
             action_size,
@@ -175,12 +172,12 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
         actor_optim = self._config.actor_optim_factory.create(
             policy.named_modules(),
             lr=self._config.actor_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.critic_learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
 
         modules = CRRModules(
@@ -207,7 +204,7 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
             tau=self._config.tau,
             target_update_type=self._config.target_update_type,
             target_update_interval=self._config.target_update_interval,
-            compile_graph=compiled,
+            compile_graph=self.compiled,
             device=self._device,
         )
 

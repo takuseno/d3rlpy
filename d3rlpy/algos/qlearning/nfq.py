@@ -57,7 +57,6 @@ class NFQConfig(LearnableConfig):
     batch_size: int = 32
     gamma: float = 0.99
     n_critics: int = 1
-    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -73,8 +72,6 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
-        compiled = self._config.compile_graph and "cuda" in self._device
-
         q_funcs, q_func_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
@@ -97,7 +94,7 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
         optim = self._config.optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.learning_rate,
-            compiled=compiled,
+            compiled=self.compiled,
         )
 
         modules = DQNModules(
@@ -114,7 +111,7 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=1,
             gamma=self._config.gamma,
-            compile_graph=self._config.compile_graph and "cuda" in self._device,
+            compile_graph=self.compiled,
             device=self._device,
         )
 
