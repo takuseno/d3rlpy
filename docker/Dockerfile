@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-devel
+FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel
 
 # this needs to avoid time zone question
 ENV DEBIAN_FRONTEND=noninteractive
