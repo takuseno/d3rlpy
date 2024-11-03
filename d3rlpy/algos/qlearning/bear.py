@@ -162,6 +162,8 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        compiled = self._config.compile_graph and "cuda" in self._device
+
         policy = create_normal_policy(
             observation_shape,
             action_size,
@@ -219,21 +221,30 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=compiled,
         )
         vae_optim = self._config.imitator_optim_factory.create(
             list(vae_encoder.named_modules())
             + list(vae_decoder.named_modules()),
             lr=self._config.imitator_learning_rate,
+            compiled=compiled,
         )
         temp_optim = self._config.temp_optim_factory.create(
-            log_temp.named_modules(), lr=self._config.temp_learning_rate
+            log_temp.named_modules(),
+            lr=self._config.temp_learning_rate,
+            compiled=compiled,
         )
         alpha_optim = self._config.alpha_optim_factory.create(
-            log_alpha.named_modules(), lr=self._config.actor_learning_rate
+            log_alpha.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=compiled,
         )
 
         modules = BEARModules(
@@ -268,7 +279,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             mmd_sigma=self._config.mmd_sigma,
             vae_kl_weight=self._config.vae_kl_weight,
             warmup_steps=self._config.warmup_steps,
-            compile_graph=self._config.compile_graph and "cuda" in self._device,
+            compile_graph=compiled,
             device=self._device,
         )
 

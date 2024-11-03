@@ -102,6 +102,8 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        compiled = self._config.compile_graph and "cuda" in self._device
+
         policy = create_normal_policy(
             observation_shape,
             action_size,
@@ -132,10 +134,14 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=compiled,
         )
 
         dummy_log_temp = Parameter(torch.zeros(1, 1))
@@ -160,7 +166,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             tau=self._config.tau,
             lam=self._config.lam,
             n_action_samples=self._config.n_action_samples,
-            compile_graph=self._config.compile_graph and "cuda" in self._device,
+            compile_graph=compiled,
             device=self._device,
         )
 

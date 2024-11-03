@@ -89,6 +89,7 @@ class CalQL(CQL):
         assert not (
             self._config.soft_q_backup and self._config.max_q_backup
         ), "soft_q_backup and max_q_backup are mutually exclusive."
+        compiled = self._config.compile_graph and "cuda" in self._device
 
         policy = create_normal_policy(
             observation_shape,
@@ -129,20 +130,28 @@ class CalQL(CQL):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=compiled,
         )
         if self._config.temp_learning_rate > 0:
             temp_optim = self._config.temp_optim_factory.create(
-                log_temp.named_modules(), lr=self._config.temp_learning_rate
+                log_temp.named_modules(),
+                lr=self._config.temp_learning_rate,
+                compiled=compiled,
             )
         else:
             temp_optim = None
         if self._config.alpha_learning_rate > 0:
             alpha_optim = self._config.alpha_optim_factory.create(
-                log_alpha.named_modules(), lr=self._config.alpha_learning_rate
+                log_alpha.named_modules(),
+                lr=self._config.alpha_learning_rate,
+                compiled=compiled,
             )
         else:
             alpha_optim = None
@@ -172,7 +181,7 @@ class CalQL(CQL):
             n_action_samples=self._config.n_action_samples,
             soft_q_backup=self._config.soft_q_backup,
             max_q_backup=self._config.max_q_backup,
-            compile_graph=self._config.compile_graph and "cuda" in self._device,
+            compile_graph=compiled,
             device=self._device,
         )
 

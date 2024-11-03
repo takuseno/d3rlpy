@@ -167,7 +167,9 @@ class FQE(_FQEBase):
             enable_ddp=self._enable_ddp,
         )
         optim = self._config.optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.learning_rate,
+            compiled=False,
         )
 
         modules = FQEBaseModules(
@@ -245,7 +247,9 @@ class DiscreteFQE(_FQEBase):
             enable_ddp=self._enable_ddp,
         )
         optim = self._config.optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.learning_rate,
+            compiled=False,
         )
         modules = FQEBaseModules(
             q_funcs=q_funcs,

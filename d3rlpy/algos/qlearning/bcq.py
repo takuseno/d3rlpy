@@ -176,6 +176,8 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        compiled = self._config.compile_graph and "cuda" in self._device
+
         policy = create_deterministic_residual_policy(
             observation_shape,
             action_size,
@@ -230,15 +232,20 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=compiled,
         )
         vae_optim = self._config.imitator_optim_factory.create(
             list(vae_encoder.named_modules())
             + list(vae_decoder.named_modules()),
             lr=self._config.imitator_learning_rate,
+            compiled=compiled,
         )
 
         modules = BCQModules(
@@ -266,7 +273,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
             rl_start_step=self._config.rl_start_step,
-            compile_graph=self._config.compile_graph and "cuda" in self._device,
+            compile_graph=compiled,
             device=self._device,
         )
 
@@ -364,6 +371,8 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        compiled = self._config.compile_graph and "cuda" in self._device
+
         q_funcs, q_func_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
@@ -407,7 +416,9 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
         q_func_params = list(q_funcs.named_modules())
         imitator_params = list(imitator.named_modules())
         optim = self._config.optim_factory.create(
-            q_func_params + imitator_params, lr=self._config.learning_rate
+            q_func_params + imitator_params,
+            lr=self._config.learning_rate,
+            compiled=compiled,
         )
 
         modules = DiscreteBCQModules(
@@ -427,7 +438,7 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             gamma=self._config.gamma,
             action_flexibility=self._config.action_flexibility,
             beta=self._config.beta,
-            compile_graph=self._config.compile_graph and "cuda" in self._device,
+            compile_graph=compiled,
             device=self._device,
         )
 

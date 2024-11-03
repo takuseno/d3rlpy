@@ -113,6 +113,8 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        compiled = self._config.compile_graph and "cuda" in self._device
+
         policy = create_deterministic_policy(
             observation_shape,
             2 * action_size,
@@ -165,15 +167,20 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=compiled,
         )
         vae_optim = self._config.critic_optim_factory.create(
             list(vae_encoder.named_modules())
             + list(vae_decoder.named_modules()),
             lr=self._config.imitator_learning_rate,
+            compiled=compiled,
         )
 
         modules = PLASModules(
@@ -199,7 +206,7 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             lam=self._config.lam,
             beta=self._config.beta,
             warmup_steps=self._config.warmup_steps,
-            compile_graph=self._config.compile_graph and "cuda" in self._device,
+            compile_graph=compiled,
             device=self._device,
         )
 
@@ -271,6 +278,8 @@ class PLASWithPerturbation(PLAS):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        compiled = self._config.compile_graph and "cuda" in self._device
+
         policy = create_deterministic_policy(
             observation_shape,
             2 * action_size,
@@ -341,15 +350,20 @@ class PLASWithPerturbation(PLAS):
         named_modules = list(policy.named_modules())
         named_modules += list(perturbation.named_modules())
         actor_optim = self._config.actor_optim_factory.create(
-            named_modules, lr=self._config.actor_learning_rate
+            named_modules,
+            lr=self._config.actor_learning_rate,
+            compiled=compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=compiled,
         )
         vae_optim = self._config.critic_optim_factory.create(
             list(vae_encoder.named_modules())
             + list(vae_decoder.named_modules()),
             lr=self._config.imitator_learning_rate,
+            compiled=compiled,
         )
 
         modules = PLASWithPerturbationModules(
@@ -377,7 +391,7 @@ class PLASWithPerturbation(PLAS):
             lam=self._config.lam,
             beta=self._config.beta,
             warmup_steps=self._config.warmup_steps,
-            compile_graph=self._config.compile_graph and "cuda" in self._device,
+            compile_graph=compiled,
             device=self._device,
         )
 

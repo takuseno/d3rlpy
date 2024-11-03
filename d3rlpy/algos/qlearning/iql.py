@@ -113,6 +113,8 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        compiled = self._config.compile_graph and "cuda" in self._device
+
         policy = create_normal_policy(
             observation_shape,
             action_size,
@@ -149,12 +151,16 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=compiled,
         )
         q_func_params = list(q_funcs.named_modules())
         v_func_params = list(value_func.named_modules())
         critic_optim = self._config.critic_optim_factory.create(
-            q_func_params + v_func_params, lr=self._config.critic_learning_rate
+            q_func_params + v_func_params,
+            lr=self._config.critic_learning_rate,
+            compiled=compiled,
         )
 
         modules = IQLModules(
@@ -177,7 +183,7 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             expectile=self._config.expectile,
             weight_temp=self._config.weight_temp,
             max_weight=self._config.max_weight,
-            compile_graph=self._config.compile_graph and "cuda" in self._device,
+            compile_graph=compiled,
             device=self._device,
         )
 

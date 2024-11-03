@@ -73,6 +73,8 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
+        compiled = self._config.compile_graph and "cuda" in self._device
+
         q_funcs, q_func_forwarder = create_discrete_q_function(
             observation_shape,
             action_size,
@@ -93,7 +95,9 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
         )
 
         optim = self._config.optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.learning_rate,
+            compiled=compiled,
         )
 
         modules = DQNModules(

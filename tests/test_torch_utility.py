@@ -116,7 +116,7 @@ class DummyImpl:
         self.fc1 = torch.nn.Linear(100, 100)
         self.fc2 = torch.nn.Linear(100, 100)
         params = list(self.fc1.parameters())
-        self.optim = OptimizerWrapper(params, torch.optim.Adam(params))
+        self.optim = OptimizerWrapper(params, torch.optim.Adam(params), False)
         self.modules = DummyModules(self.fc1, self.optim)
         self.device = "cpu:0"
 
@@ -191,7 +191,7 @@ class DummyModules(Modules):
 def test_modules() -> None:
     fc = torch.nn.Linear(100, 200)
     params = list(fc.parameters())
-    optim = OptimizerWrapper(params, torch.optim.Adam(params))
+    optim = OptimizerWrapper(params, torch.optim.Adam(params), False)
     modules = DummyModules(fc, optim)
 
     # check checkpointer
@@ -402,7 +402,7 @@ def test_checkpointer() -> None:
     fc1 = torch.nn.Linear(100, 100)
     fc2 = torch.nn.Linear(100, 100)
     params = list(fc1.parameters())
-    optim = OptimizerWrapper(params, torch.optim.Adam(params))
+    optim = OptimizerWrapper(params, torch.optim.Adam(params), False)
     checkpointer = Checkpointer(
         modules={"fc1": fc1, "fc2": fc2, "optim": optim}, device="cpu:0"
     )
@@ -424,7 +424,7 @@ def test_checkpointer() -> None:
     fc1_2 = torch.nn.Linear(100, 100)
     fc2_2 = torch.nn.Linear(100, 100)
     params_2 = list(fc1_2.parameters())
-    optim_2 = OptimizerWrapper(params_2, torch.optim.Adam(params_2))
+    optim_2 = OptimizerWrapper(params_2, torch.optim.Adam(params_2), False)
     checkpointer = Checkpointer(
         modules={"fc1": fc1_2, "fc2": fc2_2, "optim": optim_2}, device="cpu:0"
     )
