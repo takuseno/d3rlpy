@@ -128,7 +128,7 @@ import d3rlpy
 dataset, env = d3rlpy.datasets.get_d4rl('hopper-medium-v0')
 
 # prepare algorithm
-cql = d3rlpy.algos.CQLConfig().create(device='cuda:0')
+cql = d3rlpy.algos.CQLConfig(compile_graph=True).create(device='cuda:0')
 
 # train
 cql.fit(
@@ -157,6 +157,7 @@ dataset, env = d3rlpy.datasets.get_atari_transitions(
 cql = d3rlpy.algos.DiscreteCQLConfig(
     observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
     reward_scaler=d3rlpy.preprocessing.ClipRewardScaler(-1.0, 1.0),
+    compile_graph=True,
 ).create(device='cuda:0')
 
 # start training
@@ -180,7 +181,7 @@ env = gym.make('Hopper-v3')
 eval_env = gym.make('Hopper-v3')
 
 # prepare algorithm
-sac = d3rlpy.algos.SACConfig().create(device='cuda:0')
+sac = d3rlpy.algos.SACConfig(compile_graph=True).create(device='cuda:0')
 
 # prepare replay buffer
 buffer = d3rlpy.dataset.create_fifo_replay_buffer(limit=1000000, env=env)
