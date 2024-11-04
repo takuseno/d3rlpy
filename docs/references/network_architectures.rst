@@ -128,3 +128,4 @@ your encoder configuration, you need to register your encoder factory.
    d3rlpy.models.DefaultEncoderFactory
    d3rlpy.models.PixelEncoderFactory
    d3rlpy.models.VectorEncoderFactory
+   d3rlpy.models.SimBaEncoderFactory
