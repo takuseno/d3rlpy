@@ -14,8 +14,14 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.cql_impl import CQLImpl, CQLModules, DiscreteCQLImpl
-from .torch.dqn_impl import DQNModules
+from .functional import FunctionalQLearningAlgoImplBase
+from .torch.cql_impl import CQLImpl, CQLModules, DiscreteCQLLossFn
+from .torch.dqn_impl import (
+    DQNActionSampler,
+    DQNModules,
+    DQNUpdater,
+    DQNValuePredictor,
+)
 
 __all__ = ["CQLConfig", "CQL", "DiscreteCQLConfig", "DiscreteCQL"]
 
@@ -304,7 +310,7 @@ class DiscreteCQLConfig(LearnableConfig):
         return "discrete_cql"
 
 
-class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
+class DiscreteCQL(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DiscreteCQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -339,16 +345,34 @@ class DiscreteCQL(QLearningAlgoBase[DiscreteCQLImpl, DiscreteCQLConfig]):
             optim=optim,
         )
 
-        self._impl = DiscreteCQLImpl(
+        # build functional components
+        updater = DQNUpdater(
+            modules=modules,
+            dqn_loss_fn=DiscreteCQLLossFn(
+                action_size=action_size,
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                gamma=self._config.gamma,
+                alpha=self._config.alpha,
+            ),
+            target_update_interval=self._config.target_update_interval,
+            compiled=self.compiled,
+        )
+        action_sampler = DQNActionSampler(q_func_forwarder)
+        value_predictor = DQNValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            target_update_interval=self._config.target_update_interval,
-            gamma=self._config.gamma,
-            alpha=self._config.alpha,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=action_sampler,
+            explore_action_sampler=action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=optim.optim,
+            policy=None,
+            policy_optim=None,
             device=self._device,
         )
 

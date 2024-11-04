@@ -16,12 +16,15 @@ from ...models.torch import CategoricalPolicy, compute_output_size
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
+from .functional import FunctionalQLearningAlgoImplBase
 from .torch.bcq_impl import (
     BCQImpl,
     BCQModules,
-    DiscreteBCQImpl,
+    DiscreteBCQActionSampler,
+    DiscreteBCQLossFn,
     DiscreteBCQModules,
 )
+from .torch.dqn_impl import DQNUpdater, DQNValuePredictor
 
 __all__ = ["BCQConfig", "BCQ", "DiscreteBCQConfig", "DiscreteBCQ"]
 
@@ -363,7 +366,7 @@ class DiscreteBCQConfig(LearnableConfig):
         return "discrete_bcq"
 
 
-class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
+class DiscreteBCQ(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DiscreteBCQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -422,17 +425,38 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             optim=optim,
         )
 
-        self._impl = DiscreteBCQImpl(
+        # build functional components
+        updater = DQNUpdater(
+            modules=modules,
+            dqn_loss_fn=DiscreteBCQLossFn(
+                modules=modules,
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                gamma=self._config.gamma,
+                beta=self._config.beta,
+            ),
+            target_update_interval=self._config.target_update_interval,
+            compiled=self.compiled,
+        )
+        action_sampler = DiscreteBCQActionSampler(
+            modules=modules,
+            q_func_forwarder=q_func_forwarder,
+            action_flexibility=self._config.action_flexibility,
+        )
+        value_predictor = DQNValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            target_update_interval=self._config.target_update_interval,
-            gamma=self._config.gamma,
-            action_flexibility=self._config.action_flexibility,
-            beta=self._config.beta,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=action_sampler,
+            explore_action_sampler=action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=optim.optim,
+            policy=None,
+            policy_optim=None,
             device=self._device,
         )
 

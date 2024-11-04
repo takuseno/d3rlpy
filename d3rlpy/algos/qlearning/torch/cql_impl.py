@@ -19,11 +19,11 @@ from ....torch_utility import (
 )
 from ....types import Shape, TorchObservation
 from .ddpg_impl import DDPGBaseCriticLoss
-from .dqn_impl import DoubleDQNImpl, DQNLoss, DQNModules
+from .dqn_impl import DoubleDQNLossFn, DQNLoss
 from .sac_impl import SACImpl, SACModules
 from .utility import sample_q_values_with_policy
 
-__all__ = ["CQLImpl", "DiscreteCQLImpl", "CQLModules", "DiscreteCQLLoss"]
+__all__ = ["CQLImpl", "DiscreteCQLLossFn", "CQLModules", "DiscreteCQLLoss"]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -234,33 +234,17 @@ class DiscreteCQLLoss(DQNLoss):
     conservative_loss: torch.Tensor
 
 
-class DiscreteCQLImpl(DoubleDQNImpl):
-    _alpha: float
-
+class DiscreteCQLLossFn(DoubleDQNLossFn):
     def __init__(
         self,
-        observation_shape: Shape,
         action_size: int,
-        modules: DQNModules,
         q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
-        target_update_interval: int,
         gamma: float,
         alpha: float,
-        compiled: bool,
-        device: str,
     ):
-        super().__init__(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            target_update_interval=target_update_interval,
-            gamma=gamma,
-            compiled=compiled,
-            device=device,
-        )
+        super().__init__(q_func_forwarder, targ_q_func_forwarder, gamma)
+        self._action_size = action_size
         self._alpha = alpha
 
     def _compute_conservative_loss(
@@ -271,17 +255,16 @@ class DiscreteCQLImpl(DoubleDQNImpl):
         logsumexp = torch.logsumexp(values, dim=1, keepdim=True)
 
         # estimate action-values under data distribution
-        one_hot = F.one_hot(act_t.view(-1), num_classes=self.action_size)
+        one_hot = F.one_hot(act_t.view(-1), num_classes=self._action_size)
         data_values = (values * one_hot).sum(dim=1, keepdim=True)
 
         return (logsumexp - data_values).mean()
 
-    def compute_loss(
+    def __call__(
         self,
         batch: TorchMiniBatch,
-        q_tpn: torch.Tensor,
     ) -> DiscreteCQLLoss:
-        td_loss = super().compute_loss(batch, q_tpn).loss
+        td_loss = super().__call__(batch).loss
         conservative_loss = self._compute_conservative_loss(
             batch.observations, batch.actions.long()
         )

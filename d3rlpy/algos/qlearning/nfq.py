@@ -8,7 +8,14 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.dqn_impl import DQNImpl, DQNModules
+from .functional import FunctionalQLearningAlgoImplBase
+from .torch.dqn_impl import (
+    DQNActionSampler,
+    DQNLossFn,
+    DQNModules,
+    DQNUpdater,
+    DQNValuePredictor,
+)
 
 __all__ = ["NFQConfig", "NFQ"]
 
@@ -68,7 +75,7 @@ class NFQConfig(LearnableConfig):
         return "nfq"
 
 
-class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
+class NFQ(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, NFQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -103,15 +110,32 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
             optim=optim,
         )
 
-        self._impl = DQNImpl(
+        loss_fn = DQNLossFn(
+            q_func_forwarder=q_func_forwarder,
+            targ_q_func_forwarder=targ_q_func_forwarder,
+            gamma=self._config.gamma,
+        )
+        updater = DQNUpdater(
+            modules=modules,
+            dqn_loss_fn=loss_fn,
+            target_update_interval=1,
+            compiled=self.compiled,
+        )
+        action_sampler = DQNActionSampler(q_func_forwarder)
+        value_predictor = DQNValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            target_update_interval=1,
-            gamma=self._config.gamma,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=action_sampler,
+            explore_action_sampler=action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=optim.optim,
+            policy=None,
+            policy_optim=None,
             device=self._device,
         )
 
