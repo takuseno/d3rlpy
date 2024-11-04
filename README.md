@@ -16,7 +16,7 @@ import d3rlpy
 dataset, env = d3rlpy.datasets.get_dataset("hopper-medium-v0")
 
 # prepare algorithm
-sac = d3rlpy.algos.SACConfig().create(device="cuda:0")
+sac = d3rlpy.algos.SACConfig(compile_graph=True).create(device="cuda:0")
 
 # train offline
 sac.fit(dataset, n_steps=1000000)
