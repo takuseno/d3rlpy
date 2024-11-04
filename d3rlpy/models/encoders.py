@@ -12,6 +12,7 @@ from .torch import (
     VectorEncoder,
     VectorEncoderWithAction,
 )
+from .torch.encoders import SimBaEncoder, SimBaEncoderWithAction
 from .utility import create_activation
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "PixelEncoderFactory",
     "VectorEncoderFactory",
     "DefaultEncoderFactory",
+    "SimBaEncoderFactory",
     "register_encoder_factory",
     "make_encoder_field",
 ]
@@ -263,6 +265,56 @@ class DefaultEncoderFactory(EncoderFactory):
         return "default"
 
 
+@dataclass()
+class SimBaEncoderFactory(EncoderFactory):
+    """SimBa encoder factory class.
+
+    This class implements SimBa encoder architecture.
+
+    References:
+        * `Lee et al., SimBa: Simplicity Bias for Scaling Up Parameters in Deep
+          Reinforcement Learning, <https://arxiv.org/abs/2410.09754>`_
+
+    Args:
+        feature_size (int): Feature unit size.
+        hidden_size (int): HIdden expansion layer unit size.
+        n_blocks (int): Number of SimBa blocks.
+    """
+
+    feature_size: int = 256
+    hidden_size: int = 1024
+    n_blocks: int = 1
+
+    def create(self, observation_shape: Shape) -> SimBaEncoder:
+        assert len(observation_shape) == 1
+        return SimBaEncoder(
+            observation_shape=cast_flat_shape(observation_shape),
+            hidden_size=self.hidden_size,
+            output_size=self.feature_size,
+            n_blocks=self.n_blocks,
+        )
+
+    def create_with_action(
+        self,
+        observation_shape: Shape,
+        action_size: int,
+        discrete_action: bool = False,
+    ) -> SimBaEncoderWithAction:
+        assert len(observation_shape) == 1
+        return SimBaEncoderWithAction(
+            observation_shape=cast_flat_shape(observation_shape),
+            action_size=action_size,
+            hidden_size=self.hidden_size,
+            output_size=self.feature_size,
+            n_blocks=self.n_blocks,
+            discrete_action=discrete_action,
+        )
+
+    @staticmethod
+    def get_type() -> str:
+        return "simba"
+
+
 register_encoder_factory, make_encoder_field = generate_config_registration(
     EncoderFactory, lambda: DefaultEncoderFactory()
 )
@@ -271,3 +323,4 @@ register_encoder_factory, make_encoder_field = generate_config_registration(
 register_encoder_factory(VectorEncoderFactory)
 register_encoder_factory(PixelEncoderFactory)
 register_encoder_factory(DefaultEncoderFactory)
+register_encoder_factory(SimBaEncoderFactory)

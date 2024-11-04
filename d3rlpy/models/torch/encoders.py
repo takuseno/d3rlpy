@@ -15,6 +15,8 @@ __all__ = [
     "PixelEncoderWithAction",
     "VectorEncoder",
     "VectorEncoderWithAction",
+    "SimBaEncoder",
+    "SimBaEncoderWithAction",
     "compute_output_size",
 ]
 
@@ -288,6 +290,72 @@ class VectorEncoderWithAction(EncoderWithAction):
             ).float()
         x = torch.cat([x, action], dim=1)
         return self._layers(x)
+
+
+class SimBaBlock(nn.Module):  # type: ignore
+    def __init__(self, input_size: int, hidden_size: int, out_size: int):
+        super().__init__()
+        layers = [
+            nn.LayerNorm(input_size),
+            nn.Linear(input_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, out_size)
+        ]
+        self._layers = nn.Sequential(*layers)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x + self._layers(x)
+
+
+class SimBaEncoder(Encoder):
+    def __init__(
+        self,
+        observation_shape: Sequence[int],
+        hidden_size: int,
+        output_size: int,
+        n_blocks: int,
+    ):
+        super().__init__()
+        layers = [
+            nn.Linear(observation_shape[0], output_size),
+            *[SimBaBlock(output_size, hidden_size, output_size) for _ in range(n_blocks)],
+            nn.LayerNorm(output_size),
+        ]
+        self._layers = nn.Sequential(*layers)
+
+    def forward(self, x: TorchObservation) -> torch.Tensor:
+        assert isinstance(x, torch.Tensor)
+        return self._layers(x)
+
+
+class SimBaEncoderWithAction(EncoderWithAction):
+    def __init__(
+        self,
+        observation_shape: Sequence[int],
+        action_size: int,
+        hidden_size: int,
+        output_size: int,
+        n_blocks: int,
+        discrete_action: bool,
+    ):
+        super().__init__()
+        layers = [
+            nn.Linear(observation_shape[0] + action_size, output_size),
+            *[SimBaBlock(output_size, hidden_size, output_size) for _ in range(n_blocks)],
+            nn.LayerNorm(output_size),
+        ]
+        self._layers = nn.Sequential(*layers)
+        self._action_size = action_size
+        self._discrete_action = discrete_action
+
+    def forward(self, x: TorchObservation, action: torch.Tensor) -> torch.Tensor:
+        assert isinstance(x, torch.Tensor)
+        if self._discrete_action:
+            action = F.one_hot(
+                action.view(-1).long(), num_classes=self._action_size
+            ).float()
+        h = torch.cat([x, action], dim=1)
+        return self._layers(h)
 
 
 def compute_output_size(
