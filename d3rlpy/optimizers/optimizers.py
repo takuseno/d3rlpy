@@ -5,6 +5,7 @@ from torch import nn
 from torch.optim import SGD, Adam, AdamW, Optimizer, RMSprop
 from torch.optim.lr_scheduler import LRScheduler
 
+from ..logging import LOG
 from ..serializable_config import DynamicConfig, generate_config_registration
 from .lr_schedulers import LRSchedulerFactory, make_lr_scheduler_field
 
@@ -102,9 +103,15 @@ class OptimizerWrapper:
         }
 
     def load_state_dict(self, state_dict: Mapping[str, Any]) -> None:
-        self._optim.load_state_dict(state_dict["optim"])
+        if "optim" in state_dict:
+            self._optim.load_state_dict(state_dict["optim"])
+        else:
+            LOG.warning("Skip loading optimizer state.")
         if self._lr_scheduler:
-            self._lr_scheduler.load_state_dict(state_dict["lr_scheduler"])
+            if "lr_scheduler" in state_dict:
+                self._lr_scheduler.load_state_dict(state_dict["lr_scheduler"])
+            else:
+                LOG.warning("Skip loading lr scheduler state.")
 
 
 @dataclasses.dataclass()
