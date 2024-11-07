@@ -43,6 +43,7 @@ if __name__ == "__main__":
             "colorama",
             "dataclasses-json",
             "gymnasium>=1.0.0",
+            "scipy",
         ],
         packages=find_packages(exclude=["tests*"]),
         python_requires=">=3.9.0",
