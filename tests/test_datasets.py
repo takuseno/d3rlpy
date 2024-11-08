@@ -37,7 +37,9 @@ def test_get_dataset(env_name: str) -> None:
 # def test_get_minari(
 #     dataset_name: str, env_name: str, tuple_observation: bool
 # ) -> None:
-#     dataset, env = get_minari(dataset_name, tuple_observation=tuple_observation)
+#     dataset, env = get_minari(
+#        dataset_name, tuple_observation=tuple_observation
+#     )
 #     assert env.unwrapped.spec.id == env_name  # type: ignore
 #
 #     if tuple_observation:

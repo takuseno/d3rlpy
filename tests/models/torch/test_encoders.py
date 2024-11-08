@@ -226,7 +226,7 @@ def test_simba_encoder(
     hidden_size: int,
     output_size: int,
     n_blocks: int,
-    batch_size: int
+    batch_size: int,
 ) -> None:
     encoder = SimBaEncoder(
         observation_shape=observation_shape,

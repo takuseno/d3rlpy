@@ -2,7 +2,6 @@ import dataclasses
 from typing import Callable, Optional
 
 import numpy as np
-import torch
 from sklearn.neighbors import NearestNeighbors
 from typing_extensions import Self
 
@@ -32,7 +31,8 @@ class PRDCConfig(LearnableConfig):
     r"""Config of PRDC algorithm.
 
     PRDC is an simple offline RL algorithm built on top of TD3.
-    PRDC introduces Dataset Constraint (DC)-reguralized policy objective function.
+    PRDC introduces Dataset Constraint (DC)-reguralized policy objective
+    function.
 
     .. math::
 
@@ -53,8 +53,9 @@ class PRDCConfig(LearnableConfig):
             [\| (\beta s) \oplus \pi(s) - (\beta \hat{s}) \oplus \hat{a} \|]
 
     References:
-        * `Ran et al., Policy Regularization with Dataset Constraint for Offline Reinforcement Learning
-          Learning. <https://arxiv.org/abs/2306.06569>`_
+        * `Ran et al., Policy Regularization with Dataset Constraint for Offline
+          Reinforcement Learning Learning.
+          <https://arxiv.org/abs/2306.06569>`_
 
     Args:
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
@@ -103,7 +104,9 @@ class PRDCConfig(LearnableConfig):
     beta: float = 2.0
     update_actor_interval: int = 2
 
-    def create(self, device: DeviceArg = False, enable_ddp: bool = False) -> "PRDC":
+    def create(
+        self, device: DeviceArg = False, enable_ddp: bool = False
+    ) -> "PRDC":
         return PRDC(self, device, enable_ddp)
 
     @staticmethod
@@ -114,7 +117,14 @@ class PRDCConfig(LearnableConfig):
 class PRDC(QLearningAlgoBase[PRDCImpl, PRDCConfig]):
     _nbsr = NearestNeighbors(n_neighbors=1, algorithm="auto", n_jobs=-1)
 
-    def inner_create_impl(self, observation_shape: Shape, action_size: int) -> None:
+    def inner_create_impl(
+        self, observation_shape: Shape, action_size: int
+    ) -> None:
+        assert not self._config.compile_graph, (
+            "PRDC doesn't support compile_graph option because there is "
+            "non-CUDA operation in the update logic."
+        )
+
         policy = create_deterministic_policy(
             observation_shape,
             action_size,
@@ -202,32 +212,24 @@ class PRDC(QLearningAlgoBase[PRDCImpl, PRDCConfig]):
         callback: Optional[Callable[[Self, int, int], None]] = None,
         epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> list[tuple[int, dict[str, float]]]:
-        observations = []
-        actions = []
+        observation_list = []
+        action_list = []
         for episode in dataset.buffer.episodes:
             for i in range(episode.transition_count):
                 transition = dataset.transition_picker(episode, i)
-                observations.append(np.reshape(transition.observation, (1, -1)))
-                actions.append(np.reshape(transition.action, (1, -1)))
-        observations = np.concatenate(observations, axis=0)
-        actions = np.concatenate(actions, axis=0)
+                observation_list.append(
+                    np.reshape(transition.observation, (1, -1))
+                )
+                action_list.append(np.reshape(transition.action, (1, -1)))
+        observations = np.concatenate(observation_list, axis=0)
+        actions = np.concatenate(action_list, axis=0)
 
         build_scalers_with_transition_picker(self, dataset)
         if self.observation_scaler and self.observation_scaler.built:
-            observations = (
-                self.observation_scaler.transform(
-                    torch.tensor(observations, device=self._device)
-                )
-                .cpu()
-                .numpy()
-            )
+            observations = self.observation_scaler.transform_numpy(observations)
 
         if self.action_scaler and self.action_scaler.built:
-            actions = (
-                self.action_scaler.transform(torch.tensor(actions, device=self._device))
-                .cpu()
-                .numpy()
-            )
+            actions = self.action_scaler.transform_numpy(actions)
 
         self._nbsr.fit(
             np.concatenate(

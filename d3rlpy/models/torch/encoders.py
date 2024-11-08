@@ -299,7 +299,7 @@ class SimBaBlock(nn.Module):  # type: ignore
             nn.LayerNorm(input_size),
             nn.Linear(input_size, hidden_size),
             nn.ReLU(),
-            nn.Linear(hidden_size, out_size)
+            nn.Linear(hidden_size, out_size),
         ]
         self._layers = nn.Sequential(*layers)
 
@@ -318,7 +318,10 @@ class SimBaEncoder(Encoder):
         super().__init__()
         layers = [
             nn.Linear(observation_shape[0], output_size),
-            *[SimBaBlock(output_size, hidden_size, output_size) for _ in range(n_blocks)],
+            *[
+                SimBaBlock(output_size, hidden_size, output_size)
+                for _ in range(n_blocks)
+            ],
             nn.LayerNorm(output_size),
         ]
         self._layers = nn.Sequential(*layers)
@@ -341,14 +344,19 @@ class SimBaEncoderWithAction(EncoderWithAction):
         super().__init__()
         layers = [
             nn.Linear(observation_shape[0] + action_size, output_size),
-            *[SimBaBlock(output_size, hidden_size, output_size) for _ in range(n_blocks)],
+            *[
+                SimBaBlock(output_size, hidden_size, output_size)
+                for _ in range(n_blocks)
+            ],
             nn.LayerNorm(output_size),
         ]
         self._layers = nn.Sequential(*layers)
         self._action_size = action_size
         self._discrete_action = discrete_action
 
-    def forward(self, x: TorchObservation, action: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor:
         assert isinstance(x, torch.Tensor)
         if self._discrete_action:
             action = F.one_hot(

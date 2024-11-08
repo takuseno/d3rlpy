@@ -211,7 +211,9 @@ def plot_all(
 
 
 @cli.command(
-    short_help="Export saved model as inference model format (ONNX or TorchScript)."
+    short_help=(
+        "Export saved model as inference model format (ONNX or TorchScript)."
+    )
 )
 @click.argument("model_path")
 @click.argument("output_path")

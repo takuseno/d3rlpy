@@ -1,4 +1,3 @@
-# pylint: disable=too-many-ancestors
 import dataclasses
 
 import torch
@@ -68,17 +67,22 @@ class PRDCImpl(TD3Impl):
         lam = self._alpha / (q_t.abs().mean()).detach()
         key = (
             torch.cat(
-                [torch.mul(batch.observations, self._beta), action.squashed_mu], dim=-1
+                [torch.mul(batch.observations, self._beta), action.squashed_mu],
+                dim=-1,
             )
             .detach()
             .cpu()
             .numpy()
         )
         idx = self._nbsr.kneighbors(key, n_neighbors=1, return_distance=False)
-        nearest_neightbour = torch.tensor(
+        nearest_neighbor = torch.tensor(
             self._nbsr._fit_X[idx][:, :, -self.action_size :],
             device=self.device,
             dtype=action.squashed_mu.dtype,
         ).squeeze(dim=1)
-        dc_loss = torch.nn.functional.mse_loss(action.squashed_mu, nearest_neightbour)
-        return PRDCActorLoss(actor_loss=lam * -q_t.mean() + dc_loss, dc_loss=dc_loss)
+        dc_loss = torch.nn.functional.mse_loss(
+            action.squashed_mu, nearest_neighbor
+        )
+        return PRDCActorLoss(
+            actor_loss=lam * -q_t.mean() + dc_loss, dc_loss=dc_loss
+        )

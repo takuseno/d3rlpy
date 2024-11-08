@@ -9,5 +9,6 @@ mypy
 numpy<2
 docformatter
 ruff
+black
 minari==0.4.2
 gymnasium_robotics

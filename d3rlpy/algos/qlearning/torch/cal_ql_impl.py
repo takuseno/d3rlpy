@@ -1,4 +1,3 @@
-
 import torch
 
 from ....types import TorchObservation
