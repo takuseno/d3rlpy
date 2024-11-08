@@ -64,6 +64,7 @@ Installing d3rlpy package will install or upgrade the following packages to sati
 - h5py
 - structlog
 - typing-extensions
+- scikit-learn
 
 ### PyPI (recommended)
 [![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
