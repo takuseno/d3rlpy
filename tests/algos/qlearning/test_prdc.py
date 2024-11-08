@@ -3,7 +3,11 @@ from typing import Optional
 import pytest
 
 from d3rlpy.algos.qlearning.prdc import PRDCConfig
-from d3rlpy.models import MeanQFunctionFactory, QFunctionFactory, QRQFunctionFactory
+from d3rlpy.models import (
+    MeanQFunctionFactory,
+    QFunctionFactory,
+    QRQFunctionFactory,
+)
 from d3rlpy.types import Shape
 
 from ...models.torch.model_test import DummyEncoderFactory

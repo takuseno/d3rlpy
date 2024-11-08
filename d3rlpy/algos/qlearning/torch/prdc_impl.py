@@ -8,7 +8,7 @@ from ....models.torch import ActionOutput, ContinuousEnsembleQFunctionForwarder
 from ....torch_utility import TorchMiniBatch
 from ....types import Shape
 from .ddpg_impl import DDPGBaseActorLoss, DDPGModules
-from .td3_plus_bc_impl import TD3PlusBCImpl
+from .td3_impl import TD3Impl
 
 __all__ = ["PRDCImpl"]
 
@@ -18,8 +18,9 @@ class PRDCActorLoss(DDPGBaseActorLoss):
     dc_loss: torch.Tensor
 
 
-class PRDCImpl(TD3PlusBCImpl):
-    _beta: float = 2.0
+class PRDCImpl(TD3Impl):
+    _alpha: float
+    _beta: float
     _nbsr: NearestNeighbors
 
     def __init__(
@@ -50,11 +51,11 @@ class PRDCImpl(TD3PlusBCImpl):
             tau=tau,
             target_smoothing_sigma=target_smoothing_sigma,
             target_smoothing_clip=target_smoothing_clip,
-            alpha=alpha,
             update_actor_interval=update_actor_interval,
             compiled=compiled,
             device=device,
         )
+        self._alpha = alpha
         self._beta = beta
         self._nbsr = nbsr
 
@@ -66,7 +67,9 @@ class PRDCImpl(TD3PlusBCImpl):
         )[0]
         lam = self._alpha / (q_t.abs().mean()).detach()
         key = (
-            torch.cat([self._beta * batch.observations, action.squashed_mu], dim=-1)
+            torch.cat(
+                [torch.mul(batch.observations, self._beta), action.squashed_mu], dim=-1
+            )
             .detach()
             .cpu()
             .numpy()

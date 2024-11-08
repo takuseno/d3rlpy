@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Callable, Generator, Optional
+from typing import Callable, Optional
 
 import numpy as np
 import torch
@@ -11,7 +11,10 @@ from ...constants import ActionSpace, LoggingStrategy
 from ...dataset import ReplayBufferBase
 from ...logging import FileAdapterFactory, LoggerAdapterFactory
 from ...metrics import EvaluatorProtocol
-from ...models.builders import create_continuous_q_function, create_deterministic_policy
+from ...models.builders import (
+    create_continuous_q_function,
+    create_deterministic_policy,
+)
 from ...models.encoders import EncoderFactory, make_encoder_field
 from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
@@ -188,43 +191,47 @@ class PRDC(QLearningAlgoBase[PRDCImpl, PRDCConfig]):
         dataset: ReplayBufferBase,
         n_steps: int,
         n_steps_per_epoch: int = 10000,
-        logging_steps: int = 500,
-        logging_strategy: LoggingStrategy = LoggingStrategy.EPOCH,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
+        logging_steps: int = 500,
+        logging_strategy: LoggingStrategy = LoggingStrategy.EPOCH,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
         save_interval: int = 1,
         evaluators: Optional[dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
         epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
-    ) -> Generator[tuple[int, dict[str, float]], None, None]:
+    ) -> list[tuple[int, dict[str, float]]]:
         observations = []
         actions = []
         for episode in dataset.buffer.episodes:
             for i in range(episode.transition_count):
                 transition = dataset.transition_picker(episode, i)
-                observations.append(transition.observation.reshape(1, -1))
-                actions.append(transition.action.reshape(1, -1))
+                observations.append(np.reshape(transition.observation, (1, -1)))
+                actions.append(np.reshape(transition.action, (1, -1)))
         observations = np.concatenate(observations, axis=0)
         actions = np.concatenate(actions, axis=0)
 
         build_scalers_with_transition_picker(self, dataset)
         if self.observation_scaler and self.observation_scaler.built:
-            observations = self.observation_scaler.transform(
-                torch.tensor(observations, device=self._device)
+            observations = (
+                self.observation_scaler.transform(
+                    torch.tensor(observations, device=self._device)
+                )
+                .cpu()
+                .numpy()
             )
-            observations = observations.cpu().numpy()
 
         if self.action_scaler and self.action_scaler.built:
-            actions = self.action_scaler.transform(
-                torch.tensor(actions, device=self._device)
+            actions = (
+                self.action_scaler.transform(torch.tensor(actions, device=self._device))
+                .cpu()
+                .numpy()
             )
-            actions = actions.cpu().numpy()
 
         self._nbsr.fit(
             np.concatenate(
-                [self._config.beta * observations, actions],
+                [np.multiply(observations, self._config.beta), actions],
                 axis=1,
             )
         )
