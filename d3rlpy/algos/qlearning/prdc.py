@@ -45,7 +45,7 @@ class PRDCConfig(LearnableConfig):
 
         \lambda = \frac{\alpha}{\frac{1}{N} \sum_(s_i, a_i) |Q(s_i, a_i)|}
 
-    and `d^\beta_\mathcal{D}(s,\pi(s))` is the DC loss, defined as
+    and :math:`d^\beta_\mathcal{D}(s,\pi(s))` is the DC loss, defined as
 
     .. math::
 
