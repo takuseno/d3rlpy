@@ -1,9 +1,7 @@
 # pylint: disable=too-many-ancestors
 import dataclasses
 
-import numpy as np
 import torch
-from scipy.spatial import KDTree
 from sklearn.neighbors import NearestNeighbors
 
 from ....models.torch import ActionOutput, ContinuousEnsembleQFunctionForwarder
