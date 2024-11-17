@@ -116,7 +116,9 @@ class NFQ(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, NFQConfig]):
             gamma=self._config.gamma,
         )
         updater = DQNUpdater(
-            modules=modules,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
             dqn_loss_fn=loss_fn,
             target_update_interval=1,
             compiled=self.compiled,

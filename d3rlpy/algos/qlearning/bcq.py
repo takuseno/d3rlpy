@@ -427,11 +427,13 @@ class DiscreteBCQ(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DiscreteBCQ
 
         # build functional components
         updater = DQNUpdater(
-            modules=modules,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
             dqn_loss_fn=DiscreteBCQLossFn(
-                modules=modules,
                 q_func_forwarder=q_func_forwarder,
                 targ_q_func_forwarder=targ_q_func_forwarder,
+                imitator=imitator,
                 gamma=self._config.gamma,
                 beta=self._config.beta,
             ),
@@ -439,8 +441,8 @@ class DiscreteBCQ(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DiscreteBCQ
             compiled=self.compiled,
         )
         action_sampler = DiscreteBCQActionSampler(
-            modules=modules,
             q_func_forwarder=q_func_forwarder,
+            imitator=imitator,
             action_flexibility=self._config.action_flexibility,
         )
         value_predictor = DQNValuePredictor(q_func_forwarder)

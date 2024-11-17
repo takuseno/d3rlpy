@@ -111,7 +111,9 @@ class DQN(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DQNConfig]):
 
         # build functional components
         updater = DQNUpdater(
-            modules=modules,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
             dqn_loss_fn=DQNLossFn(
                 q_func_forwarder=forwarder,
                 targ_q_func_forwarder=targ_forwarder,
@@ -239,7 +241,9 @@ class DoubleDQN(DQN):
 
         # build functional components
         updater = DQNUpdater(
-            modules=modules,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
             dqn_loss_fn=DoubleDQNLossFn(
                 q_func_forwarder=forwarder,
                 targ_q_func_forwarder=targ_forwarder,

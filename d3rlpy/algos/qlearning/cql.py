@@ -347,7 +347,9 @@ class DiscreteCQL(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DiscreteCQL
 
         # build functional components
         updater = DQNUpdater(
-            modules=modules,
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
             dqn_loss_fn=DiscreteCQLLossFn(
                 action_size=action_size,
                 q_func_forwarder=q_func_forwarder,

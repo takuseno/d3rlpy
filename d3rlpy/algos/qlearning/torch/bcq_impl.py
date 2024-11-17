@@ -245,9 +245,9 @@ class DiscreteBCQLoss(DQNLoss):
 class DiscreteBCQLossFn(DoubleDQNLossFn):
     def __init__(
         self,
-        modules: DiscreteBCQModules,
         q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        imitator: CategoricalPolicy,
         gamma: float,
         beta: float,
     ):
@@ -256,13 +256,13 @@ class DiscreteBCQLossFn(DoubleDQNLossFn):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
         )
-        self._modules = modules
+        self._imitator = imitator
         self._beta = beta
 
     def __call__(self, batch: TorchMiniBatch) -> DiscreteBCQLoss:
         td_loss = super().__call__(batch).loss
         imitator_loss = compute_discrete_imitation_loss(
-            policy=self._modules.imitator,
+            policy=self._imitator,
             x=batch.observations,
             action=batch.actions.long(),
             beta=self._beta,
@@ -275,16 +275,16 @@ class DiscreteBCQLossFn(DoubleDQNLossFn):
 class DiscreteBCQActionSampler(ActionSampler):
     def __init__(
         self,
-        modules: DiscreteBCQModules,
         q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
+        imitator: CategoricalPolicy,
         action_flexibility: float,
     ):
-        self._modules = modules
         self._q_func_forwarder = q_func_forwarder
+        self._imitator = imitator
         self._action_flexibility = action_flexibility
 
     def __call__(self, x: TorchObservation) -> torch.Tensor:
-        dist = self._modules.imitator(x)
+        dist = self._imitator(x)
         log_probs = F.log_softmax(dist.logits, dim=1)
         ratio = log_probs - log_probs.max(dim=1, keepdim=True).values
         mask = (ratio > math.log(self._action_flexibility)).float()

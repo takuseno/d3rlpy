@@ -105,25 +105,29 @@ class DQNValuePredictor(ValuePredictor):
 class DQNUpdater(Updater):
     def __init__(
         self,
-        modules: DQNModules,
+        q_funcs: nn.ModuleList,
+        targ_q_funcs: nn.ModuleList,
+        optim: OptimizerWrapper,
         dqn_loss_fn: DQNLossFn,
         target_update_interval: int,
         compiled: bool,
     ):
-        self._modules = modules
+        self._q_funcs = q_funcs
+        self._targ_q_funcs = targ_q_funcs
+        self._optim = optim
         self._dqn_loss_fn = dqn_loss_fn
         self._target_update_interval = target_update_interval
         self._compute_grad = CudaGraphWrapper(self.compute_grad) if compiled else self.compute_grad
 
     def compute_grad(self, batch: TorchMiniBatch) -> DQNLoss:
-        self._modules.optim.zero_grad()
+        self._optim.zero_grad()
         loss = self._dqn_loss_fn(batch)
         loss.loss.backward()
         return loss
 
     def __call__(self, batch: TorchMiniBatch, grad_step: int) -> dict[str, float]:
         loss = self._compute_grad(batch)
-        self._modules.optim.step()
+        self._optim.step()
         if grad_step % self._target_update_interval == 0:
-            hard_sync(self._modules.targ_q_funcs, self._modules.q_funcs)
+            hard_sync(self._targ_q_funcs, self._q_funcs)
         return asdict_as_float(loss)
