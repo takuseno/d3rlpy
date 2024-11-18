@@ -25,14 +25,19 @@ from ....torch_utility import (
     Modules,
     TorchMiniBatch,
     hard_sync,
+    soft_sync,
 )
 from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
-from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
+from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseModules, DDPGBaseCriticLossFn, DDPGBaseActorLossFn, DDPGBaseUpdater
 from .utility import DiscreteQFunctionMixin
+from ..functional import ActionSampler
 
 __all__ = [
-    "SACImpl",
+    "SACActionSampler",
+    "SACCriticLossFn",
+    "SACActorLossFn",
+    "SACUpdater",
     "DiscreteSACImpl",
     "SACModules",
     "DiscreteSACModules",
@@ -53,73 +58,39 @@ class SACActorLoss(DDPGBaseActorLoss):
     temp_loss: torch.Tensor
 
 
-class SACImpl(DDPGBaseImpl):
-    _modules: SACModules
+class SACActionSampler(ActionSampler):
+    def __init__(self, policy: Policy):
+        self._policy = policy
 
+    def __call__(self, x: TorchObservation) -> torch.Tensor:
+        dist = build_squashed_gaussian_distribution(self._policy(x))
+        return dist.sample()
+
+
+class SACCriticLossFn(DDPGBaseCriticLossFn):
     def __init__(
         self,
-        observation_shape: Shape,
-        action_size: int,
-        modules: SACModules,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        policy: Policy,
+        log_temp: Parameter,
         gamma: float,
-        tau: float,
-        compiled: bool,
-        device: str,
     ):
         super().__init__(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            modules=modules,
             q_func_forwarder=q_func_forwarder,
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
-            tau=tau,
-            compiled=compiled,
-            device=device,
         )
-
-    def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
-    ) -> SACActorLoss:
-        dist = build_squashed_gaussian_distribution(action)
-        sampled_action, log_prob = dist.sample_with_log_prob()
-
-        if self._modules.temp_optim:
-            temp_loss = self.update_temp(log_prob)
-        else:
-            temp_loss = torch.tensor(
-                0.0, dtype=torch.float32, device=sampled_action.device
-            )
-
-        entropy = get_parameter(self._modules.log_temp).exp() * log_prob
-        q_t = self._q_func_forwarder.compute_expected_q(
-            batch.observations, sampled_action, "min"
-        )
-        return SACActorLoss(
-            actor_loss=(entropy - q_t).mean(),
-            temp_loss=temp_loss,
-            temp=get_parameter(self._modules.log_temp).exp()[0][0],
-        )
-
-    def update_temp(self, log_prob: torch.Tensor) -> torch.Tensor:
-        assert self._modules.temp_optim
-        self._modules.temp_optim.zero_grad()
-        with torch.no_grad():
-            targ_temp = log_prob - self._action_size
-        loss = -(get_parameter(self._modules.log_temp).exp() * targ_temp).mean()
-        loss.backward()
-        self._modules.temp_optim.step()
-        return loss
+        self._policy = policy
+        self._log_temp = log_temp
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
             dist = build_squashed_gaussian_distribution(
-                self._modules.policy(batch.next_observations)
+                self._policy(batch.next_observations)
             )
             action, log_prob = dist.sample_with_log_prob()
-            entropy = get_parameter(self._modules.log_temp).exp() * log_prob
+            entropy = get_parameter(self._log_temp).exp() * log_prob
             target = self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 action,
@@ -127,9 +98,80 @@ class SACImpl(DDPGBaseImpl):
             )
             return target - entropy
 
-    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
-        dist = build_squashed_gaussian_distribution(self._modules.policy(x))
-        return dist.sample()
+
+class SACActorLossFn(DDPGBaseActorLossFn):
+    def __init__(
+        self,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        policy: Policy,
+        log_temp: Parameter,
+        temp_optim: Optional[OptimizerWrapper],
+        action_size: int,
+    ):
+        self._q_func_forwarder = q_func_forwarder
+        self._policy = policy
+        self._log_temp = log_temp
+        self._temp_optim = temp_optim
+        self._action_size = action_size
+
+    def update_temp(self, log_prob: torch.Tensor) -> torch.Tensor:
+        assert self._temp_optim
+        self._temp_optim.zero_grad()
+        with torch.no_grad():
+            targ_temp = log_prob - self._action_size
+        loss = -(get_parameter(self._log_temp).exp() * targ_temp).mean()
+        loss.backward()
+        self._temp_optim.step()
+        return loss
+
+    def __call__(self, batch: TorchMiniBatch) -> SACActorLoss:
+        action = self._policy(batch.observations)
+        dist = build_squashed_gaussian_distribution(action)
+        sampled_action, log_prob = dist.sample_with_log_prob()
+
+        if self._temp_optim:
+            temp_loss = self.update_temp(log_prob)
+        else:
+            temp_loss = torch.tensor(
+                0.0, dtype=torch.float32, device=sampled_action.device
+            )
+
+        entropy = get_parameter(self._log_temp).exp() * log_prob
+        q_t = self._q_func_forwarder.compute_expected_q(
+            batch.observations, sampled_action, "min"
+        )
+        return SACActorLoss(
+            actor_loss=(entropy - q_t).mean(),
+            temp_loss=temp_loss,
+            temp=get_parameter(self._log_temp).exp()[0][0],
+        )
+
+
+class SACUpdater(DDPGBaseUpdater):
+    def __init__(
+        self,
+        q_funcs: nn.ModuleList,
+        targ_q_funcs: nn.ModuleList,
+        critic_optim: OptimizerWrapper,
+        actor_optim: OptimizerWrapper,
+        critic_loss_fn: DDPGBaseCriticLossFn,
+        actor_loss_fn: DDPGBaseActorLossFn,
+        tau: float,
+        compiled: bool,
+    ):
+        super().__init__(
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            critic_loss_fn=critic_loss_fn,
+            actor_loss_fn=actor_loss_fn,
+            compiled=compiled,
+        )
+        self._q_funcs = q_funcs
+        self._targ_q_funcs = targ_q_funcs
+        self._tau = tau
+
+    def update_target(self) -> None:
+        soft_sync(self._targ_q_funcs, self._q_funcs, self._tau)
 
 
 @dataclasses.dataclass(frozen=True)
