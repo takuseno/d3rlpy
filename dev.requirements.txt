@@ -11,3 +11,4 @@ docformatter
 ruff
 black
 minari[all]>=0.5.1
+gymnasium-robotics>=1.2.4
