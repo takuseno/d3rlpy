@@ -508,7 +508,7 @@ class QLearningAlgoBase(
         # setup logger
         if experiment_name is None:
             experiment_name = self.__class__.__name__
-        logger = D3RLPyLogger(
+        self.logger = D3RLPyLogger(
             algo=self,
             adapter_factory=logger_adapter,
             experiment_name=experiment_name,
@@ -517,7 +517,7 @@ class QLearningAlgoBase(
         )
 
         # save hyperparameters
-        save_config(self, logger)
+        save_config(self, self.logger)
 
         # training loop
         n_epochs = n_steps // n_steps_per_epoch
@@ -533,20 +533,20 @@ class QLearningAlgoBase(
             )
 
             for itr in range_gen:
-                with logger.measure_time("step"):
+                with self.logger.measure_time("step"):
                     # pick transitions
-                    with logger.measure_time("sample_batch"):
+                    with self.logger.measure_time("sample_batch"):
                         batch = dataset.sample_transition_batch(
                             self._config.batch_size
                         )
 
                     # update parameters
-                    with logger.measure_time("algorithm_update"):
+                    with self.logger.measure_time("algorithm_update"):
                         loss = self.update(batch)
 
                     # record metrics
                     for name, val in loss.items():
-                        logger.add_metric(name, val)
+                        self.logger.add_metric(name, val)
                         epoch_loss[name].append(val)
 
                     # update progress postfix with losses
@@ -562,7 +562,7 @@ class QLearningAlgoBase(
                     logging_strategy == LoggingStrategy.STEPS
                     and total_step % logging_steps == 0
                 ):
-                    metrics = logger.commit(epoch, total_step)
+                    metrics = self.logger.commit(epoch, total_step)
 
                 # call callback if given
                 if callback:
@@ -575,19 +575,19 @@ class QLearningAlgoBase(
             if evaluators:
                 for name, evaluator in evaluators.items():
                     test_score = evaluator(self, dataset)
-                    logger.add_metric(name, test_score)
+                    self.logger.add_metric(name, test_score)
 
             # save metrics
             if logging_strategy == LoggingStrategy.EPOCH:
-                metrics = logger.commit(epoch, total_step)
+                metrics = self.logger.commit(epoch, total_step)
 
             # save model parameters
             if epoch % save_interval == 0:
-                logger.save_model(total_step, self)
+                self.logger.save_model(total_step, self)
 
             yield epoch, metrics
 
-        logger.close()
+        self.logger.close()
 
     def fit_online(
         self,
