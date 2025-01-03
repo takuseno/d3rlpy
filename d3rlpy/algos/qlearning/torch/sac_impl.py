@@ -9,7 +9,6 @@ from torch.distributions import Categorical
 from torch.optim import Optimizer
 
 from ....models.torch import (
-    ActionOutput,
     CategoricalPolicy,
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
@@ -31,10 +30,8 @@ from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
 from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseModules, DDPGBaseCriticLossFn, DDPGBaseActorLossFn, DDPGBaseUpdater
 from .utility import DiscreteQFunctionMixin
-from ..functional import ActionSampler
 
 __all__ = [
-    "SACActionSampler",
     "SACCriticLossFn",
     "SACActorLossFn",
     "SACUpdater",
@@ -56,15 +53,6 @@ class SACModules(DDPGBaseModules):
 class SACActorLoss(DDPGBaseActorLoss):
     temp: torch.Tensor
     temp_loss: torch.Tensor
-
-
-class SACActionSampler(ActionSampler):
-    def __init__(self, policy: Policy):
-        self._policy = policy
-
-    def __call__(self, x: TorchObservation) -> torch.Tensor:
-        dist = build_squashed_gaussian_distribution(self._policy(x))
-        return dist.sample()
 
 
 class SACCriticLossFn(DDPGBaseCriticLossFn):

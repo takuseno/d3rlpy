@@ -14,8 +14,11 @@ from ...models.torch import Parameter
 from ...optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.awac_impl import AWACImpl
-from .torch.sac_impl import SACModules
+from .torch.ddpg_impl import DDPGValuePredictor
+from .torch.awac_impl import AWACActorLossFn
+from .torch.sac_impl import SACModules, SACUpdater, SACCriticLossFn
+from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import DeterministicContinuousActionSampler, GaussianContinuousActionSampler
 
 __all__ = ["AWACConfig", "AWAC"]
 
@@ -153,17 +156,44 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             temp_optim=None,
         )
 
-        self._impl = AWACImpl(
+        updater = SACUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            critic_loss_fn=SACCriticLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                policy=policy,
+                log_temp=dummy_log_temp,
+                gamma=self._config.gamma,
+            ),
+            actor_loss_fn=AWACActorLossFn(
+                q_func_forwarder=q_func_forwarder,
+                policy=policy,
+                n_action_samples=self._config.n_action_samples,
+                lam=self._config.lam,
+                action_size=action_size,
+            ),
+            tau=self._config.tau,
+            compiled=self.compiled,
+        )
+        exploit_action_sampler = DeterministicContinuousActionSampler(policy)
+        explore_action_sampler = GaussianContinuousActionSampler(policy)
+        value_predictor = DDPGValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=self._config.gamma,
-            tau=self._config.tau,
-            lam=self._config.lam,
-            n_action_samples=self._config.n_action_samples,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=exploit_action_sampler,
+            explore_action_sampler=explore_action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=critic_optim.optim,
+            policy=policy,
+            policy_optim=actor_optim.optim,
             device=self._device,
         )
 

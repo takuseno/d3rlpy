@@ -11,8 +11,9 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.ddpg_impl import DDPGActionSampler, DDPGValuePredictor, DDPGCriticLossFn, DDPGActorLossFn, DDPGUpdater, DDPGModules
+from .torch.ddpg_impl import DDPGValuePredictor, DDPGCriticLossFn, DDPGActorLossFn, DDPGUpdater, DDPGModules
 from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import DeterministicContinuousActionSampler
 
 __all__ = ["DDPGConfig", "DDPG"]
 
@@ -171,7 +172,7 @@ class DDPG(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DDPGConfig]):
             tau=self._config.tau,
             compiled=self.compiled,
         )
-        action_sampler = DDPGActionSampler(policy)
+        action_sampler = DeterministicContinuousActionSampler(policy)
         value_predictor = DDPGValuePredictor(q_func_forwarder)
 
         self._impl = FunctionalQLearningAlgoImplBase(

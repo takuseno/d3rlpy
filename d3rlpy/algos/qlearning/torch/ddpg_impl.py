@@ -17,7 +17,7 @@ from ....torch_utility import (
     soft_sync,
 )
 from ....types import TorchObservation
-from ..functional import ActionSampler, Updater, ValuePredictor
+from ..functional import Updater, ValuePredictor
 
 __all__ = [
     "DDPGBaseModules",
@@ -28,7 +28,6 @@ __all__ = [
     "DDPGBaseActorLossFn",
     "DDPGCriticLossFn",
     "DDPGActorLossFn",
-    "DDPGActionSampler",
     "DDPGValuePredictor",
     "DDPGBaseUpdater",
     "DDPGUpdater",
@@ -180,15 +179,6 @@ class DDPGBaseUpdater(Updater):
 @dataclasses.dataclass(frozen=True)
 class DDPGModules(DDPGBaseModules):
     targ_policy: Policy
-
-
-class DDPGActionSampler(ActionSampler):
-    def __init__(self, policy: Policy):
-        self._policy = policy
-
-    def __call__(self, x: TorchObservation) -> torch.Tensor:
-        action = self._policy(x)
-        return action.squashed_mu
 
 
 class DDPGValuePredictor(ValuePredictor):

@@ -15,17 +15,17 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.ddpg_impl import DDPGActionSampler, DDPGValuePredictor
+from .torch.ddpg_impl import DDPGValuePredictor
 from .torch.sac_impl import (
     DiscreteSACImpl,
     DiscreteSACModules,
     SACModules,
-    SACActionSampler,
     SACCriticLossFn,
     SACActorLossFn,
     SACUpdater,
 )
 from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import SquashedGaussianContinuousActionSampler, DeterministicContinuousActionSampler
 
 __all__ = ["SACConfig", "SAC", "DiscreteSACConfig", "DiscreteSAC"]
 
@@ -214,8 +214,8 @@ class SAC(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, SACConfig]):
             tau=self._config.tau,
             compiled=self.compiled,
         )
-        exploit_action_sampler = DDPGActionSampler(policy)
-        explore_action_sampler = SACActionSampler(policy)
+        exploit_action_sampler = DeterministicContinuousActionSampler(policy)
+        explore_action_sampler = SquashedGaussianContinuousActionSampler(policy)
         value_predictor = DDPGValuePredictor(q_func_forwarder)
 
         self._impl = FunctionalQLearningAlgoImplBase(
