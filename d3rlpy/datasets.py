@@ -441,15 +441,17 @@ def get_d4rl(
         )
 
         # remove incompatible wrappers
-        normalized_env = env.env.env.env  # type: ignore
-        assert isinstance(
-            normalized_env, (NormalizedBoxEnv, NormalizedBoxEnvFromUtils)
-        )
-        unwrapped_env: gym.Env[Any, Any] = normalized_env.wrapped_env
-        unwrapped_env.render_mode = render_mode  # overwrite
+        wrapped_env = env.env.env.env  # type: ignore
+        if isinstance(
+            wrapped_env, (NormalizedBoxEnv, NormalizedBoxEnvFromUtils)
+        ):
+            unwrapped_env: gym.Env[Any, Any] = wrapped_env.wrapped_env
+            unwrapped_env.render_mode = render_mode  # overwrite
+        else:
+            wrapped_env.env.render_mode = render_mode  # overwrite
 
         return dataset, TimeLimit(
-            normalized_env, max_episode_steps=max_episode_steps
+            wrapped_env, max_episode_steps=max_episode_steps
         )
     except ImportError as e:
         raise ImportError(
