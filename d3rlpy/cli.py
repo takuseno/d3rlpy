@@ -393,7 +393,7 @@ def install(name: str) -> None:
             ["minari[all]>=0.5.1", "gymnasium-robotics>=1.2.4"], upgrade=True
         )
     elif name == "dm_control":
-        _install_module(["shimmy[dm-control]==1.3.0"], upgrade=True)
+        _install_module(["shimmy[dm-control]==2.0.0"], upgrade=True)
     elif name == "list":
         print_available_options()
     else:
