@@ -878,6 +878,10 @@ class QLearningAlgoBase(
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
         )
+
+        if self._config.transform:
+            torch_batch = self._config.transform(torch_batch)
+
         loss = self._impl.update(torch_batch, self._grad_step)
         self._grad_step += 1
         return loss
