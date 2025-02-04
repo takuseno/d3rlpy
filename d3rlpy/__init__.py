@@ -25,6 +25,7 @@ from .base import load_learnable
 from .constants import ActionSpace, LoggingStrategy, PositionEncodingType
 from .healthcheck import run_healthcheck
 from .torch_utility import Modules, TorchMiniBatch
+from .transformation import TransformationProtocol, register_transformation_callable
 
 __all__ = [
     "algos",
@@ -49,6 +50,8 @@ __all__ = [
     "Modules",
     "TorchMiniBatch",
     "seed",
+    "TransformationProtocol",
+    "register_transformation_callable",
 ]
 
 
