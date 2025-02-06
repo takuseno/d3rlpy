@@ -264,7 +264,7 @@ def fit_dt(
     dt = d3rlpy.algos.DecisionTransformerConfig(
         batch_size=64,
         learning_rate=1e-4,
-        optim_factory=d3rlpy.models.AdamWFactory(weight_decay=1e-4),
+        optim_factory=d3rlpy.optimizers.AdamWFactory(weight_decay=1e-4),
         encoder_factory=d3rlpy.models.VectorEncoderFactory(
             [128],
             exclude_last_activation=True,
