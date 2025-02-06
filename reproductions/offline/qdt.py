@@ -46,7 +46,7 @@ def main() -> None:
     )
 
     # fit decision transformer to the relabeled dataset
-    fit_dt(dataset, env, args.context_size, args.seed, args.gpu, timestamp)
+    fit_dt(dataset, env, args.context_size, args.seed, args.gpu, False, timestamp)
 
 
 """ --------------------------------------------------------------------
@@ -236,6 +236,7 @@ def fit_dt(
     context_size: int = 20,
     seed: int = 1,
     gpu: Optional[int] = None,
+    compile: bool = False,
     timestamp: Optional[str] = None,
 ) -> None:
     """
@@ -264,7 +265,13 @@ def fit_dt(
     dt = d3rlpy.algos.DecisionTransformerConfig(
         batch_size=64,
         learning_rate=1e-4,
-        optim_factory=d3rlpy.optimizers.AdamWFactory(weight_decay=1e-4),
+        optim_factory=d3rlpy.optimizers.AdamWFactory(
+            weight_decay=1e-4,
+            clip_grad_norm=0.25,
+            lr_scheduler_factory=d3rlpy.optimizers.WarmupSchedulerFactory(
+                warmup_steps=10000
+            ),
+        ),
         encoder_factory=d3rlpy.models.VectorEncoderFactory(
             [128],
             exclude_last_activation=True,
@@ -275,8 +282,8 @@ def fit_dt(
         context_size=context_size,
         num_heads=1,
         num_layers=3,
-        warmup_steps=10000,
         max_timestep=1000,
+        compile_graph=compile,
     ).create(device=gpu)
 
     dt.fit(
