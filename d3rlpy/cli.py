@@ -211,7 +211,9 @@ def plot_all(
 
 
 @cli.command(
-    short_help="Export saved model as inference model format (ONNX or TorchScript)."
+    short_help=(
+        "Export saved model as inference model format (ONNX or TorchScript)."
+    )
 )
 @click.argument("model_path")
 @click.argument("output_path")
@@ -387,9 +389,11 @@ def install(name: str) -> None:
         _install_module(["gym"], upgrade=True)
         _uninstall_module(["pybullet"])
     elif name == "minari":
-        _install_module(["minari==0.4.2", "gymnasium_robotics"], upgrade=True)
+        _install_module(
+            ["minari[all]>=0.5.1", "gymnasium-robotics>=1.2.4"], upgrade=True
+        )
     elif name == "dm_control":
-        _install_module(["shimmy[dm-control]==1.3.0"], upgrade=True)
+        _install_module(["shimmy[dm-control]==2.0.0"], upgrade=True)
     elif name == "list":
         print_available_options()
     else:

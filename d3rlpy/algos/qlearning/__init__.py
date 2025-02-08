@@ -12,6 +12,7 @@ from .explorers import *
 from .iql import *
 from .nfq import *
 from .plas import *
+from .prdc import *
 from .random_policy import *
 from .rebrac import *
 from .sac import *

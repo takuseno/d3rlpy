@@ -289,6 +289,18 @@ TD3+BC
    :show-inheritance:
 
 
+PRDC
+----
+
+.. autoclass:: d3rlpy.algos.PRDCConfig
+   :members:
+   :show-inheritance:
+
+.. autoclass:: d3rlpy.algos.PRDC
+   :members:
+   :show-inheritance:
+
+
 ReBRAC
 ------
 

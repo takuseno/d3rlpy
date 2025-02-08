@@ -64,6 +64,7 @@ Installing d3rlpy package will install or upgrade the following packages to sati
 - h5py
 - structlog
 - typing-extensions
+- scikit-learn
 
 ### PyPI (recommended)
 [![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
@@ -101,6 +102,7 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 | [Critic Reguralized Regression (CRR)](https://arxiv.org/abs/2006.15134) | :no_entry: | :white_check_mark: |
 | [Policy in Latent Action Space (PLAS)](https://arxiv.org/abs/2011.07213) | :no_entry: | :white_check_mark: |
 | [TD3+BC](https://arxiv.org/abs/2106.06860) | :no_entry: | :white_check_mark: |
+| [Policy Regularization with Dataset Constraint (PRDC)](https://arxiv.org/abs/2306.06569) | :no_entry: | :white_check_mark: |
 | [Implicit Q-Learning (IQL)](https://arxiv.org/abs/2110.06169) | :no_entry: | :white_check_mark: |
 | [Calibrated Q-Learning (Cal-QL)](https://arxiv.org/abs/2303.05479) | :no_entry: | :white_check_mark: |
 | [ReBRAC](https://arxiv.org/abs/2305.09836) | :no_entry: | :white_check_mark: |

@@ -449,9 +449,7 @@ class GoalConcatWrapper(
                 dtype=observation_space.dtype,  # type: ignore
             )
 
-    def step(
-        self, action: _ActType
-    ) -> tuple[
+    def step(self, action: _ActType) -> tuple[
         Union[NDArray, tuple[NDArray, NDArray]],
         SupportsFloat,
         bool,
