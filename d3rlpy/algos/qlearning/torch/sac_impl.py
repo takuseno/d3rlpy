@@ -28,7 +28,13 @@ from ....torch_utility import (
 )
 from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
-from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseModules, DDPGBaseCriticLossFn, DDPGBaseActorLossFn, DDPGBaseUpdater
+from .ddpg_impl import (
+    DDPGBaseActorLoss,
+    DDPGBaseActorLossFn,
+    DDPGBaseCriticLossFn,
+    DDPGBaseModules,
+    DDPGBaseUpdater,
+)
 from .utility import DiscreteQFunctionMixin
 
 __all__ = [

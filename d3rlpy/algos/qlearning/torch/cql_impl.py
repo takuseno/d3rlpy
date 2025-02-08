@@ -8,8 +8,8 @@ import torch.nn.functional as F
 from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
     DiscreteEnsembleQFunctionForwarder,
-    Parameter,
     NormalPolicy,
+    Parameter,
     get_parameter,
 )
 from ....optimizers import OptimizerWrapper
@@ -21,7 +21,7 @@ from ....torch_utility import (
 from ....types import Shape, TorchObservation
 from .ddpg_impl import DDPGBaseCriticLoss
 from .dqn_impl import DoubleDQNLossFn, DQNLoss
-from .sac_impl import SACModules, SACCriticLossFn
+from .sac_impl import SACCriticLossFn, SACModules
 from .utility import sample_q_values_with_policy
 
 __all__ = ["CQLImpl", "DiscreteCQLLossFn", "CQLModules", "DiscreteCQLLoss"]

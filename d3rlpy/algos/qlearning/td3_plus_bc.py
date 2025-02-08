@@ -12,7 +12,7 @@ from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
 from .functional import FunctionalQLearningAlgoImplBase
-from .torch.ddpg_impl import DDPGModules, DDPGValuePredictor, DDPGActionSampler
+from .torch.ddpg_impl import DDPGActionSampler, DDPGModules, DDPGValuePredictor
 from .torch.td3_impl import TD3CriticLossFn, TD3Updater
 from .torch.td3_plus_bc_impl import TD3PlusBCActorLossFn
 
@@ -96,7 +96,9 @@ class TD3PlusBCConfig(LearnableConfig):
         return "td3_plus_bc"
 
 
-class TD3PlusBC(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, TD3PlusBCConfig]):
+class TD3PlusBC(
+    QLearningAlgoBase[FunctionalQLearningAlgoImplBase, TD3PlusBCConfig]
+):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

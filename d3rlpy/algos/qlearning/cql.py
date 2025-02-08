@@ -310,7 +310,9 @@ class DiscreteCQLConfig(LearnableConfig):
         return "discrete_cql"
 
 
-class DiscreteCQL(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DiscreteCQLConfig]):
+class DiscreteCQL(
+    QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DiscreteCQLConfig]
+):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

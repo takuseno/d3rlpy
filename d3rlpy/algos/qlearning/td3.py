@@ -12,7 +12,12 @@ from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
 from .functional import FunctionalQLearningAlgoImplBase
-from .torch.ddpg_impl import DDPGModules, DDPGActionSampler, DDPGValuePredictor, DDPGActorLossFn
+from .torch.ddpg_impl import (
+    DDPGActionSampler,
+    DDPGActorLossFn,
+    DDPGModules,
+    DDPGValuePredictor,
+)
 from .torch.td3_impl import TD3CriticLossFn, TD3Updater
 
 __all__ = ["TD3Config", "TD3"]

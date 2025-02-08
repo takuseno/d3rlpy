@@ -113,7 +113,11 @@ class DDPGCriticLossFn(DDPGBaseCriticLossFn):
 
 
 class DDPGActorLossFn(DDPGBaseActorLossFn):
-    def __init__(self, q_func_forwarder: ContinuousEnsembleQFunctionForwarder, policy: Policy):
+    def __init__(
+        self,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        policy: Policy,
+    ):
         self._q_func_forwarder = q_func_forwarder
         self._policy = policy
 
@@ -138,8 +142,16 @@ class DDPGBaseUpdater(Updater):
         self._actor_optim = actor_optim
         self._critic_loss_fn = critic_loss_fn
         self._actor_loss_fn = actor_loss_fn
-        self._compute_critic_grad = CudaGraphWrapper(self.compute_critic_grad) if compiled else self.compute_critic_grad
-        self._compute_actor_grad = CudaGraphWrapper(self.compute_actor_grad) if compiled else self.compute_actor_grad
+        self._compute_critic_grad = (
+            CudaGraphWrapper(self.compute_critic_grad)
+            if compiled
+            else self.compute_critic_grad
+        )
+        self._compute_actor_grad = (
+            CudaGraphWrapper(self.compute_actor_grad)
+            if compiled
+            else self.compute_actor_grad
+        )
 
     def compute_critic_grad(self, batch: TorchMiniBatch) -> DDPGBaseCriticLoss:
         self._critic_optim.zero_grad()
@@ -153,7 +165,9 @@ class DDPGBaseUpdater(Updater):
         loss.actor_loss.backward()
         return loss
 
-    def __call__(self, batch: TorchMiniBatch, grad_step: int) -> dict[str, float]:
+    def __call__(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> dict[str, float]:
         metrics = {}
 
         # update critic
@@ -185,7 +199,9 @@ class DDPGValuePredictor(ValuePredictor):
     def __init__(self, q_func_forwarder: ContinuousEnsembleQFunctionForwarder):
         self._q_func_forwarder = q_func_forwarder
 
-    def __call__(self, x: TorchObservation, action: torch.Tensor) -> torch.Tensor:
+    def __call__(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor:
         return self._q_func_forwarder.compute_expected_q(
             x, action, reduction="mean"
         ).reshape(-1)

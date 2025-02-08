@@ -272,6 +272,7 @@ class DiscreteBCQLossFn(DoubleDQNLossFn):
             loss=loss, td_loss=td_loss, imitator_loss=imitator_loss.loss
         )
 
+
 class DiscreteBCQActionSampler(ActionSampler):
     def __init__(
         self,

@@ -16,7 +16,12 @@ class TD3PlusBCActorLoss(DDPGBaseActorLoss):
 
 
 class TD3PlusBCActorLossFn(DDPGBaseActorLossFn):
-    def __init__(self, q_func_forwarder: ContinuousEnsembleQFunctionForwarder, policy: Policy, alpha: float):
+    def __init__(
+        self,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        policy: Policy,
+        alpha: float,
+    ):
         self._q_func_forwarder = q_func_forwarder
         self._policy = policy
         self._alpha = alpha

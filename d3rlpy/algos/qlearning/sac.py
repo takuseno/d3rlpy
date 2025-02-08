@@ -15,17 +15,20 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
+from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import (
+    DeterministicContinuousActionSampler,
+    SquashedGaussianContinuousActionSampler,
+)
 from .torch.ddpg_impl import DDPGValuePredictor
 from .torch.sac_impl import (
     DiscreteSACImpl,
     DiscreteSACModules,
-    SACModules,
-    SACCriticLossFn,
     SACActorLossFn,
+    SACCriticLossFn,
+    SACModules,
     SACUpdater,
 )
-from .functional import FunctionalQLearningAlgoImplBase
-from .functional_utils import SquashedGaussianContinuousActionSampler, DeterministicContinuousActionSampler
 
 __all__ = ["SACConfig", "SAC", "DiscreteSACConfig", "DiscreteSAC"]
 

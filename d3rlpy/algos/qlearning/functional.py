@@ -8,22 +8,28 @@ from ...torch_utility import Modules, TorchMiniBatch
 from ...types import Shape, TorchObservation
 from .base import QLearningAlgoImplBase
 
-__all__ = ["Updater", "ActionSampler", "ValuePredictor", "FunctionalQLearningAlgoImplBase"]
+__all__ = [
+    "Updater",
+    "ActionSampler",
+    "ValuePredictor",
+    "FunctionalQLearningAlgoImplBase",
+]
 
 
 class Updater(Protocol):
-    def __call__(self, batch: TorchMiniBatch, grad_step: int) -> dict[str, float]:
-        ...
+    def __call__(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> dict[str, float]: ...
 
 
 class ActionSampler(Protocol):
-    def __call__(self, x: TorchObservation) -> torch.Tensor:
-        ...
+    def __call__(self, x: TorchObservation) -> torch.Tensor: ...
 
 
 class ValuePredictor(Protocol):
-    def __call__(self, x: TorchObservation, action: torch.Tensor) -> torch.Tensor:
-        ...
+    def __call__(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor: ...
 
 
 class FunctionalQLearningAlgoImplBase(QLearningAlgoImplBase):

@@ -76,7 +76,9 @@ class DQNLossFn:
 class DoubleDQNLossFn(DQNLossFn):
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
-            action = self._q_func_forwarder.compute_expected_q(batch.next_observations).argmax(dim=1)
+            action = self._q_func_forwarder.compute_expected_q(
+                batch.next_observations
+            ).argmax(dim=1)
             return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 action,
@@ -96,7 +98,9 @@ class DQNValuePredictor(ValuePredictor):
     def __init__(self, q_func_forwarder: DiscreteEnsembleQFunctionForwarder):
         self._q_func_forwarder = q_func_forwarder
 
-    def __call__(self, x: TorchObservation, action: torch.Tensor) -> torch.Tensor:
+    def __call__(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor:
         values = self._q_func_forwarder.compute_expected_q(x, reduction="mean")
         flat_action = action.reshape(-1)
         return values[torch.arange(0, values.size(0)), flat_action].reshape(-1)
@@ -117,7 +121,11 @@ class DQNUpdater(Updater):
         self._optim = optim
         self._dqn_loss_fn = dqn_loss_fn
         self._target_update_interval = target_update_interval
-        self._compute_grad = CudaGraphWrapper(self.compute_grad) if compiled else self.compute_grad
+        self._compute_grad = (
+            CudaGraphWrapper(self.compute_grad)
+            if compiled
+            else self.compute_grad
+        )
 
     def compute_grad(self, batch: TorchMiniBatch) -> DQNLoss:
         self._optim.zero_grad()
@@ -125,7 +133,9 @@ class DQNUpdater(Updater):
         loss.loss.backward()
         return loss
 
-    def __call__(self, batch: TorchMiniBatch, grad_step: int) -> dict[str, float]:
+    def __call__(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> dict[str, float]:
         loss = self._compute_grad(batch)
         self._optim.step()
         if grad_step % self._target_update_interval == 0:

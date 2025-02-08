@@ -1,11 +1,16 @@
 import torch
 from torch import nn
 
+from ....dataclass_utils import asdict_as_float
 from ....models.torch import ContinuousEnsembleQFunctionForwarder, Policy
 from ....optimizers import OptimizerWrapper
 from ....torch_utility import TorchMiniBatch
-from ....dataclass_utils import asdict_as_float
-from .ddpg_impl import DDPGCriticLossFn, DDPGUpdater, DDPGBaseCriticLossFn, DDPGBaseActorLossFn
+from .ddpg_impl import (
+    DDPGBaseActorLossFn,
+    DDPGBaseCriticLossFn,
+    DDPGCriticLossFn,
+    DDPGUpdater,
+)
 
 __all__ = ["TD3CriticLossFn", "TD3Updater"]
 
@@ -76,7 +81,9 @@ class TD3Updater(DDPGUpdater):
         )
         self._update_actor_interval = update_actor_interval
 
-    def __call__(self, batch: TorchMiniBatch, grad_step: int) -> dict[str, float]:
+    def __call__(
+        self, batch: TorchMiniBatch, grad_step: int
+    ) -> dict[str, float]:
         metrics = {}
 
         # update critic

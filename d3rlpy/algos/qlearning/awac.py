@@ -14,11 +14,14 @@ from ...models.torch import Parameter
 from ...optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.ddpg_impl import DDPGValuePredictor
-from .torch.awac_impl import AWACActorLossFn
-from .torch.sac_impl import SACModules, SACUpdater, SACCriticLossFn
 from .functional import FunctionalQLearningAlgoImplBase
-from .functional_utils import DeterministicContinuousActionSampler, GaussianContinuousActionSampler
+from .functional_utils import (
+    DeterministicContinuousActionSampler,
+    GaussianContinuousActionSampler,
+)
+from .torch.awac_impl import AWACActorLossFn
+from .torch.ddpg_impl import DDPGValuePredictor
+from .torch.sac_impl import SACCriticLossFn, SACModules, SACUpdater
 
 __all__ = ["AWACConfig", "AWAC"]
 

@@ -11,9 +11,15 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.ddpg_impl import DDPGValuePredictor, DDPGCriticLossFn, DDPGActorLossFn, DDPGUpdater, DDPGModules
 from .functional import FunctionalQLearningAlgoImplBase
 from .functional_utils import DeterministicContinuousActionSampler
+from .torch.ddpg_impl import (
+    DDPGActorLossFn,
+    DDPGCriticLossFn,
+    DDPGModules,
+    DDPGUpdater,
+    DDPGValuePredictor,
+)
 
 __all__ = ["DDPGConfig", "DDPG"]
 

@@ -366,7 +366,9 @@ class DiscreteBCQConfig(LearnableConfig):
         return "discrete_bcq"
 
 
-class DiscreteBCQ(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DiscreteBCQConfig]):
+class DiscreteBCQ(
+    QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DiscreteBCQConfig]
+):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

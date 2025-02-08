@@ -2,8 +2,8 @@ import torch
 import torch.nn.functional as F
 
 from ....models.torch import (
-    Policy,
     ContinuousEnsembleQFunctionForwarder,
+    Policy,
     build_gaussian_distribution,
 )
 from ....torch_utility import (
@@ -13,7 +13,7 @@ from ....torch_utility import (
     get_batch_size,
 )
 from ....types import TorchObservation
-from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseActorLossFn, DDPGBaseActorLoss
+from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseActorLossFn
 
 __all__ = ["AWACActorLossFn"]
 
