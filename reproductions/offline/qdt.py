@@ -46,15 +46,22 @@ def main() -> None:
     )
 
     # fit decision transformer to the relabeled dataset
-    fit_dt(dataset, env, args.context_size, args.seed, args.gpu, False, timestamp)
+    fit_dt(
+        dataset, env, args.context_size, args.seed, args.gpu, False, timestamp
+    )
 
 
 """ --------------------------------------------------------------------
     Aargument dataset
 -------------------------------------------------------------------- """
 
+
 def relabel_dataset_rtg(
-    buffer: InfiniteBuffer, q_algo: Union["CQL", "IQL"], k: int, seed: int = 0
+    buffer: InfiniteBuffer,
+    q_algo: Union["CQL", "IQL"],
+    k: int,
+    num_action_samples: int = 10,
+    seed: int = 0,
 ):
     """
     Relabel RTG (reward-to-go) to the given dataset using the given Q-function.
@@ -64,6 +71,7 @@ def relabel_dataset_rtg(
         q_algo: Trained Q-learning algoirthm.
         k (int): Context length for DT.
         seed (int): The random seed.
+        num_action_samples (int, optional): The number of action samples for V function estimation. Defaults to 10.
         gpu (int, optional): The GPU device ID. Defaults to None.
         timestamp (str, optional): The timestamp for experiment name. Defaults to None.
     """
@@ -76,7 +84,7 @@ def relabel_dataset_rtg(
         if idx > prev_idx:
             # get values for all observations in the episode
             values = []
-            for _ in range(10):
+            for _ in range(num_action_samples):
                 sampled_actions = q_algo.sample_action(episode.observations)
                 values.append(
                     q_algo.predict_value(episode.observations, sampled_actions)
