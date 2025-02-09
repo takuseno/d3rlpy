@@ -14,11 +14,20 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
+from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import VAELossFn
+from .torch.ddpg_impl import DDPGValuePredictor
 from .torch.plas_impl import (
-    PLASImpl,
+    PLASActionSampler,
+    PLASActorLossFn,
+    PLASCriticLossFn,
     PLASModules,
-    PLASWithPerturbationImpl,
+    PLASUpdater,
+    PLASWithPerturbationActionSampler,
+    PLASWithPerturbationActorLossFn,
+    PLASWithPerturbationCriticLossFn,
     PLASWithPerturbationModules,
+    PLASWithPerturbationUpdater,
 )
 
 __all__ = [
@@ -108,7 +117,7 @@ class PLASConfig(LearnableConfig):
         return "plas"
 
 
-class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
+class PLAS(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, PLASConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -192,18 +201,54 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             vae_optim=vae_optim,
         )
 
-        self._impl = PLASImpl(
+        updater = PLASUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            policy=policy,
+            targ_policy=targ_policy,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            imitator_optim=vae_optim,
+            critic_loss_fn=PLASCriticLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                targ_policy=targ_policy,
+                vae_decoder=vae_decoder,
+                gamma=self._config.gamma,
+                lam=self._config.lam,
+            ),
+            actor_loss_fn=PLASActorLossFn(
+                q_func_forwarder=q_func_forwarder,
+                policy=policy,
+                vae_decoder=vae_decoder,
+            ),
+            imitator_loss_fn=VAELossFn(
+                vae_decoder=vae_decoder,
+                vae_encoder=vae_encoder,
+                kl_weight=self._config.beta,
+            ),
+            warmup_steps=self._config.warmup_steps,
+            tau=self._config.tau,
+            compiled=self.compiled,
+        )
+        action_sampler = PLASActionSampler(
+            policy=policy,
+            vae_decoder=vae_decoder,
+        )
+        value_predictor = DDPGValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=self._config.gamma,
-            tau=self._config.tau,
-            lam=self._config.lam,
-            beta=self._config.beta,
-            warmup_steps=self._config.warmup_steps,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=action_sampler,
+            explore_action_sampler=action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=critic_optim.optim,
+            policy=policy,
+            policy_optim=actor_optim.optim,
             device=self._device,
         )
 
@@ -375,18 +420,59 @@ class PLASWithPerturbation(PLAS):
             vae_optim=vae_optim,
         )
 
-        self._impl = PLASWithPerturbationImpl(
+        updater = PLASWithPerturbationUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            policy=policy,
+            targ_policy=targ_policy,
+            perturbation=perturbation,
+            targ_perturbation=targ_perturbation,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            imitator_optim=vae_optim,
+            critic_loss_fn=PLASWithPerturbationCriticLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                targ_policy=targ_policy,
+                targ_perturbation=targ_perturbation,
+                vae_decoder=vae_decoder,
+                gamma=self._config.gamma,
+                lam=self._config.lam,
+            ),
+            actor_loss_fn=PLASWithPerturbationActorLossFn(
+                q_func_forwarder=q_func_forwarder,
+                policy=policy,
+                vae_decoder=vae_decoder,
+                perturbation=perturbation,
+            ),
+            imitator_loss_fn=VAELossFn(
+                vae_decoder=vae_decoder,
+                vae_encoder=vae_encoder,
+                kl_weight=self._config.beta,
+            ),
+            warmup_steps=self._config.warmup_steps,
+            tau=self._config.tau,
+            compiled=self.compiled,
+        )
+        action_sampler = PLASWithPerturbationActionSampler(
+            policy=policy,
+            vae_decoder=vae_decoder,
+            perturbation=perturbation,
+        )
+        value_predictor = DDPGValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=self._config.gamma,
-            tau=self._config.tau,
-            lam=self._config.lam,
-            beta=self._config.beta,
-            warmup_steps=self._config.warmup_steps,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=action_sampler,
+            explore_action_sampler=action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=critic_optim.optim,
+            policy=policy,
+            policy_optim=actor_optim.optim,
             device=self._device,
         )
 
