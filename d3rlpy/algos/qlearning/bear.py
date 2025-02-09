@@ -167,7 +167,7 @@ class BEARConfig(LearnableConfig):
         return "bear"
 
 
-class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
+class BEAR(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, BEARConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
