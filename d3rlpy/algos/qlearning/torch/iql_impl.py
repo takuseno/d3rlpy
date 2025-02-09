@@ -1,24 +1,33 @@
 import dataclasses
 
 import torch
+from torch import nn
 
 from ....models.torch import (
-    ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
     NormalPolicy,
+    Policy,
     ValueFunction,
     build_gaussian_distribution,
 )
-from ....torch_utility import TorchMiniBatch
-from ....types import Shape, TorchObservation
+from ....optimizers.optimizers import OptimizerWrapper
+from ....torch_utility import TorchMiniBatch, soft_sync
 from .ddpg_impl import (
     DDPGBaseActorLoss,
+    DDPGBaseActorLossFn,
     DDPGBaseCriticLoss,
-    DDPGBaseImpl,
+    DDPGBaseCriticLossFn,
     DDPGBaseModules,
+    DDPGBaseUpdater,
 )
 
-__all__ = ["IQLImpl", "IQLModules"]
+__all__ = [
+    "IQLCriticLossFn",
+    "IQLActorLossFn",
+    "IQLCriticLoss",
+    "IQLModules",
+    "IQLUpdater",
+]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -33,48 +42,41 @@ class IQLCriticLoss(DDPGBaseCriticLoss):
     v_loss: torch.Tensor
 
 
-class IQLImpl(DDPGBaseImpl):
-    _modules: IQLModules
-    _expectile: float
-    _weight_temp: float
-    _max_weight: float
-
+class IQLCriticLossFn(DDPGBaseCriticLossFn):
     def __init__(
         self,
-        observation_shape: Shape,
-        action_size: int,
-        modules: IQLModules,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        value_func: ValueFunction,
         gamma: float,
-        tau: float,
         expectile: float,
-        weight_temp: float,
-        max_weight: float,
-        compiled: bool,
-        device: str,
     ):
         super().__init__(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            modules=modules,
             q_func_forwarder=q_func_forwarder,
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
-            tau=tau,
-            compiled=compiled,
-            device=device,
         )
+        self._value_func = value_func
         self._expectile = expectile
-        self._weight_temp = weight_temp
-        self._max_weight = max_weight
 
-    def compute_critic_loss(
-        self, batch: TorchMiniBatch, q_tpn: torch.Tensor
-    ) -> IQLCriticLoss:
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
+        with torch.no_grad():
+            return self._value_func(batch.next_observations)
+
+    def compute_value_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
+        q_t = self._targ_q_func_forwarder.compute_expected_q(
+            batch.observations, batch.actions, "min"
+        )
+        v_t = self._value_func(batch.observations)
+        diff = q_t.detach() - v_t
+        weight = (self._expectile - (diff < 0.0).float()).abs().detach()
+        return (weight * (diff**2)).mean()
+
+    def __call__(self, batch: TorchMiniBatch) -> IQLCriticLoss:
+        q_tpn = self.compute_target(batch)
         q_loss = self._q_func_forwarder.compute_error(
             observations=batch.observations,
-            actions=batch.actions,
+            actions=batch.actions.long(),
             rewards=batch.rewards,
             target=q_tpn,
             terminals=batch.terminals,
@@ -87,14 +89,33 @@ class IQLImpl(DDPGBaseImpl):
             v_loss=v_loss,
         )
 
-    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        with torch.no_grad():
-            return self._modules.value_func(batch.next_observations)
 
-    def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
-    ) -> DDPGBaseActorLoss:
+class IQLActorLossFn(DDPGBaseActorLossFn):
+    def __init__(
+        self,
+        policy: Policy,
+        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        value_func: ValueFunction,
+        weight_temp: float,
+        max_weight: float,
+    ):
+        self._policy = policy
+        self._targ_q_func_forwarder = targ_q_func_forwarder
+        self._value_func = value_func
+        self._weight_temp = weight_temp
+        self._max_weight = max_weight
+
+    def _compute_weight(self, batch: TorchMiniBatch) -> torch.Tensor:
+        q_t = self._targ_q_func_forwarder.compute_expected_q(
+            batch.observations, batch.actions, "min"
+        )
+        v_t = self._value_func(batch.observations)
+        adv = q_t - v_t
+        return (self._weight_temp * adv).exp().clamp(max=self._max_weight)
+
+    def __call__(self, batch: TorchMiniBatch) -> DDPGBaseActorLoss:
         # compute log probability
+        action = self._policy(batch.observations)
         dist = build_gaussian_distribution(action)
         log_probs = dist.log_prob(batch.actions)
         # compute weight
@@ -102,23 +123,29 @@ class IQLImpl(DDPGBaseImpl):
             weight = self._compute_weight(batch)
         return DDPGBaseActorLoss(-(weight * log_probs).mean())
 
-    def _compute_weight(self, batch: TorchMiniBatch) -> torch.Tensor:
-        q_t = self._targ_q_func_forwarder.compute_expected_q(
-            batch.observations, batch.actions, "min"
-        )
-        v_t = self._modules.value_func(batch.observations)
-        adv = q_t - v_t
-        return (self._weight_temp * adv).exp().clamp(max=self._max_weight)
 
-    def compute_value_loss(self, batch: TorchMiniBatch) -> torch.Tensor:
-        q_t = self._targ_q_func_forwarder.compute_expected_q(
-            batch.observations, batch.actions, "min"
+class IQLUpdater(DDPGBaseUpdater):
+    def __init__(
+        self,
+        q_funcs: nn.ModuleList,
+        targ_q_funcs: nn.ModuleList,
+        critic_optim: OptimizerWrapper,
+        actor_optim: OptimizerWrapper,
+        critic_loss_fn: DDPGBaseCriticLossFn,
+        actor_loss_fn: DDPGBaseActorLossFn,
+        tau: float,
+        compiled: bool,
+    ):
+        super().__init__(
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            critic_loss_fn=critic_loss_fn,
+            actor_loss_fn=actor_loss_fn,
+            compiled=compiled,
         )
-        v_t = self._modules.value_func(batch.observations)
-        diff = q_t.detach() - v_t
-        weight = (self._expectile - (diff < 0.0).float()).abs().detach()
-        return (weight * (diff**2)).mean()
+        self._q_funcs = q_funcs
+        self._targ_q_funcs = targ_q_funcs
+        self._tau = tau
 
-    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
-        dist = build_gaussian_distribution(self._modules.policy(x))
-        return dist.sample()
+    def update_target(self) -> None:
+        soft_sync(self._targ_q_funcs, self._q_funcs, self._tau)

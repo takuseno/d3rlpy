@@ -3,6 +3,7 @@ import argparse
 import copy
 
 import d3rlpy
+from d3rlpy.algos.qlearning.torch.iql_impl import IQLModules
 
 
 def main() -> None:
@@ -50,7 +51,8 @@ def main() -> None:
 
     # reset learning rate
     assert iql.impl
-    for g in iql.impl._modules.actor_optim.optim.param_groups:
+    assert isinstance(iql.impl.modules, IQLModules)
+    for g in iql.impl.modules.actor_optim.optim.param_groups:
         g["lr"] = iql.config.actor_learning_rate
 
     # prepare FIFO buffer filled with dataset episodes
