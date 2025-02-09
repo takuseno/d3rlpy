@@ -70,10 +70,10 @@ def relabel_dataset_rtg(
         q_algo: Trained Q-learning algoirthm.
         k (int): Context length for DT.
         seed (int): The random seed.
-        num_action_samples (int, optional): The number of action samples for 
+        num_action_samples (int, optional): The number of action samples for
             V function estimation. Defaults to 10.
         gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name. 
+        timestamp (str, optional): The timestamp for experiment name.
             Defaults to None.
     """
     # fix seed
@@ -130,7 +130,7 @@ def fit_cql(
         env (gym.Env): The environment instance.
         seed (int): The random seed.
         gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name. 
+        timestamp (str, optional): The timestamp for experiment name.
             Defaults to None.
     """
     # fix seed
@@ -188,7 +188,7 @@ def fit_iql(
         env (gym.Env): The environment instance.
         seed (int): The random seed.
         gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name. 
+        timestamp (str, optional): The timestamp for experiment name.
             Defaults to None.
     """
     # fix seed
@@ -258,7 +258,7 @@ def fit_dt(
         env (gym.Env): The environment instance.
         seed (int): The random seed.
         gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name. 
+        timestamp (str, optional): The timestamp for experiment name.
             Defaults to None.
     """
     # fix seed
