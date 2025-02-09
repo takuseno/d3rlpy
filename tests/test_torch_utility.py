@@ -113,7 +113,7 @@ def test_map_location_with_cuda() -> None:
 
     fn(dummy, "")
 
-    dummy.cuda.assert_called_with("cuda:0")
+    dummy.cuda.assert_called_with(0)
 
 
 class DummyImpl:

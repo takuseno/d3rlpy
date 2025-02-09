@@ -85,7 +85,8 @@ def sync_optimizer_state(targ_optim: Optimizer, optim: Optimizer) -> None:
 
 def map_location(device: str) -> Any:
     if "cuda" in device:
-        return lambda storage, loc: storage.cuda(device)
+        _, index = device.split(":")
+        return lambda storage, loc: storage.cuda(int(index))
     if "cpu" in device:
         return "cpu"
     raise ValueError(f"invalid device={device}")
