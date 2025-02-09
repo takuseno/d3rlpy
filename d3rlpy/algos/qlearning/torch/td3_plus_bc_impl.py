@@ -1,4 +1,3 @@
-# pylint: disable=too-many-ancestors
 import dataclasses
 
 import torch
