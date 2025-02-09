@@ -1,14 +1,13 @@
 import argparse
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Optional, Union
 
-import d4rl.gym_mujoco
 import gym
 import numpy as np
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 import d3rlpy
-from d3rlpy.algos import CQL, IQL, QLearningAlgoBase
+from d3rlpy.algos import CQL, IQL
 from d3rlpy.dataset import InfiniteBuffer, ReplayBuffer
 from d3rlpy.types import NDArray
 
@@ -71,9 +70,11 @@ def relabel_dataset_rtg(
         q_algo: Trained Q-learning algoirthm.
         k (int): Context length for DT.
         seed (int): The random seed.
-        num_action_samples (int, optional): The number of action samples for V function estimation. Defaults to 10.
+        num_action_samples (int, optional): The number of action samples for 
+            V function estimation. Defaults to 10.
         gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name. Defaults to None.
+        timestamp (str, optional): The timestamp for experiment name. 
+            Defaults to None.
     """
     # fix seed
     d3rlpy.seed(seed)
@@ -109,8 +110,8 @@ def relabel_dataset_rtg(
         prev_idx = idx
 
 
-""" -------------------------------------------------------------------- 
-    Fit offline RL algorithms to the given dataset. 
+""" --------------------------------------------------------------------
+    Fit offline RL algorithms to the given dataset.
 -------------------------------------------------------------------- """
 
 
@@ -129,7 +130,8 @@ def fit_cql(
         env (gym.Env): The environment instance.
         seed (int): The random seed.
         gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name. Defaults to None.
+        timestamp (str, optional): The timestamp for experiment name. 
+            Defaults to None.
     """
     # fix seed
     d3rlpy.seed(seed)
@@ -186,7 +188,8 @@ def fit_iql(
         env (gym.Env): The environment instance.
         seed (int): The random seed.
         gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name. Defaults to None.
+        timestamp (str, optional): The timestamp for experiment name. 
+            Defaults to None.
     """
     # fix seed
     d3rlpy.seed(seed)
@@ -255,7 +258,8 @@ def fit_dt(
         env (gym.Env): The environment instance.
         seed (int): The random seed.
         gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name. Defaults to None.
+        timestamp (str, optional): The timestamp for experiment name. 
+            Defaults to None.
     """
     # fix seed
     d3rlpy.seed(seed)
