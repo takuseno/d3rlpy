@@ -12,7 +12,8 @@ from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
 from .functional import FunctionalQLearningAlgoImplBase
-from .torch.ddpg_impl import DDPGActionSampler, DDPGModules, DDPGValuePredictor
+from .functional_utils import DeterministicContinuousActionSampler
+from .torch.ddpg_impl import DDPGModules, DDPGValuePredictor
 from .torch.td3_impl import TD3CriticLossFn, TD3Updater
 from .torch.td3_plus_bc_impl import TD3PlusBCActorLossFn
 
@@ -179,7 +180,7 @@ class TD3PlusBC(
             update_actor_interval=self._config.update_actor_interval,
             compiled=self.compiled,
         )
-        action_sampler = DDPGActionSampler(policy)
+        action_sampler = DeterministicContinuousActionSampler(policy)
         value_predictor = DDPGValuePredictor(q_func_forwarder)
 
         self._impl = FunctionalQLearningAlgoImplBase(

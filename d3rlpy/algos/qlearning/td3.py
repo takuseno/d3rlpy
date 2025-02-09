@@ -12,8 +12,8 @@ from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
 from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import DeterministicContinuousActionSampler
 from .torch.ddpg_impl import (
-    DDPGActionSampler,
     DDPGActorLossFn,
     DDPGModules,
     DDPGValuePredictor,
@@ -188,7 +188,7 @@ class TD3(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, TD3Config]):
             update_actor_interval=self._config.update_actor_interval,
             compiled=self.compiled,
         )
-        action_sampler = DDPGActionSampler(policy)
+        action_sampler = DeterministicContinuousActionSampler(policy)
         value_predictor = DDPGValuePredictor(q_func_forwarder)
 
         self._impl = FunctionalQLearningAlgoImplBase(
