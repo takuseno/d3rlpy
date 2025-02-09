@@ -546,7 +546,7 @@ class CudaGraphWrapper(Generic[BatchT_contra, RetT_co]):
                 self._out = self._func(self._inpt)
         if self._step >= self._warmup_steps:  # reuse cuda graph
             assert self._inpt
-            assert self._out
+            assert self._out is not None
             assert self._graph
             with torch.no_grad():
                 self._inpt.copy_(batch)  # type: ignore
