@@ -62,6 +62,7 @@ class CQLCriticLossFn(SACCriticLossFn):
         soft_q_backup: bool,
         max_q_backup: bool,
         action_size: int,
+        device: str,
     ):
         super().__init__(
             q_func_forwarder=q_func_forwarder,
@@ -78,6 +79,7 @@ class CQLCriticLossFn(SACCriticLossFn):
         self._soft_q_backup = soft_q_backup
         self._max_q_backup = max_q_backup
         self._action_size = action_size
+        self._device = device
 
     def __call__(self, batch: TorchMiniBatch) -> DDPGBaseCriticLoss:
         loss = super().__call__(batch)

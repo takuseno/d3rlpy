@@ -251,6 +251,7 @@ class CQL(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, CQLConfig]):
                 soft_q_backup=self._config.soft_q_backup,
                 max_q_backup=self._config.max_q_backup,
                 action_size=action_size,
+                device=self._device,
             ),
             actor_loss_fn=SACActorLossFn(
                 q_func_forwarder=q_func_forwarder,
