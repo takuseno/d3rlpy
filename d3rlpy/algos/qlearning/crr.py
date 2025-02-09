@@ -11,7 +11,16 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.crr_impl import CRRImpl, CRRModules
+from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import GaussianContinuousActionSampler
+from .torch.crr_impl import (
+    CRRActionSampler,
+    CRRActorLossFn,
+    CRRCriticLossFn,
+    CRRModules,
+    CRRUpdater,
+)
+from .torch.ddpg_impl import DDPGValuePredictor
 
 __all__ = ["CRRConfig", "CRR"]
 
@@ -132,7 +141,7 @@ class CRRConfig(LearnableConfig):
         return "crr"
 
 
-class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
+class CRR(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, CRRConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -189,22 +198,55 @@ class CRR(QLearningAlgoBase[CRRImpl, CRRConfig]):
             critic_optim=critic_optim,
         )
 
-        self._impl = CRRImpl(
+        updater = CRRUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            policy=policy,
+            targ_policy=targ_policy,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            critic_loss_fn=CRRCriticLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                targ_policy=targ_policy,
+                gamma=self._config.gamma,
+            ),
+            actor_loss_fn=CRRActorLossFn(
+                policy=policy,
+                q_func_forwarder=q_func_forwarder,
+                n_action_samples=self._config.n_action_samples,
+                advantage_type=self._config.advantage_type,
+                weight_type=self._config.weight_type,
+                beta=self._config.beta,
+                max_weight=self._config.max_weight,
+                action_size=action_size,
+            ),
+            target_update_type=self._config.target_update_type,
+            tau=self._config.tau,
+            target_update_interval=self._config.target_update_interval,
+            compiled=self.compiled,
+        )
+        exploit_action_sampler = CRRActionSampler(
+            policy=policy,
+            q_func_forwarder=q_func_forwarder,
+            n_action_samples=self._config.n_action_samples,
+            action_size=action_size,
+        )
+        explore_action_sampler = GaussianContinuousActionSampler(policy)
+        value_predictor = DDPGValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=self._config.gamma,
-            beta=self._config.beta,
-            n_action_samples=self._config.n_action_samples,
-            advantage_type=self._config.advantage_type,
-            weight_type=self._config.weight_type,
-            max_weight=self._config.max_weight,
-            tau=self._config.tau,
-            target_update_type=self._config.target_update_type,
-            target_update_interval=self._config.target_update_interval,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=exploit_action_sampler,
+            explore_action_sampler=explore_action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=critic_optim.optim,
+            policy=policy,
+            policy_optim=actor_optim.optim,
             device=self._device,
         )
 
