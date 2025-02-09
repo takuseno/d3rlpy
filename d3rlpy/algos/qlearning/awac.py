@@ -103,7 +103,7 @@ class AWACConfig(LearnableConfig):
         return "awac"
 
 
-class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
+class AWAC(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, AWACConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:

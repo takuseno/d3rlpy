@@ -15,13 +15,19 @@ from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
 from .functional import FunctionalQLearningAlgoImplBase
-from .torch.cql_impl import CQLImpl, CQLModules, DiscreteCQLLossFn
+from .functional_utils import (
+    DeterministicContinuousActionSampler,
+    SquashedGaussianContinuousActionSampler,
+)
+from .torch.cql_impl import CQLCriticLossFn, CQLModules, DiscreteCQLLossFn
+from .torch.ddpg_impl import DDPGValuePredictor
 from .torch.dqn_impl import (
     DQNActionSampler,
     DQNModules,
     DQNUpdater,
     DQNValuePredictor,
 )
+from .torch.sac_impl import SACActorLossFn, SACUpdater
 
 __all__ = ["CQLConfig", "CQL", "DiscreteCQLConfig", "DiscreteCQL"]
 
@@ -142,7 +148,7 @@ class CQLConfig(LearnableConfig):
         return "cql"
 
 
-class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
+class CQL(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, CQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -156,7 +162,7 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             device=self._device,
             enable_ddp=self._enable_ddp,
         )
-        q_funcs, q_func_fowarder = create_continuous_q_function(
+        q_funcs, q_func_forwarder = create_continuous_q_function(
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
@@ -226,20 +232,52 @@ class CQL(QLearningAlgoBase[CQLImpl, CQLConfig]):
             alpha_optim=alpha_optim,
         )
 
-        self._impl = CQLImpl(
+        updater = SACUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            critic_loss_fn=CQLCriticLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                policy=policy,
+                log_temp=log_temp,
+                log_alpha=log_alpha,
+                alpha_optim=alpha_optim,
+                gamma=self._config.gamma,
+                n_action_samples=self._config.n_action_samples,
+                conservative_weight=self._config.conservative_weight,
+                alpha_threshold=self._config.alpha_threshold,
+                soft_q_backup=self._config.soft_q_backup,
+                max_q_backup=self._config.max_q_backup,
+                action_size=action_size,
+            ),
+            actor_loss_fn=SACActorLossFn(
+                q_func_forwarder=q_func_forwarder,
+                policy=policy,
+                log_temp=log_temp,
+                temp_optim=temp_optim,
+                action_size=action_size,
+            ),
+            tau=self._config.tau,
+            compiled=self.compiled,
+        )
+        exploit_action_sampler = DeterministicContinuousActionSampler(policy)
+        explore_action_sampler = SquashedGaussianContinuousActionSampler(policy)
+        value_predictor = DDPGValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_fowarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=self._config.gamma,
-            tau=self._config.tau,
-            alpha_threshold=self._config.alpha_threshold,
-            conservative_weight=self._config.conservative_weight,
-            n_action_samples=self._config.n_action_samples,
-            soft_q_backup=self._config.soft_q_backup,
-            max_q_backup=self._config.max_q_backup,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=exploit_action_sampler,
+            explore_action_sampler=explore_action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=critic_optim.optim,
+            policy=policy,
+            policy_optim=actor_optim.optim,
             device=self._device,
         )
 
