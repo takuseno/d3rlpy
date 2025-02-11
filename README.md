@@ -107,6 +107,7 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 | [Calibrated Q-Learning (Cal-QL)](https://arxiv.org/abs/2303.05479) | :no_entry: | :white_check_mark: |
 | [ReBRAC](https://arxiv.org/abs/2305.09836) | :no_entry: | :white_check_mark: |
 | [Decision Transformer](https://arxiv.org/abs/2106.01345) | :white_check_mark: | :white_check_mark: |
+| [Q-learning Decision Transformer (QDT)](https://arxiv.org/abs/2209.03993) | :white_check_mark: | :construction: |
 | [Gato](https://arxiv.org/abs/2205.06175) | :construction: | :construction: |
 
 ## Supported Q functions
