@@ -18,16 +18,25 @@ def main() -> None:
     parser.add_argument("--context_size", type=int, default=20)
     parser.add_argument("--model_file", type=str, default=None)
     parser.add_argument(
-        "--q_learning_type", type=str, default="cql"
-    )  # Q-learning algorithm ("cql" or "iql")
+        "--q_learning_type",
+        type=str,
+        default="cql",
+        choices=["cql", "iql"],
+    )
     parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--num_action_samples", type=int, default=10)
     parser.add_argument("--gpu", type=int)
     args = parser.parse_args()
 
-    # get timestamp
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-
     dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
+
+    # create postfix of log directories
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    log_postfix = f"{env.spec.id}_{args.seed}_{timestamp}"
+
+    # fix seed
+    d3rlpy.seed(args.seed)
+    d3rlpy.envs.seed_env(env, args.seed)
 
     # first fit Q-learning algorithm to the dataset
     if args.model_file is not None:
@@ -41,25 +50,40 @@ def main() -> None:
         q_algo = q_algo_loaded
     else:
         if args.q_learning_type == "cql":
-            q_algo = fit_cql(dataset, env, args.seed, args.gpu, timestamp)
+            q_algo = fit_cql(
+                dataset=dataset,
+                env=env,
+                gpu=args.gpu,
+                log_postfix=log_postfix,
+            )
         elif args.q_learning_type == "iql":
-            q_algo = fit_iql(dataset, env, args.seed, args.gpu, timestamp)
+            q_algo = fit_iql(
+                dataset=dataset,
+                env=env,
+                gpu=args.gpu,
+                log_postfix=log_postfix,
+            )
+        else:
+            raise ValueError(f"invalid q_learning_type: {args.q_learning_type}")
 
     # relabel dataset RTGs with the learned value functions
     print("Relabeling dataset with RTGs...")
-    if not isinstance(dataset._buffer, InfiniteBuffer):
-        raise ValueError("Dataset must be an InfiniteBuffer.")
-
+    assert isinstance(dataset._buffer, InfiniteBuffer)
     relabel_dataset_rtg(
-        dataset._buffer, q_algo, args.context_size, seed=args.seed
+        buffer=dataset._buffer,
+        q_algo=q_algo,
+        k=args.context_size,
+        num_action_samples=args.num_action_samples,
     )
 
     # fit decision transformer to the relabeled dataset
     fit_dt(
-        dataset, env, args.context_size, args.seed, args.gpu, False, timestamp
+        dataset=dataset,
+        env=env,
+        context_size=args.context_size,
+        gpu=args.gpu,
+        log_postfix=log_postfix,
     )
-
-    return
 
 
 """ --------------------------------------------------------------------
@@ -71,26 +95,18 @@ def relabel_dataset_rtg(
     buffer: InfiniteBuffer,
     q_algo: Union[CQL, IQL],
     k: int,
-    num_action_samples: int = 10,
-    seed: int = 0,
+    num_action_samples: int,
 ) -> None:
     """
     Relabel RTG (reward-to-go) to the given dataset using the given Q-function.
 
     Args:
         buffer (InfiniteBuffer): Buffer holding trajectory dataset.
-        q_algo: Trained Q-learning algoirthm.
+        q_algo (Union[CQL, IQL]): Trained Q-learning algoirthm.
         k (int): Context length for DT.
-        seed (int): The random seed.
-        num_action_samples (int, optional): The number of action samples for
+        num_action_samples (int): The number of action samples for
             V function estimation. Defaults to 10.
-        gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name.
-            Defaults to None.
     """
-    # fix seed
-    d3rlpy.seed(seed)
-
     prev_idx = -1
     for n in range(buffer.transition_count):
         episode, idx = buffer._transitions[-n - 1]  # get transitions backwards
@@ -132,25 +148,21 @@ def relabel_dataset_rtg(
 def fit_cql(
     dataset: ReplayBuffer,
     env: gym.Env[NDArray, int],
-    seed: int = 1,
-    gpu: Optional[int] = None,
-    timestamp: Optional[str] = None,
-) -> "CQL":
+    gpu: Optional[int],
+    log_postfix: str,
+) -> CQL:
     """
     Fit the CQL algorithm to the given dataset and environment.
 
     Args:
-        dataset (MDPdataset): Dataset for the training.
+        dataset (ReplayBuffer): Dataset for the training.
         env (gym.Env): The environment instance.
-        seed (int): The random seed.
-        gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name.
-            Defaults to None.
-    """
-    # fix seed
-    d3rlpy.seed(seed)
-    d3rlpy.envs.seed_env(env, seed)
+        gpu (Optional[int]): The GPU device ID..
+        log_postfix (str): The postfix of experiment name.
 
+    Return:
+        Trained CQL agent.
+    """
     encoder = d3rlpy.models.encoders.VectorEncoderFactory([256, 256, 256])
 
     if "medium-v0" in env.spec.id:
@@ -176,11 +188,7 @@ def fit_cql(
         n_steps_per_epoch=1000,
         save_interval=50,
         evaluators={"environment": d3rlpy.metrics.EnvironmentEvaluator(env)},
-        experiment_name=(
-            f"CQL_{env.spec.id}_{seed}"
-            if timestamp is None
-            else f"CQL_{env.spec.id}_{seed}_{timestamp}"
-        ),
+        experiment_name=f"CQL_{log_postfix}",
         with_timestamp=False,
     )
 
@@ -190,25 +198,22 @@ def fit_cql(
 def fit_iql(
     dataset: ReplayBuffer,
     env: gym.Env[NDArray, int],
-    seed: int = 1,
-    gpu: Optional[int] = None,
-    timestamp: Optional[str] = None,
-) -> "IQL":
+    gpu: Optional[int],
+    log_postfix: str,
+) -> IQL:
     """
     Fit the IQL algorithm to the given dataset and environment.
 
     Args:
-        dataset (MDPdataset): Dataset for the training.
+        dataset (ReplayBuffer): Dataset for the training.
         env (gym.Env): The environment instance.
         seed (int): The random seed.
-        gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name.
-            Defaults to None.
-    """
-    # fix seed
-    d3rlpy.seed(seed)
-    d3rlpy.envs.seed_env(env, seed)
+        gpu (Optional[int]): The GPU device ID.
+        log_postfix (str): The postfix of experiment name.
 
+    Return:
+        Trained IQL agent.
+    """
     reward_scaler = d3rlpy.preprocessing.ReturnBasedRewardScaler(
         multiplier=1000.0
     )
@@ -244,11 +249,7 @@ def fit_iql(
         evaluators={
             "environment": d3rlpy.metrics.EnvironmentEvaluator(env, n_trials=10)
         },
-        experiment_name=(
-            f"IQL_{env.spec.id}_{seed}"
-            if timestamp is None
-            else f"IQL_{env.spec.id}_{seed}_{timestamp}"
-        ),
+        experiment_name=f"IQL_{log_postfix}",
         with_timestamp=False,
     )
 
@@ -258,11 +259,9 @@ def fit_iql(
 def fit_dt(
     dataset: ReplayBuffer,
     env: gym.Env[NDArray, int],
-    context_size: int = 20,
-    seed: int = 1,
-    gpu: Optional[int] = None,
-    compile: bool = False,
-    timestamp: Optional[str] = None,
+    context_size: int,
+    gpu: Optional[int],
+    log_postfix: str,
 ) -> None:
     """
     Fit decisiton transformer to the given dataset and environment.
@@ -270,15 +269,10 @@ def fit_dt(
     Args:
         dataset (MDPdataset): Dataset for the training.
         env (gym.Env): The environment instance.
-        seed (int): The random seed.
-        gpu (int, optional): The GPU device ID. Defaults to None.
-        timestamp (str, optional): The timestamp for experiment name.
-            Defaults to None.
+        context_size (int): The context size of DT.
+        gpu (Optional[int]): The GPU device ID.
+        log_postfix (str): The postfix of experiment name.
     """
-    # fix seed
-    d3rlpy.seed(seed)
-    d3rlpy.envs.seed_env(env, seed)
-
     if "halfcheetah" in env.spec.id:
         target_return = 6000
     elif "hopper" in env.spec.id:
@@ -309,7 +303,6 @@ def fit_dt(
         num_heads=1,
         num_layers=3,
         max_timestep=1000,
-        compile_graph=compile,
     ).create(device=gpu)
 
     dt.fit(
@@ -319,11 +312,7 @@ def fit_dt(
         save_interval=10,
         eval_env=env,
         eval_target_return=target_return,
-        experiment_name=(
-            f"QDT_{env.spec.id}_{seed}"
-            if timestamp is None
-            else f"QDT_{env.spec.id}_{seed}_{timestamp}"
-        ),
+        experiment_name=f"QDT_{log_postfix}",
         with_timestamp=False,
     )
 
