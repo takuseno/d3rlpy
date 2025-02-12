@@ -1,74 +1,41 @@
-# pylint: disable=too-many-ancestors
 import torch
 
-from ....models.torch import ActionOutput, ContinuousEnsembleQFunctionForwarder
+from ....models.torch import (
+    ContinuousEnsembleQFunctionForwarder,
+    Policy,
+)
 from ....torch_utility import TorchMiniBatch
-from ....types import Shape
-from .ddpg_impl import DDPGModules
-from .td3_impl import TD3Impl
+from .ddpg_impl import DDPGBaseActorLossFn
+from .td3_impl import TD3CriticLossFn
 from .td3_plus_bc_impl import TD3PlusBCActorLoss
 
-__all__ = ["ReBRACImpl"]
+__all__ = ["ReBRACCriticLossFn", "ReBRACActorLossFn"]
 
 
-class ReBRACImpl(TD3Impl):
-    _actor_beta: float
-    _critic_beta: float
-
+class ReBRACCriticLossFn(TD3CriticLossFn):
     def __init__(
         self,
-        observation_shape: Shape,
-        action_size: int,
-        modules: DDPGModules,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_policy: Policy,
         gamma: float,
-        tau: float,
         target_smoothing_sigma: float,
         target_smoothing_clip: float,
-        actor_beta: float,
         critic_beta: float,
-        update_actor_interval: int,
-        compiled: bool,
-        device: str,
     ):
         super().__init__(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            modules=modules,
             q_func_forwarder=q_func_forwarder,
             targ_q_func_forwarder=targ_q_func_forwarder,
+            targ_policy=targ_policy,
             gamma=gamma,
-            tau=tau,
             target_smoothing_sigma=target_smoothing_sigma,
             target_smoothing_clip=target_smoothing_clip,
-            update_actor_interval=update_actor_interval,
-            compiled=compiled,
-            device=device,
         )
-        self._actor_beta = actor_beta
         self._critic_beta = critic_beta
-
-    def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
-    ) -> TD3PlusBCActorLoss:
-        q_t = self._q_func_forwarder.compute_expected_q(
-            batch.observations,
-            action.squashed_mu,
-            reduction="min",
-        )
-        lam = 1 / (q_t.abs().mean()).detach()
-        bc_loss = ((batch.actions - action.squashed_mu) ** 2).sum(
-            dim=1, keepdim=True
-        )
-        return TD3PlusBCActorLoss(
-            actor_loss=(lam * -q_t + self._actor_beta * bc_loss).mean(),
-            bc_loss=bc_loss.mean(),
-        )
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
-            action = self._modules.targ_policy(batch.next_observations)
+            action = self._targ_policy(batch.next_observations)
             # smoothing target
             noise = torch.randn(action.mu.shape, device=batch.device)
             scaled_noise = self._target_smoothing_sigma * noise
@@ -89,3 +56,31 @@ class ReBRACImpl(TD3Impl):
             )
 
             return next_q - self._critic_beta * bc_penalty
+
+
+class ReBRACActorLossFn(DDPGBaseActorLossFn):
+    def __init__(
+        self,
+        policy: Policy,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        actor_beta: float,
+    ):
+        self._policy = policy
+        self._q_func_forwarder = q_func_forwarder
+        self._actor_beta = actor_beta
+
+    def __call__(self, batch: TorchMiniBatch) -> TD3PlusBCActorLoss:
+        action = self._policy(batch.observations)
+        q_t = self._q_func_forwarder.compute_expected_q(
+            batch.observations,
+            action.squashed_mu,
+            reduction="min",
+        )
+        lam = 1 / (q_t.abs().mean()).detach()
+        bc_loss = ((batch.actions - action.squashed_mu) ** 2).sum(
+            dim=1, keepdim=True
+        )
+        return TD3PlusBCActorLoss(
+            actor_loss=(lam * -q_t + self._actor_beta * bc_loss).mean(),
+            bc_loss=bc_loss.mean(),
+        )
