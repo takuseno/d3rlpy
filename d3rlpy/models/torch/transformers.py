@@ -56,8 +56,13 @@ class CausalSelfAttention(nn.Module):  # type: ignore
         mask = create_attention_mask(context_size)
         self.register_buffer("_mask", mask)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, attention_mask: torch.Tensor
+    ) -> torch.Tensor:
         assert x.dim() == 3, f"Expects (B, T, N), but got {x.shape}"
+        assert (
+            attention_mask.dim() == 2
+        ), f"Expects (B, T), but got {attention_mask.shape}"
         batch_size, context_size, _ = x.shape
         assert context_size <= self._context_size, "Exceeds context_size"
 
@@ -71,7 +76,11 @@ class CausalSelfAttention(nn.Module):  # type: ignore
         qkT = torch.matmul(q, k.transpose(2, 3))
         attention = qkT / math.sqrt(k.shape[-1])
         attention = attention.masked_fill(
-            self._mask[..., :context_size, :context_size] == 0, float("-inf")
+            self._mask[..., :context_size, :context_size] == 0, -10000
+        )
+        attention = (
+            attention
+            + attention_mask.view(batch_size, 1, 1, context_size) * -10000
         )
         attention = F.softmax(attention, dim=-1)
         attention = self._attn_dropout(attention)
@@ -147,12 +156,15 @@ class Block(nn.Module):  # type: ignore
         self._layer_norm1 = nn.LayerNorm(layer_width, eps=0.003)
         self._layer_norm2 = nn.LayerNorm(layer_width, eps=0.003)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, inpt: tuple[torch.Tensor, torch.Tensor]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        x, attention_mask = inpt
         norm_x = self._layer_norm1(x)
-        x = x + self._attention(norm_x)
+        x = x + self._attention(norm_x, attention_mask)
         norm_x = self._layer_norm2(x)
         x = x + self._mlp(norm_x)
-        return x
+        return x, attention_mask
 
 
 class PositionEncoding(nn.Module, metaclass=ABCMeta):  # type: ignore
@@ -233,9 +245,11 @@ class GPT2(nn.Module):  # type: ignore
         self._layer_norm = nn.LayerNorm(layer_width, eps=0.003)
         self._dropout = nn.Dropout(embed_dropout)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, attention_mask: torch.Tensor
+    ) -> torch.Tensor:
         h = self._dropout(x)
-        h = self._transformer(h)
+        h, _ = self._transformer((h, attention_mask))
         h = self._layer_norm(h)
         return h
 
@@ -300,6 +314,7 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         action: torch.Tensor,
         return_to_go: torch.Tensor,
         timesteps: torch.Tensor,
+        attention_mask: torch.Tensor,
     ) -> torch.Tensor:
         batch_size, context_size, _ = return_to_go.shape
         position_embedding = self._position_encoding(timesteps)
@@ -324,11 +339,22 @@ class ContinuousDecisionTransformer(nn.Module):  # type: ignore
         # (B, 3, T, N) -> (B, T, 3, N) -> (B, T * 3, N)
         h = h.transpose(1, 2).reshape(batch_size, 3 * context_size, -1)
 
+        # repeat attention mask
+        # (B, T) -> (B, 3, T)
+        attention_mask = torch.stack(
+            [attention_mask, attention_mask, attention_mask], dim=1
+        )
+        # (B, 3, T) -> (B, T, 3) -> (B, T * 3)
+        attention_mask = attention_mask.transpose(1, 2).reshape(
+            batch_size, 3 * context_size
+        )
+
         # for inference, drop the last step action to prevent copy
         if not self.training:
             h = h[:, :-1, :]
+            attention_mask = attention_mask[:, :-1]
 
-        h = self._gpt2(self._embed_ln(h))
+        h = self._gpt2(self._embed_ln(h), attention_mask)
 
         return torch.tanh(self._output(h[:, 1::3, :]))
 
@@ -385,6 +411,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         action: torch.Tensor,
         return_to_go: torch.Tensor,
         timesteps: torch.Tensor,
+        attention_mask: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         batch_size, context_size, _ = return_to_go.shape
         position_embedding = self._position_encoding(timesteps)
@@ -410,11 +437,22 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         # (B, 3, T, N) -> (B, T, 3, N) -> (B, T * 3, N)
         h = h.transpose(1, 2).reshape(batch_size, 3 * context_size, -1)
 
+        # repeat attention mask
+        # (B, T) -> (B, 3, T)
+        attention_mask = torch.stack(
+            [attention_mask, attention_mask, attention_mask], dim=1
+        )
+        # (B, 3, T) -> (B, T, 3) -> (B, T * 3)
+        attention_mask = attention_mask.transpose(1, 2).reshape(
+            batch_size, 3 * context_size
+        )
+
         # for inference, drop the last step action to prevent copy
         if not self.training:
             h = h[:, :-1, :]
+            attention_mask = attention_mask[:, :-1]
 
-        h = self._gpt2(h)
+        h = self._gpt2(h, attention_mask)
 
         # use state embeddings as input
         logits = self._output(h[:, 1::3, :])
@@ -474,6 +512,7 @@ class GatoTransformer(nn.Module):  # type: ignore
         observation_masks: torch.Tensor,
         observation_positions: torch.Tensor,
         action_masks: torch.Tensor,
+        attention_mask: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         # TODO: Support text and patch tokens
         assert tokens.ndim == 2
@@ -498,7 +537,7 @@ class GatoTransformer(nn.Module):  # type: ignore
         )
 
         # (B, T, N) -> (B, T, N)
-        h = self._gpt2(embeddings)
+        h = self._gpt2(embeddings, attention_mask)
 
         # (B, T, N) -> (B, T, vocab)
         logits = self._output(h)
