@@ -39,13 +39,14 @@ def test_causal_self_attention(
     )
 
     x = torch.rand(batch_size, context_size, embed_size)
-    y = model(x)
+    attention_mask = torch.zeros(batch_size, context_size)
+    y = model(x, attention_mask)
 
     # check shape
     assert y.shape == (batch_size, context_size, embed_size)
 
     # check layer connections
-    check_parameter_updates(model, (x,))
+    check_parameter_updates(model, (x, attention_mask))
 
 
 @pytest.mark.parametrize("in_size", [100])
@@ -107,13 +108,16 @@ def test_block(
     )
 
     x = torch.rand(batch_size, context_size, layer_width)
-    y = model(x)
+    attention_mask = torch.zeros(batch_size, context_size)
+    y, output_attention_mask = model((x, attention_mask))
 
     # check shape
     assert y.shape == (batch_size, context_size, layer_width)
+    assert output_attention_mask.shape == (batch_size, context_size)
+    assert torch.all(output_attention_mask == attention_mask)
 
     # check layer connections
-    check_parameter_updates(model, (x,))
+    check_parameter_updates(model, ((x, attention_mask),))
 
 
 @pytest.mark.parametrize("max_timestep", [100])
@@ -189,13 +193,14 @@ def test_gpt2(
     )
 
     x = torch.rand(batch_size, context_size, layer_width)
-    y = model(x)
+    attention_mask = torch.zeros(batch_size, context_size)
+    y = model(x, attention_mask)
 
     # check shape
     assert y.shape == (batch_size, context_size, layer_width)
 
     # check layer connections
-    check_parameter_updates(model, (x,))
+    check_parameter_updates(model, (x, attention_mask))
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
@@ -240,13 +245,14 @@ def test_continuous_decision_transformer(
     action = torch.rand(batch_size, context_size, action_size)
     rtg = torch.rand(batch_size, context_size, 1)
     timesteps = torch.randint(0, max_timestep, size=(batch_size, context_size))
-    y = model(x, action, rtg, timesteps)
+    attention_mask = torch.zeros(batch_size, context_size)
+    y = model(x, action, rtg, timesteps, attention_mask)
 
     # check shape
     assert y.shape == (batch_size, context_size, action_size)
 
     # check layer connections
-    check_parameter_updates(model, (x, action, rtg, timesteps))
+    check_parameter_updates(model, (x, action, rtg, timesteps, attention_mask))
 
 
 @pytest.mark.parametrize("observation_shape", [(100,), ((100,), (200,))])
@@ -292,14 +298,15 @@ def test_discrete_decision_transformer(
     action = torch.randint(0, action_size, size=(batch_size, context_size))
     rtg = torch.rand(batch_size, context_size, 1)
     timesteps = torch.randint(0, max_timestep, size=(batch_size, context_size))
-    probs, logits = model(x, action, rtg, timesteps)
+    attention_mask = torch.zeros(batch_size, context_size)
+    probs, logits = model(x, action, rtg, timesteps, attention_mask)
 
     # check shape
     assert probs.shape == (batch_size, context_size, action_size)
     assert logits.shape == (batch_size, context_size, action_size)
 
     # check layer connections
-    check_parameter_updates(model, (x, action, rtg, timesteps))
+    check_parameter_updates(model, (x, action, rtg, timesteps, attention_mask))
 
 
 @pytest.mark.parametrize("layer_width", [100])
@@ -343,11 +350,13 @@ def test_gato_transformer(
         low=0, high=max_observation_length, size=(batch_size, context_size)
     )
     action_masks = 1 - observation_masks
+    attention_mask = torch.zeros(batch_size, context_size)
     probs, logits = model(
         tokens=tokens,
         observation_masks=observation_masks,
         observation_positions=observation_positions,
         action_masks=action_masks,
+        attention_mask=attention_mask,
     )
 
     # check shape
@@ -356,5 +365,12 @@ def test_gato_transformer(
 
     # check layer connections
     check_parameter_updates(
-        model, (tokens, observation_masks, observation_positions, action_masks)
+        model,
+        (
+            tokens,
+            observation_masks,
+            observation_positions,
+            action_masks,
+            attention_mask,
+        ),
     )

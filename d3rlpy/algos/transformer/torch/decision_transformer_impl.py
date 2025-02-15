@@ -86,11 +86,10 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
             batch.returns_to_go,
             batch.timesteps,
             1 - batch.masks,
-        )[:, :-1]
-        label = batch.actions[:, 1:]
-        loss = ((action - label) ** 2).sum(dim=-1)  # (B, T, A) -> (B, T)
-        masks = batch.masks[:, :-1]
-        return (loss.reshape(-1) * masks.reshape(-1)).mean()
+        )
+        # (B, T, A) -> (B, T)
+        loss = ((action - batch.actions) ** 2).sum(dim=-1)
+        return (loss.reshape(-1) * batch.masks.reshape(-1)).mean()
 
 
 @dataclasses.dataclass(frozen=True)
