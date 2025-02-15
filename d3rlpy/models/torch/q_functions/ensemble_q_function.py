@@ -85,6 +85,7 @@ def compute_ensemble_q_function_error(
     target: torch.Tensor,
     terminals: torch.Tensor,
     gamma: Union[float, torch.Tensor] = 0.99,
+    masks: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     assert target.ndim == 2
     td_sum = torch.tensor(
@@ -102,6 +103,8 @@ def compute_ensemble_q_function_error(
             gamma=gamma,
             reduction="none",
         )
+        if masks is not None:
+            loss = loss * masks
         td_sum += loss.mean()
     return td_sum
 
@@ -252,6 +255,7 @@ class ContinuousEnsembleQFunctionForwarder:
         target: torch.Tensor,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
+        masks: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         return compute_ensemble_q_function_error(
             forwarders=self._forwarders,
@@ -261,6 +265,7 @@ class ContinuousEnsembleQFunctionForwarder:
             target=target,
             terminals=terminals,
             gamma=gamma,
+            masks=masks,
         )
 
     def compute_target(
