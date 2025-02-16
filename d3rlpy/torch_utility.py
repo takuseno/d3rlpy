@@ -349,6 +349,43 @@ class TorchTrajectoryMiniBatch:
         self.timesteps.copy_(src.timesteps)
         self.masks.copy_(src.masks)
 
+    def to_transition_batch(self) -> tuple[TorchMiniBatch, torch.Tensor]:
+        if isinstance(self.observations, torch.Tensor):
+            observations = self.observations[:, :-1].reshape(
+                -1, *self.observations.shape[2:]
+            )
+            next_observations = self.observations[:, 1:].reshape(
+                -1, *self.observations.shape[2:]
+            )
+        else:
+            observations = [
+                obs[:, :-1].reshape(-1, *obs.shape[2:])
+                for obs in self.observations
+            ]
+            next_observations = [
+                obs[:, 1:].reshape(-1, *obs.shape[2:])
+                for obs in self.observations
+            ]
+        actions = self.actions[:, :-1].reshape(-1, *self.actions.shape[2:])
+        rewards = self.rewards[:, :-1].reshape(-1, 1)
+        terminals = self.terminals[:, :-1].reshape(-1, 1)
+        next_actions = self.actions[:, 1:].reshape(-1, *self.actions.shape[2:])
+        returns_to_go = self.returns_to_go[:, :-1].reshape(-1, 1)
+        intervals = torch.ones_like(rewards)
+        masks = self.masks[:, :-1].reshape(-1, 1)
+        batch = TorchMiniBatch(
+            observations=observations,
+            actions=actions,
+            rewards=rewards,
+            next_observations=next_observations,
+            next_actions=next_actions,
+            returns_to_go=returns_to_go,
+            terminals=terminals,
+            intervals=intervals,
+            device=self.device,
+        )
+        return batch, masks
+
 
 _TModule = TypeVar("_TModule", bound=nn.Module)
 

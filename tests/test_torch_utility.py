@@ -438,6 +438,55 @@ def test_torch_trajectory_mini_batch(
 
     assert np.all(torch_batch.terminals.numpy() == batch.terminals)
 
+    # test to_transition_batch
+    transition_batch_size = batch_size * (length - 1)
+    transition_batch, mask = torch_batch.to_transition_batch()
+    assert isinstance(transition_batch.observations, torch.Tensor)
+    assert isinstance(transition_batch.next_observations, torch.Tensor)
+    assert transition_batch.observations.shape == (
+        transition_batch_size,
+        *observation_shape,
+    )
+    assert transition_batch.next_observations.shape == (
+        transition_batch_size,
+        *observation_shape,
+    )
+    assert transition_batch.actions.shape == (
+        transition_batch_size,
+        action_size,
+    )
+    assert transition_batch.rewards.shape == (transition_batch_size, 1)
+    assert transition_batch.terminals.shape == (transition_batch_size, 1)
+    assert transition_batch.returns_to_go.shape == (transition_batch_size, 1)
+    assert mask.shape == (transition_batch_size, 1)
+    assert torch.all(
+        transition_batch.observations
+        == torch_batch.observations[:, :-1].reshape(-1, *observation_shape)
+    )
+    assert torch.all(
+        transition_batch.next_observations
+        == torch_batch.observations[:, 1:].reshape(-1, *observation_shape)
+    )
+    assert torch.all(
+        transition_batch.actions
+        == torch_batch.actions[:, :-1].reshape(-1, action_size)
+    )
+    assert torch.all(
+        transition_batch.next_actions
+        == torch_batch.actions[:, 1:].reshape(-1, action_size)
+    )
+    assert torch.all(
+        transition_batch.rewards == torch_batch.rewards[:, :-1].reshape(-1, 1)
+    )
+    assert torch.all(
+        transition_batch.terminals
+        == torch_batch.terminals[:, :-1].reshape(-1, 1)
+    )
+    assert torch.all(
+        transition_batch.returns_to_go
+        == torch_batch.returns_to_go[:, :-1].reshape(-1, 1)
+    )
+
     torch_batch2 = TorchTrajectoryMiniBatch(
         observations=torch.zeros_like(torch_batch.observations),
         actions=torch.zeros_like(torch_batch.actions),
