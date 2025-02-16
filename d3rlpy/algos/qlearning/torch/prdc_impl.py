@@ -3,13 +3,14 @@ import dataclasses
 import torch
 from sklearn.neighbors import NearestNeighbors
 
-from ....models.torch import ActionOutput, ContinuousEnsembleQFunctionForwarder
+from ....models.torch import (
+    ContinuousEnsembleQFunctionForwarder,
+    Policy,
+)
 from ....torch_utility import TorchMiniBatch
-from ....types import Shape
-from .ddpg_impl import DDPGBaseActorLoss, DDPGModules
-from .td3_impl import TD3Impl
+from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseActorLossFn
 
-__all__ = ["PRDCImpl"]
+__all__ = ["PRDCActorLossFn", "PRDCActorLoss"]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -17,50 +18,28 @@ class PRDCActorLoss(DDPGBaseActorLoss):
     dc_loss: torch.Tensor
 
 
-class PRDCImpl(TD3Impl):
-    _alpha: float
-    _beta: float
-    _nbsr: NearestNeighbors
-
+class PRDCActorLossFn(DDPGBaseActorLossFn):
     def __init__(
         self,
-        observation_shape: Shape,
-        action_size: int,
-        modules: DDPGModules,
+        policy: Policy,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        gamma: float,
-        tau: float,
-        target_smoothing_sigma: float,
-        target_smoothing_clip: float,
+        nbsr: NearestNeighbors,
         alpha: float,
         beta: float,
-        update_actor_interval: int,
-        compiled: bool,
-        nbsr: NearestNeighbors,
-        device: str,
+        action_size: int,
     ):
-        super().__init__(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=gamma,
-            tau=tau,
-            target_smoothing_sigma=target_smoothing_sigma,
-            target_smoothing_clip=target_smoothing_clip,
-            update_actor_interval=update_actor_interval,
-            compiled=compiled,
-            device=device,
-        )
+        self._policy = policy
+        self._q_func_forwarder = q_func_forwarder
+        self._nbsr = nbsr
         self._alpha = alpha
         self._beta = beta
-        self._nbsr = nbsr
+        self._action_size = action_size
 
-    def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
-    ) -> PRDCActorLoss:
+    def __call__(self, batch: TorchMiniBatch) -> PRDCActorLoss:
+        assert isinstance(
+            batch.observations, torch.Tensor
+        ), "PRDC only supports non-tuple observations."
+        action = self._policy(batch.observations)
         q_t = self._q_func_forwarder.compute_expected_q(
             batch.observations, action.squashed_mu, "none"
         )[0]
@@ -76,8 +55,8 @@ class PRDCImpl(TD3Impl):
         )
         idx = self._nbsr.kneighbors(key, n_neighbors=1, return_distance=False)
         nearest_neighbor = torch.tensor(
-            self._nbsr._fit_X[idx][:, :, -self.action_size :],
-            device=self.device,
+            self._nbsr._fit_X[idx][:, :, -self._action_size :],
+            device=action.squashed_mu.device,
             dtype=action.squashed_mu.dtype,
         ).squeeze(dim=1)
         dc_loss = torch.nn.functional.mse_loss(

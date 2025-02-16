@@ -12,7 +12,18 @@ from ...models.q_functions import MeanQFunctionFactory
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.iql_impl import IQLImpl, IQLModules
+from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import (
+    DeterministicContinuousActionSampler,
+    GaussianContinuousActionSampler,
+)
+from .torch.ddpg_impl import DDPGValuePredictor
+from .torch.iql_impl import (
+    IQLActorLossFn,
+    IQLCriticLossFn,
+    IQLModules,
+    IQLUpdater,
+)
 
 __all__ = ["IQLConfig", "IQL"]
 
@@ -108,7 +119,7 @@ class IQLConfig(LearnableConfig):
         return "iql"
 
 
-class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
+class IQL(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, IQLConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -169,18 +180,44 @@ class IQL(QLearningAlgoBase[IQLImpl, IQLConfig]):
             critic_optim=critic_optim,
         )
 
-        self._impl = IQLImpl(
+        updater = IQLUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            critic_loss_fn=IQLCriticLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                value_func=value_func,
+                gamma=self._config.gamma,
+                expectile=self._config.expectile,
+            ),
+            actor_loss_fn=IQLActorLossFn(
+                policy=policy,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                value_func=value_func,
+                weight_temp=self._config.weight_temp,
+                max_weight=self._config.max_weight,
+            ),
+            tau=self._config.tau,
+            compiled=self.compiled,
+        )
+        exploit_action_sampler = DeterministicContinuousActionSampler(policy)
+        explore_action_sampler = GaussianContinuousActionSampler(policy)
+        value_predictor = DDPGValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=self._config.gamma,
-            tau=self._config.tau,
-            expectile=self._config.expectile,
-            weight_temp=self._config.weight_temp,
-            max_weight=self._config.max_weight,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=exploit_action_sampler,
+            explore_action_sampler=explore_action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=critic_optim.optim,
+            policy=policy,
+            policy_optim=actor_optim.optim,
             device=self._device,
         )
 
