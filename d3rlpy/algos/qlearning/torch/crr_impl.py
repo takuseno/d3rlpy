@@ -2,13 +2,16 @@ import dataclasses
 
 import torch
 import torch.nn.functional as F
+from torch import nn
 
+from ....dataclass_utils import asdict_as_float
 from ....models.torch import (
-    ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
     NormalPolicy,
+    Policy,
     build_gaussian_distribution,
 )
+from ....optimizers.optimizers import OptimizerWrapper
 from ....torch_utility import (
     TorchMiniBatch,
     expand_and_repeat_recursively,
@@ -16,10 +19,23 @@ from ....torch_utility import (
     hard_sync,
     soft_sync,
 )
-from ....types import Shape, TorchObservation
-from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
+from ....types import TorchObservation
+from ..functional import ActionSampler
+from .ddpg_impl import (
+    DDPGBaseActorLoss,
+    DDPGBaseActorLossFn,
+    DDPGBaseCriticLossFn,
+    DDPGBaseModules,
+    DDPGBaseUpdater,
+)
 
-__all__ = ["CRRImpl", "CRRModules"]
+__all__ = [
+    "CRRActorLossFn",
+    "CRRCriticLossFn",
+    "CRRUpdater",
+    "CRRActionSampler",
+    "CRRModules",
+]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -28,62 +44,53 @@ class CRRModules(DDPGBaseModules):
     targ_policy: NormalPolicy
 
 
-class CRRImpl(DDPGBaseImpl):
-    _modules: CRRModules
-    _beta: float
-    _n_action_samples: int
-    _advantage_type: str
-    _weight_type: str
-    _max_weight: float
-    _target_update_type: str
-    _target_update_interval: int
-
+class CRRCriticLossFn(DDPGBaseCriticLossFn):
     def __init__(
         self,
-        observation_shape: Shape,
-        action_size: int,
-        modules: CRRModules,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_policy: Policy,
         gamma: float,
-        beta: float,
-        n_action_samples: int,
-        advantage_type: str,
-        weight_type: str,
-        max_weight: float,
-        tau: float,
-        target_update_type: str,
-        target_update_interval: int,
-        compiled: bool,
-        device: str,
     ):
         super().__init__(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            modules=modules,
             q_func_forwarder=q_func_forwarder,
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
-            tau=tau,
-            compiled=compiled,
-            device=device,
         )
-        self._beta = beta
+        self._targ_policy = targ_policy
+
+    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
+        with torch.no_grad():
+            action = build_gaussian_distribution(
+                self._targ_policy(batch.next_observations)
+            ).sample()
+            return self._targ_q_func_forwarder.compute_target(
+                batch.next_observations,
+                action.clamp(-1.0, 1.0),
+                reduction="min",
+            )
+
+
+class CRRActorLossFn(DDPGBaseActorLossFn):
+    def __init__(
+        self,
+        policy: Policy,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        n_action_samples: int,
+        advantage_type: str,
+        weight_type: str,
+        beta: float,
+        max_weight: float,
+        action_size: int,
+    ):
+        self._policy = policy
+        self._q_func_forwarder = q_func_forwarder
         self._n_action_samples = n_action_samples
         self._advantage_type = advantage_type
         self._weight_type = weight_type
+        self._beta = beta
         self._max_weight = max_weight
-        self._target_update_type = target_update_type
-        self._target_update_interval = target_update_interval
-
-    def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
-    ) -> DDPGBaseActorLoss:
-        # compute log probability
-        dist = build_gaussian_distribution(action)
-        log_probs = dist.log_prob(batch.actions)
-        weight = self._compute_weight(batch.observations, batch.actions)
-        return DDPGBaseActorLoss(-(log_probs * weight).mean())
+        self._action_size = action_size
 
     def _compute_weight(
         self, obs_t: TorchObservation, act_t: torch.Tensor
@@ -100,7 +107,7 @@ class CRRImpl(DDPGBaseImpl):
     ) -> torch.Tensor:
         with torch.no_grad():
             # (batch_size, N, action)
-            dist = build_gaussian_distribution(self._modules.policy(obs_t))
+            dist = build_gaussian_distribution(self._policy(obs_t))
             policy_actions = dist.sample_n(self._n_action_samples)
             flat_actions = policy_actions.reshape(-1, self._action_size)
 
@@ -130,21 +137,32 @@ class CRRImpl(DDPGBaseImpl):
                 self._q_func_forwarder.compute_expected_q(obs_t, act_t) - values
             )
 
-    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
-        with torch.no_grad():
-            action = build_gaussian_distribution(
-                self._modules.targ_policy(batch.next_observations)
-            ).sample()
-            return self._targ_q_func_forwarder.compute_target(
-                batch.next_observations,
-                action.clamp(-1.0, 1.0),
-                reduction="min",
-            )
+    def __call__(self, batch: TorchMiniBatch) -> DDPGBaseActorLoss:
+        # compute log probability
+        action = self._policy(batch.observations)
+        dist = build_gaussian_distribution(action)
+        log_probs = dist.log_prob(batch.actions)
+        weight = self._compute_weight(batch.observations, batch.actions)
+        return DDPGBaseActorLoss(-(log_probs * weight).mean())
 
-    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
+
+class CRRActionSampler(ActionSampler):
+    def __init__(
+        self,
+        policy: Policy,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        n_action_samples: int,
+        action_size: int,
+    ):
+        self._policy = policy
+        self._q_func_forwarder = q_func_forwarder
+        self._n_action_samples = n_action_samples
+        self._action_size = action_size
+
+    def __call__(self, x: TorchObservation) -> torch.Tensor:
         # compute CWP
 
-        dist = build_gaussian_distribution(self._modules.policy(x))
+        dist = build_gaussian_distribution(self._policy(x))
         actions = dist.onnx_safe_sample_n(self._n_action_samples)
         # (batch_size, N, action_size) -> (batch_size * N, action_size)
         flat_actions = actions.reshape(-1, self._action_size)
@@ -170,36 +188,67 @@ class CRRImpl(DDPGBaseImpl):
 
         return actions[torch.arange(probs.shape[0]), indices.view(-1)]
 
-    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
-        dist = build_gaussian_distribution(self._modules.policy(x))
-        return dist.sample()
 
-    def sync_critic_target(self) -> None:
-        hard_sync(self._modules.targ_q_funcs, self._modules.q_funcs)
+class CRRUpdater(DDPGBaseUpdater):
+    def __init__(
+        self,
+        q_funcs: nn.ModuleList,
+        targ_q_funcs: nn.ModuleList,
+        policy: Policy,
+        targ_policy: Policy,
+        critic_optim: OptimizerWrapper,
+        actor_optim: OptimizerWrapper,
+        critic_loss_fn: DDPGBaseCriticLossFn,
+        actor_loss_fn: DDPGBaseActorLossFn,
+        target_update_type: str,
+        target_update_interval: int,
+        tau: float,
+        compiled: bool,
+    ):
+        super().__init__(
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            critic_loss_fn=critic_loss_fn,
+            actor_loss_fn=actor_loss_fn,
+            compiled=compiled,
+        )
+        self._q_funcs = q_funcs
+        self._targ_q_funcs = targ_q_funcs
+        self._policy = policy
+        self._targ_policy = targ_policy
+        self._target_update_type = target_update_type
+        self._target_update_interval = target_update_interval
+        self._tau = tau
 
-    def sync_actor_target(self) -> None:
-        hard_sync(self._modules.targ_policy, self._modules.policy)
-
-    def update_actor_target(self) -> None:
-        soft_sync(self._modules.targ_policy, self._modules.policy, self._tau)
-
-    def inner_update(
+    def __call__(
         self, batch: TorchMiniBatch, grad_step: int
     ) -> dict[str, float]:
         metrics = {}
-        metrics.update(self.update_critic(batch))
-        metrics.update(self.update_actor(batch))
 
+        # update critic
+        critic_loss = self._compute_critic_grad(batch)
+        self._critic_optim.step()
+        metrics.update(asdict_as_float(critic_loss))
+
+        # update actor
+        actor_loss = self._compute_actor_grad(batch)
+        self._actor_optim.step()
+        metrics.update(asdict_as_float(actor_loss))
+
+        # update target networks
         if self._target_update_type == "hard":
             if grad_step % self._target_update_interval == 0:
-                self.sync_critic_target()
-                self.sync_actor_target()
+                hard_sync(self._targ_q_funcs, self._q_funcs)
+                hard_sync(self._targ_policy, self._policy)
         elif self._target_update_type == "soft":
-            self.update_critic_target()
-            self.update_actor_target()
+            self.update_target()
         else:
             raise ValueError(
                 f"invalid target_update_type: {self._target_update_type}"
             )
 
         return metrics
+
+    def update_target(self) -> None:
+        soft_sync(self._targ_q_funcs, self._q_funcs, self._tau)
+        soft_sync(self._targ_policy, self._policy, self._tau)

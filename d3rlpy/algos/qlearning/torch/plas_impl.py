@@ -1,25 +1,38 @@
 import dataclasses
-from typing import Callable
 
 import torch
+from torch import nn
 
 from ....models.torch import (
-    ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
     DeterministicPolicy,
     DeterministicResidualPolicy,
+    Policy,
     VAEDecoder,
     VAEEncoder,
-    compute_vae_error,
 )
 from ....optimizers import OptimizerWrapper
 from ....torch_utility import CudaGraphWrapper, TorchMiniBatch, soft_sync
-from ....types import Shape, TorchObservation
-from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseImpl, DDPGBaseModules
+from ....types import TorchObservation
+from ..functional import ActionSampler
+from ..functional_utils import VAELossFn
+from .ddpg_impl import (
+    DDPGBaseActorLoss,
+    DDPGBaseActorLossFn,
+    DDPGBaseCriticLossFn,
+    DDPGBaseModules,
+    DDPGUpdater,
+)
 
 __all__ = [
-    "PLASImpl",
-    "PLASWithPerturbationImpl",
+    "PLASCriticLossFn",
+    "PLASActorLossFn",
+    "PLASUpdater",
+    "PLASActionSampler",
+    "PLASWithPerturbationActorLossFn",
+    "PLASWithPerturbationCriticLossFn",
+    "PLASWithPerturbationActionSampler",
+    "PLASWithPerturbationUpdater",
     "PLASModules",
     "PLASWithPerturbationModules",
 ]
@@ -34,93 +47,31 @@ class PLASModules(DDPGBaseModules):
     vae_optim: OptimizerWrapper
 
 
-class PLASImpl(DDPGBaseImpl):
-    _modules: PLASModules
-    _compute_imitator_grad: Callable[[TorchMiniBatch], dict[str, torch.Tensor]]
-    _lam: float
-    _beta: float
-    _warmup_steps: int
-
+class PLASCriticLossFn(DDPGBaseCriticLossFn):
     def __init__(
         self,
-        observation_shape: Shape,
-        action_size: int,
-        modules: PLASModules,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_policy: Policy,
+        vae_decoder: VAEDecoder,
         gamma: float,
-        tau: float,
         lam: float,
-        beta: float,
-        warmup_steps: int,
-        compiled: bool,
-        device: str,
     ):
         super().__init__(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            modules=modules,
             q_func_forwarder=q_func_forwarder,
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
-            tau=tau,
-            compiled=compiled,
-            device=device,
         )
+        self._targ_policy = targ_policy
+        self._vae_decoder = vae_decoder
         self._lam = lam
-        self._beta = beta
-        self._warmup_steps = warmup_steps
-        self._compute_imitator_grad = (
-            CudaGraphWrapper(self.compute_imitator_grad)
-            if compiled
-            else self.compute_imitator_grad
-        )
-
-    def compute_imitator_grad(
-        self, batch: TorchMiniBatch
-    ) -> dict[str, torch.Tensor]:
-        self._modules.vae_optim.zero_grad()
-        loss = compute_vae_error(
-            vae_encoder=self._modules.vae_encoder,
-            vae_decoder=self._modules.vae_decoder,
-            x=batch.observations,
-            action=batch.actions,
-            beta=self._beta,
-        )
-        loss.backward()
-        return {"loss": loss}
-
-    def update_imitator(self, batch: TorchMiniBatch) -> dict[str, float]:
-        loss = self._compute_imitator_grad(batch)
-        self._modules.vae_optim.step()
-        return {"vae_loss": float(loss["loss"].cpu().detach().numpy())}
-
-    def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
-    ) -> DDPGBaseActorLoss:
-        latent_actions = 2.0 * action.squashed_mu
-        actions = self._modules.vae_decoder(batch.observations, latent_actions)
-        loss = -self._q_func_forwarder.compute_expected_q(
-            batch.observations, actions, "none"
-        )[0].mean()
-        return DDPGBaseActorLoss(loss)
-
-    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
-        latent_actions = 2.0 * self._modules.policy(x).squashed_mu
-        return self._modules.vae_decoder(x, latent_actions)
-
-    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
-        return self.inner_predict_best_action(x)
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
             latent_actions = (
-                2.0
-                * self._modules.targ_policy(batch.next_observations).squashed_mu
+                2.0 * self._targ_policy(batch.next_observations).squashed_mu
             )
-            actions = self._modules.vae_decoder(
-                batch.next_observations, latent_actions
-            )
+            actions = self._vae_decoder(batch.next_observations, latent_actions)
             return self._targ_q_func_forwarder.compute_target(
                 batch.next_observations,
                 actions,
@@ -128,22 +79,94 @@ class PLASImpl(DDPGBaseImpl):
                 self._lam,
             )
 
-    def update_actor_target(self) -> None:
-        soft_sync(self._modules.targ_policy, self._modules.policy, self._tau)
 
-    def inner_update(
+class PLASActorLossFn(DDPGBaseActorLossFn):
+    def __init__(
+        self,
+        policy: Policy,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        vae_decoder: VAEDecoder,
+    ):
+        self._policy = policy
+        self._q_func_forwarder = q_func_forwarder
+        self._vae_decoder = vae_decoder
+
+    def __call__(self, batch: TorchMiniBatch) -> DDPGBaseActorLoss:
+        action = self._policy(batch.observations)
+        latent_actions = 2.0 * action.squashed_mu
+        actions = self._vae_decoder(batch.observations, latent_actions)
+        loss = -self._q_func_forwarder.compute_expected_q(
+            batch.observations, actions, "none"
+        )[0].mean()
+        return DDPGBaseActorLoss(loss)
+
+
+class PLASActionSampler(ActionSampler):
+    def __init__(self, policy: Policy, vae_decoder: VAEDecoder):
+        self._policy = policy
+        self._vae_decoder = vae_decoder
+
+    def __call__(self, x: TorchObservation) -> torch.Tensor:
+        latent_actions = 2.0 * self._policy(x).squashed_mu
+        return self._vae_decoder(x, latent_actions)
+
+
+class PLASUpdater(DDPGUpdater):
+    def __init__(
+        self,
+        q_funcs: nn.ModuleList,
+        targ_q_funcs: nn.ModuleList,
+        policy: Policy,
+        targ_policy: Policy,
+        critic_optim: OptimizerWrapper,
+        actor_optim: OptimizerWrapper,
+        imitator_optim: OptimizerWrapper,
+        critic_loss_fn: DDPGBaseCriticLossFn,
+        actor_loss_fn: DDPGBaseActorLossFn,
+        imitator_loss_fn: VAELossFn,
+        tau: float,
+        warmup_steps: int,
+        compiled: bool,
+    ):
+        super().__init__(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            policy=policy,
+            targ_policy=targ_policy,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            critic_loss_fn=critic_loss_fn,
+            actor_loss_fn=actor_loss_fn,
+            tau=tau,
+            compiled=compiled,
+        )
+        self._imitator_optim = imitator_optim
+        self._imitator_loss_fn = imitator_loss_fn
+        self._warmup_steps = warmup_steps
+        self._compute_imitator_grad = (
+            CudaGraphWrapper(self.compute_imitator_grad)
+            if compiled
+            else self.compute_imitator_grad
+        )
+
+    def compute_imitator_grad(self, batch: TorchMiniBatch) -> torch.Tensor:
+        self._imitator_optim.zero_grad()
+        loss = self._imitator_loss_fn(batch)
+        loss.backward()
+        return loss
+
+    def __call__(
         self, batch: TorchMiniBatch, grad_step: int
     ) -> dict[str, float]:
         metrics = {}
-
         if grad_step < self._warmup_steps:
-            metrics.update(self.update_imitator(batch))
+            imitator_loss = self._compute_imitator_grad(batch)
+            self._imitator_optim.step()
+            metrics.update(
+                {"imitator_loss": float(imitator_loss.detach().cpu())}
+            )
         else:
-            metrics.update(self.update_critic(batch))
-            metrics.update(self.update_actor(batch))
-            self.update_actor_target()
-            self.update_critic_target()
-
+            metrics.update(super().__call__(batch, grad_step))
         return metrics
 
 
@@ -153,70 +176,34 @@ class PLASWithPerturbationModules(PLASModules):
     targ_perturbation: DeterministicResidualPolicy
 
 
-class PLASWithPerturbationImpl(PLASImpl):
-    _modules: PLASWithPerturbationModules
-
+class PLASWithPerturbationCriticLossFn(DDPGBaseCriticLossFn):
     def __init__(
         self,
-        observation_shape: Shape,
-        action_size: int,
-        modules: PLASWithPerturbationModules,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
         targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        targ_policy: Policy,
+        targ_perturbation: DeterministicResidualPolicy,
+        vae_decoder: VAEDecoder,
         gamma: float,
-        tau: float,
         lam: float,
-        beta: float,
-        warmup_steps: int,
-        compiled: bool,
-        device: str,
     ):
         super().__init__(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            modules=modules,
             q_func_forwarder=q_func_forwarder,
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
-            tau=tau,
-            lam=lam,
-            beta=beta,
-            warmup_steps=warmup_steps,
-            compiled=compiled,
-            device=device,
         )
-
-    def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
-    ) -> DDPGBaseActorLoss:
-        latent_actions = 2.0 * action.squashed_mu
-        actions = self._modules.vae_decoder(batch.observations, latent_actions)
-        residual_actions = self._modules.perturbation(
-            batch.observations, actions
-        ).squashed_mu
-        q_value = self._q_func_forwarder.compute_expected_q(
-            batch.observations, residual_actions, "none"
-        )
-        return DDPGBaseActorLoss(-q_value[0].mean())
-
-    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
-        latent_actions = 2.0 * self._modules.policy(x).squashed_mu
-        actions = self._modules.vae_decoder(x, latent_actions)
-        return self._modules.perturbation(x, actions).squashed_mu
-
-    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
-        return self.inner_predict_best_action(x)
+        self._targ_policy = targ_policy
+        self._targ_perturbation = targ_perturbation
+        self._vae_decoder = vae_decoder
+        self._lam = lam
 
     def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
         with torch.no_grad():
             latent_actions = (
-                2.0
-                * self._modules.targ_policy(batch.next_observations).squashed_mu
+                2.0 * self._targ_policy(batch.next_observations).squashed_mu
             )
-            actions = self._modules.vae_decoder(
-                batch.next_observations, latent_actions
-            )
-            residual_actions = self._modules.targ_perturbation(
+            actions = self._vae_decoder(batch.next_observations, latent_actions)
+            residual_actions = self._targ_perturbation(
                 batch.next_observations, actions
             )
             return self._targ_q_func_forwarder.compute_target(
@@ -226,10 +213,91 @@ class PLASWithPerturbationImpl(PLASImpl):
                 lam=self._lam,
             )
 
-    def update_actor_target(self) -> None:
-        super().update_actor_target()
+
+class PLASWithPerturbationActorLossFn(DDPGBaseActorLossFn):
+    def __init__(
+        self,
+        policy: Policy,
+        q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
+        vae_decoder: VAEDecoder,
+        perturbation: DeterministicResidualPolicy,
+    ):
+        self._policy = policy
+        self._q_func_forwarder = q_func_forwarder
+        self._vae_decoder = vae_decoder
+        self._perturbation = perturbation
+
+    def __call__(self, batch: TorchMiniBatch) -> DDPGBaseActorLoss:
+        action = self._policy(batch.observations)
+        latent_actions = 2.0 * action.squashed_mu
+        actions = self._vae_decoder(batch.observations, latent_actions)
+        residual_actions = self._perturbation(
+            batch.observations, actions
+        ).squashed_mu
+        q_value = self._q_func_forwarder.compute_expected_q(
+            batch.observations, residual_actions, "none"
+        )
+        return DDPGBaseActorLoss(-q_value[0].mean())
+
+
+class PLASWithPerturbationActionSampler(ActionSampler):
+    def __init__(
+        self,
+        policy: Policy,
+        vae_decoder: VAEDecoder,
+        perturbation: DeterministicResidualPolicy,
+    ):
+        self._policy = policy
+        self._vae_decoder = vae_decoder
+        self._perturbation = perturbation
+
+    def __call__(self, x: TorchObservation) -> torch.Tensor:
+        latent_actions = 2.0 * self._policy(x).squashed_mu
+        actions = self._vae_decoder(x, latent_actions)
+        return self._perturbation(x, actions).squashed_mu
+
+
+class PLASWithPerturbationUpdater(PLASUpdater):
+    def __init__(
+        self,
+        q_funcs: nn.ModuleList,
+        targ_q_funcs: nn.ModuleList,
+        policy: Policy,
+        targ_policy: Policy,
+        perturbation: DeterministicResidualPolicy,
+        targ_perturbation: DeterministicResidualPolicy,
+        critic_optim: OptimizerWrapper,
+        actor_optim: OptimizerWrapper,
+        imitator_optim: OptimizerWrapper,
+        critic_loss_fn: DDPGBaseCriticLossFn,
+        actor_loss_fn: DDPGBaseActorLossFn,
+        imitator_loss_fn: VAELossFn,
+        tau: float,
+        warmup_steps: int,
+        compiled: bool,
+    ):
+        super().__init__(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            policy=policy,
+            targ_policy=targ_policy,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            imitator_optim=imitator_optim,
+            critic_loss_fn=critic_loss_fn,
+            actor_loss_fn=actor_loss_fn,
+            imitator_loss_fn=imitator_loss_fn,
+            tau=tau,
+            warmup_steps=warmup_steps,
+            compiled=compiled,
+        )
+        self._perturbation = perturbation
+        self._targ_perturbation = targ_perturbation
+
+    def update_target(self) -> None:
+        super().update_target()
         soft_sync(
-            self._modules.targ_perturbation,
-            self._modules.perturbation,
+            self._targ_perturbation,
+            self._perturbation,
             self._tau,
         )

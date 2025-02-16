@@ -16,12 +16,20 @@ from ...models.torch import CategoricalPolicy, compute_output_size
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
+from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import VAELossFn
 from .torch.bcq_impl import (
-    BCQImpl,
+    BCQActionSampler,
+    BCQActorLossFn,
+    BCQCriticLossFn,
     BCQModules,
-    DiscreteBCQImpl,
+    BCQUpdater,
+    DiscreteBCQActionSampler,
+    DiscreteBCQLossFn,
     DiscreteBCQModules,
 )
+from .torch.ddpg_impl import DDPGValuePredictor
+from .torch.dqn_impl import DQNUpdater, DQNValuePredictor
 
 __all__ = ["BCQConfig", "BCQ", "DiscreteBCQConfig", "DiscreteBCQ"]
 
@@ -171,7 +179,7 @@ class BCQConfig(LearnableConfig):
         return "bcq"
 
 
-class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
+class BCQ(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, BCQConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -257,20 +265,60 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             vae_optim=vae_optim,
         )
 
-        self._impl = BCQImpl(
+        updater = BCQUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            policy=policy,
+            targ_policy=targ_policy,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            imitator_optim=vae_optim,
+            critic_loss_fn=BCQCriticLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                targ_policy=targ_policy,
+                vae_decoder=vae_decoder,
+                gamma=self._config.gamma,
+                n_action_samples=self._config.n_action_samples,
+                lam=self._config.lam,
+                action_size=action_size,
+            ),
+            actor_loss_fn=BCQActorLossFn(
+                q_func_forwarder=q_func_forwarder,
+                policy=policy,
+                vae_decoder=vae_decoder,
+                action_size=action_size,
+            ),
+            imitator_loss_fn=VAELossFn(
+                vae_encoder=vae_encoder,
+                vae_decoder=vae_decoder,
+                kl_weight=self._config.beta,
+            ),
+            tau=self._config.tau,
+            rl_start_step=self._config.rl_start_step,
+            compiled=self.compiled,
+        )
+        action_sampler = BCQActionSampler(
+            policy=policy,
+            q_func_forwarder=q_func_forwarder,
+            vae_decoder=vae_decoder,
+            n_action_samples=self._config.n_action_samples,
+            action_size=action_size,
+        )
+        value_predictor = DDPGValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=self._config.gamma,
-            tau=self._config.tau,
-            lam=self._config.lam,
-            n_action_samples=self._config.n_action_samples,
-            action_flexibility=self._config.action_flexibility,
-            beta=self._config.beta,
-            rl_start_step=self._config.rl_start_step,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=action_sampler,
+            explore_action_sampler=action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=critic_optim.optim,
+            policy=policy,
+            policy_optim=actor_optim.optim,
             device=self._device,
         )
 
@@ -363,7 +411,9 @@ class DiscreteBCQConfig(LearnableConfig):
         return "discrete_bcq"
 
 
-class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
+class DiscreteBCQ(
+    QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DiscreteBCQConfig]
+):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -422,17 +472,40 @@ class DiscreteBCQ(QLearningAlgoBase[DiscreteBCQImpl, DiscreteBCQConfig]):
             optim=optim,
         )
 
-        self._impl = DiscreteBCQImpl(
+        # build functional components
+        updater = DQNUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
+            dqn_loss_fn=DiscreteBCQLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                imitator=imitator,
+                gamma=self._config.gamma,
+                beta=self._config.beta,
+            ),
+            target_update_interval=self._config.target_update_interval,
+            compiled=self.compiled,
+        )
+        action_sampler = DiscreteBCQActionSampler(
+            q_func_forwarder=q_func_forwarder,
+            imitator=imitator,
+            action_flexibility=self._config.action_flexibility,
+        )
+        value_predictor = DQNValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            target_update_interval=self._config.target_update_interval,
-            gamma=self._config.gamma,
-            action_flexibility=self._config.action_flexibility,
-            beta=self._config.beta,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=action_sampler,
+            explore_action_sampler=action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=optim.optim,
+            policy=None,
+            policy_optim=None,
             device=self._device,
         )
 

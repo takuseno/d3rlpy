@@ -2,8 +2,8 @@ import torch
 import torch.nn.functional as F
 
 from ....models.torch import (
-    ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
+    Policy,
     build_gaussian_distribution,
 )
 from ....torch_utility import (
@@ -12,60 +12,36 @@ from ....torch_utility import (
     flatten_left_recursively,
     get_batch_size,
 )
-from ....types import Shape, TorchObservation
-from .sac_impl import SACActorLoss, SACImpl, SACModules
+from ....types import TorchObservation
+from .ddpg_impl import DDPGBaseActorLoss, DDPGBaseActorLossFn
 
-__all__ = ["AWACImpl"]
+__all__ = ["AWACActorLossFn"]
 
 
-class AWACImpl(SACImpl):
-    _lam: float
-    _n_action_samples: int
-
+class AWACActorLossFn(DDPGBaseActorLossFn):
     def __init__(
         self,
-        observation_shape: Shape,
-        action_size: int,
-        modules: SACModules,
         q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        targ_q_func_forwarder: ContinuousEnsembleQFunctionForwarder,
-        gamma: float,
-        tau: float,
-        lam: float,
+        policy: Policy,
         n_action_samples: int,
-        compiled: bool,
-        device: str,
+        lam: float,
+        action_size: int,
     ):
-        super().__init__(
-            observation_shape=observation_shape,
-            action_size=action_size,
-            modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=gamma,
-            tau=tau,
-            compiled=compiled,
-            device=device,
-        )
-        self._lam = lam
+        self._q_func_forwarder = q_func_forwarder
+        self._policy = policy
         self._n_action_samples = n_action_samples
+        self._lam = lam
+        self._action_size = action_size
 
-    def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput
-    ) -> SACActorLoss:
+    def __call__(self, batch: TorchMiniBatch) -> DDPGBaseActorLoss:
         # compute log probability
+        action = self._policy(batch.observations)
         dist = build_gaussian_distribution(action)
         log_probs = dist.log_prob(batch.actions)
         # compute exponential weight
         weights = self._compute_weights(batch.observations, batch.actions)
         loss = -(log_probs * weights).sum()
-        return SACActorLoss(
-            actor_loss=loss,
-            temp_loss=torch.tensor(
-                0.0, dtype=torch.float32, device=loss.device
-            ),
-            temp=torch.tensor(0.0, dtype=torch.float32, device=loss.device),
-        )
+        return DDPGBaseActorLoss(actor_loss=loss)
 
     def _compute_weights(
         self, obs_t: TorchObservation, act_t: torch.Tensor
@@ -80,9 +56,9 @@ class AWACImpl(SACImpl):
 
             # sample actions
             # (batch_size * N, action_size)
-            dist = build_gaussian_distribution(self._modules.policy(obs_t))
+            dist = build_gaussian_distribution(self._policy(obs_t))
             policy_actions = dist.sample_n(self._n_action_samples)
-            flat_actions = policy_actions.reshape(-1, self.action_size)
+            flat_actions = policy_actions.reshape(-1, self._action_size)
 
             # repeat observation
             # (batch_size, obs_size) -> (batch_size, N, obs_size)
@@ -104,7 +80,3 @@ class AWACImpl(SACImpl):
             weights = F.softmax(adv_values / self._lam, dim=0).view(-1, 1)
 
         return weights * adv_values.numel()
-
-    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
-        dist = build_gaussian_distribution(self._modules.policy(x))
-        return dist.sample()
