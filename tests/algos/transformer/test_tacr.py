@@ -19,7 +19,7 @@ def test_tacr(observation_shape: Shape, scalers: Optional[str]) -> None:
         scalers, observation_shape
     )
     config = TACRConfig(
-        encoder_factory=DummyEncoderFactory(),
+        actor_encoder_factory=DummyEncoderFactory(),
         critic_encoder_factory=DummyEncoderFactory(),
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,

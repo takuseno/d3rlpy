@@ -30,7 +30,7 @@ __all__ = [
 @dataclasses.dataclass(frozen=True)
 class TACRModules(Modules):
     transformer: ContinuousDecisionTransformer
-    optim: OptimizerWrapper
+    actor_optim: OptimizerWrapper
     q_funcs: nn.ModuleList
     targ_q_funcs: nn.ModuleList
     critic_optim: OptimizerWrapper
@@ -90,7 +90,7 @@ class TACRImpl(TransformerAlgoImplBase):
     def compute_actor_grad(
         self, batch: TorchTrajectoryMiniBatch
     ) -> torch.Tensor:
-        self._modules.optim.zero_grad()
+        self._modules.actor_optim.zero_grad()
         loss = self.compute_actor_loss(batch)
         loss.backward()
         return loss
@@ -111,7 +111,7 @@ class TACRImpl(TransformerAlgoImplBase):
         metrics = {}
 
         actor_loss = self._compute_actor_grad(batch)
-        self._modules.optim.step()
+        self._modules.actor_optim.step()
         metrics.update({"actor_loss": float(actor_loss.cpu().detach())})
 
         critic_loss = self._compute_critic_grad(batch)

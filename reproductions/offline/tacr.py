@@ -28,15 +28,15 @@ def main() -> None:
 
     tacr = d3rlpy.algos.TACRConfig(
         batch_size=64,
-        learning_rate=1e-4,
-        optim_factory=d3rlpy.optimizers.AdamWFactory(
+        actor_learning_rate=1e-4,
+        actor_optim_factory=d3rlpy.optimizers.AdamWFactory(
             weight_decay=1e-4,
             clip_grad_norm=0.25,
             lr_scheduler_factory=d3rlpy.optimizers.WarmupSchedulerFactory(
                 warmup_steps=10000
             ),
         ),
-        encoder_factory=d3rlpy.models.VectorEncoderFactory(
+        actor_encoder_factory=d3rlpy.models.VectorEncoderFactory(
             [128],
             exclude_last_activation=True,
         ),

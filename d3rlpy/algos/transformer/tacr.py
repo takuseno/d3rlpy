@@ -58,11 +58,11 @@ class TACRConfig(TransformerConfig):
     """
 
     batch_size: int = 64
-    learning_rate: float = 1e-4
+    actor_learning_rate: float = 1e-4
     critic_learning_rate: float = 1e-4
-    encoder_factory: EncoderFactory = make_encoder_field()
+    actor_encoder_factory: EncoderFactory = make_encoder_field()
     critic_encoder_factory: EncoderFactory = make_encoder_field()
-    optim_factory: OptimizerFactory = make_optimizer_field()
+    actor_optim_factory: OptimizerFactory = make_optimizer_field()
     critic_optim_factory: OptimizerFactory = make_optimizer_field()
     q_func_factory: QFunctionFactory = make_q_func_field()
     num_heads: int = 1
@@ -96,7 +96,7 @@ class TACR(TransformerAlgoBase[TACRImpl, TACRConfig]):
         transformer = create_continuous_decision_transformer(
             observation_shape=observation_shape,
             action_size=action_size,
-            encoder_factory=self._config.encoder_factory,
+            encoder_factory=self._config.actor_encoder_factory,
             num_heads=self._config.num_heads,
             max_timestep=self._config.max_timestep,
             num_layers=self._config.num_layers,
@@ -109,9 +109,9 @@ class TACR(TransformerAlgoBase[TACRImpl, TACRConfig]):
             device=self._device,
             enable_ddp=self._enable_ddp,
         )
-        optim = self._config.optim_factory.create(
+        optim = self._config.actor_optim_factory.create(
             transformer.named_modules(),
-            lr=self._config.learning_rate,
+            lr=self._config.actor_learning_rate,
             compiled=self.compiled,
         )
 
@@ -141,7 +141,7 @@ class TACR(TransformerAlgoBase[TACRImpl, TACRConfig]):
 
         modules = TACRModules(
             transformer=transformer,
-            optim=optim,
+            actor_optim=optim,
             q_funcs=q_funcs,
             targ_q_funcs=targ_q_funcs,
             critic_optim=critic_optim,
