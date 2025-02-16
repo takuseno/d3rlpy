@@ -133,7 +133,7 @@ class TACR(TransformerAlgoBase[TACRImpl, TACRConfig]):
             device=self._device,
             enable_ddp=self._enable_ddp,
         )
-        critic_optim = self._config.optim_factory.create(
+        critic_optim = self._config.critic_optim_factory.create(
             q_funcs.named_modules(),
             lr=self._config.critic_learning_rate,
             compiled=self.compiled,

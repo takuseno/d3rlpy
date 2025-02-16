@@ -184,6 +184,7 @@ class DiscreteEnsembleQFunctionForwarder:
         target: torch.Tensor,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
+        masks: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         return compute_ensemble_q_function_error(
             forwarders=self._forwarders,
@@ -193,6 +194,7 @@ class DiscreteEnsembleQFunctionForwarder:
             target=target,
             terminals=terminals,
             gamma=gamma,
+            masks=masks,
         )
 
     def compute_target(

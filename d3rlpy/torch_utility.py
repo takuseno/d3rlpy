@@ -368,7 +368,7 @@ class TorchTrajectoryMiniBatch:
             ]
         actions = self.actions[:, :-1].reshape(-1, *self.actions.shape[2:])
         rewards = self.rewards[:, :-1].reshape(-1, 1)
-        terminals = self.terminals[:, 1:].reshape(-1, 1)
+        terminals = self.terminals[:, :-1].reshape(-1, 1)
         next_actions = self.actions[:, 1:].reshape(-1, *self.actions.shape[2:])
         returns_to_go = self.returns_to_go[:, :-1].reshape(-1, 1)
         intervals = torch.ones_like(rewards)
@@ -583,7 +583,7 @@ class CudaGraphWrapper(Generic[BatchT_contra, RetT_co]):
                 self._out = self._func(self._inpt)
         if self._step >= self._warmup_steps:  # reuse cuda graph
             assert self._inpt
-            assert self._out
+            assert self._out is not None
             assert self._graph
             with torch.no_grad():
                 self._inpt.copy_(batch)  # type: ignore
