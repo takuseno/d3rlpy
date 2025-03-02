@@ -10,5 +10,5 @@ numpy<2
 docformatter
 ruff
 black
-minari[all]>=0.5.1
-gymnasium-robotics>=1.2.4
+minari[all]>=0.5.2
+gymnasium-robotics>=1.3.1

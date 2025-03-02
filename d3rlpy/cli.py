@@ -390,7 +390,7 @@ def install(name: str) -> None:
         _uninstall_module(["pybullet"])
     elif name == "minari":
         _install_module(
-            ["minari[all]>=0.5.1", "gymnasium-robotics>=1.2.4"], upgrade=True
+            ["minari[all]>=0.5.2", "gymnasium-robotics>=1.3.1"], upgrade=True
         )
     elif name == "dm_control":
         _install_module(["shimmy[dm-control]==2.0.0"], upgrade=True)
