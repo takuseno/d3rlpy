@@ -416,6 +416,7 @@ def get_d4rl(
     """
     try:
         import d4rl  # noqa
+        from d4rl.pointmaze.maze_model import MazeEnv
         from d4rl.locomotion.wrappers import NormalizedBoxEnv
         from d4rl.utils.wrappers import (
             NormalizedBoxEnv as NormalizedBoxEnvFromUtils,
@@ -447,6 +448,8 @@ def get_d4rl(
         ):
             unwrapped_env: gym.Env[Any, Any] = wrapped_env.wrapped_env
             unwrapped_env.render_mode = render_mode  # overwrite
+        elif isinstance(wrapped_env, MazeEnv):
+            wrapped_env.render_mode = render_mode  # overwrite
         else:
             wrapped_env.env.render_mode = render_mode  # overwrite
 
