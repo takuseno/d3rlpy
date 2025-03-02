@@ -57,7 +57,7 @@ Installing d3rlpy package will install or upgrade the following packages to sati
 - torch>=2.5.0
 - tqdm>=4.66.3
 - gym>=0.26.0
-- gymnasium>=1.0.0
+- gymnasium==1.0.0
 - click
 - colorama
 - dataclasses-json

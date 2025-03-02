@@ -42,7 +42,7 @@ if __name__ == "__main__":
             "structlog",
             "colorama",
             "dataclasses-json",
-            "gymnasium>=1.0.0",
+            "gymnasium==1.0.0",
             "scikit-learn",
         ],
         packages=find_packages(exclude=["tests*"]),
