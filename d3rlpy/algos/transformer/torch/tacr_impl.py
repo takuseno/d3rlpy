@@ -80,7 +80,7 @@ class TACRImpl(TransformerAlgoImplBase):
         action = self._modules.transformer(
             inpt.observations,
             inpt.actions,
-            inpt.returns_to_go,
+            inpt.rewards,
             inpt.timesteps,
             1 - inpt.masks,
         )
@@ -128,7 +128,7 @@ class TACRImpl(TransformerAlgoImplBase):
         action = self._modules.transformer(
             batch.observations,
             batch.actions,
-            batch.returns_to_go,
+            batch.rewards,
             batch.timesteps,
             1 - batch.masks,
         )
@@ -168,7 +168,7 @@ class TACRImpl(TransformerAlgoImplBase):
             action = self._modules.transformer(
                 batch.observations,
                 batch.actions,
-                batch.returns_to_go,
+                batch.rewards,
                 batch.timesteps,
                 1 - batch.masks,
             )[:, :-1].reshape(-1, self._action_size)

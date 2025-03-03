@@ -8,6 +8,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 
 import d3rlpy
 from d3rlpy.algos import CQL, IQL
+from d3rlpy.algos.qlearning.torch.iql_impl import IQLModules
 from d3rlpy.dataset import InfiniteBuffer, ReplayBuffer
 from d3rlpy.types import NDArray
 
@@ -232,9 +233,10 @@ def fit_iql(
     # workaround for learning scheduler
     iql.build_with_dataset(dataset)
     assert iql.impl
+    assert isinstance(iql.impl.modules, IQLModules)
     scheduler = CosineAnnealingLR(
-        iql.impl._modules.actor_optim,  # pylint: disable=protected-access
-        500000,
+        optimizer=iql.impl.modules.actor_optim.optim,
+        T_max=500000,
     )
 
     def callback(algo: d3rlpy.algos.IQL, epoch: int, total_step: int) -> None:
