@@ -144,6 +144,7 @@ class DiscreteBCConfig(LearnableConfig):
     optim_factory: OptimizerFactory = make_optimizer_field()
     encoder_factory: EncoderFactory = make_encoder_field()
     beta: float = 0.5
+    entropy_beta: float = 0.0
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -178,6 +179,7 @@ class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
             action_size=action_size,
             modules=modules,
             beta=self._config.beta,
+            entropy_beta=self._config.entropy_beta,
             device=self._device,
         )
 

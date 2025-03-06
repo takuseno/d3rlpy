@@ -140,6 +140,7 @@ class DiscreteBCModules(BCBaseModules):
 class DiscreteBCImpl(BCBaseImpl):
     _modules: DiscreteBCModules
     _beta: float
+    _entropy_beta: float
 
     def __init__(
         self,
@@ -147,6 +148,7 @@ class DiscreteBCImpl(BCBaseImpl):
         action_size: int,
         modules: DiscreteBCModules,
         beta: float,
+        entropy_beta: float,
         device: str,
     ):
         super().__init__(
@@ -156,6 +158,7 @@ class DiscreteBCImpl(BCBaseImpl):
             device=device,
         )
         self._beta = beta
+        self._entropy_beta = entropy_beta
 
     def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         return self._modules.imitator(x).logits.argmax(dim=1)
@@ -168,4 +171,5 @@ class DiscreteBCImpl(BCBaseImpl):
             x=obs_t,
             action=act_t.long(),
             beta=self._beta,
+            entropy_beta=self._entropy_beta,
         )

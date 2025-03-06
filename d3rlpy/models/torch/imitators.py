@@ -171,6 +171,7 @@ class ImitationLoss:
 class DiscreteImitationLoss(ImitationLoss):
     imitation_loss: torch.Tensor
     regularization_loss: torch.Tensor
+    entropy_loss: torch.Tensor
 
 
 def compute_discrete_imitation_loss(
@@ -178,16 +179,19 @@ def compute_discrete_imitation_loss(
     x: TorchObservation,
     action: torch.Tensor,
     beta: float,
+    entropy_beta: float,
 ) -> DiscreteImitationLoss:
     dist = policy(x)
     penalty = (dist.logits**2).mean()
     log_probs = F.log_softmax(dist.logits, dim=1)
     imitation_loss = F.nll_loss(log_probs, action.view(-1))
     regularization_loss = beta * penalty
+    entropy_loss = -entropy_beta * dist.entropy().mean()
     return DiscreteImitationLoss(
-        loss=imitation_loss + regularization_loss,
+        loss=imitation_loss + regularization_loss + entropy_loss,
         imitation_loss=imitation_loss,
         regularization_loss=regularization_loss,
+        entropy_loss=entropy_loss,
     )
 
 
