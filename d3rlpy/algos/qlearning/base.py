@@ -581,8 +581,7 @@ class QLearningAlgoBase(
                     self.logger.add_metric(name, test_score)
 
             # save metrics
-            if logging_strategy == LoggingStrategy.EPOCH:
-                metrics = self.logger.commit(epoch, total_step)
+            metrics = self.logger.commit(epoch, total_step)
 
             # save model parameters
             if epoch % save_interval == 0:
