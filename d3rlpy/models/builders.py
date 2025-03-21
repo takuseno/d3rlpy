@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple, cast
+from typing import Sequence, Tuple, cast, Optional
 
 import torch
 from torch import nn
@@ -204,9 +204,10 @@ def create_categorical_policy(
     encoder_factory: EncoderFactory,
     device: str,
     enable_ddp: bool,
+    embedding_size: Optional[int] = None
 ) -> CategoricalPolicy:
     encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder)
+    hidden_size = compute_output_size([observation_shape], encoder, embedding_size)
     policy = CategoricalPolicy(
         encoder=encoder, hidden_size=hidden_size, action_size=action_size
     )

@@ -291,7 +291,7 @@ class VectorEncoderWithAction(EncoderWithAction):
 
 
 def compute_output_size(
-    input_shapes: Sequence[Shape], encoder: nn.Module
+    input_shapes: Sequence[Shape], encoder: nn.Module, embedding_size: Optional[int] = None
 ) -> int:
     device = next(encoder.parameters()).device
     with torch.no_grad():
@@ -301,5 +301,8 @@ def compute_output_size(
                 inputs.append([torch.rand(2, *s, device=device) for s in shape])
             else:
                 inputs.append(torch.rand(2, *shape, device=device))
-        y = encoder(*inputs)
+        if embedding_size is None:
+            y = encoder(*inputs)
+        else:
+            y = encoder(*inputs, torch.rand(2, embedding_size, 1, device=device))
     return int(y.shape[1])
