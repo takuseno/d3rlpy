@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 import torch
 from torch.optim import Optimizer
@@ -52,7 +52,7 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
     ) -> Dict[str, float]:
         self._modules.optim.zero_grad()
 
-        loss = self.compute_loss(batch.observations, batch.actions)
+        loss = self.compute_loss((batch.observations, batch.embeddings), batch.actions)
 
         loss.loss.backward()
         self._modules.optim.step(grad_step)

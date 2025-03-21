@@ -193,6 +193,7 @@ class TorchMiniBatch:
     intervals: torch.Tensor
     device: str
     numpy_batch: Optional[TransitionMiniBatch] = None
+    embeddings: Optional[torch.Tensor] = None
 
     @classmethod
     def from_batch(
@@ -254,6 +255,7 @@ class TorchMiniBatch:
             intervals=intervals,
             device=device,
             numpy_batch=batch,
+            embeddings=convert_to_torch_recursively(batch.embeddings, device),
         )
 
 
