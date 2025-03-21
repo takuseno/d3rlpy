@@ -52,7 +52,7 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
     ) -> Dict[str, float]:
         self._modules.optim.zero_grad()
 
-        loss = self.compute_loss((batch.observations, batch.embeddings), batch.actions)
+        loss = self.compute_loss(batch.observations, batch.embeddings, batch.actions)
 
         loss.loss.backward()
         self._modules.optim.step(grad_step)
@@ -61,7 +61,7 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
     @abstractmethod
     def compute_loss(
-        self, obs_t: TorchObservation, act_t: torch.Tensor
+        self, obs_t: TorchObservation, embedding_t: Optional[torch.Tensor], act_t: torch.Tensor
     ) -> ImitationLoss:
         pass
 
@@ -108,7 +108,7 @@ class BCImpl(BCBaseImpl):
         return self._modules.imitator(x).squashed_mu
 
     def compute_loss(
-        self, obs_t: TorchObservation, act_t: torch.Tensor
+        self, obs_t: TorchObservation, embedding_t: Optional[torch.Tensor],act_t: torch.Tensor
     ) -> ImitationLoss:
         if self._policy_type == "deterministic":
             assert isinstance(self._modules.imitator, DeterministicPolicy)
@@ -164,11 +164,12 @@ class DiscreteBCImpl(BCBaseImpl):
         return self._modules.imitator(x).logits.argmax(dim=1)
 
     def compute_loss(
-        self, obs_t: TorchObservation, act_t: torch.Tensor
+        self, obs_t: TorchObservation, embedding_t: Optional[torch.Tensor], act_t: torch.Tensor
     ) -> DiscreteImitationLoss:
         return compute_discrete_imitation_loss(
             policy=self._modules.imitator,
             x=obs_t,
+            embedding=embedding_t,
             action=act_t.long(),
             beta=self._beta,
             entropy_beta=self._entropy_beta,

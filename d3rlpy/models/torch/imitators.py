@@ -1,5 +1,5 @@
 import dataclasses
-from typing import cast
+from typing import cast, Optional
 
 import torch
 import torch.nn.functional as F
@@ -177,11 +177,12 @@ class DiscreteImitationLoss(ImitationLoss):
 def compute_discrete_imitation_loss(
     policy: CategoricalPolicy,
     x: TorchObservation,
+    embedding: Optional[torch.Tensor],
     action: torch.Tensor,
     beta: float,
     entropy_beta: float,
 ) -> DiscreteImitationLoss:
-    dist = policy(x)
+    dist = policy(x, embedding)
     penalty = (dist.logits**2).mean()
     log_probs = F.log_softmax(dist.logits, dim=1)
     imitation_loss = F.nll_loss(log_probs, action.view(-1))

@@ -24,7 +24,7 @@ class Encoder(nn.Module, metaclass=ABCMeta):  # type: ignore
     def forward(self, x: TorchObservation) -> torch.Tensor:
         pass
 
-    def __call__(self, x: TorchObservation) -> torch.Tensor:
+    def __call__(self, x: TorchObservation, embedding: Optional[torch.Tensor]) -> torch.Tensor:
         return super().__call__(x)
 
 
