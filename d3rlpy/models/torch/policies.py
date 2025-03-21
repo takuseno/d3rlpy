@@ -150,5 +150,5 @@ class CategoricalPolicy(nn.Module):  # type: ignore
     def forward(self, x: TorchObservation, embedding: torch.Tensor) -> Categorical:
         return Categorical(logits=self._fc(self._encoder(x, embedding)))
 
-    def __call__(self, x: TorchObservation) -> Categorical:
-        return super().__call__(x)
+    def __call__(self, x: TorchObservation, embedding: torch.Tensor) -> Categorical:
+        return super().__call__(x, embedding)
