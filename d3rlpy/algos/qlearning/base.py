@@ -48,7 +48,7 @@ from ...torch_utility import (
     sync_optimizer_state,
     train_api,
 )
-from ...types import GymEnv, NDArray, Observation, TorchObservation
+from ...types import GymEnv, NDArray, Observation, TorchObservation, Float32NDArray
 from ..utility import (
     assert_action_space_with_dataset,
     assert_action_space_with_env,
@@ -77,11 +77,11 @@ class QLearningAlgoImplBase(ImplBase):
         pass
 
     @eval_api
-    def predict_best_action(self, x: TorchObservation) -> torch.Tensor:
-        return self.inner_predict_best_action(x)
+    def predict_best_action(self, x: TorchObservation, embedding: Optional[torch.Tensor]) -> torch.Tensor:
+        return self.inner_predict_best_action(x, embedding)
 
     @abstractmethod
-    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
+    def inner_predict_best_action(self, x: TorchObservation, embedding: Optional[torch.Tensor]) -> torch.Tensor:
         pass
 
     @eval_api
@@ -256,7 +256,7 @@ class QLearningAlgoBase(
         # workaround until version 1.6
         self._impl.modules.unfreeze()
 
-    def predict(self, x: Observation) -> NDArray:
+    def predict(self, x: Observation, embedding: Optional[Float32NDArray]) -> NDArray:
         """Returns greedy actions.
 
         .. code-block:: python
@@ -278,12 +278,13 @@ class QLearningAlgoBase(
         assert check_non_1d_array(x), "Input must have batch dimension."
 
         torch_x = convert_to_torch_recursively(x, self._device)
+        torch_embedding = None if embedding is None else convert_to_torch_recursively(embedding, self._device)
 
         with torch.no_grad():
             if self._config.observation_scaler:
                 torch_x = self._config.observation_scaler.transform(torch_x)
 
-            action = self._impl.predict_best_action(torch_x)
+            action = self._impl.predict_best_action(torch_x, torch_embedding)
 
             if self._config.action_scaler:
                 action = self._config.action_scaler.reverse_transform(action)

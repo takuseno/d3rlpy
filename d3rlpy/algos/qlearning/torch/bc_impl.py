@@ -65,8 +65,8 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
     ) -> ImitationLoss:
         pass
 
-    def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
-        return self.inner_predict_best_action(x)
+    def inner_sample_action(self, x: TorchObservation, embedding: Optional[torch.Tensor] = None) -> torch.Tensor:
+        return self.inner_predict_best_action(x, embedding)
 
     def inner_predict_value(
         self, x: TorchObservation, action: torch.Tensor
@@ -104,8 +104,8 @@ class BCImpl(BCBaseImpl):
         )
         self._policy_type = policy_type
 
-    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
-        return self._modules.imitator(x).squashed_mu
+    def inner_predict_best_action(self, x: TorchObservation, embedding: Optional[torch.Tensor]) -> torch.Tensor:
+        return self._modules.imitator(x, embedding).squashed_mu
 
     def compute_loss(
         self, obs_t: TorchObservation, embedding_t: Optional[torch.Tensor],act_t: torch.Tensor
@@ -160,8 +160,8 @@ class DiscreteBCImpl(BCBaseImpl):
         self._beta = beta
         self._entropy_beta = entropy_beta
 
-    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
-        return self._modules.imitator(x).logits.argmax(dim=1)
+    def inner_predict_best_action(self, x: TorchObservation, embedding: Optional[torch.Tensor]) -> torch.Tensor:
+        return self._modules.imitator(x, embedding).logits.argmax(dim=1)
 
     def compute_loss(
         self, obs_t: TorchObservation, embedding_t: Optional[torch.Tensor], act_t: torch.Tensor
