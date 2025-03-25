@@ -1,5 +1,7 @@
 import dataclasses
 
+from typing import Optional
+
 import torch
 
 from ...base import DeviceArg, register_learnable
@@ -74,6 +76,7 @@ class DecisionTransformerConfig(TransformerConfig):
     activation_type: str = "relu"
     position_encoding_type: PositionEncodingType = PositionEncodingType.SIMPLE
     compile: bool = False
+    embedding_size: Optional[int] = None
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -184,6 +187,7 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
     warmup_tokens: int = 10240
     final_tokens: int = 30000000
     compile: bool = False
+    embedding_size: Optional[int] = None
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -219,6 +223,7 @@ class DiscreteDecisionTransformer(
             position_encoding_type=self._config.position_encoding_type,
             device=self._device,
             enable_ddp=self._enable_ddp,
+            embedding_size=self._config.embedding_size,
         )
         optim = self._config.optim_factory.create(
             transformer.named_modules(), lr=self._config.learning_rate
