@@ -302,7 +302,7 @@ def compute_output_size(
             else:
                 inputs.append(torch.rand(2, *shape, device=device))
         if embedding_size is None:
-            y = encoder(*inputs)
+            y = encoder(*inputs, None)
         else:
             if inputs[0].ndim == 4:
                 # B x C x H X W
