@@ -97,7 +97,7 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
             timesteps=batch_pad_array(timesteps, pad_size),
             masks=batch_pad_array(masks, pad_size),
             length=size,
-            embeddings=batch_pad_array(embeddings, pad_size),
+            embeddings=None if embeddings is None else batch_pad_array(embeddings, pad_size),
         )
 
 
