@@ -304,5 +304,8 @@ def compute_output_size(
         if embedding_size is None:
             y = encoder(*inputs)
         else:
-            y = encoder(*inputs, torch.rand(2, embedding_size, 1, device=device))
+            if len(inputs[0]) == 3:
+                y = encoder(*inputs, torch.rand(2, embedding_size, device=device))
+            else:
+                y = encoder(*inputs, torch.rand(2, inputs[0][0], embedding_size, device=device))
     return int(y.shape[1])
