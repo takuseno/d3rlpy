@@ -395,7 +395,15 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
             flat_x = x.reshape(-1, *x.shape[2:])
         else:
             flat_x = [_x.reshape(-1, *_x.shape[2:]) for _x in x]
-        flat_state_embedding = self._encoder(flat_x, embedding)
+        if embedding is None:
+            flat_embedding = None
+        else:
+            if isinstance(embedding, torch.Tensor):
+                flat_embedding = embedding.reshape(-1, *embedding.shape[2:])
+            else:
+                flat_embedding = [_embedding.reshape(-1, *_embedding.shape[2:]) for _embedding in embedding]
+
+        flat_state_embedding = self._encoder(flat_x, flat_embedding)
         state_embedding = flat_state_embedding.view(
             batch_size, context_size, -1
         )
