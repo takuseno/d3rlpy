@@ -30,6 +30,7 @@ class TransformerInput:
     rewards: Float32NDArray  # (L, 1)
     returns_to_go: Float32NDArray  # (L, 1)
     timesteps: Int32NDArray  # (L,)
+    embeddings: Optional[Float32NDArray]
 
     def __post_init__(self) -> None:
         # check sequence size
@@ -53,6 +54,7 @@ class TorchTransformerInput:
     timesteps: torch.Tensor  # (1, L)
     masks: torch.Tensor  # (1, L)
     length: int
+    embeddings: Optional[torch.Tensor] = None
 
     @classmethod
     def from_numpy(
@@ -74,6 +76,7 @@ class TorchTransformerInput:
             returns_to_go = inpt.returns_to_go[-context_size:]
             timesteps = inpt.timesteps[-context_size:]
             masks = np.ones(context_size, dtype=np.float32)
+            embeddings = inpt.embeddings[-context_size:] if inpt.embeddings is not None else None
         else:
             pad_size = context_size - inpt.length
             observations = batch_pad_observations(inpt.observations, pad_size)
@@ -84,6 +87,7 @@ class TorchTransformerInput:
             masks = batch_pad_array(
                 np.ones(inpt.length, dtype=np.float32), pad_size
             )
+            embeddings = batch_pad_array(inpt.embeddings, pad_size) if inpt.embeddings is not None else None
 
         # convert numpy array to torch tensor
         observations_pt = convert_to_torch_recursively(observations, device)
@@ -92,6 +96,7 @@ class TorchTransformerInput:
         returns_to_go_pt = convert_to_torch(returns_to_go, device)
         timesteps_pt = convert_to_torch(timesteps, device).long()
         masks_pt = convert_to_torch(masks, device)
+        embeddings_pt = convert_to_torch(embeddings, device)
 
         # apply scaler
         if observation_scaler:
@@ -115,4 +120,5 @@ class TorchTransformerInput:
             timesteps=timesteps_pt.unsqueeze(0),
             masks=masks_pt.unsqueeze(0),
             length=context_size,
+            embeddings=embeddings_pt.unsqueeze(0),
         )

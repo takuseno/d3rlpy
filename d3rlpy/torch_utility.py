@@ -270,6 +270,7 @@ class TorchTrajectoryMiniBatch:
     masks: torch.Tensor  # (B, L)
     device: str
     numpy_batch: Optional[TrajectoryMiniBatch] = None
+    embeddings: Optional[torch.Tensor] = None
 
     @classmethod
     def from_batch(
@@ -309,6 +310,7 @@ class TorchTrajectoryMiniBatch:
             masks=masks,
             device=device,
             numpy_batch=batch,
+            embeddings=convert_to_torch_recursively(batch.embeddings, device),
         )
 
 
