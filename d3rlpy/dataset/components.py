@@ -144,6 +144,7 @@ class PartialTrajectory:
     timesteps: Int32NDArray  # (L,)
     masks: Float32NDArray  # (L,)
     length: int
+    embeddings: Float32NDArray  # (L)
 
     @property
     def observation_signature(self) -> Signature:

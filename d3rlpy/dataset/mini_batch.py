@@ -165,6 +165,7 @@ class TrajectoryMiniBatch:
     timesteps: Float32NDArray  # (B, L)
     masks: Float32NDArray  # (B, L)
     length: int
+    embeddings: Float32NDArray
 
     def __post_init__(self) -> None:
         assert check_dtype(self.observations, np.float32)
@@ -198,6 +199,7 @@ class TrajectoryMiniBatch:
         terminals = np.stack([traj.terminals for traj in trajectories], axis=0)
         timesteps = np.stack([traj.timesteps for traj in trajectories], axis=0)
         masks = np.stack([traj.masks for traj in trajectories], axis=0)
+        embeddings = np.stack([traj.embeddings for traj in trajectories], axis=0)
         return TrajectoryMiniBatch(
             observations=cast_recursively(observations, np.float32),
             actions=cast_recursively(actions, np.float32),
@@ -207,6 +209,7 @@ class TrajectoryMiniBatch:
             timesteps=cast_recursively(timesteps, np.float32),
             masks=cast_recursively(masks, np.float32),
             length=trajectories[0].length,
+            embeddings=cast_recursively(embeddings, np.float32),
         )
 
     @property
