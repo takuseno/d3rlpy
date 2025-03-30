@@ -1,12 +1,12 @@
 import torch
 
 from ....types import TorchObservation
-from .cql_impl import CQLImpl
+from .cql_impl import CQLCriticLossFn
 
-__all__ = ["CalQLImpl"]
+__all__ = ["CalQLCriticLossFn"]
 
 
-class CalQLImpl(CQLImpl):
+class CalQLCriticLossFn(CQLCriticLossFn):
     def _compute_policy_is_values(
         self,
         policy_obs: TorchObservation,
