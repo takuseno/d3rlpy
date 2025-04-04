@@ -96,7 +96,7 @@ class TorchTransformerInput:
         returns_to_go_pt = convert_to_torch(returns_to_go, device)
         timesteps_pt = convert_to_torch(timesteps, device).long()
         masks_pt = convert_to_torch(masks, device)
-        embeddings_pt = convert_to_torch(embeddings, device)
+        embeddings_pt = None if embeddings is None else convert_to_torch(embeddings, device)
 
         # apply scaler
         if observation_scaler:
