@@ -28,7 +28,7 @@ from ...logging import (
 )
 from ...metrics import evaluate_transformer_with_environment, EvaluatorProtocol
 from ...torch_utility import TorchTrajectoryMiniBatch, eval_api, train_api
-from ...types import GymEnv, NDArray, Observation, TorchObservation
+from ...types import GymEnv, NDArray, Observation, TorchObservation, Float32NDArray
 from ..utility import (
     assert_action_space_with_dataset,
     build_scalers_with_trajectory_slicer,
@@ -136,13 +136,14 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
 
         context_size = algo.config.context_size
         self._observations = deque([], maxlen=context_size)
+        self._embeddings = deque([], maxlen=context_size)
         self._actions = deque([self._get_pad_action()], maxlen=context_size)
         self._rewards = deque([], maxlen=context_size)
         self._returns_to_go = deque([], maxlen=context_size)
         self._timesteps = deque([], maxlen=context_size)
         self._timestep = 1
 
-    def predict(self, x: Observation, reward: float) -> Union[NDArray, int]:
+    def predict(self, x: Observation, embedding: Float32NDArray, reward: float) -> Union[NDArray, int]:
         r"""Returns action.
 
         Args:
@@ -153,6 +154,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
             Action.
         """
         self._observations.append(x)
+        self._embeddings.append(embedding)
         self._rewards.append(reward)
         self._returns_to_go.append(self._return_rest - reward)
         self._timesteps.append(self._timestep)
@@ -172,6 +174,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
             rewards=np.array(self._rewards).reshape((-1, 1)),
             returns_to_go=np.array(self._returns_to_go).reshape((-1, 1)),
             timesteps=np.array(self._timesteps),
+            embeddings=None if embedding is None else np.array(self._embeddings),
         )
         action = self._action_sampler(self._algo.predict(inpt))
         self._actions[-1] = action
@@ -183,6 +186,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
     def reset(self) -> None:
         """Clears stateful information."""
         self._observations.clear()
+        self._embeddings.clear()
         self._actions.clear()
         self._rewards.clear()
         self._returns_to_go.clear()
