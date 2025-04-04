@@ -120,5 +120,5 @@ class TorchTransformerInput:
             timesteps=timesteps_pt.unsqueeze(0),
             masks=masks_pt.unsqueeze(0),
             length=context_size,
-            embeddings=embeddings_pt.unsqueeze(0),
+            embeddings=None if embeddings_pt is None else embeddings_pt.unsqueeze(0),
         )
