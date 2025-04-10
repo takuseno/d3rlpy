@@ -430,6 +430,8 @@ class Checkpointer:
     def load(self, f: BinaryIO) -> None:
         chkpt = torch.load(f, map_location=map_location(self._device))
         for k, v in self._modules.items():
+            if isinstance(v, nn.Module):
+                v = unwrap_ddp_model(v)
             v.load_state_dict(chkpt[k])
 
     @property
