@@ -33,9 +33,9 @@ Load Trained Policies
    # reconstruct full setup from a d3 file
    cql = d3rlpy.load_learnable("model.d3")
    # load model onto NVIDIA GPU
-   cql = d3rlpy.load_learnable("model.d3", deviec="cuda:0")
+   cql = d3rlpy.load_learnable("model.d3", device="cuda:0")
    # load model wrapped with DDP
-   cql = d3rlpy.load_learnable("model.d3", deviec="cuda:0", enable_ddp=True)
+   cql = d3rlpy.load_learnable("model.d3", device="cuda:0", enable_ddp=True)
 
 
    # Option 2: Load pt file
