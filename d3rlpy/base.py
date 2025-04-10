@@ -129,9 +129,9 @@ class LearnableConfigWithShape(DynamicConfig):
     config: LearnableConfig = make_learnable_field()
 
     def create(
-        self, device: DeviceArg = False
+        self, device: DeviceArg = False, enable_ddp: bool = False
     ) -> "LearnableBase[ImplBase, LearnableConfig]":
-        algo = self.config.create(device)
+        algo = self.config.create(device=device, enable_ddp=enable_ddp)
         algo.create_impl(self.observation_shape, self.action_size)
         return algo
 
@@ -187,7 +187,7 @@ def dump_learnable(
 
 
 def load_learnable(
-    fname: str, device: DeviceArg = None
+    fname: str, device: DeviceArg = None, enable_ddp: bool = False
 ) -> "LearnableBase[ImplBase, LearnableConfig]":
     with open(fname, "rb") as f:
         obj = pickle.load(f)
@@ -198,7 +198,7 @@ def load_learnable(
                 saved_version=obj["version"],
             )
         config = LearnableConfigWithShape.deserialize(obj["config"])
-        algo = config.create(device)
+        algo = config.create(device=device, enable_ddp=enable_ddp)
         assert algo.impl
         algo.impl.load_model(io.BytesIO(obj["torch"]))
     return algo
