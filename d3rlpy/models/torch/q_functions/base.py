@@ -1,3 +1,4 @@
+import dataclasses
 from abc import ABCMeta, abstractmethod
 from typing import NamedTuple, Optional, Union
 
@@ -13,6 +14,7 @@ __all__ = [
     "ContinuousQFunctionForwarder",
     "DiscreteQFunctionForwarder",
     "QFunctionOutput",
+    "TargetOutput",
 ]
 
 
@@ -20,6 +22,15 @@ class QFunctionOutput(NamedTuple):
     q_value: torch.Tensor
     quantiles: Optional[torch.Tensor]
     taus: Optional[torch.Tensor]
+
+
+@dataclasses.dataclass(frozen=True)
+class TargetOutput:
+    q_value: torch.Tensor
+
+    def add(self, v: torch.Tensor) -> "TargetOutput":
+        assert v.shape == (self.q_value.shape[0], 1)
+        return TargetOutput(self.q_value + v)
 
 
 class ContinuousQFunction(nn.Module, metaclass=ABCMeta):  # type: ignore
@@ -67,7 +78,7 @@ class ContinuousQFunctionForwarder(metaclass=ABCMeta):
         observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
-        target: torch.Tensor,
+        target: TargetOutput,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
@@ -77,7 +88,7 @@ class ContinuousQFunctionForwarder(metaclass=ABCMeta):
     @abstractmethod
     def compute_target(
         self, x: TorchObservation, action: torch.Tensor
-    ) -> torch.Tensor:
+    ) -> TargetOutput:
         pass
 
     @abstractmethod
@@ -96,7 +107,7 @@ class DiscreteQFunctionForwarder(metaclass=ABCMeta):
         observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
-        target: torch.Tensor,
+        target: TargetOutput,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
@@ -106,7 +117,7 @@ class DiscreteQFunctionForwarder(metaclass=ABCMeta):
     @abstractmethod
     def compute_target(
         self, x: TorchObservation, action: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    ) -> TargetOutput:
         pass
 
     @abstractmethod

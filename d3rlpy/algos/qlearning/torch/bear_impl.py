@@ -5,6 +5,7 @@ import torch
 
 from ....models.torch import (
     ActionOutput,
+    TargetOutput,
     ContinuousEnsembleQFunctionForwarder,
     Parameter,
     VAEDecoder,
@@ -245,7 +246,7 @@ class BEARImpl(SACImpl):
 
         return (mmd + 1e-6).sqrt().view(-1, 1)
 
-    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> TargetOutput:
         with torch.no_grad():
             # BCQ-like target computation
             dist = build_squashed_gaussian_distribution(
@@ -254,7 +255,7 @@ class BEARImpl(SACImpl):
             actions, log_probs = dist.sample_n_with_log_prob(
                 self._n_target_samples
             )
-            values, indices = compute_max_with_n_actions_and_indices(
+            target, indices = compute_max_with_n_actions_and_indices(
                 batch.next_observations,
                 actions,
                 self._targ_q_func_forwarder,
@@ -266,7 +267,7 @@ class BEARImpl(SACImpl):
             max_log_prob = log_probs[torch.arange(batch_size), indices]
 
             log_temp = get_parameter(self._modules.log_temp)
-            return values - log_temp.exp() * max_log_prob
+            return TargetOutput(target.q_value - log_temp.exp() * max_log_prob)
 
     def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
         batch_size = (
