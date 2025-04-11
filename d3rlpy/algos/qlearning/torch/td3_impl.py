@@ -1,6 +1,6 @@
 import torch
 
-from ....models.torch import ContinuousEnsembleQFunctionForwarder
+from ....models.torch import ContinuousEnsembleQFunctionForwarder, TargetOutput
 from ....torch_utility import TorchMiniBatch
 from ....types import Shape
 from .ddpg_impl import DDPGImpl, DDPGModules
@@ -43,7 +43,7 @@ class TD3Impl(DDPGImpl):
         self._target_smoothing_clip = target_smoothing_clip
         self._update_actor_interval = update_actor_interval
 
-    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> TargetOutput:
         with torch.no_grad():
             action = self._modules.targ_policy(batch.next_observations)
             # smoothing target

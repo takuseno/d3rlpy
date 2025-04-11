@@ -7,6 +7,7 @@ import torch.nn.functional as F
 
 from ....models.torch import (
     ActionOutput,
+    TargetOutput,
     CategoricalPolicy,
     ContinuousEnsembleQFunctionForwarder,
     DeterministicResidualPolicy,
@@ -196,18 +197,17 @@ class BCQImpl(DDPGBaseImpl):
     def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         return self.inner_predict_best_action(x)
 
-    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> TargetOutput:
         # TODO: this seems to be slow with image observation
         with torch.no_grad():
             repeated_x = self._repeat_observation(batch.next_observations)
             actions = self._sample_repeated_action(repeated_x, True)
-            values = compute_max_with_n_actions(
+            return compute_max_with_n_actions(
                 batch.next_observations,
                 actions,
                 self._targ_q_func_forwarder,
                 self._lam,
             )
-            return values
 
     def update_actor_target(self) -> None:
         soft_sync(self._modules.targ_policy, self._modules.policy, self._tau)

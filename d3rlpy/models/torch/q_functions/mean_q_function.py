@@ -12,6 +12,7 @@ from .base import (
     DiscreteQFunction,
     DiscreteQFunctionForwarder,
     QFunctionOutput,
+    TargetOutput,
 )
 from .utility import compute_huber_loss, compute_reduce, pick_value_by_action
 
@@ -60,7 +61,7 @@ class DiscreteMeanQFunctionForwarder(DiscreteQFunctionForwarder):
         observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
-        target: torch.Tensor,
+        target: TargetOutput,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
@@ -69,18 +70,20 @@ class DiscreteMeanQFunctionForwarder(DiscreteQFunctionForwarder):
         value = (self._q_func(observations).q_value * one_hot.float()).sum(
             dim=1, keepdim=True
         )
-        y = rewards + gamma * target * (1 - terminals)
+        y = rewards + gamma * target.q_value * (1 - terminals)
         loss = compute_huber_loss(value, y)
         return compute_reduce(loss, reduction)
 
     def compute_target(
         self, x: TorchObservation, action: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    ) -> TargetOutput:
         if action is None:
-            return self._q_func(x).q_value
-        return pick_value_by_action(
-            self._q_func(x).q_value, action, keepdim=True
-        )
+            value = self._q_func(x).q_value
+        else:
+            value = pick_value_by_action(
+                self._q_func(x).q_value, action, keepdim=True
+            )
+        return TargetOutput(q_value=value)
 
     def set_q_func(self, q_func: DiscreteQFunction) -> None:
         self._q_func = q_func
@@ -125,20 +128,20 @@ class ContinuousMeanQFunctionForwarder(ContinuousQFunctionForwarder):
         observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
-        target: torch.Tensor,
+        target: TargetOutput,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
         value = self._q_func(observations, actions).q_value
-        y = rewards + gamma * target * (1 - terminals)
+        y = rewards + gamma * target.q_value * (1 - terminals)
         loss = F.mse_loss(value, y, reduction="none")
         return compute_reduce(loss, reduction)
 
     def compute_target(
         self, x: TorchObservation, action: torch.Tensor
-    ) -> torch.Tensor:
-        return self._q_func(x, action).q_value
+    ) -> TargetOutput:
+        return TargetOutput(q_value=self._q_func(x, action).q_value)
 
     def set_q_func(self, q_func: ContinuousQFunction) -> None:
         self._q_func = q_func

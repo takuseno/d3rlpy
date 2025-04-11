@@ -18,6 +18,9 @@ from d3rlpy.models.torch import (
     DiscreteQFunctionForwarder,
     DiscreteQRQFunction,
     DiscreteQRQFunctionForwarder,
+    ImplicitQuantileTargetOutput,
+    QuantileTargetOutput,
+    TargetOutput,
 )
 from d3rlpy.models.torch.q_functions.ensemble_q_function import (
     _reduce_ensemble,
@@ -62,8 +65,8 @@ def test_reduce_quantile_ensemble(
     reduction: str,
 ) -> None:
     y = torch.rand(n_ensembles, batch_size, n_quantiles)
-    ret = _reduce_quantile_ensemble(y, reduction)
     mean = y.mean(dim=2)
+    ret = _reduce_quantile_ensemble(y, mean, reduction)
     if reduction == "min":
         assert ret.shape == (batch_size, n_quantiles)
         indices = mean.min(dim=0).indices
@@ -134,20 +137,27 @@ def test_discrete_ensemble_q_function_forwarder(
     action = torch.randint(high=action_size, size=(batch_size,))
     target = ensemble_forwarder.compute_target(x, action)
     if q_func_factory == "mean":
-        assert target.shape == (batch_size, 1)
+        assert target.q_value.shape == (batch_size, 1)
         min_values = values.min(dim=0).values
         assert torch.allclose(
-            min_values[torch.arange(batch_size), action], target.view(-1)
+            min_values[torch.arange(batch_size), action],
+            target.q_value.view(-1),
         )
     else:
-        assert target.shape == (batch_size, n_quantiles)
+        assert isinstance(
+            target, (QuantileTargetOutput, ImplicitQuantileTargetOutput)
+        )
+        assert target.quantile.shape == (batch_size, n_quantiles)
 
     # check compute_target with action=None
     targets = ensemble_forwarder.compute_target(x)
     if q_func_factory == "mean":
-        assert targets.shape == (batch_size, action_size)
+        assert targets.q_value.shape == (batch_size, action_size)
     else:
-        assert targets.shape == (batch_size, action_size, n_quantiles)
+        assert isinstance(
+            target, (QuantileTargetOutput, ImplicitQuantileTargetOutput)
+        )
+        assert targets.quantile.shape == (batch_size, action_size, n_quantiles)
 
     # check reductions
     if q_func_factory != "iqn":
@@ -171,9 +181,20 @@ def test_discrete_ensemble_q_function_forwarder(
     rew_tp1 = torch.rand(batch_size, 1)
     ter_tp1 = torch.randint(2, size=(batch_size, 1))
     if q_func_factory == "mean":
-        q_tp1 = torch.rand(batch_size, 1)
+        target = TargetOutput(torch.rand(batch_size, 1))
+    elif q_func_factory == "qr":
+        target = QuantileTargetOutput(
+            q_value=torch.rand(batch_size, 1),
+            quantile=torch.rand(batch_size, n_quantiles),
+        )
+    elif q_func_factory == "iqn":
+        target = ImplicitQuantileTargetOutput(
+            q_value=torch.rand(batch_size, 1),
+            quantile=torch.rand(batch_size, n_quantiles),
+            taus=torch.rand(batch_size, n_quantiles),
+        )
     else:
-        q_tp1 = torch.rand(batch_size, n_quantiles)
+        raise ValueError("invalid type")
     masks = (
         torch.randint(2, size=(batch_size, 1), dtype=torch.float32)
         if use_masks
@@ -185,7 +206,7 @@ def test_discrete_ensemble_q_function_forwarder(
             observations=obs_t,
             actions=act_t,
             rewards=rew_tp1,
-            target=q_tp1,
+            target=target,
             terminals=ter_tp1,
             gamma=gamma,
             reduction="none",
@@ -197,7 +218,7 @@ def test_discrete_ensemble_q_function_forwarder(
         observations=obs_t,
         actions=act_t,
         rewards=rew_tp1,
-        target=q_tp1,
+        target=target,
         terminals=ter_tp1,
         gamma=gamma,
         masks=masks,
@@ -266,11 +287,14 @@ def test_ensemble_continuous_q_function(
     # check compute_target
     target = ensemble_forwarder.compute_target(x, action)
     if q_func_factory == "mean":
-        assert target.shape == (batch_size, 1)
+        assert target.q_value.shape == (batch_size, 1)
         min_values = values.min(dim=0).values
-        assert (target == min_values).all()
+        assert (target.q_value == min_values).all()
     else:
-        assert target.shape == (batch_size, n_quantiles)
+        assert isinstance(
+            target, (QuantileTargetOutput, ImplicitQuantileTargetOutput)
+        )
+        assert target.quantile.shape == (batch_size, n_quantiles)
 
     # check reductions
     if q_func_factory != "iqn":
@@ -293,9 +317,20 @@ def test_ensemble_continuous_q_function(
     rew_tp1 = torch.rand(batch_size, 1)
     ter_tp1 = torch.randint(2, size=(batch_size, 1))
     if q_func_factory == "mean":
-        q_tp1 = torch.rand(batch_size, 1)
+        target = TargetOutput(torch.rand(batch_size, 1))
+    elif q_func_factory == "qr":
+        target = QuantileTargetOutput(
+            q_value=torch.rand(batch_size, 1),
+            quantile=torch.rand(batch_size, n_quantiles),
+        )
+    elif q_func_factory == "iqn":
+        target = ImplicitQuantileTargetOutput(
+            q_value=torch.rand(batch_size, 1),
+            quantile=torch.rand(batch_size, n_quantiles),
+            taus=torch.rand(batch_size, n_quantiles),
+        )
     else:
-        q_tp1 = torch.rand(batch_size, n_quantiles)
+        raise ValueError("invalid type")
     masks = (
         torch.randint(2, size=(batch_size, 1), dtype=torch.float32)
         if use_masks
@@ -307,7 +342,7 @@ def test_ensemble_continuous_q_function(
             observations=obs_t,
             actions=act_t,
             rewards=rew_tp1,
-            target=q_tp1,
+            target=target,
             terminals=ter_tp1,
             gamma=gamma,
             reduction="none",
@@ -319,7 +354,7 @@ def test_ensemble_continuous_q_function(
         observations=obs_t,
         actions=act_t,
         rewards=rew_tp1,
-        target=q_tp1,
+        target=target,
         terminals=ter_tp1,
         gamma=gamma,
         masks=masks,
