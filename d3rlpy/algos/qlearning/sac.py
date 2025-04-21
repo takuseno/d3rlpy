@@ -15,11 +15,24 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
+from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import (
+    DeterministicContinuousActionSampler,
+    SquashedGaussianContinuousActionSampler,
+)
+from .torch.ddpg_impl import DDPGValuePredictor
+from .torch.dqn_impl import DQNValuePredictor
 from .torch.sac_impl import (
-    DiscreteSACImpl,
+    CategoricalPolicyExploitActionSampler,
+    CategoricalPolicyExploreActionSampler,
+    DiscreteSACActorLossFn,
+    DiscreteSACCriticLossFn,
     DiscreteSACModules,
-    SACImpl,
+    DiscreteSACUpdater,
+    SACActorLossFn,
+    SACCriticLossFn,
     SACModules,
+    SACUpdater,
 )
 
 __all__ = ["SACConfig", "SAC", "DiscreteSACConfig", "DiscreteSAC"]
@@ -122,7 +135,7 @@ class SACConfig(LearnableConfig):
         return "sac"
 
 
-class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
+class SAC(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, SACConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -187,15 +200,44 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
             temp_optim=temp_optim,
         )
 
-        self._impl = SACImpl(
+        updater = SACUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            critic_loss_fn=SACCriticLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                policy=policy,
+                log_temp=log_temp,
+                gamma=self._config.gamma,
+            ),
+            actor_loss_fn=SACActorLossFn(
+                q_func_forwarder=q_func_forwarder,
+                policy=policy,
+                log_temp=log_temp,
+                temp_optim=temp_optim,
+                action_size=action_size,
+            ),
+            tau=self._config.tau,
+            compiled=self.compiled,
+        )
+        exploit_action_sampler = DeterministicContinuousActionSampler(policy)
+        explore_action_sampler = SquashedGaussianContinuousActionSampler(policy)
+        value_predictor = DDPGValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=self._config.gamma,
-            tau=self._config.tau,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=exploit_action_sampler,
+            explore_action_sampler=explore_action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=critic_optim.optim,
+            policy=policy,
+            policy_optim=actor_optim.optim,
             device=self._device,
         )
 
@@ -285,7 +327,9 @@ class DiscreteSACConfig(LearnableConfig):
         return "discrete_sac"
 
 
-class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
+class DiscreteSAC(
+    QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DiscreteSACConfig]
+):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -354,15 +398,44 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             temp_optim=temp_optim,
         )
 
-        self._impl = DiscreteSACImpl(
+        updater = DiscreteSACUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            critic_loss_fn=DiscreteSACCriticLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                policy=policy,
+                log_temp=log_temp,
+                gamma=self._config.gamma,
+            ),
+            actor_loss_fn=DiscreteSACActorLossFn(
+                q_func_forwarder=q_func_forwarder,
+                policy=policy,
+                log_temp=log_temp,
+                temp_optim=temp_optim,
+                action_size=action_size,
+            ),
+            target_update_interval=self._config.target_update_interval,
+            compiled=self.compiled,
+        )
+        exploit_action_sampler = CategoricalPolicyExploitActionSampler(policy)
+        explore_action_sampler = CategoricalPolicyExploreActionSampler(policy)
+        value_predictor = DQNValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            target_update_interval=self._config.target_update_interval,
-            gamma=self._config.gamma,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=exploit_action_sampler,
+            explore_action_sampler=explore_action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=critic_optim.optim,
+            policy=policy,
+            policy_optim=actor_optim.optim,
             device=self._device,
         )
 

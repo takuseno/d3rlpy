@@ -15,7 +15,17 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.bear_impl import BEARImpl, BEARModules
+from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import SquashedGaussianContinuousActionSampler, VAELossFn
+from .torch.bear_impl import (
+    BEARActorLossFn,
+    BEARCriticLossFn,
+    BEARModules,
+    BEARSquashedGaussianContinuousActionSampler,
+    BEARUpdater,
+    BEARWarmupActorLossFn,
+)
+from .torch.ddpg_impl import DDPGValuePredictor
 
 __all__ = ["BEARConfig", "BEAR"]
 
@@ -157,7 +167,7 @@ class BEARConfig(LearnableConfig):
         return "bear"
 
 
-class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
+class BEAR(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, BEARConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -259,24 +269,75 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             alpha_optim=alpha_optim,
         )
 
-        self._impl = BEARImpl(
+        updater = BEARUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            imitator_optim=vae_optim,
+            critic_loss_fn=BEARCriticLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                policy=policy,
+                log_temp=log_temp,
+                gamma=self._config.gamma,
+                n_target_samples=self._config.n_target_samples,
+                lam=self._config.lam,
+            ),
+            actor_loss_fn=BEARActorLossFn(
+                q_func_forwarder=q_func_forwarder,
+                policy=policy,
+                vae_decoder=vae_decoder,
+                log_temp=log_temp,
+                log_alpha=log_alpha,
+                temp_optim=temp_optim,
+                alpha_optim=alpha_optim,
+                n_mmd_action_samples=self._config.n_mmd_action_samples,
+                mmd_kernel=self._config.mmd_kernel,
+                mmd_sigma=self._config.mmd_sigma,
+                alpha_threshold=self._config.alpha_threshold,
+                action_size=action_size,
+            ),
+            warmup_actor_loss_fn=BEARWarmupActorLossFn(
+                policy=policy,
+                vae_decoder=vae_decoder,
+                log_alpha=log_alpha,
+                action_size=action_size,
+                n_mmd_action_samples=self._config.n_mmd_action_samples,
+                mmd_kernel=self._config.mmd_kernel,
+                mmd_sigma=self._config.mmd_sigma,
+                alpha_threshold=self._config.alpha_threshold,
+            ),
+            imitator_loss_fn=VAELossFn(
+                vae_encoder=vae_encoder,
+                vae_decoder=vae_decoder,
+                kl_weight=self._config.vae_kl_weight,
+            ),
+            tau=self._config.tau,
+            warmup_steps=self._config.warmup_steps,
+            compiled=self.compiled,
+        )
+        exploit_action_sampler = BEARSquashedGaussianContinuousActionSampler(
+            policy=policy,
+            q_func_forwarder=q_func_forwarder,
+            n_action_samples=self._config.n_action_samples,
+            action_size=action_size,
+        )
+        explore_action_sampler = SquashedGaussianContinuousActionSampler(policy)
+        value_predictor = DDPGValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=self._config.gamma,
-            tau=self._config.tau,
-            alpha_threshold=self._config.alpha_threshold,
-            lam=self._config.lam,
-            n_action_samples=self._config.n_action_samples,
-            n_target_samples=self._config.n_target_samples,
-            n_mmd_action_samples=self._config.n_mmd_action_samples,
-            mmd_kernel=self._config.mmd_kernel,
-            mmd_sigma=self._config.mmd_sigma,
-            vae_kl_weight=self._config.vae_kl_weight,
-            warmup_steps=self._config.warmup_steps,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=exploit_action_sampler,
+            explore_action_sampler=explore_action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=critic_optim.optim,
+            policy=policy,
+            policy_optim=actor_optim.optim,
             device=self._device,
         )
 

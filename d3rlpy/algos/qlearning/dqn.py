@@ -8,7 +8,15 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.dqn_impl import DoubleDQNImpl, DQNImpl, DQNModules
+from .functional import FunctionalQLearningAlgoImplBase
+from .torch.dqn_impl import (
+    DoubleDQNLossFn,
+    DQNActionSampler,
+    DQNLossFn,
+    DQNModules,
+    DQNUpdater,
+    DQNValuePredictor,
+)
 
 __all__ = ["DQNConfig", "DQN", "DoubleDQNConfig", "DoubleDQN"]
 
@@ -66,7 +74,7 @@ class DQNConfig(LearnableConfig):
         return "dqn"
 
 
-class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
+class DQN(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DQNConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -101,15 +109,34 @@ class DQN(QLearningAlgoBase[DQNImpl, DQNConfig]):
             optim=optim,
         )
 
-        self._impl = DQNImpl(
+        # build functional components
+        updater = DQNUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
+            dqn_loss_fn=DQNLossFn(
+                q_func_forwarder=forwarder,
+                targ_q_func_forwarder=targ_forwarder,
+                gamma=self._config.gamma,
+            ),
+            target_update_interval=self._config.target_update_interval,
+            compiled=self.compiled,
+        )
+        action_sampler = DQNActionSampler(forwarder)
+        value_predictor = DQNValuePredictor(forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
-            q_func_forwarder=forwarder,
-            targ_q_func_forwarder=targ_forwarder,
-            target_update_interval=self._config.target_update_interval,
             modules=modules,
-            gamma=self._config.gamma,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=action_sampler,
+            explore_action_sampler=action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=optim.optim,
+            policy=None,
+            policy_optim=None,
             device=self._device,
         )
 
@@ -212,15 +239,34 @@ class DoubleDQN(DQN):
             optim=optim,
         )
 
-        self._impl = DoubleDQNImpl(
+        # build functional components
+        updater = DQNUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            optim=optim,
+            dqn_loss_fn=DoubleDQNLossFn(
+                q_func_forwarder=forwarder,
+                targ_q_func_forwarder=targ_forwarder,
+                gamma=self._config.gamma,
+            ),
+            target_update_interval=self._config.target_update_interval,
+            compiled=self.compiled,
+        )
+        action_sampler = DQNActionSampler(forwarder)
+        value_predictor = DQNValuePredictor(forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=forwarder,
-            targ_q_func_forwarder=targ_forwarder,
-            target_update_interval=self._config.target_update_interval,
-            gamma=self._config.gamma,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=action_sampler,
+            explore_action_sampler=action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=optim.optim,
+            policy=None,
+            policy_optim=None,
             device=self._device,
         )
 

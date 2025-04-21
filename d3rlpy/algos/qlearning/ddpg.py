@@ -11,7 +11,15 @@ from ...models.q_functions import QFunctionFactory, make_q_func_field
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
 from .base import QLearningAlgoBase
-from .torch.ddpg_impl import DDPGImpl, DDPGModules
+from .functional import FunctionalQLearningAlgoImplBase
+from .functional_utils import DeterministicContinuousActionSampler
+from .torch.ddpg_impl import (
+    DDPGActorLossFn,
+    DDPGCriticLossFn,
+    DDPGModules,
+    DDPGUpdater,
+    DDPGValuePredictor,
+)
 
 __all__ = ["DDPGConfig", "DDPG"]
 
@@ -93,7 +101,7 @@ class DDPGConfig(LearnableConfig):
         return "ddpg"
 
 
-class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
+class DDPG(QLearningAlgoBase[FunctionalQLearningAlgoImplBase, DDPGConfig]):
     def inner_create_impl(
         self, observation_shape: Shape, action_size: int
     ) -> None:
@@ -150,15 +158,41 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
             critic_optim=critic_optim,
         )
 
-        self._impl = DDPGImpl(
+        updater = DDPGUpdater(
+            q_funcs=q_funcs,
+            targ_q_funcs=targ_q_funcs,
+            policy=policy,
+            targ_policy=targ_policy,
+            critic_optim=critic_optim,
+            actor_optim=actor_optim,
+            critic_loss_fn=DDPGCriticLossFn(
+                q_func_forwarder=q_func_forwarder,
+                targ_q_func_forwarder=targ_q_func_forwarder,
+                targ_policy=targ_policy,
+                gamma=self._config.gamma,
+            ),
+            actor_loss_fn=DDPGActorLossFn(
+                q_func_forwarder=q_func_forwarder,
+                policy=policy,
+            ),
+            tau=self._config.tau,
+            compiled=self.compiled,
+        )
+        action_sampler = DeterministicContinuousActionSampler(policy)
+        value_predictor = DDPGValuePredictor(q_func_forwarder)
+
+        self._impl = FunctionalQLearningAlgoImplBase(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
-            q_func_forwarder=q_func_forwarder,
-            targ_q_func_forwarder=targ_q_func_forwarder,
-            gamma=self._config.gamma,
-            tau=self._config.tau,
-            compiled=self.compiled,
+            updater=updater,
+            exploit_action_sampler=action_sampler,
+            explore_action_sampler=action_sampler,
+            value_predictor=value_predictor,
+            q_function=q_funcs,
+            q_function_optim=critic_optim.optim,
+            policy=policy,
+            policy_optim=actor_optim.optim,
             device=self._device,
         )
 
