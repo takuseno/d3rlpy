@@ -4,7 +4,6 @@ from typing import Optional, Union
 
 import gym
 import numpy as np
-from torch.optim.lr_scheduler import CosineAnnealingLR
 
 import d3rlpy
 from d3rlpy.algos import CQL, IQL
