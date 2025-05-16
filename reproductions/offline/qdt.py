@@ -236,7 +236,6 @@ def fit_iql(
             ),
         ),
         batch_size=256,
-        gamma=0.99,
         weight_temp=3.0,
         max_weight=100.0,
         expectile=0.7,
@@ -244,23 +243,11 @@ def fit_iql(
         compile_graph=compile,
     ).create(device=gpu)
 
-    # workaround for learning scheduler
-    iql.build_with_dataset(dataset)
-    assert iql.impl
-    scheduler = CosineAnnealingLR(
-        iql.impl._modules.actor_optim,  # pylint: disable=protected-access
-        500000,
-    )
-
-    def callback(algo: d3rlpy.algos.IQL, epoch: int, total_step: int) -> None:
-        scheduler.step()
-
     iql.fit(
         dataset,
         n_steps=500000,
         n_steps_per_epoch=1000,
         save_interval=10,
-        callback=callback,
         evaluators={
             "environment": d3rlpy.metrics.EnvironmentEvaluator(env, n_trials=10)
         },
