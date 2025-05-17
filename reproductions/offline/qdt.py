@@ -4,7 +4,6 @@ from typing import Optional, Union
 
 import gym
 import numpy as np
-from torch.optim.lr_scheduler import CosineAnnealingLR
 
 import d3rlpy
 from d3rlpy.algos import CQL, IQL
@@ -26,6 +25,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--num_action_samples", type=int, default=10)
     parser.add_argument("--gpu", type=int)
+    parser.add_argument("--compile", action="store_true")
     args = parser.parse_args()
 
     dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
@@ -54,6 +54,7 @@ def main() -> None:
                 dataset=dataset,
                 env=env,
                 gpu=args.gpu,
+                compile=args.compile,
                 log_postfix=log_postfix,
             )
         elif args.q_learning_type == "iql":
@@ -61,6 +62,7 @@ def main() -> None:
                 dataset=dataset,
                 env=env,
                 gpu=args.gpu,
+                compile=args.compile,
                 log_postfix=log_postfix,
             )
         else:
@@ -82,6 +84,7 @@ def main() -> None:
         env=env,
         context_size=args.context_size,
         gpu=args.gpu,
+        compile=args.compile,
         log_postfix=log_postfix,
     )
 
@@ -115,8 +118,10 @@ def relabel_dataset_rtg(
             values = []
             for _ in range(num_action_samples):
                 sampled_actions = q_algo.sample_action(episode.observations)
+                v = q_algo.predict_value(episode.observations, sampled_actions)
                 values.append(
-                    q_algo.predict_value(episode.observations, sampled_actions)
+                    v if q_algo.reward_scaler is None 
+                          else q_algo.reward_scaler.reverse_transform(v)
                 )
             value = np.array(values).mean(axis=0)
             rewards = np.squeeze(episode.rewards, axis=1)
@@ -149,6 +154,7 @@ def fit_cql(
     dataset: ReplayBuffer,
     env: gym.Env[NDArray, int],
     gpu: Optional[int],
+    compile: bool,
     log_postfix: str,
 ) -> CQL:
     """
@@ -180,6 +186,7 @@ def fit_cql(
         n_action_samples=10,
         alpha_learning_rate=0.0,
         conservative_weight=conservative_weight,
+        compile_graph=compile,
     ).create(device=gpu)
 
     cql.fit(
@@ -199,6 +206,7 @@ def fit_iql(
     dataset: ReplayBuffer,
     env: gym.Env[NDArray, int],
     gpu: Optional[int],
+    compile: bool,
     log_postfix: str,
 ) -> IQL:
     """
@@ -221,31 +229,24 @@ def fit_iql(
     iql = d3rlpy.algos.IQLConfig(
         actor_learning_rate=3e-4,
         critic_learning_rate=3e-4,
+        actor_optim_factory=d3rlpy.optimizers.AdamFactory(
+            lr_scheduler_factory=d3rlpy.optimizers.CosineAnnealingLRFactory(
+                T_max=500000
+            ),
+        ),
         batch_size=256,
-        gamma=0.99,
         weight_temp=3.0,
         max_weight=100.0,
         expectile=0.7,
         reward_scaler=reward_scaler,
+        compile_graph=compile,
     ).create(device=gpu)
-
-    # workaround for learning scheduler
-    iql.build_with_dataset(dataset)
-    assert iql.impl
-    scheduler = CosineAnnealingLR(
-        iql.impl._modules.actor_optim,  # pylint: disable=protected-access
-        500000,
-    )
-
-    def callback(algo: d3rlpy.algos.IQL, epoch: int, total_step: int) -> None:
-        scheduler.step()
 
     iql.fit(
         dataset,
         n_steps=500000,
         n_steps_per_epoch=1000,
         save_interval=10,
-        callback=callback,
         evaluators={
             "environment": d3rlpy.metrics.EnvironmentEvaluator(env, n_trials=10)
         },
@@ -261,6 +262,7 @@ def fit_dt(
     env: gym.Env[NDArray, int],
     context_size: int,
     gpu: Optional[int],
+    compile: bool,
     log_postfix: str,
 ) -> None:
     """
@@ -303,6 +305,7 @@ def fit_dt(
         num_heads=1,
         num_layers=3,
         max_timestep=1000,
+        compile_graph=compile,
     ).create(device=gpu)
 
     dt.fit(
