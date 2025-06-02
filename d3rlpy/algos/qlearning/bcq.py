@@ -11,7 +11,11 @@ from ...models.builders import (
     create_vae_encoder,
 )
 from ...models.encoders import EncoderFactory, make_encoder_field
-from ...models.q_functions import QFunctionFactory, make_q_func_field
+from ...models.q_functions import (
+    MeanQFunctionFactory,
+    QFunctionFactory,
+    make_q_func_field,
+)
 from ...models.torch import CategoricalPolicy, compute_output_size
 from ...optimizers.optimizers import OptimizerFactory, make_optimizer_field
 from ...types import Shape
@@ -122,8 +126,6 @@ class BCQConfig(LearnableConfig):
             Encoder factory for the critic.
         imitator_encoder_factory (d3rlpy.models.encoders.EncoderFactory):
             Encoder factory for the conditional VAE.
-        q_func_factory (d3rlpy.models.q_functions.QFunctionFactory):
-            Q function factory.
         batch_size (int): Mini-batch size.
         gamma (float): Discount factor.
         tau (float): Target network synchronization coefficiency.
@@ -149,7 +151,6 @@ class BCQConfig(LearnableConfig):
     actor_encoder_factory: EncoderFactory = make_encoder_field()
     critic_encoder_factory: EncoderFactory = make_encoder_field()
     imitator_encoder_factory: EncoderFactory = make_encoder_field()
-    q_func_factory: QFunctionFactory = make_q_func_field()
     batch_size: int = 100
     gamma: float = 0.99
     tau: float = 0.005
@@ -195,7 +196,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
-            self._config.q_func_factory,
+            MeanQFunctionFactory(),
             n_ensembles=self._config.n_critics,
             device=self._device,
             enable_ddp=self._enable_ddp,
@@ -204,7 +205,7 @@ class BCQ(QLearningAlgoBase[BCQImpl, BCQConfig]):
             observation_shape,
             action_size,
             self._config.critic_encoder_factory,
-            self._config.q_func_factory,
+            MeanQFunctionFactory(),
             n_ensembles=self._config.n_critics,
             device=self._device,
             enable_ddp=self._enable_ddp,

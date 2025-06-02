@@ -11,6 +11,7 @@ from ....models.torch import (
     ActionOutput,
     ContinuousEnsembleQFunctionForwarder,
     Policy,
+    TargetOutput,
 )
 from ....optimizers.optimizers import OptimizerWrapper
 from ....torch_utility import (
@@ -111,13 +112,13 @@ class DDPGBaseImpl(
         return asdict_as_float(loss)
 
     def compute_critic_loss(
-        self, batch: TorchMiniBatch, q_tpn: torch.Tensor
+        self, batch: TorchMiniBatch, target: TargetOutput
     ) -> DDPGBaseCriticLoss:
         loss = self._q_func_forwarder.compute_error(
             observations=batch.observations,
             actions=batch.actions,
             rewards=batch.rewards,
-            target=q_tpn,
+            target=target,
             terminals=batch.terminals,
             gamma=self._gamma**batch.intervals,
         )
@@ -153,7 +154,7 @@ class DDPGBaseImpl(
         pass
 
     @abstractmethod
-    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> TargetOutput:
         pass
 
     def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
@@ -224,7 +225,7 @@ class DDPGImpl(DDPGBaseImpl):
         )[0]
         return DDPGBaseActorLoss(-q_t.mean())
 
-    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> TargetOutput:
         with torch.no_grad():
             action = self._modules.targ_policy(batch.next_observations)
             return self._targ_q_func_forwarder.compute_target(

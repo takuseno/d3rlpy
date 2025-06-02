@@ -1,10 +1,17 @@
+from dataclasses import replace
 from typing import Optional, Sequence, Union
 
 import torch
 
-from ....torch_utility import get_batch_size, get_device
+from ....torch_utility import get_device
 from ....types import TorchObservation
-from .base import ContinuousQFunctionForwarder, DiscreteQFunctionForwarder
+from .base import (
+    ContinuousQFunctionForwarder,
+    DiscreteQFunctionForwarder,
+    TargetOutput,
+)
+from .iqn_q_function import ImplicitQuantileTargetOutput
+from .qr_q_function import QuantileTargetOutput
 
 __all__ = [
     "DiscreteEnsembleQFunctionForwarder",
@@ -38,7 +45,7 @@ def _gather_quantiles_by_indices(
     # TODO: implement this in general case
     if y.dim() == 3:
         # (N, batch, n_quantiles) -> (batch, n_quantiles)
-        return y.transpose(0, 1)[torch.arange(y.shape[1]), indices]
+        return y.transpose(0, 1)[torch.arange(y.shape[1]), indices.view(-1)]
     elif y.dim() == 4:
         # (N, batch, action, n_quantiles) -> (batch, action, N, n_quantiles)
         transposed_y = y.transpose(0, 1).transpose(1, 2)
@@ -53,25 +60,149 @@ def _gather_quantiles_by_indices(
 
 
 def _reduce_quantile_ensemble(
-    y: torch.Tensor, reduction: str = "min", dim: int = 0, lam: float = 0.75
+    y: torch.Tensor,
+    stacked_q_values: torch.Tensor,
+    reduction: str = "min",
+    dim: int = 0,
+    lam: float = 0.75,
 ) -> torch.Tensor:
-    # reduction beased on expectation
-    mean = y.mean(dim=-1)
     if reduction == "min":
-        indices = mean.min(dim=dim).indices
+        indices = stacked_q_values.min(dim=dim).indices
         return _gather_quantiles_by_indices(y, indices)
     elif reduction == "max":
-        indices = mean.max(dim=dim).indices
+        indices = stacked_q_values.max(dim=dim).indices
         return _gather_quantiles_by_indices(y, indices)
     elif reduction == "none":
         return y
     elif reduction == "mix":
-        min_indices = mean.min(dim=dim).indices
-        max_indices = mean.max(dim=dim).indices
+        min_indices = stacked_q_values.min(dim=dim).indices
+        max_indices = stacked_q_values.max(dim=dim).indices
         min_values = _gather_quantiles_by_indices(y, min_indices)
         max_values = _gather_quantiles_by_indices(y, max_indices)
         return lam * min_values + (1.0 - lam) * max_values
     raise ValueError
+
+
+def _reduce_target_outputs(
+    target_outputs: list[TargetOutput],
+    reduction: str = "min",
+    dim: int = 0,
+    lam: float = 0.75,
+) -> TargetOutput:
+    stacked_values = torch.stack([q.q_value for q in target_outputs], dim=0)
+    reduced_value = _reduce_ensemble(
+        y=stacked_values,
+        reduction=reduction,
+        dim=dim,
+        lam=lam,
+    )
+    return TargetOutput(reduced_value)
+
+
+def _reduce_quantile_target_outputs(
+    target_outputs: list[QuantileTargetOutput],
+    reduction: str = "min",
+    dim: int = 0,
+    lam: float = 0.75,
+) -> QuantileTargetOutput:
+    stacked_values = torch.stack([q.q_value for q in target_outputs], dim=0)
+    stacked_quantiles = torch.stack([q.quantile for q in target_outputs], dim=0)
+    reduced_value = _reduce_ensemble(
+        y=stacked_values,
+        reduction=reduction,
+        dim=dim,
+        lam=lam,
+    )
+    reduced_quantile = _reduce_quantile_ensemble(
+        y=stacked_quantiles,
+        stacked_q_values=stacked_values,
+        reduction=reduction,
+        dim=dim,
+        lam=lam,
+    )
+    return QuantileTargetOutput(
+        q_value=reduced_value,
+        quantile=reduced_quantile,
+    )
+
+
+def _reduce_implicit_quantile_target_outputs(
+    target_outputs: list[ImplicitQuantileTargetOutput],
+    reduction: str = "min",
+    dim: int = 0,
+    lam: float = 0.75,
+) -> ImplicitQuantileTargetOutput:
+    stacked_values = torch.stack([q.q_value for q in target_outputs], dim=0)
+    stacked_quantiles = torch.stack([q.quantile for q in target_outputs], dim=0)
+    stacked_taus = torch.stack([q.taus for q in target_outputs], dim=0)
+    reduced_value = _reduce_ensemble(
+        y=stacked_values,
+        reduction=reduction,
+        dim=dim,
+        lam=lam,
+    )
+    reduced_quantile = _reduce_quantile_ensemble(
+        y=stacked_quantiles,
+        stacked_q_values=stacked_values,
+        reduction=reduction,
+        dim=dim,
+        lam=lam,
+    )
+    if stacked_values.shape[-1] == 1:
+        reduced_taus = _reduce_quantile_ensemble(
+            y=stacked_taus,
+            stacked_q_values=stacked_values,
+            reduction=reduction,
+            dim=dim,
+            lam=lam,
+        )
+    else:
+        action_size = stacked_values.shape[-1]
+        reduced_taus = _reduce_quantile_ensemble(
+            y=torch.unsqueeze(stacked_taus, dim=-2).tile(
+                [1, 1, action_size, 1]
+            ),
+            stacked_q_values=stacked_values,
+            reduction=reduction,
+            dim=dim,
+            lam=lam,
+        )
+    return ImplicitQuantileTargetOutput(
+        q_value=reduced_value,
+        quantile=reduced_quantile,
+        taus=reduced_taus,
+    )
+
+
+def _reduce_generic_target_outputs(
+    target_outputs: list[TargetOutput],
+    reduction: str = "min",
+    dim: int = 0,
+    lam: float = 0.75,
+) -> TargetOutput:
+    if isinstance(target_outputs[0], QuantileTargetOutput):
+        return _reduce_quantile_target_outputs(
+            target_outputs=target_outputs,  # type: ignore
+            reduction=reduction,
+            dim=dim,
+            lam=lam,
+        )
+    elif isinstance(target_outputs[0], ImplicitQuantileTargetOutput):
+        return _reduce_implicit_quantile_target_outputs(
+            target_outputs=target_outputs,  # type: ignore
+            reduction=reduction,
+            dim=dim,
+            lam=lam,
+        )
+    elif isinstance(target_outputs[0], TargetOutput):
+        return _reduce_target_outputs(
+            target_outputs=target_outputs,
+            reduction=reduction,
+            dim=dim,
+            lam=lam,
+        )
+    else:
+        raise ValueError(f"invalid type: {type(target_outputs[0])}")
 
 
 def compute_ensemble_q_function_error(
@@ -82,12 +213,12 @@ def compute_ensemble_q_function_error(
     observations: TorchObservation,
     actions: torch.Tensor,
     rewards: torch.Tensor,
-    target: torch.Tensor,
+    target: TargetOutput,
     terminals: torch.Tensor,
     gamma: Union[float, torch.Tensor] = 0.99,
     masks: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
-    assert target.ndim == 2
+    assert target.q_value.ndim == 2
     td_sum = torch.tensor(
         0.0,
         dtype=torch.float32,
@@ -114,37 +245,24 @@ def compute_ensemble_q_function_target(
         Sequence[DiscreteQFunctionForwarder],
         Sequence[ContinuousQFunctionForwarder],
     ],
-    action_size: int,
     x: TorchObservation,
     action: Optional[torch.Tensor] = None,
     reduction: str = "min",
     lam: float = 0.75,
-) -> torch.Tensor:
-    batch_size = get_batch_size(x)
-    values_list: list[torch.Tensor] = []
+) -> TargetOutput:
+    targets: list[TargetOutput] = []
     for forwarder in forwarders:
         if isinstance(forwarder, ContinuousQFunctionForwarder):
             assert action is not None
             target = forwarder.compute_target(x, action)
         else:
             target = forwarder.compute_target(x, action)
-        values_list.append(target.reshape(1, batch_size, -1))
-
-    values = torch.cat(values_list, dim=0)
-
-    if action is None:
-        # mean Q function
-        if values.shape[2] == action_size:
-            return _reduce_ensemble(values, reduction)
-        # distributional Q function
-        n_q_funcs = values.shape[0]
-        values = values.view(n_q_funcs, batch_size, action_size, -1)
-        return _reduce_quantile_ensemble(values, reduction)
-
-    if values.shape[2] == 1:
-        return _reduce_ensemble(values, reduction, lam=lam)
-
-    return _reduce_quantile_ensemble(values, reduction, lam=lam)
+        targets.append(target)
+    return _reduce_generic_target_outputs(
+        target_outputs=targets,
+        reduction=reduction,
+        lam=lam,
+    )
 
 
 class DiscreteEnsembleQFunctionForwarder:
@@ -181,7 +299,7 @@ class DiscreteEnsembleQFunctionForwarder:
         observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
-        target: torch.Tensor,
+        target: TargetOutput,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
         masks: Optional[torch.Tensor] = None,
@@ -203,10 +321,9 @@ class DiscreteEnsembleQFunctionForwarder:
         action: Optional[torch.Tensor] = None,
         reduction: str = "min",
         lam: float = 0.75,
-    ) -> torch.Tensor:
+    ) -> TargetOutput:
         return compute_ensemble_q_function_target(
             forwarders=self._forwarders,
-            action_size=self._action_size,
             x=x,
             action=action,
             reduction=reduction,
@@ -254,7 +371,7 @@ class ContinuousEnsembleQFunctionForwarder:
         observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
-        target: torch.Tensor,
+        target: TargetOutput,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
         masks: Optional[torch.Tensor] = None,
@@ -276,10 +393,9 @@ class ContinuousEnsembleQFunctionForwarder:
         action: torch.Tensor,
         reduction: str = "min",
         lam: float = 0.75,
-    ) -> torch.Tensor:
+    ) -> TargetOutput:
         return compute_ensemble_q_function_target(
             forwarders=self._forwarders,
-            action_size=self._action_size,
             x=x,
             action=action,
             reduction=reduction,
@@ -296,7 +412,7 @@ def compute_max_with_n_actions_and_indices(
     actions: torch.Tensor,
     forwarder: ContinuousEnsembleQFunctionForwarder,
     lam: float,
-) -> tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[TargetOutput, torch.Tensor]:
     """Returns weighted target value from sampled actions.
 
     This calculation is proposed in BCQ paper for the first time.
@@ -323,7 +439,8 @@ def compute_max_with_n_actions_and_indices(
     flat_actions = actions.reshape(batch_size * n_actions, -1)
 
     # estimate values while taking care of quantiles
-    flat_values = forwarder.compute_target(flat_x, flat_actions, "none")
+    target_output = forwarder.compute_target(flat_x, flat_actions, "none")
+    flat_values = target_output.q_value
     # reshape to (n_ensembles, batch_size, n, -1)
     transposed_values = flat_values.view(n_critics, batch_size, n_actions, -1)
     # (n_ensembles, batch_size, n, -1) -> (batch_size, n_ensembles, n, -1)
@@ -355,7 +472,7 @@ def compute_max_with_n_actions_and_indices(
     # (batch, n, -1) -> (batch, -1)
     result_values = mix_values[torch.arange(batch_size), action_indices]
 
-    return result_values, action_indices
+    return replace(target_output, q_value=result_values), action_indices
 
 
 def compute_max_with_n_actions(
@@ -363,5 +480,5 @@ def compute_max_with_n_actions(
     actions: torch.Tensor,
     forwarder: ContinuousEnsembleQFunctionForwarder,
     lam: float,
-) -> torch.Tensor:
+) -> TargetOutput:
     return compute_max_with_n_actions_and_indices(x, actions, forwarder, lam)[0]

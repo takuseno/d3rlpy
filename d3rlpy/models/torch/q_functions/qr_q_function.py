@@ -1,3 +1,4 @@
+import dataclasses
 from typing import Optional, Union
 
 import torch
@@ -12,11 +13,13 @@ from .base import (
     DiscreteQFunction,
     DiscreteQFunctionForwarder,
     QFunctionOutput,
+    TargetOutput,
 )
 from .utility import (
     compute_quantile_loss,
     compute_reduce,
     pick_quantile_value_by_action,
+    pick_value_by_action,
 )
 
 __all__ = [
@@ -24,6 +27,7 @@ __all__ = [
     "ContinuousQRQFunction",
     "ContinuousQRQFunctionForwarder",
     "DiscreteQRQFunctionForwarder",
+    "QuantileTargetOutput",
 ]
 
 
@@ -32,6 +36,22 @@ def _make_taus(n_quantiles: int, device: torch.device) -> torch.Tensor:
     taus = ((steps + 1).float() / n_quantiles).view(1, -1)
     taus_dot = (steps.float() / n_quantiles).view(1, -1)
     return (taus + taus_dot) / 2.0
+
+
+@dataclasses.dataclass(frozen=True)
+class QuantileTargetOutput(TargetOutput):
+    quantile: torch.Tensor
+
+    def add(self, v: torch.Tensor) -> "QuantileTargetOutput":
+        assert v.shape == (self.q_value.shape[0], 1)
+        return QuantileTargetOutput(
+            q_value=self.q_value + v,
+            quantile=(
+                (self.quantile + v.unsqueeze(dim=1))
+                if self.quantile.ndim == 3
+                else (self.quantile + v)
+            ),
+        )
 
 
 class DiscreteQRQFunction(DiscreteQFunction):
@@ -83,13 +103,14 @@ class DiscreteQRQFunctionForwarder(DiscreteQFunctionForwarder):
         observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
-        target: torch.Tensor,
+        target: TargetOutput,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
+        assert isinstance(target, QuantileTargetOutput)
         batch_size = get_batch_size(observations)
-        assert target.shape == (batch_size, self._n_quantiles)
+        assert target.quantile.shape == (batch_size, self._n_quantiles)
 
         # extraect quantiles corresponding to act_t
         output = self._q_func(observations)
@@ -101,7 +122,7 @@ class DiscreteQRQFunctionForwarder(DiscreteQFunctionForwarder):
         loss = compute_quantile_loss(
             quantiles=quantiles,
             rewards=rewards,
-            target=target,
+            target=target.quantile,
             terminals=terminals,
             taus=taus,
             gamma=gamma,
@@ -111,12 +132,18 @@ class DiscreteQRQFunctionForwarder(DiscreteQFunctionForwarder):
 
     def compute_target(
         self, x: TorchObservation, action: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
-        quantiles = self._q_func(x).quantiles
+    ) -> QuantileTargetOutput:
+        q_output = self._q_func(x)
+        q_value = q_output.q_value
+        quantiles = q_output.quantiles
         assert quantiles is not None
-        if action is None:
-            return quantiles
-        return pick_quantile_value_by_action(quantiles, action)
+        if action is not None:
+            q_value = pick_value_by_action(q_value, action, keepdim=True)
+            quantiles = pick_quantile_value_by_action(quantiles, action)
+        return QuantileTargetOutput(
+            q_value=q_value,
+            quantile=quantiles,
+        )
 
     def set_q_func(self, q_func: DiscreteQFunction) -> None:
         self._q_func = q_func
@@ -171,13 +198,14 @@ class ContinuousQRQFunctionForwarder(ContinuousQFunctionForwarder):
         observations: TorchObservation,
         actions: torch.Tensor,
         rewards: torch.Tensor,
-        target: torch.Tensor,
+        target: TargetOutput,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
         reduction: str = "mean",
     ) -> torch.Tensor:
+        assert isinstance(target, QuantileTargetOutput)
         batch_size = get_batch_size(observations)
-        assert target.shape == (batch_size, self._n_quantiles)
+        assert target.quantile.shape == (batch_size, self._n_quantiles)
 
         output = self._q_func(observations, actions)
         quantiles = output.quantiles
@@ -187,7 +215,7 @@ class ContinuousQRQFunctionForwarder(ContinuousQFunctionForwarder):
         loss = compute_quantile_loss(
             quantiles=quantiles,
             rewards=rewards,
-            target=target,
+            target=target.quantile,
             terminals=terminals,
             taus=taus,
             gamma=gamma,
@@ -197,10 +225,14 @@ class ContinuousQRQFunctionForwarder(ContinuousQFunctionForwarder):
 
     def compute_target(
         self, x: TorchObservation, action: torch.Tensor
-    ) -> torch.Tensor:
-        quantiles = self._q_func(x, action).quantiles
+    ) -> QuantileTargetOutput:
+        q_output = self._q_func(x, action)
+        quantiles = q_output.quantiles
         assert quantiles is not None
-        return quantiles
+        return QuantileTargetOutput(
+            q_value=q_output.q_value,
+            quantile=quantiles,
+        )
 
     def set_q_func(self, q_func: ContinuousQFunction) -> None:
         self._q_func = q_func
