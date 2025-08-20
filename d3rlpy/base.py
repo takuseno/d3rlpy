@@ -2,7 +2,7 @@ import dataclasses
 import io
 import pickle
 from abc import ABCMeta, abstractmethod
-from typing import BinaryIO, Generic, Optional, Type, TypeVar, Union, Callableter
+from typing import BinaryIO, Generic, Optional, TypeVar, Union, Callable
 
 from gym.spaces import Box
 from gymnasium.spaces import Box as GymnasiumBox
