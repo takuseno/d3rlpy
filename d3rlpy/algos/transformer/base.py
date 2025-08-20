@@ -236,7 +236,7 @@ class TransformerAlgoBase(
 
         Args:
             fname: Destination file path.
-        """
+        """  # noqa: E501
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         context_size = self._config.context_size

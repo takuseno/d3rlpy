@@ -6,7 +6,7 @@ import d3rlpy
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="antmaze-umaze-v0")
+    parser.add_argument("--dataset", type=str, default="D4RL/antmaze/umaze-v1")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--gpu", type=int)
     parser.add_argument("--compile", action="store_true")

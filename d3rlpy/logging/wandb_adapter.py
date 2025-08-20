@@ -84,7 +84,8 @@ class WanDBAdapterFactory(LoggerAdapterFactory):
     tracking.
 
     Args:
-        project (Optional[str], optional): The name of the WandB project. Defaults to None.
+        project (Optional[str], optional): The name of the WandB project.
+            Defaults to None.
     """
 
     _project: Optional[str]

@@ -1,5 +1,3 @@
-# pylint: disable=unused-import,too-many-return-statements
-
 import enum
 import os
 import random
@@ -52,13 +50,9 @@ __all__ = [
 DATA_DIRECTORY = "d3rlpy_data"
 DROPBOX_URL = "https://www.dropbox.com/s"
 CARTPOLE_URL = f"{DROPBOX_URL}/uep0lzlhxpi79pd/cartpole_v1.1.0.h5?dl=1"
-CARTPOLE_RANDOM_URL = (
-    f"{DROPBOX_URL}/4lgai7tgj84cbov/cartpole_random_v1.1.0.h5?dl=1"  # pylint: disable=line-too-long
-)
+CARTPOLE_RANDOM_URL = f"{DROPBOX_URL}/4lgai7tgj84cbov/cartpole_random_v1.1.0.h5?dl=1"  # noqa: E501
 PENDULUM_URL = f"{DROPBOX_URL}/ukkucouzys0jkfs/pendulum_v1.1.0.h5?dl=1"
-PENDULUM_RANDOM_URL = (
-    f"{DROPBOX_URL}/hhbq9i6ako24kzz/pendulum_random_v1.1.0.h5?dl=1"  # pylint: disable=line-too-long
-)
+PENDULUM_RANDOM_URL = f"{DROPBOX_URL}/hhbq9i6ako24kzz/pendulum_random_v1.1.0.h5?dl=1"  # noqa: E501
 
 
 def get_cartpole(
@@ -422,6 +416,7 @@ def get_d4rl(
     """
     try:
         import d4rl  # noqa
+        from d4rl.pointmaze.maze_model import MazeEnv
         from d4rl.locomotion.wrappers import NormalizedBoxEnv
         from d4rl.utils.wrappers import (
             NormalizedBoxEnv as NormalizedBoxEnvFromUtils,
@@ -447,15 +442,19 @@ def get_d4rl(
         )
 
         # remove incompatible wrappers
-        normalized_env = env.env.env.env  # type: ignore
-        assert isinstance(
-            normalized_env, (NormalizedBoxEnv, NormalizedBoxEnvFromUtils)
-        )
-        unwrapped_env: gym.Env[Any, Any] = normalized_env.wrapped_env
-        unwrapped_env.render_mode = render_mode  # overwrite
+        wrapped_env = env.env.env.env  # type: ignore
+        if isinstance(
+            wrapped_env, (NormalizedBoxEnv, NormalizedBoxEnvFromUtils)
+        ):
+            unwrapped_env: gym.Env[Any, Any] = wrapped_env.wrapped_env
+            unwrapped_env.render_mode = render_mode  # overwrite
+        elif isinstance(wrapped_env, MazeEnv):
+            wrapped_env.render_mode = render_mode  # overwrite
+        else:
+            wrapped_env.env.render_mode = render_mode  # overwrite
 
         return dataset, TimeLimit(
-            normalized_env, max_episode_steps=max_episode_steps
+            wrapped_env, max_episode_steps=max_episode_steps
         )
     except ImportError as e:
         raise ImportError(

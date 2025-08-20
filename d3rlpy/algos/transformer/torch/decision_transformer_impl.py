@@ -55,7 +55,11 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
     def inner_predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
         # (1, T, A)
         action = self._modules.transformer(
-            inpt.observations, inpt.actions, inpt.returns_to_go, inpt.timesteps
+            inpt.observations,
+            inpt.actions,
+            inpt.returns_to_go,
+            inpt.timesteps,
+            1 - inpt.masks,
         )
         # (1, T, A) -> (A,)
         return action[0][-1]
@@ -81,10 +85,11 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
             batch.actions,
             batch.returns_to_go,
             batch.timesteps,
+            1 - batch.masks,
         )
         # (B, T, A) -> (B, T)
         loss = ((action - batch.actions) ** 2).sum(dim=-1)
-        return loss.mean()
+        return (loss.reshape(-1) * batch.masks.reshape(-1)).mean()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -132,7 +137,11 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
     def inner_predict(self, inpt: TorchTransformerInput) -> torch.Tensor:
         # (1, T, A)
         _, logits = self._modules.transformer(
-            inpt.observations, inpt.actions, inpt.returns_to_go, inpt.timesteps
+            inpt.observations,
+            inpt.actions,
+            inpt.returns_to_go,
+            inpt.timesteps,
+            1 - inpt.masks,
         )
         # (1, T, A) -> (A,)
         return logits[0][-1]
@@ -177,6 +186,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
             batch.actions,
             batch.returns_to_go,
             batch.timesteps,
+            1 - batch.masks,
         )
         loss = F.cross_entropy(
             logits.view(-1, self._action_size),

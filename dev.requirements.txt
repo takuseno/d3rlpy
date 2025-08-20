@@ -9,5 +9,6 @@ mypy
 numpy<2
 docformatter
 ruff
-minari==0.4.2
-gymnasium_robotics
+black
+minari[all]>=0.5.2
+gymnasium-robotics>=1.3.1

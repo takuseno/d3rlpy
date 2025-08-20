@@ -1,4 +1,3 @@
-
 import torch
 
 from ....models.torch import ContinuousEnsembleQFunctionForwarder

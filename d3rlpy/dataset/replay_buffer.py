@@ -328,8 +328,8 @@ class ReplayBuffer(ReplayBufferBase):
         cache_size (int): Size of cache to record active episode history used
             for online training. ``cache_size`` needs to be greater than the
             maximum possible episode length.
-        write_at_termination (bool): Flag to write experiences to the buffer at the
-            end of an episode all at once.
+        write_at_termination (bool): Flag to write experiences to the buffer at
+            the end of an episode all at once.
     """
 
     _buffer: BufferProtocol
@@ -381,8 +381,8 @@ class ReplayBuffer(ReplayBufferBase):
                 )
             else:
                 raise ValueError(
-                    "Either episodes or env must be provided to determine signatures."
-                    " Or specify signatures directly."
+                    "Either episodes or env must be provided to determine "
+                    "signatures. Or specify signatures directly."
                 )
             LOG.info(
                 "Signatures have been automatically determined.",
@@ -398,8 +398,8 @@ class ReplayBuffer(ReplayBufferBase):
                 action_space = detect_action_space_from_env(env)
             else:
                 raise ValueError(
-                    "Either episodes or env must be provided to determine action_space."
-                    " Or specify action_space directly."
+                    "Either episodes or env must be provided to determine "
+                    "action_space. Or specify action_space directly."
                 )
             LOG.info(
                 "Action-space has been automatically determined.",
@@ -421,8 +421,8 @@ class ReplayBuffer(ReplayBufferBase):
                 action_size = detect_action_size_from_env(env)
             else:
                 raise ValueError(
-                    "Either episodes or env must be provided to determine action_space."
-                    " Or specify action_size directly."
+                    "Either episodes or env must be provided to determine "
+                    "action_space. Or specify action_size directly."
                 )
             LOG.info(
                 "Action size has been automatically determined.",
@@ -771,8 +771,8 @@ def create_fifo_replay_buffer(
             Writer preprocessor implementation. If ``None`` is given,
             ``BasicWriterPreprocess`` is used by default.
         env: Gym environment to extract shapes of observations and action.
-        write_at_termination (bool): Flag to write experiences to the buffer at the
-            end of an episode all at once.
+        write_at_termination (bool): Flag to write experiences to the buffer at
+            the end of an episode all at once.
 
     Returns:
         Replay buffer.
@@ -814,8 +814,8 @@ def create_infinite_replay_buffer(
             Writer preprocessor implementation. If ``None`` is given,
             ``BasicWriterPreprocess`` is used by default.
         env: Gym environment to extract shapes of observations and action.
-        write_at_termination (bool): Flag to write experiences to the buffer at the
-            end of an episode all at once.
+        write_at_termination (bool): Flag to write experiences to the buffer at
+            the end of an episode all at once.
 
     Returns:
         Replay buffer.

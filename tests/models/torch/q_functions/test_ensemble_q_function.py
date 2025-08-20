@@ -1,4 +1,3 @@
-
 import pytest
 import torch
 
@@ -83,6 +82,7 @@ def test_reduce_quantile_ensemble(
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn"])
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("embed_size", [64])
+@pytest.mark.parametrize("use_masks", [False, True])
 def test_discrete_ensemble_q_function_forwarder(
     observation_shape: Shape,
     action_size: int,
@@ -92,6 +92,7 @@ def test_discrete_ensemble_q_function_forwarder(
     q_func_factory: str,
     n_quantiles: int,
     embed_size: int,
+    use_masks: bool,
 ) -> None:
     forwarders: list[DiscreteQFunctionForwarder] = []
     for _ in range(ensemble_size):
@@ -173,16 +174,25 @@ def test_discrete_ensemble_q_function_forwarder(
         q_tp1 = torch.rand(batch_size, 1)
     else:
         q_tp1 = torch.rand(batch_size, n_quantiles)
+    masks = (
+        torch.randint(2, size=(batch_size, 1), dtype=torch.float32)
+        if use_masks
+        else None
+    )
     ref_td_sum = 0.0
     for forwarder in forwarders:
-        ref_td_sum += forwarder.compute_error(
+        ind_loss = forwarder.compute_error(
             observations=obs_t,
             actions=act_t,
             rewards=rew_tp1,
             target=q_tp1,
             terminals=ter_tp1,
             gamma=gamma,
+            reduction="none",
         )
+        if masks is not None:
+            ind_loss *= masks
+        ref_td_sum += ind_loss.mean()
     loss = ensemble_forwarder.compute_error(
         observations=obs_t,
         actions=act_t,
@@ -190,6 +200,7 @@ def test_discrete_ensemble_q_function_forwarder(
         target=q_tp1,
         terminals=ter_tp1,
         gamma=gamma,
+        masks=masks,
     )
     if q_func_factory != "iqn":
         assert torch.allclose(ref_td_sum, loss)
@@ -203,6 +214,7 @@ def test_discrete_ensemble_q_function_forwarder(
 @pytest.mark.parametrize("n_quantiles", [200])
 @pytest.mark.parametrize("q_func_factory", ["mean", "qr", "iqn"])
 @pytest.mark.parametrize("embed_size", [64])
+@pytest.mark.parametrize("use_masks", [False, True])
 def test_ensemble_continuous_q_function(
     observation_shape: Shape,
     action_size: int,
@@ -212,6 +224,7 @@ def test_ensemble_continuous_q_function(
     q_func_factory: str,
     n_quantiles: int,
     embed_size: int,
+    use_masks: bool,
 ) -> None:
     forwarders: list[ContinuousQFunctionForwarder] = []
     for _ in range(ensemble_size):
@@ -283,16 +296,25 @@ def test_ensemble_continuous_q_function(
         q_tp1 = torch.rand(batch_size, 1)
     else:
         q_tp1 = torch.rand(batch_size, n_quantiles)
+    masks = (
+        torch.randint(2, size=(batch_size, 1), dtype=torch.float32)
+        if use_masks
+        else None
+    )
     ref_td_sum = 0.0
     for forwarder in forwarders:
-        ref_td_sum += forwarder.compute_error(
+        ind_loss = forwarder.compute_error(
             observations=obs_t,
             actions=act_t,
             rewards=rew_tp1,
             target=q_tp1,
             terminals=ter_tp1,
             gamma=gamma,
+            reduction="none",
         )
+        if masks is not None:
+            ind_loss = ind_loss * masks
+        ref_td_sum += ind_loss.mean()
     loss = ensemble_forwarder.compute_error(
         observations=obs_t,
         actions=act_t,
@@ -300,6 +322,7 @@ def test_ensemble_continuous_q_function(
         target=q_tp1,
         terminals=ter_tp1,
         gamma=gamma,
+        masks=masks,
     )
     if q_func_factory != "iqn":
         assert torch.allclose(ref_td_sum, loss)

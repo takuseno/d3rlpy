@@ -191,7 +191,7 @@ class QLearningAlgoBase(
 
         Args:
             fname: Destination file path.
-        """
+        """  # noqa: E501
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         if is_tuple_shape(self._impl.observation_shape):

@@ -1,4 +1,3 @@
-
 import torch
 
 from ....types import TorchObservation
@@ -19,4 +18,4 @@ class CalQLImpl(CQLImpl):
             value_obs=value_obs,
             returns_to_go=returns_to_go,
         )
-        return torch.maximum(values, returns_to_go), log_probs
+        return torch.maximum(values, returns_to_go.view(1, -1, 1)), log_probs

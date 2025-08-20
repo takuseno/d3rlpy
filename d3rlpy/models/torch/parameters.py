@@ -15,12 +15,14 @@ class Parameter(nn.Module):  # type: ignore
 
     def forward(self) -> NoReturn:
         raise NotImplementedError(
-            "Parameter does not support __call__. Use parameter property instead."
+            "Parameter does not support __call__. Use parameter property "
+            "instead."
         )
 
     def __call__(self) -> NoReturn:
         raise NotImplementedError(
-            "Parameter does not support __call__. Use parameter property instead."
+            "Parameter does not support __call__. Use parameter property "
+            "instead."
         )
 
 
