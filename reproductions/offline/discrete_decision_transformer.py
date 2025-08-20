@@ -9,6 +9,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--gpu", type=int)
     parser.add_argument("--pre-stack", action="store_true")
+    parser.add_argument("--compile", action="store_true")
     args = parser.parse_args()
 
     d3rlpy.seed(args.seed)
@@ -70,6 +71,7 @@ def main() -> None:
         observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
         max_timestep=max_timestep,
         position_encoding_type=d3rlpy.PositionEncodingType.GLOBAL,
+        compile_graph=args.compile,
     ).create(device=args.gpu)
 
     n_steps_per_epoch = dataset.transition_count // batch_size

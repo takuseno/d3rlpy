@@ -1,4 +1,4 @@
-from typing import Any, Sequence, Tuple, Union, cast
+from typing import Any, Sequence, Union, cast
 
 import gym
 import gymnasium
@@ -67,7 +67,7 @@ def test_create_zero_observation(observation_shape: Shape) -> None:
 @pytest.mark.parametrize("length", [100])
 @pytest.mark.parametrize("index", [(0, 5)])
 def test_slice_observations(
-    observation_shape: Shape, length: int, index: Tuple[int, int]
+    observation_shape: Shape, length: int, index: tuple[int, int]
 ) -> None:
     observations = create_observations(observation_shape, length)
 

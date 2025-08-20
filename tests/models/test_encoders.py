@@ -6,11 +6,14 @@ import pytest
 from d3rlpy.models.encoders import (
     DefaultEncoderFactory,
     PixelEncoderFactory,
+    SimBaEncoderFactory,
     VectorEncoderFactory,
 )
 from d3rlpy.models.torch.encoders import (
     PixelEncoder,
     PixelEncoderWithAction,
+    SimBaEncoder,
+    SimBaEncoderWithAction,
     VectorEncoder,
     VectorEncoderWithAction,
 )
@@ -104,3 +107,33 @@ def test_default_encoder_factory(
 
     # check serization and deserialization
     DefaultEncoderFactory.deserialize(factory.serialize())
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("discrete_action", [False, True])
+def test_simba_encoder_factory(
+    observation_shape: Sequence[int],
+    action_size: int,
+    discrete_action: bool,
+) -> None:
+    factory = SimBaEncoderFactory()
+
+    # test state encoder
+    encoder = factory.create(observation_shape)
+    assert isinstance(encoder, SimBaEncoder)
+
+    # test state-action encoder
+    encoder = factory.create_with_action(
+        observation_shape, action_size, discrete_action
+    )
+    assert isinstance(encoder, SimBaEncoderWithAction)
+    assert encoder._discrete_action == discrete_action
+
+    assert factory.get_type() == "simba"
+
+    # check serization and deserialization
+    new_factory = SimBaEncoderFactory.deserialize(factory.serialize())
+    assert new_factory.hidden_size == factory.hidden_size
+    assert new_factory.feature_size == factory.feature_size
+    assert new_factory.n_blocks == factory.n_blocks

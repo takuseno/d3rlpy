@@ -1,4 +1,4 @@
-from typing import BinaryIO, Sequence, Type, TypeVar, cast
+from typing import BinaryIO, Sequence, TypeVar, cast
 
 import h5py
 import numpy as np
@@ -39,7 +39,7 @@ def dump(episodes: Sequence[EpisodeBase], f: BinaryIO) -> None:
 _TEpisode = TypeVar("_TEpisode", bound=EpisodeBase)
 
 
-def load(episode_cls: Type[_TEpisode], f: BinaryIO) -> Sequence[_TEpisode]:
+def load(episode_cls: type[_TEpisode], f: BinaryIO) -> Sequence[_TEpisode]:
     r"""Constructs episodes from file-like object.
 
     Args:

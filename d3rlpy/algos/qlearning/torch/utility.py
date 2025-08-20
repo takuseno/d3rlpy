@@ -1,7 +1,6 @@
-from typing import Tuple
+from typing import Protocol
 
 import torch
-from typing_extensions import Protocol
 
 from ....models.torch import (
     ContinuousEnsembleQFunctionForwarder,
@@ -59,7 +58,7 @@ def sample_q_values_with_policy(
     value_observations: TorchObservation,
     n_action_samples: int,
     detach_policy_output: bool,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     dist = build_squashed_gaussian_distribution(policy(policy_observations))
     # (batch, n, action), (batch, n)
     policy_actions, n_log_probs = dist.sample_n_with_log_prob(n_action_samples)

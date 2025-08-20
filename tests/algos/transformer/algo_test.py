@@ -1,5 +1,5 @@
 import os
-from typing import Any, List
+from typing import Any
 from unittest.mock import Mock
 
 import numpy as np
@@ -125,9 +125,9 @@ def predict_tester(
     )
     y = algo.predict(inpt)
     if algo.get_action_type() == ActionSpace.DISCRETE:
-        assert y.shape == (action_size,)  # type: ignore
+        assert y.shape == (action_size,)
     else:
-        assert y.shape == (action_size,)  # type: ignore
+        assert y.shape == (action_size,)
 
 
 def save_and_load_tester(
@@ -225,7 +225,7 @@ def stateful_wrapper_tester(
             assert isinstance(action, int)
         else:
             assert isinstance(action, np.ndarray)
-            assert action.shape == (action_size,)  # type: ignore
+            assert action.shape == (action_size,)
     wrapper.reset()
 
     # check reset
@@ -252,7 +252,7 @@ def save_policy_tester(
     algo.save_policy(os.path.join("test_data", "model.pt"))
     policy = torch.jit.load(os.path.join("test_data", "model.pt"))
 
-    inputs: List[Any] = []
+    inputs: list[Any] = []
     torch_observations = create_torch_observations(
         observation_shape, algo.config.context_size
     )

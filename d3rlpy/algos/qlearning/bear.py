@@ -114,6 +114,7 @@ class BEARConfig(LearnableConfig):
             policy training.
         warmup_steps (int): Number of steps to warmup the policy
             function.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 1e-4
@@ -217,21 +218,30 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=self.compiled,
         )
         vae_optim = self._config.imitator_optim_factory.create(
             list(vae_encoder.named_modules())
             + list(vae_decoder.named_modules()),
             lr=self._config.imitator_learning_rate,
+            compiled=self.compiled,
         )
         temp_optim = self._config.temp_optim_factory.create(
-            log_temp.named_modules(), lr=self._config.temp_learning_rate
+            log_temp.named_modules(),
+            lr=self._config.temp_learning_rate,
+            compiled=self.compiled,
         )
         alpha_optim = self._config.alpha_optim_factory.create(
-            log_alpha.named_modules(), lr=self._config.actor_learning_rate
+            log_alpha.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=self.compiled,
         )
 
         modules = BEARModules(
@@ -266,6 +276,7 @@ class BEAR(QLearningAlgoBase[BEARImpl, BEARConfig]):
             mmd_sigma=self._config.mmd_sigma,
             vae_kl_weight=self._config.vae_kl_weight,
             warmup_steps=self._config.warmup_steps,
+            compiled=self.compiled,
             device=self._device,
         )
 

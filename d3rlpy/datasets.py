@@ -1,10 +1,8 @@
-# pylint: disable=unused-import,too-many-return-statements
-
 import enum
 import os
 import random
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 from urllib import request
 
 import gym
@@ -52,9 +50,9 @@ __all__ = [
 DATA_DIRECTORY = "d3rlpy_data"
 DROPBOX_URL = "https://www.dropbox.com/s"
 CARTPOLE_URL = f"{DROPBOX_URL}/uep0lzlhxpi79pd/cartpole_v1.1.0.h5?dl=1"
-CARTPOLE_RANDOM_URL = f"{DROPBOX_URL}/4lgai7tgj84cbov/cartpole_random_v1.1.0.h5?dl=1"  # pylint: disable=line-too-long
+CARTPOLE_RANDOM_URL = f"{DROPBOX_URL}/4lgai7tgj84cbov/cartpole_random_v1.1.0.h5?dl=1"  # noqa: E501
 PENDULUM_URL = f"{DROPBOX_URL}/ukkucouzys0jkfs/pendulum_v1.1.0.h5?dl=1"
-PENDULUM_RANDOM_URL = f"{DROPBOX_URL}/hhbq9i6ako24kzz/pendulum_random_v1.1.0.h5?dl=1"  # pylint: disable=line-too-long
+PENDULUM_RANDOM_URL = f"{DROPBOX_URL}/hhbq9i6ako24kzz/pendulum_random_v1.1.0.h5?dl=1"  # noqa: E501
 
 
 def get_cartpole(
@@ -62,7 +60,7 @@ def get_cartpole(
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gym.Env[NDArray, int]]:
+) -> tuple[ReplayBuffer, gym.Env[NDArray, int]]:
     """Returns cartpole dataset and environment.
 
     The dataset is automatically downloaded to ``d3rlpy_data/cartpole.h5`` if
@@ -116,7 +114,7 @@ def get_pendulum(
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gym.Env[NDArray, NDArray]]:
+) -> tuple[ReplayBuffer, gym.Env[NDArray, NDArray]]:
     """Returns pendulum dataset and environment.
 
     The dataset is automatically downloaded to ``d3rlpy_data/pendulum.h5`` if
@@ -193,7 +191,7 @@ def get_atari(
     sticky_action: bool = True,
     pre_stack: bool = False,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gym.Env[NDArray, int]]:
+) -> tuple[ReplayBuffer, gym.Env[NDArray, int]]:
     """Returns atari dataset and envrironment.
 
     The dataset is provided through d4rl-atari. See more details including
@@ -221,7 +219,7 @@ def get_atari(
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
     """
     try:
-        import d4rl_atari  # type: ignore
+        import d4rl_atari  # type: ignore # noqa
 
         env = gym.make(
             env_name,
@@ -273,7 +271,7 @@ def get_atari_transitions(
     sticky_action: bool = True,
     pre_stack: bool = False,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gym.Env[NDArray, int]]:
+) -> tuple[ReplayBuffer, gym.Env[NDArray, int]]:
     """Returns atari dataset as a list of Transition objects and envrironment.
 
     The dataset is provided through d4rl-atari.
@@ -307,7 +305,7 @@ def get_atari_transitions(
         environment.
     """
     try:
-        import d4rl_atari
+        import d4rl_atari  # noqa
 
         # each epoch consists of 1M steps
         num_transitions_per_epoch = int(1000000 * fraction)
@@ -390,7 +388,7 @@ def get_d4rl(
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     render_mode: Optional[str] = None,
     max_episode_steps: int = 1000,
-) -> Tuple[ReplayBuffer, gym.Env[NDArray, NDArray]]:
+) -> tuple[ReplayBuffer, gym.Env[NDArray, NDArray]]:
     """Returns d4rl dataset and envrironment.
 
     The dataset is provided through d4rl.
@@ -417,14 +415,15 @@ def get_d4rl(
         tuple of :class:`d3rlpy.dataset.ReplayBuffer` and gym environment.
     """
     try:
-        import d4rl
+        import d4rl  # noqa
+        from d4rl.pointmaze.maze_model import MazeEnv
         from d4rl.locomotion.wrappers import NormalizedBoxEnv
         from d4rl.utils.wrappers import (
             NormalizedBoxEnv as NormalizedBoxEnvFromUtils,
         )
 
         env = gym.make(env_name)
-        raw_dataset: Dict[str, NDArray] = env.get_dataset()  # type: ignore
+        raw_dataset: dict[str, NDArray] = env.get_dataset()  # type: ignore
 
         observations = raw_dataset["observations"]
         actions = raw_dataset["actions"]
@@ -443,15 +442,19 @@ def get_d4rl(
         )
 
         # remove incompatible wrappers
-        normalized_env = env.env.env.env  # type: ignore
-        assert isinstance(
-            normalized_env, (NormalizedBoxEnv, NormalizedBoxEnvFromUtils)
-        )
-        unwrapped_env: gym.Env[Any, Any] = normalized_env.wrapped_env
-        unwrapped_env.render_mode = render_mode  # overwrite
+        wrapped_env = env.env.env.env  # type: ignore
+        if isinstance(
+            wrapped_env, (NormalizedBoxEnv, NormalizedBoxEnvFromUtils)
+        ):
+            unwrapped_env: gym.Env[Any, Any] = wrapped_env.wrapped_env
+            unwrapped_env.render_mode = render_mode  # overwrite
+        elif isinstance(wrapped_env, MazeEnv):
+            wrapped_env.render_mode = render_mode  # overwrite
+        else:
+            wrapped_env.env.render_mode = render_mode  # overwrite
 
         return dataset, TimeLimit(
-            normalized_env, max_episode_steps=max_episode_steps
+            wrapped_env, max_episode_steps=max_episode_steps
         )
     except ImportError as e:
         raise ImportError(
@@ -470,7 +473,7 @@ def get_minari(
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     render_mode: Optional[str] = None,
     tuple_observation: bool = False,
-) -> Tuple[ReplayBuffer, gymnasium.Env[Any, Any]]:
+) -> tuple[ReplayBuffer, gymnasium.Env[Any, Any]]:
     """Returns minari dataset and envrironment.
 
     The dataset is provided through minari.
@@ -654,7 +657,7 @@ def get_dataset(
     transition_picker: Optional[TransitionPickerProtocol] = None,
     trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
     render_mode: Optional[str] = None,
-) -> Tuple[ReplayBuffer, gym.Env[Any, Any]]:
+) -> tuple[ReplayBuffer, gym.Env[Any, Any]]:
     """Returns dataset and envrironment by guessing from name.
 
     This function returns dataset by matching name with the following datasets.

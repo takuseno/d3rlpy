@@ -1,12 +1,9 @@
 from collections import deque
 from typing import (
     Any,
-    Deque,
-    Dict,
     Optional,
     Sequence,
     SupportsFloat,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -79,7 +76,7 @@ class ChannelFirst(gym.Wrapper[_ObsType, _ActType]):
 
     def step(
         self, action: _ActType
-    ) -> Tuple[_ObsType, float, bool, bool, Dict[str, Any]]:
+    ) -> tuple[_ObsType, float, bool, bool, dict[str, Any]]:
         observation, reward, terminal, truncated, info = self.env.step(action)
         # make channel first observation
         if observation.ndim == 3:
@@ -89,7 +86,7 @@ class ChannelFirst(gym.Wrapper[_ObsType, _ActType]):
         assert observation_T.shape == self.observation_space.shape
         return observation_T, reward, terminal, truncated, info  # type: ignore
 
-    def reset(self, **kwargs: Any) -> Tuple[_ObsType, Dict[str, Any]]:
+    def reset(self, **kwargs: Any) -> tuple[_ObsType, dict[str, Any]]:
         observation, info = self.env.reset(**kwargs)
         # make channel first observation
         if observation.ndim == 3:
@@ -112,7 +109,7 @@ class FrameStack(gym.Wrapper[NDArray, _ActType]):
     """
 
     _num_stack: int
-    _frames: Deque[NDArray]
+    _frames: deque[NDArray]
 
     def __init__(self, env: gym.Env[NDArray, _ActType], num_stack: int):
         super().__init__(env)
@@ -140,12 +137,12 @@ class FrameStack(gym.Wrapper[NDArray, _ActType]):
 
     def step(
         self, action: _ActType
-    ) -> Tuple[NDArray, float, bool, bool, Dict[str, Any]]:
+    ) -> tuple[NDArray, float, bool, bool, dict[str, Any]]:
         observation, reward, terminated, truncated, info = self.env.step(action)
         self._frames.append(observation)
         return self.observation(None), reward, terminated, truncated, info
 
-    def reset(self, **kwargs: Any) -> Tuple[NDArray, Dict[str, Any]]:
+    def reset(self, **kwargs: Any) -> tuple[NDArray, dict[str, Any]]:
         obs, info = self.env.reset(**kwargs)
         for _ in range(self._num_stack - 1):
             self._frames.append(np.zeros_like(obs))
@@ -256,7 +253,7 @@ class AtariPreprocessing(gym.Wrapper[NDArray, int]):
 
     def step(
         self, action: int
-    ) -> Tuple[NDArray, float, bool, bool, Dict[str, Any]]:
+    ) -> tuple[NDArray, float, bool, bool, dict[str, Any]]:
         R = 0.0
 
         for t in range(self.frame_skip):
@@ -284,7 +281,7 @@ class AtariPreprocessing(gym.Wrapper[NDArray, int]):
 
         return self._get_obs(), R, done, truncated, info
 
-    def reset(self, **kwargs: Any) -> Tuple[NDArray, Dict[str, Any]]:
+    def reset(self, **kwargs: Any) -> tuple[NDArray, dict[str, Any]]:
         # this condition is not included in the original code
         if self.game_over:
             _, info = self.env.reset(**kwargs)
@@ -364,16 +361,16 @@ def _get_keys_from_observation_space(
     return sorted(list(observation_space.keys()))
 
 
-def _flat_dict_observation(observation: Dict[str, NDArray]) -> NDArray:
+def _flat_dict_observation(observation: dict[str, NDArray]) -> NDArray:
     sorted_keys = sorted(list(observation.keys()))
     return np.concatenate([observation[key] for key in sorted_keys])
 
 
 class GoalConcatWrapper(
     gymnasium.Wrapper[
-        Union[NDArray, Tuple[NDArray, NDArray]],
+        Union[NDArray, tuple[NDArray, NDArray]],
         _ActType,
-        Dict[str, NDArray],
+        dict[str, NDArray],
         _ActType,
     ]
 ):
@@ -397,7 +394,7 @@ class GoalConcatWrapper(
 
     def __init__(
         self,
-        env: gymnasium.Env[Dict[str, NDArray], _ActType],
+        env: gymnasium.Env[dict[str, NDArray], _ActType],
         observation_key: str = "observation",
         goal_key: str = "desired_goal",
         tuple_observation: bool = False,
@@ -452,18 +449,18 @@ class GoalConcatWrapper(
                 dtype=observation_space.dtype,  # type: ignore
             )
 
-    def step(self, action: _ActType) -> Tuple[
-        Union[NDArray, Tuple[NDArray, NDArray]],
+    def step(self, action: _ActType) -> tuple[
+        Union[NDArray, tuple[NDArray, NDArray]],
         SupportsFloat,
         bool,
         bool,
-        Dict[str, Any],
+        dict[str, Any],
     ]:
         obs, rew, terminal, truncate, info = self.env.step(action)
         goal_obs = obs[self._goal_key]
         if isinstance(goal_obs, dict):
             goal_obs = _flat_dict_observation(goal_obs)
-        concat_obs: Union[NDArray, Tuple[NDArray, NDArray]]
+        concat_obs: Union[NDArray, tuple[NDArray, NDArray]]
         if self._tuple_observation:
             concat_obs = (obs[self._observation_key], goal_obs)
         else:
@@ -474,13 +471,13 @@ class GoalConcatWrapper(
         self,
         *,
         seed: Optional[int] = None,
-        options: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[Union[NDArray, Tuple[NDArray, NDArray]], Dict[str, Any]]:
+        options: Optional[dict[str, Any]] = None,
+    ) -> tuple[Union[NDArray, tuple[NDArray, NDArray]], dict[str, Any]]:
         obs, info = self.env.reset(seed=seed, options=options)
         goal_obs = obs[self._goal_key]
         if isinstance(goal_obs, dict):
             goal_obs = _flat_dict_observation(goal_obs)
-        concat_obs: Union[NDArray, Tuple[NDArray, NDArray]]
+        concat_obs: Union[NDArray, tuple[NDArray, NDArray]]
         if self._tuple_observation:
             concat_obs = (obs[self._observation_key], goal_obs)
         else:

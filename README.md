@@ -16,7 +16,7 @@ import d3rlpy
 dataset, env = d3rlpy.datasets.get_dataset("hopper-medium-v0")
 
 # prepare algorithm
-sac = d3rlpy.algos.SACConfig().create(device="cuda:0")
+sac = d3rlpy.algos.SACConfig(compile_graph=True).create(device="cuda:0")
 
 # train offline
 sac.fit(dataset, n_steps=1000000)
@@ -54,16 +54,17 @@ d3rlpy supports Linux, macOS and Windows.
 
 ### Dependencies
 Installing d3rlpy package will install or upgrade the following packages to satisfy requirements:
-- torch>=2.0.0
+- torch>=2.5.0
 - tqdm>=4.66.3
 - gym>=0.26.0
-- gymnasium>=1.0.0
+- gymnasium==1.0.0
 - click
 - colorama
 - dataclasses-json
 - h5py
 - structlog
 - typing-extensions
+- scikit-learn
 
 ### PyPI (recommended)
 [![PyPI version](https://badge.fury.io/py/d3rlpy.svg)](https://badge.fury.io/py/d3rlpy)
@@ -101,10 +102,13 @@ $ docker run -it --gpus all --name d3rlpy takuseno/d3rlpy:latest bash
 | [Critic Reguralized Regression (CRR)](https://arxiv.org/abs/2006.15134) | :no_entry: | :white_check_mark: |
 | [Policy in Latent Action Space (PLAS)](https://arxiv.org/abs/2011.07213) | :no_entry: | :white_check_mark: |
 | [TD3+BC](https://arxiv.org/abs/2106.06860) | :no_entry: | :white_check_mark: |
+| [Policy Regularization with Dataset Constraint (PRDC)](https://arxiv.org/abs/2306.06569) | :no_entry: | :white_check_mark: |
 | [Implicit Q-Learning (IQL)](https://arxiv.org/abs/2110.06169) | :no_entry: | :white_check_mark: |
 | [Calibrated Q-Learning (Cal-QL)](https://arxiv.org/abs/2303.05479) | :no_entry: | :white_check_mark: |
 | [ReBRAC](https://arxiv.org/abs/2305.09836) | :no_entry: | :white_check_mark: |
 | [Decision Transformer](https://arxiv.org/abs/2106.01345) | :white_check_mark: | :white_check_mark: |
+| [Q-learning Decision Transformer (QDT)](https://arxiv.org/abs/2209.03993) | :no_entry: | :white_check_mark: |
+| [Transformer Actor-Critic with Regularization (TACR)](https://www.ifaamas.org/Proceedings/aamas2023/pdfs/p2815.pdf) | :no_entry: | :white_check_mark: |
 | [Gato](https://arxiv.org/abs/2205.06175) | :construction: | :construction: |
 
 ## Supported Q functions
@@ -128,7 +132,7 @@ import d3rlpy
 dataset, env = d3rlpy.datasets.get_d4rl('hopper-medium-v0')
 
 # prepare algorithm
-cql = d3rlpy.algos.CQLConfig().create(device='cuda:0')
+cql = d3rlpy.algos.CQLConfig(compile_graph=True).create(device='cuda:0')
 
 # train
 cql.fit(
@@ -157,6 +161,7 @@ dataset, env = d3rlpy.datasets.get_atari_transitions(
 cql = d3rlpy.algos.DiscreteCQLConfig(
     observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
     reward_scaler=d3rlpy.preprocessing.ClipRewardScaler(-1.0, 1.0),
+    compile_graph=True,
 ).create(device='cuda:0')
 
 # start training
@@ -180,7 +185,7 @@ env = gym.make('Hopper-v3')
 eval_env = gym.make('Hopper-v3')
 
 # prepare algorithm
-sac = d3rlpy.algos.SACConfig().create(device='cuda:0')
+sac = d3rlpy.algos.SACConfig(compile_graph=True).create(device='cuda:0')
 
 # prepare replay buffer
 buffer = d3rlpy.dataset.create_fifo_replay_buffer(limit=1000000, env=env)

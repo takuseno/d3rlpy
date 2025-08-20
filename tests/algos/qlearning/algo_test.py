@@ -152,7 +152,7 @@ def predict_tester(
     x = create_observations(observation_shape, 100)
     y = algo.predict(x)
     if algo.get_action_type() == ActionSpace.DISCRETE:
-        assert y.shape == (100,)  # type: ignore
+        assert y.shape == (100,)
     else:
         assert y.shape == (100, action_size)
 
@@ -166,7 +166,7 @@ def sample_action_tester(
     x = create_observations(observation_shape, 100)
     y = algo.sample_action(x)
     if algo.get_action_type() == ActionSpace.DISCRETE:
-        assert y.shape == (100,)  # type: ignore
+        assert y.shape == (100,)
     else:
         assert y.shape == (100, action_size)
 
@@ -238,7 +238,7 @@ def predict_value_tester(
         action = np.random.random((100, action_size))
 
     value = algo.predict_value(x, action)
-    assert value.shape == (100,)  # type: ignore
+    assert value.shape == (100,)
 
 
 def save_and_load_tester(

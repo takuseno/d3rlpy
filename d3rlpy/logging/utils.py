@@ -1,4 +1,4 @@
-from typing import Any, Dict, Sequence
+from typing import Any, Sequence
 
 from .logger import (
     AlgProtocol,
@@ -23,7 +23,7 @@ class CombineAdapter(LoggerAdapter):
     def __init__(self, adapters: Sequence[LoggerAdapter]):
         self._adapters = adapters
 
-    def write_params(self, params: Dict[str, Any]) -> None:
+    def write_params(self, params: dict[str, Any]) -> None:
         for adapter in self._adapters:
             adapter.write_params(params)
 

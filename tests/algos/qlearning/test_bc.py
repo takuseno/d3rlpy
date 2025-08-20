@@ -11,7 +11,7 @@ from .algo_test import algo_tester
 
 
 @pytest.mark.parametrize(
-    "observation_shape", [(100,), (4, 84, 84), ((100,), (200,))]
+    "observation_shape", [(100,), (4, 32, 32), ((100,), (200,))]
 )
 @pytest.mark.parametrize("policy_type", ["deterministic", "stochastic"])
 @pytest.mark.parametrize("scalers", [None, "min_max"])
@@ -40,7 +40,7 @@ def test_bc(
 
 
 @pytest.mark.parametrize(
-    "observation_shape", [(100,), (4, 84, 84), ((100,), (200,))]
+    "observation_shape", [(100,), (4, 32, 32), ((100,), (200,))]
 )
 @pytest.mark.parametrize("scaler", [None, "min_max"])
 def test_discrete_bc(observation_shape: Shape, scaler: Optional[str]) -> None:

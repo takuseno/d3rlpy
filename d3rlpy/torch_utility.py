@@ -3,11 +3,11 @@ import dataclasses
 from typing import (
     Any,
     BinaryIO,
-    Dict,
+    Generic,
     Iterator,
     Optional,
+    Protocol,
     Sequence,
-    Tuple,
     TypeVar,
     Union,
     overload,
@@ -17,8 +17,10 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.cuda import CUDAGraph
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
+from typing_extensions import Self
 
 from .dataclass_utils import asdict_without_copy
 from .dataset import TrajectoryMiniBatch, TransitionMiniBatch
@@ -51,6 +53,7 @@ __all__ = [
     "eval_api",
     "train_api",
     "View",
+    "CudaGraphWrapper",
 ]
 
 
@@ -118,7 +121,7 @@ def convert_to_torch_recursively(
 
 
 def convert_to_numpy_recursively(
-    array: Union[torch.Tensor, Sequence[torch.Tensor]]
+    array: Union[torch.Tensor, Sequence[torch.Tensor]],
 ) -> Union[NDArray, Sequence[NDArray]]:
     if isinstance(array, (list, tuple)):
         return [data.numpy() for data in array]
@@ -126,6 +129,21 @@ def convert_to_numpy_recursively(
         return array.numpy()  # type: ignore
     else:
         raise ValueError(f"invalid array type: {type(array)}")
+
+
+_T = TypeVar("_T", bound=Union[torch.Tensor, Sequence[torch.Tensor]])
+
+
+def copy_recursively(src: _T, dst: _T) -> None:
+    if isinstance(src, torch.Tensor) and isinstance(dst, torch.Tensor):
+        dst.copy_(src)
+    elif isinstance(src, (list, tuple)) and isinstance(dst, (list, tuple)):
+        for s, d in zip(src, dst):
+            d.copy_(s)
+    else:
+        raise ValueError(
+            f"invalid inpu types: src={type(src)}, dst={type(dst)}"
+        )
 
 
 def get_device(x: Union[torch.Tensor, Sequence[torch.Tensor]]) -> str:
@@ -258,6 +276,17 @@ class TorchMiniBatch:
             embeddings=convert_to_torch_recursively(batch.embeddings, device),
         )
 
+    def copy_(self, src: Self) -> None:
+        assert self.device == src.device, "incompatible device"
+        copy_recursively(src.observations, self.observations)
+        self.actions.copy_(src.actions)
+        self.rewards.copy_(src.rewards)
+        copy_recursively(src.next_observations, self.next_observations)
+        self.next_actions.copy_(src.next_actions)
+        self.returns_to_go.copy_(src.returns_to_go)
+        self.terminals.copy_(src.terminals)
+        self.intervals.copy_(src.intervals)
+
 
 @dataclasses.dataclass(frozen=True)
 class TorchTrajectoryMiniBatch:
@@ -313,6 +342,53 @@ class TorchTrajectoryMiniBatch:
             embeddings=convert_to_torch_recursively(batch.embeddings, device),
         )
 
+    def copy_(self, src: Self) -> None:
+        assert self.device == src.device, "incompatible device"
+        copy_recursively(src.observations, self.observations)
+        self.actions.copy_(src.actions)
+        self.rewards.copy_(src.rewards)
+        self.returns_to_go.copy_(src.returns_to_go)
+        self.terminals.copy_(src.terminals)
+        self.timesteps.copy_(src.timesteps)
+        self.masks.copy_(src.masks)
+
+    def to_transition_batch(self) -> tuple[TorchMiniBatch, torch.Tensor]:
+        if isinstance(self.observations, torch.Tensor):
+            observations = self.observations[:, :-1].reshape(
+                -1, *self.observations.shape[2:]
+            )
+            next_observations = self.observations[:, 1:].reshape(
+                -1, *self.observations.shape[2:]
+            )
+        else:
+            observations = [
+                obs[:, :-1].reshape(-1, *obs.shape[2:])
+                for obs in self.observations
+            ]
+            next_observations = [
+                obs[:, 1:].reshape(-1, *obs.shape[2:])
+                for obs in self.observations
+            ]
+        actions = self.actions[:, :-1].reshape(-1, *self.actions.shape[2:])
+        rewards = self.rewards[:, :-1].reshape(-1, 1)
+        terminals = self.terminals[:, :-1].reshape(-1, 1)
+        next_actions = self.actions[:, 1:].reshape(-1, *self.actions.shape[2:])
+        returns_to_go = self.returns_to_go[:, :-1].reshape(-1, 1)
+        intervals = torch.ones_like(rewards)
+        masks = self.masks[:, :-1].reshape(-1, 1)
+        batch = TorchMiniBatch(
+            observations=observations,
+            actions=actions,
+            rewards=rewards,
+            next_observations=next_observations,
+            next_actions=next_actions,
+            returns_to_go=returns_to_go,
+            terminals=terminals,
+            intervals=intervals,
+            device=self.device,
+        )
+        return batch, masks
+
 
 _TModule = TypeVar("_TModule", bound=nn.Module)
 
@@ -334,12 +410,12 @@ def unwrap_ddp_model(model: _TModule) -> _TModule:
 
 
 class Checkpointer:
-    _modules: Dict[str, Union[nn.Module, OptimizerWrapperProto]]
+    _modules: dict[str, Union[nn.Module, OptimizerWrapperProto]]
     _device: str
 
     def __init__(
         self,
-        modules: Dict[str, Union[nn.Module, OptimizerWrapperProto]],
+        modules: dict[str, Union[nn.Module, OptimizerWrapperProto]],
         device: str,
     ):
         self._modules = modules
@@ -348,7 +424,7 @@ class Checkpointer:
     def save(self, f: BinaryIO) -> None:
         # unwrap DDP
         modules = {
-            k: unwrap_ddp_model(v) if isinstance(v, nn.Module) else v.optim
+            k: unwrap_ddp_model(v) if isinstance(v, nn.Module) else v
             for k, v in self._modules.items()
         }
         states = {k: v.state_dict() for k, v in modules.items()}
@@ -358,12 +434,11 @@ class Checkpointer:
         chkpt = torch.load(f, map_location=map_location(self._device))
         for k, v in self._modules.items():
             if isinstance(v, nn.Module):
-                v.load_state_dict(chkpt[k])
-            else:
-                v.optim.load_state_dict(chkpt[k])
+                v = unwrap_ddp_model(v)
+            v.load_state_dict(chkpt[k])
 
     @property
-    def modules(self) -> Dict[str, Union[nn.Module, OptimizerWrapperProto]]:
+    def modules(self) -> dict[str, Union[nn.Module, OptimizerWrapperProto]]:
         return self._modules
 
 
@@ -391,12 +466,12 @@ class Modules:
 
     def set_eval(self) -> None:
         for v in asdict_without_copy(self).values():
-            if isinstance(v, nn.Module):
+            if isinstance(v, nn.Module) and v.training:
                 v.eval()
 
     def set_train(self) -> None:
         for v in asdict_without_copy(self).values():
-            if isinstance(v, nn.Module):
+            if isinstance(v, nn.Module) and not v.training:
                 v.train()
 
     def reset_optimizer_states(self) -> None:
@@ -404,18 +479,21 @@ class Modules:
             if isinstance(v, OptimizerWrapperProto):
                 v.optim.state = collections.defaultdict(dict)
 
-    def get_torch_modules(self) -> Dict[str, nn.Module]:
-        torch_modules: Dict[str, nn.Module] = {}
+    def get_torch_modules(self) -> dict[str, nn.Module]:
+        torch_modules: dict[str, nn.Module] = {}
         for k, v in asdict_without_copy(self).items():
             if isinstance(v, nn.Module):
                 torch_modules[k] = v
         return torch_modules
 
-    def get_gradients(self) -> Iterator[Tuple[str, Float32NDArray]]:
+    def get_gradients(self) -> Iterator[tuple[str, Float32NDArray]]:
         for module_name, module in self.get_torch_modules().items():
             for name, parameter in module.named_parameters():
                 if parameter.requires_grad and parameter.grad is not None:
-                    yield f"{module_name}.{name}", parameter.grad.cpu().detach().numpy()
+                    yield (
+                        f"{module_name}.{name}",
+                        parameter.grad.cpu().detach().numpy(),
+                    )
 
 
 TCallable = TypeVar("TCallable")
@@ -462,3 +540,59 @@ class GEGLU(nn.Module):  # type: ignore
         assert x.shape[-1] % 2 == 0
         a, b = x.chunk(2, dim=-1)
         return a * F.gelu(b)
+
+
+BatchT_contra = TypeVar(
+    "BatchT_contra",
+    bound=Union[TorchMiniBatch, TorchTrajectoryMiniBatch],
+    contravariant=True,
+)
+RetT_co = TypeVar("RetT_co", covariant=True)
+
+
+class CudaGraphFunc(Generic[BatchT_contra, RetT_co], Protocol):
+    def __call__(self, batch: BatchT_contra) -> RetT_co: ...
+
+
+class CudaGraphWrapper(Generic[BatchT_contra, RetT_co]):
+    _func: CudaGraphFunc[BatchT_contra, RetT_co]
+    _input: TorchTrajectoryMiniBatch
+    _graph: Optional[CUDAGraph]
+    _inpt: Optional[BatchT_contra]
+    _out: Optional[RetT_co]
+
+    def __init__(
+        self,
+        func: CudaGraphFunc[BatchT_contra, RetT_co],
+        warmup_steps: int = 3,
+        compile_func: bool = True,
+    ):
+        self._func = torch.compile(func) if compile_func else func
+        self._step = 0
+        self._graph = None
+        self._inpt = None
+        self._out = None
+        self._warmup_steps = warmup_steps
+        self._warmup_stream = torch.cuda.Stream()
+
+    def __call__(self, batch: BatchT_contra) -> RetT_co:
+        if self._step < self._warmup_steps:  # warmup
+            self._warmup_stream.wait_stream(torch.cuda.current_stream())
+            with torch.cuda.stream(self._warmup_stream):
+                out = self._func(batch)
+            torch.cuda.current_stream().wait_stream(self._warmup_stream)
+        if self._step == self._warmup_steps - 1:  # build graph
+            self._graph = torch.cuda.CUDAGraph()
+            self._inpt = batch
+            with torch.cuda.graph(self._graph):
+                self._out = self._func(self._inpt)
+        if self._step >= self._warmup_steps:  # reuse cuda graph
+            assert self._inpt
+            assert self._out is not None
+            assert self._graph
+            with torch.no_grad():
+                self._inpt.copy_(batch)  # type: ignore
+            self._graph.replay()
+            out = self._out
+        self._step += 1
+        return out

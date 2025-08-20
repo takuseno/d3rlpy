@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Union
+from typing import Union
 
 import torch
 from torch import nn
@@ -103,7 +103,7 @@ class FQEBaseImpl(QLearningAlgoImplBase):
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         next_actions = self._algo.predict_best_action(batch.next_observations)
 
         q_tpn = self.compute_target(batch, next_actions)
@@ -111,7 +111,7 @@ class FQEBaseImpl(QLearningAlgoImplBase):
 
         self._modules.optim.zero_grad()
         loss.backward()
-        self._modules.optim.step(grad_step)
+        self._modules.optim.step()
 
         if grad_step % self._target_update_interval == 0:
             self.update_target()

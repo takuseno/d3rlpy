@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict
+from typing import Callable
 
 import torch
 from torch import nn
@@ -8,7 +8,12 @@ from torch.optim import Optimizer
 from ....dataclass_utils import asdict_as_float
 from ....models.torch import DiscreteEnsembleQFunctionForwarder
 from ....optimizers.optimizers import OptimizerWrapper
-from ....torch_utility import Modules, TorchMiniBatch, hard_sync
+from ....torch_utility import (
+    CudaGraphWrapper,
+    Modules,
+    TorchMiniBatch,
+    hard_sync,
+)
 from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
 from .utility import DiscreteQFunctionMixin
@@ -30,6 +35,7 @@ class DQNLoss:
 
 class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
     _modules: DQNModules
+    _compute_grad: Callable[[TorchMiniBatch], DQNLoss]
     _gamma: float
     _q_func_forwarder: DiscreteEnsembleQFunctionForwarder
     _targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder
@@ -44,6 +50,7 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         targ_q_func_forwarder: DiscreteEnsembleQFunctionForwarder,
         target_update_interval: int,
         gamma: float,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -56,23 +63,27 @@ class DQNImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
         self._q_func_forwarder = q_func_forwarder
         self._targ_q_func_forwarder = targ_q_func_forwarder
         self._target_update_interval = target_update_interval
+        self._compute_grad = (
+            CudaGraphWrapper(self.compute_grad)
+            if compiled
+            else self.compute_grad
+        )
         hard_sync(modules.targ_q_funcs, modules.q_funcs)
+
+    def compute_grad(self, batch: TorchMiniBatch) -> DQNLoss:
+        self._modules.optim.zero_grad()
+        q_tpn = self.compute_target(batch)
+        loss = self.compute_loss(batch, q_tpn)
+        loss.loss.backward()
+        return loss
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
-        self._modules.optim.zero_grad()
-
-        q_tpn = self.compute_target(batch)
-
-        loss = self.compute_loss(batch, q_tpn)
-
-        loss.loss.backward()
-        self._modules.optim.step(grad_step)
-
+    ) -> dict[str, float]:
+        loss = self._compute_grad(batch)
+        self._modules.optim.step()
         if grad_step % self._target_update_interval == 0:
             self.update_target()
-
         return asdict_as_float(loss)
 
     def compute_loss(

@@ -5,11 +5,10 @@ onnx
 matplotlib
 tensorboardX
 wandb
-black
 mypy
-pylint==2.13.5
 numpy<2
-isort
 docformatter
-minari==0.4.2
-gymnasium_robotics
+ruff
+black
+minari[all]>=0.5.2
+gymnasium-robotics>=1.3.1

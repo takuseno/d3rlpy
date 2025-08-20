@@ -16,7 +16,7 @@ from .algo_test import algo_tester
 
 
 @pytest.mark.parametrize(
-    "observation_shape", [(100,), (4, 84, 84), ((100,), (200,))]
+    "observation_shape", [(100,), (4, 32, 32), ((100,), (200,))]
 )
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize(
@@ -49,7 +49,7 @@ def test_dqn(
 
 
 @pytest.mark.parametrize(
-    "observation_shape", [(100,), (4, 84, 84), ((100,), (200,))]
+    "observation_shape", [(100,), (4, 32, 32), ((100,), (200,))]
 )
 @pytest.mark.parametrize("n_critics", [1])
 @pytest.mark.parametrize(

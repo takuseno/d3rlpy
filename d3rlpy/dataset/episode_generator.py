@@ -1,7 +1,6 @@
-from typing import Optional, Sequence
+from typing import Optional, Protocol, Sequence
 
 import numpy as np
-from typing_extensions import Protocol
 
 from ..types import Float32NDArray, NDArray, ObservationSequence
 from .components import Episode, EpisodeBase

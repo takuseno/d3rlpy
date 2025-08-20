@@ -33,6 +33,7 @@ class AWACImpl(SACImpl):
         tau: float,
         lam: float,
         n_action_samples: int,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -43,13 +44,14 @@ class AWACImpl(SACImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
+            compiled=compiled,
             device=device,
         )
         self._lam = lam
         self._n_action_samples = n_action_samples
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
+        self, batch: TorchMiniBatch, action: ActionOutput
     ) -> SACActorLoss:
         # compute log probability
         dist = build_gaussian_distribution(action)

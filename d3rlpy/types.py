@@ -1,4 +1,4 @@
-from typing import Any, Sequence, Union
+from typing import Any, Mapping, Protocol, Sequence, Union, runtime_checkable
 
 import gym
 import gymnasium
@@ -6,7 +6,6 @@ import numpy as np
 import numpy.typing as npt
 import torch
 from torch.optim import Optimizer
-from typing_extensions import Protocol, runtime_checkable
 
 __all__ = [
     "NDArray",
@@ -41,4 +40,10 @@ GymEnv = Union[gym.Env[Any, Any], gymnasium.Env[Any, Any]]
 class OptimizerWrapperProto(Protocol):
     @property
     def optim(self) -> Optimizer:
+        raise NotImplementedError
+
+    def state_dict(self) -> Mapping[str, Any]:
+        raise NotImplementedError
+
+    def load_state_dict(self, state_dict: Mapping[str, Any]) -> None:
         raise NotImplementedError

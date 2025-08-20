@@ -50,6 +50,7 @@ class BCConfig(LearnableConfig):
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
             Observation preprocessor.
         action_scaler (d3rlpy.preprocessing.ActionScaler): Action preprocessor.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     batch_size: int = 100
@@ -94,7 +95,9 @@ class BC(QLearningAlgoBase[BCBaseImpl, BCConfig]):
             raise ValueError(f"invalid policy_type: {self._config.policy_type}")
 
         optim = self._config.optim_factory.create(
-            imitator.named_modules(), lr=self._config.learning_rate
+            imitator.named_modules(),
+            lr=self._config.learning_rate,
+            compiled=self.compiled,
         )
 
         modules = BCModules(optim=optim, imitator=imitator)
@@ -104,6 +107,7 @@ class BC(QLearningAlgoBase[BCBaseImpl, BCConfig]):
             action_size=action_size,
             modules=modules,
             policy_type=self._config.policy_type,
+            compiled=self.compiled,
             device=self._device,
         )
 
@@ -138,6 +142,7 @@ class DiscreteBCConfig(LearnableConfig):
         beta (float): Reguralization factor.
         observation_scaler (d3rlpy.preprocessing.ObservationScaler):
             Observation preprocessor.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     batch_size: int = 100
@@ -172,7 +177,9 @@ class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
         )
 
         optim = self._config.optim_factory.create(
-            imitator.named_modules(), lr=self._config.learning_rate
+            imitator.named_modules(),
+            lr=self._config.learning_rate,
+            compiled=self.compiled,
         )
 
         modules = DiscreteBCModules(optim=optim, imitator=imitator)
@@ -183,6 +190,7 @@ class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
             modules=modules,
             beta=self._config.beta,
             entropy_beta=self._config.entropy_beta,
+            compiled=self.compiled,
             device=self._device,
         )
 

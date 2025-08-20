@@ -47,10 +47,10 @@ def test_discrete_random_policy(
 
     # check predict
     action = algo.predict(x)
-    assert action.shape == (batch_size,)  # type: ignore
+    assert action.shape == (batch_size,)
     assert np.all(action < action_size)
 
     # check sample_action
     action = algo.sample_action(x)
-    assert action.shape == (batch_size,)  # type: ignore
+    assert action.shape == (batch_size,)
     assert np.all(action < action_size)

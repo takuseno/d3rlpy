@@ -1,5 +1,6 @@
+from typing import Protocol, runtime_checkable
+
 import numpy as np
-from typing_extensions import Protocol, runtime_checkable
 
 from ..types import Float32NDArray, Int32NDArray, NDArray
 from .utils import mu_law_decode, mu_law_encode

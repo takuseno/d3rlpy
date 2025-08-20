@@ -1,7 +1,5 @@
 from collections import deque
-from typing import Deque, List, Sequence, Tuple
-
-from typing_extensions import Protocol
+from typing import Protocol, Sequence
 
 from .components import EpisodeBase
 
@@ -38,15 +36,15 @@ class BufferProtocol(Protocol):
         """
         raise NotImplementedError
 
-    def __getitem__(self, index: int) -> Tuple[EpisodeBase, int]:
+    def __getitem__(self, index: int) -> tuple[EpisodeBase, int]:
         raise NotImplementedError
 
 
 class InfiniteBuffer(BufferProtocol):
     r"""Buffer with unlimited capacity."""
 
-    _transitions: List[Tuple[EpisodeBase, int]]
-    _episodes: List[EpisodeBase]
+    _transitions: list[tuple[EpisodeBase, int]]
+    _episodes: list[EpisodeBase]
 
     def __init__(self) -> None:
         self._transitions = []
@@ -69,7 +67,7 @@ class InfiniteBuffer(BufferProtocol):
     def __len__(self) -> int:
         return len(self._transitions)
 
-    def __getitem__(self, index: int) -> Tuple[EpisodeBase, int]:
+    def __getitem__(self, index: int) -> tuple[EpisodeBase, int]:
         return self._transitions[index]
 
 
@@ -80,8 +78,8 @@ class FIFOBuffer(BufferProtocol):
         limit (int): buffer capacity.
     """
 
-    _transitions: Deque[Tuple[EpisodeBase, int]]
-    _episodes: List[EpisodeBase]
+    _transitions: deque[tuple[EpisodeBase, int]]
+    _episodes: list[EpisodeBase]
     _limit: int
 
     def __init__(self, limit: int):
@@ -109,5 +107,5 @@ class FIFOBuffer(BufferProtocol):
     def __len__(self) -> int:
         return len(self._transitions)
 
-    def __getitem__(self, index: int) -> Tuple[EpisodeBase, int]:
+    def __getitem__(self, index: int) -> tuple[EpisodeBase, int]:
         return self._transitions[index]

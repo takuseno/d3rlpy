@@ -2,7 +2,7 @@ import dataclasses
 import io
 import pickle
 from abc import ABCMeta, abstractmethod
-from typing import BinaryIO, Generic, Optional, Type, TypeVar, Union, Callable
+from typing import BinaryIO, Generic, Optional, Type, TypeVar, Union, Callableter
 
 from gym.spaces import Box
 from gymnasium.spaces import Box as GymnasiumBox
@@ -101,6 +101,7 @@ class LearnableConfig(DynamicConfig):
     action_scaler: Optional[ActionScaler] = make_action_scaler_field()
     reward_scaler: Optional[RewardScaler] = make_reward_scaler_field()
     transform: Optional[Callable[[TorchMiniBatch | TorchTrajectoryMiniBatch], TorchMiniBatch | TorchTrajectoryMiniBatch]] = make_transformation_callable_field()
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -133,9 +134,9 @@ class LearnableConfigWithShape(DynamicConfig):
     config: LearnableConfig = make_learnable_field()
 
     def create(
-        self, device: DeviceArg = False
+        self, device: DeviceArg = False, enable_ddp: bool = False
     ) -> "LearnableBase[ImplBase, LearnableConfig]":
-        algo = self.config.create(device)
+        algo = self.config.create(device=device, enable_ddp=enable_ddp)
         algo.create_impl(self.observation_shape, self.action_size)
         return algo
 
@@ -191,7 +192,7 @@ def dump_learnable(
 
 
 def load_learnable(
-    fname: str, device: DeviceArg = None
+    fname: str, device: DeviceArg = None, enable_ddp: bool = False
 ) -> "LearnableBase[ImplBase, LearnableConfig]":
     with open(fname, "rb") as f:
         obj = pickle.load(f)
@@ -202,7 +203,7 @@ def load_learnable(
                 saved_version=obj["version"],
             )
         config = LearnableConfigWithShape.deserialize(obj["config"])
-        algo = config.create(device)
+        algo = config.create(device=device, enable_ddp=enable_ddp)
         assert algo.impl
         algo.impl.load_model(io.BytesIO(obj["torch"]))
     return algo
@@ -223,9 +224,10 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
         impl: Optional[TImpl_co] = None,
     ):
         if self.get_action_type() == ActionSpace.DISCRETE:
-            assert (
-                config.action_scaler is None
-            ), "action_scaler cannot be used with discrete action-space algorithms."
+            assert config.action_scaler is None, (
+                "action_scaler cannot be used with discrete action-space "
+                "algorithms."
+            )
         self._config = config
         self._device = _process_device(device)
         self._enable_ddp = enable_ddp
@@ -278,7 +280,7 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
 
     @classmethod
     def from_json(
-        cls: Type[Self], fname: str, device: DeviceArg = False
+        cls: type[Self], fname: str, device: DeviceArg = False
     ) -> Self:
         r"""Construct algorithm from params.json file.
 
@@ -360,6 +362,18 @@ class LearnableBase(Generic[TImpl_co, TConfig_co], metaclass=ABCMeta):
             LearnableConfig: config.
         """
         return self._config
+
+    @property
+    def compiled(self) -> bool:
+        """Compiled flag.
+
+        This represents if computational graph is optimized with CudaGraph and
+        torch.compile.
+
+        Returns:
+            bool: True if compiled.
+        """
+        return self._config.compile_graph and "cuda" in self._device
 
     @property
     def batch_size(self) -> int:

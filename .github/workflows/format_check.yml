@@ -12,10 +12,10 @@ jobs:
         with:
           python-version: 3.9.x
       - name: Cache pip
-        uses: actions/cache@v1
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}-${{ hashFiles('dev.requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
@@ -25,10 +25,7 @@ jobs:
           pip install Cython numpy
           pip install -e .
           pip install -r dev.requirements.txt
-      - name: Check format
-        run: |
-          ./scripts/format
-      - name: Linter
+      - name: Static analysis
         run: |
           ./scripts/lint
 

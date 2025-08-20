@@ -12,7 +12,7 @@ This list describes the planned features including breaking changes.
 - [x] Support tuple observation
 - [x] Support large-scale data-parallel offline training
 - [x] Support Transformer architecture (e.g. Decision Transformer)
+- [x] Speed up training with CudaGraph and torch.compile
 - [ ] Support training foundation models (e.g. Gato)
 - [ ] Support large-scale distributed online training
-- [ ] Speed up training with TorchScript
 - [ ] Change library name to represent unification of offline and online
