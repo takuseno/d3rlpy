@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 from torch import nn
@@ -18,7 +18,7 @@ class StubLoggerAdapter:
         self.is_close_called = False
         self.is_watch_model_called = False
 
-    def write_params(self, params: Dict[str, Any]) -> None:
+    def write_params(self, params: dict[str, Any]) -> None:
         self.is_write_params_called = True
 
     def before_write_metric(self, epoch: int, step: int) -> None:
@@ -57,7 +57,7 @@ class StubLoggerAdapterFactory:
 
 
 class StubModules:
-    def get_torch_modules(self) -> List[nn.Module]:
+    def get_torch_modules(self) -> list[nn.Module]:
         return []
 
 

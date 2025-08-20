@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import BinaryIO, List, Optional, Sequence, Type, Union
+from typing import BinaryIO, Optional, Sequence, Union
 
 import numpy as np
 
@@ -172,7 +172,7 @@ class ReplayBufferBase(ABC):
         cls,
         f: BinaryIO,
         buffer: BufferProtocol,
-        episode_cls: Type[EpisodeBase] = Episode,
+        episode_cls: type[EpisodeBase] = Episode,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
@@ -328,15 +328,15 @@ class ReplayBuffer(ReplayBufferBase):
         cache_size (int): Size of cache to record active episode history used
             for online training. ``cache_size`` needs to be greater than the
             maximum possible episode length.
-        write_at_termination (bool): Flag to write experiences to the buffer at the
-            end of an episode all at once.
+        write_at_termination (bool): Flag to write experiences to the buffer at
+            the end of an episode all at once.
     """
 
     _buffer: BufferProtocol
     _transition_picker: TransitionPickerProtocol
     _trajectory_slicer: TrajectorySlicerProtocol
     _writer: ExperienceWriter
-    _episodes: List[EpisodeBase]
+    _episodes: list[EpisodeBase]
     _dataset_info: DatasetInfo
 
     def __init__(
@@ -381,8 +381,8 @@ class ReplayBuffer(ReplayBufferBase):
                 )
             else:
                 raise ValueError(
-                    "Either episodes or env must be provided to determine signatures."
-                    " Or specify signatures directly."
+                    "Either episodes or env must be provided to determine "
+                    "signatures. Or specify signatures directly."
                 )
             LOG.info(
                 "Signatures have been automatically determined.",
@@ -398,8 +398,8 @@ class ReplayBuffer(ReplayBufferBase):
                 action_space = detect_action_space_from_env(env)
             else:
                 raise ValueError(
-                    "Either episodes or env must be provided to determine action_space."
-                    " Or specify action_space directly."
+                    "Either episodes or env must be provided to determine "
+                    "action_space. Or specify action_space directly."
                 )
             LOG.info(
                 "Action-space has been automatically determined.",
@@ -421,8 +421,8 @@ class ReplayBuffer(ReplayBufferBase):
                 action_size = detect_action_size_from_env(env)
             else:
                 raise ValueError(
-                    "Either episodes or env must be provided to determine action_space."
-                    " Or specify action_size directly."
+                    "Either episodes or env must be provided to determine "
+                    "action_space. Or specify action_size directly."
                 )
             LOG.info(
                 "Action size has been automatically determined.",
@@ -515,7 +515,7 @@ class ReplayBuffer(ReplayBufferBase):
         cls,
         f: BinaryIO,
         buffer: BufferProtocol,
-        episode_cls: Type[EpisodeBase] = Episode,
+        episode_cls: type[EpisodeBase] = Episode,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
@@ -693,7 +693,7 @@ class MixedReplayBuffer(ReplayBufferBase):
         cls,
         f: BinaryIO,
         buffer: BufferProtocol,
-        episode_cls: Type[EpisodeBase] = Episode,
+        episode_cls: type[EpisodeBase] = Episode,
         transition_picker: Optional[TransitionPickerProtocol] = None,
         trajectory_slicer: Optional[TrajectorySlicerProtocol] = None,
         writer_preprocessor: Optional[WriterPreprocessProtocol] = None,
@@ -771,8 +771,8 @@ def create_fifo_replay_buffer(
             Writer preprocessor implementation. If ``None`` is given,
             ``BasicWriterPreprocess`` is used by default.
         env: Gym environment to extract shapes of observations and action.
-        write_at_termination (bool): Flag to write experiences to the buffer at the
-            end of an episode all at once.
+        write_at_termination (bool): Flag to write experiences to the buffer at
+            the end of an episode all at once.
 
     Returns:
         Replay buffer.
@@ -814,8 +814,8 @@ def create_infinite_replay_buffer(
             Writer preprocessor implementation. If ``None`` is given,
             ``BasicWriterPreprocess`` is used by default.
         env: Gym environment to extract shapes of observations and action.
-        write_at_termination (bool): Flag to write experiences to the buffer at the
-            end of an episode all at once.
+        write_at_termination (bool): Flag to write experiences to the buffer at
+            the end of an episode all at once.
 
     Returns:
         Replay buffer.

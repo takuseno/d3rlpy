@@ -1,7 +1,23 @@
-#!/bin/bash -eux
+#!/bin/bash -ex
+
+if [[ -z $CI ]]; then
+  BLACK_ARG=""
+  RUFF_ARG="check --fix"
+  DOCFORMATTER_ARG="--in-place"
+else
+  ISORT_ARG="--check --diff"
+  RUFF_ARG="check"
+  DOCFORMATTER_ARG="--check --diff"
+fi
+
+# use black for the better type annotations
+black -l 80 $BLACK_ARG d3rlpy tests setup.py reproductions examples
+
+# formatter and linter
+ruff $RUFF_ARG d3rlpy tests examples reproductions setup.py
+
+# format docstrings
+docformatter $DOCFORMATTER_ARG --black --wrap-summaries 80 --wrap-descriptions 80 -r d3rlpy
 
 # type check
 mypy d3rlpy reproductions tests examples
-
-# code-format check
-pylint d3rlpy reproductions tests examples

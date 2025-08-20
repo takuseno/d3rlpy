@@ -8,6 +8,7 @@ def main() -> None:
     parser.add_argument("--dataset", type=str, default="hopper-medium-v0")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--gpu", type=int)
+    parser.add_argument("--compile", action="store_true")
     args = parser.parse_args()
 
     dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
@@ -27,6 +28,7 @@ def main() -> None:
         critic_encoder_factory=encoder,
         batch_size=1024,
         lam=1.0,
+        compile_graph=args.compile,
     ).create(args.gpu)
 
     awac.fit(

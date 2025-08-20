@@ -69,7 +69,8 @@ class DDPGConfig(LearnableConfig):
         gamma (float): Discount factor.
         tau (float): Target network synchronization coefficiency.
         n_critics (int): Number of Q functions for ensemble.
-    """
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
+    """  # noqa: E501
 
     batch_size: int = 256
     actor_learning_rate: float = 3e-4
@@ -130,10 +131,14 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=self.compiled,
         )
 
         modules = DDPGModules(
@@ -153,6 +158,7 @@ class DDPG(QLearningAlgoBase[DDPGImpl, DDPGConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
+            compiled=self.compiled,
             device=self._device,
         )
 

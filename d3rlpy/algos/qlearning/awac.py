@@ -70,6 +70,7 @@ class AWACConfig(LearnableConfig):
         n_action_samples (int): Number of sampled actions to calculate
             :math:`A^\pi(s_t, a_t)`.
         n_critics (int): Number of Q functions for ensemble.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 3e-4
@@ -130,10 +131,14 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=self.compiled,
         )
 
         dummy_log_temp = Parameter(torch.zeros(1, 1))
@@ -158,6 +163,7 @@ class AWAC(QLearningAlgoBase[AWACImpl, AWACConfig]):
             tau=self._config.tau,
             lam=self._config.lam,
             n_action_samples=self._config.n_action_samples,
+            compiled=self.compiled,
             device=self._device,
         )
 

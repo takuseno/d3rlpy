@@ -1,9 +1,8 @@
 import argparse
-from typing import Dict, Tuple
 
 import d3rlpy
 
-BETA_TABLE: Dict[str, Tuple[float, float]] = {
+BETA_TABLE: dict[str, tuple[float, float]] = {
     "halfcheetah-random": (0.001, 0.1),
     "halfcheetah-medium": (0.001, 0.01),
     "halfcheetah-expert": (0.01, 0.01),
@@ -29,6 +28,7 @@ def main() -> None:
     parser.add_argument("--dataset", type=str, default="hopper-medium-v0")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--gpu", type=int)
+    parser.add_argument("--compile", action="store_true")
     args = parser.parse_args()
 
     dataset, env = d3rlpy.datasets.get_dataset(args.dataset)
@@ -62,6 +62,7 @@ def main() -> None:
         actor_beta=actor_beta,
         critic_beta=critic_beta,
         observation_scaler=d3rlpy.preprocessing.StandardObservationScaler(),
+        compile_graph=args.compile,
     ).create(device=args.gpu)
 
     rebrac.fit(

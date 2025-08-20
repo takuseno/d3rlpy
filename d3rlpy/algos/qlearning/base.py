@@ -2,13 +2,10 @@ from abc import abstractmethod
 from collections import defaultdict
 from typing import (
     Callable,
-    Dict,
     Generator,
     Generic,
-    List,
     Optional,
     Sequence,
-    Tuple,
     TypeVar,
 )
 
@@ -67,13 +64,13 @@ __all__ = [
 
 class QLearningAlgoImplBase(ImplBase):
     @train_api
-    def update(self, batch: TorchMiniBatch, grad_step: int) -> Dict[str, float]:
+    def update(self, batch: TorchMiniBatch, grad_step: int) -> dict[str, float]:
         return self.inner_update(batch, grad_step)
 
     @abstractmethod
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         pass
 
     @eval_api
@@ -194,7 +191,7 @@ class QLearningAlgoBase(
 
         Args:
             fname: Destination file path.
-        """
+        """  # noqa: E501
         assert self._impl is not None, IMPL_NOT_INITIALIZED_ERROR
 
         if is_tuple_shape(self._impl.observation_shape):
@@ -383,10 +380,10 @@ class QLearningAlgoBase(
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
         save_interval: int = 1,
-        evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
+        evaluators: Optional[dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
         epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
-    ) -> List[Tuple[int, Dict[str, float]]]:
+    ) -> list[tuple[int, dict[str, float]]]:
         """Trains with given dataset.
 
         .. code-block:: python
@@ -449,10 +446,10 @@ class QLearningAlgoBase(
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
         show_progress: bool = True,
         save_interval: int = 1,
-        evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
+        evaluators: Optional[dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
         epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
-    ) -> Generator[Tuple[int, Dict[str, float]], None, None]:
+    ) -> Generator[tuple[int, dict[str, float]], None, None]:
         """Iterate over epochs steps to train with the given dataset. At each
         iteration algo methods and properties can be changed or queried.
 
@@ -859,7 +856,7 @@ class QLearningAlgoBase(
 
         return buffer
 
-    def update(self, batch: TransitionMiniBatch) -> Dict[str, float]:
+    def update(self, batch: TransitionMiniBatch) -> dict[str, float]:
         """Update parameters with mini-batch of data.
 
         Args:

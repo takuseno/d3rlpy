@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import gym
 import numpy as np
@@ -23,11 +23,11 @@ class DummyAtari(gym.Env[NDArray, int]):
 
     def step(
         self, action: int
-    ) -> Tuple[NDArray, float, bool, bool, Dict[str, Any]]:
+    ) -> tuple[NDArray, float, bool, bool, dict[str, Any]]:
         observation = self.observation_space.sample()
         reward = np.random.random()
         return observation, reward, False, self.t % 80 == 0, {}
 
-    def reset(self, **kwargs: Any) -> Tuple[NDArray, Dict[str, Any]]:
+    def reset(self, **kwargs: Any) -> tuple[NDArray, dict[str, Any]]:
         self.t = 1
         return self.observation_space.sample(), {}

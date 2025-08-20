@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import torch
 
 from ....types import TorchObservation
@@ -14,10 +12,10 @@ class CalQLImpl(CQLImpl):
         policy_obs: TorchObservation,
         value_obs: TorchObservation,
         returns_to_go: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         values, log_probs = super()._compute_policy_is_values(
             policy_obs=policy_obs,
             value_obs=value_obs,
             returns_to_go=returns_to_go,
         )
-        return torch.maximum(values, returns_to_go), log_probs
+        return torch.maximum(values, returns_to_go.view(1, -1, 1)), log_probs

@@ -11,7 +11,7 @@ from .algo_test import algo_tester
 
 
 @pytest.mark.parametrize(
-    "observation_shape", [(100,), (4, 84, 84), ((100,), (200,))]
+    "observation_shape", [(100,), (4, 32, 32), ((100,), (200,))]
 )
 @pytest.mark.parametrize("scalers", [None, "min_max"])
 def test_iql(observation_shape: Shape, scalers: Optional[str]) -> None:

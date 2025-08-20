@@ -33,6 +33,7 @@ class TD3PlusBCImpl(TD3Impl):
         target_smoothing_clip: float,
         alpha: float,
         update_actor_interval: int,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -46,12 +47,13 @@ class TD3PlusBCImpl(TD3Impl):
             target_smoothing_sigma=target_smoothing_sigma,
             target_smoothing_clip=target_smoothing_clip,
             update_actor_interval=update_actor_interval,
+            compiled=compiled,
             device=device,
         )
         self._alpha = alpha
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
+        self, batch: TorchMiniBatch, action: ActionOutput
     ) -> TD3PlusBCActorLoss:
         q_t = self._q_func_forwarder.compute_expected_q(
             batch.observations, action.squashed_mu, "none"

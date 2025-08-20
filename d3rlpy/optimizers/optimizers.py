@@ -1,10 +1,11 @@
 import dataclasses
-from typing import Iterable, Optional, Sequence, Tuple
+from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from torch import nn
 from torch.optim import SGD, Adam, AdamW, Optimizer, RMSprop
 from torch.optim.lr_scheduler import LRScheduler
 
+from ..logging import LOG
 from ..serializable_config import DynamicConfig, generate_config_registration
 from .lr_schedulers import LRSchedulerFactory, make_lr_scheduler_field
 
@@ -22,7 +23,7 @@ __all__ = [
 
 
 def _get_parameters_from_named_modules(
-    named_modules: Iterable[Tuple[str, nn.Module]]
+    named_modules: Iterable[tuple[str, nn.Module]],
 ) -> Sequence[nn.Parameter]:
     # retrieve unique set of parameters
     params_dict = {}
@@ -42,11 +43,13 @@ class OptimizerWrapper:
     Args:
         params: List of torch parameters.
         optim: PyTorch optimizer.
+        compiled: Flag to be True if CudaGraph and torch.compile are applied.
         clip_grad_norm: Maximum norm value of gradients to clip.
     """
 
     _params: Sequence[nn.Parameter]
     _optim: Optimizer
+    _compiled: bool
     _clip_grad_norm: Optional[float]
     _lr_scheduler: Optional[LRScheduler]
 
@@ -54,18 +57,20 @@ class OptimizerWrapper:
         self,
         params: Sequence[nn.Parameter],
         optim: Optimizer,
+        compiled: bool,
         clip_grad_norm: Optional[float] = None,
         lr_scheduler: Optional[LRScheduler] = None,
     ):
         self._params = params
         self._optim = optim
+        self._compiled = compiled
         self._clip_grad_norm = clip_grad_norm
         self._lr_scheduler = lr_scheduler
 
     def zero_grad(self) -> None:
-        self._optim.zero_grad()
+        self._optim.zero_grad(set_to_none=self._compiled)
 
-    def step(self, grad_step: int) -> None:
+    def step(self) -> None:
         """Updates parameters.
 
         Args:
@@ -89,6 +94,25 @@ class OptimizerWrapper:
     def optim(self) -> Optimizer:
         return self._optim
 
+    def state_dict(self) -> Mapping[str, Any]:
+        return {
+            "optim": self._optim.state_dict(),
+            "lr_scheduler": (
+                self._lr_scheduler.state_dict() if self._lr_scheduler else None
+            ),
+        }
+
+    def load_state_dict(self, state_dict: Mapping[str, Any]) -> None:
+        if "optim" in state_dict:
+            self._optim.load_state_dict(state_dict["optim"])
+        else:
+            LOG.warning("Skip loading optimizer state.")
+        if self._lr_scheduler:
+            if "lr_scheduler" in state_dict:
+                self._lr_scheduler.load_state_dict(state_dict["lr_scheduler"])
+            else:
+                LOG.warning("Skip loading lr scheduler state.")
+
 
 @dataclasses.dataclass()
 class OptimizerFactory(DynamicConfig):
@@ -103,13 +127,18 @@ class OptimizerFactory(DynamicConfig):
     )
 
     def create(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self,
+        named_modules: Iterable[tuple[str, nn.Module]],
+        lr: float,
+        compiled: bool,
     ) -> OptimizerWrapper:
         """Returns an optimizer object.
 
         Args:
             named_modules (list): List of tuples of module names and modules.
             lr (float): Learning rate.
+            compiled (bool): Flag to be True if CudaGraph and torch.compile are
+                applied.
 
         Returns:
             OptimizerWrapper object.
@@ -120,6 +149,7 @@ class OptimizerFactory(DynamicConfig):
         return OptimizerWrapper(
             params=params,
             optim=optim,
+            compiled=compiled,
             clip_grad_norm=self.clip_grad_norm,
             lr_scheduler=(
                 self.lr_scheduler_factory.create(optim)
@@ -129,7 +159,7 @@ class OptimizerFactory(DynamicConfig):
         )
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> Optimizer:
         raise NotImplementedError
 
@@ -159,7 +189,7 @@ class SGDFactory(OptimizerFactory):
     nesterov: bool = False
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> Optimizer:
         return SGD(
             _get_parameters_from_named_modules(named_modules),
@@ -195,13 +225,13 @@ class AdamFactory(OptimizerFactory):
         amsgrad: flag to use the AMSGrad variant of this algorithm.
     """
 
-    betas: Tuple[float, float] = (0.9, 0.999)
+    betas: tuple[float, float] = (0.9, 0.999)
     eps: float = 1e-8
     weight_decay: float = 0
     amsgrad: bool = False
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> Adam:
         return Adam(
             params=_get_parameters_from_named_modules(named_modules),
@@ -237,13 +267,13 @@ class AdamWFactory(OptimizerFactory):
         amsgrad: flag to use the AMSGrad variant of this algorithm.
     """
 
-    betas: Tuple[float, float] = (0.9, 0.999)
+    betas: tuple[float, float] = (0.9, 0.999)
     eps: float = 1e-8
     weight_decay: float = 0
     amsgrad: bool = False
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> AdamW:
         return AdamW(
             _get_parameters_from_named_modules(named_modules),
@@ -287,7 +317,7 @@ class RMSpropFactory(OptimizerFactory):
     centered: bool = True
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> RMSprop:
         return RMSprop(
             _get_parameters_from_named_modules(named_modules),
@@ -324,13 +354,13 @@ class GPTAdamWFactory(OptimizerFactory):
         amsgrad: flag to use the AMSGrad variant of this algorithm.
     """
 
-    betas: Tuple[float, float] = (0.9, 0.999)
+    betas: tuple[float, float] = (0.9, 0.999)
     eps: float = 1e-8
     weight_decay: float = 0
     amsgrad: bool = False
 
     def create_optimizer(
-        self, named_modules: Iterable[Tuple[str, nn.Module]], lr: float
+        self, named_modules: Iterable[tuple[str, nn.Module]], lr: float
     ) -> AdamW:
         named_modules = list(named_modules)
         params_dict = {}

@@ -1,7 +1,7 @@
 import dataclasses
+from typing import Protocol
 
 import numpy as np
-from typing_extensions import Protocol
 
 from ..types import Float32NDArray
 from .components import EpisodeBase, Transition

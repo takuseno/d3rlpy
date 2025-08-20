@@ -1,5 +1,3 @@
-from typing import Dict
-
 import torch
 
 from ....models.torch import ContinuousEnsembleQFunctionForwarder
@@ -27,6 +25,7 @@ class TD3Impl(DDPGImpl):
         target_smoothing_sigma: float,
         target_smoothing_clip: float,
         update_actor_interval: int,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -37,6 +36,7 @@ class TD3Impl(DDPGImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
+            compiled=compiled,
             device=device,
         )
         self._target_smoothing_sigma = target_smoothing_sigma
@@ -62,15 +62,14 @@ class TD3Impl(DDPGImpl):
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         metrics = {}
 
-        metrics.update(self.update_critic(batch, grad_step))
+        metrics.update(self.update_critic(batch))
 
         # delayed policy update
         if grad_step % self._update_actor_interval == 0:
-            action = self._modules.policy(batch.observations)
-            metrics.update(self.update_actor(batch, action, grad_step))
+            metrics.update(self.update_actor(batch))
             self.update_critic_target()
             self.update_actor_target()
 

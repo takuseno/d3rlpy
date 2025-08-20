@@ -94,6 +94,7 @@ class SACConfig(LearnableConfig):
         tau (float): Target network synchronization coefficiency.
         n_critics (int): Number of Q functions for ensemble.
         initial_temperature (float): Initial temperature value.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 3e-4
@@ -158,14 +159,20 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=self.compiled,
         )
         if self._config.temp_learning_rate > 0:
             temp_optim = self._config.temp_optim_factory.create(
-                log_temp.named_modules(), lr=self._config.temp_learning_rate
+                log_temp.named_modules(),
+                lr=self._config.temp_learning_rate,
+                compiled=self.compiled,
             )
         else:
             temp_optim = None
@@ -188,6 +195,7 @@ class SAC(QLearningAlgoBase[SACImpl, SACConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=self._config.gamma,
             tau=self._config.tau,
+            compiled=self.compiled,
             device=self._device,
         )
 
@@ -249,6 +257,7 @@ class DiscreteSACConfig(LearnableConfig):
         gamma (float): Discount factor.
         n_critics (int): Number of Q functions for ensemble.
         initial_temperature (float): Initial temperature value.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 3e-4
@@ -316,15 +325,21 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             log_temp = None
 
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=self.compiled,
         )
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=self.compiled,
         )
         if self._config.temp_learning_rate > 0:
             assert log_temp is not None
             temp_optim = self._config.temp_optim_factory.create(
-                log_temp.named_modules(), lr=self._config.temp_learning_rate
+                log_temp.named_modules(),
+                lr=self._config.temp_learning_rate,
+                compiled=self.compiled,
             )
         else:
             temp_optim = None
@@ -347,6 +362,7 @@ class DiscreteSAC(QLearningAlgoBase[DiscreteSACImpl, DiscreteSACConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=self._config.target_update_interval,
             gamma=self._config.gamma,
+            compiled=self.compiled,
             device=self._device,
         )
 

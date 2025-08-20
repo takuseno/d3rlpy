@@ -29,6 +29,7 @@ class ReBRACImpl(TD3Impl):
         actor_beta: float,
         critic_beta: float,
         update_actor_interval: int,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -42,13 +43,14 @@ class ReBRACImpl(TD3Impl):
             target_smoothing_sigma=target_smoothing_sigma,
             target_smoothing_clip=target_smoothing_clip,
             update_actor_interval=update_actor_interval,
+            compiled=compiled,
             device=device,
         )
         self._actor_beta = actor_beta
         self._critic_beta = critic_beta
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
+        self, batch: TorchMiniBatch, action: ActionOutput
     ) -> TD3PlusBCActorLoss:
         q_t = self._q_func_forwarder.compute_expected_q(
             batch.observations,

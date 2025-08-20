@@ -11,6 +11,7 @@ def main() -> None:
     )
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--gpu", type=int)
+    parser.add_argument("--compile", action="store_true")
     args = parser.parse_args()
 
     # sparse reward setup requires special treatment for failure trajectories
@@ -51,6 +52,7 @@ def main() -> None:
         alpha_threshold=0.8,
         reward_scaler=reward_scaler,
         max_q_backup=True,
+        compile_graph=args.compile,
     ).create(device=args.gpu)
 
     # pretraining

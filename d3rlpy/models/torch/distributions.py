@@ -1,6 +1,5 @@
 import math
 from abc import ABCMeta, abstractmethod
-from typing import Tuple
 
 import torch
 import torch.nn.functional as F
@@ -19,7 +18,7 @@ class Distribution(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def sample_with_log_prob(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def sample_with_log_prob(self) -> tuple[torch.Tensor, torch.Tensor]:
         pass
 
     @abstractmethod
@@ -33,7 +32,7 @@ class Distribution(metaclass=ABCMeta):
     @abstractmethod
     def sample_n_with_log_prob(
         self, n: int
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         pass
 
     @abstractmethod
@@ -61,7 +60,7 @@ class GaussianDistribution(Distribution):
     def sample(self) -> torch.Tensor:
         return self._dist.rsample().clamp(-1.0, 1.0)
 
-    def sample_with_log_prob(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def sample_with_log_prob(self) -> tuple[torch.Tensor, torch.Tensor]:
         y = self.sample()
         return y, self.log_prob(y)
 
@@ -87,7 +86,7 @@ class GaussianDistribution(Distribution):
 
     def sample_n_with_log_prob(
         self, n: int
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         x = self.sample_n(n)
         return x, self.log_prob(x.transpose(0, 1)).transpose(0, 1)
 
@@ -95,7 +94,7 @@ class GaussianDistribution(Distribution):
         assert self._raw_loc is not None
         return Normal(self._raw_loc, self._std).rsample((n,)).transpose(0, 1)
 
-    def mean_with_log_prob(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def mean_with_log_prob(self) -> tuple[torch.Tensor, torch.Tensor]:
         return self._mean, self.log_prob(self._mean)
 
     def log_prob(self, y: torch.Tensor) -> torch.Tensor:
@@ -123,7 +122,7 @@ class SquashedGaussianDistribution(Distribution):
     def sample(self) -> torch.Tensor:
         return torch.tanh(self._dist.rsample())
 
-    def sample_with_log_prob(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def sample_with_log_prob(self) -> tuple[torch.Tensor, torch.Tensor]:
         raw_y = self._dist.rsample()
         log_prob = self._log_prob_from_raw_y(raw_y)
         return torch.tanh(raw_y), log_prob
@@ -149,7 +148,7 @@ class SquashedGaussianDistribution(Distribution):
 
     def sample_n_with_log_prob(
         self, n: int
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         raw_y = self._dist.rsample((n,))
         log_prob = self._log_prob_from_raw_y(raw_y)
         return torch.tanh(raw_y).transpose(0, 1), log_prob.transpose(0, 1)
@@ -157,7 +156,7 @@ class SquashedGaussianDistribution(Distribution):
     def sample_n_without_squash(self, n: int) -> torch.Tensor:
         return self._dist.rsample((n,)).transpose(0, 1)
 
-    def mean_with_log_prob(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def mean_with_log_prob(self) -> tuple[torch.Tensor, torch.Tensor]:
         return torch.tanh(self._mean), self._log_prob_from_raw_y(self._mean)
 
     def log_prob(self, y: torch.Tensor) -> torch.Tensor:

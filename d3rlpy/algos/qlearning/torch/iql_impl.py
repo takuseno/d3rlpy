@@ -51,6 +51,7 @@ class IQLImpl(DDPGBaseImpl):
         expectile: float,
         weight_temp: float,
         max_weight: float,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -61,6 +62,7 @@ class IQLImpl(DDPGBaseImpl):
             targ_q_func_forwarder=targ_q_func_forwarder,
             gamma=gamma,
             tau=tau,
+            compiled=compiled,
             device=device,
         )
         self._expectile = expectile
@@ -68,7 +70,7 @@ class IQLImpl(DDPGBaseImpl):
         self._max_weight = max_weight
 
     def compute_critic_loss(
-        self, batch: TorchMiniBatch, q_tpn: torch.Tensor, grad_step: int
+        self, batch: TorchMiniBatch, q_tpn: torch.Tensor
     ) -> IQLCriticLoss:
         q_loss = self._q_func_forwarder.compute_error(
             observations=batch.observations,
@@ -90,7 +92,7 @@ class IQLImpl(DDPGBaseImpl):
             return self._modules.value_func(batch.next_observations)
 
     def compute_actor_loss(
-        self, batch: TorchMiniBatch, action: ActionOutput, grad_step: int
+        self, batch: TorchMiniBatch, action: ActionOutput
     ) -> DDPGBaseActorLoss:
         # compute log probability
         dist = build_gaussian_distribution(action)

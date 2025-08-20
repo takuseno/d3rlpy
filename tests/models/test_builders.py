@@ -365,7 +365,8 @@ def test_create_continuous_decision_transformer(
     action = torch.rand(batch_size, context_size, action_size)
     rtg = torch.rand(batch_size, context_size, 1)
     timesteps = torch.randint(0, max_timestep, size=(batch_size, context_size))
-    y = transformer(x, action, rtg, timesteps)
+    attention_mask = torch.zeros(batch_size, context_size)
+    y = transformer(x, action, rtg, timesteps, attention_mask)
 
     assert y.shape == (batch_size, context_size, action_size)
 
@@ -421,7 +422,8 @@ def test_create_discrete_decision_transformer(
     action = torch.randint(0, action_size, size=(batch_size, context_size))
     rtg = torch.rand(batch_size, context_size, 1)
     timesteps = torch.randint(0, max_timestep, size=(batch_size, context_size))
-    probs, logits = transformer(x, action, rtg, timesteps)
+    attention_mask = torch.zeros(batch_size, context_size)
+    probs, logits = transformer(x, action, rtg, timesteps, attention_mask)
 
     assert probs.shape == (batch_size, context_size, action_size)
     assert logits.shape == (batch_size, context_size, action_size)

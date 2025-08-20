@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Optional, Sequence, Union
 
 import torch
 
@@ -85,6 +85,7 @@ def compute_ensemble_q_function_error(
     target: torch.Tensor,
     terminals: torch.Tensor,
     gamma: Union[float, torch.Tensor] = 0.99,
+    masks: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     assert target.ndim == 2
     td_sum = torch.tensor(
@@ -102,6 +103,8 @@ def compute_ensemble_q_function_error(
             gamma=gamma,
             reduction="none",
         )
+        if masks is not None:
+            loss = loss * masks
         td_sum += loss.mean()
     return td_sum
 
@@ -118,7 +121,7 @@ def compute_ensemble_q_function_target(
     lam: float = 0.75,
 ) -> torch.Tensor:
     batch_size = get_batch_size(x)
-    values_list: List[torch.Tensor] = []
+    values_list: list[torch.Tensor] = []
     for forwarder in forwarders:
         if isinstance(forwarder, ContinuousQFunctionForwarder):
             assert action is not None
@@ -181,6 +184,7 @@ class DiscreteEnsembleQFunctionForwarder:
         target: torch.Tensor,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
+        masks: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         return compute_ensemble_q_function_error(
             forwarders=self._forwarders,
@@ -190,6 +194,7 @@ class DiscreteEnsembleQFunctionForwarder:
             target=target,
             terminals=terminals,
             gamma=gamma,
+            masks=masks,
         )
 
     def compute_target(
@@ -252,6 +257,7 @@ class ContinuousEnsembleQFunctionForwarder:
         target: torch.Tensor,
         terminals: torch.Tensor,
         gamma: Union[float, torch.Tensor] = 0.99,
+        masks: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         return compute_ensemble_q_function_error(
             forwarders=self._forwarders,
@@ -261,6 +267,7 @@ class ContinuousEnsembleQFunctionForwarder:
             target=target,
             terminals=terminals,
             gamma=gamma,
+            masks=masks,
         )
 
     def compute_target(
@@ -289,7 +296,7 @@ def compute_max_with_n_actions_and_indices(
     actions: torch.Tensor,
     forwarder: ContinuousEnsembleQFunctionForwarder,
     lam: float,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Returns weighted target value from sampled actions.
 
     This calculation is proposed in BCQ paper for the first time.

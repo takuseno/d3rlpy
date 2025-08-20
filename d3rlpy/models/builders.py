@@ -52,7 +52,7 @@ def create_discrete_q_function(
     device: str,
     enable_ddp: bool,
     n_ensembles: int = 1,
-) -> Tuple[nn.ModuleList, DiscreteEnsembleQFunctionForwarder]:
+) -> tuple[nn.ModuleList, DiscreteEnsembleQFunctionForwarder]:
     if q_func_factory.share_encoder:
         encoder = encoder_factory.create(observation_shape)
         hidden_size = compute_output_size([observation_shape], encoder)
@@ -90,7 +90,7 @@ def create_continuous_q_function(
     device: str,
     enable_ddp: bool,
     n_ensembles: int = 1,
-) -> Tuple[nn.ModuleList, ContinuousEnsembleQFunctionForwarder]:
+) -> tuple[nn.ModuleList, ContinuousEnsembleQFunctionForwarder]:
     if q_func_factory.share_encoder:
         encoder = encoder_factory.create_with_action(
             observation_shape, action_size

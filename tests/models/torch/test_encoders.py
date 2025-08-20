@@ -1,5 +1,5 @@
 # pylint: disable=protected-access
-from typing import List, Optional, Sequence, Tuple
+from typing import Optional, Sequence
 
 import pytest
 import torch
@@ -7,6 +7,8 @@ import torch
 from d3rlpy.models.torch.encoders import (
     PixelEncoder,
     PixelEncoderWithAction,
+    SimBaEncoder,
+    SimBaEncoderWithAction,
     VectorEncoder,
     VectorEncoderWithAction,
 )
@@ -23,8 +25,8 @@ from .model_test import check_parameter_updates
 @pytest.mark.parametrize("activation", [torch.nn.ReLU()])
 @pytest.mark.parametrize("last_activation", [None, torch.nn.ReLU()])
 def test_pixel_encoder(
-    shapes: Tuple[Sequence[int], int],
-    filters: List[List[int]],
+    shapes: tuple[Sequence[int], int],
+    filters: list[list[int]],
     feature_size: int,
     batch_size: int,
     use_batch_norm: bool,
@@ -72,9 +74,9 @@ def test_pixel_encoder(
 @pytest.mark.parametrize("activation", [torch.nn.ReLU()])
 @pytest.mark.parametrize("last_activation", [None, torch.nn.ReLU()])
 def test_pixel_encoder_with_action(
-    shapes: Tuple[Sequence[int], int],
+    shapes: tuple[Sequence[int], int],
     action_size: int,
-    filters: List[List[int]],
+    filters: list[list[int]],
     feature_size: int,
     batch_size: int,
     use_batch_norm: bool,
@@ -209,6 +211,74 @@ def test_vector_encoder_with_action(
         assert not torch.allclose(y, eval_y)
     else:
         assert torch.allclose(y, eval_y)
+
+    # check layer connection
+    check_parameter_updates(encoder, (x, action))
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("hidden_size", [128])
+@pytest.mark.parametrize("output_size", [256])
+@pytest.mark.parametrize("n_blocks", [2])
+@pytest.mark.parametrize("batch_size", [32])
+def test_simba_encoder(
+    observation_shape: Sequence[int],
+    hidden_size: int,
+    output_size: int,
+    n_blocks: int,
+    batch_size: int,
+) -> None:
+    encoder = SimBaEncoder(
+        observation_shape=observation_shape,
+        hidden_size=hidden_size,
+        output_size=output_size,
+        n_blocks=n_blocks,
+    )
+
+    x = torch.rand((batch_size, *observation_shape))
+    y = encoder(x)
+
+    # check output shape
+    assert y.shape == (batch_size, output_size)
+
+    # check layer connection
+    check_parameter_updates(encoder, (x,))
+
+
+@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("action_size", [2])
+@pytest.mark.parametrize("hidden_size", [128])
+@pytest.mark.parametrize("output_size", [256])
+@pytest.mark.parametrize("n_blocks", [2])
+@pytest.mark.parametrize("batch_size", [32])
+@pytest.mark.parametrize("discrete_action", [False, True])
+def test_simba_encoder_with_action(
+    observation_shape: Sequence[int],
+    action_size: int,
+    hidden_size: int,
+    output_size: int,
+    n_blocks: int,
+    batch_size: int,
+    discrete_action: bool,
+) -> None:
+    encoder = SimBaEncoderWithAction(
+        observation_shape=observation_shape,
+        action_size=action_size,
+        hidden_size=hidden_size,
+        output_size=output_size,
+        n_blocks=n_blocks,
+        discrete_action=discrete_action,
+    )
+
+    x = torch.rand((batch_size, *observation_shape))
+    if discrete_action:
+        action = torch.randint(0, action_size, size=(batch_size, 1))
+    else:
+        action = torch.rand(batch_size, action_size)
+    y = encoder(x, action)
+
+    # check output shape
+    assert y.shape == (batch_size, output_size)
 
     # check layer connection
     check_parameter_updates(encoder, (x, action))

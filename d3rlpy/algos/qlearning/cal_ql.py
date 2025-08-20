@@ -69,6 +69,7 @@ class CalQLConfig(CQLConfig):
             :math:`\log{\sum_a \exp{Q(s, a)}}`.
         soft_q_backup (bool): Flag to use SAC-style backup.
         max_q_backup (bool): Flag to sample max Q-values for target.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     def create(
@@ -88,7 +89,6 @@ class CalQL(CQL):
         assert not (
             self._config.soft_q_backup and self._config.max_q_backup
         ), "soft_q_backup and max_q_backup are mutually exclusive."
-
         policy = create_normal_policy(
             observation_shape,
             action_size,
@@ -128,20 +128,28 @@ class CalQL(CQL):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=self.compiled,
         )
         if self._config.temp_learning_rate > 0:
             temp_optim = self._config.temp_optim_factory.create(
-                log_temp.named_modules(), lr=self._config.temp_learning_rate
+                log_temp.named_modules(),
+                lr=self._config.temp_learning_rate,
+                compiled=self.compiled,
             )
         else:
             temp_optim = None
         if self._config.alpha_learning_rate > 0:
             alpha_optim = self._config.alpha_optim_factory.create(
-                log_alpha.named_modules(), lr=self._config.alpha_learning_rate
+                log_alpha.named_modules(),
+                lr=self._config.alpha_learning_rate,
+                compiled=self.compiled,
             )
         else:
             alpha_optim = None
@@ -171,6 +179,7 @@ class CalQL(CQL):
             n_action_samples=self._config.n_action_samples,
             soft_q_backup=self._config.soft_q_backup,
             max_q_backup=self._config.max_q_backup,
+            compiled=self.compiled,
             device=self._device,
         )
 

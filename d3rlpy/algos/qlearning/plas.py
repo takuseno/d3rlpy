@@ -77,6 +77,7 @@ class PLASConfig(LearnableConfig):
         lam (float): Weight factor for critic ensemble.
         warmup_steps (int): Number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     actor_learning_rate: float = 1e-4
@@ -163,15 +164,20 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
         )
 
         actor_optim = self._config.actor_optim_factory.create(
-            policy.named_modules(), lr=self._config.actor_learning_rate
+            policy.named_modules(),
+            lr=self._config.actor_learning_rate,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=self.compiled,
         )
         vae_optim = self._config.critic_optim_factory.create(
             list(vae_encoder.named_modules())
             + list(vae_decoder.named_modules()),
             lr=self._config.imitator_learning_rate,
+            compiled=self.compiled,
         )
 
         modules = PLASModules(
@@ -197,6 +203,7 @@ class PLAS(QLearningAlgoBase[PLASImpl, PLASConfig]):
             lam=self._config.lam,
             beta=self._config.beta,
             warmup_steps=self._config.warmup_steps,
+            compiled=self.compiled,
             device=self._device,
         )
 
@@ -247,6 +254,7 @@ class PLASWithPerturbationConfig(PLASConfig):
         action_flexibility (float): Output scale of perturbation layer.
         warmup_steps (int): Number of steps to warmup the VAE.
         beta (float): KL reguralization term for Conditional VAE.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     action_flexibility: float = 0.05
@@ -337,15 +345,20 @@ class PLASWithPerturbation(PLAS):
         named_modules = list(policy.named_modules())
         named_modules += list(perturbation.named_modules())
         actor_optim = self._config.actor_optim_factory.create(
-            named_modules, lr=self._config.actor_learning_rate
+            named_modules,
+            lr=self._config.actor_learning_rate,
+            compiled=self.compiled,
         )
         critic_optim = self._config.critic_optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.critic_learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.critic_learning_rate,
+            compiled=self.compiled,
         )
         vae_optim = self._config.critic_optim_factory.create(
             list(vae_encoder.named_modules())
             + list(vae_decoder.named_modules()),
             lr=self._config.imitator_learning_rate,
+            compiled=self.compiled,
         )
 
         modules = PLASWithPerturbationModules(
@@ -373,6 +386,7 @@ class PLASWithPerturbation(PLAS):
             lam=self._config.lam,
             beta=self._config.beta,
             warmup_steps=self._config.warmup_steps,
+            compiled=self.compiled,
             device=self._device,
         )
 

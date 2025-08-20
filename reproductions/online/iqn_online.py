@@ -10,6 +10,7 @@ def main() -> None:
     parser.add_argument("--env", type=str, default="BreakoutNoFrameskip-v4")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--gpu", action="store_true")
+    parser.add_argument("--compile", action="store_true")
     args = parser.parse_args()
 
     # get wrapped atari environment
@@ -29,6 +30,7 @@ def main() -> None:
         target_update_interval=10000 // 4,
         q_func_factory=d3rlpy.models.IQNQFunctionFactory(),
         observation_scaler=d3rlpy.preprocessing.PixelObservationScaler(),
+        compile_graph=args.compile,
     ).create(device=args.gpu)
 
     # replay buffer for experience replay

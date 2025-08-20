@@ -47,6 +47,7 @@ class NFQConfig(LearnableConfig):
         batch_size (int): Mini-batch size.
         gamma (float): Discount factor.
         n_critics (int): Number of Q functions for ensemble.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     learning_rate: float = 6.25e-5
@@ -91,7 +92,9 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
         )
 
         optim = self._config.optim_factory.create(
-            q_funcs.named_modules(), lr=self._config.learning_rate
+            q_funcs.named_modules(),
+            lr=self._config.learning_rate,
+            compiled=self.compiled,
         )
 
         modules = DQNModules(
@@ -108,6 +111,7 @@ class NFQ(QLearningAlgoBase[DQNImpl, NFQConfig]):
             targ_q_func_forwarder=targ_q_func_forwarder,
             target_update_interval=1,
             gamma=self._config.gamma,
+            compiled=self.compiled,
             device=self._device,
         )
 

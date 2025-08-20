@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Union, Optional
+from typing import Dict, Union, Optional, Callable
 
 import torch
 from torch.optim import Optimizer
@@ -18,7 +18,7 @@ from ....models.torch import (
     compute_stochastic_imitation_loss,
 )
 from ....optimizers import OptimizerWrapper
-from ....torch_utility import Modules, TorchMiniBatch
+from ....torch_utility import CudaGraphWrapper, Modules, TorchMiniBatch
 from ....types import Shape, TorchObservation
 from ..base import QLearningAlgoImplBase
 
@@ -32,12 +32,14 @@ class BCBaseModules(Modules):
 
 class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
     _modules: BCBaseModules
+    _compute_imitator_grad: Callable[[TorchMiniBatch], ImitationLoss]
 
     def __init__(
         self,
         observation_shape: Shape,
         action_size: int,
         modules: BCBaseModules,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
@@ -46,17 +48,22 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
             modules=modules,
             device=device,
         )
+        self._compute_imitator_grad = (
+            CudaGraphWrapper(self.compute_imitator_grad)
+            if compiled
+            else self.compute_imitator_grad
+        )
 
-    def update_imitator(
-        self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
+    def compute_imitator_grad(self, batch: TorchMiniBatch) -> ImitationLoss:
         self._modules.optim.zero_grad()
-
         loss = self.compute_loss(batch.observations, batch.embeddings, batch.actions)
-
+        loss = self.compute_loss(batch.observations, batch.actions)
         loss.loss.backward()
-        self._modules.optim.step(grad_step)
+        return loss
 
+    def update_imitator(self, batch: TorchMiniBatch) -> dict[str, float]:
+        loss = self._compute_imitator_grad(batch)
+        self._modules.optim.step()
         return asdict_as_float(loss)
 
     @abstractmethod
@@ -75,8 +82,8 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
     def inner_update(
         self, batch: TorchMiniBatch, grad_step: int
-    ) -> Dict[str, float]:
-        return self.update_imitator(batch, grad_step)
+    ) -> dict[str, float]:
+        return self.update_imitator(batch)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -94,12 +101,14 @@ class BCImpl(BCBaseImpl):
         action_size: int,
         modules: BCModules,
         policy_type: str,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
+            compiled=compiled,
             device=device,
         )
         self._policy_type = policy_type
@@ -149,12 +158,14 @@ class DiscreteBCImpl(BCBaseImpl):
         modules: DiscreteBCModules,
         beta: float,
         entropy_beta: float,
+        compiled: bool,
         device: str,
     ):
         super().__init__(
             observation_shape=observation_shape,
             action_size=action_size,
             modules=modules,
+            compiled=compiled,
             device=device,
         )
         self._beta = beta

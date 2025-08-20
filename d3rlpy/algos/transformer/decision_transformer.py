@@ -3,7 +3,6 @@ import dataclasses
 from typing import Optional
 
 import torch
-
 from ...base import DeviceArg, register_learnable
 from ...constants import ActionSpace, PositionEncodingType
 from ...models import EncoderFactory, make_encoder_field
@@ -61,7 +60,7 @@ class DecisionTransformerConfig(TransformerConfig):
         activation_type (str): Type of activation function.
         position_encoding_type (d3rlpy.PositionEncodingType):
             Type of positional encoding (``SIMPLE`` or ``GLOBAL``).
-        compile (bool): (experimental) Flag to enable JIT compilation.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     batch_size: int = 64
@@ -75,8 +74,8 @@ class DecisionTransformerConfig(TransformerConfig):
     embed_dropout: float = 0.1
     activation_type: str = "relu"
     position_encoding_type: PositionEncodingType = PositionEncodingType.SIMPLE
-    compile: bool = False
     embedding_size: Optional[int] = None
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -111,12 +110,10 @@ class DecisionTransformer(
             enable_ddp=self._enable_ddp,
         )
         optim = self._config.optim_factory.create(
-            transformer.named_modules(), lr=self._config.learning_rate
+            transformer.named_modules(),
+            lr=self._config.learning_rate,
+            compiled=self.compiled,
         )
-
-        # JIT compile
-        if self._config.compile:
-            transformer = torch.compile(transformer, fullgraph=True)
 
         modules = DecisionTransformerModules(
             transformer=transformer,
@@ -128,6 +125,7 @@ class DecisionTransformer(
             action_size=action_size,
             modules=modules,
             device=self._device,
+            compiled=self.compiled,
         )
 
     def get_action_type(self) -> ActionSpace:
@@ -169,7 +167,7 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
             Type of positional encoding (``SIMPLE`` or ``GLOBAL``).
         warmup_tokens (int): Number of tokens to warmup learning rate scheduler.
         final_tokens (int): Final number of tokens for learning rate scheduler.
-        compile (bool): (experimental) Flag to enable JIT compilation.
+        compile_graph (bool): Flag to enable JIT compilation and CUDAGraph.
     """
 
     batch_size: int = 128
@@ -186,8 +184,8 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
     position_encoding_type: PositionEncodingType = PositionEncodingType.GLOBAL
     warmup_tokens: int = 10240
     final_tokens: int = 30000000
-    compile: bool = False
     embedding_size: Optional[int] = None
+    compile_graph: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -226,11 +224,10 @@ class DiscreteDecisionTransformer(
             embedding_size=self._config.embedding_size,
         )
         optim = self._config.optim_factory.create(
-            transformer.named_modules(), lr=self._config.learning_rate
+            transformer.named_modules(),
+            lr=self._config.learning_rate,
+            compiled=self.compiled,
         )
-        # JIT compile
-        if self._config.compile:
-            transformer = torch.compile(transformer, fullgraph=True)
 
         modules = DiscreteDecisionTransformerModules(
             transformer=transformer,
@@ -244,6 +241,7 @@ class DiscreteDecisionTransformer(
             warmup_tokens=self._config.warmup_tokens,
             final_tokens=self._config.final_tokens,
             initial_learning_rate=self._config.learning_rate,
+            compiled=self.compiled,
             device=self._device,
         )
 

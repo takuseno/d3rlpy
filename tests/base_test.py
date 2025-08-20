@@ -19,7 +19,7 @@ def _check_reconst_algo(
     new_algo: LearnableBase[ImplBase, LearnableConfig],
 ) -> None:
     assert new_algo.impl is not None
-    assert type(new_algo) == type(algo)
+    assert type(new_algo) is type(algo)
     assert algo.observation_shape is not None
     assert new_algo.observation_shape is not None
     if isinstance(algo.observation_shape[0], int):
@@ -35,7 +35,7 @@ def _check_reconst_algo(
     if algo.observation_scaler is None:
         assert new_algo.observation_scaler is None
     else:
-        assert type(algo.observation_scaler) == type(
+        assert type(algo.observation_scaler) is type(
             new_algo.observation_scaler
         )
 
@@ -43,13 +43,13 @@ def _check_reconst_algo(
     if algo.action_scaler is None:
         assert new_algo.action_scaler is None
     else:
-        assert type(algo.action_scaler) == type(new_algo.action_scaler)
+        assert type(algo.action_scaler) is type(new_algo.action_scaler)
 
     # check reward scaler
     if algo.reward_scaler is None:
         assert new_algo.reward_scaler is None
     else:
-        assert type(algo.reward_scaler) == type(new_algo.reward_scaler)
+        assert type(algo.reward_scaler) is type(new_algo.reward_scaler)
 
 
 def from_json_tester(

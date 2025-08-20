@@ -1,7 +1,6 @@
-from typing import Union
+from typing import Protocol, Union
 
 import numpy as np
-from typing_extensions import Protocol
 
 from ...types import NDArray
 
