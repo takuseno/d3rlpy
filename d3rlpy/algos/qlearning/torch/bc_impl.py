@@ -57,7 +57,6 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
     def compute_imitator_grad(self, batch: TorchMiniBatch) -> ImitationLoss:
         self._modules.optim.zero_grad()
         loss = self.compute_loss(batch.observations, batch.embeddings, batch.actions)
-        loss = self.compute_loss(batch.observations, batch.actions)
         loss.loss.backward()
         return loss
 
