@@ -190,8 +190,8 @@ class DiscreteBCImpl(BCBaseImpl):
     def compute_loss(
         self,
         obs_t: TorchObservation,
-        embedding_t: Optional[torch.Tensor],
         act_t: torch.Tensor,
+        embedding_t: Optional[torch.Tensor],
     ) -> DiscreteImitationLoss:
         return compute_discrete_imitation_loss(
             policy=self._modules.imitator,
