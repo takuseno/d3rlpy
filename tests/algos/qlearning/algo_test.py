@@ -150,7 +150,7 @@ def predict_tester(
 ) -> None:
     algo.create_impl(observation_shape, action_size)
     x = create_observations(observation_shape, 100)
-    y = algo.predict(x)
+    y = algo.predict(x, None)
     if algo.get_action_type() == ActionSpace.DISCRETE:
         assert y.shape == (100,)
     else:
@@ -258,8 +258,8 @@ def save_and_load_tester(
 
         if deterministic_best_action:
             observations = create_observations(observation_shape, 100)
-            action1 = algo.predict(observations)
-            action2 = algo2.predict(observations)
+            action1 = algo.predict(observations, None)
+            action2 = algo2.predict(observations, None)
             assert np.all(action1 == action2)
     except NotImplementedError:
         # check interface at least
@@ -299,6 +299,7 @@ def update_tester(
             rewards_to_go=rewards_to_go,
             terminal=terminal,
             interval=1,
+            embedding=None,
         )
         transitions.append(transition)
 
@@ -370,7 +371,7 @@ def save_policy_tester(
     if deterministic_best_action:
         action = action.detach().numpy()
         observations = convert_to_numpy_recursively(torch_observations)
-        assert np.allclose(action, algo.predict(observations), atol=1e-5)
+        assert np.allclose(action, algo.predict(observations, None), atol=1e-5)
 
     # check save_policy as ONNX
     algo.save_policy(os.path.join("test_data", "model.onnx"))
@@ -393,4 +394,4 @@ def save_policy_tester(
     # TODO: check probablistic policy
     # https://github.com/pytorch/pytorch/pull/25753
     if deterministic_best_action:
-        assert np.allclose(action, algo.predict(observations), atol=1e-5)
+        assert np.allclose(action, algo.predict(observations, None), atol=1e-5)

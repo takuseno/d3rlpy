@@ -67,7 +67,7 @@ class DeterministicPolicy(Policy):
         self._fc = nn.Linear(hidden_size, action_size)
 
     def forward(self, x: TorchObservation, *args: Any) -> ActionOutput:
-        h = self._encoder(x)
+        h = self._encoder(x, None)
         mu = self._fc(h)
         return ActionOutput(mu, torch.tanh(mu), logstd=None)
 
@@ -129,7 +129,7 @@ class NormalPolicy(Policy):
             self._logstd = nn.Linear(hidden_size, action_size)
 
     def forward(self, x: TorchObservation, *args: Any) -> ActionOutput:
-        h = self._encoder(x)
+        h = self._encoder(x, None)
         mu = self._mu(h)
 
         if self._use_std_parameter:

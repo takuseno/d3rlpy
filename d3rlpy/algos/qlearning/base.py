@@ -222,7 +222,7 @@ class QLearningAlgoBase(
                     observation
                 )
 
-            action = self._impl.predict_best_action(observation)
+            action = self._impl.predict_best_action(observation, None)
 
             if self._config.action_scaler:
                 action = self._config.action_scaler.reverse_transform(action)
