@@ -142,7 +142,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         self._timesteps = deque([], maxlen=context_size)
         self._timestep = 1
 
-    def predict(self, x: Observation, embedding: Float32NDArray, reward: float) -> Union[NDArray, int]:
+    def predict(self, x: Observation, reward: float, embedding: Float32NDArray) -> Union[NDArray, int]:
         r"""Returns action.
 
         Args:

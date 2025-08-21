@@ -56,7 +56,7 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
     def compute_imitator_grad(self, batch: TorchMiniBatch) -> ImitationLoss:
         self._modules.optim.zero_grad()
-        loss = self.compute_loss(batch.observations, batch.embeddings, batch.actions)
+        loss = self.compute_loss(batch.observations, batch.actions, batch.embeddings)
         loss.loss.backward()
         return loss
 
@@ -67,7 +67,7 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
     @abstractmethod
     def compute_loss(
-        self, obs_t: TorchObservation, embedding_t: Optional[torch.Tensor], act_t: torch.Tensor
+        self, obs_t: TorchObservation, act_t: torch.Tensor, embedding_t: Optional[torch.Tensor]
     ) -> ImitationLoss:
         pass
 
@@ -116,7 +116,7 @@ class BCImpl(BCBaseImpl):
         return self._modules.imitator(x, embedding).squashed_mu
 
     def compute_loss(
-        self, obs_t: TorchObservation, embedding_t: Optional[torch.Tensor],act_t: torch.Tensor
+        self, obs_t: TorchObservation,act_t: torch.Tensor, embedding_t: Optional[torch.Tensor]
     ) -> ImitationLoss:
         if self._policy_type == "deterministic":
             assert isinstance(self._modules.imitator, DeterministicPolicy)
