@@ -3,7 +3,6 @@ from abc import abstractmethod
 from collections import defaultdict, deque
 from typing import (
     Callable,
-    Dict,
     Generic,
     Optional,
     Sequence,
@@ -29,14 +28,14 @@ from ...logging import (
     FileAdapterFactory,
     LoggerAdapterFactory,
 )
-from ...metrics import evaluate_transformer_with_environment, EvaluatorProtocol
+from ...metrics import EvaluatorProtocol, evaluate_transformer_with_environment
 from ...torch_utility import TorchTrajectoryMiniBatch, eval_api, train_api
 from ...types import (
+    Float32NDArray,
     GymEnv,
     NDArray,
     Observation,
     TorchObservation,
-    Float32NDArray,
 )
 from ..utility import (
     assert_action_space_with_dataset,
@@ -407,7 +406,7 @@ class TransformerAlgoBase(
         eval_target_return: Optional[float] = None,
         eval_action_sampler: Optional[TransformerActionSampler] = None,
         save_interval: int = 1,
-        evaluators: Optional[Dict[str, EvaluatorProtocol]] = None,
+        evaluators: Optional[dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
         epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> None:
@@ -511,7 +510,7 @@ class TransformerAlgoBase(
                     logging_strategy == LoggingStrategy.STEPS
                     and total_step % logging_steps == 0
                 ):
-                    metrics = self.logger.commit(epoch, total_step)
+                    self.logger.commit(epoch, total_step)
 
                 # call callback if given
                 if callback:

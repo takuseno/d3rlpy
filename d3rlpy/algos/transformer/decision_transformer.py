@@ -1,5 +1,4 @@
 import dataclasses
-
 from typing import Optional
 
 from ...base import DeviceArg, register_learnable

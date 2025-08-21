@@ -1,6 +1,6 @@
 import math
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, Optional
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -414,7 +414,7 @@ class DiscreteDecisionTransformer(nn.Module):  # type: ignore
         timesteps: torch.Tensor,
         attention_mask: torch.Tensor,
         embedding: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         batch_size, context_size, _ = return_to_go.shape
         position_embedding = self._position_encoding(timesteps)
 

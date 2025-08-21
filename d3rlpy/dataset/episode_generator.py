@@ -37,7 +37,7 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
     _rewards: Float32NDArray
     _terminals: Float32NDArray
     _timeouts: Float32NDArray
-    # Hold extra data for observations. Concatenate with observations to process.
+    # Hold extra data for observations. Concatenate with observations to process
     _embeddings: Float32NDArray
 
     def __init__(

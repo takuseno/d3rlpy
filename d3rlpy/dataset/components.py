@@ -1,6 +1,5 @@
 import dataclasses
-from typing import Any, Dict, Sequence, Optional, Protocol
-
+from typing import Any, Optional, Protocol, Sequence
 
 import numpy as np
 

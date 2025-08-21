@@ -46,11 +46,11 @@ from ...torch_utility import (
     train_api,
 )
 from ...types import (
+    Float32NDArray,
     GymEnv,
     NDArray,
     Observation,
     TorchObservation,
-    Float32NDArray,
 )
 from ..utility import (
     assert_action_space_with_dataset,

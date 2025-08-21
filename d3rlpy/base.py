@@ -2,7 +2,7 @@ import dataclasses
 import io
 import pickle
 from abc import ABCMeta, abstractmethod
-from typing import BinaryIO, Generic, Optional, TypeVar, Union, Callable
+from typing import BinaryIO, Callable, Generic, Optional, TypeVar, Union
 
 from gym.spaces import Box
 from gymnasium.spaces import Box as GymnasiumBox
@@ -30,8 +30,8 @@ from .torch_utility import (
     TorchMiniBatch,
     TorchTrajectoryMiniBatch,
 )
-from .types import GymEnv, Shape
 from .transformation import make_transformation_callable_field
+from .types import GymEnv, Shape
 
 __all__ = [
     "DeviceArg",
