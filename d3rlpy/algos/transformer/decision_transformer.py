@@ -2,7 +2,6 @@ import dataclasses
 
 from typing import Optional
 
-import torch
 from ...base import DeviceArg, register_learnable
 from ...constants import ActionSpace, PositionEncodingType
 from ...models import EncoderFactory, make_encoder_field

@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Union, Optional, Callable
+from typing import Union, Optional, Callable
 
 import torch
 from torch.optim import Optimizer
