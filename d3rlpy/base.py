@@ -2,7 +2,7 @@ import dataclasses
 import io
 import pickle
 from abc import ABCMeta, abstractmethod
-from typing import BinaryIO, Generic, Optional, TypeVar, Union
+from typing import BinaryIO, Callable, Generic, Optional, TypeVar, Union
 
 from gym.spaces import Box
 from gymnasium.spaces import Box as GymnasiumBox
@@ -20,8 +20,17 @@ from .preprocessing import (
     make_observation_scaler_field,
     make_reward_scaler_field,
 )
-from .serializable_config import DynamicConfig, generate_config_registration
-from .torch_utility import Checkpointer, Modules
+from .serializable_config import (
+    DynamicConfig,
+    generate_config_registration,
+)
+from .torch_utility import (
+    Checkpointer,
+    Modules,
+    TorchMiniBatch,
+    TorchTrajectoryMiniBatch,
+)
+from .transformation import make_transformation_callable_field
 from .types import GymEnv, Shape
 
 __all__ = [
@@ -96,6 +105,12 @@ class LearnableConfig(DynamicConfig):
     )
     action_scaler: Optional[ActionScaler] = make_action_scaler_field()
     reward_scaler: Optional[RewardScaler] = make_reward_scaler_field()
+    transform: Optional[
+        Callable[
+            [TorchMiniBatch | TorchTrajectoryMiniBatch],
+            TorchMiniBatch | TorchTrajectoryMiniBatch,
+        ]
+    ] = make_transformation_callable_field()
     compile_graph: bool = False
 
     def create(

@@ -37,6 +37,8 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
     _rewards: Float32NDArray
     _terminals: Float32NDArray
     _timeouts: Float32NDArray
+    # Hold extra data for observations. Concatenate with observations to process
+    _embeddings: Float32NDArray
 
     def __init__(
         self,
@@ -45,6 +47,7 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
         rewards: Float32NDArray,
         terminals: Float32NDArray,
         timeouts: Optional[Float32NDArray] = None,
+        embeddings: Optional[Float32NDArray] = None,
     ):
         if actions.ndim == 1:
             actions = np.reshape(actions, [-1, 1])
@@ -71,6 +74,7 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
         self._rewards = rewards
         self._terminals = terminals
         self._timeouts = timeouts
+        self._embeddings = embeddings
 
     def __call__(self) -> Sequence[Episode]:
         start = 0
@@ -85,6 +89,11 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
                     actions=self._actions[start:end],
                     rewards=self._rewards[start:end],
                     terminated=bool(self._terminals[i]),
+                    embeddings=(
+                        None
+                        if self._embeddings is None
+                        else self._embeddings[start:end]
+                    ),
                 )
                 episodes.append(episode)
                 start = end

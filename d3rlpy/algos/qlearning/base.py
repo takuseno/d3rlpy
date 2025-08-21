@@ -45,7 +45,13 @@ from ...torch_utility import (
     sync_optimizer_state,
     train_api,
 )
-from ...types import GymEnv, NDArray, Observation, TorchObservation
+from ...types import (
+    Float32NDArray,
+    GymEnv,
+    NDArray,
+    Observation,
+    TorchObservation,
+)
 from ..utility import (
     assert_action_space_with_dataset,
     assert_action_space_with_env,
@@ -74,11 +80,15 @@ class QLearningAlgoImplBase(ImplBase):
         pass
 
     @eval_api
-    def predict_best_action(self, x: TorchObservation) -> torch.Tensor:
-        return self.inner_predict_best_action(x)
+    def predict_best_action(
+        self, x: TorchObservation, embedding: Optional[torch.Tensor]
+    ) -> torch.Tensor:
+        return self.inner_predict_best_action(x, embedding)
 
     @abstractmethod
-    def inner_predict_best_action(self, x: TorchObservation) -> torch.Tensor:
+    def inner_predict_best_action(
+        self, x: TorchObservation, embedding: Optional[torch.Tensor]
+    ) -> torch.Tensor:
         pass
 
     @eval_api
@@ -222,7 +232,7 @@ class QLearningAlgoBase(
                     observation
                 )
 
-            action = self._impl.predict_best_action(observation)
+            action = self._impl.predict_best_action(observation, None)
 
             if self._config.action_scaler:
                 action = self._config.action_scaler.reverse_transform(action)
@@ -253,7 +263,9 @@ class QLearningAlgoBase(
         # workaround until version 1.6
         self._impl.modules.unfreeze()
 
-    def predict(self, x: Observation) -> NDArray:
+    def predict(
+        self, x: Observation, embedding: Optional[Float32NDArray]
+    ) -> NDArray:
         """Returns greedy actions.
 
         .. code-block:: python
@@ -275,12 +287,17 @@ class QLearningAlgoBase(
         assert check_non_1d_array(x), "Input must have batch dimension."
 
         torch_x = convert_to_torch_recursively(x, self._device)
+        torch_embedding = (
+            None
+            if embedding is None
+            else convert_to_torch_recursively(embedding, self._device)
+        )
 
         with torch.no_grad():
             if self._config.observation_scaler:
                 torch_x = self._config.observation_scaler.transform(torch_x)
 
-            action = self._impl.predict_best_action(torch_x)
+            action = self._impl.predict_best_action(torch_x, torch_embedding)
 
             if self._config.action_scaler:
                 action = self._config.action_scaler.reverse_transform(action)
@@ -508,7 +525,7 @@ class QLearningAlgoBase(
         # setup logger
         if experiment_name is None:
             experiment_name = self.__class__.__name__
-        logger = D3RLPyLogger(
+        self.logger = D3RLPyLogger(
             algo=self,
             adapter_factory=logger_adapter,
             experiment_name=experiment_name,
@@ -517,7 +534,7 @@ class QLearningAlgoBase(
         )
 
         # save hyperparameters
-        save_config(self, logger)
+        save_config(self, self.logger)
 
         # training loop
         n_epochs = n_steps // n_steps_per_epoch
@@ -533,20 +550,20 @@ class QLearningAlgoBase(
             )
 
             for itr in range_gen:
-                with logger.measure_time("step"):
+                with self.logger.measure_time("step"):
                     # pick transitions
-                    with logger.measure_time("sample_batch"):
+                    with self.logger.measure_time("sample_batch"):
                         batch = dataset.sample_transition_batch(
                             self._config.batch_size
                         )
 
                     # update parameters
-                    with logger.measure_time("algorithm_update"):
+                    with self.logger.measure_time("algorithm_update"):
                         loss = self.update(batch)
 
                     # record metrics
                     for name, val in loss.items():
-                        logger.add_metric(name, val)
+                        self.logger.add_metric(name, val)
                         epoch_loss[name].append(val)
 
                     # update progress postfix with losses
@@ -562,7 +579,7 @@ class QLearningAlgoBase(
                     logging_strategy == LoggingStrategy.STEPS
                     and total_step % logging_steps == 0
                 ):
-                    metrics = logger.commit(epoch, total_step)
+                    metrics = self.logger.commit(epoch, total_step)
 
                 # call callback if given
                 if callback:
@@ -575,19 +592,18 @@ class QLearningAlgoBase(
             if evaluators:
                 for name, evaluator in evaluators.items():
                     test_score = evaluator(self, dataset)
-                    logger.add_metric(name, test_score)
+                    self.logger.add_metric(name, test_score)
 
             # save metrics
-            if logging_strategy == LoggingStrategy.EPOCH:
-                metrics = logger.commit(epoch, total_step)
+            metrics = self.logger.commit(epoch, total_step)
 
             # save model parameters
             if epoch % save_interval == 0:
-                logger.save_model(total_step, self)
+                self.logger.save_model(total_step, self)
 
             yield epoch, metrics
 
-        logger.close()
+        self.logger.close()
 
     def fit_online(
         self,
@@ -875,6 +891,10 @@ class QLearningAlgoBase(
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
         )
+
+        if self._config.transform:
+            torch_batch = self._config.transform(torch_batch)
+
         loss = self._impl.update(torch_batch, self._grad_step)
         self._grad_step += 1
         return loss

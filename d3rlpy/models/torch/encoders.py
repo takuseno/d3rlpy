@@ -26,7 +26,9 @@ class Encoder(nn.Module, metaclass=ABCMeta):  # type: ignore
     def forward(self, x: TorchObservation) -> torch.Tensor:
         pass
 
-    def __call__(self, x: TorchObservation) -> torch.Tensor:
+    def __call__(
+        self, x: TorchObservation, embedding: Optional[torch.Tensor]
+    ) -> torch.Tensor:
         return super().__call__(x)
 
 
@@ -367,7 +369,9 @@ class SimBaEncoderWithAction(EncoderWithAction):
 
 
 def compute_output_size(
-    input_shapes: Sequence[Shape], encoder: nn.Module
+    input_shapes: Sequence[Shape],
+    encoder: nn.Module,
+    embedding_size: Optional[int] = None,
 ) -> int:
     device = next(encoder.parameters()).device
     with torch.no_grad():
@@ -377,5 +381,20 @@ def compute_output_size(
                 inputs.append([torch.rand(2, *s, device=device) for s in shape])
             else:
                 inputs.append(torch.rand(2, *shape, device=device))
-        y = encoder(*inputs)
+        if embedding_size is None:
+            y = encoder(*inputs, None)
+        else:
+            if inputs[0].ndim == 4:
+                # B x C x H X W
+                y = encoder(
+                    *inputs, torch.rand(2, embedding_size, device=device)
+                )
+            else:
+                # B x T x C x H x W
+                y = encoder(
+                    *inputs,
+                    torch.rand(
+                        2, inputs[0].shape[1], embedding_size, device=device
+                    )
+                )
     return int(y.shape[1])

@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Any, Protocol, Sequence
+from typing import Any, Optional, Protocol, Sequence
 
 import numpy as np
 
@@ -79,6 +79,7 @@ class Transition:
     terminal: float
     interval: int
     rewards_to_go: Float32NDArray  # (L, 1)
+    embedding: Float32NDArray
 
     @property
     def observation_signature(self) -> Signature:
@@ -142,6 +143,7 @@ class PartialTrajectory:
     timesteps: Int32NDArray  # (L,)
     masks: Float32NDArray  # (L,)
     length: int
+    embeddings: Float32NDArray  # (L)
 
     @property
     def observation_signature(self) -> Signature:
@@ -239,6 +241,10 @@ class EpisodeBase(Protocol):
         raise NotImplementedError
 
     @property
+    def embeddings(self) -> Float32NDArray:
+        raise NotImplementedError
+
+    @property
     def observation_signature(self) -> Signature:
         r"""Returns observation signature.
 
@@ -331,6 +337,7 @@ class Episode:
     actions: NDArray
     rewards: Float32NDArray
     terminated: bool
+    embeddings: Optional[Float32NDArray] = None
 
     @property
     def observation_signature(self) -> Signature:
@@ -367,6 +374,7 @@ class Episode:
             "actions": self.actions,
             "rewards": self.rewards,
             "terminated": self.terminated,
+            "embeddings": self.embeddings,
         }
 
     @classmethod
@@ -376,6 +384,7 @@ class Episode:
             actions=serializedData["actions"],
             rewards=serializedData["rewards"],
             terminated=serializedData["terminated"],
+            embeddings=serializedData["embeddings"],
         )
 
     def __len__(self) -> int:

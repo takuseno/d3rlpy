@@ -1,4 +1,4 @@
-from typing import Sequence, cast
+from typing import Optional, Sequence, cast
 
 import torch
 from torch import nn
@@ -204,9 +204,12 @@ def create_categorical_policy(
     encoder_factory: EncoderFactory,
     device: str,
     enable_ddp: bool,
+    embedding_size: Optional[int] = None,
 ) -> CategoricalPolicy:
     encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder)
+    hidden_size = compute_output_size(
+        [observation_shape], encoder, embedding_size
+    )
     policy = CategoricalPolicy(
         encoder=encoder, hidden_size=hidden_size, action_size=action_size
     )
@@ -372,9 +375,12 @@ def create_discrete_decision_transformer(
     position_encoding_type: PositionEncodingType,
     device: str,
     enable_ddp: bool,
+    embedding_size: Optional[int] = None,
 ) -> DiscreteDecisionTransformer:
     encoder = encoder_factory.create(observation_shape)
-    hidden_size = compute_output_size([observation_shape], encoder)
+    hidden_size = compute_output_size(
+        [observation_shape], encoder, embedding_size
+    )
 
     position_encoding = _create_position_encoding(
         position_encoding_type=position_encoding_type,

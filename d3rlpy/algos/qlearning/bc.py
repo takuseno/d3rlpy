@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Optional
 
 from ...base import DeviceArg, LearnableConfig, register_learnable
 from ...constants import ActionSpace
@@ -149,6 +150,8 @@ class DiscreteBCConfig(LearnableConfig):
     optim_factory: OptimizerFactory = make_optimizer_field()
     encoder_factory: EncoderFactory = make_encoder_field()
     beta: float = 0.5
+    entropy_beta: float = 0.0
+    embedding_size: Optional[int] = None
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -170,6 +173,7 @@ class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
             self._config.encoder_factory,
             device=self._device,
             enable_ddp=self._enable_ddp,
+            embedding_size=self._config.embedding_size,
         )
 
         optim = self._config.optim_factory.create(
@@ -185,6 +189,7 @@ class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
             action_size=action_size,
             modules=modules,
             beta=self._config.beta,
+            entropy_beta=self._config.entropy_beta,
             compiled=self.compiled,
             device=self._device,
         )

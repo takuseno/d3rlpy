@@ -16,7 +16,11 @@ from tqdm.auto import tqdm
 from typing_extensions import Self
 
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace
+from ...constants import (
+    IMPL_NOT_INITIALIZED_ERROR,
+    ActionSpace,
+    LoggingStrategy,
+)
 from ...dataset import ReplayBuffer, TrajectoryMiniBatch, is_tuple_shape
 from ...logging import (
     LOG,
@@ -24,9 +28,15 @@ from ...logging import (
     FileAdapterFactory,
     LoggerAdapterFactory,
 )
-from ...metrics import evaluate_transformer_with_environment
+from ...metrics import EvaluatorProtocol, evaluate_transformer_with_environment
 from ...torch_utility import TorchTrajectoryMiniBatch, eval_api, train_api
-from ...types import GymEnv, NDArray, Observation, TorchObservation
+from ...types import (
+    Float32NDArray,
+    GymEnv,
+    NDArray,
+    Observation,
+    TorchObservation,
+)
 from ..utility import (
     assert_action_space_with_dataset,
     build_scalers_with_trajectory_slicer,
@@ -134,13 +144,16 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
 
         context_size = algo.config.context_size
         self._observations = deque([], maxlen=context_size)
+        self._embeddings = deque([], maxlen=context_size)
         self._actions = deque([self._get_pad_action()], maxlen=context_size)
         self._rewards = deque([], maxlen=context_size)
         self._returns_to_go = deque([], maxlen=context_size)
         self._timesteps = deque([], maxlen=context_size)
         self._timestep = 1
 
-    def predict(self, x: Observation, reward: float) -> Union[NDArray, int]:
+    def predict(
+        self, x: Observation, reward: float, embedding: Float32NDArray
+    ) -> Union[NDArray, int]:
         r"""Returns action.
 
         Args:
@@ -151,6 +164,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
             Action.
         """
         self._observations.append(x)
+        self._embeddings.append(embedding)
         self._rewards.append(reward)
         self._returns_to_go.append(self._return_rest - reward)
         self._timesteps.append(self._timestep)
@@ -170,6 +184,9 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
             rewards=np.array(self._rewards).reshape((-1, 1)),
             returns_to_go=np.array(self._returns_to_go).reshape((-1, 1)),
             timesteps=np.array(self._timesteps),
+            embeddings=(
+                None if embedding is None else np.array(self._embeddings)
+            ),
         )
         action = self._action_sampler(self._algo.predict(inpt))
         self._actions[-1] = action
@@ -181,6 +198,7 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
     def reset(self) -> None:
         """Clears stateful information."""
         self._observations.clear()
+        self._embeddings.clear()
         self._actions.clear()
         self._rewards.clear()
         self._returns_to_go.clear()
@@ -378,6 +396,8 @@ class TransformerAlgoBase(
         dataset: ReplayBuffer,
         n_steps: int,
         n_steps_per_epoch: int = 10000,
+        logging_steps: int = 500,
+        logging_strategy: LoggingStrategy = LoggingStrategy.EPOCH,
         experiment_name: Optional[str] = None,
         with_timestamp: bool = True,
         logger_adapter: LoggerAdapterFactory = FileAdapterFactory(),
@@ -386,7 +406,9 @@ class TransformerAlgoBase(
         eval_target_return: Optional[float] = None,
         eval_action_sampler: Optional[TransformerActionSampler] = None,
         save_interval: int = 1,
+        evaluators: Optional[dict[str, EvaluatorProtocol]] = None,
         callback: Optional[Callable[[Self, int, int], None]] = None,
+        epoch_callback: Optional[Callable[[Self, int, int], None]] = None,
     ) -> None:
         """Trains with given dataset.
 
@@ -433,7 +455,7 @@ class TransformerAlgoBase(
         # setup logger
         if experiment_name is None:
             experiment_name = self.__class__.__name__
-        logger = D3RLPyLogger(
+        self.logger = D3RLPyLogger(
             algo=self,
             adapter_factory=logger_adapter,
             experiment_name=experiment_name,
@@ -442,7 +464,7 @@ class TransformerAlgoBase(
         )
 
         # save hyperparameters
-        save_config(self, logger)
+        save_config(self, self.logger)
 
         # training loop
         n_epochs = n_steps // n_steps_per_epoch
@@ -458,21 +480,21 @@ class TransformerAlgoBase(
             )
 
             for itr in range_gen:
-                with logger.measure_time("step"):
+                with self.logger.measure_time("step"):
                     # pick transitions
-                    with logger.measure_time("sample_batch"):
+                    with self.logger.measure_time("sample_batch"):
                         batch = dataset.sample_trajectory_batch(
                             self._config.batch_size,
                             length=self._config.context_size,
                         )
 
                     # update parameters
-                    with logger.measure_time("algorithm_update"):
+                    with self.logger.measure_time("algorithm_update"):
                         loss = self.update(batch)
 
                     # record metrics
                     for name, val in loss.items():
-                        logger.add_metric(name, val)
+                        self.logger.add_metric(name, val)
                         epoch_loss[name].append(val)
 
                     # update progress postfix with losses
@@ -484,9 +506,24 @@ class TransformerAlgoBase(
 
                 total_step += 1
 
+                if (
+                    logging_strategy == LoggingStrategy.STEPS
+                    and total_step % logging_steps == 0
+                ):
+                    self.logger.commit(epoch, total_step)
+
                 # call callback if given
                 if callback:
                     callback(self, epoch, total_step)
+
+            # call epoch_callback if given
+            if epoch_callback:
+                epoch_callback(self, epoch, total_step)
+
+            if evaluators:
+                for name, evaluator in evaluators.items():
+                    test_score = evaluator(self, dataset)
+                    self.logger.add_metric(name, test_score)
 
             if eval_env:
                 assert eval_target_return is not None
@@ -497,16 +534,17 @@ class TransformerAlgoBase(
                     ),
                     env=eval_env,
                 )
-                logger.add_metric("environment", eval_score)
+                self.logger.add_metric("environment", eval_score)
 
             # save metrics
-            logger.commit(epoch, total_step)
+            if logging_strategy == LoggingStrategy.EPOCH:
+                self.logger.commit(epoch, total_step)
 
             # save model parameters
             if epoch % save_interval == 0:
-                logger.save_model(total_step, self)
+                self.logger.save_model(total_step, self)
 
-        logger.close()
+        self.logger.close()
 
     def update(self, batch: TrajectoryMiniBatch) -> dict[str, float]:
         """Update parameters with mini-batch of data.
@@ -525,6 +563,10 @@ class TransformerAlgoBase(
             action_scaler=self._config.action_scaler,
             reward_scaler=self._config.reward_scaler,
         )
+
+        if self._config.transform:
+            torch_batch = self._config.transform(torch_batch)
+
         loss = self._impl.update(torch_batch, self._grad_step)
         self._grad_step += 1
         return loss

@@ -67,7 +67,7 @@ class DeterministicPolicy(Policy):
         self._fc = nn.Linear(hidden_size, action_size)
 
     def forward(self, x: TorchObservation, *args: Any) -> ActionOutput:
-        h = self._encoder(x)
+        h = self._encoder(x, None)
         mu = self._fc(h)
         return ActionOutput(mu, torch.tanh(mu), logstd=None)
 
@@ -129,7 +129,7 @@ class NormalPolicy(Policy):
             self._logstd = nn.Linear(hidden_size, action_size)
 
     def forward(self, x: TorchObservation, *args: Any) -> ActionOutput:
-        h = self._encoder(x)
+        h = self._encoder(x, None)
         mu = self._mu(h)
 
         if self._use_std_parameter:
@@ -154,8 +154,12 @@ class CategoricalPolicy(nn.Module):  # type: ignore
         self._encoder = encoder
         self._fc = nn.Linear(hidden_size, action_size)
 
-    def forward(self, x: TorchObservation) -> Categorical:
-        return Categorical(logits=self._fc(self._encoder(x)))
+    def forward(
+        self, x: TorchObservation, embedding: torch.Tensor
+    ) -> Categorical:
+        return Categorical(logits=self._fc(self._encoder(x, embedding)))
 
-    def __call__(self, x: TorchObservation) -> Categorical:
-        return super().__call__(x)
+    def __call__(
+        self, x: TorchObservation, embedding: torch.Tensor
+    ) -> Categorical:
+        return super().__call__(x, embedding)

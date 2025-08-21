@@ -122,6 +122,7 @@ def predict_tester(
         rewards=np.random.random((context_size, 1)).astype(np.float32),
         returns_to_go=np.random.random((context_size, 1)).astype(np.float32),
         timesteps=np.arange(context_size),
+        embeddings=None,
     )
     y = algo.predict(inpt)
     if algo.get_action_type() == ActionSpace.DISCRETE:
@@ -152,8 +153,8 @@ def save_and_load_tester(
     actor2 = algo2.as_stateful_wrapper(0, action_sampler)
 
     observation = create_observation(observation_shape)
-    action1 = actor1.predict(observation, 0)
-    action2 = actor2.predict(observation, 0)
+    action1 = actor1.predict(observation, 0, None)
+    action2 = actor2.predict(observation, 0, None)
     assert np.all(action1 == action2)
 
 
@@ -184,6 +185,7 @@ def update_tester(
             timesteps=np.arange(context_size),
             masks=np.zeros(context_size, dtype=np.float32),
             length=context_size,
+            embeddings=None,
         )
         trajectories.append(trajectory)
 
@@ -220,7 +222,7 @@ def stateful_wrapper_tester(
     # check predict
     for _ in range(10):
         observation, reward = create_observation(observation_shape), 0.0
-        action = wrapper.predict(observation, reward)
+        action = wrapper.predict(observation, reward, None)
         if algo.get_action_type() == ActionSpace.DISCRETE:
             assert isinstance(action, int)
         else:
@@ -230,14 +232,14 @@ def stateful_wrapper_tester(
 
     # check reset
     observation1, reward1 = create_observation(observation_shape), 0.0
-    action1 = wrapper.predict(observation1, reward1)
+    action1 = wrapper.predict(observation1, reward1, None)
     observation, reward = create_observation(observation_shape), 0.0
-    action2 = wrapper.predict(observation, reward)
+    action2 = wrapper.predict(observation, reward, None)
     # in discrete case, there is high chance that action is the same.
     if algo.get_action_type() == ActionSpace.CONTINUOUS:
         assert np.all(action1 != action2)
     wrapper.reset()
-    action3 = wrapper.predict(observation1, reward1)
+    action3 = wrapper.predict(observation1, reward1, None)
     assert np.all(action1 == action3)
 
 
@@ -291,6 +293,7 @@ def save_policy_tester(
         rewards=inputs[num_observations + 1].numpy(),
         returns_to_go=inputs[num_observations + 1].numpy(),
         timesteps=inputs[num_observations + 2].numpy(),
+        embeddings=None,
     )
     if algo.get_action_type() == ActionSpace.DISCRETE:
         assert action == algo.predict(inpt).argmax()

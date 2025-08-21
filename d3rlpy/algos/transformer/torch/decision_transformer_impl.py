@@ -60,6 +60,7 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
             inpt.returns_to_go,
             inpt.timesteps,
             1 - inpt.masks,
+            inpt.embeddings,
         )
         # (1, T, A) -> (A,)
         return action[0][-1]
@@ -86,6 +87,7 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
             batch.returns_to_go,
             batch.timesteps,
             1 - batch.masks,
+            batch.embeddings,
         )
         # (B, T, A) -> (B, T)
         loss = ((action - batch.actions) ** 2).sum(dim=-1)
@@ -142,6 +144,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
             inpt.returns_to_go,
             inpt.timesteps,
             1 - inpt.masks,
+            inpt.embeddings,
         )
         # (1, T, A) -> (A,)
         return logits[0][-1]
@@ -187,6 +190,7 @@ class DiscreteDecisionTransformerImpl(TransformerAlgoImplBase):
             batch.returns_to_go,
             batch.timesteps,
             1 - batch.masks,
+            batch.embeddings,
         )
         loss = F.cross_entropy(
             logits.view(-1, self._action_size),

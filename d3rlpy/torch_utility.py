@@ -85,8 +85,7 @@ def sync_optimizer_state(targ_optim: Optimizer, optim: Optimizer) -> None:
 
 def map_location(device: str) -> Any:
     if "cuda" in device:
-        _, index = device.split(":")
-        return lambda storage, loc: storage.cuda(int(index))
+        return "cuda"
     if "cpu" in device:
         return "cpu"
     raise ValueError(f"invalid device={device}")
@@ -212,6 +211,7 @@ class TorchMiniBatch:
     intervals: torch.Tensor
     device: str
     numpy_batch: Optional[TransitionMiniBatch] = None
+    embeddings: Optional[torch.Tensor] = None
 
     @classmethod
     def from_batch(
@@ -273,6 +273,7 @@ class TorchMiniBatch:
             intervals=intervals,
             device=device,
             numpy_batch=batch,
+            embeddings=convert_to_torch_recursively(batch.embeddings, device),
         )
 
     def copy_(self, src: Self) -> None:
@@ -298,6 +299,7 @@ class TorchTrajectoryMiniBatch:
     masks: torch.Tensor  # (B, L)
     device: str
     numpy_batch: Optional[TrajectoryMiniBatch] = None
+    embeddings: Optional[torch.Tensor] = None
 
     @classmethod
     def from_batch(
@@ -337,6 +339,7 @@ class TorchTrajectoryMiniBatch:
             masks=masks,
             device=device,
             numpy_batch=batch,
+            embeddings=convert_to_torch_recursively(batch.embeddings, device),
         )
 
     def copy_(self, src: Self) -> None:

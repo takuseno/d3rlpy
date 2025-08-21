@@ -74,6 +74,12 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
         # compute backward padding size
         pad_size = size - actual_size
 
+        embeddings = (
+            episode.embeddings[start:end]
+            if episode.embeddings is not None
+            else None
+        )
+
         if pad_size == 0:
             return PartialTrajectory(
                 observations=observations,
@@ -84,6 +90,7 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
                 timesteps=timesteps,
                 masks=masks,
                 length=size,
+                embeddings=embeddings,
             )
 
         return PartialTrajectory(
@@ -95,6 +102,11 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
             timesteps=batch_pad_array(timesteps, pad_size),
             masks=batch_pad_array(masks, pad_size),
             length=size,
+            embeddings=(
+                None
+                if embeddings is None
+                else batch_pad_array(embeddings, pad_size)
+            ),
         )
 
 

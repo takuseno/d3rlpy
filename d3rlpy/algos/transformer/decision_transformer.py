@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Optional
 
 from ...base import DeviceArg, register_learnable
 from ...constants import ActionSpace, PositionEncodingType
@@ -71,6 +72,7 @@ class DecisionTransformerConfig(TransformerConfig):
     embed_dropout: float = 0.1
     activation_type: str = "relu"
     position_encoding_type: PositionEncodingType = PositionEncodingType.SIMPLE
+    embedding_size: Optional[int] = None
     compile_graph: bool = False
 
     def create(
@@ -180,6 +182,7 @@ class DiscreteDecisionTransformerConfig(TransformerConfig):
     position_encoding_type: PositionEncodingType = PositionEncodingType.GLOBAL
     warmup_tokens: int = 10240
     final_tokens: int = 30000000
+    embedding_size: Optional[int] = None
     compile_graph: bool = False
 
     def create(
@@ -216,6 +219,7 @@ class DiscreteDecisionTransformer(
             position_encoding_type=self._config.position_encoding_type,
             device=self._device,
             enable_ddp=self._enable_ddp,
+            embedding_size=self._config.embedding_size,
         )
         optim = self._config.optim_factory.create(
             transformer.named_modules(),

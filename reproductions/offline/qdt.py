@@ -120,8 +120,9 @@ def relabel_dataset_rtg(
                 sampled_actions = q_algo.sample_action(episode.observations)
                 v = q_algo.predict_value(episode.observations, sampled_actions)
                 values.append(
-                    v if q_algo.reward_scaler is None 
-                          else q_algo.reward_scaler.reverse_transform(v)
+                    v
+                    if q_algo.reward_scaler is None
+                    else q_algo.reward_scaler.reverse_transform(v)
                 )
             value = np.array(values).mean(axis=0)
             rewards = np.squeeze(episode.rewards, axis=1)
