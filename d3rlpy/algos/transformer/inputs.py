@@ -76,7 +76,11 @@ class TorchTransformerInput:
             returns_to_go = inpt.returns_to_go[-context_size:]
             timesteps = inpt.timesteps[-context_size:]
             masks = np.ones(context_size, dtype=np.float32)
-            embeddings = inpt.embeddings[-context_size:] if inpt.embeddings is not None else None
+            embeddings = (
+                inpt.embeddings[-context_size:]
+                if inpt.embeddings is not None
+                else None
+            )
         else:
             pad_size = context_size - inpt.length
             observations = batch_pad_observations(inpt.observations, pad_size)
@@ -87,7 +91,11 @@ class TorchTransformerInput:
             masks = batch_pad_array(
                 np.ones(inpt.length, dtype=np.float32), pad_size
             )
-            embeddings = batch_pad_array(inpt.embeddings, pad_size) if inpt.embeddings is not None else None
+            embeddings = (
+                batch_pad_array(inpt.embeddings, pad_size)
+                if inpt.embeddings is not None
+                else None
+            )
 
         # convert numpy array to torch tensor
         observations_pt = convert_to_torch_recursively(observations, device)
@@ -96,7 +104,9 @@ class TorchTransformerInput:
         returns_to_go_pt = convert_to_torch(returns_to_go, device)
         timesteps_pt = convert_to_torch(timesteps, device).long()
         masks_pt = convert_to_torch(masks, device)
-        embeddings_pt = None if embeddings is None else convert_to_torch(embeddings, device)
+        embeddings_pt = (
+            None if embeddings is None else convert_to_torch(embeddings, device)
+        )
 
         # apply scaler
         if observation_scaler:
@@ -120,5 +130,7 @@ class TorchTransformerInput:
             timesteps=timesteps_pt.unsqueeze(0),
             masks=masks_pt.unsqueeze(0),
             length=context_size,
-            embeddings=None if embeddings_pt is None else embeddings_pt.unsqueeze(0),
+            embeddings=(
+                None if embeddings_pt is None else embeddings_pt.unsqueeze(0)
+            ),
         )

@@ -122,7 +122,7 @@ def predict_tester(
         rewards=np.random.random((context_size, 1)).astype(np.float32),
         returns_to_go=np.random.random((context_size, 1)).astype(np.float32),
         timesteps=np.arange(context_size),
-        embeddings=None
+        embeddings=None,
     )
     y = algo.predict(inpt)
     if algo.get_action_type() == ActionSpace.DISCRETE:
@@ -293,7 +293,7 @@ def save_policy_tester(
         rewards=inputs[num_observations + 1].numpy(),
         returns_to_go=inputs[num_observations + 1].numpy(),
         timesteps=inputs[num_observations + 2].numpy(),
-        embeddings=None
+        embeddings=None,
     )
     if algo.get_action_type() == ActionSpace.DISCRETE:
         assert action == algo.predict(inpt).argmax()

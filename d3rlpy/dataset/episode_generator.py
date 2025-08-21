@@ -89,7 +89,11 @@ class EpisodeGenerator(EpisodeGeneratorProtocol):
                     actions=self._actions[start:end],
                     rewards=self._rewards[start:end],
                     terminated=bool(self._terminals[i]),
-                    embeddings=None if self._embeddings is None else self._embeddings[start:end],
+                    embeddings=(
+                        None
+                        if self._embeddings is None
+                        else self._embeddings[start:end]
+                    ),
                 )
                 episodes.append(episode)
                 start = end

@@ -24,7 +24,12 @@ from .serializable_config import (
     DynamicConfig,
     generate_config_registration,
 )
-from .torch_utility import Checkpointer, Modules, TorchMiniBatch, TorchTrajectoryMiniBatch
+from .torch_utility import (
+    Checkpointer,
+    Modules,
+    TorchMiniBatch,
+    TorchTrajectoryMiniBatch,
+)
 from .types import GymEnv, Shape
 from .transformation import make_transformation_callable_field
 
@@ -100,7 +105,12 @@ class LearnableConfig(DynamicConfig):
     )
     action_scaler: Optional[ActionScaler] = make_action_scaler_field()
     reward_scaler: Optional[RewardScaler] = make_reward_scaler_field()
-    transform: Optional[Callable[[TorchMiniBatch | TorchTrajectoryMiniBatch], TorchMiniBatch | TorchTrajectoryMiniBatch]] = make_transformation_callable_field()
+    transform: Optional[
+        Callable[
+            [TorchMiniBatch | TorchTrajectoryMiniBatch],
+            TorchMiniBatch | TorchTrajectoryMiniBatch,
+        ]
+    ] = make_transformation_callable_field()
     compile_graph: bool = False
 
     def create(

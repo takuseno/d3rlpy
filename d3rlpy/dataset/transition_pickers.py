@@ -69,7 +69,11 @@ class BasicTransitionPicker(TransitionPickerProtocol):
             terminal=float(is_terminal),
             interval=1,
             rewards_to_go=episode.rewards[index:],
-            embedding=episode.embeddings[index] if episode.embeddings is not None else None,
+            embedding=(
+                episode.embeddings[index]
+                if episode.embeddings is not None
+                else None
+            ),
         )
 
 

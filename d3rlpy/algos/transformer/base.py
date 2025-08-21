@@ -17,7 +17,11 @@ from tqdm.auto import tqdm
 from typing_extensions import Self
 
 from ...base import ImplBase, LearnableBase, LearnableConfig, save_config
-from ...constants import IMPL_NOT_INITIALIZED_ERROR, ActionSpace, LoggingStrategy
+from ...constants import (
+    IMPL_NOT_INITIALIZED_ERROR,
+    ActionSpace,
+    LoggingStrategy,
+)
 from ...dataset import ReplayBuffer, TrajectoryMiniBatch, is_tuple_shape
 from ...logging import (
     LOG,
@@ -27,7 +31,13 @@ from ...logging import (
 )
 from ...metrics import evaluate_transformer_with_environment, EvaluatorProtocol
 from ...torch_utility import TorchTrajectoryMiniBatch, eval_api, train_api
-from ...types import GymEnv, NDArray, Observation, TorchObservation, Float32NDArray
+from ...types import (
+    GymEnv,
+    NDArray,
+    Observation,
+    TorchObservation,
+    Float32NDArray,
+)
 from ..utility import (
     assert_action_space_with_dataset,
     build_scalers_with_trajectory_slicer,
@@ -142,7 +152,9 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
         self._timesteps = deque([], maxlen=context_size)
         self._timestep = 1
 
-    def predict(self, x: Observation, reward: float, embedding: Float32NDArray) -> Union[NDArray, int]:
+    def predict(
+        self, x: Observation, reward: float, embedding: Float32NDArray
+    ) -> Union[NDArray, int]:
         r"""Returns action.
 
         Args:
@@ -173,7 +185,9 @@ class StatefulTransformerWrapper(Generic[TTransformerImpl, TTransformerConfig]):
             rewards=np.array(self._rewards).reshape((-1, 1)),
             returns_to_go=np.array(self._returns_to_go).reshape((-1, 1)),
             timesteps=np.array(self._timesteps),
-            embeddings=None if embedding is None else np.array(self._embeddings),
+            embeddings=(
+                None if embedding is None else np.array(self._embeddings)
+            ),
         )
         action = self._action_sampler(self._algo.predict(inpt))
         self._actions[-1] = action

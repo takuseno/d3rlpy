@@ -42,7 +42,7 @@ class TransitionMiniBatch:
     terminals: Float32NDArray  # (B, 1)
     intervals: Float32NDArray  # (B, 1)
     transitions: Sequence[Transition]
-    embeddings: Float32NDArray # (B, 1)
+    embeddings: Float32NDArray  # (B, 1)
 
     def __post_init__(self) -> None:
         assert check_non_1d_array(self.observations)
@@ -199,7 +199,9 @@ class TrajectoryMiniBatch:
         terminals = np.stack([traj.terminals for traj in trajectories], axis=0)
         timesteps = np.stack([traj.timesteps for traj in trajectories], axis=0)
         masks = np.stack([traj.masks for traj in trajectories], axis=0)
-        embeddings = np.stack([traj.embeddings for traj in trajectories], axis=0)
+        embeddings = np.stack(
+            [traj.embeddings for traj in trajectories], axis=0
+        )
         return TrajectoryMiniBatch(
             observations=cast_recursively(observations, np.float32),
             actions=cast_recursively(actions, np.float32),

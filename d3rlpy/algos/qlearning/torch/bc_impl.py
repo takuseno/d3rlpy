@@ -56,7 +56,9 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
     def compute_imitator_grad(self, batch: TorchMiniBatch) -> ImitationLoss:
         self._modules.optim.zero_grad()
-        loss = self.compute_loss(batch.observations, batch.actions, batch.embeddings)
+        loss = self.compute_loss(
+            batch.observations, batch.actions, batch.embeddings
+        )
         loss.loss.backward()
         return loss
 
@@ -67,11 +69,16 @@ class BCBaseImpl(QLearningAlgoImplBase, metaclass=ABCMeta):
 
     @abstractmethod
     def compute_loss(
-        self, obs_t: TorchObservation, act_t: torch.Tensor, embedding_t: Optional[torch.Tensor]
+        self,
+        obs_t: TorchObservation,
+        act_t: torch.Tensor,
+        embedding_t: Optional[torch.Tensor],
     ) -> ImitationLoss:
         pass
 
-    def inner_sample_action(self, x: TorchObservation, embedding: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def inner_sample_action(
+        self, x: TorchObservation, embedding: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         return self.inner_predict_best_action(x, embedding)
 
     def inner_predict_value(
@@ -112,11 +119,16 @@ class BCImpl(BCBaseImpl):
         )
         self._policy_type = policy_type
 
-    def inner_predict_best_action(self, x: TorchObservation, embedding: Optional[torch.Tensor]) -> torch.Tensor:
+    def inner_predict_best_action(
+        self, x: TorchObservation, embedding: Optional[torch.Tensor]
+    ) -> torch.Tensor:
         return self._modules.imitator(x, embedding).squashed_mu
 
     def compute_loss(
-        self, obs_t: TorchObservation,act_t: torch.Tensor, embedding_t: Optional[torch.Tensor]
+        self,
+        obs_t: TorchObservation,
+        act_t: torch.Tensor,
+        embedding_t: Optional[torch.Tensor],
     ) -> ImitationLoss:
         if self._policy_type == "deterministic":
             assert isinstance(self._modules.imitator, DeterministicPolicy)
@@ -170,11 +182,16 @@ class DiscreteBCImpl(BCBaseImpl):
         self._beta = beta
         self._entropy_beta = entropy_beta
 
-    def inner_predict_best_action(self, x: TorchObservation, embedding: Optional[torch.Tensor]) -> torch.Tensor:
+    def inner_predict_best_action(
+        self, x: TorchObservation, embedding: Optional[torch.Tensor]
+    ) -> torch.Tensor:
         return self._modules.imitator(x, embedding).logits.argmax(dim=1)
 
     def compute_loss(
-        self, obs_t: TorchObservation, embedding_t: Optional[torch.Tensor], act_t: torch.Tensor
+        self,
+        obs_t: TorchObservation,
+        embedding_t: Optional[torch.Tensor],
+        act_t: torch.Tensor,
     ) -> DiscreteImitationLoss:
         return compute_discrete_imitation_loss(
             policy=self._modules.imitator,
