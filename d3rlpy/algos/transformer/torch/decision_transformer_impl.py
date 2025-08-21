@@ -86,8 +86,8 @@ class DecisionTransformerImpl(TransformerAlgoImplBase):
             batch.actions,
             batch.returns_to_go,
             batch.timesteps,
-            batch.embeddings,
             1 - batch.masks,
+            batch.embeddings,
         )
         # (B, T, A) -> (B, T)
         loss = ((action - batch.actions) ** 2).sum(dim=-1)
