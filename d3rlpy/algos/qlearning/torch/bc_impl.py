@@ -4,6 +4,7 @@ from typing import Callable, Optional, Union
 
 import torch
 from torch.optim import Optimizer
+import torch.nn.functional as F
 
 from ....dataclass_utils import asdict_as_float
 from ....models.torch import (
@@ -171,6 +172,7 @@ class DiscreteBCImpl(BCBaseImpl):
         entropy_beta: float,
         compiled: bool,
         device: str,
+        automatic_mixed_precision: bool,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -181,11 +183,46 @@ class DiscreteBCImpl(BCBaseImpl):
         )
         self._beta = beta
         self._entropy_beta = entropy_beta
+        self.automatic_mixed_precision = automatic_mixed_precision
+        self.grad_scaler = torch.amp.GradScaler(enabled=self.automatic_mixed_precision)
 
     def inner_predict_best_action(
         self, x: TorchObservation, embedding: Optional[torch.Tensor]
     ) -> torch.Tensor:
         return self._modules.imitator(x, embedding).logits.argmax(dim=1)
+
+    def compute_imitator_grad(self, batch: TorchMiniBatch) -> ImitationLoss:
+        self._modules.optim.zero_grad()
+        with torch.autocast(device_type=self.device, enabled=self.automatic_mixed_precision):
+            dist = self._modules.imitator(batch.observations, batch.embeddings)
+            log_probs = F.log_softmax(dist.logits, dim=1)
+            imitation_loss = F.nll_loss(log_probs, batch.actions.view(-1).long())
+
+            penalty = (dist.logits ** 2).mean()
+            regularization_loss = self._beta * penalty
+
+            entropy_loss = -self._entropy_beta * dist.entropy().mean()
+
+            loss = imitation_loss + regularization_loss + entropy_loss
+
+        self.grad_scaler.scale(loss).backward()
+
+        if self._modules.optim._clip_grad_norm:
+            self.grad_scaler.unscale_(self._modules.optim.optim)
+            torch.nn.utils.clip_grad_norm_(self._modules.imitator.parameters(), max_norm=self._modules.optim._clip_grad_norm)
+
+        self.grad_scaler.step(self._modules.optim.optim)
+
+        self.grad_scaler.update()
+
+        if self._modules.optim._lr_scheduler:
+            self._modules.optim._lr_scheduler.step()
+
+        return DiscreteImitationLoss(loss=loss, imitation_loss=imitation_loss, regularization_loss=regularization_loss, entropy_loss=entropy_loss)
+
+    def update_imitator(self, batch: TorchMiniBatch) -> dict[str, float]:
+        loss = self._compute_imitator_grad(batch)
+        return asdict_as_float(loss)
 
     def compute_loss(
         self,

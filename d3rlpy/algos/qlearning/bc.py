@@ -152,6 +152,7 @@ class DiscreteBCConfig(LearnableConfig):
     beta: float = 0.5
     entropy_beta: float = 0.0
     embedding_size: Optional[int] = None
+    automatic_mixed_precision: bool = False
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -192,6 +193,7 @@ class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
             entropy_beta=self._config.entropy_beta,
             compiled=self.compiled,
             device=self._device,
+            automatic_mixed_precision=self._config.automatic_mixed_precision,
         )
 
     def get_action_type(self) -> ActionSpace:
