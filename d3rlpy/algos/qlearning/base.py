@@ -882,20 +882,23 @@ class QLearningAlgoBase(
             Dictionary of metrics.
         """
         assert self._impl, IMPL_NOT_INITIALIZED_ERROR
-        torch_batch = TorchMiniBatch.from_batch(
-            batch=batch,
-            gamma=self._config.gamma,
-            compute_returns_to_go=self.need_returns_to_go,
-            device=self._device,
-            observation_scaler=self._config.observation_scaler,
-            action_scaler=self._config.action_scaler,
-            reward_scaler=self._config.reward_scaler,
-        )
+        with self.logger.measure_time("algorithm_update_mini_batch"):
+            torch_batch = TorchMiniBatch.from_batch(
+                batch=batch,
+                gamma=self._config.gamma,
+                compute_returns_to_go=self.need_returns_to_go,
+                device=self._device,
+                observation_scaler=self._config.observation_scaler,
+                action_scaler=self._config.action_scaler,
+                reward_scaler=self._config.reward_scaler,
+            )
 
-        if self._config.transform:
-            torch_batch = self._config.transform(torch_batch)
+        with self.logger.measure_time("algorithm_update_augmentation"):
+            if self._config.transform:
+                torch_batch = self._config.transform(torch_batch)
 
-        loss = self._impl.update(torch_batch, self._grad_step)
+        with self.logger.measure_time("algorithm_update_update"):
+            loss = self._impl.update(torch_batch, self._grad_step)
         self._grad_step += 1
         return loss
 
