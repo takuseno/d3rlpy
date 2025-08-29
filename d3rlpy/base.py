@@ -4,6 +4,7 @@ import pickle
 from abc import ABCMeta, abstractmethod
 from typing import BinaryIO, Callable, Generic, Optional, TypeVar, Union
 
+import torch
 from gym.spaces import Box
 from gymnasium.spaces import Box as GymnasiumBox
 from typing_extensions import Self
@@ -29,6 +30,7 @@ from .torch_utility import (
     Modules,
     TorchMiniBatch,
     TorchTrajectoryMiniBatch,
+    map_location
 )
 from .transformation import make_transformation_callable_field
 from .types import GymEnv, Shape
@@ -198,6 +200,12 @@ def dump_learnable(
             "config": config.serialize(),
             "version": __version__,
         }
+
+        if hasattr(algo.impl, "grad_scaler"):
+            scaler_bytes = io.BytesIO()
+            torch.save(algo.impl.grad_scaler.state_dict(), scaler_bytes)
+            obj["scaler"] = scaler_bytes.getvalue()
+
         pickle.dump(obj, f)
 
 
@@ -216,6 +224,11 @@ def load_learnable(
         algo = config.create(device=device, enable_ddp=enable_ddp)
         assert algo.impl
         algo.impl.load_model(io.BytesIO(obj["torch"]))
+
+        if "scaler" in obj:
+            scaler_state_dict = torch.load(io.BytesIO(obj["scaler"]), map_location=map_location(algo._device))
+            algo.impl.grad_scaler.load_state_dict(scaler_state_dict)
+
     return algo
 
 
