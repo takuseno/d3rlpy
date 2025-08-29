@@ -173,6 +173,7 @@ class DiscreteBCImpl(BCBaseImpl):
         compiled: bool,
         device: str,
         automatic_mixed_precision: bool,
+        scheduler_on_train_step: bool,
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -184,6 +185,7 @@ class DiscreteBCImpl(BCBaseImpl):
         self._beta = beta
         self._entropy_beta = entropy_beta
         self.automatic_mixed_precision = automatic_mixed_precision
+        self.scheduler_on_train_step = scheduler_on_train_step
         self.grad_scaler = torch.amp.GradScaler(enabled=self.automatic_mixed_precision)
 
     def inner_predict_best_action(
@@ -215,7 +217,7 @@ class DiscreteBCImpl(BCBaseImpl):
 
         self.grad_scaler.update()
 
-        if self._modules.optim._lr_scheduler:
+        if self._modules.optim._lr_scheduler and self.scheduler_on_train_step:
             self._modules.optim._lr_scheduler.step()
 
         return DiscreteImitationLoss(loss=loss, imitation_loss=imitation_loss, regularization_loss=regularization_loss, entropy_loss=entropy_loss)
