@@ -174,6 +174,7 @@ class DiscreteBCImpl(BCBaseImpl):
         device: str,
         automatic_mixed_precision: bool,
         scheduler_on_train_step: bool,
+        label_smoothing: float
     ):
         super().__init__(
             observation_shape=observation_shape,
@@ -186,6 +187,7 @@ class DiscreteBCImpl(BCBaseImpl):
         self._entropy_beta = entropy_beta
         self.automatic_mixed_precision = automatic_mixed_precision
         self.scheduler_on_train_step = scheduler_on_train_step
+        self.label_smoothing = label_smoothing
         self.grad_scaler = torch.amp.GradScaler(enabled=self.automatic_mixed_precision)
 
     def inner_predict_best_action(
@@ -197,8 +199,7 @@ class DiscreteBCImpl(BCBaseImpl):
         self._modules.optim.zero_grad()
         with torch.autocast(device_type=self.device, enabled=self.automatic_mixed_precision):
             dist = self._modules.imitator(batch.observations, batch.embeddings)
-            log_probs = F.log_softmax(dist.logits, dim=1)
-            imitation_loss = F.nll_loss(log_probs, batch.actions.view(-1).long())
+            imitation_loss = F.cross_entropy(dist.logits, batch.actions.view(-1).long(), label_smoothing=self.label_smoothing)
 
             penalty = (dist.logits ** 2).mean()
             regularization_loss = self._beta * penalty

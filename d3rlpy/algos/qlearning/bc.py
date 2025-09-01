@@ -154,6 +154,7 @@ class DiscreteBCConfig(LearnableConfig):
     embedding_size: Optional[int] = None
     automatic_mixed_precision: bool = False
     scheduler_on_train_step: bool = True
+    label_smoothing: float = 0.0
 
     def create(
         self, device: DeviceArg = False, enable_ddp: bool = False
@@ -196,6 +197,7 @@ class DiscreteBC(QLearningAlgoBase[BCBaseImpl, DiscreteBCConfig]):
             device=self._device,
             automatic_mixed_precision=self._config.automatic_mixed_precision,
             scheduler_on_train_step=self._config.scheduler_on_train_step,
+            label_smoothing=self._config.label_smoothing,
         )
 
     def get_action_type(self) -> ActionSpace:
