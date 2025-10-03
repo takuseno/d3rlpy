@@ -7,6 +7,7 @@ from torch import nn
 
 from ...itertools import last_flag
 from ...types import Shape, TorchObservation
+from .layers import HyperInputEncoder, HyperLERPBlock
 
 __all__ = [
     "Encoder",
@@ -17,6 +18,8 @@ __all__ = [
     "VectorEncoderWithAction",
     "SimBaEncoder",
     "SimBaEncoderWithAction",
+    "SimbaV2Encoder",
+    "SimbaV2EncoderWithAction",
     "compute_output_size",
 ]
 
@@ -352,6 +355,96 @@ class SimBaEncoderWithAction(EncoderWithAction):
         ]
         self._layers = nn.Sequential(*layers)
         self._action_size = action_size
+        self._discrete_action = discrete_action
+
+    def forward(
+        self, x: TorchObservation, action: torch.Tensor
+    ) -> torch.Tensor:
+        assert isinstance(x, torch.Tensor)
+        if self._discrete_action:
+            action = F.one_hot(
+                action.view(-1).long(), num_classes=self._action_size
+            ).float()
+        h = torch.cat([x, action], dim=1)
+        return self._layers(h)
+
+
+class SimbaV2Encoder(Encoder):
+    def __init__(
+        self,
+        observation_shape: Sequence[int],
+        hidden_size: int,
+        n_blocks: int,
+        scaler_init: float,
+        scaler_scale: float,
+        alpha_init: float,
+        alpha_scale: float,
+        c_shift: float,
+    ):
+        super().__init__()
+        assert len(observation_shape) == 1
+        layers = [
+            HyperInputEncoder(
+                in_features=observation_shape[0],
+                out_features=hidden_size,
+                scaler_init=scaler_init,
+                scaler_scale=scaler_scale,
+                c_shift=c_shift,
+            ),
+            *[
+                HyperLERPBlock(
+                    hidden_dim=hidden_size,
+                    scaler_init=scaler_init,
+                    scaler_scale=scaler_scale,
+                    alpha_init=alpha_init,
+                    alpha_scale=alpha_scale,
+                )
+                for _ in range(n_blocks)
+            ],
+        ]
+        self._layers = nn.Sequential(*layers)
+
+    def forward(self, x: TorchObservation) -> torch.Tensor:
+        assert isinstance(x, torch.Tensor)
+        return self._layers(x)
+
+
+class SimbaV2EncoderWithAction(EncoderWithAction):
+    def __init__(
+        self,
+        observation_shape: Sequence[int],
+        action_size: int,
+        hidden_size: int,
+        n_blocks: int,
+        scaler_init: float,
+        scaler_scale: float,
+        alpha_init: float,
+        alpha_scale: float,
+        c_shift: float,
+        discrete_action: bool,
+    ):
+        super().__init__()
+        assert len(observation_shape) == 1
+        layers = [
+            HyperInputEncoder(
+                in_features=observation_shape[0] + action_size,
+                out_features=hidden_size,
+                scaler_init=scaler_init,
+                scaler_scale=scaler_scale,
+                c_shift=c_shift,
+            ),
+            *[
+                HyperLERPBlock(
+                    hidden_dim=hidden_size,
+                    scaler_init=scaler_init,
+                    scaler_scale=scaler_scale,
+                    alpha_init=alpha_init,
+                    alpha_scale=alpha_scale,
+                )
+                for _ in range(n_blocks)
+            ],
+        ]
+        self._layers = nn.Sequential(*layers)
         self._discrete_action = discrete_action
 
     def forward(

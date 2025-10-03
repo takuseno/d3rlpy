@@ -16,6 +16,7 @@ from ....models.torch import (
     NormalPolicy,
     Parameter,
     Policy,
+    TargetOutput,
     build_squashed_gaussian_distribution,
     get_parameter,
 )
@@ -113,7 +114,7 @@ class SACImpl(DDPGBaseImpl):
         self._modules.temp_optim.step()
         return loss
 
-    def compute_target(self, batch: TorchMiniBatch) -> torch.Tensor:
+    def compute_target(self, batch: TorchMiniBatch) -> TargetOutput:
         with torch.no_grad():
             dist = build_squashed_gaussian_distribution(
                 self._modules.policy(batch.next_observations)
@@ -125,7 +126,7 @@ class SACImpl(DDPGBaseImpl):
                 action,
                 reduction="min",
             )
-            return target - entropy
+            return target.add(-entropy)
 
     def inner_sample_action(self, x: TorchObservation) -> torch.Tensor:
         dist = build_squashed_gaussian_distribution(self._modules.policy(x))
@@ -213,7 +214,7 @@ class DiscreteSACImpl(DiscreteQFunctionMixin, QLearningAlgoImplBase):
                 batch.next_observations
             )
             keepdims = True
-            if target.dim() == 3:
+            if target.q_value.dim() == 3:
                 entropy = entropy.unsqueeze(-1)
                 probs = probs.unsqueeze(-1)
                 keepdims = False

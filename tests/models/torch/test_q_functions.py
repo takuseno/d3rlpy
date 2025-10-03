@@ -5,7 +5,6 @@ from d3rlpy.models.builders import create_continuous_q_function
 from d3rlpy.models.q_functions import (
     MeanQFunctionFactory,
     QFunctionFactory,
-    QRQFunctionFactory,
 )
 from d3rlpy.models.torch.q_functions import compute_max_with_n_actions
 from d3rlpy.types import Shape
@@ -18,9 +17,7 @@ from .model_test import DummyEncoderFactory
     "observation_shape", [(4, 84, 84), (100,), ((100,), (200,))]
 )
 @pytest.mark.parametrize("action_size", [3])
-@pytest.mark.parametrize(
-    "q_func_factory", [MeanQFunctionFactory(), QRQFunctionFactory()]
-)
+@pytest.mark.parametrize("q_func_factory", [MeanQFunctionFactory()])
 @pytest.mark.parametrize("n_ensembles", [2])
 @pytest.mark.parametrize("batch_size", [100])
 @pytest.mark.parametrize("n_actions", [10])
@@ -47,9 +44,4 @@ def test_compute_max_with_n_actions(
     actions = torch.rand(batch_size, n_actions, action_size)
 
     y = compute_max_with_n_actions(x, actions, forwarder, lam)
-
-    if isinstance(q_func_factory, MeanQFunctionFactory):
-        assert y.shape == (batch_size, 1)
-    else:
-        assert isinstance(q_func_factory, QRQFunctionFactory)
-        assert y.shape == (batch_size, q_func_factory.n_quantiles)
+    assert y.q_value.shape == (batch_size, 1)

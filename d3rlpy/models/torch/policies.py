@@ -7,13 +7,15 @@ from torch.distributions import Categorical
 
 from ...types import TorchObservation
 from .distributions import GaussianDistribution, SquashedGaussianDistribution
-from .encoders import Encoder, EncoderWithAction
+from .encoders import Encoder, EncoderWithAction, SimbaV2Encoder
+from .layers import HyperDense, Scaler
 
 __all__ = [
     "Policy",
     "DeterministicPolicy",
     "DeterministicResidualPolicy",
     "NormalPolicy",
+    "HyperNormalPolicy",
     "CategoricalPolicy",
     "build_gaussian_distribution",
     "build_squashed_gaussian_distribution",
@@ -140,6 +142,72 @@ class NormalPolicy(Policy):
         else:
             assert isinstance(self._logstd, nn.Linear)
             logstd = self._logstd(h)
+            clipped_logstd = logstd.clamp(self._min_logstd, self._max_logstd)
+
+        return ActionOutput(mu, torch.tanh(mu), clipped_logstd)
+
+
+class HyperNormalPolicy(Policy):
+    _encoder: SimbaV2Encoder
+    _action_size: int
+    _min_logstd: float
+    _max_logstd: float
+    _use_std_parameter: bool
+    _mu: HyperDense
+    _mu_scaler: Scaler
+    _mu_bias: nn.Parameter
+    _logstd: Union[HyperDense, nn.Parameter]
+    _logstd_scaler: Optional[Scaler]
+    _logstd_bias: Optional[nn.Parameter]
+
+    def __init__(
+        self,
+        encoder: SimbaV2Encoder,
+        hidden_size: int,
+        action_size: int,
+        min_logstd: float,
+        max_logstd: float,
+        use_std_parameter: bool,
+        scaler_init: float,
+        scaler_scale: float,
+    ):
+        super().__init__()
+        self._action_size = action_size
+        self._encoder = encoder
+        self._min_logstd = min_logstd
+        self._max_logstd = max_logstd
+        self._use_std_parameter = use_std_parameter
+        self._mu = HyperDense(hidden_size, action_size)
+        self._mu_scaler = Scaler(action_size, scaler_init, scaler_scale)
+        self._mu_bias = nn.Parameter(
+            torch.zeros(action_size), requires_grad=True
+        )
+        if use_std_parameter:
+            initial_logstd = torch.zeros(1, action_size, dtype=torch.float32)
+            self._logstd = nn.Parameter(initial_logstd)
+            self._logstd_scaler = None
+            self._logstd_bias = None
+        else:
+            self._logstd = HyperDense(hidden_size, action_size)
+            self._logstd_scaler = Scaler(action_size, scaler_init, scaler_scale)
+            self._logstd_bias = nn.Parameter(
+                torch.zeros(action_size), requires_grad=True
+            )
+
+    def forward(self, x: TorchObservation, *args: Any) -> ActionOutput:
+        h = self._encoder(x)
+        mu = self._mu_scaler(self._mu(h)) + self._mu_bias
+
+        if self._use_std_parameter:
+            assert isinstance(self._logstd, nn.Parameter)
+            logstd = torch.sigmoid(self._logstd)
+            base_logstd = self._max_logstd - self._min_logstd
+            clipped_logstd = self._min_logstd + logstd * base_logstd
+        else:
+            assert isinstance(self._logstd, nn.Linear)
+            assert isinstance(self._logstd_scaler, Scaler)
+            assert isinstance(self._logstd_bias, nn.Parameter)
+            logstd = self._lostd_scaler(self._logstd(h)) + self._logstd_bias
             clipped_logstd = logstd.clamp(self._min_logstd, self._max_logstd)
 
         return ActionOutput(mu, torch.tanh(mu), clipped_logstd)

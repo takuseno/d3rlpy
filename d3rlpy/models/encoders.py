@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass, field
 from typing import Optional, Union
 
@@ -9,10 +10,13 @@ from .torch import (
     EncoderWithAction,
     PixelEncoder,
     PixelEncoderWithAction,
+    SimBaEncoder,
+    SimBaEncoderWithAction,
+    SimbaV2Encoder,
+    SimbaV2EncoderWithAction,
     VectorEncoder,
     VectorEncoderWithAction,
 )
-from .torch.encoders import SimBaEncoder, SimBaEncoderWithAction
 from .utility import create_activation
 
 __all__ = [
@@ -21,6 +25,7 @@ __all__ = [
     "VectorEncoderFactory",
     "DefaultEncoderFactory",
     "SimBaEncoderFactory",
+    "SimbaV2EncoderFactory",
     "register_encoder_factory",
     "make_encoder_field",
 ]
@@ -315,6 +320,80 @@ class SimBaEncoderFactory(EncoderFactory):
         return "simba"
 
 
+@dataclass()
+class SimbaV2EncoderFactory(EncoderFactory):
+    """SimbaV2 encoder factory class.
+
+    This class implements SimbaV2 encoder architecture.
+
+    References:
+        * `Lee et al., Hyperspherical Normalization for Scalable Deep
+          Reinforcement Learning, <https://arxiv.org/abs/2502.15280>`_
+
+    Args:
+        feature_size (int): Feature unit size.
+        hidden_size (int): HIdden expansion layer unit size.
+        n_blocks (int): Number of SimBa blocks.
+    """
+
+    feature_size: int = 256
+    n_blocks: int = 1
+    c_shift: float = 3
+
+    def create(self, observation_shape: Shape) -> SimbaV2Encoder:
+        assert len(observation_shape) == 1
+        return SimbaV2Encoder(
+            observation_shape=cast_flat_shape(observation_shape),
+            hidden_size=self.feature_size,
+            n_blocks=self.n_blocks,
+            scaler_init=self.scaler_init,
+            scaler_scale=self.scaler_scale,
+            alpha_init=self.alpha_init,
+            alpha_scale=self.alpha_scale,
+            c_shift=self.c_shift,
+        )
+
+    def create_with_action(
+        self,
+        observation_shape: Shape,
+        action_size: int,
+        discrete_action: bool = False,
+    ) -> SimbaV2EncoderWithAction:
+        assert len(observation_shape) == 1
+        return SimbaV2EncoderWithAction(
+            observation_shape=cast_flat_shape(observation_shape),
+            action_size=action_size,
+            hidden_size=self.feature_size,
+            n_blocks=self.n_blocks,
+            scaler_init=self.scaler_init,
+            scaler_scale=self.scaler_scale,
+            alpha_init=self.alpha_init,
+            alpha_scale=self.alpha_scale,
+            c_shift=self.c_shift,
+            discrete_action=discrete_action,
+        )
+
+    @staticmethod
+    def get_type() -> str:
+        return "simba_v2"
+
+    @property
+    def scaler_init(self) -> float:
+        return math.sqrt(2 / self.feature_size)
+
+    @property
+    def scaler_scale(self) -> float:
+        return math.sqrt(2 / self.feature_size)
+
+    @property
+    def alpha_init(self) -> float:
+        return 1 / (self.n_blocks + 1)
+
+    @property
+    def alpha_scale(self) -> float:
+        return math.sqrt(1 / self.feature_size)
+
+
 register_encoder_factory, make_encoder_field = generate_config_registration(
     EncoderFactory, lambda: DefaultEncoderFactory()
 )
@@ -324,3 +403,4 @@ register_encoder_factory(VectorEncoderFactory)
 register_encoder_factory(PixelEncoderFactory)
 register_encoder_factory(DefaultEncoderFactory)
 register_encoder_factory(SimBaEncoderFactory)
+register_encoder_factory(SimbaV2EncoderFactory)

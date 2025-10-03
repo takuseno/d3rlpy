@@ -8,6 +8,7 @@ from d3rlpy.models.torch import (
     ContinuousQRQFunctionForwarder,
     DiscreteQRQFunction,
     DiscreteQRQFunctionForwarder,
+    QuantileTargetOutput,
 )
 from d3rlpy.models.torch.q_functions.utility import (
     pick_quantile_value_by_action,
@@ -81,12 +82,37 @@ def test_discrete_qr_q_function_forwarder(
 
     # check compute_target
     action = torch.randint(high=action_size, size=(batch_size,))
-    target = forwarder.compute_target(x, action)
-    assert target.shape == (batch_size, n_quantiles)
+    target_output = forwarder.compute_target(x, action)
+    assert target_output.quantile.shape == (batch_size, n_quantiles)
+
+    # check add
+    offset = torch.rand(batch_size, 1)
+    modified_target_output = target_output.add(offset)
+    assert torch.all(
+        modified_target_output.q_value == target_output.q_value + offset
+    )
+    assert torch.all(
+        modified_target_output.quantile == target_output.quantile + offset
+    )
 
     # check compute_target with action=None
-    targets = forwarder.compute_target(x)
-    assert targets.shape == (batch_size, action_size, n_quantiles)
+    target_outputs = forwarder.compute_target(x)
+    assert target_outputs.quantile.shape == (
+        batch_size,
+        action_size,
+        n_quantiles,
+    )
+
+    # check add with action=None
+    offset = torch.rand(batch_size, 1)
+    modified_target_outputs = target_outputs.add(offset)
+    assert torch.all(
+        modified_target_outputs.q_value == target_outputs.q_value + offset
+    )
+    assert torch.all(
+        modified_target_outputs.quantile
+        == target_outputs.quantile + offset.view(batch_size, 1, 1)
+    )
 
     # check quantile huber loss
     obs_t = create_torch_observations(observation_shape, batch_size)
@@ -99,7 +125,7 @@ def test_discrete_qr_q_function_forwarder(
         observations=obs_t,
         actions=act_t,
         rewards=rew_tp1,
-        target=q_tp1,
+        target=QuantileTargetOutput(q_tp1, q_tp1),
         terminals=ter_tp1,
         reduction="none",
     )
@@ -109,7 +135,7 @@ def test_discrete_qr_q_function_forwarder(
         observations=obs_t,
         actions=act_t,
         rewards=rew_tp1,
-        target=q_tp1,
+        target=QuantileTargetOutput(q_tp1, q_tp1),
         terminals=ter_tp1,
     )
 
@@ -190,8 +216,8 @@ def test_continuous_qr_q_function_forwarder(
     y = forwarder.compute_expected_q(x, action)
     assert y.shape == (batch_size, 1)
 
-    target = forwarder.compute_target(x, action)
-    assert target.shape == (batch_size, n_quantiles)
+    target_output = forwarder.compute_target(x, action)
+    assert target_output.quantile.shape == (batch_size, n_quantiles)
 
     # check quantile huber loss
     obs_t = create_torch_observations(observation_shape, batch_size)
@@ -204,7 +230,7 @@ def test_continuous_qr_q_function_forwarder(
         observations=obs_t,
         actions=act_t,
         rewards=rew_tp1,
-        target=q_tp1,
+        target=QuantileTargetOutput(q_tp1, q_tp1),
         terminals=ter_tp1,
         reduction="none",
     )
@@ -214,7 +240,7 @@ def test_continuous_qr_q_function_forwarder(
         observations=obs_t,
         actions=act_t,
         rewards=rew_tp1,
-        target=q_tp1,
+        target=QuantileTargetOutput(q_tp1, q_tp1),
         terminals=ter_tp1,
     )
 

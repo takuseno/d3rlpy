@@ -7,6 +7,7 @@ from d3rlpy.models.torch import (
     ContinuousMeanQFunctionForwarder,
     DiscreteMeanQFunction,
     DiscreteMeanQFunctionForwarder,
+    TargetOutput,
 )
 from d3rlpy.types import NDArray, Shape
 
@@ -68,14 +69,30 @@ def test_discrete_mean_q_function_forwarder(
 
     # check compute_target
     action = torch.randint(high=action_size, size=(batch_size,))
-    target = forwarder.compute_target(x, action)
-    assert target.shape == (batch_size, 1)
-    assert torch.allclose(y[torch.arange(batch_size), action], target.view(-1))
+    target_output = forwarder.compute_target(x, action)
+    assert target_output.q_value.shape == (batch_size, 1)
+    assert torch.allclose(
+        y[torch.arange(batch_size), action], target_output.q_value.view(-1)
+    )
+
+    # check add
+    offset = torch.rand(batch_size, 1)
+    modified_target_output = target_output.add(offset)
+    assert torch.all(
+        modified_target_output.q_value == target_output.q_value + offset
+    )
 
     # check compute_target with action=None
-    targets = forwarder.compute_target(x)
-    assert targets.shape == (batch_size, action_size)
-    assert (y == targets).all()
+    target_outputs = forwarder.compute_target(x)
+    assert target_outputs.q_value.shape == (batch_size, action_size)
+    assert (y == target_outputs.q_value).all()
+
+    # check add with action=None
+    offset = torch.rand(batch_size, 1)
+    modified_target_outputs = target_outputs.add(offset)
+    assert torch.all(
+        modified_target_outputs.q_value == target_outputs.q_value + offset
+    )
 
     # check td calculation
     q_tp1 = np.random.random((batch_size, 1))
@@ -98,7 +115,7 @@ def test_discrete_mean_q_function_forwarder(
         observations=obs_t,
         actions=act_t,
         rewards=rew_tp1,
-        target=q_tp1,
+        target=TargetOutput(q_tp1),
         terminals=ter_tp1,
         gamma=gamma,
     )
@@ -149,9 +166,16 @@ def test_continuous_mean_q_function_forwarder(
     assert y.shape == (batch_size, 1)
 
     # check compute_target
-    target = forwarder.compute_target(x, action)
-    assert target.shape == (batch_size, 1)
-    assert (target == y).all()
+    target_output = forwarder.compute_target(x, action)
+    assert target_output.q_value.shape == (batch_size, 1)
+    assert (target_output.q_value == y).all()
+
+    # check add
+    offset = torch.rand(batch_size, 1)
+    modified_target_output = target_output.add(offset)
+    assert torch.all(
+        modified_target_output.q_value == target_output.q_value + offset
+    )
 
     # check td calculation
     q_tp1 = np.random.random((batch_size, 1))
@@ -171,7 +195,7 @@ def test_continuous_mean_q_function_forwarder(
         observations=obs_t,
         actions=act_t,
         rewards=rew_tp1,
-        target=q_tp1,
+        target=TargetOutput(q_tp1),
         terminals=ter_tp1,
         gamma=gamma,
     )
