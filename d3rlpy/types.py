@@ -1,6 +1,11 @@
+import contextlib
+import io
 from typing import Any, Mapping, Protocol, Sequence, Union, runtime_checkable
 
-import gym
+# Suppress gym deprecation warning during import
+with contextlib.redirect_stderr(io.StringIO()):
+    import gym
+
 import gymnasium
 import numpy as np
 import numpy.typing as npt

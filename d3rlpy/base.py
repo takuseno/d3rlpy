@@ -1,10 +1,14 @@
+import contextlib
 import dataclasses
 import io
 import pickle
 from abc import ABCMeta, abstractmethod
 from typing import BinaryIO, Generic, Optional, TypeVar, Union
 
-from gym.spaces import Box
+# Suppress gym deprecation warning during import (safety measure)
+with contextlib.redirect_stderr(io.StringIO()):
+    from gym.spaces import Box
+
 from gymnasium.spaces import Box as GymnasiumBox
 from typing_extensions import Self
 

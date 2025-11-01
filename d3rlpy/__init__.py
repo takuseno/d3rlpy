@@ -5,6 +5,9 @@ import gymnasium
 import numpy as np
 import torch
 
+# Import types first to suppress gym deprecation warning before other modules import gym
+from . import types
+
 from . import (
     algos,
     dataset,
@@ -19,7 +22,6 @@ from . import (
     optimizers,
     preprocessing,
     tokenizers,
-    types,
 )
 from ._version import __version__
 from .base import load_learnable
