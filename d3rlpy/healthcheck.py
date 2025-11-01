@@ -1,3 +1,6 @@
+import contextlib
+import io
+
 __all__ = ["run_healthcheck"]
 
 
@@ -8,7 +11,11 @@ def run_healthcheck() -> None:
 
 def _check_gym() -> None:
     import gymnasium
-    from gym.version import VERSION
+    
+    # Suppress gym deprecation warning during import
+    with contextlib.redirect_stderr(io.StringIO()):
+        import gym  # noqa: F401
+        from gym.version import VERSION
 
     if VERSION < "0.26.0":
         raise ValueError(
