@@ -127,6 +127,62 @@ def test_min_max_reward_scaler(batch_size: int, multiplier: float) -> None:
     assert new_scaler.maximum == scaler.maximum
 
 
+def test_min_max_reward_scaler_with_constant_rewards() -> None:
+    rewards = np.full((3, 1), 7.0, dtype=np.float32)
+    episodes = EpisodeGenerator(
+        observations=np.array([[5, 0], [5, 10], [5, 5]], dtype=np.float32),
+        actions=np.array([[2, -1], [2, 1], [2, 0]], dtype=np.float32),
+        rewards=rewards,
+        terminals=np.array([0, 0, 1], dtype=np.float32),
+    )()
+    scaler = MinMaxRewardScaler(multiplier=3.0)
+    scaler.fit_with_transition_picker(episodes, BasicTransitionPicker())
+
+    expected = np.zeros_like(rewards)
+    y_numpy = scaler.transform_numpy(rewards)
+    np.testing.assert_array_equal(y_numpy, expected)
+    np.testing.assert_array_equal(
+        scaler.reverse_transform_numpy(y_numpy), rewards
+    )
+
+    x = torch.tensor(rewards, requires_grad=True)
+    y = scaler.transform(x)
+    np.testing.assert_array_equal(y.detach().numpy(), expected)
+    np.testing.assert_array_equal(
+        scaler.reverse_transform(y).detach().numpy(), rewards
+    )
+    y.sum().backward()
+    assert x.grad is not None
+    np.testing.assert_array_equal(
+        x.grad.numpy(), np.full_like(rewards, scaler.multiplier)
+    )
+
+    # The persisted inverse range must remain zero for any normalized value.
+    restored = MinMaxRewardScaler.deserialize(scaler.serialize())
+    np.testing.assert_array_equal(
+        restored.reverse_transform_numpy(np.ones_like(rewards)), rewards
+    )
+    np.testing.assert_array_equal(
+        restored.reverse_transform(torch.ones_like(x)).numpy(), rewards
+    )
+
+
+def test_min_max_reward_scaler_with_small_nonzero_range() -> None:
+    maximum = 2.0**-30
+    rewards = np.array([0.0, maximum / 2.0, maximum], dtype=np.float32)
+    scaler = MinMaxRewardScaler(minimum=0.0, maximum=maximum, multiplier=3.0)
+    expected = np.array([0.0, 1.5, 3.0], dtype=np.float32)
+
+    y_numpy = scaler.transform_numpy(rewards)
+    np.testing.assert_array_equal(y_numpy, expected)
+    np.testing.assert_array_equal(
+        scaler.reverse_transform_numpy(y_numpy), rewards
+    )
+    y = scaler.transform(torch.tensor(rewards))
+    np.testing.assert_array_equal(y.numpy(), expected)
+    np.testing.assert_array_equal(scaler.reverse_transform(y).numpy(), rewards)
+
+
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [10])
 @pytest.mark.parametrize("batch_size", [32])

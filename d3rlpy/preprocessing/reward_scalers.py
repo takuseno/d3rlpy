@@ -155,6 +155,10 @@ class MinMaxRewardScaler(RewardScaler):
 
         r' = (r - \min(r)) / (\max(r) - \min(r))
 
+    If the minimum and maximum are equal, the forward denominator is set to
+    one, so constant rewards map to zero. The reverse transform retains the
+    original range and restores the constant reward.
+
     .. code-block:: python
 
         from d3rlpy.preprocessing import MinMaxRewardScaler
@@ -210,6 +214,8 @@ class MinMaxRewardScaler(RewardScaler):
         assert self.built
         assert self.maximum is not None and self.minimum is not None
         base = self.maximum - self.minimum
+        if base == 0.0:
+            base = 1.0
         return self.multiplier * (x - self.minimum) / base
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
@@ -222,6 +228,8 @@ class MinMaxRewardScaler(RewardScaler):
         assert self.built
         assert self.maximum is not None and self.minimum is not None
         base = self.maximum - self.minimum
+        if base == 0.0:
+            base = 1.0
         return self.multiplier * (x - self.minimum) / base
 
     def reverse_transform_numpy(self, x: NDArray) -> NDArray:

@@ -55,6 +55,63 @@ def test_min_max_action_scaler(action_size: int, batch_size: int) -> None:
     assert np.all(new_scaler.maximum == scaler.maximum)
 
 
+def test_min_max_action_scaler_with_constant_component() -> None:
+    actions = np.array([[2, -1], [2, 1], [2, 0]], dtype=np.float32)
+    episodes = EpisodeGenerator(
+        observations=np.array([[5, 0], [5, 10], [5, 5]], dtype=np.float32),
+        actions=actions,
+        rewards=np.full((3, 1), 7, dtype=np.float32),
+        terminals=np.array([0, 0, 1], dtype=np.float32),
+    )()
+    scaler = MinMaxActionScaler()
+    scaler.fit_with_transition_picker(episodes, BasicTransitionPicker())
+    expected = np.array([[-1, -1], [-1, 1], [-1, 0]], dtype=np.float32)
+
+    y_numpy = scaler.transform_numpy(actions)
+    np.testing.assert_array_equal(y_numpy, expected)
+    np.testing.assert_array_equal(
+        scaler.reverse_transform_numpy(y_numpy), actions
+    )
+
+    x = torch.tensor(actions, requires_grad=True)
+    y = scaler.transform(x)
+    assert torch.equal(y, torch.tensor(expected))
+    assert torch.equal(scaler.reverse_transform(y), x)
+    y.sum().backward()
+    assert x.grad is not None
+    assert torch.equal(x.grad, torch.tensor([[2.0, 1.0]] * 3))
+
+    # Persisted ranges must still constrain policy outputs to action bounds.
+    restored = MinMaxActionScaler.deserialize(scaler.serialize())
+    np.testing.assert_array_equal(restored.transform_numpy(actions), expected)
+    normalized = np.array([[-1, -1], [0, 0], [1, 1]], dtype=np.float32)
+    bounded = np.array([[2, -1], [2, 0], [2, 1]], dtype=np.float32)
+    np.testing.assert_array_equal(
+        restored.reverse_transform_numpy(normalized), bounded
+    )
+    assert torch.equal(
+        restored.reverse_transform(torch.tensor(normalized)),
+        torch.tensor(bounded),
+    )
+
+
+def test_min_max_action_scaler_with_tiny_nonzero_range() -> None:
+    actions = np.array([[0], [1e-12], [5e-13]], dtype=np.float32)
+    scaler = MinMaxActionScaler(
+        minimum=actions.min(axis=0), maximum=actions.max(axis=0)
+    )
+    expected = np.array([[-1], [1], [0]], dtype=np.float32)
+    y_numpy = scaler.transform_numpy(actions)
+    np.testing.assert_array_equal(y_numpy, expected)
+    np.testing.assert_allclose(
+        scaler.reverse_transform_numpy(y_numpy), actions, rtol=1e-6, atol=0
+    )
+    x = torch.tensor(actions)
+    y = scaler.transform(x)
+    assert torch.equal(y, torch.tensor(expected))
+    assert torch.allclose(scaler.reverse_transform(y), x, rtol=1e-6, atol=0)
+
+
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("action_size", [10])
 @pytest.mark.parametrize("batch_size", [32])
