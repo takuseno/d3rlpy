@@ -3,6 +3,16 @@ Preprocessing
 
 .. module:: d3rlpy.preprocessing
 
+When a fitted component has equal minimum and maximum,
+:class:`MinMaxObservationScaler` and :class:`MinMaxActionScaler` map its recorded
+constant value to ``-1``. :class:`MinMaxRewardScaler` maps constant rewards to
+``0``. Only exactly zero forward denominators are replaced with one; nonzero
+ranges, including very small ranges, are unchanged.
+
+The fitted extrema are preserved. Inverse transforms map any normalized value
+in a constant component back to the original constant, so action postprocessing
+still respects the fitted action bounds.
+
 Observation
 ~~~~~~~~~~~
 

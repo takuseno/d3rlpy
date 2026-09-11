@@ -40,6 +40,11 @@ class MinMaxActionScaler(ActionScaler):
 
         a' = (a - \min{a}) / (\max{a} - \min{a}) * 2 - 1
 
+    For components with equal minimum and maximum, the forward denominator
+    is replaced with one, mapping the recorded constant value to ``-1.0``.
+    The reverse transform retains the original range, mapping any normalized
+    value in those components to the recorded constant.
+
     .. code-block:: python
 
         from d3rlpy.preprocessing import MinMaxActionScaler
@@ -131,8 +136,10 @@ class MinMaxActionScaler(ActionScaler):
         )
         minimum = add_leading_dims(self._torch_minimum, target=x)
         maximum = add_leading_dims(self._torch_maximum, target=x)
+        scale = maximum - minimum
+        scale.masked_fill_(scale == 0.0, 1.0)
         # transform action into [-1.0, 1.0]
-        return ((x - minimum) / (maximum - minimum)) * 2.0 - 1.0
+        return ((x - minimum) / scale) * 2.0 - 1.0
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
@@ -151,8 +158,10 @@ class MinMaxActionScaler(ActionScaler):
         assert self.maximum is not None and self.minimum is not None
         minimum = add_leading_dims_numpy(self.minimum, target=x)
         maximum = add_leading_dims_numpy(self.maximum, target=x)
+        scale = np.asarray(maximum - minimum)
+        scale[scale == 0.0] = 1.0
         # transform action into [-1.0, 1.0]
-        ret = ((x - minimum) / (maximum - minimum)) * 2.0 - 1.0
+        ret = ((x - minimum) / scale) * 2.0 - 1.0
         return ret  # type: ignore
 
     def reverse_transform_numpy(self, x: NDArray) -> NDArray:

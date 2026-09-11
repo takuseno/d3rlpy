@@ -83,6 +83,62 @@ def test_min_max_observation_scaler(
     assert np.all(new_scaler.maximum == scaler.maximum)
 
 
+def test_min_max_observation_scaler_with_constant_component() -> None:
+    observations = np.array([[5, 0], [5, 10], [5, 5]], dtype=np.float32)
+    episodes = EpisodeGenerator(
+        observations=observations,
+        actions=np.array([[2, -1], [2, 1], [2, 0]], dtype=np.float32),
+        rewards=np.full((3, 1), 7, dtype=np.float32),
+        terminals=np.array([0, 0, 1], dtype=np.float32),
+    )()
+    scaler = MinMaxObservationScaler()
+    scaler.fit_with_transition_picker(episodes, BasicTransitionPicker())
+    expected = np.array([[-1, -1], [-1, 1], [-1, 0]], dtype=np.float32)
+
+    y_numpy = scaler.transform_numpy(observations)
+    np.testing.assert_array_equal(y_numpy, expected)
+    np.testing.assert_array_equal(
+        scaler.reverse_transform_numpy(y_numpy), observations
+    )
+
+    x = torch.tensor(observations, requires_grad=True)
+    y = scaler.transform(x)
+    assert torch.equal(y, torch.tensor(expected))
+    assert torch.equal(scaler.reverse_transform(y), x)
+    y.sum().backward()
+    assert x.grad is not None
+    assert torch.allclose(x.grad, torch.tensor([[2.0, 0.2]] * 3))
+
+    restored = MinMaxObservationScaler.deserialize(scaler.serialize())
+    np.testing.assert_array_equal(
+        restored.transform_numpy(observations), expected
+    )
+    np.testing.assert_array_equal(
+        restored.reverse_transform_numpy(expected), observations
+    )
+    assert torch.equal(restored.reverse_transform(torch.tensor(expected)), x)
+
+
+def test_min_max_observation_scaler_with_tiny_nonzero_range() -> None:
+    observations = np.array([[0], [1e-12], [5e-13]], dtype=np.float32)
+    scaler = MinMaxObservationScaler(
+        minimum=observations.min(axis=0), maximum=observations.max(axis=0)
+    )
+    expected = np.array([[-1], [1], [0]], dtype=np.float32)
+    y_numpy = scaler.transform_numpy(observations)
+    np.testing.assert_array_equal(y_numpy, expected)
+    np.testing.assert_allclose(
+        scaler.reverse_transform_numpy(y_numpy),
+        observations,
+        rtol=1e-6,
+        atol=0,
+    )
+    x = torch.tensor(observations)
+    y = scaler.transform(x)
+    assert torch.equal(y, torch.tensor(expected))
+    assert torch.allclose(scaler.reverse_transform(y), x, rtol=1e-6, atol=0)
+
+
 @pytest.mark.parametrize("observation_shape", [(100,)])
 @pytest.mark.parametrize("batch_size", [32])
 def test_min_max_observation_scaler_with_transition_picker(

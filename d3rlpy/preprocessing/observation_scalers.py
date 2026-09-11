@@ -98,6 +98,11 @@ class MinMaxObservationScaler(ObservationScaler):
 
         x' = (x - \min{x}) / (\max{x} - \min{x}) * 2 - 1
 
+    For components with equal minimum and maximum, the forward denominator
+    is replaced with one, mapping the recorded constant value to ``-1.0``.
+    The reverse transform retains the original range, mapping any normalized
+    value in those components to the recorded constant.
+
     .. code-block:: python
 
         from d3rlpy.preprocessing import MinMaxObservationScaler
@@ -193,7 +198,9 @@ class MinMaxObservationScaler(ObservationScaler):
         )
         minimum = add_leading_dims(self._torch_minimum, target=x)
         maximum = add_leading_dims(self._torch_maximum, target=x)
-        return (x - minimum) / (maximum - minimum) * 2.0 - 1.0
+        scale = maximum - minimum
+        scale.masked_fill_(scale == 0.0, 1.0)
+        return (x - minimum) / scale * 2.0 - 1.0
 
     def reverse_transform(self, x: torch.Tensor) -> torch.Tensor:
         assert self.built
@@ -211,7 +218,9 @@ class MinMaxObservationScaler(ObservationScaler):
         assert self.minimum is not None and self.maximum is not None
         minimum = add_leading_dims_numpy(self.minimum, target=x)
         maximum = add_leading_dims_numpy(self.maximum, target=x)
-        ret = (x - minimum) / (maximum - minimum) * 2.0 - 1.0
+        scale = np.asarray(maximum - minimum)
+        scale[scale == 0.0] = 1.0
+        ret = (x - minimum) / scale * 2.0 - 1.0
         return ret  # type: ignore
 
     def reverse_transform_numpy(self, x: NDArray) -> NDArray:
