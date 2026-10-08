@@ -13,6 +13,16 @@ __all__ = [
 ]
 
 
+def _compute_returns_to_go(rewards: Float32NDArray) -> Float32NDArray:
+    # Accumulate backwards so earlier rewards cannot cancel later returns.
+    # Use float64 for float32 rewards to limit drift over long episodes.
+    if rewards.dtype == np.float32:
+        return np.cumsum(rewards[::-1], axis=0, dtype=np.float64)[::-1].astype(
+            np.float32
+        )
+    return np.cumsum(rewards[::-1], axis=0)[::-1].copy()
+
+
 class TrajectorySlicerProtocol(Protocol):
     r"""Interface of TrajectorySlicer."""
 
@@ -58,13 +68,7 @@ class BasicTrajectorySlicer(TrajectorySlicerProtocol):
         observations = slice_observations(episode.observations, start, end)
         actions = episode.actions[start:end]
         rewards = episode.rewards[start:end]
-        ret = np.sum(episode.rewards[start:])
-        # cumsum includes the current timestep
-        all_returns_to_go = (
-            ret
-            - np.cumsum(episode.rewards[start:], axis=0)
-            + episode.rewards[start:]
-        )
+        all_returns_to_go = _compute_returns_to_go(episode.rewards[start:])
         returns_to_go = all_returns_to_go[:actual_size].reshape((-1, 1))
 
         # prepare metadata
@@ -174,13 +178,7 @@ class FrameStackTrajectorySlicer(TrajectorySlicerProtocol):
         # slice data
         actions = episode.actions[start:end]
         rewards = episode.rewards[start:end]
-        ret = np.sum(episode.rewards[start:])
-        # cumsum includes the current timestep
-        all_returns_to_go = (
-            ret
-            - np.cumsum(episode.rewards[start:], axis=0)
-            + episode.rewards[start:]
-        )
+        all_returns_to_go = _compute_returns_to_go(episode.rewards[start:])
         returns_to_go = all_returns_to_go[:actual_size].reshape((-1, 1))
 
         # prepare metadata
