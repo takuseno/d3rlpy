@@ -1,3 +1,4 @@
+import math
 from typing import Sequence
 
 import numpy as np
@@ -5,12 +6,78 @@ import pytest
 
 from d3rlpy.dataset import (
     BasicTrajectorySlicer,
+    Episode,
     FrameStackTrajectorySlicer,
     FrameStackTransitionPicker,
+    TrajectorySlicerProtocol,
 )
-from d3rlpy.types import Shape
+from d3rlpy.types import Float32NDArray, Shape
 
 from ..testing_utils import create_episode
+
+
+@pytest.mark.parametrize(
+    "slicer", [BasicTrajectorySlicer(), FrameStackTrajectorySlicer(n_frames=2)]
+)
+@pytest.mark.parametrize(
+    "end_index,size,expected",
+    [
+        (2, 3, [1e8, 2, 1]),
+        (2, 5, [0, 0, 1e8, 2, 1]),
+        (1, 3, [0, 1e8, 2]),
+        (2, 2, [2, 1]),
+    ],
+)
+def test_trajectory_slicer_returns_to_go_with_large_earlier_reward(
+    slicer: TrajectorySlicerProtocol,
+    end_index: int,
+    size: int,
+    expected: Sequence[float],
+) -> None:
+    episode = Episode(
+        observations=np.zeros((3, 1, 2, 2), dtype=np.float32),
+        actions=np.zeros((3, 1), dtype=np.float32),
+        rewards=np.array([[1e8], [1], [1]], dtype=np.float32),
+        terminated=True,
+    )
+
+    trajectory = slicer(episode, end_index, size)
+
+    np.testing.assert_array_equal(
+        trajectory.returns_to_go,
+        np.array(expected, dtype=np.float32).reshape((-1, 1)),
+    )
+    assert trajectory.returns_to_go.dtype == np.float32
+    assert trajectory.returns_to_go.flags.c_contiguous
+
+
+@pytest.mark.parametrize(
+    "slicer", [BasicTrajectorySlicer(), FrameStackTrajectorySlicer(n_frames=2)]
+)
+@pytest.mark.parametrize(
+    "rewards",
+    [
+        np.full((100_000, 1), 1e-6, dtype=np.float32),
+        np.array([[1], [1e8], [-1e8]], dtype=np.float32),
+    ],
+)
+def test_trajectory_slicer_returns_to_go_with_accumulation_error(
+    slicer: TrajectorySlicerProtocol,
+    rewards: Float32NDArray,
+) -> None:
+    episode = Episode(
+        observations=np.zeros((len(rewards), 1), dtype=np.float32),
+        actions=np.zeros((len(rewards), 1), dtype=np.float32),
+        rewards=rewards,
+        terminated=True,
+    )
+
+    trajectory = slicer(episode, end_index=0, size=1)
+
+    expected = np.float32(math.fsum(rewards[:, 0]))
+    np.testing.assert_array_equal(trajectory.returns_to_go, [[expected]])
+    assert trajectory.returns_to_go.dtype == np.float32
+    assert trajectory.returns_to_go.flags.c_contiguous
 
 
 @pytest.mark.parametrize("observation_shape", [(4,), ((4,), (8,))])
