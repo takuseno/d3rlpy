@@ -90,7 +90,10 @@ class FIFOBuffer(BufferProtocol):
     def append(self, episode: EpisodeBase, index: int) -> None:
         if len(self._transitions) == self._limit:
             # check if dropped transition is the last transition
-            if self._transitions[0][0] is not self._transitions[1][0]:
+            if (
+                len(self._transitions) == 1
+                or self._transitions[0][0] is not self._transitions[1][0]
+            ):
                 self._episodes.pop(0)
         self._transitions.append((episode, index))
         if not self._episodes or episode is not self._episodes[-1]:
