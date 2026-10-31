@@ -35,6 +35,7 @@ from d3rlpy.preprocessing import (
 )
 from d3rlpy.types import Float32NDArray, NDArray, Observation, Shape
 
+from ..models.torch.model_test import DummyEncoderFactory
 from ..testing_utils import create_episode
 
 
@@ -429,7 +430,7 @@ def test_initial_state_value_estimation_with_algos(
         discrete_action=True,
     )
     discrete_replay_buffer = _create_replay_buffer([discrete_episode])
-    dqn = DQNConfig().create()
+    dqn = DQNConfig(encoder_factory=DummyEncoderFactory()).create()
     dqn.build_with_dataset(discrete_replay_buffer)
     InitialStateValueEstimationEvaluator()(dqn, discrete_replay_buffer)
 
@@ -441,7 +442,10 @@ def test_initial_state_value_estimation_with_algos(
         discrete_action=False,
     )
     replay_buffer = _create_replay_buffer([episode])
-    sac = SACConfig().create()
+    sac = SACConfig(
+        actor_encoder_factory=DummyEncoderFactory(),
+        critic_encoder_factory=DummyEncoderFactory(),
+    ).create()
     sac.build_with_dataset(replay_buffer)
     InitialStateValueEstimationEvaluator()(sac, replay_buffer)
 
