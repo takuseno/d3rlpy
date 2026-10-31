@@ -431,7 +431,7 @@ def test_initial_state_value_estimation_with_algos(
     )
     discrete_replay_buffer = _create_replay_buffer([discrete_episode])
     dqn = DQNConfig(encoder_factory=DummyEncoderFactory()).create()
-    dqn.build_with_dataset(discrete_replay_buffer)
+    dqn.create_impl(observation_shape, action_size)
     InitialStateValueEstimationEvaluator()(dqn, discrete_replay_buffer)
 
     # test with SAC
@@ -446,7 +446,7 @@ def test_initial_state_value_estimation_with_algos(
         actor_encoder_factory=DummyEncoderFactory(),
         critic_encoder_factory=DummyEncoderFactory(),
     ).create()
-    sac.build_with_dataset(replay_buffer)
+    sac.create_impl(observation_shape, action_size)
     InitialStateValueEstimationEvaluator()(sac, replay_buffer)
 
 
