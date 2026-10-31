@@ -260,14 +260,11 @@ class InitialStateValueEstimationEvaluator(EvaluatorProtocol):
         total_values = []
         episodes = self._episodes if self._episodes else dataset.episodes
         for episode in episodes:
-            for batch in make_batches(
-                episode, WINDOW_SIZE, dataset.transition_picker
-            ):
-                # estimate action-value in initial states
-                first_obs = np.expand_dims(batch.observations[0], axis=0)
-                actions = algo.predict(first_obs)
-                values = algo.predict_value(first_obs, actions)
-                total_values.append(values[0])
+            transition = dataset.transition_picker(episode, 0)
+            batch = TransitionMiniBatch.from_transitions([transition])
+            actions = algo.predict(batch.observations)
+            values = algo.predict_value(batch.observations, actions)
+            total_values.append(values[0])
         return float(np.mean(total_values))
 
 

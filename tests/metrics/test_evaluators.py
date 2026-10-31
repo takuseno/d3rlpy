@@ -1,3 +1,4 @@
+import dataclasses
 from typing import Callable, Optional, Sequence
 
 import numpy as np
@@ -7,9 +8,13 @@ from d3rlpy.algos import DQNConfig, SACConfig
 from d3rlpy.dataset import (
     BasicTransitionPicker,
     Episode,
+    EpisodeBase,
+    FrameStackTransitionPicker,
     InfiniteBuffer,
     ReplayBuffer,
+    Transition,
     TransitionMiniBatch,
+    TransitionPickerProtocol,
 )
 from d3rlpy.metrics.evaluators import (
     AverageValueEstimationEvaluator,
@@ -28,7 +33,7 @@ from d3rlpy.preprocessing import (
     ObservationScaler,
     RewardScaler,
 )
-from d3rlpy.types import Float32NDArray, NDArray, Observation
+from d3rlpy.types import Float32NDArray, NDArray, Observation, Shape
 
 from ..testing_utils import create_episode
 
@@ -408,11 +413,11 @@ def test_initial_state_value_estimation_scorer(
     assert np.allclose(score, np.mean(total_values))
 
 
-@pytest.mark.parametrize("observation_shape", [(100,)])
+@pytest.mark.parametrize("observation_shape", [(100,), ((100,), (20,))])
 @pytest.mark.parametrize("action_size", [2])
 @pytest.mark.parametrize("episode_length", [10])
 def test_initial_state_value_estimation_with_algos(
-    observation_shape: Sequence[int],
+    observation_shape: Shape,
     action_size: int,
     episode_length: int,
 ) -> None:
@@ -439,6 +444,99 @@ def test_initial_state_value_estimation_with_algos(
     sac = SACConfig().create()
     sac.build_with_dataset(replay_buffer)
     InitialStateValueEstimationEvaluator()(sac, replay_buffer)
+
+
+@pytest.mark.parametrize("long_length", [1023, 1024, 1025, 2048, 2049])
+@pytest.mark.parametrize("terminated", [False, True])
+@pytest.mark.parametrize("explicit_episodes", [False, True])
+def test_initial_state_values_weight_episodes_equally(
+    long_length: int, terminated: bool, explicit_episodes: bool
+) -> None:
+    episodes = []
+    for length, initial_value in ((2, 2.0), (long_length, 6.0)):
+        observations = np.full((length, 1), 100.0, dtype=np.float32)
+        observations[0] = initial_value
+        episodes.append(
+            Episode(
+                observations=observations,
+                actions=np.zeros((length, 1), dtype=np.float32),
+                rewards=np.zeros((length, 1), dtype=np.float32),
+                terminated=terminated,
+            )
+        )
+    dataset = _create_replay_buffer(episodes)
+    evaluator = InitialStateValueEstimationEvaluator(
+        episodes if explicit_episodes else None
+    )
+    algo = DummyAlgo(np.zeros((1, 1), dtype=np.float32), 0.0)
+
+    assert evaluator(algo, dataset) == 4.0
+
+
+class RecordingInitialStatePicker(TransitionPickerProtocol):
+    def __init__(self, frames: int, offset: float):
+        self.picker: TransitionPickerProtocol = (
+            FrameStackTransitionPicker(frames)
+            if frames > 1
+            else BasicTransitionPicker()
+        )
+        self.offset = offset
+        self.indices: list[int] = []
+
+    def __call__(self, episode: EpisodeBase, index: int) -> Transition:
+        self.indices.append(index)
+        transition = self.picker(episode, index)
+        observation = transition.observation
+        if isinstance(observation, np.ndarray):
+            observation = observation + self.offset
+        else:
+            observation = [part + self.offset for part in observation]
+        return dataclasses.replace(transition, observation=observation)
+
+
+class SumObservationAlgo(DummyAlgo):
+    def predict(self, x: Observation) -> NDArray:
+        parts = [x] if isinstance(x, np.ndarray) else x
+        assert all(part.shape[0] == 1 for part in parts)
+        return np.zeros((1, 1), dtype=np.float32)
+
+    def predict_value(self, x: Observation, action: NDArray) -> NDArray:
+        parts = [x] if isinstance(x, np.ndarray) else x
+        values = [part.reshape(1, -1).sum(axis=1) for part in parts]
+        return np.asarray(np.sum(values, axis=0), dtype=np.float32)
+
+
+@pytest.mark.parametrize("tuple_observation", [False, True])
+@pytest.mark.parametrize("frames,offset", [(1, 0.0), (4, 0.0), (1, 10.0)])
+def test_initial_state_values_use_the_configured_picker(
+    tuple_observation: bool, frames: int, offset: float
+) -> None:
+    length = 2050
+    image = np.full((length, 1, 2, 2), 100.0, dtype=np.float32)
+    image[0] = 3.0
+    parts = [image]
+    if tuple_observation:
+        second_image = np.full((length, 1, 3, 3), 200.0, dtype=np.float32)
+        second_image[0] = 7.0
+        parts.append(second_image)
+    episode = Episode(
+        observations=parts if tuple_observation else image,
+        actions=np.zeros((length, 1), dtype=np.float32),
+        rewards=np.zeros((length, 1), dtype=np.float32),
+        terminated=True,
+    )
+    picker = RecordingInitialStatePicker(frames, offset)
+    dataset = ReplayBuffer(
+        InfiniteBuffer(), episodes=[episode], transition_picker=picker
+    )
+    picker.indices.clear()
+    algo = SumObservationAlgo(np.zeros((1, 1), dtype=np.float32), 0.0)
+
+    # At t=0, preceding frames are zeros; only the first image contributes.
+    expected = 4 * 3.0 + (9 * 7.0 if tuple_observation else 0.0)
+    expected += offset * frames * (4 + (9 if tuple_observation else 0))
+    assert InitialStateValueEstimationEvaluator()(algo, dataset) == expected
+    assert picker.indices == [0]
 
 
 @pytest.mark.parametrize("observation_shape", [(100,)])
