@@ -74,6 +74,9 @@ class TDErrorEvaluator(EvaluatorProtocol):
     This metric suggests how Q functions overfit to training sets.
     If the TD error is large, the Q functions are overfitting.
 
+    For multi-step transitions, the bootstrap discount uses the transition's
+    actual interval, including shorter intervals at episode boundaries.
+
     .. math::
 
         \mathbb{E}_{s_t, a_t, r_{t+1}, s_{t+1} \sim D}
@@ -115,7 +118,8 @@ class TDErrorEvaluator(EvaluatorProtocol):
                 rewards = np.asarray(batch.rewards).reshape(-1)
                 if algo.reward_scaler:
                     rewards = algo.reward_scaler.transform_numpy(rewards)
-                y = rewards + algo.gamma * next_values * mask
+                discounts = algo.gamma ** batch.intervals.reshape(-1)
+                y = rewards + discounts * next_values * mask
                 total_errors += ((values - y) ** 2).tolist()
 
         return float(np.mean(total_errors))
