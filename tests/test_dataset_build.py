@@ -27,12 +27,13 @@ def _dataset(
     observation_kind: str, discrete: bool, n_frames: int
 ) -> tuple[ReplayBuffer, Shape]:
     rng = np.random.default_rng(42)
-    shapes = {
+    observation_shapes: dict[str, list[tuple[int, ...]]] = {
         "vector": [(3,)],
         "image": [(1, 4, 4)],
         "list": [(1, 4, 4), (3,)],
         "tuple": [(2,), (3,), (4,)],
-    }[observation_kind]
+    }
+    shapes = observation_shapes[observation_kind]
     components = [
         rng.normal(size=(8, *shape)).astype(np.float32) for shape in shapes
     ]
