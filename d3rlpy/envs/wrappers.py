@@ -433,6 +433,11 @@ class GoalConcatWrapper(
                     for space in goal_spaces
                 ]
             )
+            goal_space = GymnasiumBox(
+                low=goal_space_low,
+                high=goal_space_high,
+                dtype=goal_space_low.dtype.type,
+            )
         else:
             raise ValueError(f"unsupported goal space: {type(goal_space)}")
         if tuple_observation:
